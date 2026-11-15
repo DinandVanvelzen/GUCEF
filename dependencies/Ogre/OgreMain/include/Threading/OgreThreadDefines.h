@@ -4,7 +4,7 @@ This source file is a part of OGRE
 
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -35,6 +35,34 @@ THE SOFTWARE
     #include "OgreThreadDefinesPoco.h"
 #elif OGRE_THREAD_PROVIDER == 3
     #include "OgreThreadDefinesTBB.h"
+#elif OGRE_THREAD_PROVIDER == 4
+   #include "OgreThreadDefinesSTD.h"
+#endif
+
+#if OGRE_THREAD_SUPPORT == 3
+    #include "OgreThreadDefinesNone.h"
+
+    // all empty definitions
+    #define OGRE_MUTEX(name)
+
+    #define OGRE_LOCK_MUTEX(name)
+    #define OGRE_LOCK_MUTEX_NAMED(mutexName, lockName)
+
+    #define OGRE_RW_MUTEX(name)
+    #define OGRE_LOCK_RW_MUTEX_READ(name)
+    #define OGRE_LOCK_RW_MUTEX_WRITE(name)
+    #define OGRE_THREAD_SYNCHRONISER(sync)
+#else
+    // alias to WQ names
+    #define OGRE_MUTEX(name) OGRE_WQ_MUTEX(name)
+
+    #define OGRE_LOCK_MUTEX(name) OGRE_WQ_LOCK_MUTEX(name)
+    #define OGRE_LOCK_MUTEX_NAMED(mutexName, lockName) OGRE_WQ_LOCK_MUTEX_NAMED(mutexName, lockName)
+
+    #define OGRE_RW_MUTEX(name) OGRE_WQ_RW_MUTEX(name)
+    #define OGRE_LOCK_RW_MUTEX_READ(name) OGRE_WQ_LOCK_RW_MUTEX_READ(name)
+    #define OGRE_LOCK_RW_MUTEX_WRITE(name) OGRE_WQ_LOCK_RW_MUTEX_WRITE(name)
+    #define OGRE_THREAD_SYNCHRONISER(sync) OGRE_WQ_THREAD_SYNCHRONISER(sync)
 #endif
 
 #endif

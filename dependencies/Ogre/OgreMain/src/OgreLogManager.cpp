@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreLogManager.h"
-#include "OgreException.h"
-#include <algorithm>
 namespace Ogre {
 
     //-----------------------------------------------------------------------
@@ -71,7 +68,7 @@ namespace Ogre {
             mDefaultLog = newLog;
         }
 
-        mLogs.insert( LogList::value_type( name, newLog ) );
+        mLogs.emplace(name, newLog);
 
         return newLog;
     }
@@ -94,12 +91,8 @@ namespace Ogre {
     {
         OGRE_LOCK_AUTO_MUTEX;
         LogList::iterator i = mLogs.find(name);
-        if (i != mLogs.end())
-            return i->second;
-        else
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Log not found. ", "LogManager::getLog");
-
-
+        OgreAssert(i != mLogs.end(), "Log not found");
+        return i->second;
     }
     //-----------------------------------------------------------------------
     void LogManager::destroyLog(const String& name)
@@ -124,9 +117,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void LogManager::destroyLog(Log* log)
     {
-        if(!log)
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Cannot destroy a null log.", "LogManager::destroyLog");
-
+        OgreAssert(log, "Cannot destroy a null log");
         destroyLog(log->getName());
     }
     //-----------------------------------------------------------------------
@@ -138,23 +129,41 @@ namespace Ogre {
             mDefaultLog->logMessage(message, lml, maskDebug);
         }
     }
+
+    void LogManager::logError(const String& message, bool maskDebug )
+    {
+        stream(LML_CRITICAL, maskDebug) << "Error: " << message;
+    }
+
+    void LogManager::logWarning(const String& message, bool maskDebug )
+    {
+        stream(LML_WARNING, maskDebug) << "Warning: " << message;
+    }
     //-----------------------------------------------------------------------
     void LogManager::setLogDetail(LoggingLevel ll)
     {
         OGRE_LOCK_AUTO_MUTEX;
         if (mDefaultLog)
         {
+            OGRE_IGNORE_DEPRECATED_BEGIN
             mDefaultLog->setLogDetail(ll);
+            OGRE_IGNORE_DEPRECATED_END
+        }
+    }
+    //-----------------------------------------------------------------------
+    void LogManager::setMinLogLevel(LogMessageLevel lml)
+    {
+        OGRE_LOCK_AUTO_MUTEX;
+        if (mDefaultLog)
+        {
+            mDefaultLog->setMinLogLevel(lml);
         }
     }
     //---------------------------------------------------------------------
     Log::Stream LogManager::stream(LogMessageLevel lml, bool maskDebug)
     {
             OGRE_LOCK_AUTO_MUTEX;
-        if (mDefaultLog)
-            return mDefaultLog->stream(lml, maskDebug);
-        else
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Default log not found. ", "LogManager::stream");
-
+        OgreAssert(mDefaultLog, "Default log not found");
+        return mDefaultLog->stream(lml, maskDebug);
     }
 }

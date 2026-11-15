@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ THE SOFTWARE.
 namespace Ogre
 {
     class Terrain;
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Terrain
@@ -49,13 +49,13 @@ namespace Ogre
         This class is used for managing terrain LOD data's loading, unloading.
     */
 
-    class _OgreTerrainExport TerrainLodManager : public WorkQueue::RequestHandler, public WorkQueue::ResponseHandler, public TerrainAlloc
+    class _OgreTerrainExport TerrainLodManager
     {
     public:
         static const uint32 TERRAINLODDATA_CHUNK_ID;
         static const uint16 TERRAINLODDATA_CHUNK_VERSION;
-        typedef vector<float>::type LodData;
-        typedef vector<LodData>::type LodsData;
+        typedef std::vector<float> LodData;
+        typedef std::vector<LodData> LodsData;
 
         struct LoadLodRequest
         {
@@ -70,8 +70,6 @@ namespace Ogre
             uint16 currentPreparedLod;
             uint16 currentLoadedLod;
             uint16 requestedLod;
-            _OgreTerrainExport friend std::ostream& operator<<(std::ostream& o, const LoadLodRequest& r)
-            { return o; }
         };
 
         struct LodInfo
@@ -87,11 +85,9 @@ namespace Ogre
         TerrainLodManager(Terrain* t, const String& filename = "");
         virtual ~TerrainLodManager();
 
-        static const uint16 WORKQUEUE_LOAD_LOD_DATA_REQUEST;
-        virtual bool canHandleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
-        virtual bool canHandleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
-        virtual WorkQueue::Response* handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
-        virtual void handleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
+        void open(const String& filename);
+        void close();
+        bool isOpen() const;
 
         void updateToLodLevel(int lodLevel, bool synchronous = false);
         /// Save each LOD level separately compressed so seek is possible
@@ -99,7 +95,7 @@ namespace Ogre
 
         /** Copy geometry data from buffer to mHeightData/mDeltaData
           @param lodLevel A LOD level to work with
-          @param data Buffer which holds geometry data if separated form
+          @param data, dataSize Buffer which holds geometry data if separated form
           @remarks Data in buffer has to be both height and delta data. First half is height data.
                 Seconds half is delta data.
           */
@@ -124,6 +120,9 @@ namespace Ogre
             return mLodInfoTable[lodLevel];
         }
     private:
+        WorkQueue::Response* handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
+        void handleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
+
         void init();
         void buildLodInfoTable();
 
@@ -149,7 +148,6 @@ namespace Ogre
         Terrain* mTerrain;
         DataStreamPtr mDataStream;
         size_t mStreamOffset;
-        uint16 mWorkQueueChannel;
 
         LodInfo* mLodInfoTable;
         int mTargetLodLevel;    /// Which LOD level is demanded

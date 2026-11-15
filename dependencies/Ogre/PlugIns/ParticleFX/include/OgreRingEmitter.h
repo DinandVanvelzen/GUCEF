@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-
+// Original author: Tels <http://bloodgate.com>, released as public domain
 #ifndef __RingEmitter_H__
 #define __RingEmitter_H__
 
@@ -34,9 +34,15 @@ THE SOFTWARE.
 #include "OgreMath.h"
 
 namespace Ogre {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup ParticleFX
+    *  @{
+    */
 
     /** Particle emitter which emits particles randomly from points inside a ring (e.g. a tube).
-    @remarks
+
         This particle emitter emits particles from a ring-shaped area.
         The initial direction of these particles can either be a single
         direction (i.e. a line), a random scattering inside a cone, or a random
@@ -44,7 +50,7 @@ namespace Ogre {
         is the angle across which to scatter the particles either side of the
         base direction of the emitter. 
     */
-    class _OgreParticleFXExport RingEmitter : public AreaEmitter
+    class RingEmitter : public AreaEmitter
     {
     public:
         /// @see AreaEmitter
@@ -52,21 +58,21 @@ namespace Ogre {
         class CmdInnerX : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
         /** Command object for inner size (see ParamCommand).*/
         class CmdInnerY : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         RingEmitter(ParticleSystem* psys);
 
         /// @see ParticleEmitter
-        void _initParticle(Particle* pParticle);
+        void _initParticle(Particle* pParticle) override;
 
         /** Sets the size of the clear space inside the area from where NO particles are emitted.
         @param x, y
@@ -104,7 +110,8 @@ namespace Ogre {
 
 
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

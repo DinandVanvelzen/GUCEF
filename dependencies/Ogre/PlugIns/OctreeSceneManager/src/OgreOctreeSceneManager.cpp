@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,24 +40,6 @@ email                : janders@users.sf.net
 #include "OgreOctreeCamera.h"
 #include "OgreWireBoundingBox.h"
 
-extern "C"
-{
-    void findNodesInBox( Ogre::SceneManager *sm,
-                         const Ogre::AxisAlignedBox &box,
-                         Ogre::list< Ogre::SceneNode * >::type &list,
-                         Ogre::SceneNode *exclude )
-    {
-        static_cast<Ogre::OctreeSceneManager*>( sm ) -> findNodesIn( box, list, exclude );
-    }
-    void findNodesInSphere( Ogre::SceneManager *sm,
-                            const Ogre::Sphere &sphere,
-                            Ogre::list< Ogre::SceneNode * >::type &list,
-                            Ogre::SceneNode *exclude )
-    {
-        static_cast<Ogre::OctreeSceneManager*>( sm ) -> findNodesIn( sphere, list, exclude );
-    }
-}
-
 namespace Ogre
 {
 enum Intersection
@@ -68,7 +50,7 @@ enum Intersection
 };
 int OctreeSceneManager::intersect_call = 0;
 
-Intersection intersect( const Ray &one, const AxisAlignedBox &two )
+static Intersection intersect( const Ray &one, const AxisAlignedBox &two )
 {
     OctreeSceneManager::intersect_call++;
     // Null box?
@@ -139,7 +121,7 @@ Intersection intersect( const Ray &one, const AxisAlignedBox &two )
 
 /** Checks how the second box intersects with the first.
 */
-Intersection intersect( const PlaneBoundedVolume &one, const AxisAlignedBox &two )
+static Intersection intersect( const PlaneBoundedVolume &one, const AxisAlignedBox &two )
 {
     OctreeSceneManager::intersect_call++;
     // Null box?
@@ -180,7 +162,7 @@ Intersection intersect( const PlaneBoundedVolume &one, const AxisAlignedBox &two
 
 /** Checks how the second box intersects with the first.
 */
-Intersection intersect( const AxisAlignedBox &one, const AxisAlignedBox &two )
+static Intersection intersect( const AxisAlignedBox &one, const AxisAlignedBox &two )
 {
     OctreeSceneManager::intersect_call++;
     // Null box?
@@ -221,7 +203,7 @@ Intersection intersect( const AxisAlignedBox &one, const AxisAlignedBox &two )
 
 /** Checks how the box intersects with the sphere.
 */
-Intersection intersect( const Sphere &one, const AxisAlignedBox &two )
+static Intersection intersect( const Sphere &one, const AxisAlignedBox &two )
 {
     OctreeSceneManager::intersect_call++;
     // Null box?
@@ -370,7 +352,7 @@ Camera * OctreeSceneManager::createCamera( const String &name )
     }
 
     Camera * c = OGRE_NEW OctreeCamera( name, this );
-    mCameras.insert( CameraList::value_type( name, c ) );
+    mCameras.emplace(name, c);
 
     // create visible bounds aab map entry
     mCamVisibleObjectsMap[c] = VisibleObjectsBoundsInfo();
@@ -378,14 +360,14 @@ Camera * OctreeSceneManager::createCamera( const String &name )
     return c;
 }
 
-void OctreeSceneManager::destroySceneNode( const String &name )
+void OctreeSceneManager::destroySceneNode( SceneNode* sn )
 {
-    OctreeNode * on = static_cast < OctreeNode* > ( getSceneNode( name ) );
+    OctreeNode * on = static_cast < OctreeNode* > ( sn );
 
     if ( on != 0 )
         _removeOctreeNode( on );
 
-    SceneManager::destroySceneNode( name );
+    SceneManager::destroySceneNode( sn );
 }
 
 bool OctreeSceneManager::getOptionValues( const String & key, StringVector  &refValueList )
@@ -546,22 +528,6 @@ void OctreeSceneManager::_updateSceneGraph( Camera * cam )
     SceneManager::_updateSceneGraph( cam );
 }
 
-void OctreeSceneManager::_alertVisibleObjects( void )
-{
-    OGRE_EXCEPT( Exception::ERR_NOT_IMPLEMENTED,
-        "Function doesn't do as advertised",
-        "OctreeSceneManager::_alertVisibleObjects" );
-
-//    Octree::NodeList::iterator it = mVisible.begin();
-//
-//    while ( it != mVisible.end() )
-//    {
-//        OctreeNode * node = *it;
-//
-//        ++it;
-//    }
-}
-
 void OctreeSceneManager::_findVisibleObjects(Camera * cam, 
     VisibleObjectsBoundsInfo* visibleBounds, bool onlyShadowCasters )
 {
@@ -647,12 +613,8 @@ void OctreeSceneManager::walkOctree( OctreeCamera *camera, RenderQueue *queue,
 
                 mVisible.push_back( sn );
 
-                if ( mDisplayNodes )
-                    queue -> addRenderable( sn->getDebugRenderable() );
-
-                // check if the scene manager or this node wants the bounding box shown.
-                if (sn->getShowBoundingBox() || mShowBoundingBoxes)
-                    sn->_addBoundingBoxToQueue(queue);
+                if (getDebugDrawer())
+                    getDebugDrawer()->drawSceneNode(sn);
             }
 
             ++it;
@@ -689,7 +651,7 @@ void OctreeSceneManager::walkOctree( OctreeCamera *camera, RenderQueue *queue,
 }
 
 // --- non template versions
-void _findNodes( const AxisAlignedBox &t, list< SceneNode * >::type &list, SceneNode *exclude, bool full, Octree *octant )
+static void _findNodes( const AxisAlignedBox &t, std::list< SceneNode * > &list, SceneNode *exclude, bool full, Octree *octant )
 {
 
     if ( !full )
@@ -762,7 +724,7 @@ void _findNodes( const AxisAlignedBox &t, list< SceneNode * >::type &list, Scene
 
 }
 
-void _findNodes( const Sphere &t, list< SceneNode * >::type &list, SceneNode *exclude, bool full, Octree *octant )
+static void _findNodes( const Sphere &t, std::list< SceneNode * > &list, SceneNode *exclude, bool full, Octree *octant )
 {
 
     if ( !full )
@@ -836,7 +798,7 @@ void _findNodes( const Sphere &t, list< SceneNode * >::type &list, SceneNode *ex
 }
 
 
-void _findNodes( const PlaneBoundedVolume &t, list< SceneNode * >::type &list, SceneNode *exclude, bool full, Octree *octant )
+static void _findNodes( const PlaneBoundedVolume &t, std::list< SceneNode * > &list, SceneNode *exclude, bool full, Octree *octant )
 {
 
     if ( !full )
@@ -909,7 +871,7 @@ void _findNodes( const PlaneBoundedVolume &t, list< SceneNode * >::type &list, S
 
 }
 
-void _findNodes( const Ray &t, list< SceneNode * >::type &list, SceneNode *exclude, bool full, Octree *octant )
+static void _findNodes( const Ray &t, std::list< SceneNode * > &list, SceneNode *exclude, bool full, Octree *octant )
 {
 
     if ( !full )
@@ -982,30 +944,30 @@ void _findNodes( const Ray &t, list< SceneNode * >::type &list, SceneNode *exclu
 
 }
 
-void OctreeSceneManager::findNodesIn( const AxisAlignedBox &box, list< SceneNode * >::type &list, SceneNode *exclude )
+void OctreeSceneManager::findNodesIn( const AxisAlignedBox &box, std::list< SceneNode * > &list, SceneNode *exclude )
 {
     _findNodes( box, list, exclude, false, mOctree );
 }
 
-void OctreeSceneManager::findNodesIn( const Sphere &sphere, list< SceneNode * >::type &list, SceneNode *exclude )
+void OctreeSceneManager::findNodesIn( const Sphere &sphere, std::list< SceneNode * > &list, SceneNode *exclude )
 {
     _findNodes( sphere, list, exclude, false, mOctree );
 }
 
-void OctreeSceneManager::findNodesIn( const PlaneBoundedVolume &volume, list< SceneNode * >::type &list, SceneNode *exclude )
+void OctreeSceneManager::findNodesIn( const PlaneBoundedVolume &volume, std::list< SceneNode * > &list, SceneNode *exclude )
 {
     _findNodes( volume, list, exclude, false, mOctree );
 }
 
-void OctreeSceneManager::findNodesIn( const Ray &r, list< SceneNode * >::type &list, SceneNode *exclude )
+void OctreeSceneManager::findNodesIn( const Ray &r, std::list< SceneNode * > &list, SceneNode *exclude )
 {
     _findNodes( r, list, exclude, false, mOctree );
 }
 
 void OctreeSceneManager::resize( const AxisAlignedBox &box )
 {
-    list< SceneNode * >::type nodes;
-    list< SceneNode * >::type ::iterator it;
+    std::list< SceneNode * > nodes;
+    std::list< SceneNode * > ::iterator it;
 
     _findNodes( mOctree->mBox, nodes, 0, true, mOctree );
 
@@ -1146,24 +1108,10 @@ OctreeSceneManager::createIntersectionQuery(uint32 mask)
 //-----------------------------------------------------------------------
 const String OctreeSceneManagerFactory::FACTORY_TYPE_NAME = "OctreeSceneManager";
 //-----------------------------------------------------------------------
-void OctreeSceneManagerFactory::initMetaData(void) const
-{
-    mMetaData.typeName = FACTORY_TYPE_NAME;
-    mMetaData.description = "Scene manager organising the scene on the basis of an octree.";
-    mMetaData.sceneTypeMask = 0xFFFF; // support all types
-    mMetaData.worldGeometrySupported = false;
-}
-//-----------------------------------------------------------------------
 SceneManager* OctreeSceneManagerFactory::createInstance(
     const String& instanceName)
 {
     return OGRE_NEW OctreeSceneManager(instanceName);
 }
-//-----------------------------------------------------------------------
-void OctreeSceneManagerFactory::destroyInstance(SceneManager* instance)
-{
-    OGRE_DELETE instance;
-}
-
 
 }

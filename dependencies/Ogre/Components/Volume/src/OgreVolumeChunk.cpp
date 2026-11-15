@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -32,21 +32,23 @@ THE SOFTWARE.
 #include "OgreVolumeIsoSurfaceMC.h"
 #include "OgreVolumeOctreeNodeSplitPolicy.h"
 #include "OgreVolumeTextureSource.h"
-#include "OgreVolumeChunkHandler.h"
 #include "OgreVolumeMeshBuilder.h"
 #include "OgreVolumeDualGridGenerator.h"
 #include "OgreSceneNode.h"
 #include "OgreViewport.h"
 #include "OgreRoot.h"
 #include "OgreVolumeChunk.h"
+
+#include <cmath>
 #include "OgreVolumeMeshBuilder.h"
 #include "OgreVolumeOctreeNode.h"
+#include "OgreMaterialManager.h"
+#include "OgreWorkQueue.h"
 
 namespace Ogre {
 namespace Volume {
 
     const String Chunk::MOVABLE_TYPE_NAME = "VolumeChunk";
-    ChunkHandler Chunk::mChunkHandler;
     
     //-----------------------------------------------------------------------
 
@@ -69,12 +71,19 @@ namespace Volume {
             req.maxLevels = maxLevels;
             req.isUpdate = mShared->parameters->updateFrom != Vector3::ZERO || mShared->parameters->updateTo != Vector3::ZERO;
 
-            req.origin = this;
             req.root = OGRE_NEW OctreeNode(from, to);
             req.meshBuilder = OGRE_NEW MeshBuilder();
             req.dualGridGenerator = OGRE_NEW DualGridGenerator();
 
-            mChunkHandler.addRequest(req);
+            Root::getSingleton().getWorkQueue()->addTask([this, req]() {
+                prepareGeometry(req.level, req.root, req.dualGridGenerator, req.meshBuilder, req.totalFrom, req.totalTo);
+                Root::getSingleton().getWorkQueue()->addMainThreadTask([this, req]() {
+                    loadGeometry(req.meshBuilder, req.dualGridGenerator, req.root, req.level, req.isUpdate);
+                    delete req.root;
+                    delete req.meshBuilder;
+                    delete req.dualGridGenerator;
+                });
+            });
         }
         else
         {
@@ -297,7 +306,7 @@ namespace Volume {
 
     Real Chunk::getSquaredViewDepth(const Camera* camera) const
     {
-        return (mBox.getCenter() * mShared->parameters->scale).squaredDistance(camera->getPosition());
+        return (mBox.getCenter() * mShared->parameters->scale).squaredDistance(camera->getDerivedPosition());
     }
     
     //-----------------------------------------------------------------------
@@ -314,9 +323,7 @@ namespace Volume {
         if (parameters->baseError == (Real)0.0 || parameters->errorMultiplicator == (Real)0.0 ||
             parameters->sceneManager == 0 || parameters->src == 0)
         {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "Invalid parameters given!",
-                __FUNCTION__);
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Invalid parameters given!");
         }
         
         isRoot = true;
@@ -338,7 +345,7 @@ namespace Volume {
             while(mShared->chunksBeingProcessed)
             {
                 OGRE_THREAD_SLEEP(0);
-                mChunkHandler.processWorkQueue();
+                Root::getSingleton().getWorkQueue()->processMainThreadTasks();
             }
         }
         
@@ -393,17 +400,19 @@ namespace Volume {
             delete textureSource;
         }
 
-        String material = config.getSetting("material");
-        setMaterial(material);
+        MaterialPtr mat = MaterialManager::getSingleton().getByName(config.getSetting("material"));
+        setMaterial(mat);
 
         for (size_t i = 0; i < level; ++i)
         {
             StringStream stream;
             stream << "materialOfLevel" << i;
+
             String materialOfLevel = config.getSetting(stream.str());
-            if (materialOfLevel != BLANKSTRING)
+            if (!materialOfLevel.empty())
             {
-                setMaterialOfLevel(i, materialOfLevel);
+                mat = MaterialManager::getSingleton().getByName(config.getSetting(stream.str()));
+                setMaterialOfLevel(i, mat);
             }
         }
     }
@@ -504,7 +513,7 @@ namespace Volume {
             return true;
         }
     
-        Real k = ((Real)mCamera->getViewport()->getActualHeight() / ((Real)2.0 * tan(mCamera->getFOVy().valueRadians() / (Real)2.0)));
+        Real k = ((Real)mCamera->getViewport()->getActualHeight() / ((Real)2.0 * std::tan(mCamera->getFOVy().valueRadians() / (Real)2.0)));
 
         
         // Get the distance to the center.
@@ -570,47 +579,46 @@ namespace Volume {
     
     //-----------------------------------------------------------------------
 
-    void Chunk::setMaterial(const String& matName)
+    void Chunk::setMaterial(const MaterialPtr& mat)
     {
-        SimpleRenderable::setMaterial(matName);
+        SimpleRenderable::setMaterial(mat);
 
         if (mChildren)
         {
-            mChildren[0]->setMaterial(matName);
+            mChildren[0]->setMaterial(mat);
             if (mChildren[1])
             {
-                mChildren[1]->setMaterial(matName);
-                mChildren[2]->setMaterial(matName);
-                mChildren[3]->setMaterial(matName);
-                mChildren[4]->setMaterial(matName);
-                mChildren[5]->setMaterial(matName);
-                mChildren[6]->setMaterial(matName);
-                mChildren[7]->setMaterial(matName);
+                mChildren[1]->setMaterial(mat);
+                mChildren[2]->setMaterial(mat);
+                mChildren[3]->setMaterial(mat);
+                mChildren[4]->setMaterial(mat);
+                mChildren[5]->setMaterial(mat);
+                mChildren[6]->setMaterial(mat);
+                mChildren[7]->setMaterial(mat);
             }
         }
     }
     
     //-----------------------------------------------------------------------
-
-    void Chunk::setMaterialOfLevel(size_t level, const String& matName)
+    void Chunk::setMaterialOfLevel(size_t level, const MaterialPtr& mat)
     {
         if (level == 0)
         {
-            SimpleRenderable::setMaterial(matName);
+            SimpleRenderable::setMaterial(mat);
         }
         
         if (level > 0 && mChildren)
         {
-            mChildren[0]->setMaterialOfLevel(level - 1, matName);
+            mChildren[0]->setMaterialOfLevel(level - 1, mat);
             if (mChildren[1])
             {
-                mChildren[1]->setMaterialOfLevel(level - 1, matName);
-                mChildren[2]->setMaterialOfLevel(level - 1, matName);
-                mChildren[3]->setMaterialOfLevel(level - 1, matName);
-                mChildren[4]->setMaterialOfLevel(level - 1, matName);
-                mChildren[5]->setMaterialOfLevel(level - 1, matName);
-                mChildren[6]->setMaterialOfLevel(level - 1, matName);
-                mChildren[7]->setMaterialOfLevel(level - 1, matName);
+                mChildren[1]->setMaterialOfLevel(level - 1, mat);
+                mChildren[2]->setMaterialOfLevel(level - 1, mat);
+                mChildren[3]->setMaterialOfLevel(level - 1, mat);
+                mChildren[4]->setMaterialOfLevel(level - 1, mat);
+                mChildren[5]->setMaterialOfLevel(level - 1, mat);
+                mChildren[6]->setMaterialOfLevel(level - 1, mat);
+                mChildren[7]->setMaterialOfLevel(level - 1, mat);
             }
         }
     }

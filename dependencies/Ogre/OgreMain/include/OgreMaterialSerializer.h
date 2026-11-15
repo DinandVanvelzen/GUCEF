@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,65 +42,7 @@ namespace Ogre {
     /** \addtogroup Materials
     *  @{
     */
-    /** Enum to identify material sections. */
-    enum MaterialScriptSection
-    {
-        MSS_NONE,
-        MSS_MATERIAL,
-        MSS_TECHNIQUE,
-        MSS_PASS,
-        MSS_TEXTUREUNIT,
-        MSS_PROGRAM_REF,
-        MSS_PROGRAM,
-        MSS_DEFAULT_PARAMETERS,
-        MSS_TEXTURESOURCE
-    };
-    /** Struct for holding a program definition which is in progress. */
-    struct MaterialScriptProgramDefinition
-    {
-        String name;
-        GpuProgramType progType;
-        String language;
-        String source;
-        String syntax;
-        bool supportsSkeletalAnimation;
-        bool supportsMorphAnimation;
-        ushort supportsPoseAnimation; // number of simultaneous poses supported
-        bool usesVertexTextureFetch;
-        vector<std::pair<String, String> >::type customParameters;
-    };
-    /** Struct for holding the script context while parsing. */
-    struct MaterialScriptContext 
-    {
-        MaterialScriptSection section;
-        String groupName;
-        MaterialPtr material;
-        Technique* technique;
-        Pass* pass;
-        TextureUnitState* textureUnit;
-        GpuProgramPtr program; /// Used when referencing a program, not when defining it
-        bool isVertexProgramShadowCaster; /// When referencing, are we in context of shadow caster
-        bool isFragmentProgramShadowCaster; /// When referencing, are we in context of shadow caster
-        bool isVertexProgramShadowReceiver; /// When referencing, are we in context of shadow caster
-        bool isFragmentProgramShadowReceiver; /// When referencing, are we in context of shadow caster
-        GpuProgramParametersSharedPtr programParams;
-        ushort numAnimationParametrics;
-        MaterialScriptProgramDefinition* programDef; /// This is used while defining a program
-
-        int techLev,    //Keep track of what tech, pass, and state level we are in
-            passLev,
-            stateLev;
-        StringVector defaultParamLines;
-
-        /// Error reporting state
-        size_t lineNo;
-        String filename;
-        AliasTextureNamePairList textureAliases;
-    };
-    /// Function def for material attribute parser; return value determines if the next line should be {
-    typedef bool (*ATTRIBUTE_PARSER)(String& params, MaterialScriptContext& context);
-
-    /** Class for serializing Materials to / from a .material script.*/
+    /** Class for serializing Materials to a .material script.*/
     class _OgreExport MaterialSerializer : public SerializerAlloc
     {   
     public:
@@ -198,41 +140,14 @@ namespace Ogre {
                         }           
         };
 
-    protected:
-        /// Keyword-mapped attribute parsers.
-        typedef map<String, ATTRIBUTE_PARSER>::type AttribParserList;
-
-        MaterialScriptContext mScriptContext;
-
-        /** internal method for parsing a material
-        @return true if it expects the next line to be a {
-        */
-        bool parseScriptLine(String& line);
-        /** internal method for finding & invoking an attribute parser. */
-        bool invokeParser(String& line, AttribParserList& parsers);
+    private:
         /** Internal method for saving a program definition which has been
             built up.
         */
         void finishProgramDefinition(void);
-        /// Parsers for the root of the material script
-        AttribParserList mRootAttribParsers;
-        /// Parsers for the material section of a script
-        AttribParserList mMaterialAttribParsers;
-        /// Parsers for the technique section of a script
-        AttribParserList mTechniqueAttribParsers;
-        /// Parsers for the pass section of a script
-        AttribParserList mPassAttribParsers;
-        /// Parsers for the texture unit section of a script
-        AttribParserList mTextureUnitAttribParsers;
-        /// Parsers for the program reference section of a script
-        AttribParserList mProgramRefAttribParsers;
-        /// Parsers for the program definition section of a script
-        AttribParserList mProgramAttribParsers;
-        /// Parsers for the program definition section of a script
-        AttribParserList mProgramDefaultParamAttribParsers;
 
         /// Listeners list of this Serializer.
-        typedef vector<Listener*>::type         ListenerList;
+        typedef std::vector<Listener*>         ListenerList;
         typedef ListenerList::iterator          ListenerListIterator;
         typedef ListenerList::const_iterator    ListenerListConstIterator;
         ListenerList mListeners;
@@ -244,10 +159,6 @@ namespace Ogre {
         void writeVertexProgramRef(const Pass* pPass);
         void writeTesselationHullProgramRef(const Pass* pPass);
         void writeTesselationDomainProgramRef(const Pass* pPass);
-        void writeShadowCasterVertexProgramRef(const Pass* pPass);
-        void writeShadowCasterFragmentProgramRef(const Pass* pPass);
-        void writeShadowReceiverVertexProgramRef(const Pass* pPass);
-        void writeShadowReceiverFragmentProgramRef(const Pass* pPass);
         void writeGeometryProgramRef(const Pass* pPass);
         void writeFragmentProgramRef(const Pass* pPass);
         void writeGpuProgramRef(const String& attrib, const GpuProgramPtr& program, const GpuProgramParametersSharedPtr& params);
@@ -262,7 +173,7 @@ namespace Ogre {
             const String& commandName, const String& identifier, 
             const GpuProgramParameters::AutoConstantEntry* autoEntry, 
             const GpuProgramParameters::AutoConstantEntry* defaultAutoEntry, 
-            bool isFloat, bool isDouble, bool isInt, bool isUnsignedInt, 
+            bool isFloat, bool isDouble, bool isInt, bool isUnsignedInt, bool isRegister,
             size_t physicalIndex, size_t physicalSize,
             const GpuProgramParametersSharedPtr& params, GpuProgramParameters* defaultParams,
             const unsigned short level, const bool useMainBuffer);
@@ -276,12 +187,10 @@ namespace Ogre {
         void writeLayerBlendOperationEx(const LayerBlendOperationEx op);
         void writeLayerBlendSource(const LayerBlendSource lbs);
         
-        typedef multimap<TextureUnitState::TextureEffectType, TextureUnitState::TextureEffect>::type EffectMap;
-
-        void writeRotationEffect(const TextureUnitState::TextureEffect& effect, const TextureUnitState *pTex);
+        void writeRotationEffect(float speed);
         void writeTransformEffect(const TextureUnitState::TextureEffect& effect, const TextureUnitState *pTex);
-        void writeScrollEffect(const TextureUnitState::TextureEffect& effect, const TextureUnitState *pTex);
-        void writeEnvironmentMapEffect(const TextureUnitState::TextureEffect& effect, const TextureUnitState *pTex);
+        void writeScrollEffect(float scrollAnimU, float scrollAnimV);
+        void writeEnvironmentMapEffect(int type);
 
         String convertFiltering(FilterOptions fo);
 
@@ -343,6 +252,8 @@ namespace Ogre {
         */
         void exportQueued(const String& filename, const bool includeProgDef = false, const String& programFilename = "");
         /** Exports a single in-memory Material to the named material script file.
+        @param pMat Material pointer
+        @param filename the file name of the material script to be exported
         @param exportDefaults if true then exports all values including defaults
         @param includeProgDef if true includes Gpu shader program definitions in the
             export material script otherwise if false then program definitions will
@@ -361,10 +272,6 @@ namespace Ogre {
         /** Clears the internal buffer */
         void clearQueue();
 
-        /** Parses a Material script file passed as a stream.
-        */
-        void parseScript(DataStreamPtr& stream, const String& groupName);
-
         /** Register a listener to this Serializer.
         @see MaterialSerializer::Listener
         */
@@ -378,7 +285,7 @@ namespace Ogre {
     private:
         String mBuffer;
         String mGpuProgramBuffer;
-        typedef set<String>::type GpuProgramDefinitionContainer;
+        typedef std::set<String> GpuProgramDefinitionContainer;
         typedef GpuProgramDefinitionContainer::iterator GpuProgramDefIterator;
         GpuProgramDefinitionContainer mGpuProgramDefinitionContainer;
         bool mDefaults;
@@ -424,7 +331,7 @@ namespace Ogre {
 
         String quoteWord(const String& val)
         {
-            if (val.find_first_of(" \t") != String::npos)
+            if (val.find_first_of("{}$: \t") != String::npos)
                 return ("\"" + val + "\"");
             else return val;
         }

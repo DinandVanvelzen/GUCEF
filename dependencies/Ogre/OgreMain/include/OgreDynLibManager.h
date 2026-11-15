@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,15 +40,15 @@ namespace Ogre {
     *  @{
     */
     /** Manager for Dynamic-loading Libraries.
-    @remarks
+
         This manager keeps a track of all the open dynamic-loading
         libraries, opens them and returns references to already-open
         libraries.
     */
     class _OgreExport DynLibManager: public Singleton<DynLibManager>, public DynLibAlloc
     {
-    protected:
-        typedef map<String, DynLib*>::type DynLibList;
+    private:
+        typedef std::map<String, DynLib*> DynLibList;
         DynLibList mLibList;
     public:
         /** Default constructor.
@@ -64,7 +64,7 @@ namespace Ogre {
         @see
             Root::~Root
         */
-        virtual ~DynLibManager();
+        ~DynLibManager();
 
         /** Loads the passed library.
         @param filename
@@ -78,37 +78,9 @@ namespace Ogre {
         */
         void unload(DynLib* lib);
 
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static DynLibManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static DynLibManager* getSingletonPtr(void);
     };
     /** @} */

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "OgreLodOutsideMarker.h"
-#include "OgreHardwareBufferManager.h"
-#include "OgreMeshManager.h"
-#include "OgreMesh.h"
-#include "OgreSubMesh.h"
+#include "OgreMeshLodPrecompiledHeaders.h"
 
 namespace Ogre
 {
@@ -54,9 +50,9 @@ void LodOutsideMarker::generateHull()
 {
     initHull();
     {
-        for (size_t i = 0; i < mHull.size(); i++) {
-            if (!mHull[i].removed) {
-                CHVertex* furthestVertex = getFurthestVertex(&mHull[i]);
+        for (auto & t : mHull) {
+            if (!t.removed) {
+                CHVertex* furthestVertex = getFurthestVertex(&t);
                 if (!furthestVertex) {
                     continue;
                 }
@@ -72,14 +68,11 @@ void LodOutsideMarker::initHull()
     mHull.clear();
     mHull.reserve(mVertexListOrig.size());
     mOutsideData.clear();
-    OutsideDataList::iterator itOut, itOutEnd;
     mOutsideData.resize(mVertexListOrig.size());
-    itOut = mOutsideData.begin();
-    itOutEnd = mOutsideData.end();
-    for (; itOut != itOutEnd; itOut++) {
+    for (auto& d : mOutsideData) {
         // reset output variables
-        itOut->isOuterWallVertex = false;
-        itOut->isInsideHull = false;
+        d.isOuterWallVertex = false;
+        d.isInsideHull = false;
     }
     // We need to find 4 vertices, which are on the convex hull to start the algorithm.
     CHVertex* vertex[4] = { NULL, NULL, NULL, NULL };
@@ -87,14 +80,11 @@ void LodOutsideMarker::initHull()
     {
         // Get 1. vertex: minimum y vertex
         Real miny = std::numeric_limits<Real>::max();
-        LodData::VertexList::iterator v, vEnd;
-        v = mVertexListOrig.begin();
-        vEnd = mVertexListOrig.end();
-        for (; v != vEnd; v++) {
-            Vector3& pos = v->position;
+        for (auto& v : mVertexListOrig) {
+            Vector3& pos = v.position;
             if (pos.y < miny) {
                 miny = pos.y;
-                vertex[0] = &*v;
+                vertex[0] = &v;
             }
         }
         assert(vertex[0]); // Vertex not found!
@@ -103,14 +93,11 @@ void LodOutsideMarker::initHull()
     {
         // Get 2. vertex: furthest from 1. vertex
         Real maxdist = 0.0;
-        LodData::VertexList::iterator v, vEnd;
-        v = mVertexListOrig.begin();
-        vEnd = mVertexListOrig.end();
-        for (; v != vEnd; v++) {
-            Real dist = vertex[0]->position.squaredDistance(v->position);
+        for (auto& v : mVertexListOrig) {
+            Real dist = vertex[0]->position.squaredDistance(v.position);
             if (dist > maxdist) {
                 maxdist = dist;
-                vertex[1] = &*v;
+                vertex[1] = &v;
             }
         }
         assert(vertex[1]); // Vertex not found!
@@ -119,14 +106,11 @@ void LodOutsideMarker::initHull()
     {
         // Get 3. vertex: furthest from 1. vertex and 2. vertex
         Real maxdist = 0.0;
-        LodData::VertexList::iterator v, vEnd;
-        v = mVertexListOrig.begin();
-        vEnd = mVertexListOrig.end();
-        for (; v != vEnd; v++) {
-            Real dist = getPointToLineSqraredDistance(vertex[0], vertex[1], &*v);
+        for (auto& v : mVertexListOrig) {
+            Real dist = getPointToLineSqraredDistance(vertex[0], vertex[1], &v);
             if (dist > maxdist) {
                 maxdist = dist;
-                vertex[2] = &*v;
+                vertex[2] = &v;
             }
         }
         assert(vertex[2]); // Vertex not found!
@@ -137,14 +121,11 @@ void LodOutsideMarker::initHull()
         Real maxdist = 0.0f;
         Plane plane(vertex[0]->position, vertex[1]->position, vertex[2]->position);
         plane.normalise();
-        LodData::VertexList::iterator v, vEnd;
-        v = mVertexListOrig.begin();
-        vEnd = mVertexListOrig.end();
-        for (; v != vEnd; v++) {
-            Real dist = std::abs(plane.getDistance(v->position));
+        for (auto& v : mVertexListOrig) {
+            Real dist = std::abs(plane.getDistance(v.position));
             if (dist > maxdist) {
                 maxdist = dist;
-                vertex[3] = &*v;
+                vertex[3] = &v;
             }
         }
         assert(vertex[3]); // Vertex not found!
@@ -204,17 +185,14 @@ LodOutsideMarker::CHVertex* LodOutsideMarker::getFurthestVertex(CHTriangle* tri)
     Real furthestDistance = 0;
     Plane plane(tri->normal, -tri->normal.dotProduct(tri->vertex[0]->position));
     plane.normalise();
-    LodData::VertexList::iterator v, vEnd;
-    v = mVertexListOrig.begin();
-    vEnd = mVertexListOrig.end();
-    for (; v != vEnd; v++) {
-        if (getOutsideData(&*v)->isInsideHull) {
+    for (auto& v : mVertexListOrig) {
+        if (getOutsideData(&v)->isInsideHull) {
             continue;
         }
-        Real dist = plane.getDistance(v->position);
+        Real dist = plane.getDistance(v.position);
         if (dist > furthestDistance) {
             furthestDistance = dist;
-            furthestVertex = &*v;
+            furthestVertex = &v;
         }
     }
     return furthestVertex;
@@ -237,28 +215,25 @@ size_t LodOutsideMarker::addVertex( CHVertex* vertex )
 
 void LodOutsideMarker::getVisibleTriangles( const CHVertex* target, CHTrianglePList& visibleTriangles )
 {
-
-    CHTriangleList::iterator it = mHull.begin();
-    CHTriangleList::iterator itEnd = mHull.end();
-    for (; it != itEnd; it++) {
-        if (it->removed) {
+    for (auto& t : mHull) {
+        if (t.removed) {
             continue;
         }
-        Real dot1 = it->normal.dotProduct(it->vertex[0]->position);
-        Real dot2 = it->normal.dotProduct(target->position);
+        Real dot1 = t.normal.dotProduct(t.vertex[0]->position);
+        Real dot2 = t.normal.dotProduct(target->position);
         if(std::abs(dot2 - dot1) <= mEpsilon) {
             //Special case: The vertex is on the plane of the triangle
             //mVisibleTriangles.push_back(&*it);
-            if (isInsideTriangle(target->position, *it)) {
+            if (isInsideTriangle(target->position, t)) {
                 // Vertex is inside of a convex hull triangle.
                 mVisibleTriangles.clear();
                 return;
             } else {
                 // If the vertex is outside, then we should add it to the hull.
-                visibleTriangles.push_back(&*it);
+                visibleTriangles.push_back(&t);
             }
         } else if (dot1 < dot2) {
-            visibleTriangles.push_back(&*it);
+            visibleTriangles.push_back(&t);
         }
     }
 }
@@ -356,13 +331,11 @@ bool LodOutsideMarker::isInsideLine( const Vector3& ptarget, const Vector3& p0, 
 void LodOutsideMarker::getHorizon( const CHTrianglePList& tri, CHEdgeList& horizon)
 {
     // Create edge list and remove triangles
-    CHTrianglePList::const_iterator it2 = tri.begin();
-    CHTrianglePList::const_iterator it2End = tri.end();
-    for (; it2 != it2End; it2++) {
-        addEdge(horizon, (*it2)->vertex[0], (*it2)->vertex[1]);
-        addEdge(horizon, (*it2)->vertex[1], (*it2)->vertex[2]);
-        addEdge(horizon, (*it2)->vertex[2], (*it2)->vertex[0]);
-        (*it2)->removed = true;
+    for (auto& t : tri) {
+        addEdge(horizon, t->vertex[0], t->vertex[1]);
+        addEdge(horizon, t->vertex[1], t->vertex[2]);
+        addEdge(horizon, t->vertex[2], t->vertex[0]);
+        t->removed = true;
     }
     // inside edges are twice in the edge list, because it was added by 2 triangles.
     assert(!horizon.empty());
@@ -394,11 +367,9 @@ void LodOutsideMarker::fillHorizon(CHEdgeList& horizon, CHVertex* target)
     CHTriangle tri;
     tri.vertex[2] = target;
     tri.removed = false;
-    CHEdgeList::iterator it = horizon.begin();
-    CHEdgeList::iterator itEnd = horizon.end();
-    for (;it != itEnd; it++) {
-        tri.vertex[0] = it->first;
-        tri.vertex[1] = it->second;
+    for (auto& e : horizon) {
+        tri.vertex[0] = e.first;
+        tri.vertex[1] = e.second;
         tri.computeNormal();
         if (isVisible(&tri, mCentroid)) {
             std::swap(tri.vertex[0], tri.vertex[1]);
@@ -440,9 +411,7 @@ void LodOutsideMarker::cleanHull()
 Ogre::MeshPtr LodOutsideMarker::createConvexHullMesh(const String& meshName, const String& resourceGroupName)
 {
     // Based on the wiki sample: http://www.ogre3d.org/tikiwiki/tiki-index.php?page=Generating+A+Mesh
-
-    // Resource with given name should not exist!
-    assert(MeshManager::getSingleton().getByName(meshName).isNull());
+    OgreAssert(!MeshManager::getSingleton().getByName(meshName, resourceGroupName), "Resource with given name should not exist");
 
     generateHull(); // calculate mHull triangles.
 
@@ -452,61 +421,54 @@ Ogre::MeshPtr LodOutsideMarker::createConvexHullMesh(const String& meshName, con
     MeshPtr mesh = MeshManager::getSingleton().createManual(meshName, resourceGroupName, NULL);
     SubMesh* subMesh = mesh->createSubMesh();
 
-    vector<Real>::type vertexBuffer;
-    vector<unsigned short>::type indexBuffer;
+    std::vector<float> vertexBuffer;
+    std::vector<unsigned short> indexBuffer;
     // 3 position/triangle * 3 Real/position
     vertexBuffer.reserve(mHull.size() * 9);
     // 3 index / triangle
     indexBuffer.reserve(mHull.size() * 3);
     int id=0;
     // min & max position
-    Vector3 minBounds(std::numeric_limits<Real>::max(), std::numeric_limits<Real>::max(), std::numeric_limits<Real>::max());
-    Vector3 maxBounds(std::numeric_limits<Real>::min(), std::numeric_limits<Real>::min(), std::numeric_limits<Real>::min());
+    AxisAlignedBox bounds;
 
-    for (size_t i = 0; i < mHull.size(); i++) {
-        assert(!mHull[i].removed);
+    for (auto& t : mHull) {
+        assert(!t.removed);
         for(size_t n = 0; n < 3; n++){
             indexBuffer.push_back(id++);
-            vertexBuffer.push_back(mHull[i].vertex[n]->position.x);
-            vertexBuffer.push_back(mHull[i].vertex[n]->position.y);
-            vertexBuffer.push_back(mHull[i].vertex[n]->position.z);
-            minBounds.x = std::min<Real>(minBounds.x, mHull[i].vertex[n]->position.x);
-            minBounds.y = std::min<Real>(minBounds.y, mHull[i].vertex[n]->position.y);
-            minBounds.z = std::min<Real>(minBounds.z, mHull[i].vertex[n]->position.z);
-            maxBounds.x = std::max<Real>(maxBounds.x, mHull[i].vertex[n]->position.x);
-            maxBounds.y = std::max<Real>(maxBounds.y, mHull[i].vertex[n]->position.y);
-            maxBounds.z = std::max<Real>(maxBounds.z, mHull[i].vertex[n]->position.z);
+            vertexBuffer.push_back(t.vertex[n]->position.x);
+            vertexBuffer.push_back(t.vertex[n]->position.y);
+            vertexBuffer.push_back(t.vertex[n]->position.z);
+            bounds.merge(t.vertex[n]->position);
         }
     }
 
     /// Create vertex data structure for 8 vertices shared between submeshes
-    mesh->sharedVertexData = new VertexData();
+    mesh->createVertexData();
     mesh->sharedVertexData->vertexCount = mHull.size() * 3;
 
     /// Create declaration (memory format) of vertex data
     VertexDeclaration* decl = mesh->sharedVertexData->vertexDeclaration;
     size_t offset = 0;
     // 1st buffer
-    decl->addElement(0, offset, VET_FLOAT3, VES_POSITION);
-    offset += VertexElement::getTypeSize(VET_FLOAT3);
+    offset += decl->addElement(0, offset, VET_FLOAT3, VES_POSITION).getSize();
 
-    /// Allocate vertex buffer of the requested number of vertices (vertexCount) 
+    /// Allocate vertex buffer of the requested number of vertices (vertexCount)
     /// and bytes per vertex (offset)
-    HardwareVertexBufferSharedPtr vbuf = 
+    HardwareVertexBufferSharedPtr vbuf =
         HardwareBufferManager::getSingleton().createVertexBuffer(
         offset, mesh->sharedVertexData->vertexCount, HardwareBuffer::HBU_STATIC_WRITE_ONLY);
     /// Upload the vertex data to the card
     vbuf->writeData(0, vbuf->getSizeInBytes(), &vertexBuffer[0], true);
 
     /// Set vertex buffer binding so buffer 0 is bound to our vertex buffer
-    VertexBufferBinding* bind = mesh->sharedVertexData->vertexBufferBinding; 
+    VertexBufferBinding* bind = mesh->sharedVertexData->vertexBufferBinding;
     bind->setBinding(0, vbuf);
 
-    /// Allocate index buffer of the requested number of vertices (ibufCount) 
+    /// Allocate index buffer of the requested number of vertices (ibufCount)
     HardwareIndexBufferSharedPtr ibuf = HardwareBufferManager::getSingleton().
         createIndexBuffer(
-        HardwareIndexBuffer::IT_16BIT, 
-        indexBuffer.size(), 
+        HardwareIndexBuffer::IT_16BIT,
+        indexBuffer.size(),
         HardwareBuffer::HBU_STATIC_WRITE_ONLY);
 
     /// Upload the index data to the card
@@ -519,8 +481,8 @@ Ogre::MeshPtr LodOutsideMarker::createConvexHullMesh(const String& meshName, con
     subMesh->indexData->indexStart = 0;
 
     /// Set bounding information (for culling)
-    mesh->_setBounds(AxisAlignedBox(minBounds, maxBounds));
-    mesh->_setBoundingSphereRadius(maxBounds.distance(minBounds) / 2.0f);
+    mesh->_setBounds(bounds);
+    mesh->_setBoundingSphereRadius(bounds.getSize().length() / 2.0f);
 
     /// Set material to transparent blue
     subMesh->setMaterialName("Examples/TransparentBlue50");
@@ -558,46 +520,26 @@ void LodOutsideMarker::addHullTriangleVertices(std::vector<CHVertex*>& stack, T 
 
 void LodOutsideMarker::markVertices()
 {
-    OutsideDataList::iterator v, vEnd;
-    v = mOutsideData.begin();
-    vEnd = mOutsideData.end();
-    for (;v != vEnd; v++) {
-        v->isOuterWallVertex = false;
+    for (auto& d : mOutsideData) {
+        d.isOuterWallVertex = false;
     }
     std::vector<CHVertex*> stack;
-    CHTriangleList::iterator tri, triEnd;
-    tri = mHull.begin();
-    triEnd = mHull.end();
-    for (; tri != triEnd; tri++) {
+    for (auto& t : mHull) {
         stack.clear();
-        v = mOutsideData.begin();
-        vEnd = mOutsideData.end();
-        for (;v != vEnd; v++) {
-            v->isOuterWallVertexInPass = false;
+        for (auto& d : mOutsideData) {
+            d.isOuterWallVertexInPass = false;
         }
-        addHullTriangleVertices(stack, &*tri);
+        addHullTriangleVertices(stack, &t);
         while (!stack.empty()) {
             CHVertex* vert = stack.back();
             stack.pop_back();
-            LodData::VTriangles::iterator it, itEnd;
-            it = vert->triangles.begin();
-            itEnd = vert->triangles.end();
-            for (; it != itEnd; it++) {
-                if (tri->normal.dotProduct((*it)->normal) > mWalkAngle) {
-                    addHullTriangleVertices(stack, *it);
+            for (auto& tr : vert->triangles) {
+                if (t.normal.dotProduct(tr->normal) > mWalkAngle) {
+                    addHullTriangleVertices(stack, tr);
                 }
             }
         }
     }
-}
-
-void LodOutsideMarker::CHTriangle::computeNormal()
-{
-    Vector3 e1 = vertex[1]->position - vertex[0]->position;
-    Vector3 e2 = vertex[2]->position - vertex[1]->position;
-
-    normal = e1.crossProduct(e2);
-    normal.normalise();
 }
 
 }

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -57,30 +57,19 @@ class TargetRenderState;
 class SubRenderState;
 class SubRenderStateAccessor;
 class SubRenderStateFactory;
-class ProgramManager;
 class Program;
-class ProgramProcessor;
 class ProgramSet;
 class RenderState;
 class Parameter;
 class UniformParameter;
 class Function;
-class FFPRenderStateBuilder;
+class FunctionStageRef;
 class ShaderGenerator;
-class SGMaterialSerializerListener;
-class ProgramWriterFactory;
 class ProgramWriterManager;
 
-typedef SharedPtr<Parameter>        ParameterPtr;
-typedef SharedPtr<UniformParameter> UniformParameterPtr;
-typedef vector<ParameterPtr>::type  ShaderParameterList;
-
-/// Utility function with same style as boost::hash_combine
-template <class T>
-inline void sh_hash_combine(uint32& seed, T const& v)
-{
-    seed ^= FastHash((const char*)&v, sizeof(T)) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-}
+typedef shared_ptr<Parameter>        ParameterPtr;
+typedef shared_ptr<UniformParameter> UniformParameterPtr;
+typedef std::vector<ParameterPtr>  ShaderParameterList;
 
 // Vertex shader output parameters compact policy.
 enum VSOutputCompactPolicy
@@ -90,35 +79,11 @@ enum VSOutputCompactPolicy
     VSOCP_HIGH      = 2         // VS Outputs will be compacted always including parameter splits.
 };
 
-enum SkinningType
-{
-    ST_LINEAR,
-    ST_DUAL_QUATERNION
-};
-
-
 }
 }
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
-#   if defined( OGRE_STATIC_LIB )
-#       define _OgreRTSSExport
-#   else
-#       if defined( OgreRTShaderSystem_EXPORTS )
-#           define _OgreRTSSExport __declspec( dllexport )
-#       else
-#           if defined( __MINGW32__ )
-#               define _OgreRTSSExport
-#           else
-#               define _OgreRTSSExport __declspec( dllimport )
-#           endif
-#       endif
-#   endif
-#elif defined ( OGRE_GCC_VISIBILITY )
-#   define _OgreRTSSExport __attribute__ ((visibility("default")))
-#else
-#   define _OgreRTSSExport
-#endif 
+#include "OgreRTShaderExports.h"
+#include "OgreRTShaderConfig.h"
 
 
 #endif

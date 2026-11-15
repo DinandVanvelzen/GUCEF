@@ -15,26 +15,24 @@
 
 if (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/OgreComPtr.h
     include/OgreD3D11DepthBuffer.h
     include/OgreD3D11Device.h
     include/OgreD3D11DeviceResource.h
     include/OgreD3D11Driver.h
     include/OgreD3D11DriverList.h
-    include/OgreD3D11GpuProgramManager.h
     include/OgreD3D11HLSLProgram.h
     include/OgreD3D11HLSLProgramFactory.h
     include/OgreD3D11HardwareBuffer.h
     include/OgreD3D11HardwareBufferManager.h
-    include/OgreD3D11HardwareIndexBuffer.h
     include/OgreD3D11HardwareOcclusionQuery.h
     include/OgreD3D11HardwarePixelBuffer.h
-    include/OgreD3D11HardwareUniformBuffer.h
-    include/OgreD3D11HardwareVertexBuffer.h
     include/OgreD3D11Mappings.h
     include/OgreD3D11MultiRenderTarget.h
     include/OgreD3D11Plugin.h
     include/OgreD3D11Prerequisites.h
     include/OgreD3D11RenderSystem.h
+    include/OgreD3D11RenderTarget.h
     include/OgreD3D11RenderToVertexBuffer.h
     include/OgreD3D11RenderWindow.h
     include/OgreD3D11StereoDriverAMD.h
@@ -60,16 +58,12 @@ if (WIN32)
     src/OgreD3D11Driver.cpp
     src/OgreD3D11DriverList.cpp
     src/OgreD3D11EngineDll.cpp
-    src/OgreD3D11GpuProgramManager.cpp
     src/OgreD3D11HLSLProgram.cpp
     src/OgreD3D11HLSLProgramFactory.cpp
     src/OgreD3D11HardwareBuffer.cpp
     src/OgreD3D11HardwareBufferManager.cpp
-    src/OgreD3D11HardwareIndexBuffer.cpp
     src/OgreD3D11HardwareOcclusionQuery.cpp
     src/OgreD3D11HardwarePixelBuffer.cpp
-    src/OgreD3D11HardwareUniformBuffer.cpp
-    src/OgreD3D11HardwareVertexBuffer.cpp
     src/OgreD3D11Mappings.cpp
     src/OgreD3D11MultiRenderTarget.cpp
     src/OgreD3D11Plugin.cpp
@@ -93,26 +87,24 @@ if (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/OgreComPtr.h
     include/OgreD3D11DepthBuffer.h
     include/OgreD3D11Device.h
     include/OgreD3D11DeviceResource.h
     include/OgreD3D11Driver.h
     include/OgreD3D11DriverList.h
-    include/OgreD3D11GpuProgramManager.h
     include/OgreD3D11HLSLProgram.h
     include/OgreD3D11HLSLProgramFactory.h
     include/OgreD3D11HardwareBuffer.h
     include/OgreD3D11HardwareBufferManager.h
-    include/OgreD3D11HardwareIndexBuffer.h
     include/OgreD3D11HardwareOcclusionQuery.h
     include/OgreD3D11HardwarePixelBuffer.h
-    include/OgreD3D11HardwareUniformBuffer.h
-    include/OgreD3D11HardwareVertexBuffer.h
     include/OgreD3D11Mappings.h
     include/OgreD3D11MultiRenderTarget.h
     include/OgreD3D11Plugin.h
     include/OgreD3D11Prerequisites.h
     include/OgreD3D11RenderSystem.h
+    include/OgreD3D11RenderTarget.h
     include/OgreD3D11RenderToVertexBuffer.h
     include/OgreD3D11RenderWindow.h
     include/OgreD3D11StereoDriverAMD.h
@@ -138,16 +130,12 @@ elseif (WIN64)
     src/OgreD3D11Driver.cpp
     src/OgreD3D11DriverList.cpp
     src/OgreD3D11EngineDll.cpp
-    src/OgreD3D11GpuProgramManager.cpp
     src/OgreD3D11HLSLProgram.cpp
     src/OgreD3D11HLSLProgramFactory.cpp
     src/OgreD3D11HardwareBuffer.cpp
     src/OgreD3D11HardwareBufferManager.cpp
-    src/OgreD3D11HardwareIndexBuffer.cpp
     src/OgreD3D11HardwareOcclusionQuery.cpp
     src/OgreD3D11HardwarePixelBuffer.cpp
-    src/OgreD3D11HardwareUniformBuffer.cpp
-    src/OgreD3D11HardwareVertexBuffer.cpp
     src/OgreD3D11Mappings.cpp
     src/OgreD3D11MultiRenderTarget.cpp
     src/OgreD3D11Plugin.cpp
@@ -174,14 +162,6 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-# Per CMake limitation, we must set any additional library search paths before defining the target
-if ( WIN32 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
-endif( WIN32 )
-if ( WIN64 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x64 )
-endif( WIN64 )
-
 
 if( WIN32 )
   set( MODULE_NAME "OgreRenderSystem_Direct3D11" )
@@ -197,23 +177,29 @@ endif()
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-target_link_libraries( ${MODULE_NAME} PRIVATE d3d11 d3dcompiler d3dx11 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D11;OGRED3DENGINEDLL_EXPORTS_;_USRDLL_" )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d11.lib d3dcompiler.lib dxgi.lib dxguid.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D11;MODULE_SEMVER=14_6_3_0;OGRED3DENGINEDLL_EXPORTS;_USRDLL" )
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-target_link_libraries( ${MODULE_NAME} PRIVATE d3d11 d3dcompiler d3dx11 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D11;OGRED3DENGINEDLL_EXPORTS_;_USRDLL_" )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d11.lib d3dcompiler.lib dxgi.lib dxguid.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D11;MODULE_SEMVER=14_6_3_0;OGRED3DENGINEDLL_EXPORTS;_USRDLL" )
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/include/WIN32 ../../OgreMain/src ../../OgreMain/src/WIN32 ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include )
 endif( WIN64 )
 
 

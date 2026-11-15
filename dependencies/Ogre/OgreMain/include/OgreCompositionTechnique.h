@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,10 +30,11 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgrePixelFormat.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
+    template <typename T> class VectorIterator;
+
     /** \addtogroup Core
     *  @{
     */
@@ -66,24 +67,26 @@ namespace Ogre {
             //Texture definition being a reference is determined by these two fields not being empty.
             String refCompName; //If a reference, the name of the compositor being referenced
             String refTexName;  //If a reference, the name of the texture in the compositor being referenced
-            size_t width;       // 0 means adapt to target width
-            size_t height;      // 0 means adapt to target height
+            uint32 width;       // 0 means adapt to target width
+            uint32 height;      // 0 means adapt to target height
+            uint32 depth;       // only used for 2d_array textures
+            TextureType type;   // either 2d, 2d_array or cubic
             float widthFactor;  // multiple of target width to use (if width = 0)
             float heightFactor; // multiple of target height to use (if height = 0)
             PixelFormatList formatList; // more than one means MRT
-            bool fsaa;          // FSAA enabled; true = determine from main target (if render_scene), false = disable
+            uint8 fsaa;         // FSAA level; 1 = determine from main target (if render_scene), 0 = disable
             bool hwGammaWrite;  // Do sRGB gamma correction on write (only 8-bit per channel formats) 
             uint16 depthBufferId;//Depth Buffer's pool ID. (unrelated to "pool" variable below)
             bool pooled;        // whether to use pooled textures for this one
             TextureScope scope; // Which scope has access to this texture
 
-            TextureDefinition() :width(0), height(0), widthFactor(1.0f), heightFactor(1.0f), 
-                fsaa(true), hwGammaWrite(false), depthBufferId(1), pooled(false), scope(TS_LOCAL) {}
+            TextureDefinition() :width(0), height(0), depth(1), type(TEX_TYPE_2D), widthFactor(1.0f), heightFactor(1.0f),
+                fsaa(1), hwGammaWrite(false), depthBufferId(1), pooled(false), scope(TS_LOCAL) {}
         };
         /// Typedefs for several iterators
-        typedef vector<CompositionTargetPass *>::type TargetPasses;
+        typedef std::vector<CompositionTargetPass *> TargetPasses;
         typedef VectorIterator<TargetPasses> TargetPassIterator;
-        typedef vector<TextureDefinition*>::type TextureDefinitions;
+        typedef std::vector<TextureDefinition*> TextureDefinitions;
         typedef VectorIterator<TextureDefinitions> TextureDefinitionIterator;
         
         /** Create a new local texture definition, and return a pointer to it.
@@ -97,22 +100,24 @@ namespace Ogre {
         
         /** Get a local texture definition.
         */
-        TextureDefinition *getTextureDefinition(size_t idx);
+        TextureDefinition *getTextureDefinition(size_t idx) const { return mTextureDefinitions.at(idx); }
         
         /** Get a local texture definition with a specific name.
         */
-        TextureDefinition *getTextureDefinition(const String& name);
+        TextureDefinition *getTextureDefinition(const String& name) const;
 
-        /** Get the number of local texture definitions.
-        */
-        size_t getNumTextureDefinitions();
+        /** Get the number of local texture definitions.*/
+        size_t getNumTextureDefinitions() const { return mTextureDefinitions.size(); }
         
         /** Remove all Texture Definitions
         */
         void removeAllTextureDefinitions();
         
-        /** Get an iterator over the TextureDefinitions in this Technique. */
-        TextureDefinitionIterator getTextureDefinitionIterator(void);
+        /** Get the TextureDefinitions in this Technique. */
+        const TextureDefinitions& getTextureDefinitions() const { return mTextureDefinitions; }
+
+        /// @deprecated use getTextureDefinitions()
+        OGRE_DEPRECATED TextureDefinitionIterator getTextureDefinitionIterator(void);
         
         /** Create a new target pass, and return a pointer to it.
         */
@@ -124,22 +129,24 @@ namespace Ogre {
         
         /** Get a target pass.
         */
-        CompositionTargetPass *getTargetPass(size_t idx);
+        CompositionTargetPass* getTargetPass(size_t idx) const { return mTargetPasses.at(idx); }
         
-        /** Get the number of target passes.
-        */
-        size_t getNumTargetPasses();
+        /** Get the number of target passes. */
+        size_t getNumTargetPasses() const { return mTargetPasses.size(); }
         
         /** Remove all target passes.
         */
         void removeAllTargetPasses();
         
-        /** Get an iterator over the TargetPasses in this Technique. */
-        TargetPassIterator getTargetPassIterator(void);
+        /** Get the TargetPasses in this Technique. */
+        const TargetPasses& getTargetPasses() const { return mTargetPasses; }
+
+        /// @deprecated use getTargetPasses()
+        OGRE_DEPRECATED TargetPassIterator getTargetPassIterator(void);
         
         /** Get output (final) target pass
          */
-        CompositionTargetPass *getOutputTargetPass();
+        CompositionTargetPass *getOutputTargetPass() const { return mOutputTarget; }
         
         /** Determine if this technique is supported on the current rendering device. 
         @param allowTextureDegradation True to accept a reduction in texture depth

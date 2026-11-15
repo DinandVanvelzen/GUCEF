@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,12 @@ THE SOFTWARE.
 
 #include "OgreGLRenderToVertexBuffer.h"
 #include "OgreHardwareBufferManager.h"
-#include "OgreGLHardwareVertexBuffer.h"
+#include "OgreGLHardwareBuffer.h"
 #include "OgreRenderable.h"
-#include "OgreSceneManager.h"
 #include "OgreRoot.h"
-#include "OgreRenderSystem.h"
+#include "OgreGLRenderSystem.h"
 #include "OgreGLSLLinkProgramManager.h"
-#include "OgreStringConverter.h"
 #include "OgreLogManager.h"
-#include "OgreTechnique.h"
 
 namespace Ogre {
 //-----------------------------------------------------------------------------
@@ -57,23 +54,7 @@ namespace Ogre {
         }
     }
 //-----------------------------------------------------------------------------
-    static GLint getVertexCountPerPrimitive(RenderOperation::OperationType operationType)
-    {
-        //We can only get points, lines or triangles since they are the only
-        //legal R2VB output primitive types
-        switch (operationType)
-        {
-        case RenderOperation::OT_POINT_LIST:
-            return 1;
-        case RenderOperation::OT_LINE_LIST:
-            return 2;
-        default:
-        case RenderOperation::OT_TRIANGLE_LIST:
-            return 3;
-        }
-    }
-//-----------------------------------------------------------------------------
-    void checkGLError(bool logError, bool throwException, 
+    static void checkGLError(bool logError, bool throwException,
         const Ogre::String& sectionName = BLANKSTRING)
     {
         String msg;
@@ -83,11 +64,7 @@ namespace Ogre {
         GLenum glErr = glGetError();
         while (glErr != GL_NO_ERROR)
         {
-            const char* glerrStr = (const char*)gluErrorString(glErr);
-            if (glerrStr)
-            {
-                msg += String(glerrStr);
-            }
+            msg += glErrorToString(glErr);
             glErr = glGetError();
             foundError = true;  
         }
@@ -107,10 +84,10 @@ namespace Ogre {
         }
     }
 //-----------------------------------------------------------------------------
-    GLRenderToVertexBuffer::GLRenderToVertexBuffer() : mFrontBufferIndex(-1)
+    GLRenderToVertexBuffer::GLRenderToVertexBuffer()
     {
-        mVertexBuffers[0].setNull();
-        mVertexBuffers[1].setNull();
+        mVertexBuffers[0].reset();
+        mVertexBuffers[1].reset();
 
          // create query objects
         glGenQueries(1, &mPrimitivesDrawnQuery);
@@ -121,56 +98,44 @@ namespace Ogre {
         glDeleteQueries(1, &mPrimitivesDrawnQuery);
     }
 //-----------------------------------------------------------------------------
-    void GLRenderToVertexBuffer::getRenderOperation(RenderOperation& op)
-    {
-        op.operationType = mOperationType;
-        op.useIndexes = false;
-        op.vertexData = mVertexData;
-    }
-//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
     void GLRenderToVertexBuffer::update(SceneManager* sceneMgr)
     {
         checkGLError(true, false, "start of GLRenderToVertexBuffer::update");
 
         size_t bufSize = mVertexData->vertexDeclaration->getVertexSize(0) * mMaxVertexCount;
-        if (mVertexBuffers[0].isNull() || mVertexBuffers[0]->getSizeInBytes() != bufSize)
+        if (!mVertexBuffers[0] || mVertexBuffers[0]->getSizeInBytes() != bufSize)
         {
             //Buffers don't match. Need to reallocate.
             mResetRequested = true;
         }
-        
-        //Single pass only for now
-        Ogre::Pass* r2vbPass = mMaterial->getBestTechnique()->getPass(0);
-        //Set pass before binding buffers to activate the GPU programs
-        sceneMgr->_setPass(r2vbPass);
+
+        Ogre::Pass* r2vbPass = derivePass(sceneMgr);
         
         checkGLError(true, false);
 
         bindVerticesOutput(r2vbPass);
 
         RenderOperation renderOp;
-        size_t targetBufferIndex;
+        auto targetBufferIndex = mTargetBufferIndex;
         if (mResetRequested || mResetsEveryUpdate)
         {
             //Use source data to render to first buffer
             mSourceRenderable->getRenderOperation(renderOp);
-            targetBufferIndex = 0;
         }
         else
         {
             //Use current front buffer to render to back buffer
             this->getRenderOperation(renderOp);
-            targetBufferIndex = 1 - mFrontBufferIndex;
         }
 
-        if (mVertexBuffers[targetBufferIndex].isNull() || 
+        if (!mVertexBuffers[targetBufferIndex] || 
             mVertexBuffers[targetBufferIndex]->getSizeInBytes() != bufSize)
         {
             reallocateBuffer(targetBufferIndex);
         }
 
-        GLHardwareVertexBuffer* vertexBuffer = static_cast<GLHardwareVertexBuffer*>(mVertexBuffers[targetBufferIndex].getPointer());
+        GLHardwareBuffer* vertexBuffer = mVertexBuffers[targetBufferIndex]->_getImpl<GLHardwareBuffer>();
         GLuint bufferId = vertexBuffer->getGLBufferId();
 
         //Bind the target buffer
@@ -182,21 +147,11 @@ namespace Ogre {
 
         glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_NV, mPrimitivesDrawnQuery);
 
-        RenderSystem* targetRenderSystem = Root::getSingleton().getRenderSystem();
+        GLRenderSystem* targetRenderSystem = static_cast<GLRenderSystem*>(Root::getSingleton().getRenderSystem());
         //Draw the object
-        targetRenderSystem->_setWorldMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setViewMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setProjectionMatrix(Matrix4::IDENTITY);
-        if (r2vbPass->hasVertexProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM, 
-                r2vbPass->getVertexProgramParameters(), GPV_ALL);
-        }
-        if (r2vbPass->hasGeometryProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_GEOMETRY_PROGRAM,
-                r2vbPass->getGeometryProgramParameters(), GPV_ALL);
-        }
+        targetRenderSystem->setWorldMatrix(Matrix4::IDENTITY);
+        targetRenderSystem->setViewMatrix(Matrix4::IDENTITY);
+        targetRenderSystem->setProjectionMatrix(Matrix4::IDENTITY);
         targetRenderSystem->_render(renderOp);
         
         //Finish the query
@@ -211,57 +166,15 @@ namespace Ogre {
 
         checkGLError(true, true, "GLRenderToVertexBuffer::update");
 
-        //Switch the vertex binding if necessary
-        if (targetBufferIndex != mFrontBufferIndex)
-        {
-            mVertexData->vertexBufferBinding->unsetAllBindings();
-            mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
-            mFrontBufferIndex = targetBufferIndex;
-        }
+        //Switch the vertex binding
+        mVertexData->vertexBufferBinding->unsetAllBindings();
+        mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
+        mTargetBufferIndex = mTargetBufferIndex == 0 ? 1 : 0;
 
         glDisable(GL_RASTERIZER_DISCARD_NV);    // enable rasterization
 
         //Clear the reset flag
         mResetRequested = false;
-    }
-//-----------------------------------------------------------------------------
-    void GLRenderToVertexBuffer::reallocateBuffer(size_t index)
-    {
-        assert(index == 0 || index == 1);
-        if (!mVertexBuffers[index].isNull())
-        {
-            mVertexBuffers[index].setNull();
-        }
-        
-        mVertexBuffers[index] = HardwareBufferManager::getSingleton().createVertexBuffer(
-            mVertexData->vertexDeclaration->getVertexSize(0), mMaxVertexCount, 
-#if OGRE_DEBUG_MODE
-            //Allow to read the contents of the buffer in debug mode
-            HardwareBuffer::HBU_DYNAMIC
-#else
-            HardwareBuffer::HBU_STATIC_WRITE_ONLY
-#endif
-            );
-    }
-//-----------------------------------------------------------------------------
-    String GLRenderToVertexBuffer::getSemanticVaryingName(VertexElementSemantic semantic, unsigned short index)
-    {
-        switch (semantic)
-        {
-        case VES_POSITION:
-            return "gl_Position";
-        case VES_TEXTURE_COORDINATES:
-            return String("gl_TexCoord[") + StringConverter::toString(index) + "]";
-        case VES_DIFFUSE:
-            return "gl_FrontColor";
-        case VES_SPECULAR:
-            return "gl_FrontSecondaryColor";
-        //TODO : Implement more?
-        default:
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "Unsupported vertex element sematic in render to vertex buffer", 
-                "OgreGLRenderToVertexBuffer::getSemanticVaryingName");
-        }
     }
 //-----------------------------------------------------------------------------
     GLint GLRenderToVertexBuffer::getGLSemanticType(VertexElementSemantic semantic)
@@ -279,7 +192,7 @@ namespace Ogre {
         //TODO : Implement more?
         default:
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "Unsupported vertex element sematic in render to vertex buffer", 
+                "Unsupported vertex element semantic in render to vertex buffer",
                 "OgreGLRenderToVertexBuffer::getGLSemanticType");
             
         }
@@ -295,13 +208,13 @@ namespace Ogre {
         GpuProgram* sampleProgram = 0;
         if (pass->hasVertexProgram())
         {
-            sampleProgram = pass->getVertexProgram().getPointer();
+            sampleProgram = pass->getVertexProgram().get();
         }
         else if (pass->hasGeometryProgram())
         {
-            sampleProgram = pass->getGeometryProgram().getPointer();
+            sampleProgram = pass->getGeometryProgram().get();
         }
-        if ((sampleProgram != 0) && (sampleProgram->getLanguage() == "glsl"))
+        if (sampleProgram && (sampleProgram->_getBindingDelegate()->getLanguage() == "glsl"))
         {
             useVaryingAttributes = true;
         }
@@ -310,9 +223,9 @@ namespace Ogre {
         {
             //Have GLSL shaders, using varying attributes
             GLSL::GLSLLinkProgram* linkProgram = GLSL::GLSLLinkProgramManager::getSingleton().getActiveLinkProgram();
-            GLhandleARB linkProgramId = linkProgram->getGLHandle();
+            uint linkProgramId = linkProgram->getGLHandle();
             
-            vector<GLint>::type locations;
+            std::vector<GLint> locations;
             for (unsigned short e=0; e < declaration->getElementCount(); e++)
             {
                 const VertexElement* element =declaration->getElement(e);
@@ -334,7 +247,7 @@ namespace Ogre {
         else
         {
             //Either fixed function or assembly (CG = assembly) shaders
-            vector<GLint>::type attribs;
+            std::vector<GLint> attribs;
             for (unsigned short e=0; e < declaration->getElementCount(); e++)
             {
                 const VertexElement* element = declaration->getElement(e);

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ THE SOFTWARE.
 #ifndef __DepthBuffer_H__
 #define __DepthBuffer_H__
 
+#include "OgreCommon.h"
 #include "OgrePrerequisites.h"
 #include "OgreHeaderPrefix.h"
 
@@ -60,50 +61,40 @@ namespace Ogre
 
         Behavior is consistent across all render systems, if, and only if, the same RSC flags are set
         RSC flags that affect this class are:
-            * RSC_RTT_SEPARATE_DEPTHBUFFER:
-                The RTT can create a custom depth buffer different from the main depth buffer. This means,
-                an RTT is able to not share it's depth buffer with the main window if it wants to.
-            * RSC_RTT_MAIN_DEPTHBUFFER_ATTACHABLE:
-                When RSC_RTT_SEPARATE_DEPTHBUFFER is set, some APIs (ie. OpenGL w/ FBO) don't allow using
-                the main depth buffer for offscreen RTTs. When this flag is set, the depth buffer can be
-                shared between the main window and an RTT.
-            * RSC_RTT_DEPTHBUFFER_RESOLUTION_LESSEQUAL:
-                When this flag isn't set, the depth buffer can only be shared across RTTs who have the EXACT
-                same resolution. When it's set, it can be shared with RTTs as long as they have a
-                resolution less or equal than the depth buffer's.
+        - #RSC_RTT_MAIN_DEPTHBUFFER_ATTACHABLE:
+        some APIs (ie. OpenGL w/ FBO) don't allow using
+        the main depth buffer for offscreen RTTs. When this flag is set, the depth buffer can be
+        shared between the main window and an RTT.
+        - #RSC_RTT_INDEPENDENT_BUFFER_SIZE:
+        When this flag isn't set, the depth buffer can only be shared across RTTs who have the EXACT
+        same resolution. When it's set, it can be shared with RTTs as long as they have a
+        resolution less or equal than the depth buffer's.
 
-        @remarks
-            Design discussion http://www.ogre3d.org/forums/viewtopic.php?f=4&t=53534&p=365582
-        @author
-            Matias N. Goldberg
-        @version
-            1.0
+
+        Design discussion http://www.ogre3d.org/forums/viewtopic.php?f=4&t=53534&p=365582
      */
     class _OgreExport DepthBuffer : public RenderSysAlloc
     {
     public:
+        /// @deprecated use #RenderBufferPool instead
         enum PoolId
         {
-            POOL_NO_DEPTH       = 0,
-            POOL_MANUAL_USAGE   = 0,
-            POOL_DEFAULT        = 1
+            POOL_NO_DEPTH       = RBP_NONE,
+            POOL_MANUAL_USAGE   = RBP_NONE,
+            POOL_DEFAULT        = RBP_DEFAULT
         };
 
-        DepthBuffer( uint16 poolId, uint16 bitDepth, uint32 width, uint32 height,
-                     uint32 fsaa, const String &fsaaHint, bool manual );
+        DepthBuffer(uint16 poolId, uint32 width, uint32 height, uint32 fsaa, bool manual);
         virtual ~DepthBuffer();
 
-        /** Sets the pool id in which this DepthBuffer lives.
-            Note this will detach any render target from this depth buffer */
-        void _setPoolId( uint16 poolId );
+        /// @deprecated do not use
+        OGRE_DEPRECATED void _setPoolId( uint16 poolId );
 
         /// Gets the pool id in which this DepthBuffer lives
         virtual uint16 getPoolId() const;
-        virtual uint16 getBitDepth() const;
         virtual uint32 getWidth() const;
         virtual uint32 getHeight() const;
-        virtual uint32 getFsaa() const;
-        virtual const String& getFsaaHint() const;
+        uint32 getFSAA() const { return mFsaa; }
 
         /** Manual DepthBuffers are cleared in RenderSystem's destructor. Non-manual ones are released
             with it's render target (aka, a backbuffer or similar) */
@@ -111,40 +102,38 @@ namespace Ogre
 
         /** Returns whether the specified RenderTarget is compatible with this DepthBuffer
             That is, this DepthBuffer can be attached to that RenderTarget
-            @remarks
-                Most APIs impose the following restrictions:
-                Width & height must be equal or higher than the render target's
-                They must be of the same bit depth.
-                They need to have the same FSAA setting
+
+            Most APIs impose the following restrictions:
+            - Width & height must be equal or higher than the render target's
+            - They must be of the same bit depth.
+            - They need to have the same FSAA setting
             @param renderTarget The render target to test against
         */
         virtual bool isCompatible( RenderTarget *renderTarget ) const;
 
         /** Called when a RenderTarget is attaches this DepthBuffer
-            @remarks
-                This function doesn't actually attach. It merely informs the DepthBuffer
-                which RenderTarget did attach. The real attachment happens in
-                RenderTarget::attachDepthBuffer()
+
+            This function doesn't actually attach. It merely informs the DepthBuffer
+            which RenderTarget did attach. The real attachment happens in
+            RenderTarget::attachDepthBuffer()
             @param renderTarget The RenderTarget that has just been attached
         */
         virtual void _notifyRenderTargetAttached( RenderTarget *renderTarget );
 
         /** Called when a RenderTarget is detaches from this DepthBuffer
-            @remarks
-                Same as DepthBuffer::_notifyRenderTargetAttached()
+
+            Same as DepthBuffer::_notifyRenderTargetAttached()
             @param renderTarget The RenderTarget that has just been detached
         */
         virtual void _notifyRenderTargetDetached( RenderTarget *renderTarget );
 
     protected:
-        typedef set<RenderTarget*>::type RenderTargetSet;
+        typedef std::set<RenderTarget*> RenderTargetSet;
 
         uint16                      mPoolId;
-        uint16                      mBitDepth;
         uint32                      mWidth;
         uint32                      mHeight;
         uint32                      mFsaa;
-        String                      mFsaaHint;
 
         bool                        mManual; //We don't Release manual surfaces on destruction
         RenderTargetSet             mAttachedRenderTargets;

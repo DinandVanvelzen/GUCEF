@@ -27,6 +27,7 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 */
 
 #include "OgreRoot.h"
+#include "OgreGL3PlusPrerequisites.h"
 #include "OgreGL3PlusPlugin.h"
 
 #ifndef OGRE_STATIC_LIB
@@ -35,7 +36,10 @@ namespace Ogre
 {
     static GL3PlusPlugin* plugin;
 
-    extern "C" void _OgreGL3PlusExport dllStartPlugin(void) throw()
+    extern "C" void _OgreGL3PlusExport dllStartPlugin(void);
+    extern "C" void _OgreGL3PlusExport dllStopPlugin(void);
+
+    extern "C" void _OgreGL3PlusExport dllStartPlugin(void)
     {
         plugin = OGRE_NEW GL3PlusPlugin();
         Root::getSingleton().installPlugin(plugin);

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,19 +27,16 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreBone.h"
-#include "OgreSkeleton.h"
-
 namespace Ogre {
 
     //---------------------------------------------------------------------
     Bone::Bone(unsigned short handle, Skeleton* creator) 
-        : Node(), mHandle(handle), mManuallyControlled(false), mCreator(creator)
+        : Node(), mCreator(creator), mHandle(handle), mManuallyControlled(false)
     {
     }
     //---------------------------------------------------------------------
     Bone::Bone(const String& name, unsigned short handle, Skeleton* creator) 
-        : Node(name), mHandle(handle), mManuallyControlled(false), mCreator(creator)
+        : Node(name), mCreator(creator), mHandle(handle), mManuallyControlled(false)
     {
     }
     //---------------------------------------------------------------------
@@ -88,11 +85,7 @@ namespace Ogre {
         mCreator->_notifyManualBoneStateChange(this);
     }
     //---------------------------------------------------------------------
-    bool Bone::isManuallyControlled() const {
-        return mManuallyControlled;
-    }
-    //---------------------------------------------------------------------
-    void Bone::_getOffsetTransform(Matrix4& m) const
+    void Bone::_getOffsetTransform(Affine3& m) const
     {
         // Combine scale with binding pose inverse scale,
         // NB just combine as equivalent axes, no shearing
@@ -109,11 +102,6 @@ namespace Ogre {
         Vector3 locTranslate = _getDerivedPosition() + locRotate * (locScale * mBindDerivedInversePosition);
 
         m.makeTransform(locTranslate, locScale, locRotate);
-    }
-    //---------------------------------------------------------------------
-    unsigned short Bone::getHandle(void) const
-    {
-        return mHandle;
     }
     //---------------------------------------------------------------------
     void Bone::needUpdate(bool forceParentUpdate)

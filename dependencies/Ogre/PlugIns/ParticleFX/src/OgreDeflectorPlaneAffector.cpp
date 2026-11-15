@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -68,12 +68,8 @@ namespace Ogre {
         Real planeDistance = - mPlaneNormal.dotProduct(mPlanePoint) / Math::Sqrt(mPlaneNormal.dotProduct(mPlaneNormal));
         Vector3 directionPart;
 
-        ParticleIterator pi = pSystem->_getIterator();
-
-        while (!pi.end())
+        for (auto p : pSystem->_getActiveParticles())
         {
-            Particle *p = pi.getNext();
-
             Vector3 direction(p->mDirection * timeElapsed);
             if (mPlaneNormal.dotProduct(p->mPosition + direction) + planeDistance <= 0.0)
             {

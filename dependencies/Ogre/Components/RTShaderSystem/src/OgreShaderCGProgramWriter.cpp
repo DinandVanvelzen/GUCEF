@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,20 +26,25 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-#include "OgreShaderCGProgramWriter.h"
-#include "OgreShaderFunctionAtom.h"
-#include "OgreShaderProgram.h"
-#include "OgreStringConverter.h"
+#include "OgreShaderPrecompiledHeaders.h"
 
 namespace Ogre {
 namespace RTShader {
 
-String CGProgramWriter::TargetLanguage = "cg";
+String CGProgramWriter::TargetLanguage = "hlsl";
 
 //-----------------------------------------------------------------------
 CGProgramWriter::CGProgramWriter()
 {
     initializeStringMaps();
+
+    if(GpuProgramManager::getSingleton().isSyntaxSupported("ps_4_0"))
+    {
+        mGpuConstTypeMap[GCT_SAMPLER2DARRAY] = "Sampler2DArray";
+        mGpuConstTypeMap[GCT_SAMPLER2DSHADOW] = "Sampler2DShadow";
+        mGpuConstTypeMap[GCT_SAMPLER2DARRAYSHADOW] = "Sampler2DArrayShadow";
+        mGpuConstTypeMap[GCT_SAMPLERCUBESHADOW] = "SamplerCubeShadow";
+    }
 }
 
 //-----------------------------------------------------------------------
@@ -77,206 +82,116 @@ void CGProgramWriter::initializeStringMaps()
     mGpuConstTypeMap[GCT_UINT3] = "uint3";
     mGpuConstTypeMap[GCT_UINT4] = "uint4";
 
+    mParamSemanticMap[Parameter::SPS_FRONT_FACING] = "VFACE";
+    mParamSemanticMap[Parameter::SPS_LAYER] = "SV_RenderTargetArrayIndex";
+}
 
-    mParamSemanticMap[Parameter::SPS_POSITION] = "POSITION";
-    mParamSemanticMap[Parameter::SPS_BLEND_WEIGHTS] = "BLENDWEIGHT";
-    mParamSemanticMap[Parameter::SPS_BLEND_INDICES] = "BLENDINDICES";
-    mParamSemanticMap[Parameter::SPS_NORMAL] = "NORMAL";
-    mParamSemanticMap[Parameter::SPS_COLOR] = "COLOR";
-    mParamSemanticMap[Parameter::SPS_TEXTURE_COORDINATES] = "TEXCOORD";
-    mParamSemanticMap[Parameter::SPS_BINORMAL] = "BINORMAL";
-    mParamSemanticMap[Parameter::SPS_TANGENT] = "TANGENT";
-    mParamSemanticMap[Parameter::SPS_UNKNOWN] = "";
+void CGProgramWriter::writeSharedParams(std::ostream& os, const String& name, int registerIdx, const GpuSharedParametersPtr& params)
+{
+    // In HLSL/D3D11 constant buffers are bound to register(bN).
+    // Only SM4+ (ps_4_0 and up) understands cbuffer/register(b#).
+    bool useRegister = GpuProgramManager::getSingleton().isSyntaxSupported("ps_4_0");
+
+    os << "cbuffer " << name;
+    if (useRegister)
+        os << " : register(b" << registerIdx << ")";
+    os << " {\n";
+
+    for (const auto& e : params->getConstantDefinitionsSorted())
+    {
+        const GpuConstantDefinition& def = e.second;
+
+        os << "\t" << mGpuConstTypeMap[def.constType] << " " << e.first;
+        if (def.arraySize > 1)
+            os << "[" << def.arraySize << "]";
+        os << ";\n";
+    }
+
+    os << "};\n";
 }
 
 //-----------------------------------------------------------------------
 void CGProgramWriter::writeSourceCode(std::ostream& os, Program* program)
 {
-    const ShaderFunctionList& functionList = program->getFunctions();
-    ShaderFunctionConstIterator itFunction;
-
-    const UniformParameterList& parameterList = program->getParameters();
-    UniformParameterConstIterator itUniformParam = parameterList.begin();
-
     // Generate source code header.
     writeProgramTitle(os, program);
+    os << std::endl;
+
+    // Generate global variable code.
+    int sharedRegister = 1;
+    for (const auto& shared : program->getSharedParameters())
+        writeSharedParams(os, shared->getName(), sharedRegister++, shared);
+
+    for (const auto& p : program->getParameters())
+    {
+        p->isSampler() ? writeSamplerParameter(os, p) : writeParameter(os, p);
+        os << ";" << std::endl;
+    }
     os << std::endl;
 
     // Generate dependencies.
     writeProgramDependencies(os, program);
     os << std::endl;
 
-    // Generate global variable code.
-    writeUniformParametersTitle(os, program);
+    Function* curFunction = program->getMain();
+
+    writeFunctionTitle(os, curFunction);
+    writeFunctionDeclaration(os, curFunction);
+
+    os << "{" << std::endl;
+
+    // Write local parameters.
+    for (const auto& p : curFunction->getLocalParameters())
+    {
+        os << "\t";
+        writeParameter(os, p);
+        os << ";" << std::endl;
+    }
+
+    for (const auto& a : curFunction->getAtomInstances())
+    {
+        redirectGlobalWrites(os, a, curFunction->getInputParameters(), program->getParameters());
+        writeAtomInstance(os, a);
+    }
+
+
+    os << "}" << std::endl;
     os << std::endl;
-
-    for (itUniformParam=parameterList.begin();  itUniformParam != parameterList.end(); ++itUniformParam)
-    {
-        writeUniformParameter(os, *itUniformParam);         
-        os << ";" << std::endl;             
-    }
-    os << std::endl;
-
-    // Write program function(s).
-    for (itFunction=functionList.begin(); itFunction != functionList.end(); ++itFunction)
-    {
-        Function* curFunction = *itFunction;
-
-        writeFunctionTitle(os, curFunction);
-        writeFunctionDeclaration(os, curFunction);
-
-        os << "{" << std::endl;
-
-        // Write local parameters.
-        const ShaderParameterList& localParams = curFunction->getLocalParameters();
-        ShaderParameterConstIterator itParam; 
-
-        for (itParam=localParams.begin();  itParam != localParams.end(); ++itParam)
-        {
-            os << "\t";
-            writeLocalParameter(os, *itParam);          
-            os << ";" << std::endl;                     
-        }
-
-        // Sort and write function atoms.
-        curFunction->sortAtomInstances();
-
-        const FunctionAtomInstanceList& atomInstances = curFunction->getAtomInstances();
-        FunctionAtomInstanceConstIterator itAtom;
-
-        for (itAtom=atomInstances.begin(); itAtom != atomInstances.end(); ++itAtom)
-        {           
-            writeAtomInstance(os, *itAtom);
-        }
-
-
-        os << "}" << std::endl;
-    }
-
-    os << std::endl;
-}
-
-
-//-----------------------------------------------------------------------
-void CGProgramWriter::writeProgramDependencies(std::ostream& os, Program* program)
-{
-    os << "//-----------------------------------------------------------------------------" << std::endl;
-    os << "//                         PROGRAM DEPENDENCIES" << std::endl;
-    os << "//-----------------------------------------------------------------------------" << std::endl;
-
-
-    for (unsigned int i=0; i < program->getDependencyCount(); ++i)
-    {
-        const String& curDependency = program->getDependency(i);
-
-        os << "#include " << '\"' << curDependency << "." << getTargetLanguage() << '\"' << std::endl;
-    }
-}
-
-//-----------------------------------------------------------------------
-void CGProgramWriter::writeUniformParameter(std::ostream& os, UniformParameterPtr parameter)
-{
-    os << mGpuConstTypeMap[parameter->getType()];
-    os << "\t"; 
-    os << parameter->getName(); 
-    if (parameter->isArray() == true)
-    {
-        os << "[" << parameter->getSize() << "]";   
-    }
-    
-    if (parameter->isSampler())
-    {
-        os << " : register(s" << parameter->getIndex() << ")";      
-    }
-
 }
 
 //-----------------------------------------------------------------------
 void CGProgramWriter::writeFunctionParameter(std::ostream& os, ParameterPtr parameter)
 {
-    os << mGpuConstTypeMap[parameter->getType()];
-
-    os << "\t"; 
-    os << parameter->getName(); 
-    if (parameter->isArray() == true)
-    {
-        os << "[" << parameter->getSize() << "]";   
-    }
-    
-    if (parameter->getSemantic() != Parameter::SPS_UNKNOWN)
-    {
-        os << " : ";
-        os << mParamSemanticMap[parameter->getSemantic()];
-
-        if (parameter->getSemantic() != Parameter::SPS_POSITION && 
-            parameter->getSemantic() != Parameter::SPS_NORMAL &&
-            parameter->getSemantic() != Parameter::SPS_TANGENT &&
-            parameter->getSemantic() != Parameter::SPS_BLEND_INDICES &&
-            parameter->getSemantic() != Parameter::SPS_BLEND_WEIGHTS &&
-            (!(parameter->getSemantic() == Parameter::SPS_COLOR && parameter->getIndex() == 0)) &&
-            parameter->getIndex() >= 0)
-        {           
-            os << StringConverter::toString(parameter->getIndex()).c_str();
-        }
-    }
-}
-
-//-----------------------------------------------------------------------
-void CGProgramWriter::writeLocalParameter(std::ostream& os, ParameterPtr parameter)
-{
-    os << mGpuConstTypeMap[parameter->getType()];
-    os << "\t"; 
-    os << parameter->getName();     
-    if (parameter->isArray() == true)
-    {
-        os << "[" << parameter->getSize() << "]";   
-    }
+    writeParameter(os, parameter);
+    os << " : ";
+    writeParameterSemantic(os, parameter);
 }
 
 //-----------------------------------------------------------------------
 void CGProgramWriter::writeFunctionDeclaration(std::ostream& os, Function* function)
 {
-    const ShaderParameterList& inParams  = function->getInputParameters();
-    const ShaderParameterList& outParams = function->getOutputParameters();
-
-
-    os << "void";
-    os << " ";
-
-    os << function->getName();
-    os << std::endl << "\t(" << std::endl;
-
-    ShaderParameterConstIterator it;
-    size_t paramsCount = inParams.size() + outParams.size();
-    size_t curParamIndex = 0;
+    os << "void main(\n";
 
     // Write input parameters.
-    for (it=inParams.begin(); it != inParams.end(); ++it)
-    {                   
+    for (const auto& p : function->getInputParameters())
+    {
         os << "\t in ";
-
-        writeFunctionParameter(os, *it);
-
-        if (curParamIndex + 1 != paramsCount)       
-            os << ", " << std::endl;
-
-        curParamIndex++;
+        writeFunctionParameter(os, p);
+        os << ",\n";
     }
 
 
     // Write output parameters.
-    for (it=outParams.begin(); it != outParams.end(); ++it)
+    for (const auto& p : function->getOutputParameters())
     {
         os << "\t out ";
-        writeFunctionParameter(os, *it);
+        writeFunctionParameter(os, p);
+        os << ",\n";
+    }
 
-        if (curParamIndex + 1 != paramsCount)               
-            os << ", " << std::endl;
+    os.seekp(-2, std::ios_base::end);
 
-        curParamIndex++;
-    }   
-
-    os << std::endl << "\t)" << std::endl;
+    os << "\n)\n";
 }
 
 //-----------------------------------------------------------------------

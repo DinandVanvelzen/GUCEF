@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,12 @@ THE SOFTWARE.
 
 namespace Ogre {
 namespace Volume {
-
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     class Source;
     class MeshBuilderCallback;
     class ChunkHandler;
@@ -140,15 +145,37 @@ namespace Volume {
     */
     class _OgreVolumeExport Chunk : public SimpleRenderable, public FrameListener
     {
-    
-    /// So the actual loading functions can be called.
-    friend class ChunkHandler;
+    /** Data being passed around while loading.
+    */
+    struct ChunkRequest
+    {
+
+        /// The back lower left corner of the world.
+        Vector3 totalFrom;
+
+        /// The front upper rightcorner of the world.
+        Vector3 totalTo;
+
+        /// The current LOD level.
+        size_t level;
+
+        /// The maximum amount of levels.
+        size_t maxLevels;
+
+        /// The MeshBuilder to use.
+        MeshBuilder *meshBuilder;
+
+        /// The DualGridGenerator to use.
+        DualGridGenerator *dualGridGenerator;
+
+        /// The octree node to use.
+        OctreeNode *root;
+
+        /// Whether this is an update of an existing tree
+        bool isUpdate;
+    };
 
     protected:
-
-        /// To handle the WorkQueue.
-        static ChunkHandler mChunkHandler;
-                
         /// To attach this node to.
         SceneNode *mNode;
 
@@ -323,15 +350,15 @@ namespace Volume {
 
         /** Overridden from MovableObject.
         */
-        virtual const String& getMovableType(void) const;
+        const String& getMovableType(void) const override;
         
         /** Overridden from Renderable.
         */
-        virtual Real getSquaredViewDepth(const Camera* camera) const;
+        Real getSquaredViewDepth(const Camera* camera) const override;
 
         /** Overridden from  MovableObject.
         */
-        virtual Real getBoundingRadius() const;
+        Real getBoundingRadius() const override;
 
         /** Loads the volume mesh with all LODs.
         @param parent
@@ -363,7 +390,7 @@ namespace Volume {
         @param resourceGroup
             The resource group where to search for the configuration file.
         */
-        virtual void load(SceneNode *parent, SceneManager *sceneManager, const String& filename, bool validSourceResult = false, MeshBuilderCallback *lodCallback = 0, const String& resourceGroup = ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+        virtual void load(SceneNode *parent, SceneManager *sceneManager, const String& filename, bool validSourceResult = false, MeshBuilderCallback *lodCallback = 0, const String& resourceGroup = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME);
         
         /** Shows the debug visualization entity of the dualgrid.
         @param visible
@@ -405,32 +432,35 @@ namespace Volume {
         
         /** Overridden from FrameListener.
         */
-        virtual bool frameStarted(const FrameEvent& evt);
+        bool frameStarted(const FrameEvent& evt) override;
         
         /** Overridable factory method.
         @return
             The created chunk.
         */
         virtual Chunk* createInstance(void);
-        
+
         /** Overridden from SimpleRenderable.
             Sets the material of this chunk and all of his children.
         */
-        virtual void setMaterial(const String& matName);
+        void setMaterial(const MaterialPtr& mat) override;
+
+        /// @overload
+        using Ogre::SimpleRenderable::setMaterial;
 
         /** Sets the material of all chunks of a specific level in the tree.
         This allows LODs where the lower levels (== less detail and more far away)
         have simpler materials.
         @param level
             The tree level getting the material, 0 based. 0 means the chunk with the lowest level of detail.
-        @param matName
+        @param mat
             The material name to set.
         */
-        virtual void setMaterialOfLevel(size_t level, const String& matName);
+        void setMaterialOfLevel(size_t level, const MaterialPtr& mat);
 
         /** A list of Chunks.
         */
-        typedef vector<const Chunk*>::type VecChunk;
+        typedef std::vector<const Chunk*> VecChunk;
 
         /** Gathers all visible chunks (containing triangles) of a specific LOD level.
         @param level
@@ -448,6 +478,8 @@ namespace Volume {
         ChunkParameters* getChunkParameters(void);
 
     };
+    /** @} */
+    /** @} */
 }
 }
 

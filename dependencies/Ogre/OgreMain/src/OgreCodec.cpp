@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,25 +26,43 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreCodec.h"
 
 namespace Ogre {
 
-    map< String, Codec * >::type Codec::msMapCodecs;
+    std::map< String, Codec * > Codec::msMapCodecs;
 
     Codec::~Codec() {
+    }
+
+    String Codec::magicNumberToFileExt(const char* magicNumberPtr, size_t maxbytes) const { return BLANKSTRING; }
+
+    DataStreamPtr Codec::encode(const Any& input) const
+    {
+        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, getType() + " - encoding to memory not supported");
+        return DataStreamPtr();
+    }
+
+    void Codec::encodeToFile(const Any& input, const String& outFileName) const
+    {
+        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, getType() + " - encoding to file not supported");
     }
 
     StringVector Codec::getExtensions(void)
     {
         StringVector result;
         result.reserve(msMapCodecs.size());
-        CodecList::const_iterator i;
-        for (i = msMapCodecs.begin(); i != msMapCodecs.end(); ++i)
+        for (auto& c : msMapCodecs)
         {
-            result.push_back(i->first);
+            result.push_back(c.first);
         }
         return result;
+    }
+
+    void Codec::registerCodec(Codec* pCodec)
+    {
+        auto ret = msMapCodecs.emplace(pCodec->getType(), pCodec);
+        if (!ret.second)
+            OGRE_EXCEPT(Exception::ERR_DUPLICATE_ITEM, pCodec->getType() + " already has a registered codec");
     }
 
     Codec* Codec::getCodec(const String& extension)
@@ -60,37 +78,31 @@ namespace Ogre {
             else
                 formats_str = "Supported formats are: " + StringConverter::toString(getExtensions()) + ".";
 
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                "Can not find codec for '" + extension + "' image format.\n" + 
-                formats_str,
-                "Codec::getCodec");
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND,
+                        "Can not find codec for '" + extension + "' format.\n" + formats_str);
         }
 
         return i->second;
-
     }
 
     Codec* Codec::getCodec(char *magicNumberPtr, size_t maxbytes)
     {
-        for (CodecList::const_iterator i = msMapCodecs. begin(); 
-            i != msMapCodecs.end(); ++i)
+        for (auto& c : msMapCodecs)
         {
-            String ext = i->second->magicNumberToFileExt(magicNumberPtr, maxbytes);
+            String ext = c.second->magicNumberToFileExt(magicNumberPtr, maxbytes);
             if (!ext.empty())
             {
                 // check codec type matches
                 // if we have a single codec class that can handle many types, 
                 // and register many instances of it against different types, we
                 // can end up matching the wrong one here, so grab the right one
-                if (ext == i->second->getType())
-                    return i->second;
+                if (ext == c.second->getType())
+                    return c.second;
                 else
                     return getCodec(ext);
             }
         }
 
         return 0;
-
     }
-
 }

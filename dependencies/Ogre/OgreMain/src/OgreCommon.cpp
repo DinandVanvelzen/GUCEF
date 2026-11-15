@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,6 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgrePrerequisites.h"
-#include "OgreCommon.h"
-#include "OgreLogManager.h"
 
 namespace Ogre 
 {
@@ -65,67 +62,18 @@ namespace Ogre
         return startIndex;
     }
 
-    /** General hash function, derived from here
-    http://www.azillionmonkeys.com/qed/hash.html
-    Original by Paul Hsieh 
-    */
-#if OGRE_ENDIAN == OGRE_ENDIAN_LITTLE
-#  define OGRE_GET16BITS(d) (*((const uint16 *) (d)))
-#else
-    // Cast to uint16 in little endian means first byte is least significant
-    // replicate that here
-#  define OGRE_GET16BITS(d) (*((const uint8 *) (d)) + (*((const uint8 *) (d+1))<<8))
-#endif
-    uint32 _OgreExport FastHash (const char * data, int len, uint32 hashSoFar)
+    void logMaterialNotFound(const String& name, const String& groupName, const String& destType,
+                             const String& destName, LogMessageLevel lml)
     {
-        uint32 hash;
-        int rem;
-
-        if (hashSoFar)
-            hash = hashSoFar;
-        else
-            hash = len;
-
-        if (len <= 0 || data == NULL) return 0;
-
-        rem = len & 3;
-        len >>= 2;
-
-        /* Main loop */
-        for (;len > 0; len--) {
-            hash  += OGRE_GET16BITS (data);
-            uint32 tmp    = (OGRE_GET16BITS (data+2) << 11) ^ hash;
-            hash   = (hash << 16) ^ tmp;
-            data  += 2*sizeof (uint16);
-            hash  += hash >> 11;
-        }
-
-        /* Handle end cases */
-        switch (rem) {
-        case 3: hash += OGRE_GET16BITS (data);
-            hash ^= hash << 16;
-            hash ^= data[sizeof (uint16)] << 18;
-            hash += hash >> 11;
-            break;
-        case 2: hash += OGRE_GET16BITS (data);
-            hash ^= hash << 11;
-            hash += hash >> 17;
-            break;
-        case 1: hash += *data;
-            hash ^= hash << 10;
-            hash += hash >> 1;
-        }
-
-        /* Force "avalanching" of final 127 bits */
-        hash ^= hash << 3;
-        hash += hash >> 5;
-        hash ^= hash << 4;
-        hash += hash >> 17;
-        hash ^= hash << 25;
-        hash += hash >> 6;
-
-        return hash;
+        LogManager::getSingleton().logMessage(
+            StringUtil::format("Can't assign material to %s '%s'. Material '%s' not found in group '%s'. Have you "
+                               "forgotten to define it in a .material script?",
+                               destType.c_str(), destName.c_str(), name.c_str(), groupName.c_str()),
+            lml);
     }
 
-
+    std::ostream& operator<<(std::ostream& o, const Plane& p)
+    {
+        return o << "Plane(normal=" << p.normal << ", d=" << p.d << ")";
+    }
 }

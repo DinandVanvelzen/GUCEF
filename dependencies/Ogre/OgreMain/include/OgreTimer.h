@@ -1,10 +1,10 @@
 /*
 -----------------------------------------------------------------------------
 This source file is part of OGRE
-    (Object-oriented Graphics Rendering Engine)
+(Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +25,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#ifndef __OgreCommonTimer_H__
-#define __OgreCommonTimer_H__
 
-#include "OgrePlatform.h"
+#ifndef __OGRE_TIMER_H__
+#define __OGRE_TIMER_H__
 
-//Bring in the specific platform's header file
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
-# include "WIN32/OgreTimerImp.h"
-#elif OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
-# include "Emscripten/OgreTimerImp.h"
-#else
-# include "OgrePOSIXTimerImp.h"
-#endif
+#include "OgrePrerequisites.h"
+#include <chrono>
 
+namespace Ogre
+{
+    /** Timer class */
+    class _OgreExport Timer : public TimerAlloc
+    {
+    private:
+        std::chrono::steady_clock::time_point start;
+        clock_t zeroClock;
+    public:
+        Timer();
+
+        /** Resets timer */
+        void reset();
+
+        /** Returns milliseconds since initialisation or last reset */
+        uint64_t getMilliseconds();
+
+        /** Returns microseconds since initialisation or last reset */
+        uint64_t getMicroseconds();
+
+        /** Returns milliseconds since initialisation or last reset, only CPU time measured */  
+        uint64_t getMillisecondsCPU();
+
+        /** Returns microseconds since initialisation or last reset, only CPU time measured */  
+        uint64_t getMicrosecondsCPU();
+    };
+}
 #endif

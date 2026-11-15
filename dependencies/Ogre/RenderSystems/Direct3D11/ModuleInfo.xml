@@ -1,19 +1,28 @@
 <ModuleInfoEntry>
-    <Module Name="OgreRenderSystem_Direct3D11" Type="SharedLibrary" Platform="mswin">
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Direct3D 11 render system plugin</DescriptionHeadline>
+        <DescriptionDetails>The Direct3D 11 render system of OGRE 14.6.3, a plugin of the Ogre core library, for Windows.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreRenderSystem_Direct3D11" Type="SharedLibrary" Platform="mswin" Tags="ogre">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />
-            <Dependency Name="Direct3D11" />
         </Dependencies>
         <Linker>
             <Dependency Name="Ogre" />
-            <Dependency Name="Direct3D11" />
+            <Dependency Name="d3d11.lib" />
+            <Dependency Name="dxgi.lib" />
+            <Dependency Name="dxguid.lib" />
+            <Dependency Name="d3dcompiler.lib" />
         </Linker>
         <Preprocessor>
-            <Define String="OGRED3DENGINEDLL_EXPORTS
-" />
-            <Define String="_USRDLL
-" />
+            <Define String="OGRED3DENGINEDLL_EXPORTS" />
+            <Define String="_USRDLL" />
         </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
     </Module>
 </ModuleInfoEntry>

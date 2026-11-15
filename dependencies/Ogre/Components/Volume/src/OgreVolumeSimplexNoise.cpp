@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -27,6 +27,8 @@ THE SOFTWARE.
 #include "OgreVolumeSimplexNoise.h"
 
 #include <time.h>
+
+#include <cmath>
 
 namespace Ogre {
 namespace Volume {
@@ -89,9 +91,9 @@ namespace Volume {
         Real n0, n1, n2, n3; // Noise contributions from the four corners
         // Skew the input space to determine which simplex cell we're in
         Real s = (xIn + yIn + zIn) * F3; // Very nice and simple skew factor for 3D
-        int i = (int)floor(xIn + s);
-        int j = (int)floor(yIn + s);
-        int k = (int)floor(zIn + s);
+        int i = (int)std::floor(xIn + s);
+        int j = (int)std::floor(yIn + s);
+        int k = (int)std::floor(zIn + s);
         Real t = (i + j + k) * G3;
         Real X0 = i - t; // Unskew the cell origin back to (x,y,z) space
         Real Y0 = j - t;

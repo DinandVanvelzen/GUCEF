@@ -1,26 +1,34 @@
 <ModuleInfoEntry>
-    <Module Name="OgreRenderSystem_GL" Type="SharedLibrary" Platform="All">
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE OpenGL render system plugin</DescriptionHeadline>
+        <DescriptionDetails>The OpenGL (2.x compatibility and later) render system of OGRE 14.6.3, a plugin of the Ogre core library. The OpenGL entry points are loaded at run time.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreRenderSystem_GL" Type="SharedLibrary" Platform="linux;mswin" Tags="ogre">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
-	        <Dependency Name="Ogre" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreGLSupport" />
         </Dependencies>
         <Linker>
             <Dependency Name="Ogre" />
+            <Dependency Name="OgreGLSupport" />
         </Linker>
         <Preprocessor>
             <Define String="OGRE_GLPLUGIN_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+            <Define String="YY_NEVER_INTERACTIVE" />
         </Preprocessor>
-    </Module>
-    <Module Platform="mswin">
-        <Linker>
-            <Dependency Name="opengl32" />
-            <Dependency Name="glu32.lib" />
-        </Linker>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
     </Module>
     <Module Platform="linux">
         <Linker>
-            <Dependency Name="GL" />
-            <Dependency Name="GLU" />
+            <Dependency Name="dl" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

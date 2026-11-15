@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,18 +29,17 @@ THE SOFTWARE.
 #define __D3D11MAPPINGS_H__
 
 #include "OgreD3D11Prerequisites.h"
-#include "OgreTextureUnitState.h"
+#include "OgreTexture.h"
 #include "OgreRenderSystem.h"
-#include "OgreRoot.h"
-#include "OgreD3D11RenderSystem.h"
+#include "OgreHardwareIndexBuffer.h"
 
 namespace Ogre 
 {
-	class D3D11Mappings
+    class _OgreD3D11Export D3D11Mappings
 	{
 	public:
 		/// return a D3D11 equivalent for a Ogre TextureAddressingMode value
-		static D3D11_TEXTURE_ADDRESS_MODE get(TextureUnitState::TextureAddressingMode tam);
+		static D3D11_TEXTURE_ADDRESS_MODE get(TextureAddressingMode tam);
 		/// return a D3D11 equivalent for a Ogre SceneBlendFactor value
 		static D3D11_BLEND get(SceneBlendFactor sbf, bool forAlpha);
 		/// return a D3D11 equivalent for a Ogre SceneBlendOperation value
@@ -63,12 +62,9 @@ namespace Ogre
 		static DXGI_FORMAT get(VertexElementType vType);
 		/// Get vertex semantic
 		static LPCSTR get(VertexElementSemantic sem);
-		static VertexElementSemantic get(LPCSTR sem);
-		/// Get dx11 color
-		static void get(const ColourValue& inColour, float * outColour );
 
 		/// utility method, generates Ogre PixelBox using usual parameters and dataPtr/rowPitch/slicePitch from D3D11_MAPPED_SUBRESOURCE
-		static PixelBox getPixelBoxWithMapping(size_t width, size_t height, size_t depth, PixelFormat pixelFormat, const D3D11_MAPPED_SUBRESOURCE& mapping);
+		static PixelBox getPixelBoxWithMapping(D3D11_BOX extents, DXGI_FORMAT pixelFormat, const D3D11_MAPPED_SUBRESOURCE& mapping);
 		/// utility method, applies dataPtr/rowPitch/slicePitch from D3D11_MAPPED_SUBRESOURCE to Ogre PixelBox
 		static void setPixelBoxMapping(PixelBox& box, const D3D11_MAPPED_SUBRESOURCE& mapping);
 
@@ -76,6 +72,9 @@ namespace Ogre
 		static PixelFormat _getPF(DXGI_FORMAT d3dPF);
 		/// utility method, convert Ogre pixel format to D3D11 pixel format
 		static DXGI_FORMAT _getPF(PixelFormat ogrePF);
+		/// utility method, optionally maps plain format to _SRGB counterparts
+		static DXGI_FORMAT _getGammaFormat(DXGI_FORMAT format, bool appendSRGB);
+		static bool _isBinaryCompressedFormat(DXGI_FORMAT d3dPF);
 
 		static D3D11_USAGE _getUsage(HardwareBuffer::Usage usage);
 		static D3D11_USAGE _getUsage(TextureUsage usage) { return _getUsage(static_cast<HardwareBuffer::Usage>(usage)); }
@@ -90,7 +89,7 @@ namespace Ogre
 		static TextureType _getTexType(D3D11_SRV_DIMENSION type);
 
 		static UINT _getTextureBindFlags(DXGI_FORMAT format, TextureUsage usage);
-		static UINT _getTextureMiscFlags(UINT bindflags, TextureType textype, bool isdynamic);
+		static UINT _getTextureMiscFlags(UINT bindflags, TextureType textype, TextureUsage usage);
 	};
 }
 #endif

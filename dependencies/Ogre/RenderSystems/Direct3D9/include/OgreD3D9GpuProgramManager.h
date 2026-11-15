@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,20 +33,13 @@ THE SOFTWARE.
 
 namespace Ogre {
 
-    class _OgreD3D9Export D3D9GpuProgramManager : public GpuProgramManager
+    class _OgreD3D9Export D3D9GpuProgramManager : public GpuProgramFactory
     {
-    protected:
-        /// @copydoc ResourceManager::createImpl
-        Resource* createImpl(const String& name, ResourceHandle handle, 
-            const String& group, bool isManual, ManualResourceLoader* loader,
-            const NameValuePairList* createParams);
-        /// Specialised create method with specific parameters
-        Resource* createImpl(const String& name, ResourceHandle handle, 
-            const String& group, bool isManual, ManualResourceLoader* loader,
-            GpuProgramType gptype, const String& syntaxCode);
     public:
-        D3D9GpuProgramManager();
-        ~D3D9GpuProgramManager();
+        static String currentLanguage;
+        const String& getLanguage(void) const override;
+        GpuProgram* create(ResourceManager* creator, const String& name, ResourceHandle handle,
+                           const String& group, bool isManual, ManualResourceLoader* loader) override;
     };
 
 }

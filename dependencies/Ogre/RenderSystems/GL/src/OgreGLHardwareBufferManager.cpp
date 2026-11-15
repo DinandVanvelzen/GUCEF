@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,16 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreGLHardwareBufferManager.h"
-#include "OgreGLHardwareVertexBuffer.h"
-#include "OgreGLHardwareIndexBuffer.h"
+#include "OgreGLHardwareBuffer.h"
 #include "OgreGLRenderSystem.h"
 #include "OgreGLRenderToVertexBuffer.h"
-#include "OgreGLUtil.h"
 #include "OgreHardwareBuffer.h"
 #include "OgreRoot.h"
 #include "OgreRenderSystemCapabilities.h"
+
+#ifndef GL_HALF_FLOAT
+#define GL_HALF_FLOAT                     0x140B
+#endif
 
 namespace Ogre {
     //-----------------------------------------------------------------------
@@ -46,114 +48,67 @@ namespace Ogre {
         uint32 free: 1;
     };
     #define SCRATCH_POOL_SIZE 1 * 1024 * 1024
-    #define SCRATCH_ALIGNMENT 32
     //---------------------------------------------------------------------
-    GLHardwareBufferManagerBase::GLHardwareBufferManagerBase() 
+    GLHardwareBufferManager::GLHardwareBufferManager()
         : mScratchBufferPool(NULL), mMapBufferThreshold(OGRE_GL_DEFAULT_MAP_BUFFER_THRESHOLD)
     {
-        mStateCacheManager = dynamic_cast<GLRenderSystem*>(Root::getSingleton().getRenderSystem())->getGLSupportRef()->getStateCacheManager();
+        mRenderSystem = static_cast<GLRenderSystem*>(Root::getSingleton().getRenderSystem());
 
         // Init scratch pool
         // TODO make it a configurable size?
         // 32-bit aligned buffer
-        mScratchBufferPool = static_cast<char*>(OGRE_MALLOC_ALIGN(SCRATCH_POOL_SIZE, MEMCATEGORY_GEOMETRY, SCRATCH_ALIGNMENT));
+        mScratchBufferPool = static_cast<char*>(OGRE_MALLOC_SIMD(SCRATCH_POOL_SIZE, MEMCATEGORY_GEOMETRY));
         GLScratchBufferAlloc* ptrAlloc = (GLScratchBufferAlloc*)mScratchBufferPool;
         ptrAlloc->size = SCRATCH_POOL_SIZE - sizeof(GLScratchBufferAlloc);
         ptrAlloc->free = 1;
-
-        // non-Win32 machines are having issues glBufferSubData, looks like buffer corruption
-        // disable for now until we figure out where the problem lies           
-#   if OGRE_PLATFORM != OGRE_PLATFORM_WIN32
         mMapBufferThreshold = 0;
-#   endif
-
-        // Win32 machines with ATI GPU are having issues glMapBuffer, looks like buffer corruption
-        // disable for now until we figure out where the problem lies           
-#   if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
-        if (Root::getSingleton().getRenderSystem()->getCapabilities()->getVendor() == GPU_AMD)
-        {
-            mMapBufferThreshold = 0xffffffffUL  /* maximum unsigned long value */;
-        }
-#   endif
-
     }
     //-----------------------------------------------------------------------
-    GLHardwareBufferManagerBase::~GLHardwareBufferManagerBase()
+    GLHardwareBufferManager::~GLHardwareBufferManager()
     {
         destroyAllDeclarations();
         destroyAllBindings();
 
-        OGRE_FREE_ALIGN(mScratchBufferPool, MEMCATEGORY_GEOMETRY, SCRATCH_ALIGNMENT);
+        OGRE_FREE_SIMD(mScratchBufferPool, MEMCATEGORY_GEOMETRY);
     }
     //-----------------------------------------------------------------------
-    HardwareVertexBufferSharedPtr GLHardwareBufferManagerBase::createVertexBuffer(
+    HardwareVertexBufferSharedPtr GLHardwareBufferManager::createVertexBuffer(
         size_t vertexSize, size_t numVerts, HardwareBuffer::Usage usage, bool useShadowBuffer)
     {
-        GLHardwareVertexBuffer* buf = 
-            new GLHardwareVertexBuffer(this, vertexSize, numVerts, usage, useShadowBuffer);
+        auto impl = new GLHardwareVertexBuffer(GL_ARRAY_BUFFER, vertexSize * numVerts, usage, useShadowBuffer);
+        auto buf = std::make_shared<HardwareVertexBuffer>(this, vertexSize, numVerts, impl);
         {
-                    OGRE_LOCK_MUTEX(mVertexBuffersMutex);
-            mVertexBuffers.insert(buf);
+            OGRE_LOCK_MUTEX(mVertexBuffersMutex);
+            mVertexBuffers.insert(buf.get());
         }
-        return HardwareVertexBufferSharedPtr(buf);
+        return buf;
     }
     //-----------------------------------------------------------------------
     HardwareIndexBufferSharedPtr 
-    GLHardwareBufferManagerBase::createIndexBuffer(
+    GLHardwareBufferManager::createIndexBuffer(
         HardwareIndexBuffer::IndexType itype, size_t numIndexes, 
         HardwareBuffer::Usage usage, bool useShadowBuffer)
     {
-        GLHardwareIndexBuffer* buf = 
-            new GLHardwareIndexBuffer(this, itype, numIndexes, usage, useShadowBuffer);
-        {
-                    OGRE_LOCK_MUTEX(mIndexBuffersMutex);
-            mIndexBuffers.insert(buf);
-        }
-        return HardwareIndexBufferSharedPtr(buf);
+        // Calculate the size of the indexes
+        auto indexSize = HardwareIndexBuffer::indexSize(itype);
+        auto impl = new GLHardwareBuffer(GL_ELEMENT_ARRAY_BUFFER, indexSize * numIndexes, usage, useShadowBuffer);
+
+        return std::make_shared<HardwareIndexBuffer>(this, itype, numIndexes, impl);
     }
     //---------------------------------------------------------------------
     RenderToVertexBufferSharedPtr 
-        GLHardwareBufferManagerBase::createRenderToVertexBuffer()
+        GLHardwareBufferManager::createRenderToVertexBuffer()
     {
         return RenderToVertexBufferSharedPtr(new GLRenderToVertexBuffer);
     }
     //---------------------------------------------------------------------
-    HardwareUniformBufferSharedPtr 
-        GLHardwareBufferManagerBase::createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,bool useShadowBuffer, const String& name)
+    GLenum GLHardwareBufferManager::getGLUsage(unsigned int usage)
     {
-        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "Uniform buffers not supported in OpenGL RenderSystem.",
-                    "GLHardwareBufferManagerBase::createUniformBuffer");
-    }
-    HardwareCounterBufferSharedPtr
-        GLHardwareBufferManagerBase::createCounterBuffer(size_t sizeBytes,
-                                                         HardwareBuffer::Usage usage,
-                                                         bool useShadowBuffer, const String& name)
-    {
-        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Counter buffers not supported in OpenGL RenderSystem.",
-                    "GLHardwareBufferManagerBase::createCounterBuffer");
-    }
-
-    //---------------------------------------------------------------------
-    GLenum GLHardwareBufferManagerBase::getGLUsage(unsigned int usage)
-    {
-        switch(usage)
-        {
-        case HardwareBuffer::HBU_STATIC:
-        case HardwareBuffer::HBU_STATIC_WRITE_ONLY:
-            return GL_STATIC_DRAW_ARB;
-        case HardwareBuffer::HBU_DYNAMIC:
-        case HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY:
-            return GL_DYNAMIC_DRAW_ARB;
-        case HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE:
-            return GL_STREAM_DRAW_ARB;
-        default:
-            return GL_DYNAMIC_DRAW_ARB;
-        };
+        return (usage == HBU_GPU_TO_CPU) ? GL_STATIC_READ
+                                         : (usage == HBU_GPU_ONLY) ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
     }
     //---------------------------------------------------------------------
-    GLenum GLHardwareBufferManagerBase::getGLType(unsigned int type)
+    GLenum GLHardwareBufferManager::getGLType(unsigned int type)
     {
         switch(type)
         {
@@ -166,19 +121,30 @@ namespace Ogre {
             case VET_SHORT2:
             case VET_SHORT3:
             case VET_SHORT4:
+            case VET_SHORT2_NORM:
+            case VET_SHORT4_NORM:
                 return GL_SHORT;
-            case VET_COLOUR:
-            case VET_COLOUR_ABGR:
-            case VET_COLOUR_ARGB:
             case VET_UBYTE4:
+            case VET_UBYTE4_NORM:
                 return GL_UNSIGNED_BYTE;
+            case VET_BYTE4:
+            case VET_BYTE4_NORM:
+                return GL_BYTE;
+            case VET_USHORT2_NORM:
+            case VET_USHORT4_NORM:
+                return GL_UNSIGNED_SHORT;
+            case VET_HALF1:
+            case VET_HALF2:
+            case VET_HALF3:
+            case VET_HALF4:
+                return GL_HALF_FLOAT;
             default:
                 return 0;
         };
     }
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
-    void* GLHardwareBufferManagerBase::allocateScratch(uint32 size)
+    void* GLHardwareBufferManager::allocateScratch(uint32 size)
     {
         // simple forward link search based on alloc sizes
         // not that fast but the list should never get that long since not many
@@ -231,7 +197,7 @@ namespace Ogre {
 
     }
     //---------------------------------------------------------------------
-    void GLHardwareBufferManagerBase::deallocateScratch(void* ptr)
+    void GLHardwareBufferManager::deallocateScratch(void* ptr)
     {
             OGRE_LOCK_MUTEX(mScratchMutex);
 
@@ -286,12 +252,12 @@ namespace Ogre {
 
     }
     //---------------------------------------------------------------------
-    size_t GLHardwareBufferManagerBase::getGLMapBufferThreshold() const
+    size_t GLHardwareBufferManager::getGLMapBufferThreshold() const
     {
         return mMapBufferThreshold;
     }
     //---------------------------------------------------------------------
-    void GLHardwareBufferManagerBase::setGLMapBufferThreshold( const size_t value )
+    void GLHardwareBufferManager::setGLMapBufferThreshold( const size_t value )
     {
         mMapBufferThreshold = value;
     }

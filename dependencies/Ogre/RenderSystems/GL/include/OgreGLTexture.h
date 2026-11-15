@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,73 +32,35 @@ THE SOFTWARE.
 #include "OgreGLPrerequisites.h"
 #include "OgrePlatform.h"
 #include "OgreRenderTexture.h"
-#include "OgreTexture.h"
-#include "OgreGLSupport.h"
+#include "OgreGLTextureCommon.h"
 #include "OgreHardwarePixelBuffer.h"
 
 namespace Ogre {
 
-    class _OgreGLExport GLTexture : public Texture
+    class _OgreGLExport GLTexture : public GLTextureCommon
     {
     public:
         // Constructor
         GLTexture(ResourceManager* creator, const String& name, ResourceHandle handle,
             const String& group, bool isManual, ManualResourceLoader* loader, 
-            GLSupport& support);
+            GLRenderSystem* renderSystem);
 
         virtual ~GLTexture();      
-
-        void createRenderTexture();
-            
-        /// @copydoc Texture::getBuffer
-        HardwarePixelBufferSharedPtr getBuffer(size_t face, size_t mipmap);
 
         /// Takes the OGRE texture type (1d/2d/3d/cube) and returns the appropriate GL one
         GLenum getGLTextureTarget(void) const;
 
-        GLuint getGLID() const
-        {
-            return mTextureID;
-        }
-        
-        void getCustomAttribute(const String& name, void* pData);
-
     protected:
         /// @copydoc Texture::createInternalResourcesImpl
-        void createInternalResourcesImpl(void);
-        /// @copydoc Resource::prepareImpl
-        void prepareImpl(void);
-        /// @copydoc Resource::unprepareImpl
-        void unprepareImpl(void);
-        /// @copydoc Resource::loadImpl
-        void loadImpl(void);
+        void createInternalResourcesImpl(void) override;
         /// @copydoc Texture::freeInternalResourcesImpl
-        void freeInternalResourcesImpl(void);
+        void freeInternalResourcesImpl(void) override;
 
-        /** internal method, create GLHardwarePixelBuffers for every face and
-             mipmap level. This method must be called after the GL texture object was created,
-            the number of mipmaps was set (GL_TEXTURE_MAX_LEVEL) and glTexImageXD was called to
-            actually allocate the buffer
-        */
-        void _createSurfaceList();
-
-        /// Used to hold images between calls to prepare and load.
-        typedef SharedPtr<vector<Image>::type > LoadedImages;
-
-        /** Vector of images that were pulled from disk by
-            prepareLoad but have yet to be pushed into texture memory
-            by loadImpl.  Images should be deleted by loadImpl and unprepareImpl.
-        */
-        LoadedImages mLoadedImages;
-
+        HardwarePixelBufferPtr createSurface(uint32 face, uint32 mip, uint32 width, uint32 height,
+                                             uint32 depth) override;
 
     private:
-        GLuint mTextureID;
-        GLSupport& mGLSupport;
-        
-        /// Vector of pointers to subsurfaces
-        typedef vector<HardwarePixelBufferSharedPtr>::type SurfaceList;
-        SurfaceList mSurfaceList;
+        GLRenderSystem* mRenderSystem;
     };
 }
 

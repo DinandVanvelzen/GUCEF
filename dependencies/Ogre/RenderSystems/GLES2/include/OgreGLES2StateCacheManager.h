@@ -30,34 +30,19 @@ THE SOFTWARE.
 #define __GLES2StateCacheManager_H__
 
 #include "OgreGLES2Prerequisites.h"
-
-typedef Ogre::GeneralAllocatedObject StateCacheAlloc;
+#include "OgreGLStateCacheManagerCommon.h"
 
 namespace Ogre
 {
-    class GLES2StateCacheManagerImp;
-
-    /** An in memory cache of the OpenGL ES state.
-     @remarks
-     State changes can be particularly expensive time wise. This is because
-     a change requires OpenGL to re-evaluate and update the state machine.
-     Because of the general purpose nature of OGRE we often set the state for
-     a specific texture, material, buffer, etc. But this may be the same as the
-     current status of the state machine and is therefore redundant and causes
-     unnecessary work to be performed by OpenGL.
-     @par
-     Instead we are caching the state so that we can check whether it actually
-     does need to be updated. This leads to improved performance all around and 
-     can be somewhat dramatic in some cases.
-     */
-    class _OgreGLES2Export GLES2StateCacheManager : public StateCacheAlloc
+    class _OgreGLES2Export GLES2StateCacheManager : public GLStateCacheManagerCommon
     {
-    private:
-        GLES2StateCacheManagerImp* mImp;
-
+    protected:
+        /// Stores the currently bound vertex array object
+        GLuint mActiveVertexArray;
+        /// Stores the last bound texture id
+        GLuint mLastBoundTexID;
     public:
         GLES2StateCacheManager(void);
-        ~GLES2StateCacheManager(void);
 
         /** Initialize our cache variables and sets the
             GL states on the current context.
@@ -71,16 +56,19 @@ namespace Ogre
         /** Bind an OpenGL buffer of any type.
          @param target The buffer target.
          @param buffer The buffer ID.
-         @param force Optional parameter to force an update.
          */
-        void bindGLBuffer(GLenum target, GLuint buffer, bool force = false);
+        void bindGLBuffer(GLenum target, GLuint buffer);
 
         /** Delete an OpenGL buffer of any type.
          @param target The buffer target.
          @param buffer The buffer ID.
-         @param force Optional parameter to force an update.
          */
-        void deleteGLBuffer(GLenum target, GLuint buffer, bool force = false);
+        void deleteGLBuffer(GLenum target, GLuint buffer);
+
+        /** Bind an OpenGL Vertex array object.
+         @param vao The vertex array object ID.
+         */
+        void bindGLVertexArray(GLuint vao);
 
         /** Bind an OpenGL texture of any type.
          @param target The texture target.
@@ -100,66 +88,27 @@ namespace Ogre
          */
         void setTexParameteri(GLenum target, GLenum pname, GLint param);
 
-        /** Sets a float parameter value per texture target.
-         @param target The texture target.
-         @param pname The parameter name.
-         @param params The parameter value.
-         */
-        void setTexParameterf(GLenum target, GLenum pname, GLfloat param);
-
-        /** Sets a float parameter value per texture target.
-         @param target The texture target.
-         @param pname The parameter name.
-         @param params The parameter value.
-         */
-        void getTexParameterfv(GLenum target, GLenum pname, GLfloat *param);
-
         /** Activate an OpenGL texture unit.
          @param unit The texture unit to activate.
          @return Whether or not the texture unit was successfully activated.
          */
-        bool activateGLTextureUnit(unsigned char unit);
+        bool activateGLTextureUnit(size_t unit);
 
-        /** Gets the current blend equation setting.
-         @return The blend equation.
-         */
-        GLenum getBlendEquation(void) const;
+        /// Set the blend equation for RGB and alpha separately.
+        void setBlendEquation(GLenum eqRGB, GLenum eqA);
 
-        /** Sets the current blend equation setting.
-         @param eq The blend equation to use.
-         */
-        void setBlendEquation(GLenum eq);
-
-        /** Sets the blending function.
-         @param source The blend mode for the source.
-         @param dest The blend mode for the destination
-         */
-        void setBlendFunc(GLenum source, GLenum dest);
-
-        /** Gets the current depth mask setting.
-         @return The current depth mask.
-         */
-        GLboolean getDepthMask(void) const;
+        /// Set the blend function for RGB and alpha separately.
+        void setBlendFunc(GLenum source, GLenum dest, GLenum sourceA, GLenum destA);
 
         /** Sets the current depth mask setting.
          @param mask The depth mask to use.
          */
         void setDepthMask(GLboolean mask);
 
-        /** Gets the current depth test function.
-         @return The current depth test function.
-         */
-        GLenum getDepthFunc(void) const;
-
         /** Sets the current depth test function.
          @param func The depth test function to use.
          */
         void setDepthFunc(GLenum func);
-
-        /** Gets the clear depth in the range from [0..1].
-         @return The current clearing depth.
-         */
-        GLclampf getClearDepth(void) const;
 
         /** Sets the clear depth in the range from [0..1].
          @param depth The clear depth to use.
@@ -174,11 +123,6 @@ namespace Ogre
          */
         void setClearColour(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 
-        /** Gets the current colour mask setting.
-         @return An array containing the mask in RGBA order.
-         */
-        vector<GLboolean>::type & getColourMask(void) const;
-
         /** Sets the current colour mask.
          @param red The red component.
          @param green The green component.
@@ -186,11 +130,6 @@ namespace Ogre
          @param alpha The alpha component.
          */
         void setColourMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
-
-        /** Gets the current stencil mask.
-         @return The stencil mask.
-         */
-        GLuint getStencilMask(void) const;
 
         /** Sets the stencil mask.
          @param mask The stencil mask to use
@@ -207,45 +146,12 @@ namespace Ogre
          */
         void setDisabled(GLenum flag);
 
-        /** Enables a vertex attribute.
-         @param attrib The attribute to enable.
-         */
-        void setVertexAttribEnabled(GLuint attrib);
-
-        /** Disables a vertex attribute.
-         @param attrib The attribute to disable.
-         */
-        void setVertexAttribDisabled(GLuint attrib);
-
-        /** Gets the mask of buffers to be discarded if GL_EXT_discard_framebuffer is supported
-         @return The buffer mask.
-         */
-        unsigned int getDiscardBuffers(void) const;
-
-        /** Sets the mask of buffers to be discarded if GL_EXT_discard_framebuffer is supported
-         @param flags The bit mask of buffers to be discarded. Stored as Ogre::FrameBufferType.
-         */
-        void setDiscardBuffers(unsigned int flags);
-
-        /** Gets the current polygon rendering mode, fill, wireframe, points, etc.
-         @return The current polygon rendering mode.
-         */
-        GLenum getPolygonMode(void) const;
-
-        /** Sets the current polygon rendering mode.
-         @param mode The polygon mode to use.
-         */
-        void setPolygonMode(GLenum mode);
-
-        /** Sets the face culling mode.
-         @return The current face culling mode
-         */
-        GLenum getCullFace(void) const;
-
         /** Sets the face culling setting.
          @param face The face culling mode to use.
          */
         void setCullFace(GLenum face);
+
+        void setViewport(const Rect& r);
     };
 }
 

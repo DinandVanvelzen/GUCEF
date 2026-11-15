@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,9 +48,8 @@ namespace Ogre {
         /** Create a custom composition operation.
             @param pass The CompositionPass that triggered the request
             @param instance The compositor instance that this operation will be performed in
-            @remarks This call only happens once during creation. The RenderSystemOperation will
+            This call only happens once during creation. The RenderSystemOperation will
             get called each render.
-            @remarks The created operation must be instanciated using the OGRE_NEW macro.
         */
         virtual CompositorInstance::RenderSystemOperation* createOperation(
             CompositorInstance* instance, const CompositionPass* pass) = 0;

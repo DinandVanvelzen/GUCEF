@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreLodStrategyManager.h"
 
-#include "OgreException.h"
 #include "OgreDistanceLodStrategy.h"
 #include "OgrePixelCountLodStrategy.h"
 
@@ -100,9 +99,9 @@ namespace Ogre {
     void LodStrategyManager::removeAllStrategies()
     {
         // Get beginning iterator
-        for (StrategyMap::iterator it = mStrategies.begin(); it != mStrategies.end(); ++it)
+        for (auto & s : mStrategies)
         {
-            OGRE_DELETE it->second;
+            OGRE_DELETE s.second;
         }
         mStrategies.clear();
     }

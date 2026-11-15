@@ -27,146 +27,81 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 */
 
 #include "OgreGL3PlusHardwareBufferManager.h"
-#include "OgreGL3PlusHardwareCounterBuffer.h"
-#include "OgreGL3PlusHardwareIndexBuffer.h"
-#include "OgreGL3PlusHardwareUniformBuffer.h"
-#include "OgreGL3PlusHardwareShaderStorageBuffer.h"
-#include "OgreGL3PlusHardwareVertexBuffer.h"
+#include "OgreGL3PlusHardwareBuffer.h"
 #include "OgreGL3PlusRenderToVertexBuffer.h"
+#include "OgreGL3PlusRenderSystem.h"
 #include "OgreRoot.h"
+#include "OgreGLVertexArrayObject.h"
 
 namespace Ogre {
-
-    // Scratch pool management (32 bit structure)
-    struct GL3PlusScratchBufferAlloc
+    GL3PlusHardwareBufferManager::GL3PlusHardwareBufferManager() : mUniformBufferCount(0), mShaderStorageBufferCount(0)
     {
-        /// Size in bytes
-        uint32 size: 31;
-        /// Free? (pack with size)
-        uint32 free: 1;
-    };
-#define SCRATCH_POOL_SIZE 1 * 1024 * 1024
-#define SCRATCH_ALIGNMENT 32
-
-    GL3PlusHardwareBufferManagerBase::GL3PlusHardwareBufferManagerBase()
-        : mScratchBufferPool(NULL), mMapBufferThreshold(OGRE_GL_DEFAULT_MAP_BUFFER_THRESHOLD)
-    {
-        // Init scratch pool
-        // TODO make it a configurable size?
-        // 32-bit aligned buffer
-        mScratchBufferPool = static_cast<char*>(OGRE_MALLOC_ALIGN(SCRATCH_POOL_SIZE,
-                                                                  MEMCATEGORY_GEOMETRY,
-                                                                  SCRATCH_ALIGNMENT));
-        GL3PlusScratchBufferAlloc* ptrAlloc = (GL3PlusScratchBufferAlloc*)mScratchBufferPool;
-        ptrAlloc->size = SCRATCH_POOL_SIZE - sizeof(GL3PlusScratchBufferAlloc);
-        ptrAlloc->free = 1;
-
-        // Win32 machines with ATI GPU are having issues glMapBuffer, looks like buffer corruption
-        // disable for now until we figure out where the problem lies
-#       if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
-        if (Root::getSingleton().getRenderSystem()->getCapabilities()->getVendor() == GPU_AMD)
-        {
-            mMapBufferThreshold = 0xffffffffUL  /* maximum unsigned long value */;
-        }
-#       endif
-
+        mRenderSystem = static_cast<GL3PlusRenderSystem*>(Root::getSingleton().getRenderSystem());
     }
 
-    GL3PlusHardwareBufferManagerBase::~GL3PlusHardwareBufferManagerBase()
+    GL3PlusHardwareBufferManager::~GL3PlusHardwareBufferManager()
     {
-        mShaderStorageBuffers.clear();
-
         destroyAllDeclarations();
         destroyAllBindings();
+    }
 
-        OGRE_FREE_ALIGN(mScratchBufferPool, MEMCATEGORY_GEOMETRY, SCRATCH_ALIGNMENT);
+    void GL3PlusHardwareBufferManager::notifyContextDestroyed(GLContext* context)
+    {
+        OGRE_LOCK_MUTEX(mVertexDeclarationsMutex);
+        for(auto& d : mVertexDeclarations)
+            static_cast<GLVertexArrayObject*>(d)->notifyContextDestroyed(context);
     }
 
     HardwareVertexBufferSharedPtr
-    GL3PlusHardwareBufferManagerBase::createVertexBuffer(size_t vertexSize,
+    GL3PlusHardwareBufferManager::createVertexBuffer(size_t vertexSize,
                                                          size_t numVerts,
                                                          HardwareBuffer::Usage usage,
                                                          bool useShadowBuffer)
     {
-        GL3PlusHardwareVertexBuffer* buf =
-            OGRE_NEW GL3PlusHardwareVertexBuffer(this, vertexSize, numVerts, usage, useShadowBuffer);
+        auto impl = new GL3PlusHardwareBuffer(GL_ARRAY_BUFFER, vertexSize * numVerts, usage, useShadowBuffer);
+        auto buf = std::make_shared<HardwareVertexBuffer>(this, vertexSize, numVerts, impl);
         {
             OGRE_LOCK_MUTEX(mVertexBuffersMutex);
-            mVertexBuffers.insert(buf);
+            mVertexBuffers.insert(buf.get());
         }
-        return HardwareVertexBufferSharedPtr(buf);
+        return buf;
     }
 
-    HardwareIndexBufferSharedPtr GL3PlusHardwareBufferManagerBase::createIndexBuffer(HardwareIndexBuffer::IndexType itype,
+    HardwareIndexBufferSharedPtr GL3PlusHardwareBufferManager::createIndexBuffer(HardwareIndexBuffer::IndexType itype,
                                                                                      size_t numIndexes,
                                                                                      HardwareBuffer::Usage usage,
                                                                                      bool useShadowBuffer)
     {
-        GL3PlusHardwareIndexBuffer* buf =
-            new GL3PlusHardwareIndexBuffer(this, itype, numIndexes, usage, useShadowBuffer);
-        {
-            OGRE_LOCK_MUTEX(mIndexBuffersMutex);
-            mIndexBuffers.insert(buf);
-        }
-        return HardwareIndexBufferSharedPtr(buf);
+        // Calculate the size of the indexes
+        auto indexSize = HardwareIndexBuffer::indexSize(itype);
+        auto impl = new GL3PlusHardwareBuffer(GL_ELEMENT_ARRAY_BUFFER, indexSize * numIndexes, usage, useShadowBuffer);
+
+        return std::make_shared<HardwareIndexBuffer>(this, itype, numIndexes, impl);
     }
 
-    HardwareUniformBufferSharedPtr GL3PlusHardwareBufferManagerBase::createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer, const String& name)
+    HardwareBufferPtr GL3PlusHardwareBufferManager::createUniformBuffer(size_t sizeBytes, HardwareBufferUsage usage, bool useShadowBuffer)
     {
-        GL3PlusHardwareUniformBuffer* buf =
-            new GL3PlusHardwareUniformBuffer(this, sizeBytes, usage, useShadowBuffer, name);
-        {
-            OGRE_LOCK_MUTEX(mUniformBuffersMutex);
-            mUniformBuffers.insert(buf);
-        }
-        return HardwareUniformBufferSharedPtr(buf);
+        mUniformBufferCount++;
+        return std::make_shared<GL3PlusHardwareBuffer>(GL_UNIFORM_BUFFER, sizeBytes, usage, useShadowBuffer);
     }
 
-    HardwareUniformBufferSharedPtr GL3PlusHardwareBufferManagerBase::createShaderStorageBuffer(size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer, const String& name)
+    HardwareBufferPtr GL3PlusHardwareBufferManager::createShaderStorageBuffer(size_t sizeBytes, HardwareBufferUsage usage, bool useShadowBuffer)
     {
-        GL3PlusHardwareShaderStorageBuffer* buf =
-            new GL3PlusHardwareShaderStorageBuffer(this, sizeBytes, usage, useShadowBuffer, name);
-        {
-            OGRE_LOCK_MUTEX(mUniformBuffersMutex);
-            mShaderStorageBuffers.insert(buf);
-        }
-        return HardwareUniformBufferSharedPtr(buf);
+        mShaderStorageBufferCount++;
+        return std::make_shared<GL3PlusHardwareBuffer>(GL_SHADER_STORAGE_BUFFER, sizeBytes, usage, useShadowBuffer);
     }
 
-    HardwareCounterBufferSharedPtr GL3PlusHardwareBufferManagerBase::createCounterBuffer(size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer, const String& name)
-    {
-        GL3PlusHardwareCounterBuffer* buf =
-            new GL3PlusHardwareCounterBuffer(this, name);
-        {
-            OGRE_LOCK_MUTEX(mCounterBuffersMutex);
-            mCounterBuffers.insert(buf);
-        }
-        return HardwareCounterBufferSharedPtr(buf);
-    }
-
-    RenderToVertexBufferSharedPtr GL3PlusHardwareBufferManagerBase::createRenderToVertexBuffer()
+    RenderToVertexBufferSharedPtr GL3PlusHardwareBufferManager::createRenderToVertexBuffer()
     {
         return RenderToVertexBufferSharedPtr(new GL3PlusRenderToVertexBuffer);
     }
 
-    GLenum GL3PlusHardwareBufferManagerBase::getGLUsage(unsigned int usage)
+    VertexDeclaration* GL3PlusHardwareBufferManager::createVertexDeclarationImpl(void)
     {
-        switch(usage)
-        {
-        case HardwareBuffer::HBU_STATIC:
-        case HardwareBuffer::HBU_STATIC_WRITE_ONLY:
-            return GL_STATIC_DRAW;
-        case HardwareBuffer::HBU_DYNAMIC:
-        case HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY:
-            return GL_DYNAMIC_DRAW;
-        case HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE:
-            return GL_STREAM_DRAW;
-        default:
-            return GL_DYNAMIC_DRAW;
-        };
+        return OGRE_NEW GLVertexArrayObject();
     }
 
-    GLenum GL3PlusHardwareBufferManagerBase::getGLType(unsigned int type)
+    GLenum GL3PlusHardwareBufferManager::getGLType(VertexElementType type)
     {
         switch(type)
         {
@@ -175,6 +110,11 @@ namespace Ogre {
         case VET_FLOAT3:
         case VET_FLOAT4:
             return GL_FLOAT;
+        case VET_HALF1:
+        case VET_HALF2:
+        case VET_HALF3:
+        case VET_HALF4:
+            return GL_HALF_FLOAT;
         case VET_DOUBLE1:
         case VET_DOUBLE2:
         case VET_DOUBLE3:
@@ -194,129 +134,28 @@ namespace Ogre {
         case VET_SHORT2:
         case VET_SHORT3:
         case VET_SHORT4:
+        case VET_SHORT2_NORM:
+        case VET_SHORT4_NORM:
             return GL_SHORT;
         case VET_USHORT1:
         case VET_USHORT2:
         case VET_USHORT3:
         case VET_USHORT4:
+        case VET_USHORT2_NORM:
+        case VET_USHORT4_NORM:
             return GL_UNSIGNED_SHORT;
-        case VET_COLOUR:
-        case VET_COLOUR_ABGR:
-        case VET_COLOUR_ARGB:
         case VET_UBYTE4:
+        case VET_UBYTE4_NORM:
+        case _DETAIL_SWAP_RB:
             return GL_UNSIGNED_BYTE;
-        default:
-            return 0;
+        case VET_BYTE4:
+        case VET_BYTE4_NORM:
+            return GL_BYTE;
+        case VET_INT_10_10_10_2_NORM:
+            return GL_INT_2_10_10_10_REV;
         };
-    }
 
-    void* GL3PlusHardwareBufferManagerBase::allocateScratch(uint32 size)
-    {
-        // simple forward link search based on alloc sizes
-        // not that fast but the list should never get that long since not many
-        // locks at once (hopefully)
-        OGRE_LOCK_MUTEX(mScratchMutex);
-
-        // Alignment - round up the size to 32 bits
-        // control blocks are 32 bits too so this packs nicely
-        if (size % 4 != 0)
-        {
-            size += 4 - (size % 4);
-        }
-
-        uint32 bufferPos = 0;
-        while (bufferPos < SCRATCH_POOL_SIZE)
-        {
-            GL3PlusScratchBufferAlloc* pNext = (GL3PlusScratchBufferAlloc*)(mScratchBufferPool + bufferPos);
-            // Big enough?
-            if (pNext->free && pNext->size >= size)
-            {
-                // split? And enough space for control block
-                if(pNext->size > size + sizeof(GL3PlusScratchBufferAlloc))
-                {
-                    uint32 offset = (uint32)sizeof(GL3PlusScratchBufferAlloc) + size;
-
-                    GL3PlusScratchBufferAlloc* pSplitAlloc = (GL3PlusScratchBufferAlloc*)
-                        (mScratchBufferPool + bufferPos + offset);
-                    pSplitAlloc->free = 1;
-                    // split size is remainder minus new control block
-                    pSplitAlloc->size = pNext->size - size - sizeof(GL3PlusScratchBufferAlloc);
-
-                    // New size of current
-                    pNext->size = size;
-                }
-                // allocate and return
-                pNext->free = 0;
-
-                // return pointer just after this control block (++ will do that for us)
-                return ++pNext;
-            }
-
-            bufferPos += (uint32)sizeof(GL3PlusScratchBufferAlloc) + pNext->size;
-        }
-
-        // no available alloc
+        OgreAssert(false, "unknown Vertex Element Type");
         return 0;
-    }
-
-    void GL3PlusHardwareBufferManagerBase::deallocateScratch(void* ptr)
-    {
-        OGRE_LOCK_MUTEX(mScratchMutex);
-
-        // Simple linear search dealloc
-        uint32 bufferPos = 0;
-        GL3PlusScratchBufferAlloc* pLast = 0;
-        while (bufferPos < SCRATCH_POOL_SIZE)
-        {
-            GL3PlusScratchBufferAlloc* pCurrent = (GL3PlusScratchBufferAlloc*)(mScratchBufferPool + bufferPos);
-
-            // Pointers match?
-            if ((mScratchBufferPool + bufferPos + sizeof(GL3PlusScratchBufferAlloc)) == ptr)
-            {
-                // dealloc
-                pCurrent->free = 1;
-                // merge with previous
-                if (pLast && pLast->free)
-                {
-                    // adjust buffer pos
-                    bufferPos -= (pLast->size + (uint32)sizeof(GL3PlusScratchBufferAlloc));
-                    // merge free space
-                    pLast->size += pCurrent->size + sizeof(GL3PlusScratchBufferAlloc);
-                    pCurrent = pLast;
-                }
-
-                // merge with next
-                uint32 offset = bufferPos + pCurrent->size + (uint32)sizeof(GL3PlusScratchBufferAlloc);
-                if (offset < SCRATCH_POOL_SIZE)
-                {
-                    GL3PlusScratchBufferAlloc* pNext = (GL3PlusScratchBufferAlloc*)(
-                        mScratchBufferPool + offset);
-                    if (pNext->free)
-                    {
-                        pCurrent->size += pNext->size + sizeof(GL3PlusScratchBufferAlloc);
-                    }
-                }
-
-                // done
-                return;
-            }
-
-            bufferPos += (uint32)sizeof(GL3PlusScratchBufferAlloc) + pCurrent->size;
-            pLast = pCurrent;
-
-        }
-
-        // Should never get here unless there's a corruption
-        assert(false && "Memory deallocation error");
-    }
-
-    size_t GL3PlusHardwareBufferManagerBase::getGLMapBufferThreshold() const
-    {
-        return mMapBufferThreshold;
-    }
-
-    void GL3PlusHardwareBufferManagerBase::setGLMapBufferThreshold( const size_t value )
-    {
-        mMapBufferThreshold = value;
     }
 }

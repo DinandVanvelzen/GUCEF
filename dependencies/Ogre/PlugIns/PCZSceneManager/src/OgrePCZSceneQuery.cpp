@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -62,17 +62,12 @@ namespace Ogre
         MovableSet set;
 
         // Iterate over all movable types
-        Root::MovableObjectFactoryIterator factIt = 
-            Root::getSingleton().getMovableObjectFactoryIterator();
-        while(factIt.hasMoreElements())
+        for(const auto& factIt : Root::getSingleton().getMovableObjectFactories())
         {
-            SceneManager::MovableObjectIterator it = 
-                mParentSceneMgr->getMovableObjectIterator(
-                factIt.getNext()->getType());
-            while( it.hasMoreElements() )
+            for (const auto& it : mParentSceneMgr->getMovableObjects(factIt.first))
             {
 
-                MovableObject * e = it.getNext();
+                MovableObject * e = it.second;
                 PCZone * zone = ((PCZSceneNode*)(e->getParentSceneNode()))->getHomeZone();
                 PCZSceneNodeList list;
                 //find the nodes that intersect the AAB
@@ -81,11 +76,8 @@ namespace Ogre
                 PCZSceneNodeList::iterator nit = list.begin();
                 while( nit != list.end() )
                 {
-                    SceneNode::ObjectIterator oit = (*nit) -> getAttachedObjectIterator();
-                    while( oit.hasMoreElements() )
+                    for (auto m : (*nit)->getAttachedObjects())
                     {
-                        MovableObject * m = oit.getNext();
-
                         if( m != e &&
                             set.find( MovablePair(e,m)) == set.end() &&
                             set.find( MovablePair(m,e)) == set.end() &&
@@ -96,13 +88,11 @@ namespace Ogre
                         {
                             listener -> queryResult( e, m );
                             // deal with attached objects, since they are not directly attached to nodes
-                            if (m->getMovableType() == "Entity")
+                            if (m->getMovableType() == MOT_ENTITY)
                             {
                                 Entity* e2 = static_cast<Entity*>(m);
-                                Entity::ChildObjectListIterator childIt = e2->getAttachedObjectIterator();
-                                while(childIt.hasMoreElements())
+                                for (auto c : e2->getAttachedObjects())
                                 {
-                                    MovableObject* c = childIt.getNext();
                                     if (c->getQueryFlags() & mQueryMask && 
                                         e->getWorldBoundingBox().intersects( c->getWorldBoundingBox() ))
                                     {
@@ -116,7 +106,6 @@ namespace Ogre
                     }
                     ++nit;
                 }
-
             }
         }
     }
@@ -142,10 +131,8 @@ namespace Ogre
         PCZSceneNodeList::iterator it = list.begin();
         while( it != list.end() )
         {
-            SceneNode::ObjectIterator oit = (*it) -> getAttachedObjectIterator();
-            while( oit.hasMoreElements() )
+            for (auto m : (*it)->getAttachedObjects())
             {
-                MovableObject * m = oit.getNext();
                 if( (m->getQueryFlags() & mQueryMask) && 
                     (m->getTypeFlags() & mQueryTypeMask) && 
                     m->isInScene() &&
@@ -153,13 +140,11 @@ namespace Ogre
                 {
                     listener -> queryResult( m );
                     // deal with attached objects, since they are not directly attached to nodes
-                    if (m->getMovableType() == "Entity")
+                    if (m->getMovableType() == MOT_ENTITY)
                     {
                         Entity* e = static_cast<Entity*>(m);
-                        Entity::ChildObjectListIterator childIt = e->getAttachedObjectIterator();
-                        while(childIt.hasMoreElements())
+                        for (auto c : e->getAttachedObjects())
                         {
-                            MovableObject* c = childIt.getNext();
                             if (c->getQueryFlags() & mQueryMask)
                             {
                                 listener->queryResult(c);
@@ -196,10 +181,8 @@ namespace Ogre
         PCZSceneNodeList::iterator it = list.begin();
         while( it != list.end() )
         {
-            SceneNode::ObjectIterator oit = (*it) -> getAttachedObjectIterator();
-            while( oit.hasMoreElements() )
+            for (auto m : (*it)->getAttachedObjects())
             {
-                MovableObject * m = oit.getNext();
                 if( (m->getQueryFlags() & mQueryMask) && 
                     (m->getTypeFlags() & mQueryTypeMask) && m->isInScene() )
                 {
@@ -209,13 +192,11 @@ namespace Ogre
                     {
                         listener -> queryResult( m, result.second );
                         // deal with attached objects, since they are not directly attached to nodes
-                        if (m->getMovableType() == "Entity")
+                        if (m->getMovableType() == MOT_ENTITY)
                         {
                             Entity* e = static_cast<Entity*>(m);
-                            Entity::ChildObjectListIterator childIt = e->getAttachedObjectIterator();
-                            while(childIt.hasMoreElements())
+                            for (auto c : e->getAttachedObjects())
                             {
-                                MovableObject* c = childIt.getNext();
                                 if (c->getQueryFlags() & mQueryMask)
                                 {
                                     result = mRay.intersects(c->getWorldBoundingBox());
@@ -258,10 +239,8 @@ namespace Ogre
         PCZSceneNodeList::iterator it = list.begin();
         while( it != list.end() )
         {
-            SceneNode::ObjectIterator oit = (*it) -> getAttachedObjectIterator();
-            while( oit.hasMoreElements() )
+            for (auto m : (*it)->getAttachedObjects())
             {
-                MovableObject * m = oit.getNext();
                 if( (m->getQueryFlags() & mQueryMask) && 
                     (m->getTypeFlags() & mQueryTypeMask) && 
                     m->isInScene() && 
@@ -269,13 +248,11 @@ namespace Ogre
                 {
                     listener -> queryResult( m );
                     // deal with attached objects, since they are not directly attached to nodes
-                    if (m->getMovableType() == "Entity")
+                    if (m->getMovableType() == MOT_ENTITY)
                     {
                         Entity* e = static_cast<Entity*>(m);
-                        Entity::ChildObjectListIterator childIt = e->getAttachedObjectIterator();
-                        while(childIt.hasMoreElements())
+                        for (auto c : e->getAttachedObjects())
                         {
-                            MovableObject* c = childIt.getNext();
                             if (c->getQueryFlags() & mQueryMask &&
                                 mSphere.intersects( c->getWorldBoundingBox()))
                             {
@@ -305,7 +282,7 @@ namespace Ogre
     //---------------------------------------------------------------------
     void PCZPlaneBoundedVolumeListSceneQuery::execute(SceneQueryListener* listener)
     {
-        set<SceneNode*>::type checkedSceneNodes;
+        std::set<SceneNode*> checkedSceneNodes;
 
         PlaneBoundedVolumeList::iterator pi, piend;
         piend = mVolumes.end();
@@ -323,10 +300,8 @@ namespace Ogre
                 // avoid double-check same scene node
                 if (!checkedSceneNodes.insert(*it).second)
                     continue;
-                SceneNode::ObjectIterator oit = (*it) -> getAttachedObjectIterator();
-                while( oit.hasMoreElements() )
+                for (auto m : (*it)->getAttachedObjects())
                 {
-                    MovableObject * m = oit.getNext();
                     if( (m->getQueryFlags() & mQueryMask) && 
                         (m->getTypeFlags() & mQueryTypeMask) && 
                         m->isInScene() &&
@@ -334,13 +309,11 @@ namespace Ogre
                     {
                         listener -> queryResult( m );
                         // deal with attached objects, since they are not directly attached to nodes
-                        if (m->getMovableType() == "Entity")
+                        if (m->getMovableType() == MOT_ENTITY)
                         {
                             Entity* e = static_cast<Entity*>(m);
-                            Entity::ChildObjectListIterator childIt = e->getAttachedObjectIterator();
-                            while(childIt.hasMoreElements())
+                            for (auto c : e->getAttachedObjects())
                             {
-                                MovableObject* c = childIt.getNext();
                                 if (c->getQueryFlags() & mQueryMask &&
                                     (*pi).intersects( c->getWorldBoundingBox()))
                                 {

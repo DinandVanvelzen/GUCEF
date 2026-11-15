@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,10 +29,12 @@ THE SOFTWARE.
 #define __CompositionTargetPass_H__
 
 #include "OgrePrerequisites.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreHeaderPrefix.h"
+#include "OgreCompositionPass.h"
 
 namespace Ogre {
+    template <typename T> class VectorIterator;
+
     /** \addtogroup Core
     *  @{
     */
@@ -55,7 +57,7 @@ namespace Ogre {
             IM_NONE,        /// No input
             IM_PREVIOUS     /// Output of previous Composition in chain
         };
-        typedef vector<CompositionPass *>::type Passes;
+        typedef std::vector<CompositionPass *> Passes;
         typedef VectorIterator<Passes> PassIterator;
         
         /** Set input mode of this TargetPass
@@ -68,7 +70,11 @@ namespace Ogre {
         void setOutputName(const String &out);
         /** Get output local texture name */
         const String &getOutputName() const;
-        
+
+        /// sets the slice of output texture
+        void setOutputSlice(int slice) { mOutputSlice = slice; }
+        int getOutputSlice() const { return mOutputSlice; }
+
         /** Set "only initial" flag. This makes that this target pass is only executed initially 
             after the effect has been enabled.
         */
@@ -85,14 +91,14 @@ namespace Ogre {
         uint32 getVisibilityMask();
 
         /** Set the material scheme used by this target pass.
-        @remarks
+
             Only applicable to targets that render the scene as
             one of their passes.
             @see Technique::setScheme.
         */
         void setMaterialScheme(const String& schemeName);
         /** Get the material scheme used by this target pass.
-        @remarks
+
             Only applicable to targets that render the scene as
             one of their passes.
             @see Technique::setScheme.
@@ -100,13 +106,13 @@ namespace Ogre {
         const String& getMaterialScheme(void) const;
         
         /** Set whether shadows are enabled in this target pass.
-        @remarks
+
             Only applicable to targets that render the scene as
             one of their passes.
         */
         void setShadowsEnabled(bool enabled);
         /** Get whether shadows are enabled in this target pass.
-        @remarks
+
             Only applicable to targets that render the scene as
             one of their passes.
         */
@@ -118,26 +124,31 @@ namespace Ogre {
         /** Get the scene LOD bias used by this pass 
         */
         float getLodBias();
-        
+
         /** Create a new pass, and return a pointer to it.
         */
-        CompositionPass *createPass();
+        CompositionPass *createPass(CompositionPass::PassType type = CompositionPass::PT_RENDERQUAD);
         /** Remove a pass. It will also be destroyed.
         */
         void removePass(size_t idx);
-        /** Get a pass.
-        */
-        CompositionPass *getPass(size_t idx);
+        /** Get a pass.*/
+        CompositionPass *getPass(size_t idx) const { return mPasses.at(idx); }
         /** Get the number of passes.
         */
-        size_t getNumPasses();
+        size_t getNumPasses() const { return mPasses.size(); }
         
+        /// Get the Passes in this TargetPass
+        const Passes& getPasses() const {
+            return mPasses;
+        }
+
         /** Remove all passes
         */
         void removeAllPasses();
     
-        /** Get an iterator over the Passes in this TargetPass. */
-        PassIterator getPassIterator(void);
+        /** Get an iterator over the Passes in this TargetPass.
+        @deprecated use getPasses() */
+        OGRE_DEPRECATED PassIterator getPassIterator(void);
         
         /** Get parent object */
         CompositionTechnique *getParent();
@@ -166,6 +177,8 @@ namespace Ogre {
         String mMaterialScheme;
         /// Shadows option
         bool mShadowsEnabled;
+        /// Output Slice
+        int mOutputSlice;
     };
 
     /** @} */

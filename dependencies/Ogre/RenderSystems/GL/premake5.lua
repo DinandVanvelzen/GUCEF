@@ -12,7 +12,17 @@
 -- Configuration for module: OgreRenderSystem_GL
 
 
-project( "OgreRenderSystem_GL" )
+configuration( { "LINUX32" } )
+  project( "OgreRenderSystem_GL" )
+
+configuration( { "LINUX64" } )
+  project( "OgreRenderSystem_GL" )
+
+configuration( { "WIN32" } )
+  project( "OgreRenderSystem_GL" )
+
+configuration( { "WIN64" } )
+  project( "OgreRenderSystem_GL" )
 
 configuration( {} )
   location( os.getenv( "PM5OUTPUTDIR" ) )
@@ -21,392 +31,176 @@ configuration( {} )
   targetdir( os.getenv( "PM5TARGETDIR" ) )
 
 configuration( {} )
+language( "C" )
+
+configuration( { "LINUX32" } )
 language( "C++" )
 
+configuration( { "LINUX64" } )
+language( "C++" )
+
+configuration( { "WIN32" } )
+language( "C++" )
+
+configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "LINUX32" } )
 
 
-configuration( {} )
+configuration( { LINUX32 } )
 kind( "SharedLib" )
-
-configuration( {} )
-links( { "Ogre" } )
-links( { "Ogre" } )
+configuration( { "LINUX64" } )
 
 
-configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL", "MODULE_NAME=OgreRenderSystem_GL", "OGRE_GLPLUGIN_EXPORTS" } )
-  links( { "GL", "GLU" } )
-  links( { "GL", "GLU" } )
-  links( { "glu32.lib", "opengl32" } )
-  links( { "glu32.lib", "opengl32" } )
+configuration( { LINUX64 } )
+kind( "SharedLib" )
+configuration( { "WIN32" } )
 
 
-configuration( {} )
-vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-files( {
-  "include/OgreGLATIFSInit.h",
-  "include/OgreGLContext.h",
-  "include/OgreGLDefaultHardwareBufferManager.h",
-  "include/OgreGLDepthBuffer.h",
-  "include/OgreGLFBOMultiRenderTarget.h",
-  "include/OgreGLFBORenderTexture.h",
-  "include/OgreGLFrameBufferObject.h",
-  "include/OgreGLGpuNvparseProgram.h",
-  "include/OgreGLGpuProgram.h",
-  "include/OgreGLGpuProgramManager.h",
-  "include/OgreGLHardwareBufferManager.h",
-  "include/OgreGLHardwareIndexBuffer.h",
-  "include/OgreGLHardwareOcclusionQuery.h",
-  "include/OgreGLHardwarePixelBuffer.h",
-  "include/OgreGLHardwareVertexBuffer.h",
-  "include/OgreGLPBRenderTexture.h",
-  "include/OgreGLPBuffer.h",
-  "include/OgreGLPixelFormat.h",
-  "include/OgreGLPlugin.h",
-  "include/OgreGLPrerequisites.h",
-  "include/OgreGLRenderSystem.h",
-  "include/OgreGLRenderTexture.h",
-  "include/OgreGLRenderToVertexBuffer.h",
-  "include/OgreGLStateCacheManager.h",
-  "include/OgreGLSupport.h",
-  "include/OgreGLTexture.h",
-  "include/OgreGLTextureManager.h",
-  "include/OgreGLUniformCache.h",
-  "include/OgreSDLGLSupport.h",
-  "include/OgreSDLPrerequisites.h",
-  "include/OgreSDLWindow.h",
-  "include/GL/gl.h",
-  "include/GL/glew.h",
-  "include/GL/glext.h",
-  "include/GL/glxew.h",
-  "include/GL/glxext.h",
-  "include/GL/glxtokens.h",
-  "include/GL/wglew.h",
-  "include/GL/wglext.h",
-  "src/GLSL/include/OgreGLSLExtSupport.h",
-  "src/GLSL/include/OgreGLSLGpuProgram.h",
-  "src/GLSL/include/OgreGLSLLinkProgram.h",
-  "src/GLSL/include/OgreGLSLLinkProgramManager.h",
-  "src/GLSL/include/OgreGLSLPreprocessor.h",
-  "src/GLSL/include/OgreGLSLProgram.h",
-  "src/GLSL/include/OgreGLSLProgramFactory.h",
-  "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-  "src/StateCacheManager/OgreGLNullUniformCacheImp.h",
-  "src/atifs/include/ATI_FS_GLGpuProgram.h",
-  "src/atifs/include/Compiler2Pass.h",
-  "src/atifs/include/ps_1_4.h",
-  "src/nvparse/_ps1.0_parser.h",
-  "src/nvparse/_rc1.0_parser.h",
-  "src/nvparse/_ts1.0_parser.h",
-  "src/nvparse/_vs1.0_parser.h",
-  "src/nvparse/macro.h",
-  "src/nvparse/nvparse.h",
-  "src/nvparse/nvparse_errors.h",
-  "src/nvparse/nvparse_externs.h",
-  "src/nvparse/ps1.0_program.h",
-  "src/nvparse/rc1.0_combiners.h",
-  "src/nvparse/rc1.0_final.h",
-  "src/nvparse/rc1.0_general.h",
-  "src/nvparse/rc1.0_register.h",
-  "src/nvparse/ts1.0_inst.h",
-  "src/nvparse/ts1.0_inst_list.h",
-  "src/nvparse/vs1.0_inst.h",
-  "src/nvparse/vs1.0_inst_list.h",
-  "src/nvparse/winheaders/unistd.h"
- } )
+configuration( { WIN32 } )
+kind( "SharedLib" )
+configuration( { "WIN64" } )
 
 
+configuration( { WIN64 } )
+kind( "SharedLib" )
+  
+configuration( { LINUX32 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport", "dl" } )
+  
 
-configuration( {} )
-vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-files( {
-  "src/OgreGLATIFSInit.cpp",
-  "src/OgreGLContext.cpp",
-  "src/OgreGLDefaultHardwareBufferManager.cpp",
-  "src/OgreGLDepthBuffer.cpp",
-  "src/OgreGLEngineDll.cpp",
-  "src/OgreGLFBOMultiRenderTarget.cpp",
-  "src/OgreGLFBORenderTexture.cpp",
-  "src/OgreGLFrameBufferObject.cpp",
-  "src/OgreGLGpuNvparseProgram.cpp",
-  "src/OgreGLGpuProgram.cpp",
-  "src/OgreGLGpuProgramManager.cpp",
-  "src/OgreGLHardwareBufferManager.cpp",
-  "src/OgreGLHardwareIndexBuffer.cpp",
-  "src/OgreGLHardwareOcclusionQuery.cpp",
-  "src/OgreGLHardwarePixelBuffer.cpp",
-  "src/OgreGLHardwareVertexBuffer.cpp",
-  "src/OgreGLPBRenderTexture.cpp",
-  "src/OgreGLPixelFormat.cpp",
-  "src/OgreGLPlugin.cpp",
-  "src/OgreGLRenderSystem.cpp",
-  "src/OgreGLRenderTexture.cpp",
-  "src/OgreGLRenderToVertexBuffer.cpp",
-  "src/OgreGLStateCacheManager.cpp",
-  "src/OgreGLSupport.cpp",
-  "src/OgreGLTexture.cpp",
-  "src/OgreGLTextureManager.cpp",
-  "src/OgreGLUniformCache.cpp",
-  "src/glew.cpp",
-  "src/GLSL/src/OgreGLSLExtSupport.cpp",
-  "src/GLSL/src/OgreGLSLGpuProgram.cpp",
-  "src/GLSL/src/OgreGLSLLinkProgram.cpp",
-  "src/GLSL/src/OgreGLSLLinkProgramManager.cpp",
-  "src/GLSL/src/OgreGLSLPreprocessor.cpp",
-  "src/GLSL/src/OgreGLSLProgram.cpp",
-  "src/GLSL/src/OgreGLSLProgramFactory.cpp",
-  "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-  "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp",
-  "src/atifs/src/ATI_FS_GLGpuProgram.cpp",
-  "src/atifs/src/Compiler2Pass.cpp",
-  "src/atifs/src/ps_1_4.cpp",
-  "src/nvparse/_ps1.0_lexer.cpp",
-  "src/nvparse/_ps1.0_parser.cpp",
-  "src/nvparse/_rc1.0_lexer.cpp",
-  "src/nvparse/_rc1.0_parser.cpp",
-  "src/nvparse/_ts1.0_lexer.cpp",
-  "src/nvparse/_ts1.0_parser.cpp",
-  "src/nvparse/_vs1.0_lexer.cpp",
-  "src/nvparse/_vs1.0_parser.cpp",
-  "src/nvparse/avp1.0_impl.cpp",
-  "src/nvparse/nvparse.cpp",
-  "src/nvparse/nvparse_errors.cpp",
-  "src/nvparse/ps1.0_program.cpp",
-  "src/nvparse/rc1.0_combiners.cpp",
-  "src/nvparse/rc1.0_final.cpp",
-  "src/nvparse/rc1.0_general.cpp",
-  "src/nvparse/ts1.0_inst.cpp",
-  "src/nvparse/ts1.0_inst_list.cpp",
-  "src/nvparse/vcp1.0_impl.cpp",
-  "src/nvparse/vp1.0_impl.cpp",
-  "src/nvparse/vs1.0_inst.cpp",
-  "src/nvparse/vs1.0_inst_list.cpp",
-  "src/nvparse/vsp1.0_impl.cpp"
- } )
+configuration( { LINUX32 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
+  
+configuration( { LINUX64 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport", "dl" } )
+  
 
+configuration( { LINUX64 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
+  
+configuration( { WIN32 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport" } )
+  
 
+configuration( { WIN32 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
+  
+configuration( { WIN64 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport" } )
+  
 
-configuration( { "ANDROID" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "ANDROID32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "ANDROID64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "ARDUINO" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "EMSCRIPTEN" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "EMSCRIPTEN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "EMSCRIPTEN64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "GLX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/GLX/OgreGLXContext.h",
-      "include/GLX/OgreGLXGLSupport.h",
-      "include/GLX/OgreGLXRenderTexture.h",
-      "include/GLX/OgreGLXUtils.h",
-      "include/GLX/OgreGLXWindow.h",
-      "src/GLX/OgreGLUtil.h",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/GLX/OgreGLXContext.cpp",
-      "src/GLX/OgreGLXGLSupport.cpp",
-      "src/GLX/OgreGLXRenderTexture.cpp",
-      "src/GLX/OgreGLXWindow.cpp",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "GTK" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/gtk/OgreGTKGLSupport.h",
-      "include/gtk/OgreGTKWindow.h",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h",
-      "src/gtk/OgreGLUtil.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp",
-      "src/gtk/OgreGTKGLSupport.cpp",
-      "src/gtk/OgreGTKWindow.cpp"
-    } )
-
-
-
-configuration( { "IOS" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "IPHONE" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "IPHONEOS" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "LINUX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
+configuration( { WIN64 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
 
 
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+      "include/OgreGLCopyingRenderTexture.h",
+      "include/OgreGLFBORenderTexture.h",
+      "include/OgreGLFrameBufferObject.h",
+      "include/OgreGLGpuNvparseProgram.h",
+      "include/OgreGLGpuProgram.h",
+      "include/OgreGLGpuProgramManager.h",
+      "include/OgreGLHardwareBuffer.h",
+      "include/OgreGLHardwareBufferManager.h",
+      "include/OgreGLHardwareOcclusionQuery.h",
+      "include/OgreGLHardwarePixelBuffer.h",
+      "include/OgreGLPBRenderTexture.h",
+      "include/OgreGLPixelFormat.h",
+      "include/OgreGLPlugin.h",
+      "include/OgreGLPrerequisites.h",
+      "include/OgreGLRenderSystem.h",
+      "include/OgreGLRenderToVertexBuffer.h",
+      "include/OgreGLStateCacheManager.h",
+      "include/OgreGLTexture.h",
+      "include/OgreGLTextureManager.h",
+      "include/KHR/khrplatform.h",
+      "include/glad/glad.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLLinkProgram.h",
+      "src/GLSL/include/OgreGLSLLinkProgramManager.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramFactory.h",
+      "src/atifs/include/ATI_FS_GLGpuProgram.h",
+      "src/atifs/include/Compiler2Pass.h",
+      "src/atifs/include/ps_1_4.h",
+      "src/nvparse/_ps1.0_parser.h",
+      "src/nvparse/_rc1.0_parser.h",
+      "src/nvparse/_ts1.0_parser.h",
+      "src/nvparse/_vs1.0_parser.h",
+      "src/nvparse/macro.h",
+      "src/nvparse/nvparse.h",
+      "src/nvparse/nvparse_errors.h",
+      "src/nvparse/nvparse_externs.h",
+      "src/nvparse/ps1.0_program.h",
+      "src/nvparse/rc1.0_combiners.h",
+      "src/nvparse/rc1.0_final.h",
+      "src/nvparse/rc1.0_general.h",
+      "src/nvparse/rc1.0_register.h",
+      "src/nvparse/ts1.0_inst.h",
+      "src/nvparse/ts1.0_inst_list.h",
+      "src/nvparse/vs1.0_inst.h",
+      "src/nvparse/vs1.0_inst_list.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+      "src/OgreGLCopyingRenderTexture.cpp",
+      "src/OgreGLEngineDll.cpp",
+      "src/OgreGLFBORenderTexture.cpp",
+      "src/OgreGLFrameBufferObject.cpp",
+      "src/OgreGLGpuNvparseProgram.cpp",
+      "src/OgreGLGpuProgram.cpp",
+      "src/OgreGLHardwareBuffer.cpp",
+      "src/OgreGLHardwareBufferManager.cpp",
+      "src/OgreGLHardwareOcclusionQuery.cpp",
+      "src/OgreGLHardwarePixelBuffer.cpp",
+      "src/OgreGLPBRenderTexture.cpp",
+      "src/OgreGLPixelFormat.cpp",
+      "src/OgreGLPlugin.cpp",
+      "src/OgreGLRenderSystem.cpp",
+      "src/OgreGLRenderToVertexBuffer.cpp",
+      "src/OgreGLStateCacheManager.cpp",
+      "src/OgreGLTexture.cpp",
+      "src/OgreGLTextureManager.cpp",
+      "src/glad.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgram.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramFactory.cpp",
+      "src/atifs/src/ATI_FS_GLGpuProgram.cpp",
+      "src/atifs/src/Compiler2Pass.cpp",
+      "src/atifs/src/ps_1_4.cpp",
+      "src/nvparse/_ps1.0_lexer.cpp",
+      "src/nvparse/_ps1.0_parser.cpp",
+      "src/nvparse/_rc1.0_lexer.cpp",
+      "src/nvparse/_rc1.0_parser.cpp",
+      "src/nvparse/_ts1.0_lexer.cpp",
+      "src/nvparse/_ts1.0_parser.cpp",
+      "src/nvparse/_vs1.0_lexer.cpp",
+      "src/nvparse/_vs1.0_parser.cpp",
+      "src/nvparse/avp1.0_impl.cpp",
+      "src/nvparse/nvparse.cpp",
+      "src/nvparse/nvparse_errors.cpp",
+      "src/nvparse/ps1.0_program.cpp",
+      "src/nvparse/rc1.0_combiners.cpp",
+      "src/nvparse/rc1.0_final.cpp",
+      "src/nvparse/rc1.0_general.cpp",
+      "src/nvparse/ts1.0_inst.cpp",
+      "src/nvparse/ts1.0_inst_list.cpp",
+      "src/nvparse/vcp1.0_impl.cpp",
+      "src/nvparse/vp1.0_impl.cpp",
+      "src/nvparse/vs1.0_inst.cpp",
+      "src/nvparse/vs1.0_inst_list.cpp",
+      "src/nvparse/vsp1.0_impl.cpp"
     } )
 
 
@@ -414,185 +208,105 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+      "include/OgreGLCopyingRenderTexture.h",
+      "include/OgreGLFBORenderTexture.h",
+      "include/OgreGLFrameBufferObject.h",
+      "include/OgreGLGpuNvparseProgram.h",
+      "include/OgreGLGpuProgram.h",
+      "include/OgreGLGpuProgramManager.h",
+      "include/OgreGLHardwareBuffer.h",
+      "include/OgreGLHardwareBufferManager.h",
+      "include/OgreGLHardwareOcclusionQuery.h",
+      "include/OgreGLHardwarePixelBuffer.h",
+      "include/OgreGLPBRenderTexture.h",
+      "include/OgreGLPixelFormat.h",
+      "include/OgreGLPlugin.h",
+      "include/OgreGLPrerequisites.h",
+      "include/OgreGLRenderSystem.h",
+      "include/OgreGLRenderToVertexBuffer.h",
+      "include/OgreGLStateCacheManager.h",
+      "include/OgreGLTexture.h",
+      "include/OgreGLTextureManager.h",
+      "include/KHR/khrplatform.h",
+      "include/glad/glad.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLLinkProgram.h",
+      "src/GLSL/include/OgreGLSLLinkProgramManager.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramFactory.h",
+      "src/atifs/include/ATI_FS_GLGpuProgram.h",
+      "src/atifs/include/Compiler2Pass.h",
+      "src/atifs/include/ps_1_4.h",
+      "src/nvparse/_ps1.0_parser.h",
+      "src/nvparse/_rc1.0_parser.h",
+      "src/nvparse/_ts1.0_parser.h",
+      "src/nvparse/_vs1.0_parser.h",
+      "src/nvparse/macro.h",
+      "src/nvparse/nvparse.h",
+      "src/nvparse/nvparse_errors.h",
+      "src/nvparse/nvparse_externs.h",
+      "src/nvparse/ps1.0_program.h",
+      "src/nvparse/rc1.0_combiners.h",
+      "src/nvparse/rc1.0_final.h",
+      "src/nvparse/rc1.0_general.h",
+      "src/nvparse/rc1.0_register.h",
+      "src/nvparse/ts1.0_inst.h",
+      "src/nvparse/ts1.0_inst_list.h",
+      "src/nvparse/vs1.0_inst.h",
+      "src/nvparse/vs1.0_inst_list.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "MAC" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "MACOS" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "MACOSX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "MSWIN" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "NACL" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "OSX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/OSX/OgreOSXCGLContext.h",
-      "include/OSX/OgreOSXCarbonContext.h",
-      "include/OSX/OgreOSXCarbonWindow.h",
-      "include/OSX/OgreOSXCocoaContext.h",
-      "include/OSX/OgreOSXCocoaView.h",
-      "include/OSX/OgreOSXCocoaWindow.h",
-      "include/OSX/OgreOSXCocoaWindowDelegate.h",
-      "include/OSX/OgreOSXContext.h",
-      "include/OSX/OgreOSXGLSupport.h",
-      "include/OSX/OgreOSXRenderTexture.h",
-      "include/OSX/OgreOSXWindow.h",
-      "src/OSX/OgreGLUtil.h",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/OSX/OgreOSXCGLContext.cpp",
-      "src/OSX/OgreOSXCarbonContext.cpp",
-      "src/OSX/OgreOSXCarbonWindow.cpp",
-      "src/OSX/OgreOSXContext.cpp",
-      "src/OSX/OgreOSXRenderTexture.cpp",
-      "src/OSX/OgreOSXWindow.cpp",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "POSIX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "SDL" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/SDL/OgreGLUtil.h",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/SDL/OgreSDLGLSupport.cpp",
-      "src/SDL/OgreSDLWindow.cpp",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "SYMBIAN" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "UNIX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+      "src/OgreGLCopyingRenderTexture.cpp",
+      "src/OgreGLEngineDll.cpp",
+      "src/OgreGLFBORenderTexture.cpp",
+      "src/OgreGLFrameBufferObject.cpp",
+      "src/OgreGLGpuNvparseProgram.cpp",
+      "src/OgreGLGpuProgram.cpp",
+      "src/OgreGLHardwareBuffer.cpp",
+      "src/OgreGLHardwareBufferManager.cpp",
+      "src/OgreGLHardwareOcclusionQuery.cpp",
+      "src/OgreGLHardwarePixelBuffer.cpp",
+      "src/OgreGLPBRenderTexture.cpp",
+      "src/OgreGLPixelFormat.cpp",
+      "src/OgreGLPlugin.cpp",
+      "src/OgreGLRenderSystem.cpp",
+      "src/OgreGLRenderToVertexBuffer.cpp",
+      "src/OgreGLStateCacheManager.cpp",
+      "src/OgreGLTexture.cpp",
+      "src/OgreGLTextureManager.cpp",
+      "src/glad.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgram.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramFactory.cpp",
+      "src/atifs/src/ATI_FS_GLGpuProgram.cpp",
+      "src/atifs/src/Compiler2Pass.cpp",
+      "src/atifs/src/ps_1_4.cpp",
+      "src/nvparse/_ps1.0_lexer.cpp",
+      "src/nvparse/_ps1.0_parser.cpp",
+      "src/nvparse/_rc1.0_lexer.cpp",
+      "src/nvparse/_rc1.0_parser.cpp",
+      "src/nvparse/_ts1.0_lexer.cpp",
+      "src/nvparse/_ts1.0_parser.cpp",
+      "src/nvparse/_vs1.0_lexer.cpp",
+      "src/nvparse/_vs1.0_parser.cpp",
+      "src/nvparse/avp1.0_impl.cpp",
+      "src/nvparse/nvparse.cpp",
+      "src/nvparse/nvparse_errors.cpp",
+      "src/nvparse/ps1.0_program.cpp",
+      "src/nvparse/rc1.0_combiners.cpp",
+      "src/nvparse/rc1.0_final.cpp",
+      "src/nvparse/rc1.0_general.cpp",
+      "src/nvparse/ts1.0_inst.cpp",
+      "src/nvparse/ts1.0_inst_list.cpp",
+      "src/nvparse/vcp1.0_impl.cpp",
+      "src/nvparse/vp1.0_impl.cpp",
+      "src/nvparse/vs1.0_inst.cpp",
+      "src/nvparse/vs1.0_inst_list.cpp",
+      "src/nvparse/vsp1.0_impl.cpp"
     } )
 
 
@@ -600,24 +314,105 @@ configuration( { "UNIX" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/Win32/OgreWin32Context.h",
-      "include/Win32/OgreWin32GLSupport.h",
-      "include/Win32/OgreWin32Prerequisites.h",
-      "include/Win32/OgreWin32RenderTexture.h",
-      "include/Win32/OgreWin32Window.h",
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h",
-      "src/Win32/OgreGLUtil.h"
+      "include/OgreGLCopyingRenderTexture.h",
+      "include/OgreGLFBORenderTexture.h",
+      "include/OgreGLFrameBufferObject.h",
+      "include/OgreGLGpuNvparseProgram.h",
+      "include/OgreGLGpuProgram.h",
+      "include/OgreGLGpuProgramManager.h",
+      "include/OgreGLHardwareBuffer.h",
+      "include/OgreGLHardwareBufferManager.h",
+      "include/OgreGLHardwareOcclusionQuery.h",
+      "include/OgreGLHardwarePixelBuffer.h",
+      "include/OgreGLPBRenderTexture.h",
+      "include/OgreGLPixelFormat.h",
+      "include/OgreGLPlugin.h",
+      "include/OgreGLPrerequisites.h",
+      "include/OgreGLRenderSystem.h",
+      "include/OgreGLRenderToVertexBuffer.h",
+      "include/OgreGLStateCacheManager.h",
+      "include/OgreGLTexture.h",
+      "include/OgreGLTextureManager.h",
+      "include/KHR/khrplatform.h",
+      "include/glad/glad.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLLinkProgram.h",
+      "src/GLSL/include/OgreGLSLLinkProgramManager.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramFactory.h",
+      "src/atifs/include/ATI_FS_GLGpuProgram.h",
+      "src/atifs/include/Compiler2Pass.h",
+      "src/atifs/include/ps_1_4.h",
+      "src/nvparse/_ps1.0_parser.h",
+      "src/nvparse/_rc1.0_parser.h",
+      "src/nvparse/_ts1.0_parser.h",
+      "src/nvparse/_vs1.0_parser.h",
+      "src/nvparse/macro.h",
+      "src/nvparse/nvparse.h",
+      "src/nvparse/nvparse_errors.h",
+      "src/nvparse/nvparse_externs.h",
+      "src/nvparse/ps1.0_program.h",
+      "src/nvparse/rc1.0_combiners.h",
+      "src/nvparse/rc1.0_final.h",
+      "src/nvparse/rc1.0_general.h",
+      "src/nvparse/rc1.0_register.h",
+      "src/nvparse/ts1.0_inst.h",
+      "src/nvparse/ts1.0_inst_list.h",
+      "src/nvparse/vs1.0_inst.h",
+      "src/nvparse/vs1.0_inst_list.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp",
-      "src/Win32/OgreWin32Context.cpp",
-      "src/Win32/OgreWin32GLSupport.cpp",
-      "src/Win32/OgreWin32RenderTexture.cpp",
-      "src/Win32/OgreWin32Window.cpp"
+      "src/OgreGLCopyingRenderTexture.cpp",
+      "src/OgreGLEngineDll.cpp",
+      "src/OgreGLFBORenderTexture.cpp",
+      "src/OgreGLFrameBufferObject.cpp",
+      "src/OgreGLGpuNvparseProgram.cpp",
+      "src/OgreGLGpuProgram.cpp",
+      "src/OgreGLHardwareBuffer.cpp",
+      "src/OgreGLHardwareBufferManager.cpp",
+      "src/OgreGLHardwareOcclusionQuery.cpp",
+      "src/OgreGLHardwarePixelBuffer.cpp",
+      "src/OgreGLPBRenderTexture.cpp",
+      "src/OgreGLPixelFormat.cpp",
+      "src/OgreGLPlugin.cpp",
+      "src/OgreGLRenderSystem.cpp",
+      "src/OgreGLRenderToVertexBuffer.cpp",
+      "src/OgreGLStateCacheManager.cpp",
+      "src/OgreGLTexture.cpp",
+      "src/OgreGLTextureManager.cpp",
+      "src/glad.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgram.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramFactory.cpp",
+      "src/atifs/src/ATI_FS_GLGpuProgram.cpp",
+      "src/atifs/src/Compiler2Pass.cpp",
+      "src/atifs/src/ps_1_4.cpp",
+      "src/nvparse/_ps1.0_lexer.cpp",
+      "src/nvparse/_ps1.0_parser.cpp",
+      "src/nvparse/_rc1.0_lexer.cpp",
+      "src/nvparse/_rc1.0_parser.cpp",
+      "src/nvparse/_ts1.0_lexer.cpp",
+      "src/nvparse/_ts1.0_parser.cpp",
+      "src/nvparse/_vs1.0_lexer.cpp",
+      "src/nvparse/_vs1.0_parser.cpp",
+      "src/nvparse/avp1.0_impl.cpp",
+      "src/nvparse/nvparse.cpp",
+      "src/nvparse/nvparse_errors.cpp",
+      "src/nvparse/ps1.0_program.cpp",
+      "src/nvparse/rc1.0_combiners.cpp",
+      "src/nvparse/rc1.0_final.cpp",
+      "src/nvparse/rc1.0_general.cpp",
+      "src/nvparse/ts1.0_inst.cpp",
+      "src/nvparse/ts1.0_inst_list.cpp",
+      "src/nvparse/vcp1.0_impl.cpp",
+      "src/nvparse/vp1.0_impl.cpp",
+      "src/nvparse/vs1.0_inst.cpp",
+      "src/nvparse/vs1.0_inst_list.cpp",
+      "src/nvparse/vsp1.0_impl.cpp"
     } )
 
 
@@ -625,115 +420,119 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+      "include/OgreGLCopyingRenderTexture.h",
+      "include/OgreGLFBORenderTexture.h",
+      "include/OgreGLFrameBufferObject.h",
+      "include/OgreGLGpuNvparseProgram.h",
+      "include/OgreGLGpuProgram.h",
+      "include/OgreGLGpuProgramManager.h",
+      "include/OgreGLHardwareBuffer.h",
+      "include/OgreGLHardwareBufferManager.h",
+      "include/OgreGLHardwareOcclusionQuery.h",
+      "include/OgreGLHardwarePixelBuffer.h",
+      "include/OgreGLPBRenderTexture.h",
+      "include/OgreGLPixelFormat.h",
+      "include/OgreGLPlugin.h",
+      "include/OgreGLPrerequisites.h",
+      "include/OgreGLRenderSystem.h",
+      "include/OgreGLRenderToVertexBuffer.h",
+      "include/OgreGLStateCacheManager.h",
+      "include/OgreGLTexture.h",
+      "include/OgreGLTextureManager.h",
+      "include/KHR/khrplatform.h",
+      "include/glad/glad.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLLinkProgram.h",
+      "src/GLSL/include/OgreGLSLLinkProgramManager.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramFactory.h",
+      "src/atifs/include/ATI_FS_GLGpuProgram.h",
+      "src/atifs/include/Compiler2Pass.h",
+      "src/atifs/include/ps_1_4.h",
+      "src/nvparse/_ps1.0_parser.h",
+      "src/nvparse/_rc1.0_parser.h",
+      "src/nvparse/_ts1.0_parser.h",
+      "src/nvparse/_vs1.0_parser.h",
+      "src/nvparse/macro.h",
+      "src/nvparse/nvparse.h",
+      "src/nvparse/nvparse_errors.h",
+      "src/nvparse/nvparse_externs.h",
+      "src/nvparse/ps1.0_program.h",
+      "src/nvparse/rc1.0_combiners.h",
+      "src/nvparse/rc1.0_final.h",
+      "src/nvparse/rc1.0_general.h",
+      "src/nvparse/rc1.0_register.h",
+      "src/nvparse/ts1.0_inst.h",
+      "src/nvparse/ts1.0_inst_list.h",
+      "src/nvparse/vs1.0_inst.h",
+      "src/nvparse/vs1.0_inst_list.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
-    } )
-
-
-
-configuration( { "WINDOWS" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
-      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+      "src/OgreGLCopyingRenderTexture.cpp",
+      "src/OgreGLEngineDll.cpp",
+      "src/OgreGLFBORenderTexture.cpp",
+      "src/OgreGLFrameBufferObject.cpp",
+      "src/OgreGLGpuNvparseProgram.cpp",
+      "src/OgreGLGpuProgram.cpp",
+      "src/OgreGLHardwareBuffer.cpp",
+      "src/OgreGLHardwareBufferManager.cpp",
+      "src/OgreGLHardwareOcclusionQuery.cpp",
+      "src/OgreGLHardwarePixelBuffer.cpp",
+      "src/OgreGLPBRenderTexture.cpp",
+      "src/OgreGLPixelFormat.cpp",
+      "src/OgreGLPlugin.cpp",
+      "src/OgreGLRenderSystem.cpp",
+      "src/OgreGLRenderToVertexBuffer.cpp",
+      "src/OgreGLStateCacheManager.cpp",
+      "src/OgreGLTexture.cpp",
+      "src/OgreGLTextureManager.cpp",
+      "src/glad.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgram.cpp",
+      "src/GLSL/src/OgreGLSLLinkProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramFactory.cpp",
+      "src/atifs/src/ATI_FS_GLGpuProgram.cpp",
+      "src/atifs/src/Compiler2Pass.cpp",
+      "src/atifs/src/ps_1_4.cpp",
+      "src/nvparse/_ps1.0_lexer.cpp",
+      "src/nvparse/_ps1.0_parser.cpp",
+      "src/nvparse/_rc1.0_lexer.cpp",
+      "src/nvparse/_rc1.0_parser.cpp",
+      "src/nvparse/_ts1.0_lexer.cpp",
+      "src/nvparse/_ts1.0_parser.cpp",
+      "src/nvparse/_vs1.0_lexer.cpp",
+      "src/nvparse/_vs1.0_parser.cpp",
+      "src/nvparse/avp1.0_impl.cpp",
+      "src/nvparse/nvparse.cpp",
+      "src/nvparse/nvparse_errors.cpp",
+      "src/nvparse/ps1.0_program.cpp",
+      "src/nvparse/rc1.0_combiners.cpp",
+      "src/nvparse/rc1.0_final.cpp",
+      "src/nvparse/rc1.0_general.cpp",
+      "src/nvparse/ts1.0_inst.cpp",
+      "src/nvparse/ts1.0_inst_list.cpp",
+      "src/nvparse/vcp1.0_impl.cpp",
+      "src/nvparse/vp1.0_impl.cpp",
+      "src/nvparse/vs1.0_inst.cpp",
+      "src/nvparse/vs1.0_inst_list.cpp",
+      "src/nvparse/vsp1.0_impl.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include", "src", "src/GLSL", "src/atifs", "include", "include/GL", "src/GLSL/include", "src/StateCacheManager", "src/atifs/include", "src/nvparse", "src/nvparse/winheaders" } )
-
-configuration( { "ANDROID" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "ANDROID32" } )
-includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
-
-configuration( { "ANDROID64" } )
-includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
-
-configuration( { "ARDUINO" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "EMSCRIPTEN" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "EMSCRIPTEN32" } )
-includedirs( { "../../OgreMain/include/Emscripten", "src/StateCacheManager" } )
-
-configuration( { "EMSCRIPTEN64" } )
-includedirs( { "../../OgreMain/include/Emscripten", "src/StateCacheManager" } )
-
-configuration( { "GLX" } )
-includedirs( { "include/GLX", "src/GLX", "src/StateCacheManager" } )
-
-configuration( { "GTK" } )
-includedirs( { "include/gtk", "src/StateCacheManager", "src/gtk" } )
-
-configuration( { "IOS" } )
-includedirs( { "../../OgreMain/include/iOS", "src/StateCacheManager" } )
-
-configuration( { "IPHONE" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "IPHONEOS" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "LINUX" } )
-includedirs( { "src/StateCacheManager" } )
+includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "src/StateCacheManager" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/X11/", "../GLSupport/include/GLSL", "../GLSupport/src/X11", "include", "include/KHR", "include/glad", "src/GLSL/include", "src/atifs/include", "src/nvparse" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "MAC" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "MACOS" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "MACOSX" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "MSWIN" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "NACL" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "OSX" } )
-includedirs( { "../../OgreMain/include/OSX", "include/OSX", "src/OSX", "src/StateCacheManager" } )
-
-configuration( { "POSIX" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "SDL" } )
-includedirs( { "src/SDL", "src/StateCacheManager" } )
-
-configuration( { "SYMBIAN" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "UNIX" } )
-includedirs( { "src/StateCacheManager" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/X11/", "../GLSupport/include/GLSL", "../GLSupport/src/X11", "include", "include/KHR", "include/glad", "src/GLSL/include", "src/atifs/include", "src/nvparse" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include/Win32", "src/StateCacheManager", "src/Win32" } )
+includedirs( { "../GLSupport/include", "../GLSupport/include/GLSL", "../GLSupport/include/win32", "../GLSupport/include/win32/GL", "include", "include/KHR", "include/glad", "src/GLSL/include", "src/atifs/include", "src/nvparse" } )
 
 configuration( { "WIN64" } )
-includedirs( { "src/StateCacheManager" } )
-
-configuration( { "WINDOWS" } )
-includedirs( { "src/StateCacheManager" } )
+includedirs( { "../GLSupport/include", "../GLSupport/include/GLSL", "include", "include/KHR", "include/glad", "src/GLSL/include", "src/atifs/include", "src/nvparse" } )

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,35 +27,77 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreGpuProgram.h"
+
+#include <memory>
 #include "OgreGpuProgramManager.h"
-#include "OgreRoot.h"
-#include "OgreRenderSystem.h"
 #include "OgreRenderSystemCapabilities.h"
-#include "OgreStringConverter.h"
-#include "OgreLogManager.h"
 
 namespace Ogre
 {
     //-----------------------------------------------------------------------------
-    GpuProgram::CmdType GpuProgram::msTypeCmd;
-    GpuProgram::CmdSyntax GpuProgram::msSyntaxCmd;
-    GpuProgram::CmdSkeletal GpuProgram::msSkeletalCmd;
-    GpuProgram::CmdMorph GpuProgram::msMorphCmd;
-    GpuProgram::CmdPose GpuProgram::msPoseCmd;
-    GpuProgram::CmdVTF GpuProgram::msVTFCmd;
-    GpuProgram::CmdManualNamedConstsFile GpuProgram::msManNamedConstsFileCmd;
-    GpuProgram::CmdAdjacency GpuProgram::msAdjacencyCmd;
-    GpuProgram::CmdComputeGroupDims GpuProgram::msComputeGroupDimsCmd;
-    
+    namespace {
+    /// Command object - see ParamCommand
+    class CmdType : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdSyntax : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdSkeletal : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdMorph : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdPose : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdVTF : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    class CmdManualNamedConstsFile : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+
+    using CmdInstancing = SimpleParamCommand<GpuProgram, bool, &GpuProgram::isInstancingIncluded, &GpuProgram::setInstancingIncluded>;
+    // Command object for setting / getting parameters
+    static CmdType msTypeCmd;
+    static CmdSyntax msSyntaxCmd;
+    static CmdInstancing msInstancingCmd;
+    static CmdSkeletal msSkeletalCmd;
+    static CmdMorph msMorphCmd;
+    static CmdPose msPoseCmd;
+    static CmdVTF msVTFCmd;
+    static CmdManualNamedConstsFile msManNamedConstsFileCmd;
+    }
 
     //-----------------------------------------------------------------------------
-    GpuProgram::GpuProgram(ResourceManager* creator, const String& name, ResourceHandle handle,
-        const String& group, bool isManual, ManualResourceLoader* loader) 
-        :Resource(creator, name, handle, group, isManual, loader),
-        mType(GPT_VERTEX_PROGRAM), mLoadFromFile(true), mSkeletalAnimation(false),
-        mMorphAnimation(false), mPoseAnimation(0),
-        mVertexTextureFetch(false), mNeedsAdjacencyInfo(false),
-        mCompileError(false), mLoadedManualNamedConstants(false)
+    GpuProgram::GpuProgram(ResourceManager* creator, const String& name, ResourceHandle handle, const String& group,
+                           bool isManual, ManualResourceLoader* loader)
+        : Resource(creator, name, handle, group, isManual, loader), mType(GPT_VERTEX_PROGRAM), mLoadFromFile(true),
+          mInstancing(false), mSkeletalAnimation(false), mMorphAnimation(false), mVertexTextureFetch(false),
+          mNeedsAdjacencyInfo(false), mCompileError(false), mLoadedManualNamedConstants(false), mPoseAnimation(0)
     {
         createParameterMappingStructures();
     }
@@ -72,6 +114,8 @@ namespace Ogre
     //-----------------------------------------------------------------------------
     void GpuProgram::setSourceFile(const String& filename)
     {
+        OgreAssert(!filename.empty(), "invalid filename");
+
         mFilename = filename;
         mSource.clear();
         mLoadFromFile = true;
@@ -85,102 +129,119 @@ namespace Ogre
         mLoadFromFile = false;
         mCompileError = false;
     }
+
+    uint32 GpuProgram::_getHash(uint32 seed) const
+    {
+        // include filename as same source can be used with different defines & entry points
+        uint32 hash = FastHash(mName.c_str(), mName.size(), seed);
+        return FastHash(mSource.c_str(), mSource.size(), hash);
+    }
+
     size_t GpuProgram::calculateSize(void) const
     {
-        size_t memSize = 0;
-        memSize += sizeof(bool) * 7;
+        size_t memSize = sizeof(*this);
         memSize += mManualNamedConstantsFile.size() * sizeof(char);
         memSize += mFilename.size() * sizeof(char);
         memSize += mSource.size() * sizeof(char);
         memSize += mSyntaxCode.size() * sizeof(char);
-        memSize += sizeof(GpuProgramType);
-        memSize += sizeof(ushort);
 
         size_t paramsSize = 0;
-        if(!mDefaultParams.isNull())
-            paramsSize += mDefaultParams.getPointer()->calculateSize();
-        if(!mFloatLogicalToPhysical.isNull())
-            paramsSize += mFloatLogicalToPhysical.getPointer()->bufferSize;
-        if(!mDoubleLogicalToPhysical.isNull())
-            paramsSize += mDoubleLogicalToPhysical.getPointer()->bufferSize;
-        if(!mIntLogicalToPhysical.isNull())
-            paramsSize += mIntLogicalToPhysical.getPointer()->bufferSize;
-        if(!mConstantDefs.isNull())
+        if(mDefaultParams)
+            paramsSize += mDefaultParams->calculateSize();
+        if(mConstantDefs)
             paramsSize += mConstantDefs->calculateSize();
 
         return memSize + paramsSize;
     }
     //-----------------------------------------------------------------------------
-    void GpuProgram::loadImpl(void)
+    void GpuProgram::prepareImpl()
     {
-        if (mLoadFromFile)
+        if (!mLoadFromFile)
+            return;
+
+        mSource = ResourceGroupManager::getSingleton().openResource(mFilename, mGroup, this)->getAsString();
+    }
+
+    void GpuProgram::safePrepare()
+    {
+        try
         {
-            // find & load source code
-            DataStreamPtr stream = 
-                ResourceGroupManager::getSingleton().openResource(
-                    mFilename, mGroup, true, this);
-            mSource = stream->getAsString();
+            prepare();
         }
-
-        // Call polymorphic load
-        try 
+        catch (const RuntimeAssertionException&)
         {
-            loadFromSource();
-
-            if (!mDefaultParams.isNull())
-            {
-                // Keep a reference to old ones to copy
-                GpuProgramParametersSharedPtr savedParams = mDefaultParams;
-                // reset params to stop them being referenced in the next create
-                mDefaultParams.setNull();
-
-                // Create new params
-                mDefaultParams = createParameters();
-
-                // Copy old (matching) values across
-                // Don't use copyConstantsFrom since program may be different
-                mDefaultParams->copyMatchingNamedConstantsFrom(*savedParams.get());
-
-            }
+            throw;
         }
-        catch (const Exception&)
+        catch (const Exception& e)
         {
             // will already have been logged
-            LogManager::getSingleton().stream()
-                << "Gpu program " << mName << " encountered an error "
-                << "during loading and is thus not supported.";
+            LogManager::getSingleton().stream(LML_CRITICAL)
+                << "Program '" << mName << "' is not supported: " << e.getDescription();
 
             mCompileError = true;
         }
-
     }
+
+    void GpuProgram::loadImpl(void)
+    {
+        if(mCompileError)
+            return;
+
+        // Call polymorphic load
+        try
+        {
+            loadFromSource();
+        }
+        catch (const RuntimeAssertionException&)
+        {
+            throw;
+        }
+        catch (const Exception& e)
+        {
+            // will already have been logged
+            LogManager::getSingleton().stream(LML_CRITICAL)
+                << "Program '" << mName << "' is not supported: " << e.getDescription();
+
+            mCompileError = true;
+        }
+    }
+    void GpuProgram::postLoadImpl()
+    {
+        if (!mDefaultParams || mCompileError)
+            return;
+
+        // Keep a reference to old ones to copy
+        GpuProgramParametersSharedPtr savedParams = mDefaultParams;
+        // reset params to stop them being referenced in the next create
+        mDefaultParams.reset();
+
+        // Create new params
+        mDefaultParams = createParameters();
+
+        // Copy old (matching) values across
+        // Don't use copyConstantsFrom since program may be different
+        mDefaultParams->copyMatchingNamedConstantsFrom(*savedParams.get());
+    }
+
     //-----------------------------------------------------------------------------
     bool GpuProgram::isRequiredCapabilitiesSupported(void) const
     {
-        const RenderSystemCapabilities* caps = 
+        const RenderSystemCapabilities* caps =
             Root::getSingleton().getRenderSystem()->getCapabilities();
 
         // Basic support check
-        if ((getType() == GPT_VERTEX_PROGRAM && !caps->hasCapability(RSC_VERTEX_PROGRAM)) ||
-            (getType() == GPT_GEOMETRY_PROGRAM && !caps->hasCapability(RSC_GEOMETRY_PROGRAM)) ||
-            (getType() == GPT_FRAGMENT_PROGRAM && !caps->hasCapability(RSC_FRAGMENT_PROGRAM)) ||
-            (getType() == GPT_DOMAIN_PROGRAM && !caps->hasCapability(RSC_TESSELLATION_DOMAIN_PROGRAM)) ||
-            (getType() == GPT_HULL_PROGRAM && !caps->hasCapability(RSC_TESSELLATION_HULL_PROGRAM)) ||
-            (getType() == GPT_COMPUTE_PROGRAM && !caps->hasCapability(RSC_COMPUTE_PROGRAM)))
-        {
-            return false;
-        }
-
-        // If skeletal animation is being done, we need support for UBYTE4
-        if (isSkeletalAnimationIncluded() && 
-            !caps->hasCapability(RSC_VERTEX_FORMAT_UBYTE4))
+        if ((getType() == GPT_GEOMETRY_PROGRAM && !caps->hasCapability(RSC_GEOMETRY_PROGRAM)) ||
+            ((getType() == GPT_DOMAIN_PROGRAM || getType() == GPT_HULL_PROGRAM) &&
+             !caps->hasCapability(RSC_TESSELLATION_PROGRAM)) ||
+            (getType() == GPT_COMPUTE_PROGRAM && !caps->hasCapability(RSC_COMPUTE_PROGRAM)) ||
+            ((getType() == GPT_MESH_PROGRAM || getType() == GPT_TASK_PROGRAM) && !caps->hasCapability(RSC_MESH_PROGRAM)))
         {
             return false;
         }
 
         // Vertex texture fetch required?
-        if (isVertexTextureFetchRequired() && 
-            !caps->hasCapability(RSC_VERTEX_TEXTURE_FETCH))
+        if (isVertexTextureFetchRequired() &&
+            !caps->getNumVertexTextureUnits())
         {
             return false;
         }
@@ -196,24 +257,22 @@ namespace Ogre
         return GpuProgramManager::getSingleton().isSyntaxSupported(mSyntaxCode);
     }
     //---------------------------------------------------------------------
-    void GpuProgram::createParameterMappingStructures(bool recreateIfExists) const
+    void GpuProgram::createParameterMappingStructures(bool recreateIfExists)
     {
         createLogicalParameterMappingStructures(recreateIfExists);
         createNamedParameterMappingStructures(recreateIfExists);
     }
     //---------------------------------------------------------------------
-    void GpuProgram::createLogicalParameterMappingStructures(bool recreateIfExists) const
+    void GpuProgram::createLogicalParameterMappingStructures(bool recreateIfExists)
     {
-        if (recreateIfExists || mFloatLogicalToPhysical.isNull())
-            mFloatLogicalToPhysical = GpuLogicalBufferStructPtr(OGRE_NEW GpuLogicalBufferStruct());
-        if (recreateIfExists || mIntLogicalToPhysical.isNull())
-            mIntLogicalToPhysical = GpuLogicalBufferStructPtr(OGRE_NEW GpuLogicalBufferStruct());
+        if (recreateIfExists || !mLogicalToPhysical)
+            mLogicalToPhysical = std::make_shared<GpuLogicalBufferStruct>();
     }
     //---------------------------------------------------------------------
-    void GpuProgram::createNamedParameterMappingStructures(bool recreateIfExists) const
+    void GpuProgram::createNamedParameterMappingStructures(bool recreateIfExists)
     {
-        if (recreateIfExists || mConstantDefs.isNull())
-            mConstantDefs = GpuNamedConstantsPtr(OGRE_NEW GpuNamedConstants());
+        if (recreateIfExists || !mConstantDefs)
+            mConstantDefs = std::make_shared<GpuNamedConstants>();
     }
     //---------------------------------------------------------------------
     void GpuProgram::setManualNamedConstantsFile(const String& paramDefFile)
@@ -227,29 +286,20 @@ namespace Ogre
         createParameterMappingStructures();
         *mConstantDefs.get() = namedConstants;
 
-        mFloatLogicalToPhysical->bufferSize = mConstantDefs->floatBufferSize;
-        mIntLogicalToPhysical->bufferSize = mConstantDefs->intBufferSize;
-        mFloatLogicalToPhysical->map.clear();
-        mIntLogicalToPhysical->map.clear();
+        mLogicalToPhysical->bufferSize = mConstantDefs->bufferSize;
+        mLogicalToPhysical->map.clear();
         // need to set up logical mappings too for some rendersystems
-        for (GpuConstantDefinitionMap::const_iterator i = mConstantDefs->map.begin();
-            i != mConstantDefs->map.end(); ++i)
+        for (const auto& d : mConstantDefs->map)
         {
-            const String& name = i->first;
-            const GpuConstantDefinition& def = i->second;
+            const String& name = d.first;
+            const GpuConstantDefinition& def = d.second;
             // only consider non-array entries
-            if (name.find("[") == String::npos)
+            if (name.find('[') == String::npos)
             {
-                GpuLogicalIndexUseMap::value_type val(def.logicalIndex, 
-                    GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, def.variability));
-                if (def.isFloat())
-                {
-                    mFloatLogicalToPhysical->map.insert(val);
-                }
-                else
-                {
-                    mIntLogicalToPhysical->map.insert(val);
-                }
+                GpuLogicalIndexUseMap::value_type val(
+                    def.logicalIndex,
+                    GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, def.variability, GpuConstantDefinition::getBaseType(def.constType)));
+                mLogicalToPhysical->map.emplace(val);
             }
         }
 
@@ -259,19 +309,19 @@ namespace Ogre
     GpuProgramParametersSharedPtr GpuProgram::createParameters(void)
     {
         // Default implementation simply returns standard parameters.
-        GpuProgramParametersSharedPtr ret = 
+        GpuProgramParametersSharedPtr ret =
             GpuProgramManager::getSingleton().createParameters();
-        
-        
+
+
         // optionally load manually supplied named constants
         if (!mManualNamedConstantsFile.empty() && !mLoadedManualNamedConstants)
         {
-            try 
+            try
             {
                 GpuNamedConstants namedConstants;
-                DataStreamPtr stream = 
+                DataStreamPtr stream =
                     ResourceGroupManager::getSingleton().openResource(
-                    mManualNamedConstantsFile, mGroup, true, this);
+                    mManualNamedConstantsFile, mGroup, this);
                 namedConstants.load(stream);
                 setManualNamedConstants(namedConstants);
             }
@@ -283,28 +333,26 @@ namespace Ogre
             }
             mLoadedManualNamedConstants = true;
         }
-        
-        
+
+
         // set up named parameters, if any
-        if (!mConstantDefs.isNull() && !mConstantDefs->map.empty())
+        if (mConstantDefs && !mConstantDefs->map.empty())
         {
             ret->_setNamedConstants(mConstantDefs);
         }
         // link shared logical / physical map for low-level use
-        ret->_setLogicalIndexes(mFloatLogicalToPhysical, mDoubleLogicalToPhysical, 
-                                        mIntLogicalToPhysical, mUIntLogicalToPhysical,
-                                        mBoolLogicalToPhysical);
+        ret->_setLogicalIndexes(mLogicalToPhysical);
 
         // Copy in default parameters if present
-        if (!mDefaultParams.isNull())
+        if (mDefaultParams)
             ret->copyConstantsFrom(*(mDefaultParams.get()));
-        
+
         return ret;
     }
     //-----------------------------------------------------------------------------
-    GpuProgramParametersSharedPtr GpuProgram::getDefaultParameters(void)
+    const GpuProgramParametersPtr& GpuProgram::getDefaultParameters(void)
     {
-        if (mDefaultParams.isNull())
+        if (!mDefaultParams)
         {
             mDefaultParams = createParameters();
         }
@@ -327,6 +375,10 @@ namespace Ogre
             return "hull";
         case GPT_COMPUTE_PROGRAM:
             return "compute";
+        case GPT_MESH_PROGRAM:
+            return "mesh";
+        case GPT_TASK_PROGRAM:
+            return "task";
         default:
             OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
                 "Unexpected GPU program type",
@@ -343,35 +395,27 @@ namespace Ogre
                          PT_STRING), &msTypeCmd);
         dict->addParameter(
             ParameterDef("syntax", "Syntax code, e.g. vs_1_1", PT_STRING), &msSyntaxCmd);
+        dict->addParameter("includes_instancing", &msInstancingCmd);
         dict->addParameter(
-            ParameterDef("includes_skeletal_animation", 
-                         "Whether this vertex program includes skeletal animation", PT_BOOL), 
+            ParameterDef("includes_skeletal_animation",
+                         "Whether this vertex program includes skeletal animation", PT_BOOL),
             &msSkeletalCmd);
         dict->addParameter(
-            ParameterDef("includes_morph_animation", 
-                         "Whether this vertex program includes morph animation", PT_BOOL), 
+            ParameterDef("includes_morph_animation",
+                         "Whether this vertex program includes morph animation", PT_BOOL),
             &msMorphCmd);
         dict->addParameter(
-            ParameterDef("includes_pose_animation", 
+            ParameterDef("includes_pose_animation",
                          "The number of poses this vertex program supports for pose animation", PT_INT),
             &msPoseCmd);
         dict->addParameter(
-            ParameterDef("uses_vertex_texture_fetch", 
-                         "Whether this vertex program requires vertex texture fetch support.", PT_BOOL), 
+            ParameterDef("uses_vertex_texture_fetch",
+                         "Whether this vertex program requires vertex texture fetch support.", PT_BOOL),
             &msVTFCmd);
         dict->addParameter(
-            ParameterDef("manual_named_constants", 
-                         "File containing named parameter mappings for low-level programs.", PT_BOOL), 
+            ParameterDef("manual_named_constants",
+                         "File containing named parameter mappings for low-level programs.", PT_BOOL),
             &msManNamedConstsFileCmd);
-        dict->addParameter(
-            ParameterDef("uses_adjacency_information",
-                         "Whether this geometry program requires adjacency information from the input primitives.", PT_BOOL),
-            &msAdjacencyCmd);
-        dict->addParameter(
-            ParameterDef("compute_group_dimensions",
-                         "The number of process groups created by this compute program.", PT_VECTOR3),
-            &msComputeGroupDimsCmd);
-            
     }
 
     //-----------------------------------------------------------------------
@@ -383,35 +427,12 @@ namespace Ogre
     }
     //-----------------------------------------------------------------------
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdType::doGet(const void* target) const
+    String CmdType::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
-        if (t->getType() == GPT_VERTEX_PROGRAM)
-        {
-            return "vertex_program";
-        }
-        else if (t->getType() == GPT_GEOMETRY_PROGRAM)
-        {
-            return "geometry_program";
-        }
-        else if (t->getType() == GPT_DOMAIN_PROGRAM)
-        {
-            return "domain_program";
-        }
-        else if (t->getType() == GPT_HULL_PROGRAM)
-        {
-            return "hull_program";
-        }
-        else if (t->getType() == GPT_COMPUTE_PROGRAM)
-        {
-            return "compute_program";
-        }
-        else
-        {
-            return "fragment_program";
-        }
+        return GpuProgram::getProgramTypeName(t->getType()) + "_program";
     }
-    void GpuProgram::CmdType::doSet(void* target, const String& val)
+    void CmdType::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         if (val == "vertex_program")
@@ -440,92 +461,70 @@ namespace Ogre
         }
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdSyntax::doGet(const void* target) const
+    String CmdSyntax::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return t->getSyntaxCode();
     }
-    void GpuProgram::CmdSyntax::doSet(void* target, const String& val)
+    void CmdSyntax::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setSyntaxCode(val);
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdSkeletal::doGet(const void* target) const
+    String CmdSkeletal::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return StringConverter::toString(t->isSkeletalAnimationIncluded());
     }
-    void GpuProgram::CmdSkeletal::doSet(void* target, const String& val)
+    void CmdSkeletal::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setSkeletalAnimationIncluded(StringConverter::parseBool(val));
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdMorph::doGet(const void* target) const
+    String CmdMorph::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return StringConverter::toString(t->isMorphAnimationIncluded());
     }
-    void GpuProgram::CmdMorph::doSet(void* target, const String& val)
+    void CmdMorph::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setMorphAnimationIncluded(StringConverter::parseBool(val));
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdPose::doGet(const void* target) const
+    String CmdPose::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return StringConverter::toString(t->getNumberOfPosesIncluded());
     }
-    void GpuProgram::CmdPose::doSet(void* target, const String& val)
+    void CmdPose::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setPoseAnimationIncluded((ushort)StringConverter::parseUnsignedInt(val));
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdVTF::doGet(const void* target) const
+    String CmdVTF::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return StringConverter::toString(t->isVertexTextureFetchRequired());
     }
-    void GpuProgram::CmdVTF::doSet(void* target, const String& val)
+    void CmdVTF::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setVertexTextureFetchRequired(StringConverter::parseBool(val));
     }
     //-----------------------------------------------------------------------
-    String GpuProgram::CmdManualNamedConstsFile::doGet(const void* target) const
+    String CmdManualNamedConstsFile::doGet(const void* target) const
     {
         const GpuProgram* t = static_cast<const GpuProgram*>(target);
         return t->getManualNamedConstantsFile();
     }
-    void GpuProgram::CmdManualNamedConstsFile::doSet(void* target, const String& val)
+    void CmdManualNamedConstsFile::doSet(void* target, const String& val)
     {
         GpuProgram* t = static_cast<GpuProgram*>(target);
         t->setManualNamedConstantsFile(val);
-    }
-    //-----------------------------------------------------------------------
-    String GpuProgram::CmdAdjacency::doGet(const void* target) const
-    {
-        const GpuProgram* t = static_cast<const GpuProgram*>(target);
-        return StringConverter::toString(t->isAdjacencyInfoRequired());
-    }
-    void GpuProgram::CmdAdjacency::doSet(void* target, const String& val)
-    {
-        GpuProgram* t = static_cast<GpuProgram*>(target);
-        t->setAdjacencyInfoRequired(StringConverter::parseBool(val));
-    }
-    //-----------------------------------------------------------------------
-    String GpuProgram::CmdComputeGroupDims::doGet(const void* target) const
-    {
-        const GpuProgram* t = static_cast<const GpuProgram*>(target);
-        return StringConverter::toString(t->getComputeGroupDimensions());
-    }
-    void GpuProgram::CmdComputeGroupDims::doSet(void* target, const String& val)
-    {
-        GpuProgram* t = static_cast<GpuProgram*>(target);
-        t->setComputeGroupDimensions(StringConverter::parseVector3(val));
     }
 }
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,19 +26,15 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreDepthBuffer.h"
-#include "OgreRenderTarget.h"
 
 namespace Ogre
 {
-    DepthBuffer::DepthBuffer( uint16 poolId, uint16 bitDepth, uint32 width, uint32 height,
-                              uint32 fsaa, const String &fsaaHint, bool manual ) :
+    DepthBuffer::DepthBuffer( uint16 poolId, uint32 width, uint32 height,
+                              uint32 fsaa, bool manual ) :
                 mPoolId(poolId),
-                mBitDepth(bitDepth),
                 mWidth(width),
                 mHeight(height),
                 mFsaa(fsaa),
-                mFsaaHint(fsaaHint),
                 mManual(manual)
     {
     }
@@ -63,11 +59,6 @@ namespace Ogre
         return mPoolId;
     }
     //-----------------------------------------------------------------------
-    uint16 DepthBuffer::getBitDepth() const
-    {
-        return mBitDepth;
-    }
-    //-----------------------------------------------------------------------
     uint32 DepthBuffer::getWidth() const
     {
         return mWidth;
@@ -76,16 +67,6 @@ namespace Ogre
     uint32 DepthBuffer::getHeight() const
     {
         return mHeight;
-    }
-    //-----------------------------------------------------------------------
-    uint32 DepthBuffer::getFsaa() const
-    {
-        return mFsaa;
-    }
-    //-----------------------------------------------------------------------
-    const String& DepthBuffer::getFsaaHint() const
-    {
-        return mFsaaHint;
     }
     //-----------------------------------------------------------------------
     bool DepthBuffer::isManual() const
@@ -97,7 +78,7 @@ namespace Ogre
     {
         if( this->getWidth() >= renderTarget->getWidth() &&
             this->getHeight() >= renderTarget->getHeight() &&
-            this->getFsaa() == renderTarget->getFSAA() )
+            this->getFSAA() == renderTarget->getFSAA() )
         {
             return true;
         }
@@ -122,14 +103,8 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void DepthBuffer::detachFromAllRenderTargets()
     {
-        RenderTargetSet::const_iterator itor = mAttachedRenderTargets.begin();
-        RenderTargetSet::const_iterator end  = mAttachedRenderTargets.end();
-        while( itor != end )
-        {
-            //If we call, detachDepthBuffer, we'll invalidate the iterators
-            (*itor)->_detachDepthBuffer();
-            ++itor;
-        }
+        for (auto *r : mAttachedRenderTargets)
+            r->_detachDepthBuffer();
 
         mAttachedRenderTargets.clear();
     }

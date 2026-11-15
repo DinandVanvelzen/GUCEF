@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,14 +51,14 @@ namespace Ogre {
     protected:
         /** Override this method to prevent parent transforms (rotation,translation,scale)
         */
-        void getWorldTransforms( Matrix4* xform ) const;
+        void getWorldTransforms( Matrix4* xform ) const override;
 
-        void _initRectangle2D(bool includeTextureCoords, Ogre::HardwareBuffer::Usage vBufUsage);
+        void _initRectangle2D(bool includeTextureCoords, HardwareBuffer::Usage vBufUsage);
 
     public:
 
-        Rectangle2D(bool includeTextureCoordinates = false, HardwareBuffer::Usage vBufUsage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY);
-        Rectangle2D(const String& name, bool includeTextureCoordinates = false, HardwareBuffer::Usage vBufUsage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY);
+        Rectangle2D(bool includeTextureCoordinates = false, HardwareBuffer::Usage vBufUsage = HBU_GPU_ONLY);
+        Rectangle2D(const String& name, bool includeTextureCoordinates = false, HardwareBuffer::Usage vBufUsage = HBU_GPU_ONLY);
         ~Rectangle2D();
 
         /** Sets the corners of the rectangle, in relative coordinates.
@@ -70,26 +70,28 @@ namespace Ogre {
         @param updateAABB Tells if you want to recalculate the AABB according to 
         the new corners. If false, the axis aligned bounding box will remain identical.
         */
-        void setCorners(Real left, Real top, Real right, Real bottom, bool updateAABB = true);
+        void setCorners(float left, float top, float right, float bottom, bool updateAABB = false);
 
         /** Sets the normals of the rectangle
         */
-        void setNormals(const Ogre::Vector3 &topLeft, const Ogre::Vector3 &bottomLeft, const Ogre::Vector3 &topRight, const Ogre::Vector3 &bottomRight);
+        void setNormals(const Vector3& topLeft, const Vector3& bottomLeft, const Vector3& topRight,
+                        const Vector3& bottomRight);
 
         /** Sets the UVs of the rectangle
-        @remarks
+
         Doesn't do anything if the rectangle wasn't built with texture coordinates
         */
-        void setUVs( const Ogre::Vector2 &topLeft, const Ogre::Vector2 &bottomLeft,
-                     const Ogre::Vector2 &topRight, const Ogre::Vector2 &bottomRight);
+        void setUVs(const Vector2& topLeft, const Vector2& bottomLeft, const Vector2& topRight,
+                    const Vector2& bottomRight);
 
         void setDefaultUVs();
 
-        Real getSquaredViewDepth(const Camera* cam) const
+        Real getSquaredViewDepth(const Camera* cam) const override
         { (void)cam; return 0; }
 
-        Real getBoundingRadius(void) const { return 0; }
+        Real getBoundingRadius(void) const override { return 0; }
 
+        const String& getMovableType() const override;
     };
     /** @} */
     /** @} */

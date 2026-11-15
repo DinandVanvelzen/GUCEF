@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,7 @@ THE SOFTWARE.
 #include "OgreRotationAffectorFactory.h"
 #include "OgreDirectionRandomiserAffectorFactory.h"
 #include "OgreDeflectorPlaneAffectorFactory.h"
+#include "OgreTextureAnimatorAffector.h"
 
 namespace Ogre 
 {
@@ -143,6 +144,11 @@ namespace Ogre
         pAffFact = OGRE_NEW DeflectorPlaneAffectorFactory();
         ParticleSystemManager::getSingleton().addAffectorFactory(pAffFact);
         mAffectorFactories.push_back(pAffFact);
+
+        // TextureAnimatorAffector
+        pAffFact = OGRE_NEW TextureAnimatorAffectorFactory();
+        ParticleSystemManager::getSingleton().addAffectorFactory(pAffFact);
+        mAffectorFactories.push_back(pAffFact);
     }
     //---------------------------------------------------------------------
     void ParticleFXPlugin::initialise()
@@ -158,8 +164,8 @@ namespace Ogre
     void ParticleFXPlugin::uninstall()
     {
         // destroy 
-        vector<ParticleEmitterFactory*>::type::iterator ei;
-        vector<ParticleAffectorFactory*>::type::iterator ai;
+        std::vector<ParticleEmitterFactory*>::iterator ei;
+        std::vector<ParticleAffectorFactory*>::iterator ai;
 
         for (ei = mEmitterFactories.begin(); ei != mEmitterFactories.end(); ++ei)
         {

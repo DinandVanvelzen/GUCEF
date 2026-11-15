@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Run Time Shader System component</DescriptionHeadline>
+        <DescriptionDetails>The Run Time Shader System of OGRE 14.6.3, which generates the shaders for the fixed function pipeline and for the shader based sub render states. It is needed by the OpenGL ES 2 render system since that has no fixed function pipeline. The shader library it uses is in the directory Media/RTShaderLib.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreRTShaderSystem" Type="SharedLibrary" Platform="All" Tags="ogre">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="OgreRTShaderSystem_EXPORTS" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <!-- WebAssembly builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

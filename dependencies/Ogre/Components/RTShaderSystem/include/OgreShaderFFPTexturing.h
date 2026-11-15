@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -36,7 +36,7 @@ namespace Ogre {
 namespace RTShader {
 
 
-/** \addtogroup Core
+/** \addtogroup Optional
 *  @{
 */
 /** \addtogroup RTShader
@@ -62,46 +62,33 @@ public:
     /** 
     @see SubRenderState::getType.
     */
-    virtual const String& getType() const;
+    const String& getType() const override;
 
     /** 
     @see SubRenderState::getType.
     */
-    virtual int getExecutionOrder() const;
-
-    /** 
-    @see SubRenderState::updateGpuProgramsParams.
-    */
-    virtual void updateGpuProgramsParams(Renderable* rend, Pass* pass, const AutoParamDataSource* source, const LightList* pLightList);
+    int getExecutionOrder() const override;
 
     /** 
     @see SubRenderState::copyFrom.
     */
-    virtual void copyFrom(const SubRenderState& rhs);
+    void copyFrom(const SubRenderState& rhs) override;
 
     /** 
     @see SubRenderState::preAddToRenderState.
     */
-    virtual bool preAddToRenderState(const RenderState* renderState, Pass* srcPass, Pass* dstPass);
+    bool preAddToRenderState(const RenderState* renderState, Pass* srcPass, Pass* dstPass) override;
     
-    static void AddTextureSampleWrapperInvocation(UniformParameterPtr textureSampler,UniformParameterPtr textureSamplerState,
-        GpuConstantType samplerType, Function* function, int groupOrder, int& internalCounter);
-
-    
-	static ParameterPtr GetSamplerWrapperParam(UniformParameterPtr sampler, Function* function);
-
     static String Type;
 
-// Protected types:
-protected:
-    
+private:
+    friend class LayeredBlending;
+
     // Per texture unit parameters.
-    struct _OgreRTSSExport TextureUnitParams
+    struct TextureUnitParams
     {
         // Texture unit state.
         TextureUnitState* mTextureUnitState;
-        // Texture projector.
-        const Frustum* mTextureProjector;
         // Texture sampler index.
         unsigned short mTextureSamplerIndex;
         // Texture sampler index.
@@ -118,8 +105,6 @@ protected:
         UniformParameterPtr mTextureViewProjImageMatrix;
         // Texture sampler parameter.
         UniformParameterPtr mTextureSampler;
-    // Texture sampler state parameter.
-        UniformParameterPtr mTextureSamplerState;
         // Vertex shader input texture coordinates parameter.
         ParameterPtr mVSInputTexCoord;
         // Vertex shader output texture coordinates parameter.
@@ -128,12 +113,9 @@ protected:
         ParameterPtr mPSInputTexCoord;
     };
 
-    typedef vector<TextureUnitParams>::type         TextureUnitParamsList;
+    typedef std::vector<TextureUnitParams>         TextureUnitParamsList;
     typedef TextureUnitParamsList::iterator         TextureUnitParamsIterator;
     typedef TextureUnitParamsList::const_iterator   TextureUnitParamsConstIterator;
-
-// Protected methods
-protected:
 
     /** 
     Set the number of texture units this texturing sub state has to handle.
@@ -154,11 +136,6 @@ protected:
     void setTextureUnit(unsigned short index, TextureUnitState* textureUnitState);
 
     /** 
-    @see SubRenderState::resolveParameters.
-    */
-    virtual bool resolveParameters(ProgramSet* programSet);
-
-    /** 
     Internal method that resolves uniform parameters of the given texture unit parameters.
     */
     bool resolveUniformParams(TextureUnitParams* textureUnitParams, ProgramSet* programSet);
@@ -168,15 +145,25 @@ protected:
     */
     bool resolveFunctionsParams(TextureUnitParams* textureUnitParams, ProgramSet* programSet);
 
+//protected:
+    /**
+    @see SubRenderState::resolveParameters.
+    */
+    bool resolveParameters(ProgramSet* programSet) override;
+
     /** 
     @see SubRenderState::resolveDependencies.
     */
-    virtual bool resolveDependencies(ProgramSet* programSet);
+    bool resolveDependencies(ProgramSet* programSet) override;
 
+    virtual void addPSBlendInvocations(Function* psMain, ParameterPtr arg1, ParameterPtr arg2,
+                ParameterPtr texel,int samplerIndex, const LayerBlendModeEx& blendMode,
+                const int groupOrder, Operand::OpMask targetChannels);
+private:
     /** 
     @see SubRenderState::addFunctionInvocations.
     */
-    virtual bool addFunctionInvocations(ProgramSet* programSet);
+    bool addFunctionInvocations(ProgramSet* programSet) override;
 
 
     /** 
@@ -187,40 +174,26 @@ protected:
     /** 
     Internal method that adds pixel shader functions invocations.
     */
-    bool addPSFunctionInvocations(TextureUnitParams* textureUnitParams, Function* psMain, int& internalCounter);
+    bool addPSFunctionInvocations(TextureUnitParams* textureUnitParams, Function* psMain);
 
     /** 
     Adds the fragment shader code which samples the texel color in the texture
     */
-    virtual void addPSSampleTexelInvocation(TextureUnitParams* textureUnitParams, Function* psMain, 
-        const ParameterPtr& texel, int groupOrder, int& internalCounter);
+    void addPSSampleTexelInvocation(TextureUnitParams* textureUnitParams, Function* psMain,
+        const ParameterPtr& texel, int groupOrder);
 
-    virtual void addPSArgumentInvocations(Function* psMain, ParameterPtr arg, ParameterPtr texel,
-                int samplerIndex, LayerBlendSource blendSrc, const ColourValue& colourValue, Real alphaValue,
-                 bool isAlphaArgument, const int groupOrder, int& internalCounter);
-
-    virtual void addPSBlendInvocations(Function* psMain, ParameterPtr arg1, ParameterPtr arg2,
-                ParameterPtr texel,int samplerIndex, const LayerBlendModeEx& blendMode,
-                const int groupOrder, int& internalCounter, int targetChannels);
+    ParameterPtr getPSArgument(ParameterPtr texel, LayerBlendSource blendSrc, const ColourValue& colourValue,
+                               Real alphaValue, bool isAlphaArgument) const;
     
-    /** 
-    Determines the texture coordinates calculation method of the given texture unit state.
-    */
-    TexCoordCalcMethod getTexCalcMethod(TextureUnitState* textureUnitState);
-
     /** 
     Determines if the given texture unit state need to use texture transformation matrix.
     */
     bool needsTextureMatrix(TextureUnitState* textureUnitState);
 
-    /** 
-    Determines whether a given texture unit needs to be processed by this srs
-    */
-    virtual bool isProcessingNeeded(TextureUnitState* texUnitState);
+    bool setParameter(const String& name, const String& value) override;
 
+    void setParameter(const String& name, const Any& value) override;
 
-// Attributes.
-protected:
     // Texture units list.      
     TextureUnitParamsList mTextureUnitParamsList;
     // World matrix parameter.
@@ -233,47 +206,19 @@ protected:
     ParameterPtr mVSInputNormal;
     // Vertex shader input position parameter.      
     ParameterPtr mVSInputPos;
+//protected:
     // Pixel shader output colour.
     ParameterPtr mPSOutDiffuse;
+private:
     // Pixel shader diffuse colour.
     ParameterPtr mPSDiffuse;
     // Pixel shader specular colour.
     ParameterPtr mPSSpecular;
-};
 
+    Vector4 mUVMixingParams;
 
-/** 
-A factory that enables creation of FFPTexturing instances.
-@remarks Sub class of SubRenderStateFactory
-*/
-class _OgreRTSSExport FFPTexturingFactory : public SubRenderStateFactory
-{
-public:
-
-    /** 
-    @see SubRenderStateFactory::getType.
-    */
-    virtual const String& getType() const;
-
-    /** 
-    @see SubRenderStateFactory::createInstance.
-    */
-    virtual SubRenderState* createInstance(ScriptCompiler* compiler, PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator);
-
-    /** 
-    @see SubRenderStateFactory::writeInstance.
-    */
-    virtual void writeInstance(MaterialSerializer* ser, SubRenderState* subRenderState, Pass* srcPass, Pass* dstPass);
-
-    
-protected:
-
-    /** 
-    @see SubRenderStateFactory::createInstanceImpl.
-    */
-    virtual SubRenderState* createInstanceImpl();
-
-
+    bool mIsPointSprite;
+    bool mLateAddBlend;
 };
 
 /** @} */

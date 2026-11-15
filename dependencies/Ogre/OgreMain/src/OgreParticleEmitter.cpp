@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,33 +29,34 @@ THE SOFTWARE.
 
 #include "OgreParticleEmitter.h"
 #include "OgreParticleEmitterFactory.h"
+#include "OgreParticleEmitterCommands.h"
 
 namespace Ogre
 {
-    // Define static members
-    EmitterCommands::CmdAngle ParticleEmitter::msAngleCmd;
-    EmitterCommands::CmdColour ParticleEmitter::msColourCmd;
-    EmitterCommands::CmdColourRangeStart ParticleEmitter::msColourRangeStartCmd;
-    EmitterCommands::CmdColourRangeEnd ParticleEmitter::msColourRangeEndCmd;
-    EmitterCommands::CmdDirection ParticleEmitter::msDirectionCmd;
-    EmitterCommands::CmdUp ParticleEmitter::msUpCmd;
-    EmitterCommands::CmdDirPositionRef ParticleEmitter::msDirPositionRefCmd;
-    EmitterCommands::CmdEmissionRate ParticleEmitter::msEmissionRateCmd;
-    EmitterCommands::CmdMaxTTL ParticleEmitter::msMaxTTLCmd;
-    EmitterCommands::CmdMaxVelocity ParticleEmitter::msMaxVelocityCmd;
-    EmitterCommands::CmdMinTTL ParticleEmitter::msMinTTLCmd;
-    EmitterCommands::CmdMinVelocity ParticleEmitter::msMinVelocityCmd;
-    EmitterCommands::CmdPosition ParticleEmitter::msPositionCmd;
-    EmitterCommands::CmdTTL ParticleEmitter::msTTLCmd;
-    EmitterCommands::CmdVelocity ParticleEmitter::msVelocityCmd;
-    EmitterCommands::CmdDuration ParticleEmitter::msDurationCmd;
-    EmitterCommands::CmdMinDuration ParticleEmitter::msMinDurationCmd;
-    EmitterCommands::CmdMaxDuration ParticleEmitter::msMaxDurationCmd;
-    EmitterCommands::CmdRepeatDelay ParticleEmitter::msRepeatDelayCmd;
-    EmitterCommands::CmdMinRepeatDelay ParticleEmitter::msMinRepeatDelayCmd;
-    EmitterCommands::CmdMaxRepeatDelay ParticleEmitter::msMaxRepeatDelayCmd;
-    EmitterCommands::CmdName ParticleEmitter::msNameCmd;
-    EmitterCommands::CmdEmittedEmitter ParticleEmitter::msEmittedEmitterCmd;
+    // Command object for setting / getting parameters
+    static EmitterCommands::CmdAngle msAngleCmd;
+    static EmitterCommands::CmdColour msColourCmd;
+    static EmitterCommands::CmdColourRangeStart msColourRangeStartCmd;
+    static EmitterCommands::CmdColourRangeEnd msColourRangeEndCmd;
+    static EmitterCommands::CmdDirection msDirectionCmd;
+    static EmitterCommands::CmdUp msUpCmd;
+    static EmitterCommands::CmdDirPositionRef msDirPositionRefCmd;
+    static EmitterCommands::CmdEmissionRate msEmissionRateCmd;
+    static EmitterCommands::CmdMaxTTL msMaxTTLCmd;
+    static EmitterCommands::CmdMaxVelocity msMaxVelocityCmd;
+    static EmitterCommands::CmdMinTTL msMinTTLCmd;
+    static EmitterCommands::CmdMinVelocity msMinVelocityCmd;
+    static EmitterCommands::CmdPosition msPositionCmd;
+    static EmitterCommands::CmdTTL msTTLCmd;
+    static EmitterCommands::CmdVelocity msVelocityCmd;
+    static EmitterCommands::CmdDuration msDurationCmd;
+    static EmitterCommands::CmdMinDuration msMinDurationCmd;
+    static EmitterCommands::CmdMaxDuration msMaxDurationCmd;
+    static EmitterCommands::CmdRepeatDelay msRepeatDelayCmd;
+    static EmitterCommands::CmdMinRepeatDelay msMinRepeatDelayCmd;
+    static EmitterCommands::CmdMaxRepeatDelay msMaxRepeatDelayCmd;
+    static EmitterCommands::CmdName msNameCmd;
+    static EmitterCommands::CmdEmittedEmitter msEmittedEmitterCmd;
 
 
     //-----------------------------------------------------------------------
@@ -145,7 +146,8 @@ namespace Ogre
     void ParticleEmitter::setAngle(const Radian& angle)
     {
         // Store as radians for efficiency
-        mAngle = angle;
+        // anything above 180 degrees already covers the whole sphere
+        mAngle = std::min(angle, Radian(Math::PI));
     }
     //-----------------------------------------------------------------------
     const Radian& ParticleEmitter::getAngle(void) const
@@ -155,11 +157,13 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ParticleEmitter::setParticleVelocity(Real speed)
     {
+        assert(std::isfinite(speed));
         mMinSpeed = mMaxSpeed = speed;
     }
     //-----------------------------------------------------------------------
     void ParticleEmitter::setParticleVelocity(Real min, Real max)
     {
+        assert(std::isfinite(min) && std::isfinite(max));
         mMinSpeed = min;
         mMaxSpeed = max;
     }
@@ -229,6 +233,13 @@ namespace Ogre
         mEmitted = emitted;
     }
     //-----------------------------------------------------------------------
+    static float sampleSphereUniform(const float& maxAngle)
+    {
+        float cosMax = -std::cos(maxAngle) + 1; // for maxAngle = pi, cosMax = 2
+        // see https://corysimon.github.io/articles/uniformdistn-on-sphere/
+        return std::acos(1 - cosMax * Math::UnitRandom());
+    }
+
     void ParticleEmitter::genEmissionDirection( const Vector3 &particlePos, Vector3& destVector )
     {
         if( mUseDirPositionRef )
@@ -239,7 +250,7 @@ namespace Ogre
             if (mAngle != Radian(0))
             {
                 // Randomise angle
-                Radian angle = Math::UnitRandom() * mAngle;
+                Radian angle(sampleSphereUniform(mAngle.valueRadians()));
 
                 // Randomise direction
                 destVector = particleDir.randomDeviant( angle );
@@ -255,7 +266,7 @@ namespace Ogre
             if (mAngle != Radian(0))
             {
                 // Randomise angle
-                Radian angle = Math::UnitRandom() * mAngle;
+                Radian angle(sampleSphereUniform(mAngle.valueRadians()));
 
                 // Randomise direction
                 destVector = mDirection.randomDeviant(angle, mUp);
@@ -276,7 +287,7 @@ namespace Ogre
         Real scalar;
         if (mMinSpeed != mMaxSpeed)
         {
-            scalar = mMinSpeed + (Math::UnitRandom() * (mMaxSpeed - mMinSpeed));
+            scalar = Math::RangeRandom(mMinSpeed, mMaxSpeed);
         }
         else
         {
@@ -290,7 +301,7 @@ namespace Ogre
     {
         if (mMaxTTL != mMinTTL)
         {
-            return mMinTTL + (Math::UnitRandom() * (mMaxTTL - mMinTTL));
+            return Math::RangeRandom(mMinTTL, mMaxTTL);
         }
         else
         {
@@ -302,10 +313,18 @@ namespace Ogre
     {
         if (mEnabled)
         {
-            // Keep fractions, otherwise a high frame rate will result in zero emissions!
-            mRemainder += mEmissionRate * timeElapsed;
+            if(mDurationMax < 0)
+            {
+                // single-shot burst
+                setEnabled(false);
+                return mEmissionRate;
+            }
+
             unsigned short intRequest = (unsigned short)mRemainder;
             mRemainder -= intRequest;
+
+            // Keep fractions, otherwise a high frame rate will result in zero emissions!
+            mRemainder += mEmissionRate * timeElapsed;
 
             // Check duration
             if (mDurationMax)
@@ -345,20 +364,17 @@ namespace Ogre
 
     }
     //-----------------------------------------------------------------------
-    void ParticleEmitter::genEmissionColour(ColourValue& destColour)
+    void ParticleEmitter::genEmissionColour(RGBA& destColour)
     {
         if (mColourRangeStart != mColourRangeEnd)
         {
             // Randomise
-            //Real t = Math::UnitRandom();
-            destColour.r = mColourRangeStart.r + (Math::UnitRandom() * (mColourRangeEnd.r - mColourRangeStart.r));
-            destColour.g = mColourRangeStart.g + (Math::UnitRandom() * (mColourRangeEnd.g - mColourRangeStart.g));
-            destColour.b = mColourRangeStart.b + (Math::UnitRandom() * (mColourRangeEnd.b - mColourRangeStart.b));
-            destColour.a = mColourRangeStart.a + (Math::UnitRandom() * (mColourRangeEnd.a - mColourRangeStart.a));
+            ColourValue t(Math::UnitRandom(), Math::UnitRandom(), Math::UnitRandom(), Math::UnitRandom());
+            destColour = Math::lerp(mColourRangeStart, mColourRangeEnd, t).getAsBYTE();
         }
         else
         {
-            destColour = mColourRangeStart;
+            destColour = mColourRangeStart.getAsBYTE();
         }
     }
     //-----------------------------------------------------------------------
@@ -478,11 +494,13 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ParticleEmitter::setMinParticleVelocity(Real min)
     {
+        assert(std::isfinite(min));
         mMinSpeed = min;
     }
     //-----------------------------------------------------------------------
     void ParticleEmitter::setMaxParticleVelocity(Real max)
     {
+        assert(std::isfinite(max));
         mMaxSpeed = max;
     }
     //-----------------------------------------------------------------------
@@ -539,6 +557,7 @@ namespace Ogre
     void ParticleEmitter::setEnabled(bool enabled)
     {
         mEnabled = enabled;
+        mRemainder = 1.0f; // make sure we emit a particle on next update. Turns emission rate to (t0;r] interval
         // Reset duration & repeat
         initDurationRepeat();
     }
@@ -668,32 +687,28 @@ namespace Ogre
     //-----------------------------------------------------------------------
     ParticleEmitterFactory::~ParticleEmitterFactory()
     {
+        OGRE_IGNORE_DEPRECATED_BEGIN
         // Destroy all emitters
-        vector<ParticleEmitter*>::type::iterator i;
-        for (i = mEmitters.begin(); i != mEmitters.end(); ++i)
+        for (auto& e : mEmitters)
         {
-            OGRE_DELETE (*i);
+            OGRE_DELETE e;
         }
             
         mEmitters.clear();
-
+        OGRE_IGNORE_DEPRECATED_END
     }
     //-----------------------------------------------------------------------
     void ParticleEmitterFactory::destroyEmitter(ParticleEmitter* e)        
     {
-        vector<ParticleEmitter*>::type::iterator i;
-        for (i = mEmitters.begin(); i != mEmitters.end(); ++i)
-        {
-            if ((*i) == e)
-            {
-                mEmitters.erase(i);
-                OGRE_DELETE e;
-                break;
-            }
+        delete e;
+        OGRE_IGNORE_DEPRECATED_BEGIN
+        auto i = std::find(std::begin(mEmitters), std::end(mEmitters), e);
+        if (i != std::end(mEmitters)) {
+            mEmitters.erase(i);
         }
+        OGRE_IGNORE_DEPRECATED_END
     }
 
     //-----------------------------------------------------------------------
-
 }
 

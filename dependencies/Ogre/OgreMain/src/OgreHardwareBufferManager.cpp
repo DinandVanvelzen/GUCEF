@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +26,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreHardwareBufferManager.h"
 #include "OgreVertexIndexData.h"
-#include "OgreLogManager.h"
-
 
 namespace Ogre {
 
@@ -44,15 +41,12 @@ namespace Ogre {
         assert( msSingleton );  return ( *msSingleton );  
     }
     //---------------------------------------------------------------------
-    HardwareBufferManager::HardwareBufferManager(HardwareBufferManagerBase* imp)
-        : HardwareBufferManagerBase(), mImpl(imp)
+    HardwareBufferManager::HardwareBufferManager()
     {
-
     }
     //---------------------------------------------------------------------
     HardwareBufferManager::~HardwareBufferManager()
     {
-        // mImpl must be deleted by the creator
     }
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
@@ -67,13 +61,6 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     HardwareBufferManagerBase::~HardwareBufferManagerBase()
     {
-        // Clear vertex/index buffer list first, avoid destroyed notify do
-        // unnecessary work, and we'll destroy everything here.
-        mVertexBuffers.clear();
-        mIndexBuffers.clear();
-        mUniformBuffers.clear();
-        mCounterBuffers.clear();
-
         // Destroy everything
         destroyAllDeclarations();
         destroyAllBindings();
@@ -93,6 +80,7 @@ namespace Ogre {
     void HardwareBufferManagerBase::destroyVertexDeclaration(VertexDeclaration* decl)
     {
         OGRE_LOCK_MUTEX(mVertexDeclarationsMutex);
+        OgreAssertDbg(mVertexDeclarations.find(decl) != mVertexDeclarations.end(), "unknown decl");
         mVertexDeclarations.erase(decl);
         destroyVertexDeclarationImpl(decl);
     }
@@ -107,7 +95,9 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void HardwareBufferManagerBase::destroyVertexBufferBinding(VertexBufferBinding* binding)
     {
-            OGRE_LOCK_MUTEX(mVertexBufferBindingsMutex);
+        OGRE_LOCK_MUTEX(mVertexBufferBindingsMutex);
+        OgreAssertDbg(mVertexBufferBindings.find(binding) != mVertexBufferBindings.end(),
+                      "unknown binding");
         mVertexBufferBindings.erase(binding);
         destroyVertexBufferBindingImpl(binding);
     }
@@ -135,10 +125,9 @@ namespace Ogre {
     void HardwareBufferManagerBase::destroyAllDeclarations(void)
     {
         OGRE_LOCK_MUTEX(mVertexDeclarationsMutex);
-        VertexDeclarationList::iterator decl;
-        for (decl = mVertexDeclarations.begin(); decl != mVertexDeclarations.end(); ++decl)
+        for (auto *decl : mVertexDeclarations)
         {
-            destroyVertexDeclarationImpl(*decl);
+            destroyVertexDeclarationImpl(decl);
         }
         mVertexDeclarations.clear();
     }
@@ -146,37 +135,26 @@ namespace Ogre {
     void HardwareBufferManagerBase::destroyAllBindings(void)
     {
         OGRE_LOCK_MUTEX(mVertexBufferBindingsMutex);
-        VertexBufferBindingList::iterator bind;
-        for (bind = mVertexBufferBindings.begin(); bind != mVertexBufferBindings.end(); ++bind)
+        for (auto *bind : mVertexBufferBindings)
         {
-            destroyVertexBufferBindingImpl(*bind);
+            destroyVertexBufferBindingImpl(bind);
         }
         mVertexBufferBindings.clear();
-    }
-    //-----------------------------------------------------------------------
-    void HardwareBufferManagerBase::registerVertexBufferSourceAndCopy(
-            const HardwareVertexBufferSharedPtr& sourceBuffer,
-            const HardwareVertexBufferSharedPtr& copy)
-    {
-            OGRE_LOCK_MUTEX(mTempBuffersMutex);
-        // Add copy to free temporary vertex buffers
-        mFreeTempVertexBufferMap.insert(
-            FreeTemporaryVertexBufferMap::value_type(sourceBuffer.get(), copy));
     }
     //-----------------------------------------------------------------------
     HardwareVertexBufferSharedPtr 
     HardwareBufferManagerBase::allocateVertexBufferCopy(
         const HardwareVertexBufferSharedPtr& sourceBuffer, 
-        BufferLicenseType licenseType, HardwareBufferLicensee* licensee,
+        HardwareBufferLicensee* licensee,
         bool copyData)
     {
         // pre-lock the mVertexBuffers mutex, which would usually get locked in
-        //  makeBufferCopy / createVertexBuffer
+        // createVertexBuffer
         // this prevents a deadlock in _notifyVertexBufferDestroyed
         // which locks the same mutexes (via other methods) but in reverse order
         OGRE_LOCK_MUTEX(mVertexBuffersMutex);
         {
-                    OGRE_LOCK_MUTEX(mTempBuffersMutex);
+            OGRE_LOCK_MUTEX(mTempBuffersMutex);
             HardwareVertexBufferSharedPtr vbuf;
 
             // Locate existing buffer copy in temporary vertex buffers
@@ -184,11 +162,9 @@ namespace Ogre {
                 mFreeTempVertexBufferMap.find(sourceBuffer.get());
             if (i == mFreeTempVertexBufferMap.end())
             {
-                // copy buffer, use shadow buffer and make dynamic
-                vbuf = makeBufferCopy(
-                    sourceBuffer, 
-                    HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE, 
-                    true);
+                // create new copy buffer, use shadow buffer and make dynamic
+                vbuf = createVertexBuffer(sourceBuffer->getVertexSize(), sourceBuffer->getNumVertices(), HBU_CPU_TO_GPU,
+                                          true);
             }
             else
             {
@@ -204,10 +180,9 @@ namespace Ogre {
             }
 
             // Insert copy into licensee list
-            mTempVertexBufferLicenses.insert(
-                TemporaryVertexBufferLicenseMap::value_type(
+            mTempVertexBufferLicenses.emplace(
                     vbuf.get(),
-                    VertexBufferLicense(sourceBuffer.get(), licenseType, EXPIRED_DELAY_FRAME_THRESHOLD, vbuf, licensee)));
+                    VertexBufferLicense(sourceBuffer.get(), EXPIRED_DELAY_FRAME_THRESHOLD, vbuf, licensee));
             return vbuf;
         }
 
@@ -217,17 +192,13 @@ namespace Ogre {
         const HardwareVertexBufferSharedPtr& bufferCopy)
     {
         OGRE_LOCK_MUTEX(mTempBuffersMutex);
-
         TemporaryVertexBufferLicenseMap::iterator i =
             mTempVertexBufferLicenses.find(bufferCopy.get());
         if (i != mTempVertexBufferLicenses.end())
         {
             const VertexBufferLicense& vbl = i->second;
-
             vbl.licensee->licenseExpired(vbl.buffer.get());
-
-            mFreeTempVertexBufferMap.insert(
-                FreeTemporaryVertexBufferMap::value_type(vbl.originalBufferPtr, vbl.buffer));
+            mFreeTempVertexBufferMap.emplace(vbl.originalBufferPtr, vbl.buffer);
             mTempVertexBufferLicenses.erase(i);
         }
     }
@@ -241,8 +212,6 @@ namespace Ogre {
         if (i != mTempVertexBufferLicenses.end())
         {
             VertexBufferLicense& vbl = i->second;
-            assert(vbl.licenseType == BLT_AUTOMATIC_RELEASE);
-
             vbl.expiredDelay = EXPIRED_DELAY_FRAME_THRESHOLD;
         }
     }
@@ -261,7 +230,7 @@ namespace Ogre {
             // Free the temporary buffer that referenced by ourself only.
             // TODO: Some temporary buffers are bound to vertex buffer bindings
             // but not checked out, need to sort out method to unbind them.
-            if (icur->second.useCount() <= 1)
+            if (icur->second.use_count() <= 1)
             {
                 ++numFreed;
                 mFreeTempVertexBufferMap.erase(icur);
@@ -293,13 +262,11 @@ namespace Ogre {
         {
             TemporaryVertexBufferLicenseMap::iterator icur = i++;
             VertexBufferLicense& vbl = icur->second;
-            if (vbl.licenseType == BLT_AUTOMATIC_RELEASE &&
-                (forceFreeUnused || --vbl.expiredDelay <= 0))
+            if (forceFreeUnused || --vbl.expiredDelay <= 0)
             {
                 vbl.licensee->licenseExpired(vbl.buffer.get());
 
-                mFreeTempVertexBufferMap.insert(
-                    FreeTemporaryVertexBufferMap::value_type(vbl.originalBufferPtr, vbl.buffer));
+                mFreeTempVertexBufferMap.emplace(vbl.originalBufferPtr, vbl.buffer);
                 mTempVertexBufferLicenses.erase(icur);
             }
         }
@@ -352,7 +319,6 @@ namespace Ogre {
             {
                 // Just tell the owner that this is being released
                 vbl.licensee->licenseExpired(vbl.buffer.get());
-
                 mTempVertexBufferLicenses.erase(icur);
             }
         }
@@ -376,10 +342,10 @@ namespace Ogre {
         std::pair<_Iter, _Iter> range = mFreeTempVertexBufferMap.equal_range(sourceBuffer);
         if (range.first != range.second)
         {
-            list<HardwareVertexBufferSharedPtr>::type holdForDelayDestroy;
+            std::list<HardwareVertexBufferSharedPtr> holdForDelayDestroy;
             for (_Iter it = range.first; it != range.second; ++it)
             {
-                if (it->second.useCount() <= 1)
+                if (it->second.use_count() <= 1)
                 {
                     holdForDelayDestroy.push_back(it->second);
                 }
@@ -393,8 +359,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void HardwareBufferManagerBase::_notifyVertexBufferDestroyed(HardwareVertexBuffer* buf)
     {
-            OGRE_LOCK_MUTEX(mVertexBuffersMutex);
-
+        OGRE_LOCK_MUTEX(mVertexBuffersMutex);
         VertexBufferList::iterator i = mVertexBuffers.find(buf);
         if (i != mVertexBuffers.end())
         {
@@ -403,155 +368,14 @@ namespace Ogre {
             _forceReleaseBufferCopies(buf);
         }
     }
-    //-----------------------------------------------------------------------
-    void HardwareBufferManagerBase::_notifyIndexBufferDestroyed(HardwareIndexBuffer* buf)
+    RenderToVertexBufferSharedPtr HardwareBufferManagerBase::createRenderToVertexBuffer()
     {
-            OGRE_LOCK_MUTEX(mIndexBuffersMutex);
-
-        IndexBufferList::iterator i = mIndexBuffers.find(buf);
-        if (i != mIndexBuffers.end())
-        {
-            mIndexBuffers.erase(i);
-        }
+        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "not supported by RenderSystem");
     }
-    //-----------------------------------------------------------------------
-    void HardwareBufferManagerBase::_notifyUniformBufferDestroyed(HardwareUniformBuffer* buf)
+    HardwareBufferPtr HardwareBufferManagerBase::createUniformBuffer(size_t sizeBytes,
+                                                                     HardwareBufferUsage usage,
+                                                                     bool useShadowBuffer)
     {
+        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "not supported by RenderSystem");
     }
-    //-----------------------------------------------------------------------
-    void HardwareBufferManagerBase::_notifyCounterBufferDestroyed(HardwareCounterBuffer* buf)
-    {
-    }
-    //-----------------------------------------------------------------------
-    HardwareVertexBufferSharedPtr 
-    HardwareBufferManagerBase::makeBufferCopy(
-        const HardwareVertexBufferSharedPtr& source,
-        HardwareBuffer::Usage usage, bool useShadowBuffer)
-    {
-        return this->createVertexBuffer(
-            source->getVertexSize(), 
-            source->getNumVertices(),
-            usage, useShadowBuffer);
-    }
-    //-----------------------------------------------------------------------------
-    //-----------------------------------------------------------------------------
-    //-----------------------------------------------------------------------------
-    TempBlendedBufferInfo::~TempBlendedBufferInfo(void)
-    {
-        // check that temp buffers have been released
-        if (!destPositionBuffer.isNull())
-            destPositionBuffer->getManager()->releaseVertexBufferCopy(destPositionBuffer);
-        if (!destNormalBuffer.isNull())
-            destNormalBuffer->getManager()->releaseVertexBufferCopy(destNormalBuffer);
-
-    }
-    //-----------------------------------------------------------------------------
-    void TempBlendedBufferInfo::extractFrom(const VertexData* sourceData)
-    {
-        // Release old buffer copies first
-        if (!destPositionBuffer.isNull())
-        {
-            destPositionBuffer->getManager()->releaseVertexBufferCopy(destPositionBuffer);
-            assert(destPositionBuffer.isNull());
-        }
-        if (!destNormalBuffer.isNull())
-        {
-            destNormalBuffer->getManager()->releaseVertexBufferCopy(destNormalBuffer);
-            assert(destNormalBuffer.isNull());
-        }
-
-        VertexDeclaration* decl = sourceData->vertexDeclaration;
-        VertexBufferBinding* bind = sourceData->vertexBufferBinding;
-        const VertexElement *posElem = decl->findElementBySemantic(VES_POSITION);
-        const VertexElement *normElem = decl->findElementBySemantic(VES_NORMAL);
-
-        assert(posElem && "Positions are required");
-
-        posBindIndex = posElem->getSource();
-        srcPositionBuffer = bind->getBuffer(posBindIndex);
-
-        if (!normElem)
-        {
-            posNormalShareBuffer = false;
-            srcNormalBuffer.setNull();
-        }
-        else
-        {
-            normBindIndex = normElem->getSource();
-            if (normBindIndex == posBindIndex)
-            {
-                posNormalShareBuffer = true;
-                srcNormalBuffer.setNull();
-            }
-            else
-            {
-                posNormalShareBuffer = false;
-                srcNormalBuffer = bind->getBuffer(normBindIndex);
-            }
-        }
-    }
-    //-----------------------------------------------------------------------------
-    void TempBlendedBufferInfo::checkoutTempCopies(bool positions, bool normals)
-    {
-        bindPositions = positions;
-        bindNormals = normals;
-
-        if (positions && destPositionBuffer.isNull())
-        {
-            destPositionBuffer = srcPositionBuffer->getManager()->allocateVertexBufferCopy(srcPositionBuffer, 
-                HardwareBufferManagerBase::BLT_AUTOMATIC_RELEASE, this);
-        }
-        if (normals && !posNormalShareBuffer && !srcNormalBuffer.isNull() && destNormalBuffer.isNull())
-        {
-            destNormalBuffer = srcNormalBuffer->getManager()->allocateVertexBufferCopy(srcNormalBuffer, 
-                HardwareBufferManagerBase::BLT_AUTOMATIC_RELEASE, this);
-        }
-    }
-    //-----------------------------------------------------------------------------
-    bool TempBlendedBufferInfo::buffersCheckedOut(bool positions, bool normals) const
-    {
-        if (positions || (normals && posNormalShareBuffer))
-        {
-            if (destPositionBuffer.isNull())
-                return false;
-
-            destPositionBuffer->getManager()->touchVertexBufferCopy(destPositionBuffer);
-        }
-
-        if (normals && !posNormalShareBuffer)
-        {
-            if (destNormalBuffer.isNull())
-                return false;
-
-            destNormalBuffer->getManager()->touchVertexBufferCopy(destNormalBuffer);
-        }
-
-        return true;
-    }
-    //-----------------------------------------------------------------------------
-    void TempBlendedBufferInfo::bindTempCopies(VertexData* targetData, bool suppressHardwareUpload)
-    {
-        this->destPositionBuffer->suppressHardwareUpdate(suppressHardwareUpload);
-        targetData->vertexBufferBinding->setBinding(
-            this->posBindIndex, this->destPositionBuffer);
-        if (bindNormals && !posNormalShareBuffer && !destNormalBuffer.isNull())
-        {
-            this->destNormalBuffer->suppressHardwareUpdate(suppressHardwareUpload);
-            targetData->vertexBufferBinding->setBinding(
-                this->normBindIndex, this->destNormalBuffer);
-        }
-    }
-    //-----------------------------------------------------------------------------
-    void TempBlendedBufferInfo::licenseExpired(HardwareBuffer* buffer)
-    {
-        assert(buffer == destPositionBuffer.get()
-            || buffer == destNormalBuffer.get());
-
-        if (buffer == destPositionBuffer.get())
-            destPositionBuffer.setNull();
-        if (buffer == destNormalBuffer.get())
-            destNormalBuffer.setNull();
-
-    }
-
 }

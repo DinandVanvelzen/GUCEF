@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,26 +31,22 @@ THE SOFTWARE.
 
 #include "OgreOverlayPrerequisites.h"
 #include "OgreRenderable.h"
-#include "OgreUTFString.h"
 #include "OgreStringInterface.h"
-#include "OgreOverlayElementCommands.h"
 #include "OgreColourValue.h"
 
 namespace Ogre {
-    /** \addtogroup Core
+    class Overlay;
+    class OverlayContainer;
+
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Overlays
     *  @{
     */
 
-#if OGRE_UNICODE_SUPPORT
-    typedef UTFString DisplayString;
-#   define OGRE_DEREF_DISPLAYSTRING_ITERATOR(it) it.getCharacter()
-#else
     typedef String DisplayString;
-#   define OGRE_DEREF_DISPLAYSTRING_ITERATOR(it) *it
-#endif
+
     /** Enum describing how the position / size of an element is to be recorded. 
     */
     enum GuiMetricsMode
@@ -83,7 +79,7 @@ namespace Ogre {
     };
 
     /** Abstract definition of a 2D element to be displayed in an Overlay.
-    @remarks
+
     This class abstracts all the details of a 2D element which will appear in
     an overlay. In fact, not all OverlayElement instances can be directly added to an
     Overlay, only those which are OverlayContainer instances (a subclass of this class).
@@ -106,21 +102,8 @@ namespace Ogre {
     class _OgreOverlayExport OverlayElement : public StringInterface, public Renderable, public OverlayAlloc
     {
     public:
-
+        static const String& DEFAULT_RESOURCE_GROUP;
     protected:
-        // Command object for setting / getting parameters
-        static OverlayElementCommands::CmdLeft msLeftCmd;
-        static OverlayElementCommands::CmdTop msTopCmd;
-        static OverlayElementCommands::CmdWidth msWidthCmd;
-        static OverlayElementCommands::CmdHeight msHeightCmd;
-        static OverlayElementCommands::CmdMaterial msMaterialCmd;
-        static OverlayElementCommands::CmdCaption msCaptionCmd;
-        static OverlayElementCommands::CmdMetricsMode msMetricsModeCmd;
-        static OverlayElementCommands::CmdHorizontalAlign msHorizontalAlignCmd;
-        static OverlayElementCommands::CmdVerticalAlign msVerticalAlignCmd;
-        static OverlayElementCommands::CmdVisible msVisibleCmd;
-
-
         String mName;
         bool mVisible;
         bool mCloneable;
@@ -128,7 +111,6 @@ namespace Ogre {
         Real mTop;
         Real mWidth;
         Real mHeight;
-        String mMaterialName;
         MaterialPtr mMaterial;
         DisplayString mCaption;
         ColourValue mColour;
@@ -174,9 +156,6 @@ namespace Ogre {
         /// Is element initialised?
         bool mInitialised;
 
-        /// Used to see if this element is created from a Template
-        OverlayElement* mSourceTemplate ;
-
         /** Internal method which is triggered when the positions of the element get updated,
         meaning the element should be rebuilding it's mesh positions. Abstract since
         subclasses must implement this.
@@ -189,7 +168,7 @@ namespace Ogre {
         virtual void updateTextureGeometry(void) = 0;
 
         /** Internal method for setting up the basic parameter definitions for a subclass. 
-        @remarks
+
         Because StringInterface holds a dictionary of parameters per class, subclasses need to
         call this to ask the base class to add it's parameters to their dictionary as well.
         Can't do this in the constructor because that runs in a non-virtual context.
@@ -212,52 +191,54 @@ namespace Ogre {
         virtual void _restoreManualHardwareResources() {}
 
         /** Gets the name of this overlay. */
-        const String& getName(void) const;
+        const String& getName(void) const { return mName; }
 
 
         /** Shows this element if it was hidden. */
-        virtual void show(void);
+        void show(void) { setVisible(true); }
 
         /** Hides this element if it was visible. */
-        virtual void hide(void);
+        void hide(void) { setVisible(false); }
+
+        /** Shows or hides this element. */
+        void setVisible(bool visible) { mVisible = visible; }
 
         /** Returns whether or not the element is visible. */
-        bool isVisible(void) const;
+        bool isVisible(void) const { return mVisible; }
 
-        bool isEnabled() const;
-        virtual void setEnabled(bool b);
+        bool isEnabled() const { return mEnabled; }
+        void setEnabled(bool b) { mEnabled = b; }
 
 
-        /** Sets the dimensions of this element in relation to the screen (1.0 = screen width/height). */
+        /** Sets the dimensions of this element in relation to the current #GuiMetricsMode. */
         void setDimensions(Real width, Real height);
 
-        /** Sets the position of the top-left corner of the element, relative to the screen size
-        (1.0 = screen width / height) */
+        /** Sets the position of the top-left corner in relation to the current #GuiMetricsMode (where 0 = top). */
         void setPosition(Real left, Real top);
 
-        /** Sets the width of this element in relation to the screen (where 1.0 = screen width) */
+        /** Sets the width of this element in relation to the current #GuiMetricsMode. */
         void setWidth(Real width);
-        /** Gets the width of this element in relation to the screen (where 1.0 = screen width) */
+        /** Gets the width of this element in relation to the current #GuiMetricsMode. */
         Real getWidth(void) const;
 
-        /** Sets the height of this element in relation to the screen (where 1.0 = screen height) */
+        /** Sets the height of this element in relation to the current #GuiMetricsMode. */
         void setHeight(Real height);
-        /** Gets the height of this element in relation to the screen (where 1.0 = screen height) */
+        /** Gets the height of this element in relation to the current #GuiMetricsMode. */
         Real getHeight(void) const;
 
-        /** Sets the left of this element in relation to the screen (where 0 = far left, 1.0 = far right) */
+        /** Sets the left of this element in relation to the current #GuiMetricsMode. */
         void setLeft(Real left);
-        /** Gets the left of this element in relation to the screen (where 0 = far left, 1.0 = far right)  */
+        /** Gets the left of this element in relation to the current #GuiMetricsMode. */
         Real getLeft(void) const;
 
-        /** Sets the top of this element in relation to the screen (where 0 = top, 1.0 = bottom) */
+        /** Sets the top of this element in relation to the current #GuiMetricsMode (where 0 = top). */
         void setTop(Real Top);
-        /** Gets the top of this element in relation to the screen (where 0 = top, 1.0 = bottom)  */
+        /** Gets the top of this element in relation to the current #GuiMetricsMode (where 0 = top). */
         Real getTop(void) const;
 
         /** Gets the left of this element in relation to the screen (where 0 = far left, 1.0 = far right)  */
         Real _getLeft(void) const { return mLeft; }
-        /** Gets the top of this element in relation to the screen (where 0 = far left, 1.0 = far right)  */
+        /** Gets the top of this element in relation to the screen (where 0 = far top, 1.0 = far bottom)  */
         Real _getTop(void) const { return mTop; }
         /** Gets the width of this element in relation to the screen (where 1.0 = screen width)  */
         Real _getWidth(void) const { return mWidth; }
@@ -265,22 +246,22 @@ namespace Ogre {
         Real _getHeight(void) const { return mHeight; }
         /** Sets the left of this element in relation to the screen (where 1.0 = screen width) */
         void _setLeft(Real left);
-        /** Sets the top of this element in relation to the screen (where 1.0 = screen width) */
+        /** Sets the top of this element in relation to the screen (where 1.0 = screen height) */
         void _setTop(Real top);
         /** Sets the width of this element in relation to the screen (where 1.0 = screen width) */
         void _setWidth(Real width);
-        /** Sets the height of this element in relation to the screen (where 1.0 = screen width) */
+        /** Sets the height of this element in relation to the screen (where 1.0 = screen height) */
         void _setHeight(Real height);
-        /** Sets the left and top of this element in relation to the screen (where 1.0 = screen width) */
+        /** Sets the left and top of this element in relation to the screen (where 1.0 = screen width/height) */
         void _setPosition(Real left, Real top);
-        /** Sets the width and height of this element in relation to the screen (where 1.0 = screen width) */
+        /** Sets the width and height of this element in relation to the screen (where 1.0 = screen width/height) */
         void _setDimensions(Real width, Real height);
 
         /** Gets the name of the material this element uses. */
         virtual const String& getMaterialName(void) const;
 
-        /** Sets the name of the material this element will use. 
-        @remarks
+        /** Sets the the material this element will use.
+
         Different elements will use different materials. One constant about them
         all though is that a Material used for a OverlayElement must have it's depth
         checking set to 'off', which means it always gets rendered on top. OGRE
@@ -289,17 +270,19 @@ namespace Ogre {
         scene objects. It's fine to use the same textures, just not the same
         Material.
         */
-        virtual void setMaterialName(const String& matName);
+
+        void setMaterial(const MaterialPtr& mat);
+
+        /// @overload
+        void setMaterialName(const String& matName, const String& group = DEFAULT_RESOURCE_GROUP );
 
 
         // --- Renderable Overrides ---
-        /** See Renderable */
-        const MaterialPtr& getMaterial(void) const;
+        const MaterialPtr& getMaterial(void) const override;
 
         // NB getRenderOperation not implemented, still abstract here
 
-        /** See Renderable */
-        void getWorldTransforms(Matrix4* xform) const;
+        void getWorldTransforms(Matrix4* xform) const override;
 
         /** Tell the object to recalculate */
         virtual void _positionsOutOfDate(void);
@@ -330,15 +313,12 @@ namespace Ogre {
 
         /** Internal method to notify the element when Z-order of parent overlay
         has changed.
-        @remarks
+
         Overlays have explicit Z-orders. OverlayElements do not, they inherit the 
         Z-order of the overlay, and the Z-order is incremented for every container
         nested within this to ensure that containers are displayed behind contained
         items. This method is used internally to notify the element of a change in
         final Z-order which is used to render the element.
-        @return Return the next Z-ordering number available. For single elements, this
-        is simply 'newZOrder + 1', except for containers. They increment it once for each
-        child (or even more if those children are also containers with their own elements).
         */
         virtual ushort _notifyZOrder(ushort newZOrder);
 
@@ -363,16 +343,16 @@ namespace Ogre {
         virtual const String& getTypeName(void) const = 0;
 
         /** Sets the caption on elements that support it. 
-        @remarks
+
         This property doesn't do something on all elements, just those that support it.
         However, being a common requirement it is in the top-level interface to avoid
         having to set it via the StringInterface all the time.
         */
         virtual void setCaption(const DisplayString& text);
         /** Gets the caption for this element. */
-        virtual const DisplayString& getCaption(void) const;
+        const DisplayString& getCaption(void) const { return mCaption; }
         /** Sets the colour on elements that support it. 
-        @remarks
+
         This property doesn't do something on all elements, just those that support it.
         However, being a common requirement it is in the top-level interface to avoid
         having to set it via the StringInterface all the time.
@@ -383,7 +363,7 @@ namespace Ogre {
         virtual const ColourValue& getColour(void) const;
 
         /** Tells this element how to interpret the position and dimension values it is given.
-        @remarks
+
         By default, OverlayElements are positioned and sized according to relative dimensions
         of the screen. This is to ensure portability between different resolutions when you
         want things to be positioned and sized the same way across all resolutions. However, 
@@ -394,9 +374,9 @@ namespace Ogre {
         */
         virtual void setMetricsMode(GuiMetricsMode gmm);
         /** Retrieves the current settings of how the element metrics are interpreted. */
-        virtual GuiMetricsMode getMetricsMode(void) const;
+        GuiMetricsMode getMetricsMode(void) const { return mMetricsMode; }
         /** Sets the horizontal origin for this element.
-        @remarks
+
         By default, the horizontal origin for a OverlayElement is the left edge of the parent container
         (or the screen if this is a root element). You can alter this by calling this method, which is
         especially useful when you want to use pixel-based metrics (see setMetricsMode) since in this
@@ -412,9 +392,9 @@ namespace Ogre {
         */
         virtual void setHorizontalAlignment(GuiHorizontalAlignment gha);
         /** Gets the horizontal alignment for this element. */
-        virtual GuiHorizontalAlignment getHorizontalAlignment(void) const;
+        GuiHorizontalAlignment getHorizontalAlignment(void) const { return mHorzAlign; }
         /** Sets the vertical origin for this element. 
-        @remarks
+
         By default, the vertical origin for a OverlayElement is the top edge of the parent container
         (or the screen if this is a root element). You can alter this by calling this method, which is
         especially useful when you want to use pixel-based metrics (see setMetricsMode) since in this
@@ -430,7 +410,7 @@ namespace Ogre {
         */
         virtual void setVerticalAlignment(GuiVerticalAlignment gva);
         /** Gets the vertical alignment for this element. */
-        virtual GuiVerticalAlignment getVerticalAlignment(void) const;
+        GuiVerticalAlignment getVerticalAlignment(void) const { return mVertAlign; }
 
 
 
@@ -444,52 +424,38 @@ namespace Ogre {
         /**
         * returns false as this class is not a container type 
         */
-        inline virtual bool isContainer() const
-        { return false; }
-
-        inline virtual bool isKeyEnabled() const
-        { return false; }
-
-        inline virtual bool isCloneable() const
-        { return mCloneable; }
-
-        inline virtual void setCloneable(bool c)
-        { mCloneable = c; }
+        virtual bool isContainer() const { return false; }
+        virtual bool isKeyEnabled() const { return false; }
+        bool isCloneable() const { return mCloneable; }
+        void setCloneable(bool c) { mCloneable = c; }
 
         /**
         * Returns the parent container.
         */
-        OverlayContainer* getParent() ;
+        OverlayContainer* getParent() { return mParent; }
         void _setParent(OverlayContainer* parent) { mParent = parent; }
 
         /**
         * Returns the zOrder of the element
         */
-        inline ushort getZOrder() const
-        { return mZOrder; }
+        ushort getZOrder() const { return mZOrder; }
 
-        /** Overridden from Renderable */
-        Real getSquaredViewDepth(const Camera* cam) const 
+        Real getSquaredViewDepth(const Camera* cam) const override
         { 
             (void)cam;
             return 10000.0f - (Real)getZOrder(); 
         }
 
         /** @copydoc Renderable::getLights */
-        const LightList& getLights(void) const
+        const LightList& getLights(void) const override
         {
             // Overlayelements should not be lit by the scene, this will not get called
             static LightList ll;
             return ll;
         }
 
-        virtual void copyFromTemplate(OverlayElement* templateOverlay);
+        virtual void copyFromTemplate(OverlayElement* templateOverlay) { templateOverlay->copyParametersTo(this); }
         virtual OverlayElement* clone(const String& instanceName);
-
-        /// Returns the SourceTemplate for this element
-        const OverlayElement* getSourceTemplate () const {
-          return mSourceTemplate ;
-        }
     };
 
 

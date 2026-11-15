@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,10 @@ THE SOFTWARE.
 #define __D3D9PREREQUISITES_H__
 
 #include "OgrePrerequisites.h"
-#ifdef __MINGW32__
-#  include "WIN32/OgreMinGWSupport.h" // extra defines for MinGW to deal with DX SDK
-#endif
 
 #include "Threading/OgreThreadHeaders.h"
 
-#if OGRE_THREAD_SUPPORT
+#if OGRE_THREAD_SUPPORT == 1 || OGRE_THREAD_SUPPORT == 2
 #   define OGRE_LOCK_RECURSIVE_MUTEX(name)   name.lock();
 #   define OGRE_UNLOCK_RECURSIVE_MUTEX(name) name.unlock();
 #else
@@ -71,7 +68,6 @@ THE SOFTWARE.
 #   define NOMINMAX // required to stop windows.h messing up std::min
 #endif
 #include <d3d9.h>
-#include <d3dx9.h>
 
 namespace Ogre
 {
@@ -90,7 +86,6 @@ namespace Ogre
     class D3D9GpuProgram;
     class D3D9GpuProgramManager;
     class D3D9HardwareBufferManager;
-    class D3D9HardwareIndexBuffer;
     class D3D9HLSLProgramFactory;
     class D3D9HLSLProgram;
     class D3D9VertexDeclaration;
@@ -99,11 +94,6 @@ namespace Ogre
     typedef SharedPtr<D3D9GpuProgram>  D3D9GpuProgramPtr;
     typedef SharedPtr<D3D9HLSLProgram> D3D9HLSLProgramPtr;
     typedef SharedPtr<D3D9Texture>     D3D9TexturePtr;
-
-// Should we ask D3D to manage vertex/index buffers automatically?
-// Doing so avoids lost devices, but also has a performance impact
-// which is unacceptably bad when using very large buffers
-#define OGRE_D3D_MANAGE_BUFFERS 1
 
     //-------------------------------------------
     // Windows setttings

@@ -29,464 +29,211 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 #include "OgreGL3PlusPixelFormat.h"
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
-#include "OgreBitwise.h"
 
-#define GL_R8_SNORM                       0x8F94
-#define GL_RG8_SNORM                      0x8F95
-#define GL_RGB8_SNORM                     0x8F96
-#define GL_RGBA8_SNORM                    0x8F97
-#define GL_R16_SNORM                      0x8F98
-#define GL_RG16_SNORM                     0x8F99
-#define GL_RGB16_SNORM                    0x8F9A
-#define GL_RGBA16_SNORM                   0x8F9B
+#ifndef GL_EXT_texture_compression_s3tc
+#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT   0x83F0
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT  0x83F1
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT  0x83F2
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT  0x83F3
+#endif
+
+#ifndef GL_EXT_texture_sRGB
+#define GL_SRGB_EXT                       0x8C40
+#define GL_SRGB8_EXT                      0x8C41
+#define GL_SRGB_ALPHA_EXT                 0x8C42
+#define GL_SRGB8_ALPHA8_EXT               0x8C43
+#define GL_SLUMINANCE_ALPHA_EXT           0x8C44
+#define GL_SLUMINANCE8_ALPHA8_EXT         0x8C45
+#define GL_SLUMINANCE_EXT                 0x8C46
+#define GL_SLUMINANCE8_EXT                0x8C47
+#define GL_COMPRESSED_SRGB_EXT            0x8C48
+#define GL_COMPRESSED_SRGB_ALPHA_EXT      0x8C49
+#define GL_COMPRESSED_SLUMINANCE_EXT      0x8C4A
+#define GL_COMPRESSED_SLUMINANCE_ALPHA_EXT 0x8C4B
+#define GL_COMPRESSED_SRGB_S3TC_DXT1_EXT  0x8C4C
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT 0x8C4D
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT 0x8C4E
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT 0x8C4F
+#endif
+
 
 namespace Ogre  {
 
-    GLenum GL3PlusPixelUtil::getGLOriginFormat(PixelFormat format)
-    {
-        switch(format)
-        {
-        case PF_DEPTH:
-            return GL_DEPTH_COMPONENT;
-        case PF_A8:
-            return GL_ALPHA;
-        case PF_L8:
-            return GL_RED;
-        case PF_L16:
-            return GL_RED;
-        case PF_BYTE_LA:
-            return GL_RG;
-        case PF_R3G3B2:
-            return GL_RGB;
-        case PF_A1R5G5B5:
-            return GL_BGRA;
-        case PF_R5G6B5:
-            return GL_RGB;
-        case PF_B5G6R5:
-            return GL_BGR;
-        case PF_A4R4G4B4:
-            return GL_BGRA;
+    struct GLPixelFormatDescription {
+        GLenum format;
+        GLenum type;
+        GLenum internalFormat;
+    };
+
+    static GLPixelFormatDescription _pixelFormats[] = {
+            {GL_NONE},                                           // PF_UNKNOWN
+            {GL_RED, GL_UNSIGNED_BYTE, GL_R8},                   // PF_L8
+            {GL_RED, GL_UNSIGNED_SHORT, GL_R16},                 // PF_L16
+            {GL_RED, GL_UNSIGNED_BYTE, GL_R8},                   // PF_A8
+            {GL_RG, GL_UNSIGNED_BYTE, GL_RG8},                   // PF_BYTE_LA
+            {GL_RGB, GL_UNSIGNED_SHORT_5_6_5, GL_RGB5},          // PF_R5G6B5
+            {GL_BGR, GL_UNSIGNED_SHORT_5_6_5, GL_RGB5},          // PF_B5G6R5
+            {GL_BGRA, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_RGBA4},  // PF_A4R4G4B4
+            {GL_BGRA, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_RGB5_A1},// PF_A1R5G5B5
 #if OGRE_ENDIAN == OGRE_ENDIAN_BIG
-            // Formats are in native endian, so R8G8B8 on little endian is
-            // BGR, on big endian it is RGB.
-        case PF_R8G8B8:
-            return GL_RGB;
-        case PF_B8G8R8:
-            return GL_BGR;
+            {GL_RGB, GL_UNSIGNED_BYTE, GL_RGB8},                 // PF_R8G8B8
+            {GL_BGR, GL_UNSIGNED_BYTE, GL_RGB8},                 // PF_B8G8R8
 #else
-        case PF_R8G8B8:
-            return GL_BGR;
-        case PF_B8G8R8:
-            return GL_RGB;
+            {GL_BGR, GL_UNSIGNED_BYTE, GL_RGB8},                 // PF_R8G8B8
+            {GL_RGB, GL_UNSIGNED_BYTE, GL_RGB8},                 // PF_B8G8R8
 #endif
-        case PF_X8R8G8B8:
-        case PF_A8R8G8B8:
-            return GL_BGRA;
-        case PF_X8B8G8R8:
-        case PF_A8B8G8R8:
-            return GL_RGBA;
-        case PF_B8G8R8A8:
-            return GL_BGRA;
-        case PF_R8G8B8A8:
-            return GL_RGBA;
-        case PF_A2R10G10B10:
-            return GL_BGRA_INTEGER;
-        case PF_A2B10G10R10:
-            return GL_RGBA_INTEGER;
-        case PF_FLOAT16_R:
-        case PF_FLOAT32_R:
-            return GL_RED;
-        case PF_FLOAT16_GR:
-        case PF_FLOAT32_GR:
-            return GL_RG;
-        case PF_FLOAT16_RGB:
-        case PF_FLOAT32_RGB:
-            return GL_RGB;
-        case PF_FLOAT16_RGBA:
-        case PF_FLOAT32_RGBA:
-            return GL_RGBA;
-        case PF_SHORT_RGBA:
-            return GL_RGBA;
-        case PF_SHORT_RGB:
-            return GL_RGB;
-        case PF_SHORT_GR:
-            return GL_RG;
-        case PF_DXT1:
-            return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        case PF_DXT3:
-            return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-        case PF_DXT5:
-            return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        case PF_R8_UINT:
-        case PF_R8G8_UINT:
-        case PF_R8G8B8_UINT:
-        case PF_R8G8B8A8_UINT:
-        case PF_R16_UINT:
-        case PF_R16G16_UINT:
-        case PF_R16G16B16_UINT:
-        case PF_R16G16B16A16_UINT:
-        case PF_R32_UINT:
-        case PF_R32G32_UINT:
-        case PF_R32G32B32_UINT:
-        case PF_R32G32B32A32_UINT:
-        case PF_R8_SINT:
-        case PF_R8G8_SINT:
-        case PF_R8G8B8_SINT:
-        case PF_R8G8B8A8_SINT:
-        case PF_R16_SINT:
-        case PF_R16G16_SINT:
-        case PF_R16G16B16_SINT:
-        case PF_R16G16B16A16_SINT:
-        case PF_R32_SINT:
-        case PF_R32G32_SINT:
-        case PF_R32G32B32_SINT:
-        case PF_R32G32B32A32_SINT:
-            return GL_RG_INTEGER;
-        case PF_R11G11B10_FLOAT:
-            return GL_RGB;
-        case PF_R9G9B9E5_SHAREDEXP:
-            return GL_RGB;
-        case PF_R8_SNORM:
-            return GL_R8_SNORM;
-        case PF_R8G8_SNORM:
-            return GL_RG8_SNORM;
-        case PF_R8G8B8_SNORM:
-            return GL_RGB8_SNORM;
-        case PF_R8G8B8A8_SNORM:
-            return GL_RGBA8_SNORM;
-        case PF_R16_SNORM:
-            return GL_R16_SNORM;
-        case PF_R16G16_SNORM:
-            return GL_RG16_SNORM;
-        case PF_R16G16B16_SNORM:
-            return GL_RGB16_SNORM;
-        case PF_R16G16B16A16_SNORM:
-            return GL_RGBA16_SNORM;
-        case PF_BC4_UNORM:
-            return GL_COMPRESSED_RED_RGTC1;
-        case PF_BC4_SNORM:
-            return GL_COMPRESSED_SIGNED_RED_RGTC1;
-        case PF_BC5_UNORM:
-            return GL_COMPRESSED_RG_RGTC2;
-        case PF_BC5_SNORM:
-            return GL_COMPRESSED_SIGNED_RG_RGTC2;
-        case PF_BC6H_SF16:
-            return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
-        case PF_BC6H_UF16:
-            return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
-        case PF_BC7_UNORM:
-            return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
-        case PF_BC7_UNORM_SRGB:
+            {GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, GL_RGBA8},    // PF_A8R8G8B8
+            {GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, GL_RGBA8},    // PF_A8B8G8R8
+            {GL_BGRA, GL_UNSIGNED_INT_8_8_8_8, GL_RGBA8},        // PF_B8G8R8A8
+            {GL_BGRA_INTEGER, GL_UNSIGNED_INT_2_10_10_10_REV, GL_RGB10_A2UI},  // PF_A2R10G10B10
+            {GL_RGBA_INTEGER, GL_UNSIGNED_INT_2_10_10_10_REV, GL_RGB10_A2UI},  // PF_A2B10G10R10
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT},// PF_DXT1
+            {GL_NONE},                                           // PF_DXT2
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT},// PF_DXT3
+            {GL_NONE},                                           // PF_DXT4
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT},// PF_DXT5
+            {GL_RGB, GL_HALF_FLOAT, GL_RGB16F},                  // PF_FLOAT16_RGB
+            {GL_RGBA, GL_HALF_FLOAT, GL_RGBA16F},                // PF_FLOAT16_RGBA
+            {GL_RGB, GL_FLOAT, GL_RGB32F},                       // PF_FLOAT32_RGB
+            {GL_RGBA, GL_FLOAT, GL_RGBA32F},                     // PF_FLOAT32_RGBA
+            {GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, GL_RGBA8},    // PF_X8R8G8B8
+            {GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, GL_RGBA8},    // PF_X8B8G8R8
+            {GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, GL_RGBA8},        // PF_R8G8B8A8
+            {GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, GL_DEPTH_COMPONENT16}, // PF_DEPTH16
+            {GL_RGBA, GL_UNSIGNED_SHORT, GL_RGBA16},             // PF_SHORT_RGBA
+            {GL_RGB, GL_UNSIGNED_BYTE_3_3_2, GL_R3_G3_B2},       // PF_R3G3B2
+            {GL_RED, GL_HALF_FLOAT, GL_R16F},                    // PF_FLOAT16_R
+            {GL_RED, GL_FLOAT, GL_R32F},                         // PF_FLOAT32_R
+            {GL_RG, GL_UNSIGNED_SHORT, GL_RG16},                 // PF_SHORT_GR
+            {GL_RG, GL_HALF_FLOAT, GL_RG16F},                    // PF_FLOAT16_GR
+            {GL_RG, GL_FLOAT, GL_RG32F},                         // PF_FLOAT32_GR
+            {GL_RGB, GL_UNSIGNED_SHORT, GL_RGB16},               // PF_SHORT_RGB
+            {GL_NONE},                                           // PF_PVRTC_RGB2
+            {GL_NONE},                                           // PF_PVRTC_RGBA2
+            {GL_NONE},                                           // PF_PVRTC_RGB4
+            {GL_NONE},                                           // PF_PVRTC_RGBA4
+            {GL_NONE},                                           // PF_PVRTC2_2BPP
+            {GL_NONE},                                           // PF_PVRTC2_4BPP
+            {GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, GL_R11F_G11F_B10F}, // PF_R11G11B10_FLOAT
+            {GL_RED_INTEGER, GL_UNSIGNED_BYTE, GL_R8UI},         // PF_R8_UINT
+            {GL_RG_INTEGER, GL_UNSIGNED_BYTE, GL_RG8UI},         // PF_R8G8_UINT
+            {GL_RGB_INTEGER, GL_UNSIGNED_BYTE, GL_RGB8UI},       // PF_R8G8B8_UINT
+            {GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, GL_RGBA8UI},     // PF_R8G8B8A8_UINT
+            {GL_RED_INTEGER, GL_UNSIGNED_SHORT, GL_R16UI},       // PF_R16_UINT
+            {GL_RG_INTEGER, GL_UNSIGNED_SHORT, GL_RG16UI},       // PF_R16G16_UINT
+            {GL_RGB_INTEGER, GL_UNSIGNED_SHORT, GL_RGB16UI},     // PF_R16G16B16_UINT
+            {GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, GL_RGBA16UI},   // PF_R16G16B16A16_UINT
+            {GL_RED_INTEGER, GL_UNSIGNED_INT, GL_R32UI},         // PF_R32_UINT
+            {GL_RG_INTEGER, GL_UNSIGNED_INT, GL_RG32UI},         // PF_R32G32_UINT
+            {GL_RGB_INTEGER, GL_UNSIGNED_INT, GL_RGB32UI},       // PF_R32G32B32_UINT
+            {GL_RGBA_INTEGER, GL_UNSIGNED_INT, GL_RGBA32UI},     // PF_R32G32B32A32_UINT
+            {GL_RED_INTEGER, GL_BYTE, GL_R8I},                   // PF_R8_SINT
+            {GL_RG_INTEGER, GL_BYTE, GL_RG8I},                   // PF_R8G8_SINT
+            {GL_RGB_INTEGER, GL_BYTE, GL_RGB8I},                 // PF_R8G8B8_SINT
+            {GL_RGBA_INTEGER, GL_BYTE, GL_RGBA8I},               // PF_R8G8B8A8_SINT
+            {GL_RED_INTEGER, GL_SHORT, GL_R16I},                 // PF_R16_SINT
+            {GL_RG_INTEGER, GL_SHORT, GL_RG16I},                 // PF_R16G16_SINT
+            {GL_RGB_INTEGER, GL_SHORT, GL_RGB16I},               // PF_R16G16B16_SINT
+            {GL_RGBA_INTEGER, GL_SHORT, GL_RGBA16I},             // PF_R16G16B16A16_SINT
+            {GL_RED_INTEGER, GL_INT, GL_R32I},                   // PF_R32_SINT
+            {GL_RG_INTEGER, GL_INT, GL_RG32I},                   // PF_R32G32_SINT
+            {GL_RGB_INTEGER, GL_INT, GL_RGB32I},                 // PF_R32G32B32_SINT
+            {GL_RGBA_INTEGER, GL_INT, GL_RGBA32I},               // PF_R32G32B32A32_SINT
+            {GL_RGB, GL_UNSIGNED_INT_5_9_9_9_REV, GL_RGB9_E5},   // PF_R9G9B9E5_SHAREDEXP
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RED_RGTC1},                  // PF_BC4_UNORM
+            {GL_NONE, GL_NONE, GL_COMPRESSED_SIGNED_RED_RGTC1},           // PF_BC4_SNORM
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RG_RGTC2},                   // PF_BC5_UNORM
+            {GL_NONE, GL_NONE, GL_COMPRESSED_SIGNED_RG_RGTC2},            // PF_BC5_SNORM
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB},// PF_BC6H_UF16
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB},  // PF_BC6H_SF16
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_BPTC_UNORM_ARB},        // PF_BC7_UNORM
+            {GL_RED, GL_UNSIGNED_BYTE, GL_R8},                   // PF_R8
+            {GL_RG, GL_UNSIGNED_BYTE, GL_RG8},                   // PF_RG8
+            {GL_RED, GL_UNSIGNED_BYTE, GL_R8_SNORM},             // PF_R8_SNORM
+            {GL_RG, GL_UNSIGNED_BYTE, GL_RG8_SNORM},             // PF_RG8_SNORM
+            {GL_RGB, GL_UNSIGNED_BYTE, GL_RGB8_SNORM},           // PF_RGB8_SNORM
+            {GL_RGBA, GL_UNSIGNED_BYTE, GL_RGBA8_SNORM},         // PF_RGBA8_SNORM
+            {GL_RED, GL_UNSIGNED_SHORT, GL_R16_SNORM},           // PF_R16_SNORM
+            {GL_RG, GL_UNSIGNED_SHORT, GL_RG16_SNORM},           // PF_RG16_SNORM
+            {GL_RGB, GL_UNSIGNED_SHORT, GL_RGB16_SNORM},         // PF_RGB16_SNORM
+            {GL_RGBA, GL_UNSIGNED_SHORT, GL_RGBA16_SNORM},       // PF_RGBA16_SNORM
+            {GL_NONE},                                           // PF_ETC1_RGB8
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGB8_ETC2},         // PF_ETC2_RGB8
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA8_ETC2_EAC},    // PF_ETC2_RGBA8
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2},// PF_ETC2_RGB8A1
+            {GL_NONE},                                           // PF_ATC_RGB
+            {GL_NONE},                                           // PF_ATC_RGBA_EXPLICIT_ALPHA
+            {GL_NONE},                                           // PF_ATC_RGBA_INTERPOLATED_ALPHA
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_4x4_KHR}, // PF_ASTC_RGBA_4X4_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_5x4_KHR}, // PF_ASTC_RGBA_5X4_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_5x5_KHR}, // PF_ASTC_RGBA_5X5_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_6x5_KHR}, // PF_ASTC_RGBA_6X5_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_6x6_KHR}, // PF_ASTC_RGBA_6X6_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_8x5_KHR}, // PF_ASTC_RGBA_8X5_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_8x6_KHR}, // PF_ASTC_RGBA_8X6_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_8x8_KHR}, // PF_ASTC_RGBA_8X8_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_10x5_KHR},// PF_ASTC_RGBA_10X5_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_10x6_KHR},// PF_ASTC_RGBA_10X6_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_10x8_KHR},// PF_ASTC_RGBA_10X8_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_10x10_KHR},// PF_ASTC_RGBA_10X10_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_12x10_KHR},// PF_ASTC_RGBA_12X10_LDR
+            {GL_NONE, GL_NONE, GL_COMPRESSED_RGBA_ASTC_12x12_KHR},// PF_ASTC_RGBA_12X12_LDR
+            {GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, GL_DEPTH_COMPONENT32}, // PF_DEPTH32
+            {GL_DEPTH_COMPONENT, GL_FLOAT, GL_DEPTH_COMPONENT32F}, // PF_DEPTH32F
+            {GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, GL_DEPTH24_STENCIL8}, // PF_DEPTH24_STENCIL8
+    };
+
+    GLenum GL3PlusPixelUtil::getGLOriginFormat(PixelFormat pf)
+    {
+        static_assert(sizeof(_pixelFormats)/sizeof(GLPixelFormatDescription) == PF_COUNT, "Did you add a new format?");
+        return _pixelFormats[pf].format;
+    }
+
+    GLenum GL3PlusPixelUtil::getGLOriginDataType(PixelFormat pf)
+    {
+        return _pixelFormats[pf].type;
+    }
+
+    GLenum GL3PlusPixelUtil::getGLInternalFormat(PixelFormat pf, bool hwGamma)
+    {
+        GLenum ret = _pixelFormats[pf].internalFormat;
+
+        if(!hwGamma)
+            return ret;
+
+        switch(ret)
+        {
+        case GL_RGB8:
+            return GL_SRGB8;
+        case GL_RGBA8:
+            return GL_SRGB8_ALPHA8;
+        case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+            return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+        case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+            return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+        case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+            return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+        case GL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
             return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
-        case PF_ETC2_RGB8:
-            return GL_COMPRESSED_RGB8_ETC2;
-        case PF_ETC2_RGBA8:
-            return GL_COMPRESSED_RGBA8_ETC2_EAC;
-        case PF_ETC2_RGB8A1:
-            return GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-
+        case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+        case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+            return ret + 0x20; // ASTC SRGBA format offset
         default:
-            return 0;
+            return ret;
         }
     }
-
-    GLenum GL3PlusPixelUtil::getGLOriginDataType(PixelFormat format)
-    {
-        switch(format)
-        {
-        case PF_DEPTH:
-            return GL_UNSIGNED_INT;
-        case PF_BYTE_LA:
-        case PF_A8:
-        case PF_L8:
-        case PF_R8G8B8:
-        case PF_B8G8R8:
-        case PF_R8_SNORM:
-        case PF_R8G8_SNORM:
-        case PF_R8G8B8_SNORM:
-        case PF_R8G8B8A8_SNORM:
-        case PF_R16_SNORM:
-        case PF_R16G16_SNORM:
-        case PF_R16G16B16_SNORM:
-        case PF_R16G16B16A16_SNORM:
-            return GL_UNSIGNED_BYTE;
-        case PF_R3G3B2:
-            return GL_UNSIGNED_BYTE_3_3_2;
-        case PF_A1R5G5B5:
-            return GL_UNSIGNED_SHORT_1_5_5_5_REV;
-        case PF_R5G6B5:
-        case PF_B5G6R5:
-            return GL_UNSIGNED_SHORT_5_6_5;
-        case PF_A4R4G4B4:
-            return GL_UNSIGNED_SHORT_4_4_4_4_REV;
-        case PF_L16:
-            return GL_UNSIGNED_SHORT;
-#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
-        case PF_X8B8G8R8:
-        case PF_A8B8G8R8:
-            return GL_UNSIGNED_INT_8_8_8_8_REV;
-        case PF_X8R8G8B8:
-        case PF_A8R8G8B8:
-            return GL_UNSIGNED_INT_8_8_8_8_REV;
-        case PF_B8G8R8A8:
-            return GL_UNSIGNED_BYTE;
-        case PF_R8G8B8A8:
-            return GL_UNSIGNED_BYTE;
-#else
-        case PF_X8B8G8R8:
-        case PF_A8B8G8R8:
-            return GL_UNSIGNED_BYTE;
-        case PF_X8R8G8B8:
-        case PF_A8R8G8B8:
-            return GL_UNSIGNED_BYTE;
-        case PF_B8G8R8A8:
-            return GL_UNSIGNED_INT_8_8_8_8;
-        case PF_R8G8B8A8:
-            return GL_UNSIGNED_INT_8_8_8_8;
-#endif
-        case PF_A2R10G10B10:
-            return GL_UNSIGNED_INT_2_10_10_10_REV;
-        case PF_A2B10G10R10:
-            return GL_UNSIGNED_INT_2_10_10_10_REV;
-        case PF_FLOAT16_R:
-        case PF_FLOAT16_GR:
-        case PF_FLOAT16_RGB:
-        case PF_FLOAT16_RGBA:
-            return GL_HALF_FLOAT;
-        case PF_FLOAT32_R:
-        case PF_FLOAT32_GR:
-        case PF_FLOAT32_RGB:
-        case PF_FLOAT32_RGBA:
-            return GL_FLOAT;
-        case PF_SHORT_RGBA:
-        case PF_SHORT_RGB:
-        case PF_SHORT_GR:
-            return GL_UNSIGNED_SHORT;
-        case PF_R9G9B9E5_SHAREDEXP:
-            return GL_UNSIGNED_INT_5_9_9_9_REV;
-        case PF_R11G11B10_FLOAT:
-            return GL_UNSIGNED_INT_10F_11F_11F_REV;
-        case PF_R8_UINT:
-        case PF_R16_UINT:
-        case PF_R32_UINT:
-        case PF_R8G8_UINT:
-        case PF_R16G16_UINT:
-        case PF_R32G32_UINT:
-        case PF_R8G8B8_UINT:
-        case PF_R16G16B16_UINT:
-        case PF_R32G32B32_UINT:
-        case PF_R8G8B8A8_UINT:
-        case PF_R16G16B16A16_UINT:
-        case PF_R32G32B32A32_UINT:
-            return GL_UNSIGNED_INT;
-
-        case PF_R8G8_SINT:
-        case PF_R16G16_SINT:
-        case PF_R32G32_SINT:
-        case PF_R8_SINT:
-        case PF_R16_SINT:
-        case PF_R32_SINT:
-        case PF_R8G8B8_SINT:
-        case PF_R16G16B16_SINT:
-        case PF_R32G32B32_SINT:
-        case PF_R8G8B8A8_SINT:
-        case PF_R16G16B16A16_SINT:
-        case PF_R32G32B32A32_SINT:
-            return GL_INT;
-
-        default:
-            return 0;
-        }
-    }
-
-    GLenum GL3PlusPixelUtil::getGLInternalFormat(PixelFormat format, bool hwGamma)
-    {
-        switch(format)
-        {
-        case PF_DEPTH:
-            return GL_DEPTH_COMPONENT16;
-        case PF_L8:
-        case PF_A8:
-            return GL_R8;
-        case PF_L16:
-            return GL_R16;
-        case PF_BYTE_LA:
-            return GL_RG8;
-        case PF_R3G3B2:
-            return GL_R3_G3_B2;
-        case PF_A1R5G5B5:
-            return GL_RGB5_A1;
-        case PF_R5G6B5:
-        case PF_B5G6R5:
-            return GL_RGB5;
-        case PF_A4R4G4B4:
-            return GL_RGBA4;
-        case PF_R8G8B8:
-        case PF_B8G8R8:
-        case PF_X8B8G8R8:
-        case PF_X8R8G8B8:
-            if (hwGamma)
-                return GL_SRGB8;
-            else
-                return GL_RGB8;
-        case PF_A8R8G8B8:
-        case PF_B8G8R8A8:
-        case PF_A8B8G8R8:
-        case PF_R8G8B8A8:
-            if (hwGamma)
-                return GL_SRGB8_ALPHA8;
-            else
-                return GL_RGBA8;
-        case PF_A2R10G10B10:
-        case PF_A2B10G10R10:
-            return GL_RGB10_A2UI;
-        case PF_FLOAT16_R:
-            return GL_R16F;
-        case PF_FLOAT16_RGB:
-            return GL_RGB16F;
-        case PF_FLOAT16_GR:
-            return GL_RG16F;
-        case PF_FLOAT16_RGBA:
-            return GL_RGBA16F;
-        case PF_FLOAT32_R:
-            return GL_R32F;
-        case PF_FLOAT32_GR:
-            return GL_RG32F;
-        case PF_FLOAT32_RGB:
-            return GL_RGB32F;
-        case PF_FLOAT32_RGBA:
-            return GL_RGBA32F;
-        case PF_SHORT_RGBA:
-            return GL_RGBA16;
-        case PF_SHORT_RGB:
-            return GL_RGB16;
-        case PF_SHORT_GR:
-            return GL_RG16;
-        case PF_DXT1:
-            if (hwGamma)
-                return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
-            else
-                return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        case PF_DXT3:
-            if (hwGamma)
-                return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
-            else
-                return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-        case PF_DXT5:
-            if (hwGamma)
-                return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-            else
-                return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        case PF_R11G11B10_FLOAT:
-            return GL_R11F_G11F_B10F;
-        case PF_R8_UINT:
-            return GL_R8UI;
-        case PF_R8G8_UINT:
-            return GL_RG8UI;
-        case PF_R8G8B8_UINT:
-            return GL_RGB8UI;
-        case PF_R8G8B8A8_UINT:
-            return GL_RGBA8UI;
-        case PF_R16_UINT:
-            return GL_R16UI;
-        case PF_R16G16_UINT:
-            return GL_RG16UI;
-        case PF_R16G16B16_UINT:
-            return GL_RGB16UI;
-        case PF_R16G16B16A16_UINT:
-            return GL_RGBA16UI;
-        case PF_R32_UINT:
-            return GL_R32UI;
-        case PF_R32G32_UINT:
-            return GL_RG32UI;
-        case PF_R32G32B32_UINT:
-            return GL_RGB32UI;
-        case PF_R32G32B32A32_UINT:
-            return GL_RGBA32UI;
-        case PF_R8_SINT:
-            return GL_R8I;
-        case PF_R8G8_SINT:
-            return GL_RG8I;
-        case PF_R8G8B8_SINT:
-            return GL_RG8I;
-        case PF_R8G8B8A8_SINT:
-            return GL_RGB8I;
-        case PF_R16_SINT:
-            return GL_R16I;
-        case PF_R16G16_SINT:
-            return GL_RG16I;
-        case PF_R16G16B16_SINT:
-            return GL_RGB16I;
-        case PF_R16G16B16A16_SINT:
-            return GL_RGBA16I;
-        case PF_R32_SINT:
-            return GL_R32I;
-        case PF_R32G32_SINT:
-            return GL_RG32I;
-        case PF_R32G32B32_SINT:
-            return GL_RGB32I;
-        case PF_R32G32B32A32_SINT:
-            return GL_RGBA32I;
-        case PF_R9G9B9E5_SHAREDEXP:
-            return GL_RGB9_E5;
-        case PF_R8_SNORM:
-            return GL_R8_SNORM;
-        case PF_R8G8_SNORM:
-            return GL_RG8_SNORM;
-        case PF_R8G8B8_SNORM:
-            return GL_RGB8_SNORM;
-        case PF_R8G8B8A8_SNORM:
-            return GL_RGBA8_SNORM;
-        case PF_R16_SNORM:
-            return GL_R16_SNORM;
-        case PF_R16G16_SNORM:
-            return GL_RG16_SNORM;
-        case PF_R16G16B16_SNORM:
-            return GL_RGB16_SNORM;
-        case PF_R16G16B16A16_SNORM:
-            return GL_RGBA16_SNORM;
-        case PF_BC4_UNORM:
-            return GL_COMPRESSED_RED_RGTC1;
-        case PF_BC4_SNORM:
-            return GL_COMPRESSED_SIGNED_RED_RGTC1;
-        case PF_BC5_UNORM:
-            return GL_COMPRESSED_RG_RGTC2;
-        case PF_BC5_SNORM:
-            return GL_COMPRESSED_SIGNED_RG_RGTC2;
-        case PF_BC6H_SF16:
-            return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
-        case PF_BC6H_UF16:
-            return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
-        case PF_BC7_UNORM:
-            return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
-        case PF_BC7_UNORM_SRGB:
-            return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
-        case PF_ETC2_RGB8:
-            return GL_COMPRESSED_RGB8_ETC2;
-        case PF_ETC2_RGBA8:
-            return GL_COMPRESSED_RGBA8_ETC2_EAC;
-        case PF_ETC2_RGB8A1:
-            return GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-
-        default:
-            return GL_NONE;
-        }
-    }
-
-    GLenum GL3PlusPixelUtil::getClosestGLInternalFormat(PixelFormat format, bool hwGamma)
-    {
-        GLenum GLformat = getGLInternalFormat(format, hwGamma);
-        if (GLformat == GL_NONE)
-        {
-            if (hwGamma)
-                return GL_SRGB8;
-            else
-                return GL_RGBA8;
-        }
-        else
-            return GLformat;
-    }
-
 
     GLenum GL3PlusPixelUtil::getGLImageInternalFormat(PixelFormat format)
     {
@@ -506,8 +253,8 @@ namespace Ogre  {
             return GL_RGBA8;
         case PF_A2R10G10B10:
         case PF_A2B10G10R10:
-            return GL_RGB10_A2UI;
-            // return GL_RGB10_A2;
+            //return GL_RGB10_A2UI;
+            return GL_RGB10_A2;
         case PF_FLOAT16_R:
             return GL_R16F;
         case PF_FLOAT16_GR:
@@ -582,7 +329,7 @@ namespace Ogre  {
     GLenum GL3PlusPixelUtil::getClosestGLImageInternalFormat(PixelFormat format)
     {
         GLenum GLformat = getGLImageInternalFormat(format);
-        return (format == GL_NONE ? GL_RGBA8 : GLformat);
+        return (GLformat == GL_NONE ? GL_RGBA8 : GLformat);
     }
 
 
@@ -590,186 +337,50 @@ namespace Ogre  {
     {
         switch(format)
         {
-        case GL_DEPTH_COMPONENT16:
         case GL_DEPTH_COMPONENT24:
-        case GL_DEPTH_COMPONENT32:
-        case GL_DEPTH_COMPONENT32F:
         case GL_DEPTH_COMPONENT:
-            return PF_DEPTH;
-        case GL_R8:
-            return PF_L8;
-        case GL_R16:
-            return PF_L16;
-        case GL_RG: //TODO Is there a better OGRE format?
-        case GL_RG8:
-            return PF_BYTE_LA;
-        case GL_R3_G3_B2:
-            return PF_R3G3B2;
-        case GL_RGB5_A1:
-            return PF_A1R5G5B5;
-        case GL_RGB5:
-            return PF_R5G6B5;
-        case GL_RGBA4:
-            return PF_A4R4G4B4;
-        case GL_RGB8:
-        case GL_SRGB8:
-            return PF_X8R8G8B8;
-        case GL_RGBA8:
-        case GL_SRGB8_ALPHA8:
-            return PF_A8R8G8B8;
-        case GL_RGB10_A2:
-        case GL_RGB10_A2UI:
-            return PF_A2R10G10B10;
-        case GL_RGBA16:
-            return PF_SHORT_RGBA;
-        case GL_RGB16:
-            return PF_SHORT_RGB;
-        case GL_RG16:
-            return PF_SHORT_GR;
-        case GL_R16F:
-            return PF_FLOAT16_R;
-        case GL_RG16F:
-            return PF_FLOAT16_GR;
-        case GL_RG32F:
-            return PF_FLOAT32_GR;
-        case GL_R32F:
-            return PF_FLOAT32_R;
-        case GL_RGB16F:
-            return PF_FLOAT16_RGB;
-        case GL_RGBA16F:
-            return PF_FLOAT16_RGBA;
-        case GL_RGB32F:
-            return PF_FLOAT32_RGB;
-        case GL_RGBA32F:
-            return PF_FLOAT32_RGBA;
-        case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-        case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+            return PF_DEPTH16;
+        case GL_DEPTH_COMPONENT32:
+            return PF_DEPTH32;
+        case GL_DEPTH_COMPONENT32F:
+            return PF_DEPTH32F;
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
             return PF_DXT1;
-        case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
             return PF_DXT3;
-        case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             return PF_DXT5;
-
-        case GL_R11F_G11F_B10F:
-            return PF_R11G11B10_FLOAT;
-        case GL_R8UI:
-            return PF_R8_UINT;
-        case GL_RG8UI:
-            return PF_R8G8_UINT;
-        case GL_RGB8UI:
-            return PF_R8G8B8_UINT;
-        case GL_RGBA8UI:
-            return PF_R8G8B8A8_UINT;
-        case GL_R16UI:
-            return PF_R16_UINT;
-        case GL_RG16UI:
-            return PF_R16G16_UINT;
-        case GL_RGB16UI:
-            return PF_R16G16B16_UINT;
-        case GL_RGBA16UI:
-            return PF_R16G16B16A16_UINT;
-        case GL_R32UI:
-            return PF_R32_UINT;
-        case GL_RG32UI:
-            return PF_R32G32_UINT;
-        case GL_RGB32UI:
-            return PF_R32G32B32_UINT;
-        case GL_RGBA32UI:
-            return PF_R32G32B32A32_UINT;
-        case GL_R8I:
-            return PF_R8_SINT;
-        case GL_RG8I:
-            return PF_R8G8_SINT;
-        case GL_RGB8I:
-            return PF_R8G8B8_SINT;
-        case GL_RGBA8I:
-            return PF_R8G8B8A8_SINT;
-        case GL_R16I:
-            return PF_R16_SINT;
-        case GL_RG16I:
-            return PF_R16G16_SINT;
-        case GL_RGB16I:
-            return PF_R16G16B16_SINT;
-        case GL_RGBA16I:
-            return PF_R16G16B16A16_SINT;
-        case GL_R32I:
-            return PF_R32_SINT;
-        case GL_RG32I:
-            return PF_R32G32_SINT;
-        case GL_RGB32I:
-            return PF_R32G32B32_SINT;
-        case GL_RGBA32I:
-            return PF_R32G32B32A32_SINT;
-        case GL_RGB9_E5:
-            return PF_R9G9B9E5_SHAREDEXP;
-        case GL_R8_SNORM:
-            return PF_R8_SNORM;
-        case GL_RG8_SNORM:
-            return PF_R8G8_SNORM;
-        case GL_RGB8_SNORM:
-            return PF_R8G8B8_SNORM;
-        case GL_RGBA8_SNORM:
-            return PF_R8G8B8A8_SNORM;
-        case GL_R16_SNORM:
-            return PF_R16_SNORM;
-        case GL_RG16_SNORM:
-            return PF_R16G16_SNORM;
-        case GL_RGB16_SNORM:
-            return PF_R16G16B16_SNORM;
-        case GL_RGBA16_SNORM:
-            return PF_R16G16B16A16_SNORM;
-        case GL_COMPRESSED_RED_RGTC1:
-            return PF_BC4_UNORM;
-        case GL_COMPRESSED_SIGNED_RED_RGTC1:
-            return PF_BC4_SNORM;
-        case GL_COMPRESSED_RG_RGTC2:
-            return PF_BC5_UNORM;
-        case GL_COMPRESSED_SIGNED_RG_RGTC2:
-            return PF_BC5_SNORM;
-        case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
-            return PF_BC6H_SF16;
-        case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
-            return PF_BC6H_UF16;
-        case GL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
-            return PF_BC7_UNORM;
         case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
-            return PF_BC7_UNORM_SRGB;
-        case GL_COMPRESSED_RGB8_ETC2:
-            return PF_ETC2_RGB8;
-        case GL_COMPRESSED_RGBA8_ETC2_EAC:
-            return PF_ETC2_RGBA8;
-        case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            return PF_ETC2_RGB8A1;
-
-        default:
-            return PF_A8R8G8B8;
+            return PF_BC7_UNORM;
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+            return PixelFormat(int(PF_ASTC_RGBA_4X4_LDR) +
+                               (format - GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR));
+        case GL_SRGB8:
+        case GL_RGB8: // prefer native endian byte format
+            return PF_BYTE_RGB;
+        case GL_SRGB8_ALPHA8:
+        case GL_RGBA8: // prefer native endian byte format
+            return PF_BYTE_RGBA;
         };
+
+        for(int pf = 0; pf < PF_COUNT; pf++) {
+            if(_pixelFormats[pf].internalFormat == format)
+                return (PixelFormat)pf;
+        }
+
+        return PF_BYTE_RGBA;
     }
-
-
-    size_t GL3PlusPixelUtil::getMaxMipmaps(size_t width, size_t height, size_t depth, PixelFormat format)
-    {
-        size_t count = 0;
-        do {
-            if(width>1)     width = width/2;
-            if(height>1)    height = height/2;
-            if(depth>1)     depth = depth/2;
-            /*
-              NOT needed, compressed formats will have mipmaps up to 1x1
-              if(PixelUtil::isValidExtent(width, height, depth, format))
-              count ++;
-              else
-              break;
-            */
-
-            count++;
-        } while(!(width == 1 && height == 1 && depth == 1));
-
-        return count;
-    }
-
 }

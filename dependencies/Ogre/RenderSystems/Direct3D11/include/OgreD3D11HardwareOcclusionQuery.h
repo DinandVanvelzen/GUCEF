@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ namespace Ogre {
     * Updated on 12/7/2004 by Chris McGuirk
     * Updated on 4/8/2005 by Tuan Kuranes email: tuan.kuranes@free.fr
     */
-    class D3D11HardwareOcclusionQuery : public HardwareOcclusionQuery
+    class _OgreD3D11Export D3D11HardwareOcclusionQuery : public HardwareOcclusionQuery
     {
         //----------------------------------------------------------------------
         // Public methods
@@ -75,7 +75,6 @@ namespace Ogre {
         void beginOcclusionQuery(); 
         void endOcclusionQuery();
         bool pullOcclusionQuery( unsigned int* NumOfFragments);
-        unsigned int getLastQuerysPixelcount() { return mPixelCount; }
         bool isStillOutstanding(void);
 
     

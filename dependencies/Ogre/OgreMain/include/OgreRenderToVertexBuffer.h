@@ -4,7 +4,7 @@
   (Object-oriented Graphics Rendering Engine)
   For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ Copyright (c) 2000-2016 Torus Knot Software Ltd
 
 #include "OgrePrerequisites.h"
 #include "OgreRenderOperation.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre {
     /** \addtogroup Core
@@ -40,7 +41,7 @@ namespace Ogre {
      */
     /**
        An object which renders geometry to a vertex.
-       @remarks
+
        This is especially useful together with geometry shaders, as you can
        render procedural geometry which will get saved to a vertex buffer for
        reuse later, without regenerating it again. You can also create shaders
@@ -50,14 +51,12 @@ namespace Ogre {
     class _OgreExport RenderToVertexBuffer
     {
     public:
-        /** C'tor */
         RenderToVertexBuffer();
-        /** D'tor */
         virtual ~RenderToVertexBuffer();
 
         /**
            Get the vertex declaration that the pass will output.
-           @remarks
+
            Use this object to set the elements of the buffer. Object will calculate
            buffers on its own. Only one source allowed!
         */
@@ -96,7 +95,7 @@ namespace Ogre {
         /**
            Get the render operation for this buffer
         */
-        virtual void getRenderOperation(RenderOperation& op) = 0;
+        void getRenderOperation(RenderOperation& op);
 
         /**
            Update the contents of this vertex buffer by rendering
@@ -134,17 +133,24 @@ namespace Ogre {
         void setRenderToBufferMaterialName(const String& materialName);
 
     protected:
+        Pass* derivePass(SceneManager* sceneMgr);
+
         RenderOperation::OperationType mOperationType;
         bool mResetsEveryUpdate;
         bool mResetRequested;
-        MaterialPtr mMaterial;
         Renderable* mSourceRenderable;
-        VertexData* mVertexData;
+        std::unique_ptr<VertexData> mVertexData;
         unsigned int mMaxVertexCount;
+        HardwareVertexBufferPtr mVertexBuffers[2];
+        uint8 mTargetBufferIndex;
+     private:
+        MaterialPtr mMaterial;
     };
 
     /** @} */
     /** @} */
 }
+
+#include "OgreHeaderSuffix.h"
 
 #endif

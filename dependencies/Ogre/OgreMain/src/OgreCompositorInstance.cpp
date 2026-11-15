@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,18 +32,8 @@ THE SOFTWARE.
 #include "OgreCompositorManager.h"
 #include "OgreCompositionTargetPass.h"
 #include "OgreCustomCompositionPass.h"
-#include "OgreTechnique.h"
-#include "OgreLogManager.h"
-#include "OgreTextureManager.h"
-#include "OgreSceneManager.h"
-#include "OgreException.h"
 #include "OgreHardwarePixelBuffer.h"
-#include "OgreCamera.h"
-#include "OgreRoot.h"
 #include "OgreCompositorLogic.h"
-#include "OgreRenderTarget.h"
-#include "OgreRenderTexture.h"
-#include "OgreRectangle2D.h"
 
 namespace Ogre {
 CompositorInstance::CompositorInstance(CompositionTechnique *technique,
@@ -52,6 +42,7 @@ CompositorInstance::CompositorInstance(CompositionTechnique *technique,
         mEnabled(false),
         mAlive(false)
 {
+    OgreAssert(mChain, "Undefined compositor chain");
     mEnabled = false;
     const String& logicName = mTechnique->getCompositorLogicName();
     if (!logicName.empty())
@@ -116,25 +107,24 @@ void CompositorInstance::setAlive(bool value)
 class RSClearOperation: public CompositorInstance::RenderSystemOperation
 {
 public:
-    RSClearOperation(uint32 inBuffers, ColourValue inColour, Real inDepth, unsigned short inStencil, bool inAutomaticColour):
-        buffers(inBuffers), colour(inColour), depth(inDepth), stencil(inStencil), automaticColour(inAutomaticColour)
+    RSClearOperation(uint32 inBuffers, ColourValue inColour, Real inDepth, unsigned short inStencil, CompositorChain *inChain):
+        chain(inChain), buffers(inBuffers), colour(inColour), depth(inDepth), stencil(inStencil)
     {}
+    /// Automatic colour from original viewport background colour
+    CompositorChain* chain;
     /// Which buffers to clear (FrameBufferType)
     uint32 buffers;
     /// Colour to clear in case FBT_COLOUR is set
     ColourValue colour;
-    /// Automatic colour from original viewport background colour
-    bool automaticColour;
     /// Depth to set in case FBT_DEPTH is set
     Real depth;
     /// Stencil value to set in case FBT_STENCIL is set
     unsigned short stencil;
 
-    virtual void execute(SceneManager *sm, RenderSystem *rs)
+    void execute(SceneManager *sm, RenderSystem *rs) override
     {
-        // _getViewport returns the viewport currently rendered, while getViewport returns lastViewport!
-        if((buffers & FBT_COLOUR) && automaticColour)
-          colour = rs->_getViewport()->getCamera()->getViewport()->getBackgroundColour();
+        if((buffers & FBT_COLOUR) && chain) // if chain is present, query colour from dst viewport
+          colour = chain->getViewport()->getBackgroundColour();
         rs->clearFrameBuffer(buffers, colour, depth, stencil);
     }
 };
@@ -144,27 +134,13 @@ public:
 class RSStencilOperation: public CompositorInstance::RenderSystemOperation
 {
 public:
-    RSStencilOperation(bool inStencilCheck, CompareFunction inFunc, uint32 inRefValue, uint32 inMask,
-        StencilOperation inStencilFailOp, StencilOperation inDepthFailOp, StencilOperation inPassOp,
-        bool inTwoSidedOperation, bool inReadBackAsTexture):
-        stencilCheck(inStencilCheck), func(inFunc), refValue(inRefValue), mask(inMask),
-        stencilFailOp(inStencilFailOp), depthFailOp(inDepthFailOp), passOp(inPassOp),
-        twoSidedOperation(inTwoSidedOperation), readBackAsTexture(inReadBackAsTexture)
-    {}
-    bool stencilCheck;
-    CompareFunction func; 
-    uint32 refValue;
-    uint32 mask;
-    StencilOperation stencilFailOp;
-    StencilOperation depthFailOp;
-    StencilOperation passOp;
-    bool twoSidedOperation;
-    bool readBackAsTexture;
+    RSStencilOperation(const StencilState& inState) : state(inState) {}
 
-    virtual void execute(SceneManager *sm, RenderSystem *rs)
+    StencilState state;
+
+    void execute(SceneManager *sm, RenderSystem *rs) override
     {
-        rs->setStencilCheckEnabled(stencilCheck);
-        rs->setStencilBufferParams(func, refValue, mask, 0xFFFFFFFF, stencilFailOp, depthFailOp, passOp, twoSidedOperation, readBackAsTexture);
+        rs->setStencilState(state);
     }
 };
 
@@ -173,19 +149,15 @@ public:
 class RSQuadOperation: public CompositorInstance::RenderSystemOperation
 {
 public:
-    RSQuadOperation(CompositorInstance *inInstance, uint32 inPass_id, MaterialPtr inMat):
+    RSQuadOperation(CompositorInstance *inInstance, uint32 inPass_id, const MaterialPtr& inMat):
       mat(inMat), instance(inInstance), pass_id(inPass_id),
       mQuadCornerModified(false),
       mQuadFarCorners(false),
       mQuadFarCornersViewSpace(false),
-      mQuadLeft(-1),
-      mQuadTop(1),
-      mQuadRight(1),
-      mQuadBottom(-1)
+      mQuad(-1, 1, 1, -1)
     {
-        mat->load();
         instance->_fireNotifyMaterialSetup(pass_id, mat);
-        technique = mat->getTechnique(0);
+        technique = mat->getBestTechnique();
         assert(technique);
     }
     MaterialPtr mat;
@@ -194,17 +166,11 @@ public:
     uint32 pass_id;
 
     bool mQuadCornerModified, mQuadFarCorners, mQuadFarCornersViewSpace;
-    Real mQuadLeft;
-    Real mQuadTop;
-    Real mQuadRight;
-    Real mQuadBottom;
+    FloatRect mQuad;
 
-    void setQuadCorners(Real left,Real top,Real right,Real bottom)
+    void setQuadCorners(const FloatRect& quad)
     {
-        mQuadLeft = left;
-        mQuadTop = top;
-        mQuadRight = right;
-        mQuadBottom = bottom;
+        mQuad = quad;
         mQuadCornerModified=true;
     }
 
@@ -214,7 +180,7 @@ public:
         mQuadFarCornersViewSpace = farCornersViewSpace;
     }
    
-    virtual void execute(SceneManager *sm, RenderSystem *rs)
+    void execute(SceneManager *sm, RenderSystem *rs) override
     {
         // Fire listener
         instance->_fireNotifyMaterialRender(pass_id, mat);
@@ -227,7 +193,7 @@ public:
             // insure positions are using peculiar render system offsets 
             Real hOffset = rs->getHorizontalTexelOffset() / (0.5f * vp->getActualWidth());
             Real vOffset = rs->getVerticalTexelOffset() / (0.5f * vp->getActualHeight());
-            rect->setCorners(mQuadLeft + hOffset, mQuadTop - vOffset, mQuadRight + hOffset, mQuadBottom - vOffset);
+            rect->setCorners(mQuad.left + hOffset, mQuad.top - vOffset, mQuad.right + hOffset, mQuad.bottom - vOffset);
         }
 
         if(mQuadFarCorners)
@@ -235,7 +201,7 @@ public:
             const Ogre::Vector3 *corners = vp->getCamera()->getWorldSpaceCorners();
             if(mQuadFarCornersViewSpace)
             {
-                const Ogre::Matrix4 &viewMat = vp->getCamera()->getViewMatrix(true);
+                const Affine3 &viewMat = vp->getCamera()->getViewMatrix(true);
                 rect->setNormals(viewMat*corners[5], viewMat*corners[6], viewMat*corners[4], viewMat*corners[7]);
             }
             else
@@ -245,11 +211,10 @@ public:
         }
 
         // Queue passes from mat
-        Technique::PassIterator i = technique->getPassIterator();
-        while(i.hasMoreElements())
+        for(auto *p : technique->getPasses())
         {
             sm->_injectRenderWithPass(
-                i.getNext(), 
+                p,
                 rect,
                 false // don't allow replacement of shadow passes
                 );
@@ -269,7 +234,7 @@ public:
 
     String mSchemeName;
 
-    virtual void execute(SceneManager *sm, RenderSystem *rs)
+    void execute(SceneManager *sm, RenderSystem *rs) override
     {
         MaterialManager& matMgr = MaterialManager::getSingleton();
         mPreviousScheme = matMgr.getActiveScheme();
@@ -292,24 +257,75 @@ public:
     
     const RSSetSchemeOperation* mSetOperation;
 
-    virtual void execute(SceneManager *sm, RenderSystem *rs)
+    void execute(SceneManager *sm, RenderSystem *rs) override
     {
         MaterialManager::getSingleton().setActiveScheme(mSetOperation->getPreviousScheme());
         sm->setLateMaterialResolving(mSetOperation->getPreviousLateResolving());
     }
 };
 
-void CompositorInstance::collectPasses(TargetOperation &finalState, CompositionTargetPass *target)
+class RSComputeOperation : public CompositorInstance::RenderSystemOperation
+{
+public:
+    MaterialPtr mat;
+    Technique *technique;
+    Vector3i thread_groups;
+    CompositorInstance *instance;
+    uint32 pass_id;
+
+    RSComputeOperation(CompositorInstance *inInstance, uint32 inPass_id, const MaterialPtr& inMat):
+      mat(inMat), instance(inInstance), pass_id(inPass_id)
+    {
+        instance->_fireNotifyMaterialSetup(pass_id, mat);
+        technique = mat->getBestTechnique();
+    }
+
+    void execute(SceneManager *sm, RenderSystem *rs) override
+    {
+        // Fire listener
+        instance->_fireNotifyMaterialRender(pass_id, mat);
+        // Queue passes from mat
+        for(auto* pass : technique->getPasses())
+        {
+            int tuIdx = 0;
+            for(auto* tu : pass->getTextureUnitStates())
+                rs->_setTextureUnitSettings(tuIdx++, *tu);
+            auto params = pass->getGpuProgramParameters(GPT_COMPUTE_PROGRAM);
+            params->_updateAutoParams(sm->_getAutoParamDataSource(), GPV_GLOBAL);
+            rs->bindGpuProgram(pass->getComputeProgram()->_getBindingDelegate());
+            rs->bindGpuProgramParameters(GPT_COMPUTE_PROGRAM, params, GPV_GLOBAL);
+            rs->_dispatchCompute(thread_groups);
+        }
+        rs->unbindGpuProgram(GPT_COMPUTE_PROGRAM);
+    }
+};
+
+//-----------------------------------------------------------------------
+/** Create a local dummy material with one technique but no passes.
+    The material is detached from the Material Manager to make sure it is destroyed
+    when going out of scope.
+*/
+static MaterialPtr createLocalMaterial(const String& srcName)
+{
+    static size_t dummyCounter = 0;
+    auto mat = MaterialManager::getSingleton().create(StringUtil::format("c%zu/%s", dummyCounter++, srcName.c_str()),
+                                                      RGN_INTERNAL);
+    /// This is safe, as we hold a private reference
+    MaterialManager::getSingleton().remove(mat);
+    /// Remove all passes from first technique
+    mat->getTechnique(0)->removeAllPasses();
+    return mat;
+}
+void CompositorInstance::collectPasses(TargetOperation &finalState, const CompositionTargetPass *target)
 {
     /// Here, passes are converted into render target operations
     Pass *targetpass;
     Technique *srctech;
     MaterialPtr mat, srcmat;
-    
-    CompositionTargetPass::PassIterator it = target->getPassIterator();
-    while(it.hasMoreElements())
+
+    for (CompositionPass* pass : target->getPasses())
     {
-        CompositionPass *pass = it.getNext();
+        bool isCompute = false;
         switch(pass->getType())
         {
         case CompositionPass::PT_CLEAR:
@@ -317,31 +333,25 @@ void CompositorInstance::collectPasses(TargetOperation &finalState, CompositionT
                 pass->getClearBuffers(),
                 pass->getClearColour(),
                 pass->getClearDepth(),
-                (ushort)pass->getClearStencil(),
-                pass->getAutomaticColour()
+                pass->getClearStencil(),
+                pass->getAutomaticColour() ? mChain : NULL
                 ));
             break;
         case CompositionPass::PT_STENCIL:
-            queueRenderSystemOp(finalState, OGRE_NEW RSStencilOperation(
-                pass->getStencilCheck(),pass->getStencilFunc(), pass->getStencilRefValue(),
-                pass->getStencilMask(), pass->getStencilFailOp(), pass->getStencilDepthFailOp(),
-                pass->getStencilPassOp(), pass->getStencilTwoSidedOperation(), pass->getStencilReadBackAsTextureOperation()
-                ));
+            queueRenderSystemOp(finalState, OGRE_NEW RSStencilOperation(pass->getStencilState()));
             break;
         case CompositionPass::PT_RENDERSCENE: 
         {
             if(pass->getFirstRenderQueue() < finalState.currentQueueGroupID)
             {
-                /// Mismatch -- warn user
                 /// XXX We could support repeating the last queue, with some effort
-                LogManager::getSingleton().logMessage("Warning in compilation of Compositor "
-                    +mCompositor->getName()+": Attempt to render queue "+
-                    StringConverter::toString(pass->getFirstRenderQueue())+" before "+
-                    StringConverter::toString(finalState.currentQueueGroupID), LML_CRITICAL);
+                LogManager::getSingleton().logError(StringUtil::format(
+                    "Compositor '%s': cannot use first_render_queue %d after last_render_queue %d",
+                    mCompositor->getName().c_str(), pass->getFirstRenderQueue(), finalState.currentQueueGroupID - 1));
             }
 
             RSSetSchemeOperation* setSchemeOperation = 0;
-            if (pass->getMaterialScheme() != BLANKSTRING)
+            if (!pass->getMaterialScheme().empty())
             {
                 //Add the triggers that will set the scheme and restore it each frame
                 finalState.currentQueueGroupID = pass->getFirstRenderQueue();
@@ -364,38 +374,51 @@ void CompositorInstance::collectPasses(TargetOperation &finalState, CompositionT
                     OGRE_NEW RSRestoreSchemeOperation(setSchemeOperation));
             }
 
+            finalState.cameraOverride = pass->getCameraName();
+            finalState.alignCameraToFace = pass->getAlignCameraToFace() ? target->getOutputSlice() : -1;
+
             finalState.findVisibleObjects = true;
 
             break;
         }
+        case CompositionPass::PT_COMPUTE:
+            isCompute = true;
+            OGRE_FALLTHROUGH;
         case CompositionPass::PT_RENDERQUAD: {
             srcmat = pass->getMaterial();
-            if(srcmat.isNull())
+            if(!srcmat)
             {
                 /// No material -- warn user
-                LogManager::getSingleton().logMessage("Warning in compilation of Compositor "
-                    +mCompositor->getName()+": No material defined for composition pass", LML_CRITICAL);
+                LogManager::getSingleton().logWarning("in compilation of Compositor "
+                    +mCompositor->getName()+": No material defined for composition pass");
                 break;
             }
             srcmat->load();
-            if(srcmat->getNumSupportedTechniques()==0)  
+            if(srcmat->getSupportedTechniques().empty())
             {
                 /// No supported techniques -- warn user
-                LogManager::getSingleton().logMessage("Warning in compilation of Compositor "
-                    +mCompositor->getName()+": material "+srcmat->getName()+" has no supported techniques", LML_CRITICAL);
+                LogManager::getSingleton().logWarning("in compilation of Compositor "
+                    +mCompositor->getName()+": material "+srcmat->getName()+" has no supported techniques");
                 break;
             }
             srctech = srcmat->getBestTechnique(0);
             /// Create local material
             MaterialPtr localMat = createLocalMaterial(srcmat->getName());
             /// Copy and adapt passes from source material
-            Technique::PassIterator i = srctech->getPassIterator();
-            while(i.hasMoreElements())
+            for(auto *srcpass : srctech->getPasses())
             {
-                Pass *srcpass = i.getNext();
                 /// Create new target pass
                 targetpass = localMat->getTechnique(0)->createPass();
                 (*targetpass) = (*srcpass);
+
+                if (isCompute && !targetpass->hasGpuProgram(GPT_COMPUTE_PROGRAM))
+                {
+                    LogManager::getSingleton().logError(
+                        "in compilation of Compositor " + mCompositor->getName() + ": material " +
+                        srcmat->getName() + " has no compute program");
+                    continue;
+                }
+
                 /// Set up inputs
                 for(size_t x=0; x<pass->getNumInputs(); ++x)
                 {
@@ -404,32 +427,40 @@ void CompositorInstance::collectPasses(TargetOperation &finalState, CompositionT
                     {
                         if(x < targetpass->getNumTextureUnitStates())
                         {
-                            targetpass->getTextureUnitState((ushort)x)->setTextureName(getSourceForTex(inp.name, inp.mrtIndex));
+                            targetpass->getTextureUnitState((ushort)x)->setTexture(getSourceForTex(inp.name, inp.mrtIndex));
                         } 
                         else
                         {
                             /// Texture unit not there
-                            LogManager::getSingleton().logMessage("Warning in compilation of Compositor "
+                            LogManager::getSingleton().logWarning("in compilation of Compositor "
                                 +mCompositor->getName()+": material "+srcmat->getName()+" texture unit "
-                                +StringConverter::toString(x)+" out of bounds", LML_CRITICAL);
+                                +StringConverter::toString(x)+" out of bounds");
                         }
                     }
                 }
             }
 
-            RSQuadOperation * rsQuadOperation = OGRE_NEW RSQuadOperation(this,pass->getIdentifier(),localMat);
-            Real left,top,right,bottom;
-            if (pass->getQuadCorners(left,top,right,bottom))
-                rsQuadOperation->setQuadCorners(left,top,right,bottom);
-            rsQuadOperation->setQuadFarCorners(pass->getQuadFarCorners(), pass->getQuadFarCornersViewSpace());
-            
-            queueRenderSystemOp(finalState,rsQuadOperation);
+            localMat->load();
+
+            if (isCompute)
+            {
+                auto computeOperation = new RSComputeOperation(this, pass->getIdentifier(), localMat);
+                computeOperation->thread_groups = pass->getThreadGroups();
+                queueRenderSystemOp(finalState, computeOperation);
+            }
+            else
+            {
+                auto rsQuadOperation = new RSQuadOperation(this, pass->getIdentifier(), localMat);
+                FloatRect quad;
+                if (pass->getQuadCorners(quad))
+                    rsQuadOperation->setQuadCorners(quad);
+                rsQuadOperation->setQuadFarCorners(pass->getQuadFarCorners(),
+                                                   pass->getQuadFarCornersViewSpace());
+                queueRenderSystemOp(finalState, rsQuadOperation);
+            }
             }
             break;
         case CompositionPass::PT_RENDERCUSTOM:
-		
-			finalState.currentQueueGroupID = pass->getFirstRenderQueue();
-		
             RenderSystemOperation* customOperation = CompositorManager::getSingleton().
                 getCustomCompositionPass(pass->getCustomType())->createOperation(this, pass);
             queueRenderSystemOp(finalState, customOperation);
@@ -444,12 +475,16 @@ void CompositorInstance::_compileTargetOperations(CompiledState &compiledState)
     if(mPreviousInstance)
         mPreviousInstance->_compileTargetOperations(compiledState);
     /// Texture targets
-    CompositionTechnique::TargetPassIterator it = mTechnique->getTargetPassIterator();
-    while(it.hasMoreElements())
-    {
-        CompositionTargetPass *target = it.getNext();
-        
-        TargetOperation ts(getTargetForTex(target->getOutputName()));
+    for (CompositionTargetPass *target : mTechnique->getTargetPasses())
+    {        
+        TargetOperation ts(getRenderTarget(target->getOutputName(), target->getOutputSlice()));
+
+        if(!compiledState.empty() && compiledState.back().target == ts.target)
+        {
+            // only the last operation on a target swaps buffers
+            compiledState.back().swapBuffers = false;
+        }
+
         /// Set "only initial" flag, visibilityMask and lodBias according to CompositionTargetPass.
         ts.onlyInitial = target->getOnlyInitial();
         ts.visibilityMask = target->getVisibilityMask();
@@ -492,16 +527,6 @@ void CompositorInstance::_compileOutputOperation(TargetOperation &finalState)
     collectPasses(finalState, tpass);
 }
 //-----------------------------------------------------------------------
-Compositor *CompositorInstance::getCompositor()
-{
-    return mCompositor;
-}
-//-----------------------------------------------------------------------
-CompositionTechnique *CompositorInstance::getTechnique()
-{
-    return mTechnique;
-}
-//-----------------------------------------------------------------------
 void CompositorInstance::setTechnique(CompositionTechnique* tech, bool reuseTextures)
 {
     if (mTechnique != tech)
@@ -511,10 +536,9 @@ void CompositorInstance::setTechnique(CompositionTechnique* tech, bool reuseText
             // make sure we store all (shared) textures in use in our reserve pool
             // this will ensure they don't get destroyed as unreferenced
             // so they're ready to use again later
-            CompositionTechnique::TextureDefinitionIterator it = mTechnique->getTextureDefinitionIterator();
-            while(it.hasMoreElements())
+            const CompositionTechnique::TextureDefinitions& tdefs = mTechnique->getTextureDefinitions();
+            for (auto *def : tdefs)
             {
-                CompositionTechnique::TextureDefinition *def = it.getNext();
                 if (def->pooled)
                 {
                     LocalTextureMap::iterator i = mLocalTextures.find(def->name);
@@ -559,10 +583,10 @@ CompositorChain *CompositorInstance::getChain()
 const String& CompositorInstance::getTextureInstanceName(const String& name, 
                                                          size_t mrtIndex)
 {
-    return getSourceForTex(name, mrtIndex);
+    return getSourceForTex(name, mrtIndex)->getName();
 }
 //---------------------------------------------------------------------
-TexturePtr CompositorInstance::getTextureInstance(const String& name, size_t mrtIndex)
+const TexturePtr& CompositorInstance::getTextureInstance(const String& name, size_t mrtIndex)
 {
     // try simple textures first
     LocalTextureMap::iterator i = mLocalTextures.find(name);
@@ -579,33 +603,39 @@ TexturePtr CompositorInstance::getTextureInstance(const String& name, size_t mrt
     }
 
     // not present
-    return TexturePtr();
+    static TexturePtr nullPtr;
+    return nullPtr;
 
-}
-//-----------------------------------------------------------------------
-MaterialPtr CompositorInstance::createLocalMaterial(const String& srcName)
-{
-static size_t dummyCounter = 0;
-    MaterialPtr mat = 
-        MaterialManager::getSingleton().create(
-            "c" + StringConverter::toString(dummyCounter) + "/" + srcName,
-            ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME
-        );
-    ++dummyCounter;
-    /// This is safe, as we hold a private reference
-    /// XXX does not compile due to ResourcePtr conversion :
-    ///     MaterialManager::getSingleton().remove(mat);
-    MaterialManager::getSingleton().remove(mat->getName());
-    /// Remove all passes from first technique
-    mat->getTechnique(0)->removeAllPasses();
-    return mat;
 }
 //---------------------------------------------------------------------
 void CompositorInstance::notifyResized()
 {
     freeResources(true, true);
     createResources(true);
+    /// Notify chain state needs recompile.
+    mChain->_markDirty();
 }
+
+TexturePtr CompositorInstance::getLocalTexture(const CompositionTechnique::TextureDefinition& def, PixelFormat p,
+                                               const String& fsaaHint, const String& localName,
+                                               std::set<Texture*>& assignedTextures)
+{
+    TexturePtr tex;
+    if (def.pooled)
+    {
+        // get / create pooled texture
+        tex = CompositorManager::getSingleton().getPooledTexture(def, localName, p, fsaaHint, assignedTextures, this);
+    }
+    else
+    {
+        tex = createTexture(def.name, def, p, fsaaHint);
+    }
+
+    // Also add to local textures so we can look up
+    mLocalTextures[localName] = tex;
+    return tex;
+}
+
 //-----------------------------------------------------------------------
 void CompositorInstance::createResources(bool forResizeOnly)
 {
@@ -614,214 +644,168 @@ void CompositorInstance::createResources(bool forResizeOnly)
     /// In principle, temporary textures could be shared between multiple viewports
     /// (CompositorChains). This will save a lot of memory in case more viewports
     /// are composited.
-    CompositionTechnique::TextureDefinitionIterator it = mTechnique->getTextureDefinitionIterator();
     CompositorManager::UniqueTextureSet assignedTextures;
-    while(it.hasMoreElements())
+
+    for (auto def : mTechnique->getTextureDefinitions())
     {
-        CompositionTechnique::TextureDefinition *def = it.getNext();
-        
         if (!def->refCompName.empty()) {
             //This is a reference, isn't created in this compositor
             continue;
         }
-        
-        RenderTarget* rendTarget;
+
+        MultiRenderTarget* mrt = nullptr;
+        TexturePtr tex;
+
         if (def->scope == CompositionTechnique::TS_GLOBAL) {
             //This is a global texture, just link the created resources from the parent
             Compositor* parentComp = mTechnique->getParent();
             if (def->formatList.size() > 1) 
             {
-                size_t atch = 0;
-                for (PixelFormatList::iterator p = def->formatList.begin(); 
-                     p != def->formatList.end(); ++p, ++atch)
+                for (size_t atch = 0; atch < def->formatList.size(); atch++)
                 {
-                    Ogre::TexturePtr tex = parentComp->getTextureInstance(def->name, atch);
-                    mLocalTextures[getMRTTexLocalName(def->name, atch)] = tex;
+                    Ogre::TexturePtr mrttex = parentComp->getTextureInstance(def->name, atch);
+                    mLocalTextures[getMRTTexLocalName(def->name, atch)] = mrttex;
                 }
-                MultiRenderTarget* mrt = static_cast<MultiRenderTarget*>
-                (parentComp->getRenderTarget(def->name));
+                mrt = static_cast<MultiRenderTarget*>(parentComp->getRenderTarget(def->name));
                 mLocalMRTs[def->name] = mrt;
-                
-                rendTarget = mrt;
             } else {
-                Ogre::TexturePtr tex = parentComp->getTextureInstance(def->name, 0);
+                tex = parentComp->getTextureInstance(def->name, 0);
                 mLocalTextures[def->name] = tex;
-                
-                rendTarget = tex->getBuffer()->getRenderTarget();
             }
-            
         } else {
-            /// Determine width and height
-            size_t width = def->width;
-            size_t height = def->height;
-            uint fsaa = 0;
-            String fsaaHint;
-            bool hwGamma = false;
-            
             // Skip this one if we're only (re)creating for a resize & it's not derived
             // from the target size
-            if (forResizeOnly && width != 0 && height != 0)
+            if (forResizeOnly && def->width != 0 && def->height != 0)
                 continue;
+
+            /// Determine width and height
+            CompositionTechnique::TextureDefinition derivedDef = *def;
+            String fsaaHint;
+            deriveOptionsFromRenderTarget(derivedDef, fsaaHint);
             
-            deriveTextureRenderTargetOptions(def->name, &hwGamma, &fsaa, &fsaaHint);
-            
-            if(width == 0)
-                width = static_cast<size_t>(
-                                            static_cast<float>(mChain->getViewport()->getActualWidth()) * def->widthFactor);
-            if(height == 0)
-                height = static_cast<size_t>(
-                                             static_cast<float>(mChain->getViewport()->getActualHeight()) * def->heightFactor);
-            
-            // determine options as a combination of selected options and possible options
-            if (!def->fsaa)
+            if(def->width == 0)
             {
-                fsaa = 0;
-                fsaaHint = BLANKSTRING;
+                derivedDef.width = static_cast<float>(mChain->getViewport()->getActualWidth()) * def->widthFactor;
+                derivedDef.width = derivedDef.width == 0 ? 1 : derivedDef.width;
             }
-            hwGamma = hwGamma || def->hwGammaWrite;
-            
+            if(def->height == 0)
+            {
+                derivedDef.height = static_cast<float>(mChain->getViewport()->getActualHeight()) * def->heightFactor;
+                derivedDef.height = derivedDef.height == 0 ? 1 : derivedDef.height;
+            }
+
+            // need dummy counter as there may be multiple definitions with the same name in the chain
+            String baseName = StringUtil::format("%s.chain%zu.%s", def->name.c_str(), dummyCounter++,
+                                                 mChain->getViewport()->getTarget()->getName().c_str());
+
             /// Make the tetxure
             if (def->formatList.size() > 1)
             {
-                String MRTbaseName = "mrt/c" + StringConverter::toString(dummyCounter++) + 
-                "/" + def->name + "/" + mChain->getViewport()->getTarget()->getName();
-                MultiRenderTarget* mrt = 
-                Root::getSingleton().getRenderSystem()->createMultiRenderTarget(MRTbaseName);
+                mrt = Root::getSingleton().getRenderSystem()->createMultiRenderTarget(baseName);
                 mLocalMRTs[def->name] = mrt;
-                
+
                 // create and bind individual surfaces
-                size_t atch = 0;
-                for (PixelFormatList::iterator p = def->formatList.begin(); 
-                     p != def->formatList.end(); ++p, ++atch)
+                uint8 atch = 0;
+                for (auto p : def->formatList)
                 {
-                    
-                    String texname = MRTbaseName + "/" + StringConverter::toString(atch);
+                    derivedDef.name = StringUtil::format("mrt%d.%s", atch, baseName.c_str());
                     String mrtLocalName = getMRTTexLocalName(def->name, atch);
-                    TexturePtr tex;
-                    if (def->pooled)
-                    {
-                        // get / create pooled texture
-                        tex = CompositorManager::getSingleton().getPooledTexture(texname,
-                                                                                 mrtLocalName, 
-                                                                                 width, height, *p, fsaa, fsaaHint,  
-                                                                                 hwGamma && !PixelUtil::isFloatingPoint(*p), 
-                                                                                 assignedTextures, this, def->scope);
-                    }
-                    else
-                    {
-                        tex = TextureManager::getSingleton().createManual(
-                                                                          texname, 
-                                                                          ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME, TEX_TYPE_2D, 
-                                                                          (uint)width, (uint)height, 0, *p, TU_RENDERTARGET, 0, 
-                                                                          hwGamma && !PixelUtil::isFloatingPoint(*p), fsaa, fsaaHint ); 
-                    }
-                    
-                    RenderTexture* rt = tex->getBuffer()->getRenderTarget();
+                    TexturePtr mrttex = getLocalTexture(derivedDef, p, fsaaHint, mrtLocalName, assignedTextures);
+                    RenderTexture* rt = mrttex->getBuffer()->getRenderTarget();
                     rt->setAutoUpdated(false);
                     mrt->bindSurface(atch, rt);
-                    
-                    // Also add to local textures so we can look up
-                    mLocalTextures[mrtLocalName] = tex;
-                    
+
+                    atch++;
                 }
-                
-                rendTarget = mrt;
             }
             else
             {
-                String texName =  "c" + StringConverter::toString(dummyCounter++) + 
-                "/" + def->name + "/" + mChain->getViewport()->getTarget()->getName();
-                
+                derivedDef.name = baseName;
                 // space in the name mixup the cegui in the compositor demo
                 // this is an auto generated name - so no spaces can't hart us.
-                std::replace( texName.begin(), texName.end(), ' ', '_' ); 
-                
-                TexturePtr tex;
-                if (def->pooled)
-                {
-                    // get / create pooled texture
-                    tex = CompositorManager::getSingleton().getPooledTexture(texName, 
-                                                                             def->name, width, height, def->formatList[0], fsaa, fsaaHint,
-                                                                             hwGamma && !PixelUtil::isFloatingPoint(def->formatList[0]), assignedTextures, 
-                                                                             this, def->scope);
-                }
-                else
-                {
-                    tex = TextureManager::getSingleton().createManual(
-                                                                      texName, 
-                                                                      ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME, TEX_TYPE_2D, 
-                                                                      (uint)width, (uint)height, 0, def->formatList[0], TU_RENDERTARGET, 0,
-                                                                      hwGamma && !PixelUtil::isFloatingPoint(def->formatList[0]), fsaa, fsaaHint); 
-                }
-                
-                rendTarget = tex->getBuffer()->getRenderTarget();
-                mLocalTextures[def->name] = tex;
+                std::replace( derivedDef.name.begin(), derivedDef.name.end(), ' ', '_' );
+
+                tex = getLocalTexture(derivedDef, def->formatList[0], fsaaHint, def->name, assignedTextures);
             }
         }
-        
-        //Set DepthBuffer pool for sharing
-        rendTarget->setDepthBufferPool( def->depthBufferId );
-        
-        /// Set up viewport over entire texture
-        rendTarget->setAutoUpdated( false );
-        
-        // We may be sharing / reusing this texture, so test before adding viewport
-        if (rendTarget->getNumViewports() == 0)
+
+        if(mrt)
         {
-            Viewport* v;
-            Camera* camera = mChain->getViewport()->getCamera();
-            if (!camera)
-            {
-                v = rendTarget->addViewport( camera );
-            }
-            else
-            {
-                // Save last viewport and current aspect ratio
-                Viewport* oldViewport = camera->getViewport();
-                Real aspectRatio = camera->getAspectRatio();
-                
-                v = rendTarget->addViewport( camera );
-                
-                // Should restore aspect ratio, in case of auto aspect ratio
-                // enabled, it'll changed when add new viewport.
-                camera->setAspectRatio(aspectRatio);
-                // Should restore last viewport, i.e. never disturb user code
-                // which might based on that.
-                camera->_notifyViewport(oldViewport);
-            }
-            
-            v->setClearEveryFrame( false );
-            v->setOverlaysEnabled( false );
-            v->setBackgroundColour( ColourValue( 0, 0, 0, 0 ) );
+            setupRenderTarget(mrt, def->depthBufferId);
+        }
+        else
+        {
+            for(size_t i = 0; i < tex->getNumLayers(); i++)
+                setupRenderTarget(tex->getRenderTarget(i), def->depthBufferId);
         }
     }
-    
+
     _fireNotifyResourcesCreated(forResizeOnly);
 }
+
+void CompositorInstance::setupRenderTarget(RenderTarget* rendTarget, uint16 depthBufferId)
+{
+    if(rendTarget->getDepthBufferPool() != RBP_NONE)
+    {
+        //Set DepthBuffer pool for sharing
+        rendTarget->setDepthBufferPool( depthBufferId );
+    }
+
+    /// Set up viewport over entire texture
+    rendTarget->setAutoUpdated( false );
+
+    // We may be sharing / reusing this texture, so test before adding viewport
+    if (rendTarget->getNumViewports() != 0)
+        return;
+
+    Viewport* v;
+    Camera* camera = mChain->getViewport()->getCamera();
+    if (!camera)
+    {
+        v = rendTarget->addViewport( camera );
+    }
+    else
+    {
+        // Save last viewport and current aspect ratio
+        Viewport* oldViewport = camera->getViewport();
+        Real aspectRatio = camera->getAspectRatio();
+        
+        v = rendTarget->addViewport( camera );
+
+        // Should restore aspect ratio, in case of auto aspect ratio
+        // enabled, it'll changed when add new viewport.
+        camera->setAspectRatio(aspectRatio);
+        // Should restore last viewport, i.e. never disturb user code
+        // which might based on that.
+        camera->_notifyViewport(oldViewport);
+    }
+    
+    v->setClearEveryFrame( false );
+    v->setOverlaysEnabled( false );
+    v->setBackgroundColour( ColourValue( 0, 0, 0, 0 ) );
+}
+
 //---------------------------------------------------------------------
-void CompositorInstance::deriveTextureRenderTargetOptions(
-    const String& texname, bool *hwGammaWrite, uint *fsaa, String* fsaaHint)
+void CompositorInstance::deriveOptionsFromRenderTarget(CompositionTechnique::TextureDefinition& def,
+                                                          String& fsaaHint)
 {
     // search for passes on this texture def that either include a render_scene
     // or use input previous
     bool renderingScene = false;
 
-    CompositionTechnique::TargetPassIterator it = mTechnique->getTargetPassIterator();
-    while (it.hasMoreElements())
+    const CompositionTechnique::TargetPasses& passes = mTechnique->getTargetPasses();
+    for (auto *tp : passes)
     {
-        CompositionTargetPass* tp = it.getNext();
-        if (tp->getOutputName() == texname)
+        if (tp->getOutputName() == def.name)
         {
             if (tp->getInputMode() == CompositionTargetPass::IM_PREVIOUS)
             {
                 // this may be rendering the scene implicitly
                 // Can't check mPreviousInstance against mChain->_getOriginalSceneCompositor()
                 // at this time, so check the position
-                CompositorChain::InstanceIterator instit = mChain->getCompositors();
                 renderingScene = true;
-                while(instit.hasMoreElements())
+                for(CompositorInstance* inst : mChain->getCompositorInstances())
                 {
-                    CompositorInstance* inst = instit.getNext();
                     if (inst == this)
                         break;
                     else if (inst->getEnabled())
@@ -837,10 +821,11 @@ void CompositorInstance::deriveTextureRenderTargetOptions(
             else
             {
                 // look for a render_scene pass
-                CompositionTargetPass::PassIterator pit = tp->getPassIterator();
-                while(pit.hasMoreElements())
+                CompositionTargetPass::Passes::const_iterator pit = tp->getPasses().begin();
+
+                for (;pit != tp->getPasses().end(); ++pit)
                 {
-                    CompositionPass* pass = pit.getNext();
+                    CompositionPass* pass = *pit;
                     if (pass->getType() == CompositionPass::PT_RENDERSCENE)
                     {
                         renderingScene = true;
@@ -856,22 +841,23 @@ void CompositorInstance::deriveTextureRenderTargetOptions(
     {
         // Ok, inherit settings from target
         RenderTarget* target = mChain->getViewport()->getTarget();
-        *hwGammaWrite = target->isHardwareGammaEnabled();
-        *fsaa = target->getFSAA();
-        *fsaaHint = target->getFSAAHint();
+        def.hwGammaWrite = def.hwGammaWrite || target->isHardwareGammaEnabled();
+        if(def.fsaa == 1)
+        {
+            def.fsaa = target->getFSAA();
+            fsaaHint = target->getFSAAHint();
+        }
     }
-    else
+    else if (def.fsaa == 1)
     {
-        *hwGammaWrite = false;
-        *fsaa = 0;
-        *fsaaHint = BLANKSTRING;
+        def.fsaa = 0;
     }
 
 }
 //---------------------------------------------------------------------
 String CompositorInstance::getMRTTexLocalName(const String& baseName, size_t attachment)
 {
-    return baseName + "/" + StringConverter::toString(attachment);
+    return StringUtil::format("mrt%zu.%s", attachment, baseName.c_str());
 }
 //-----------------------------------------------------------------------
 void CompositorInstance::freeResources(bool forResizeOnly, bool clearReserveTextures)
@@ -886,11 +872,9 @@ void CompositorInstance::freeResources(bool forResizeOnly, bool clearReserveText
     // We can also only free textures which are derived from the target size, if
     // required (saves some time & memory thrashing / fragmentation on resize)
 
-    CompositionTechnique::TextureDefinitionIterator it = mTechnique->getTextureDefinitionIterator();
-    while(it.hasMoreElements())
+    const CompositionTechnique::TextureDefinitions& tdefs = mTechnique->getTextureDefinitions();
+    for (auto *def : tdefs)
     {
-        CompositionTechnique::TextureDefinition *def = it.getNext();
-
         if (!def->refCompName.empty()) 
         {
             //This is a reference, isn't created here
@@ -914,7 +898,7 @@ void CompositorInstance::freeResources(bool forResizeOnly, bool clearReserveText
                     if (!def->pooled && def->scope != CompositionTechnique::TS_GLOBAL)
                     {
                         // remove myself from central only if not pooled and not global
-                        TextureManager::getSingleton().remove(i->second->getName());
+                        TextureManager::getSingleton().remove(i->second);
                     }
 
                     // remove from local
@@ -949,15 +933,12 @@ void CompositorInstance::freeResources(bool forResizeOnly, bool clearReserveText
         if (forResizeOnly)
         {
             // just remove the ones which would be affected by a resize
-            for (ReserveTextureMap::iterator i = mReserveTextures.begin();
-                i != mReserveTextures.end(); )
+            for (auto& t : mReserveTextures)
             {
-                if (i->first->width == 0 || i->first->height == 0)
+                if (t.first->width == 0 || t.first->height == 0)
                 {
-                    mReserveTextures.erase(i++);
+                    mReserveTextures.erase(t.first);
                 }
-                else
-                    ++i;
             }
         }
         else
@@ -972,18 +953,54 @@ void CompositorInstance::freeResources(bool forResizeOnly, bool clearReserveText
     // will not be released here
     CompositorManager::getSingleton().freePooledTextures(true);
 }
-//---------------------------------------------------------------------
-RenderTarget* CompositorInstance::getRenderTarget(const String& name)
+CompositionTechnique::TextureDefinition*
+CompositorInstance::resolveTexReference(const CompositionTechnique::TextureDefinition* texDef)
 {
-    return getTargetForTex(name);
+    //This TextureDefinition is reference.
+    //Since referenced TD's have no info except name we have to find original TD
+
+    CompositionTechnique::TextureDefinition* refTexDef = 0;
+
+    //Try chain first
+    if (CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName))
+    {
+        refTexDef = refCompInst->getCompositor()
+                        ->getSupportedTechnique(refCompInst->getScheme())
+                        ->getTextureDefinition(texDef->refTexName);
+    }
+
+    if(!refTexDef)
+    {
+        //Still NULL. Try global search.
+        const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
+        if(refComp)
+        {
+            refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(texDef->refTexName);
+        }
+
+        if (refTexDef && refTexDef->scope != CompositionTechnique::TS_GLOBAL)
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
+                        "Referenced texture '" + texDef->refTexName + "' must have global scope");
+    }
+
+    OgreAssert(refTexDef, "Referencing non-existent compositor texture");
+
+    if (refTexDef->scope == CompositionTechnique::TS_LOCAL)
+        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
+                    "Referenced texture '" + texDef->refTexName + "' has only local scope");
+
+    return refTexDef;
 }
+
 //-----------------------------------------------------------------------
-RenderTarget *CompositorInstance::getTargetForTex(const String &name)
+RenderTarget *CompositorInstance::getRenderTarget(const String &name, int slice)
 {
     // try simple texture
     LocalTextureMap::iterator i = mLocalTextures.find(name);
     if(i != mLocalTextures.end())
-        return i->second->getBuffer()->getRenderTarget();
+    {
+        return i->second->getRenderTarget(slice);
+    }
 
     // try MRTs
     LocalMRTMap::iterator mi = mLocalMRTs.find(name);
@@ -994,62 +1011,17 @@ RenderTarget *CompositorInstance::getTargetForTex(const String &name)
     CompositionTechnique::TextureDefinition* texDef = mTechnique->getTextureDefinition(name);
     if (texDef != 0 && !texDef->refCompName.empty()) 
     {
-        //This TextureDefinition is reference.
-        //Since referenced TD's have no info except name we have to find original TD
-        
-        CompositionTechnique::TextureDefinition* refTexDef = 0;
-        
-        //Try chain first
-        if(mChain)
-        {
-            CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName);
-            if(refCompInst)
-            {
-                refTexDef = refCompInst->getCompositor()->getSupportedTechnique(
-                    refCompInst->getScheme())->getTextureDefinition(texDef->refTexName);
-                // if the texture with the reference name can not be found, try the name
-                if (refTexDef == 0)
-                {
-                    refTexDef = refCompInst->getCompositor()->getSupportedTechnique(
-                        refCompInst->getScheme())->getTextureDefinition(name);
-                }
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                            "CompositorInstance::getTargetForTex");
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL. Try global search.
-            const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-            if(!refComp.isNull())
-            {
-                refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(name);
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor texture",
-                        "CompositorInstance::getTargetForTex");
-        }
-        
+        auto refTexDef = resolveTexReference(texDef);
+
         switch(refTexDef->scope) 
         {
             case CompositionTechnique::TS_CHAIN:
             {
                 //Find the instance and check if it is before us
                 CompositorInstance* refCompInst = 0;
-                OgreAssert(mChain, "Undefined compositor chain");
-                CompositorChain::InstanceIterator it = mChain->getCompositors();
                 bool beforeMe = true;
-                while (it.hasMoreElements())
+                for (CompositorInstance* nextCompInst : mChain->getCompositorInstances())
                 {
-                    CompositorInstance* nextCompInst = it.getNext();
                     if (nextCompInst->getCompositor()->getName() == texDef->refCompName)
                     {
                         refCompInst = nextCompInst;
@@ -1063,33 +1035,19 @@ RenderTarget *CompositorInstance::getTargetForTex(const String &name)
                     }
                 }
                 
-                if (refCompInst == 0 || !refCompInst->getEnabled()) 
-                {
-                    OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Referencing inactive compositor texture",
-                        "CompositorInstance::getTargetForTex");
-                }
-                if (!beforeMe)
-                {
-                    OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Referencing compositor that is later in the chain",
-                        "CompositorInstance::getTargetForTex");
-                }
-                return refCompInst->getRenderTarget(texDef->refTexName);
+                OgreAssert(refCompInst && refCompInst->getEnabled(), "Referencing inactive compositor texture");
+                OgreAssert(beforeMe, "Referencing compositor that is later in the chain");
+                return refCompInst->getRenderTarget(texDef->refTexName, slice);
             }
             case CompositionTechnique::TS_GLOBAL:
             {
                 //Chain and global case - the referenced compositor will know how to handle
                 const CompositorPtr& refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-                if(refComp.isNull())
-                {
-                    OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                        "CompositorInstance::getTargetForTex");
-                }
-                return refComp->getRenderTarget(texDef->refTexName);
+                OgreAssert(refComp, "Referencing non-existent compositor");
+                return refComp->getRenderTarget(texDef->refTexName, slice);
             }
             case CompositionTechnique::TS_LOCAL:
-            default:
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Referencing local compositor texture",
-                    "CompositorInstance::getTargetForTex");
+                break; // handled by resolveTexReference
         }
     }
 
@@ -1098,55 +1056,15 @@ RenderTarget *CompositorInstance::getTargetForTex(const String &name)
 
 }
 //-----------------------------------------------------------------------
-const String &CompositorInstance::getSourceForTex(const String &name, size_t mrtIndex)
+const TexturePtr &CompositorInstance::getSourceForTex(const String &name, size_t mrtIndex)
 {
     CompositionTechnique::TextureDefinition* texDef = mTechnique->getTextureDefinition(name);
-    if(texDef == 0)
-    {
-        OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent TextureDefinition",
-                    "CompositorInstance::getSourceForTex");
-    }
+    OgreAssert(texDef, "Referencing non-existent TextureDefinition");
     
     //Check if texture definition is reference
     if(!texDef->refCompName.empty())
     {
-        //This TextureDefinition is reference.
-        //Since referenced TD's have no info except name we have to find original TD
-        
-        CompositionTechnique::TextureDefinition* refTexDef = 0;
-        
-        //Try chain first
-        if(mChain)
-        {
-            CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName);
-            if(refCompInst)
-            {
-                refTexDef = refCompInst->getCompositor()->
-                    getSupportedTechnique(refCompInst->getScheme())->getTextureDefinition(texDef->refTexName);
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                            "CompositorInstance::getSourceForTex");
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL. Try global search.
-            const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-            if(!refComp.isNull())
-            {
-                refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(texDef->refTexName);
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor texture",
-                        "CompositorInstance::getSourceForTex");
-        }
+        auto refTexDef = resolveTexReference(texDef);
         
         switch(refTexDef->scope)
         {
@@ -1154,12 +1072,9 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
             {
                 //Find the instance and check if it is before us
                 CompositorInstance* refCompInst = 0;
-                OgreAssert(mChain, "Undefined compositor chain");
-                CompositorChain::InstanceIterator it = mChain->getCompositors();
                 bool beforeMe = true;
-                while (it.hasMoreElements())
+                for (CompositorInstance* nextCompInst : mChain->getCompositorInstances())
                 {
-                    CompositorInstance* nextCompInst = it.getNext();
                     if (nextCompInst->getCompositor()->getName() == texDef->refCompName)
                     {
                         refCompInst = nextCompInst;
@@ -1172,34 +1087,20 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
                         beforeMe = false;
                     }
                 }
-                
-                if (refCompInst == 0 || !refCompInst->getEnabled()) 
-                {
-                    OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Referencing inactive compositor texture",
-                        "CompositorInstance::getSourceForTex");
-                }
-                if (!beforeMe)
-                {
-                    OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Referencing compositor that is later in the chain",
-                        "CompositorInstance::getSourceForTex");
-                }
-                return refCompInst->getTextureInstanceName(texDef->refTexName, mrtIndex);
+
+                OgreAssert(refCompInst && refCompInst->getEnabled(), "Referencing inactive compositor texture");
+                OgreAssert(beforeMe, "Referencing compositor that is later in the chain");
+                return refCompInst->getTextureInstance(texDef->refTexName, mrtIndex);
             }
             case CompositionTechnique::TS_GLOBAL:
             {
                 //Chain and global case - the referenced compositor will know how to handle
                 const CompositorPtr& refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-                if(refComp.isNull())
-                {
-                    OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                        "CompositorInstance::getSourceForTex");
-                }
-                return refComp->getTextureInstanceName(texDef->refTexName, mrtIndex);
+                OgreAssert(refComp, "Referencing non-existent compositor");
+                return refComp->getTextureInstance(texDef->refTexName, mrtIndex);
             }
             case CompositionTechnique::TS_LOCAL:
-            default:
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Referencing local compositor texture",
-                    "CompositorInstance::getSourceForTex");
+                break; // handled by resolveTexReference
         }
 
     } // End of handling texture references
@@ -1210,7 +1111,7 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
         LocalTextureMap::iterator i = mLocalTextures.find(name);
         if(i != mLocalTextures.end())
         {
-            return i->second->getName();
+            return i->second;
         }
     }
     else
@@ -1219,7 +1120,7 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
         LocalTextureMap::iterator i = mLocalTextures.find(getMRTTexLocalName(name, mrtIndex));
         if (i != mLocalTextures.end())
         {
-            return i->second->getName();
+            return i->second;
         }
     }
     
@@ -1250,30 +1151,26 @@ void CompositorInstance::removeListener(Listener *l)
 //-----------------------------------------------------------------------
 void CompositorInstance::_fireNotifyMaterialSetup(uint32 pass_id, MaterialPtr &mat)
 {
-    Listeners::iterator i, iend=mListeners.end();
-    for(i=mListeners.begin(); i!=iend; ++i)
-        (*i)->notifyMaterialSetup(pass_id, mat);
+    for(auto *l : mListeners)
+        l->notifyMaterialSetup(pass_id, mat);
 }
 //-----------------------------------------------------------------------
 void CompositorInstance::_fireNotifyMaterialRender(uint32 pass_id, MaterialPtr &mat)
 {
-    Listeners::iterator i, iend=mListeners.end();
-    for(i=mListeners.begin(); i!=iend; ++i)
-        (*i)->notifyMaterialRender(pass_id, mat);
+    for(auto *l : mListeners)
+        l->notifyMaterialRender(pass_id, mat);
 }
 //-----------------------------------------------------------------------
 void CompositorInstance::_fireNotifyResourcesCreated(bool forResizeOnly)
 {
-    Listeners::iterator i, iend=mListeners.end();
-    for(i=mListeners.begin(); i!=iend; ++i)
-        (*i)->notifyResourcesCreated(forResizeOnly);
+    for(auto *l : mListeners)
+        l->notifyResourcesCreated(forResizeOnly);
 }
 //-----------------------------------------------------------------------
 void CompositorInstance::_fireNotifyResourcesReleased(bool forResizeOnly)
 {
-    Listeners::iterator i, iend=mListeners.end();
-    for(i=mListeners.begin(); i!=iend; ++i)
-        (*i)->notifyResourcesReleased(forResizeOnly);
+    for(auto *l : mListeners)
+        l->notifyResourcesReleased(forResizeOnly);
 }
 //-----------------------------------------------------------------------
 void CompositorInstance::notifyCameraChanged(Camera* camera)
@@ -1298,7 +1195,8 @@ void CompositorInstance::notifyCameraChanged(Camera* camera)
     while (localMRTIter != localMRTIterEnd)
     {
         MultiRenderTarget* target = localMRTIter->second;
-        target->getViewport(0)->setCamera(camera);
+        if(target->getNumViewports())
+            target->getViewport(0)->setCamera(camera);
         ++localMRTIter;
     }
 }

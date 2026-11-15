@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,9 @@ THE SOFTWARE.
 
 #include "OgreSkeletonFileFormat.h"
 #include "OgreSkeletonSerializer.h"
-#include "OgreSkeleton.h"
 #include "OgreAnimation.h"
 #include "OgreAnimationTrack.h"
 #include "OgreKeyFrame.h"
-#include "OgreBone.h"
-#include "OgreLogManager.h"
 
 namespace Ogre {
     /// stream overhead = ID + size
@@ -47,26 +44,19 @@ namespace Ogre {
         // NB changed to include bone names in 1.1
         mVersion = "[Unknown]";
     }
-    //---------------------------------------------------------------------
-    SkeletonSerializer::~SkeletonSerializer()
-    {
-    }
 
     //---------------------------------------------------------------------
     void SkeletonSerializer::exportSkeleton(const Skeleton* pSkeleton, 
         const String& filename, SkeletonVersion ver, Endian endianMode)
     {
-        std::fstream *f = OGRE_NEW_T(std::fstream, MEMCATEGORY_GENERAL)();
-        f->open(filename.c_str(), std::ios::binary | std::ios::out);
-        DataStreamPtr stream(OGRE_NEW FileStreamDataStream(f));
-
+        DataStreamPtr stream = _openFileStream(filename, std::ios::binary | std::ios::out);
         exportSkeleton(pSkeleton, stream, ver, endianMode);
 
         stream->close();
     }
     //---------------------------------------------------------------------
     void SkeletonSerializer::exportSkeleton(const Skeleton* pSkeleton, 
-        DataStreamPtr stream, SkeletonVersion ver, Endian endianMode)
+        const DataStreamPtr& stream, SkeletonVersion ver, Endian endianMode)
     {
         setWorkingVersion(ver);
         // Decide on endian mode
@@ -104,11 +94,8 @@ namespace Ogre {
         }
 
         // Write links
-        Skeleton::LinkedSkeletonAnimSourceIterator linkIt = 
-            pSkeleton->getLinkedSkeletonAnimationSourceIterator();
-        while(linkIt.hasMoreElements())
+        for(const auto& link : pSkeleton->getLinkedSkeletonAnimationSources())
         {
-            const LinkedSkeletonAnimationSource& link = linkIt.getNext();
             writeSkeletonAnimationLink(pSkeleton, link);
         }       
         popInnerChunk(stream);
@@ -120,7 +107,25 @@ namespace Ogre {
         determineEndianness(stream);
 
         // Check header
-        readFileHeader(stream);
+        unsigned short headerID;
+        readShorts(stream, &headerID, 1);
+        if (headerID != HEADER_STREAM_ID_EXT)
+        {
+            OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "File header not found",
+                "SkeletonSerializer::importSkeleton");
+        }
+
+        // Read version
+        String ver = readString(stream);
+        if ((ver != "[Serializer_v1.10]") &&
+            (ver != "[Serializer_v1.80]"))
+        {
+            OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR,
+                "Invalid file: version incompatible, file reports " + String(ver),
+                "SkeletonSerializer::importSkeleton");
+        }
+        mVersion = ver;
+
         pushInnerChunk(stream);
         unsigned short streamID = readChunk(stream);
 
@@ -180,17 +185,13 @@ namespace Ogre {
         }
         
         // Write each bone
-        unsigned short numBones = pSkel->getNumBones();
-        unsigned short i;
-        for (i = 0; i < numBones; ++i)
+        for (Bone* pBone : pSkel->getBones())
         {
-            Bone* pBone = pSkel->getBone(i);
             writeBone(pSkel, pBone);
         }
         // Write parents
-        for (i = 0; i < numBones; ++i)
+        for (Bone* pBone : pSkel->getBones())
         {
-            Bone* pBone = pSkel->getBone(i);
             unsigned short handle = pBone->getHandle();
             Bone* pParent = static_cast<Bone*>(pBone->getParent());
             if (pParent != NULL) 
@@ -270,10 +271,9 @@ namespace Ogre {
         }
 
         // Write all tracks
-        Animation::NodeTrackIterator trackIt = anim->getNodeTrackIterator();
-        while(trackIt.hasMoreElements())
+        for (const auto& it : anim->_getNodeTrackList())
         {
-            writeAnimationTrack(pSkel, trackIt.getNext());
+            writeAnimationTrack(pSkel, it.second);
         }
         }
         popInnerChunk(mStream);
@@ -388,10 +388,9 @@ namespace Ogre {
         }
 
         // Nested animation tracks
-        Animation::NodeTrackIterator trackIt = pAnim->getNodeTrackIterator();
-        while(trackIt.hasMoreElements())
+        for (const auto& it : pAnim->_getNodeTrackList())
         {
-            size += calcAnimationTrackSize(pSkel, trackIt.getNext());
+            size += calcAnimationTrackSize(pSkel, it.second);
         }
 
         return size;
@@ -443,33 +442,6 @@ namespace Ogre {
         return size;
     }
     //---------------------------------------------------------------------
-    void SkeletonSerializer::readFileHeader(DataStreamPtr& stream)
-    {
-        unsigned short headerID;
-
-        // Read header ID
-        readShorts(stream, &headerID, 1);
-
-        if (headerID == HEADER_STREAM_ID_EXT)
-        {
-            // Read version
-            String ver = readString(stream);
-            if ((ver != "[Serializer_v1.10]") &&
-                (ver != "[Serializer_v1.80]"))
-            {
-                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, 
-                    "Invalid file: version incompatible, file reports " + String(ver),
-                    "Serializer::readFileHeader");
-            }
-            mVersion = ver;
-        }
-        else
-        {
-            OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Invalid file: no header", 
-                "Serializer::readFileHeader");
-        }
-    }
-    //---------------------------------------------------------------------
     void SkeletonSerializer::readBone(DataStreamPtr& stream, Skeleton* pSkel)
     {
         // char* name
@@ -477,6 +449,9 @@ namespace Ogre {
         // unsigned short handle            : handle of the bone, should be contiguous & start at 0
         unsigned short handle;
         readShorts(stream, &handle, 1);
+
+        if (handle > pSkel->getNumBones())
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Bone handles must be contiguous");
 
         // Create new bone
         Bone* pBone = pSkel->createBone(name, handle);
@@ -516,6 +491,13 @@ namespace Ogre {
         readShorts(stream, &childHandle, 1);
         // unsigned short parentHandle   : parent bone
         readShorts(stream, &parentHandle, 1);
+
+        auto numBones = pSkel->getBones().size();
+        if (parentHandle >= numBones || childHandle >= numBones)
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Bone handle out of range");
+
+        if (childHandle == parentHandle)
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "A bone cannot be parent of itself");
 
         // Find bones
         parent = pSkel->getBone(parentHandle);
@@ -586,7 +568,9 @@ namespace Ogre {
         readShorts(stream, &boneHandle, 1);
 
         // Find bone
-        Bone *targetBone = pSkel->getBone(boneHandle);
+        if (boneHandle >= pSkel->getBones().size())
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Animation track boneHandle out of range");
+        Bone* targetBone = pSkel->getBone(boneHandle);
 
         // Create track
         NodeAnimationTrack* pTrack = anim->createNodeTrack(boneHandle, targetBone);

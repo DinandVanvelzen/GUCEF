@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,16 +46,6 @@ namespace Ogre
     NumericKeyFrame::NumericKeyFrame(const AnimationTrack* parent, Real time)
         :KeyFrame(parent, time)
     {
-    }
-    //---------------------------------------------------------------------
-    const AnyNumeric& NumericKeyFrame::getValue(void) const
-    {
-        return mValue;
-    }
-    //---------------------------------------------------------------------
-    void NumericKeyFrame::setValue(const AnyNumeric& val)
-    {
-        mValue = val;
     }
     //---------------------------------------------------------------------
     KeyFrame* NumericKeyFrame::_clone(AnimationTrack* newParent) const
@@ -144,18 +134,18 @@ namespace Ogre
     {
     }
     //---------------------------------------------------------------------
-    void VertexPoseKeyFrame::addPoseReference(ushort poseIndex, Real influence)
+    void VertexPoseKeyFrame::addPoseReference(ushort poseIndex, float influence)
     {
         mPoseRefs.push_back(PoseRef(poseIndex, influence));
     }
     //---------------------------------------------------------------------
-    void VertexPoseKeyFrame::updatePoseReference(ushort poseIndex, Real influence)
+    void VertexPoseKeyFrame::updatePoseReference(ushort poseIndex, float influence)
     {
-        for (PoseRefList::iterator i = mPoseRefs.begin(); i != mPoseRefs.end(); ++i)
+        for (auto & poseRef : mPoseRefs)
         {
-            if (i->poseIndex == poseIndex)
+            if (poseRef.poseIndex == poseIndex)
             {
-                i->influence = influence;
+                poseRef.influence = influence;
                 return;
             }
         }
@@ -211,15 +201,13 @@ namespace Ogre
     {
         // We subtract the matching pose influences in the base keyframe from the
         // influences in this keyframe
-        for (PoseRefList::iterator i = mPoseRefs.begin(); i != mPoseRefs.end(); ++i)
+        for (auto & myPoseRef : mPoseRefs)
         {
-            PoseRef& myPoseRef = *i;
-            
-            VertexPoseKeyFrame::ConstPoseRefIterator basePoseIt = base->getPoseReferenceIterator();
+            PoseRefList::const_iterator basePoseIt = base->getPoseReferences().begin();
             Real baseInfluence = 0.0f;
-            while (basePoseIt.hasMoreElements())
+            for (;basePoseIt != base->getPoseReferences().end(); ++basePoseIt)
             {
-                const VertexPoseKeyFrame::PoseRef& basePoseRef = basePoseIt.getNext();
+                const PoseRef& basePoseRef = *basePoseIt;
                 if (basePoseRef.poseIndex == myPoseRef.poseIndex)
                 {
                     baseInfluence = basePoseRef.influence;

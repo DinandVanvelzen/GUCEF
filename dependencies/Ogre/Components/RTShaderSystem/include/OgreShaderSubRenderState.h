@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -33,7 +33,7 @@ THE SOFTWARE.
 namespace Ogre {
 namespace RTShader {
 
-/** \addtogroup Core
+/** \addtogroup Optional
 *  @{
 */
 /** \addtogroup RTShader
@@ -42,6 +42,42 @@ namespace RTShader {
 
 typedef SharedPtr<SubRenderStateAccessor>   SubRenderStateAccessorPtr; 
 
+/// Computes the position of the vertex in projection space, allows using instancing
+_OgreRTSSExport extern const String SRS_TRANSFORM;
+/// Enables vertex-colors, always required.
+_OgreRTSSExport extern const String SRS_VERTEX_COLOUR;
+/// Computes FFP texture transform and blending based on the assigned textures
+_OgreRTSSExport extern const String SRS_TEXTURING;
+/// Adds per-vertex (FFP) lighting calulations (Gouraud Shading)
+_OgreRTSSExport extern const String SRS_PER_VERTEX_LIGHTING;
+/// Modulates the color of a pixel based on the scene or object fog parameters
+_OgreRTSSExport extern const String SRS_FOG;
+/// Enables alpha-testing
+_OgreRTSSExport extern const String SRS_ALPHA_TEST;
+/// @deprecated use #SRS_SHADOW_MAPPING
+_OgreRTSSExport extern const String SRS_INTEGRATED_PSSM3;
+/// shadow mapping receiver with multiple lights or single PSSM light with up to 3 custom splits.
+_OgreRTSSExport extern const String SRS_SHADOW_MAPPING;
+/// Adds per-pixel lighting calulations (Phong Shading)
+_OgreRTSSExport extern const String SRS_PER_PIXEL_LIGHTING;
+/// Use metal roughness parametrisation for lighting calulations
+_OgreRTSSExport extern const String SRS_COOK_TORRANCE_LIGHTING;
+/// Adds calculations for indirect image based lighting (IBL)
+_OgreRTSSExport extern const String SRS_IMAGE_BASED_LIGHTING;
+/// Use a normal map to derive normals
+_OgreRTSSExport extern const String SRS_NORMALMAP;
+/// Redirects rendering results into intermediate buffers for the WBOIT algorithm
+_OgreRTSSExport extern const String SRS_WBOIT;
+/// Redirects rendering results into gbuffers for e.g. deferred shading.
+_OgreRTSSExport extern const String SRS_GBUFFER;
+/// enable [triplanar texture mapping](https://www.volume-gfx.com/volume-rendering/triplanar-texturing/)
+_OgreRTSSExport extern const String SRS_TRIPLANAR_TEXTURING;
+/// Apply photoshop-like blend effects to texture layers
+_OgreRTSSExport extern const String SRS_LAYERED_BLENDING;
+/// Include skinning calculations for Skeletal Animation in the shader to move computations to the GPU
+_OgreRTSSExport extern const String SRS_HARDWARE_SKINNING;
+/// Enable clustered light culling and per-fragment light list generation
+_OgreRTSSExport extern const String SRS_CLUSTERED_LIGHT_CULLING;
 
 /** This class is the base interface of sub part from a shader based rendering pipeline.
 * All sub parts implementations should derive from it and implement the needed methods.
@@ -62,14 +98,14 @@ public:
 
 
     /** Get the type of this sub render state.
-    @remarks
+
     The type string should be unique among all registered sub render states.    
     */
     virtual const String& getType() const = 0;
 
 
     /** Get the execution order of this sub render state.
-    @remarks
+
     The return value should be synchronized with the predefined values
     of the FFPShaderStage enum.
     */
@@ -103,12 +139,18 @@ public:
     @param source The auto parameter source.
     @param pLightList The light list used in the current rendering context.
     */
-    virtual void updateGpuProgramsParams(Renderable* rend, Pass* pass,  const AutoParamDataSource* source,  const LightList* pLightList) { }
+    virtual void updateGpuProgramsParams(Renderable* rend, const Pass* pass,  const AutoParamDataSource* source,  const LightList* pLightList) { }
 
-    /** Called before adding this sub render state to the given render state.
+    /** Called once the target render state has been composed for a pass.
     Allows this sub render state class to configure specific parameters depending on source pass or parent render state.
     Return of false value will cause canceling the add operation.
-    @param renderState The target render state container this sub render state is about to be added.    
+
+    The target render state already contains the sub render states of the scheme and of the pass, with
+    overrides (same type or same FFP stage) resolved. Use @ref RenderState::getSubRenderState to check which
+    other sub render states will be part of the generated program; a sub render state that is overridden is
+    never instantiated and thus never called. Do not rely on the pass being modified by the
+    @c preAddToRenderState of another sub render state, as the call order is not defined.
+    @param renderState The target render state container this sub render state is part of.
     @param srcPass The source pass.
     @param dstPass The destination pass.
     */
@@ -123,6 +165,18 @@ public:
     @see SubRenderStateAccessor.
     */
     SubRenderStateAccessorPtr getAccessor() const;
+
+    /// generic set method for parameters that connot be derived in @ref preAddToRenderState
+    virtual bool setParameter(const String& name, const String& value) { return false; }
+
+    /// @overload
+    bool setParameter(const String& name, const char* value) { return setParameter(name, String(value)); }
+
+    /// @overload
+    virtual void setParameter(const String& name, const Any& value)
+    {
+        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, name+": unsupported any type");
+    }
 
 // Protected methods
 protected:
@@ -154,11 +208,11 @@ private:
     
 };
 
-typedef vector<SubRenderState*>::type               SubRenderStateList;
+typedef std::vector<SubRenderState*>               SubRenderStateList;
 typedef SubRenderStateList::iterator                SubRenderStateListIterator;
 typedef SubRenderStateList::const_iterator          SubRenderStateListConstIterator;
 
-typedef set<SubRenderState*>::type                  SubRenderStateSet;
+typedef std::set<SubRenderState*>                  SubRenderStateSet;
 typedef SubRenderStateSet::iterator                 SubRenderStateSetIterator;
 typedef SubRenderStateSet::const_iterator           SubRenderStateSetConstIterator;
 
@@ -214,7 +268,7 @@ private:
 
 
 /** Abstract factory interface for creating SubRenderState implementation instances.
-@remarks
+
 Plugins or 3rd party applications can add new types of sub render states to the 
 RTShader System by creating subclasses of the SubRenderState class. 
 Because multiple instances of these sub class may be required, 
@@ -232,7 +286,7 @@ public:
     virtual ~SubRenderStateFactory();
 
     /** Get the type of this sub render state factory.
-    @remarks
+
     The type string should be the same as the type of the SubRenderState sub class it is going to create.   
     @see SubRenderState::getType.
     */
@@ -240,27 +294,41 @@ public:
     
     /** Create an instance of the SubRenderState sub class it suppose to create.    
     */
-    virtual SubRenderState* createInstance();
+    virtual SubRenderState* createInstance() OGRE_NODISCARD;
 
     /** Create an instance of the SubRenderState based on script properties.    
     This method is called in the context of script parsing and let this factory
     the opportunity to create custom SubRenderState instances based on extended script properties.
-    @param compiler The compiler instance.
-    @param prop The abstract property node.
+    @param prop The property
     @param pass The pass that is the parent context of this node.
     @param translator The translator instance holding existing scripts.
     */
-    virtual SubRenderState* createInstance(ScriptCompiler* compiler, PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator) { return NULL; }
+    virtual SubRenderState* createInstance(const ScriptProperty& prop, Pass* pass,
+                                           SGScriptTranslator* translator) OGRE_NODISCARD
+    {
+        return NULL;
+    }
+
+    /// @deprecated
+    virtual SubRenderState* createInstance(ScriptCompiler* compiler, PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator) OGRE_NODISCARD 
+    { return NULL; }
 
     /** Create an instance of the SubRenderState based on script properties.    
     This method is called in the context of script parsing and let this factory
     the opportunity to create custom SubRenderState instances based on extended script properties.
-    @param compiler The compiler instance.
-    @param prop The abstract property node.
+    @param prop The property
     @param texState The pass that is the parent context of this node.
     @param translator The translator instance holding existing scripts.
     */
-    virtual SubRenderState* createInstance(ScriptCompiler* compiler, PropertyAbstractNode* prop, TextureUnitState* texState, SGScriptTranslator* translator) { return NULL; }
+    virtual SubRenderState* createInstance(const ScriptProperty& prop, TextureUnitState* texState,
+                                           SGScriptTranslator* translator) OGRE_NODISCARD
+    {
+        return NULL;
+    }
+
+    /// @deprecated
+    virtual SubRenderState* createInstance(ScriptCompiler* compiler, PropertyAbstractNode* prop, TextureUnitState* texState, SGScriptTranslator* translator) OGRE_NODISCARD 
+    { return NULL; }
 
     /** Retrieve the previous instance the SRS in the script translator or
     * create a new instance if not found 

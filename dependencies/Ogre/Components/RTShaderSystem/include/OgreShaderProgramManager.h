@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -36,8 +36,9 @@ namespace Ogre {
 namespace RTShader {
 
     class ProgramWriter;
+    class ProgramProcessor;
 
-/** \addtogroup Core
+/** \addtogroup Optional
 *  @{
 */
 /** \addtogroup RTShader
@@ -59,7 +60,7 @@ public:
 
 
     /** Override standard Singleton retrieval.
-    @remarks
+
     Why do we do this? Well, it's because the Singleton
     implementation is in a .h file, which means it gets compiled
     into anybody who includes it. This is needed for the
@@ -75,76 +76,43 @@ public:
     */
     static ProgramManager& getSingleton();  
 
-    /** Override standard Singleton retrieval.
-    @remarks
-    Why do we do this? Well, it's because the Singleton
-    implementation is in a .h file, which means it gets compiled
-    into anybody who includes it. This is needed for the
-    Singleton template to work, but we actually only want it
-    compiled into the implementation of the class based on the
-    Singleton, not all of them. If we don't change this, we get
-    link errors when trying to use the Singleton-based class from
-    an outside dll.
-    @par
-    This method just delegates to the template version anyway,
-    but the implementation stays in this single compilation unit,
-    preventing link errors.
-    */
+    /// @copydoc Singleton::getSingleton()
     static ProgramManager* getSingletonPtr();
 
-    /** Acquire CPU/GPU programs set associated with the given render state and bind them to the pass.
-    @param pass The pass to bind the programs to.
-    @param renderState The render state that describes the program that need to be generated.
+    /** Release CPU/GPU programs set associated with the given ProgramSet
+    @param programSet The ProgramSet holds the programs.
     */
-    void acquirePrograms(Pass* pass, TargetRenderState* renderState);
-
-    /** Release CPU/GPU programs set associated with the given render state and pass.
-    @param pass The pass to release the programs from.
-    @param renderState The render state holds the programs.
-    */
-    void releasePrograms(Pass* pass, TargetRenderState* renderState);
+    void releasePrograms(const ProgramSet* programSet);
 
     /** Flush the local GPU programs cache.
     */
     void flushGpuProgramsCache();
 
-protected:
+private:
 
     //-----------------------------------------------------------------------------
-    typedef map<String, GpuProgramPtr>::type            GpuProgramsMap;
-    typedef map<String, String>::type                   ProgramSourceToNameMap;
+    typedef std::map<String, GpuProgramPtr>            GpuProgramsMap;
     typedef GpuProgramsMap::iterator                    GpuProgramsMapIterator;
     typedef GpuProgramsMap::const_iterator              GpuProgramsMapConstIterator;
 
     //-----------------------------------------------------------------------------
-    typedef set<Program*>::type                         ProgramList;
+    typedef std::set<Program*>                         ProgramList;
     typedef ProgramList::iterator                       ProgramListIterator;
-    typedef map<String, ProgramWriter*>::type           ProgramWriterMap;
+    typedef std::map<String, ProgramWriter*>           ProgramWriterMap;
     typedef ProgramWriterMap::iterator                  ProgramWriterIterator;
-    typedef vector<ProgramWriterFactory*>::type         ProgramWriterFactoryList;
     
     //-----------------------------------------------------------------------------
-    typedef map<String, ProgramProcessor*>::type        ProgramProcessorMap;
+    typedef std::map<String, ProgramProcessor*>        ProgramProcessorMap;
     typedef ProgramProcessorMap::iterator               ProgramProcessorIterator;
     typedef ProgramProcessorMap::const_iterator         ProgramProcessorConstIterator;
-    typedef vector<ProgramProcessor*>::type             ProgramProcessorList;
+    typedef std::vector<ProgramProcessor*>             ProgramProcessorList;
 
-    
-protected:
+
     /** Create default program processors. */
     void createDefaultProgramProcessors();
     
     /** Destroy default program processors. */
     void destroyDefaultProgramProcessors();
-
-    /** Create default program processors. */
-    void createDefaultProgramWriterFactories();
-
-    /** Destroy default program processors. */
-    void destroyDefaultProgramWriterFactories();
-
-    /** Destroy all program writers. */
-    void destroyProgramWriters();
 
     /** Create CPU program .    
     @param type The type of the program to create.
@@ -159,14 +127,15 @@ protected:
     /** Create GPU programs for the given program set based on the CPU programs it contains.
     @param programSet The program set container.
     */
-    bool createGpuPrograms(ProgramSet* programSet);
+    void createGpuPrograms(ProgramSet* programSet);
         
     /** 
-    Generates a unique guid value from a string
-    @param programString string to generate a hash value for
+    Generates a unique hash from a string
+    @param programString source code to generate a hash value for
+    @param defines defines for the final source code
     @return A string representing a 128 bit hash value of the original string
     */
-    String generateGUID(const String& programString);
+    static String generateHash(const String& programString, const String& defines);
 
     /** Create GPU program based on the give CPU program.
     @param shaderProgram The CPU program instance.
@@ -180,66 +149,21 @@ protected:
         ProgramWriter* programWriter,
         const String& language,
         const String& profiles,
-        const StringVector& profilesList,
         const String& cachePath);
-
-    /** 
-    Add program processor instance to this manager.
-    @param processor The instance to add.
-    */
-    void addProgramProcessor(ProgramProcessor* processor);
-
-    /** 
-    Remove program processor instance from this manager. 
-    @param processor The instance to remove.
-    */
-    void removeProgramProcessor(ProgramProcessor* processor);
-
-    /** Destroy a GPU program by name.
-    @param gpuProgram The program to destroy.
-    */
-    void destroyGpuProgram(GpuProgramPtr& gpuProgram);
-
-    /** Flush the local GPU programs cache.
-    @param gpuProgramsMap The GPU programs cache.
-    */
-    void flushGpuProgramsCache(GpuProgramsMap& gpuProgramsMap);
     
-    /** Return the number of created vertex shaders. */
-    size_t getVertexShaderCount() const { return mVertexShaderMap.size(); }
-
-    /** Return the number of created fragment shaders. */
-    size_t getFragmentShaderCount() const { return mFragmentShaderMap.size(); }
+    /** Return the number of created shaders. */
+    size_t getShaderCount(GpuProgramType type) const;
 
     /** Fix the input of the pixel shader to be the same as the output of the vertex shader */
-    void synchronizePixelnToBeVertexOut(ProgramSet* programSet);
+    void matchVStoPSInterface(ProgramSet* programSet);
 
-    /** Bind the uniform parameters of a given CPU and GPU program set. */
-    void bindUniformParameters(Program* pCpuProgram, const GpuProgramParametersSharedPtr& passParams);
-
-
-protected:
-    
-
-protected:
-    // CPU programs list.                   
-    ProgramList mCpuProgramsList;
-    // Map between target language and shader program writer.                   
-    ProgramWriterMap mProgramWritersMap;
     // Map between target language and shader program processor.    
     ProgramProcessorMap mProgramProcessorsMap;
-    // Holds standard shader writer factories
-    ProgramWriterFactoryList mProgramWriterFactories;
-    // The generated vertex shaders.
-    GpuProgramsMap mVertexShaderMap;
-    // The generated fragment shaders.
-    GpuProgramsMap mFragmentShaderMap;
+    // The generated shaders.
+    std::vector<GpuProgramPtr> mShaderList;
     // The default program processors.
     ProgramProcessorList mDefaultProgramProcessors;
-    // map the source code of the shaders to a name for them
-    ProgramSourceToNameMap mProgramSourceToNameMap;
 
-private:
     friend class ProgramSet;
     friend class TargetRenderState;
     friend class ShaderGenerator;

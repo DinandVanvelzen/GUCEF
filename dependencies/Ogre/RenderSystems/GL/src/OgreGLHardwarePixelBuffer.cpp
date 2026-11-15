@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,11 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreGLHardwarePixelBuffer.h"
+
+#include "OgreTextureManager.h"
+
 #include "OgreGLTexture.h"
-#include "OgreGLSupport.h"
+#include "OgreGLRenderSystem.h"
 #include "OgreGLPixelFormat.h"
 #include "OgreException.h"
 #include "OgreLogManager.h"
@@ -38,116 +41,21 @@ THE SOFTWARE.
 #include "OgreGLStateCacheManager.h"
 
 namespace Ogre {
-//----------------------------------------------------------------------------- 
-GLHardwarePixelBuffer::GLHardwarePixelBuffer(uint32 inWidth, uint32 inHeight, uint32 inDepth,
-                PixelFormat inFormat,
-                HardwareBuffer::Usage usage):
-      HardwarePixelBuffer(inWidth, inHeight, inDepth, inFormat, usage, false, false),
-      mBuffer(inWidth, inHeight, inDepth, inFormat),
-      mGLInternalFormat(GL_NONE)
-{
-    mCurrentLockOptions = (LockOptions)0;
-}
-
 //-----------------------------------------------------------------------------  
-GLHardwarePixelBuffer::~GLHardwarePixelBuffer()
+bool GLTextureBuffer::needsConversion(PixelFormat format)
 {
-    // Force free buffer
-    delete [] (uint8*)mBuffer.data;
+    return GLPixelUtil::getGLInternalFormat(format) == 0;
 }
 //-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::allocateBuffer()
-{
-    if(mBuffer.data)
-        // Already allocated
-        return;
-    mBuffer.data = new uint8[mSizeInBytes];
-    // TODO: use PBO if we're HBU_DYNAMIC
-}
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::freeBuffer()
-{
-    // Free buffer if we're STATIC to save memory
-    if(mUsage & HBU_STATIC)
-    {
-        delete [] (uint8*)mBuffer.data;
-        mBuffer.data = 0;
-    }
-}
-//-----------------------------------------------------------------------------  
-PixelBox GLHardwarePixelBuffer::lockImpl(const Image::Box &lockBox,  LockOptions options)
-{
-    allocateBuffer();
-    if(options != HardwareBuffer::HBL_DISCARD) 
-    {
-        // Download the old contents of the texture
-        download(mBuffer);
-    }
-    mCurrentLockOptions = options;
-    mLockedBox = lockBox;
-    return mBuffer.getSubVolume(lockBox);
-}
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::unlockImpl(void)
-{
-    if (mCurrentLockOptions != HardwareBuffer::HBL_READ_ONLY)
-    {
-        // From buffer to card, only upload if was locked for writing
-        upload(mCurrentLock, mLockedBox);
-    }
-    
-    freeBuffer();
-}
-
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::Box &dstBox)
-{
-    if(!mBuffer.contains(dstBox))
-        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "destination box out of range",
-         "GLHardwarePixelBuffer::blitFromMemory");
-    PixelBox scaled;
-    
-    if(src.getWidth() != dstBox.getWidth() ||
-        src.getHeight() != dstBox.getHeight() ||
-        src.getDepth() != dstBox.getDepth())
-    {
-        // Scale to destination size.
-        // This also does pixel format conversion if needed
-        allocateBuffer();
-        scaled = mBuffer.getSubVolume(dstBox);
-        Image::scale(src, scaled, Image::FILTER_BILINEAR);
-    }
-    else if(GLPixelUtil::getGLOriginFormat(src.format) == 0)
-    {
-        // Extents match, but format is not accepted as valid source format for GL
-        // do conversion in temporary buffer
-        allocateBuffer();
-        scaled = mBuffer.getSubVolume(dstBox);
-        PixelUtil::bulkPixelConversion(src, scaled);
-    }
-    else
-    {
-        allocateBuffer();
-        // No scaling or conversion needed
-        scaled = src;
-    }
-    
-    upload(scaled, dstBox);
-    freeBuffer();
-}
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBox &dst)
+void GLTextureBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst)
 {
     if(!mBuffer.contains(srcBox))
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "source box out of range",
          "GLHardwarePixelBuffer::blitToMemory");
-    if(srcBox.left == 0 && srcBox.right == getWidth() &&
-       srcBox.top == 0 && srcBox.bottom == getHeight() &&
-       srcBox.front == 0 && srcBox.back == getDepth() &&
-       dst.getWidth() == getWidth() &&
-       dst.getHeight() == getHeight() &&
-       dst.getDepth() == getDepth() &&
-       GLPixelUtil::getGLOriginFormat(dst.format) != 0)
+    if(srcBox.getOrigin() == Vector3i(0, 0 ,0) &&
+       srcBox.getSize() == getSize() &&
+       dst.getSize() == getSize() &&
+       !needsConversion(dst.format))
     {
         // The direct case: the user wants the entire texture in a format supported by GL
         // so we don't need an intermediate buffer
@@ -159,9 +67,7 @@ void GLHardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBo
         allocateBuffer();
         // Download entire buffer
         download(mBuffer);
-        if(srcBox.getWidth() != dst.getWidth() ||
-            srcBox.getHeight() != dst.getHeight() ||
-            srcBox.getDepth() != dst.getDepth())
+        if(srcBox.getSize() != dst.getSize())
         {
             // We need scaling
             Image::scale(mBuffer.getSubVolume(srcBox), dst, Image::FILTER_BILINEAR);
@@ -174,70 +80,21 @@ void GLHardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBo
         freeBuffer();
     }
 }
-//-----------------------------------------------------------------------------
-void GLHardwarePixelBuffer::upload(const PixelBox &data, const Image::Box &dest)
-{
-    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-        "Upload not possible for this pixelbuffer type",
-        "GLHardwarePixelBuffer::upload");
-}
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::download(const PixelBox &data)
-{
-    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Download not possible for this pixelbuffer type",
-        "GLHardwarePixelBuffer::download");
-}
-//-----------------------------------------------------------------------------  
-void GLHardwarePixelBuffer::bindToFramebuffer(GLenum attachment, uint32 zoffset)
-{
-    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Framebuffer bind not possible for this pixelbuffer type",
-        "GLHardwarePixelBuffer::bindToFramebuffer");
-}
 //********* GLTextureBuffer
-GLTextureBuffer::GLTextureBuffer(GLSupport& support, const String &baseName, GLenum target, GLuint id,
-                                 GLint face, GLint level, Usage usage, bool crappyCard, 
-                                 bool writeGamma, uint fsaa):
-    GLHardwarePixelBuffer(0, 0, 0, PF_UNKNOWN, usage),
-    mTarget(target), mFaceTarget(0), mTextureID(id), mFace(face), mLevel(level),
-    mSoftwareMipmap(crappyCard), mHwGamma(writeGamma), mSliceTRT(0), mGLSupport(support)
+GLTextureBuffer::GLTextureBuffer(GLRenderSystem* renderSystem, GLTexture* parent, GLint face,
+                                 GLint level, uint32 width, uint32 height, uint32 depth)
+    : GLHardwarePixelBufferCommon(width, height, depth, parent->getFormat(), (Usage)parent->getUsage()),
+      mTarget(parent->getGLTextureTarget()), mFaceTarget(0), mTextureID(parent->getGLID()),
+      mLevel(level), mHwGamma(parent->isHardwareGammaEnabled()),
+      mRenderSystem(renderSystem)
 {
-    // devise mWidth, mHeight and mDepth and mFormat
-    GLint value = 0;
-    
-    mGLSupport.getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
-    
     // Get face identifier
     mFaceTarget = mTarget;
     if(mTarget == GL_TEXTURE_CUBE_MAP)
         mFaceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
     
-    // Get width
-    glGetTexLevelParameteriv(mFaceTarget, level, GL_TEXTURE_WIDTH, &value);
-    mWidth = value;
-    
-    // Get height
-    if(target == GL_TEXTURE_1D)
-        value = 1;  // Height always 1 for 1D textures
-    else
-        glGetTexLevelParameteriv(mFaceTarget, level, GL_TEXTURE_HEIGHT, &value);
-    mHeight = value;
-    
-    // Get depth
-    if(target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY_EXT)
-        value = 1; // Depth always 1 for non-3D textures
-    else
-        glGetTexLevelParameteriv(mFaceTarget, level, GL_TEXTURE_DEPTH, &value);
-    mDepth = value;
-
     // Get format
-    glGetTexLevelParameteriv(mFaceTarget, level, GL_TEXTURE_INTERNAL_FORMAT, &value);
-    mGLInternalFormat = value;
-    mFormat = GLPixelUtil::getClosestOGREFormat(value);
-    
-    // Default
-    mRowPitch = mWidth;
-    mSlicePitch = mHeight*mWidth;
-    mSizeInBytes = PixelUtil::getMemorySize(mWidth, mHeight, mDepth, mFormat);
+    mGLInternalFormat = GLPixelUtil::getGLInternalFormat(mFormat, mHwGamma);
     
     // Log a message
     /*
@@ -250,8 +107,6 @@ GLTextureBuffer::GLTextureBuffer(GLSupport& support, const String &baseName, GLe
     LogManager::getSingleton().logMessage( 
                 LML_NORMAL, str.str());
     */
-    // Set up pixel box
-    mBuffer = PixelBox(mWidth, mHeight, mDepth, mFormat);
     
     if(mWidth==0 || mHeight==0 || mDepth==0)
         /// We are invalid, do not allocate a buffer
@@ -266,12 +121,12 @@ GLTextureBuffer::GLTextureBuffer(GLSupport& support, const String &baseName, GLe
         mSliceTRT.reserve(mDepth);
         for(uint32 zoffset=0; zoffset<mDepth; ++zoffset)
         {
-            String name;
-            name = "rtt/" + StringConverter::toString((size_t)this) + "/" + baseName;
+            String name = getNameForRenderTexture(parent->getName(), zoffset + face);
             GLSurfaceDesc surface;
             surface.buffer = this;
             surface.zoffset = zoffset;
-            RenderTexture *trt = GLRTTManager::getSingleton().createRenderTexture(name, surface, writeGamma, fsaa);
+            surface.numSamples = parent->getFSAA();
+            RenderTexture *trt = GLRTTManager::getSingleton().createRenderTexture(name, surface, mHwGamma);
             mSliceTRT.push_back(trt);
             Root::getSingleton().getRenderSystem()->attachRenderTarget(*mSliceTRT[zoffset]);
         }
@@ -279,27 +134,18 @@ GLTextureBuffer::GLTextureBuffer(GLSupport& support, const String &baseName, GLe
 }
 GLTextureBuffer::~GLTextureBuffer()
 {
-    if(mUsage & TU_RENDERTARGET)
-    {
-        // Delete all render targets that are not yet deleted via _clearSliceRTT because the rendertarget
-        // was deleted by the user.
-        for (SliceTRT::const_iterator it = mSliceTRT.begin(); it != mSliceTRT.end(); ++it)
-        {
-            Root::getSingleton().getRenderSystem()->destroyRenderTarget((*it)->getName());
-        }
-    }
 }
 //-----------------------------------------------------------------------------
-void GLTextureBuffer::upload(const PixelBox &data, const Image::Box &dest)
+void GLTextureBuffer::upload(const PixelBox &data, const Box &dest)
 {
-    mGLSupport.getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
+    mRenderSystem->_getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
     if(PixelUtil::isCompressed(data.format))
     {
         if(data.format != mFormat || !data.isConsecutive())
             OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
             "Compressed images must be consecutive, in the source format",
             "GLTextureBuffer::upload");
-        GLenum format = GLPixelUtil::getClosestGLInternalFormat(mFormat, mHwGamma);
+        GLenum format = GLPixelUtil::getGLInternalFormat(mFormat, mHwGamma);
         // Data must be consecutive and at beginning of buffer as PixelStorei not allowed
         // for compressed formats
         switch(mTarget) {
@@ -373,72 +219,27 @@ void GLTextureBuffer::upload(const PixelBox &data, const Image::Box &dest)
                 break;
         }
         
-    } 
-    else if(mSoftwareMipmap)
-    {
-        GLenum format = GLPixelUtil::getClosestGLInternalFormat(mFormat);
-        if(data.getWidth() != data.rowPitch)
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, data.rowPitch);
-        if(data.getHeight()*data.getWidth() != data.slicePitch)
-            glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, (data.slicePitch/data.getWidth()));
-        if(data.left > 0 || data.top > 0 || data.front > 0)
-            glPixelStorei(GL_UNPACK_SKIP_PIXELS, data.left + data.rowPitch * data.top + data.slicePitch * data.front);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        
-        switch(mTarget)
-        {
-        case GL_TEXTURE_1D:
-            gluBuild1DMipmaps(
-                GL_TEXTURE_1D, format,
-                dest.getWidth(),
-                GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                data.data);
-            break;
-        case GL_TEXTURE_2D:
-        case GL_TEXTURE_CUBE_MAP:
-            gluBuild2DMipmaps(
-                mFaceTarget,
-                format, dest.getWidth(), dest.getHeight(), 
-                GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format), 
-                data.data);
-            break;      
-        case GL_TEXTURE_3D:
-        case GL_TEXTURE_2D_ARRAY_EXT:
-            /* Requires GLU 1.3 which is harder to come by than cards doing hardware mipmapping
-                Most 3D textures don't need mipmaps?
-            gluBuild3DMipmaps(
-                GL_TEXTURE_3D, internalFormat, 
-                data.getWidth(), data.getHeight(), data.getDepth(),
-                GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                data.data);
-            */
-            glTexImage3D(
-                mTarget, 0, format, 
-                dest.getWidth(), dest.getHeight(), dest.getDepth(), 0, 
-                GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                data.data );
-            break;
-        }
-    } 
+    }
     else
     {
         if(data.getWidth() != data.rowPitch)
             glPixelStorei(GL_UNPACK_ROW_LENGTH, data.rowPitch);
         if(data.getWidth() > 0 && data.getHeight()*data.getWidth() != data.slicePitch)
             glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, (data.slicePitch/data.getWidth()));
-        if(data.left > 0 || data.top > 0 || data.front > 0)
-            glPixelStorei(GL_UNPACK_SKIP_PIXELS, data.left + data.rowPitch * data.top + data.slicePitch * data.front);
         if((data.getWidth()*PixelUtil::getNumElemBytes(data.format)) & 3) {
             // Standard alignment of 4 is not right
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         }
+
+        void* pdata = data.getTopLeftFrontPixelPtr();
+
         switch(mTarget) {
             case GL_TEXTURE_1D:
                 glTexSubImage1D(GL_TEXTURE_1D, mLevel, 
                     dest.left,
                     dest.getWidth(),
                     GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                    data.data);
+                    pdata);
                 break;
             case GL_TEXTURE_2D:
             case GL_TEXTURE_CUBE_MAP:
@@ -446,7 +247,7 @@ void GLTextureBuffer::upload(const PixelBox &data, const Image::Box &dest)
                     dest.left, dest.top, 
                     dest.getWidth(), dest.getHeight(),
                     GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                    data.data);
+                    pdata);
                 break;
             case GL_TEXTURE_3D:
             case GL_TEXTURE_2D_ARRAY_EXT:
@@ -455,26 +256,30 @@ void GLTextureBuffer::upload(const PixelBox &data, const Image::Box &dest)
                     dest.left, dest.top, dest.front,
                     dest.getWidth(), dest.getHeight(), dest.getDepth(),
                     GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-                    data.data);
+                    pdata);
                 break;
         }   
     }
+
+    // TU_AUTOMIPMAP is only enabled when there are no custom mips
+    // so we do not have to care about overwriting
+    if((mUsage & TU_AUTOMIPMAP) && (mLevel == 0))
+    {
+        glGenerateMipmapEXT(mTarget);
+    }
+
     // Restore defaults
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    if (GLEW_VERSION_1_2)
-        glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 //-----------------------------------------------------------------------------  
 void GLTextureBuffer::download(const PixelBox &data)
 {
-    if(data.getWidth() != getWidth() ||
-        data.getHeight() != getHeight() ||
-        data.getDepth() != getDepth())
+    if(data.getSize() != getSize())
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "only download of entire buffer is supported by GL",
             "GLTextureBuffer::download");
-    mGLSupport.getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
+    mRenderSystem->_getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
     if(PixelUtil::isCompressed(data.format))
     {
         if(data.format != mFormat || !data.isConsecutive())
@@ -491,8 +296,6 @@ void GLTextureBuffer::download(const PixelBox &data)
             glPixelStorei(GL_PACK_ROW_LENGTH, data.rowPitch);
         if(data.getHeight()*data.getWidth() != data.slicePitch)
             glPixelStorei(GL_PACK_IMAGE_HEIGHT, (data.slicePitch/data.getWidth()));
-        if(data.left > 0 || data.top > 0 || data.front > 0)
-            glPixelStorei(GL_PACK_SKIP_PIXELS, data.left + data.rowPitch * data.top + data.slicePitch * data.front);
         if((data.getWidth()*PixelUtil::getNumElemBytes(data.format)) & 3) {
             // Standard alignment of 4 is not right
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -500,16 +303,15 @@ void GLTextureBuffer::download(const PixelBox &data)
         // We can only get the entire texture
         glGetTexImage(mFaceTarget, mLevel, 
             GLPixelUtil::getGLOriginFormat(data.format), GLPixelUtil::getGLOriginDataType(data.format),
-            data.data);
+            data.getTopLeftFrontPixelPtr());
         // Restore defaults
         glPixelStorei(GL_PACK_ROW_LENGTH, 0);
         glPixelStorei(GL_PACK_IMAGE_HEIGHT, 0);
-        glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
     }
 }
 //-----------------------------------------------------------------------------  
-void GLTextureBuffer::bindToFramebuffer(GLenum attachment, uint32 zoffset)
+void GLTextureBuffer::bindToFramebuffer(uint32 attachment, uint32 zoffset)
 {
     assert(zoffset < mDepth);
     switch(mTarget)
@@ -533,7 +335,7 @@ void GLTextureBuffer::bindToFramebuffer(GLenum attachment, uint32 zoffset)
 //-----------------------------------------------------------------------------
 void GLTextureBuffer::copyFromFramebuffer(uint32 zoffset)
 {
-    mGLSupport.getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
+    mRenderSystem->_getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
     switch(mTarget)
     {
     case GL_TEXTURE_1D:
@@ -550,16 +352,16 @@ void GLTextureBuffer::copyFromFramebuffer(uint32 zoffset)
     }
 }
 //-----------------------------------------------------------------------------  
-void GLTextureBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Image::Box &srcBox, const Image::Box &dstBox)
+void GLTextureBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Box &srcBox, const Box &dstBox)
 {
-    GLTextureBuffer *srct = static_cast<GLTextureBuffer *>(src.getPointer());
+    GLTextureBuffer *srct = static_cast<GLTextureBuffer *>(src.get());
     /// Check for FBO support first
     /// Destination texture must be 1D, 2D, 3D, or Cube
     /// Source texture must be 1D, 2D or 3D
     
-    // This does not seem to work for RTTs after the first update
-    // I have no idea why! For the moment, disable 
-    if(GLEW_EXT_framebuffer_object && (src->getUsage() & TU_RENDERTARGET) == 0 &&
+    // Using this in Terrain composite map RTT interferes with Impostor RTT rendering in pagedgeometry
+    // I have no idea why! For the moment, disable when src is RTT
+    if(GLAD_GL_EXT_framebuffer_object && (src->getUsage() & TU_RENDERTARGET) == 0 &&
         (srct->mTarget==GL_TEXTURE_1D||srct->mTarget==GL_TEXTURE_2D
          ||srct->mTarget==GL_TEXTURE_3D)&&mTarget!=GL_TEXTURE_2D_ARRAY_EXT)
     {
@@ -567,7 +369,7 @@ void GLTextureBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Image:
     }
     else
     {
-        GLHardwarePixelBuffer::blit(src, srcBox, dstBox);
+        GLHardwarePixelBufferCommon::blit(src, srcBox, dstBox);
     }
 }
 
@@ -578,7 +380,7 @@ void GLTextureBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Image:
 /// Supports compressed formats as both source and destination format, it will use the hardware DXT compressor
 /// if available.
 /// @author W.J. van der Laan
-void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &srcBox, const Image::Box &dstBox)
+void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Box &srcBox, const Box &dstBox)
 {
     //std::cerr << "GLTextureBuffer::blitFromTexture " <<
     //src->mTextureID << ":" << srcBox.left << "," << srcBox.top << "," << srcBox.right << "," << srcBox.bottom << " " << 
@@ -594,22 +396,18 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
     // Important to disable all other texture units
     RenderSystem* rsys = Root::getSingleton().getRenderSystem();
     rsys->_disableTextureUnitsFrom(0);
-    if (GLEW_VERSION_1_2)
-    {
-        mGLSupport.getStateCacheManager()->activateGLTextureUnit(0);
-    }
-
+    mRenderSystem->_getStateCacheManager()->activateGLTextureUnit(0);
 
     /// Disable alpha, depth and scissor testing, disable blending, 
     /// disable culling, disble lighting, disable fog and reset foreground
     /// colour.
-    mGLSupport.getStateCacheManager()->setEnabled(GL_ALPHA_TEST, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_DEPTH_TEST, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_SCISSOR_TEST, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_BLEND, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_CULL_FACE, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_LIGHTING, false);
-    mGLSupport.getStateCacheManager()->setEnabled(GL_FOG, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_ALPHA_TEST, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_DEPTH_TEST, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_SCISSOR_TEST, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_BLEND, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_CULL_FACE, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_LIGHTING, false);
+    mRenderSystem->_getStateCacheManager()->setEnabled(GL_FOG, false);
     
     /// Save and reset matrices
     glMatrixMode(GL_MODELVIEW);
@@ -623,16 +421,14 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
     glLoadIdentity();
     
     /// Set up source texture
-    mGLSupport.getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
+    mRenderSystem->_getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
     
     /// Set filtering modes depending on the dimensions and source
-    if(srcBox.getWidth()==dstBox.getWidth() &&
-        srcBox.getHeight()==dstBox.getHeight() &&
-        srcBox.getDepth()==dstBox.getDepth())
+    if(srcBox.getSize()==dstBox.getSize())
     {
         /// Dimensions match -- use nearest filtering (fastest and pixel correct)
-        mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
     else
     {
@@ -642,26 +438,26 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
         {
             /// Automatic mipmaps, we can safely use trilinear filter which
             /// brings greatly imporoved quality for minimisation.
-            mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         }
         else
         {
             /// Manual mipmaps, stay safe with bilinear filtering so that no
             /// intermipmap leakage occurs.
-            mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         }
     }
 
     /// Clamp to edge (fastest)
-    mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     
     /// Set origin base level mipmap to make sure we source from the right mip
     /// level.
-    mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_BASE_LEVEL, src->mLevel);
+    mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_BASE_LEVEL, src->mLevel);
     
     /// Store old binding so it can be restored later
     GLint oldfb;
@@ -670,27 +466,24 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
     /// Set up temporary FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboMan->getTemporaryFBO());
     
-    GLuint tempTex = 0;
+    TexturePtr tempTex;
     if(!fboMan->checkFormat(mFormat))
     {
         /// If target format not directly supported, create intermediate texture
-        GLenum tempFormat = GLPixelUtil::getClosestGLInternalFormat(fboMan->getSupportedAlternative(mFormat), mHwGamma);
-        glGenTextures(1, &tempTex);
-        mGLSupport.getStateCacheManager()->bindGLTexture(GL_TEXTURE_2D, tempTex);
-        mGLSupport.getStateCacheManager()->setTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-        /// Allocate temporary texture of the size of the destination area
-        glTexImage2D(GL_TEXTURE_2D, 0, tempFormat, 
-            GLPixelUtil::optionalPO2(dstBox.getWidth()), GLPixelUtil::optionalPO2(dstBox.getHeight()), 
-            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        tempTex = TextureManager::getSingleton().createManual(
+            "GLBlitFromTextureTMP", ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME, TEX_TYPE_2D,
+            dstBox.getWidth(), dstBox.getHeight(), dstBox.getDepth(), 0,
+            fboMan->getSupportedAlternative(mFormat));
+
         glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-            GL_TEXTURE_2D, tempTex, 0);
+            GL_TEXTURE_2D, static_pointer_cast<GLTexture>(tempTex)->getGLID(), 0);
         /// Set viewport to size of destination slice
-        mGLSupport.getStateCacheManager()->setViewport(0, 0, dstBox.getWidth(), dstBox.getHeight());
+        mRenderSystem->_getStateCacheManager()->setViewport(Rect(0, 0, dstBox.getWidth(), dstBox.getHeight()));
     }
     else
     {
         /// We are going to bind directly, so set viewport to size and position of destination slice
-        mGLSupport.getStateCacheManager()->setViewport(dstBox.left, dstBox.top, dstBox.getWidth(), dstBox.getHeight());
+        mRenderSystem->_getStateCacheManager()->setViewport(Rect(dstBox.left, dstBox.top, dstBox.right, dstBox.bottom));
     }
     
     /// Process each destination slice
@@ -714,8 +507,8 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
         w = (w+0.5f) / (float)src->mDepth;
         
         /// Finally we're ready to rumble   
-        mGLSupport.getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
-        mGLSupport.getStateCacheManager()->setEnabled(src->mTarget, true);
+        mRenderSystem->_getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
+        mRenderSystem->_getStateCacheManager()->setEnabled(src->mTarget, true);
         glBegin(GL_QUADS);
         glTexCoord3f(u1, v1, w);
         glVertex2f(-1.0f, -1.0f);
@@ -726,12 +519,12 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
         glTexCoord3f(u1, v2, w);
         glVertex2f(-1.0f, 1.0f);
         glEnd();
-        mGLSupport.getStateCacheManager()->setEnabled(src->mTarget, false);
+        mRenderSystem->_getStateCacheManager()->setEnabled(src->mTarget, false);
         
         if(tempTex)
         {
             /// Copy temporary texture
-            mGLSupport.getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
+            mRenderSystem->_getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
             switch(mTarget)
             {
             case GL_TEXTURE_1D:
@@ -760,14 +553,14 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
         /// Generate mipmaps
         if(mUsage & TU_AUTOMIPMAP)
         {
-            mGLSupport.getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
+            mRenderSystem->_getStateCacheManager()->bindGLTexture(mTarget, mTextureID);
             glGenerateMipmapEXT(mTarget);
         }
     }
 
     /// Reset source texture to sane state
-    mGLSupport.getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
-    mGLSupport.getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_BASE_LEVEL, 0);
+    mRenderSystem->_getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
+    mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_BASE_LEVEL, 0);
     
     /// Detach texture from temporary framebuffer
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
@@ -782,98 +575,48 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Image::Box &sr
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
     glPopAttrib();
-    glDeleteTextures(1, &tempTex);
+
+    if(tempTex)
+        TextureManager::getSingleton().remove(tempTex);
 }
 //-----------------------------------------------------------------------------  
 /// blitFromMemory doing hardware trilinear scaling
-void GLTextureBuffer::blitFromMemory(const PixelBox &src_orig, const Image::Box &dstBox)
+void GLTextureBuffer::blitFromMemory(const PixelBox &src, const Box &dstBox)
 {
+    if(!mBuffer.contains(dstBox))
+        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "destination box out of range");
+
     /// Fall back to normal GLHardwarePixelBuffer::blitFromMemory in case 
     /// - FBO is not supported
-    /// - Either source or target is luminance due doesn't looks like supported by hardware
     /// - the source dimensions match the destination ones, in which case no scaling is needed
-    if(!GLEW_EXT_framebuffer_object ||
-        PixelUtil::isLuminance(src_orig.format) ||
-        PixelUtil::isLuminance(mFormat) ||
-        (src_orig.getWidth() == dstBox.getWidth() &&
-        src_orig.getHeight() == dstBox.getHeight() &&
-        src_orig.getDepth() == dstBox.getDepth()))
+    if (!GLAD_GL_EXT_framebuffer_object ||
+        (src.getSize() == dstBox.getSize()))
     {
-        GLHardwarePixelBuffer::blitFromMemory(src_orig, dstBox);
+        _blitFromMemory(src, dstBox);
         return;
     }
-    if(!mBuffer.contains(dstBox))
-        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "destination box out of range",
-                    "GLTextureBuffer::blitFromMemory");
-    /// For scoped deletion of conversion buffer
-    MemoryDataStreamPtr buf;
-    PixelBox src;
-    
-    /// First, convert the srcbox to a OpenGL compatible pixel format
-    if(GLPixelUtil::getGLOriginFormat(src_orig.format) == 0)
-    {
-        /// Convert to buffer internal format
-        buf.bind(new MemoryDataStream(
-                PixelUtil::getMemorySize(src_orig.getWidth(), src_orig.getHeight(), src_orig.getDepth(),
-                                         mFormat)));
-        src = PixelBox(src_orig.getWidth(), src_orig.getHeight(), src_orig.getDepth(), mFormat, buf->getPtr());
-        PixelUtil::bulkPixelConversion(src_orig, src);
-    }
-    else
-    {
-        /// No conversion needed
-        src = src_orig;
-    }
-    
-    /// Create temporary texture to store source data
-    GLuint id;
-    GLenum target = (src.getDepth()!=1)?GL_TEXTURE_3D:GL_TEXTURE_2D;
-    GLsizei width = GLPixelUtil::optionalPO2(src.getWidth());
-    GLsizei height = GLPixelUtil::optionalPO2(src.getHeight());
-    GLsizei depth = GLPixelUtil::optionalPO2(src.getDepth());
-    GLenum format = GLPixelUtil::getClosestGLInternalFormat(src.format, mHwGamma);
-    
-    /// Generate texture name
-    glGenTextures(1, &id);
-    
-    /// Set texture type
-    mGLSupport.getStateCacheManager()->bindGLTexture(target, id);
-    
-    /// Set automatic mipmap generation; nice for minimisation
-    mGLSupport.getStateCacheManager()->setTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 1000 );
-    mGLSupport.getStateCacheManager()->setTexParameteri(target, GL_GENERATE_MIPMAP, GL_TRUE );
-    
-    /// Allocate texture memory
-    if(target == GL_TEXTURE_3D || target == GL_TEXTURE_2D_ARRAY_EXT)
-        glTexImage3D(target, 0, format, width, height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    else
-        glTexImage2D(target, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-    /// GL texture buffer
-    GLTextureBuffer tex(mGLSupport, BLANKSTRING, target, id, 0, 0, (Usage)(TU_AUTOMIPMAP|HBU_STATIC_WRITE_ONLY), false, false, 0);
-    
-    /// Upload data to 0,0,0 in temporary texture
-    Image::Box tempTarget(0, 0, 0, src.getWidth(), src.getHeight(), src.getDepth());
-    tex.upload(src, tempTarget);
-    
-    /// Blit
-    blitFromTexture(&tex, tempTarget, dstBox);
-    
-    /// Delete temp texture
-    glDeleteTextures(1, &id);
-}
-//-----------------------------------------------------------------------------    
+    TextureType type = (src.getDepth() != 1) ? TEX_TYPE_3D : TEX_TYPE_2D;
 
-RenderTexture *GLTextureBuffer::getRenderTarget(size_t zoffset)
-{
-    assert(mUsage & TU_RENDERTARGET);
-    assert(zoffset < mDepth);
-    return mSliceTRT[zoffset];
+    // Set automatic mipmap generation; nice for minimisation
+    TexturePtr tex = TextureManager::getSingleton().createManual(
+        "GLBlitFromMemoryTMP", ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME, type,
+        src.getWidth(), src.getHeight(), src.getDepth(), MIP_UNLIMITED, src.format);
+
+    // Upload data to 0,0,0 in temporary texture
+    Box tempTarget(src.getSize());
+    tex->getBuffer()->blitFromMemory(src, tempTarget);
+
+    // Blit from texture
+    blit(tex->getBuffer(), tempTarget, dstBox);
+
+    // Delete temp texture
+    TextureManager::getSingleton().remove(tex);
 }
 //********* GLRenderBuffer
 //----------------------------------------------------------------------------- 
 GLRenderBuffer::GLRenderBuffer(GLenum format, uint32 width, uint32 height, GLsizei numSamples):
-    GLHardwarePixelBuffer(width, height, 1, GLPixelUtil::getClosestOGREFormat(format),HBU_WRITE_ONLY),
+    GLHardwarePixelBufferCommon(width, height, 1, GLPixelUtil::getClosestOGREFormat(format),HBU_GPU_ONLY),
     mRenderbufferID(0)
 {
     mGLInternalFormat = format;
@@ -901,7 +644,7 @@ GLRenderBuffer::~GLRenderBuffer()
     glDeleteRenderbuffersEXT(1, &mRenderbufferID);
 }
 //-----------------------------------------------------------------------------  
-void GLRenderBuffer::bindToFramebuffer(GLenum attachment, uint32 zoffset)
+void GLRenderBuffer::bindToFramebuffer(uint32 attachment, uint32 zoffset)
 {
     assert(zoffset < mDepth);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, attachment,

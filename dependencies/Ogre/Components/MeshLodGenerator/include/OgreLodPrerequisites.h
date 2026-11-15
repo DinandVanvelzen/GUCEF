@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,9 +44,7 @@ namespace Ogre
     class LodInputProviderBuffer;
     class LodOutputProvider;
     class LodOutputProviderMesh;
-    class LodOutputProviderCompressedMesh;
     class LodOutputProviderBuffer;
-    class LodOutputProviderCompressedBuffer;
     class LodOutsideMarker;
 
 
@@ -61,11 +59,11 @@ namespace Ogre
     class LodWorkQueueInjectorListener;
     struct LodData;
 
-    typedef SharedPtr<LodCollapseCost> LodCollapseCostPtr;
-    typedef SharedPtr<LodCollapser> LodCollapserPtr;
-    typedef SharedPtr<LodData> LodDataPtr;
-    typedef SharedPtr<LodInputProvider> LodInputProviderPtr;
-    typedef SharedPtr<LodOutputProvider> LodOutputProviderPtr;
+    typedef shared_ptr<LodCollapseCost> LodCollapseCostPtr;
+    typedef shared_ptr<LodCollapser> LodCollapserPtr;
+    typedef shared_ptr<LodData> LodDataPtr;
+    typedef shared_ptr<LodInputProvider> LodInputProviderPtr;
+    typedef shared_ptr<LodOutputProvider> LodOutputProviderPtr;
 
     typedef GeneralAllocatedObject MeshLodAlloc;
 }

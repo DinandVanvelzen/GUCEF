@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,16 +41,16 @@ namespace Ogre {
     *  @{
     */
     /** Allows the rendering of a wireframe bounding box.
-        @remarks
-            This class builds a wireframe renderable from a given aabb. A pointer to this class can be
-            added to a render queue to display the bounding box of an object.
+
+        This class builds a wireframe renderable from a given aabb. A pointer to this class can be
+        added to a render queue to display the bounding box of an object.
     */
     class _OgreExport WireBoundingBox : public SimpleRenderable
     {
-    protected:
+    private:
         /** Override this method to prevent parent transforms (rotation,translation,scale)
         */
-        void getWorldTransforms( Matrix4* xform ) const;
+        void getWorldTransforms( Matrix4* xform ) const override;
         
         /** Builds the wireframe line list.
         */
@@ -72,9 +72,9 @@ namespace Ogre {
         */
         void setupBoundingBox(const AxisAlignedBox& aabb);
 
-        Real getSquaredViewDepth(const Camera* cam) const;
+        Real getSquaredViewDepth(const Camera* cam) const override;
 
-        Real getBoundingRadius(void) const { return mRadius; }
+        Real getBoundingRadius(void) const override { return mRadius; }
 
     };
     /** @} */

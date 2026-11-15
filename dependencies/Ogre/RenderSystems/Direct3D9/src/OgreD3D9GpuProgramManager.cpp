@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,61 +31,14 @@ THE SOFTWARE.
 
 namespace Ogre {
     //-----------------------------------------------------------------------------
-    D3D9GpuProgramManager::D3D9GpuProgramManager()
-        :GpuProgramManager()
+    String D3D9GpuProgramManager::currentLanguage = "vs_2_0";
+    GpuProgram* D3D9GpuProgramManager::create(ResourceManager* creator, const String& name, ResourceHandle handle,
+        const String& group, bool isManual, ManualResourceLoader* loader)
     {
-        // Superclass sets up members 
-
-        // Register with resource group manager
-        ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
-
+        return OGRE_NEW D3D9GpuProgram(creator, name, handle, group, isManual, loader);
     }
-    //-----------------------------------------------------------------------------
-    D3D9GpuProgramManager::~D3D9GpuProgramManager()
-    {
-        // Unregister with resource group manager
-        ResourceGroupManager::getSingleton()._unregisterResourceManager(mResourceType);
 
-    }
-    //-----------------------------------------------------------------------------
-    Resource* D3D9GpuProgramManager::createImpl(const String& name, ResourceHandle handle, 
-        const String& group, bool isManual, ManualResourceLoader* loader,
-        const NameValuePairList* params)
-    {
-        NameValuePairList::const_iterator paramIt;
-
-        if (!params || (paramIt = params->find("type")) == params->end())
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "You must supply a 'type' parameter",
-                "D3D9GpuProgramManager::createImpl");
-        }
-
-        if (paramIt->second == "vertex_program")
-        {
-            return OGRE_NEW D3D9GpuVertexProgram(this, name, handle, group, 
-                isManual, loader);
-        }
-        else
-        {
-            return OGRE_NEW D3D9GpuFragmentProgram(this, name, handle, group, 
-                isManual, loader);
-        }
-    }
-    //-----------------------------------------------------------------------------
-    Resource* D3D9GpuProgramManager::createImpl(const String& name, ResourceHandle handle, 
-        const String& group, bool isManual, ManualResourceLoader* loader,
-        GpuProgramType gptype, const String& syntaxCode)
-    {
-        if (gptype == GPT_VERTEX_PROGRAM)
-        {
-            return OGRE_NEW D3D9GpuVertexProgram(this, name, handle, group, 
-                isManual, loader);
-        }
-        else
-        {
-            return OGRE_NEW D3D9GpuFragmentProgram(this, name, handle, group, 
-                isManual, loader);
-        }
+    const String& D3D9GpuProgramManager::getLanguage(void) const {
+        return currentLanguage;
     }
 }

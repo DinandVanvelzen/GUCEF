@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,12 @@ THE SOFTWARE.
 #include "OgreBlendMode.h"
 
 namespace Ogre {
-
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup BSPSceneManager
+    *  @{
+    */
 
     /** Class for managing Quake3 custom shaders.
         Quake3 uses .shader files to define custom shaders, or Materials in Ogre-speak.
@@ -59,7 +64,7 @@ namespace Ogre {
         void parseShaderPassAttrib( const String& line, Quake3Shader* pShader, Quake3Shader::Pass* pPass);
         SceneBlendFactor convertBlendFunc( const String& q3func);
 
-        typedef map<String, Quake3Shader*>::type Quake3ShaderMap;
+        typedef std::map<String, Quake3Shader*> Quake3ShaderMap;
         Quake3ShaderMap mShaderMap;
         StringVector mScriptPatterns;
 
@@ -69,13 +74,13 @@ namespace Ogre {
         virtual ~Quake3ShaderManager();
 
         /** @copydoc ScriptLoader::getScriptPatterns */
-        const StringVector& getScriptPatterns(void) const;
+        const StringVector& getScriptPatterns(void) const override;
 
         /** @copydoc ScriptLoader::parseScript */
-        void parseScript(DataStreamPtr& stream, const String& groupName);
+        void parseScript(DataStreamPtr& stream, const String& groupName) override;
 
         /** @copydoc ScriptLoader::getLoadingOrder */
-        Real getLoadingOrder(void) const;
+        Real getLoadingOrder(void) const override;
 
         /** Create implementation. */
         Quake3Shader* create(const String& name);
@@ -84,42 +89,15 @@ namespace Ogre {
         /** Retrieve a Quake3Shader by name */
         Quake3Shader* getByName(const String& name);
 
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static Quake3ShaderManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static Quake3ShaderManager* getSingletonPtr(void);
 
 
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

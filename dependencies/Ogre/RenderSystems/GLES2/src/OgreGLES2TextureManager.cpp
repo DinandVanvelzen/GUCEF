@@ -27,14 +27,15 @@ THE SOFTWARE.
 */
 
 #include "OgreGLES2TextureManager.h"
-#include "OgreGLES2RenderTexture.h"
+#include "OgreGLRenderTexture.h"
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
 #include "OgreGLES2StateCacheManager.h"
+#include "OgreGLES2PixelFormat.h"
 
 namespace Ogre {
-    GLES2TextureManager::GLES2TextureManager(GLES2Support& support)
-        : TextureManager(), mGLSupport(support), mWarningTextureID(0)
+    GLES2TextureManager::GLES2TextureManager(GLES2RenderSystem* renderSystem)
+        : TextureManager(), mRenderSystem(renderSystem)
     {
         // Register with group manager
         ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
@@ -44,9 +45,6 @@ namespace Ogre {
     {
         // Unregister with group manager
         ResourceGroupManager::getSingleton()._unregisterResourceManager(mResourceType);
-
-        // Delete warning texture
-        OGRE_CHECK_GL_ERROR(glDeleteTextures(1, &mWarningTextureID));
     }
 
     Resource* GLES2TextureManager::createImpl(const String& name, ResourceHandle handle, 
@@ -54,35 +52,7 @@ namespace Ogre {
                                            ManualResourceLoader* loader,
                                            const NameValuePairList* createParams)
     {
-        return OGRE_NEW GLES2Texture(this, name, handle, group, isManual, loader, mGLSupport);
-    }
-
-    //-----------------------------------------------------------------------------
-    void GLES2TextureManager::createWarningTexture()
-    {
-        // Generate warning texture
-        uint32 width = 8;
-        uint32 height = 8;
-
-        uint16* data = new uint16[width * height];
-
-        // Yellow/black stripes
-        for(size_t y = 0; y < height; ++y)
-        {
-            for(size_t x = 0; x < width; ++x)
-            {
-                data[y * width + x] = (((x + y) % 8) < 4) ? 0x0000 : 0xFFF0;
-            }
-        }
-
-        // Create GL resource
-        OGRE_CHECK_GL_ERROR(glGenTextures(1, &mWarningTextureID));
-        OGRE_CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, mWarningTextureID));
-
-        OGRE_CHECK_GL_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                                         GL_UNSIGNED_SHORT_5_6_5, (void*)data));
-        // Free memory
-        delete [] data;
+        return OGRE_NEW GLES2Texture(this, name, handle, group, isManual, loader, mRenderSystem);
     }
 
     PixelFormat GLES2TextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
@@ -95,13 +65,13 @@ namespace Ogre {
         if (PixelUtil::isCompressed(format) &&
             !caps->hasCapability(RSC_TEXTURE_COMPRESSION))
         {
-            return PF_A8R8G8B8;
+            return PF_BYTE_RGBA;
         }
         // if floating point textures not supported, revert to PF_A8R8G8B8
         if (PixelUtil::isFloatingPoint(format) &&
             !caps->hasCapability(RSC_TEXTURE_FLOAT))
         {
-            return PF_A8R8G8B8;
+            return PF_BYTE_RGBA;
         }
 
         // Check if this is a valid rendertarget format
@@ -109,7 +79,13 @@ namespace Ogre {
         {
             /// Get closest supported alternative
             /// If mFormat is supported it's returned
-            return GLES2RTTManager::getSingleton().getSupportedAlternative(format);
+            return GLRTTManager::getSingleton().getSupportedAlternative(format);
+        }
+
+        // format not supported by GLES2: e.g. BGR
+        if(GLES2PixelUtil::getGLInternalFormat(format) == GL_NONE)
+        {
+            return PF_BYTE_RGBA;
         }
 
         // Supported
@@ -119,24 +95,15 @@ namespace Ogre {
     bool GLES2TextureManager::isHardwareFilteringSupported(TextureType ttype, PixelFormat format, int usage,
             bool preciseFormatOnly)
     {
-        if (format == PF_UNKNOWN)
-        {
+        // precise format check
+        if (!TextureManager::isHardwareFilteringSupported(ttype, format, usage, preciseFormatOnly))
             return false;
-        }
-
-        // Check native format
-        PixelFormat nativeFormat = getNativeFormat(ttype, format, usage);
-        if (preciseFormatOnly && format != nativeFormat)
-        {
-            return false;
-        }
 
         // Assume non-floating point is supported always
-        if (!PixelUtil::isFloatingPoint(nativeFormat))
-        {
+        if (!PixelUtil::isFloatingPoint(getNativeFormat(ttype, format, usage)))
             return true;
-        }
-
-        return false;
+        
+        // check for floating point extension
+        return mRenderSystem->checkExtension("GL_OES_texture_float_linear");
     }
 }

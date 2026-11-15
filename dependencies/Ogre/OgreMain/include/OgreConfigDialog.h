@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,19 +29,7 @@ THE SOFTWARE.
 #define __CommonConfigDialog_H__
 
 #include "OgrePrerequisites.h"
-#include "OgrePlatform.h"
 
-// Dinand's GUCEF hack, we never want a config dialog: added  OGRE_NO_CONFIG_DIALOG
-// Bring in the specific platform's header file: first allow forced override
-#if !defined(OGRE_NO_CONFIG_DIALOG)
-    #if defined(OGRE_GUI_WIN32) || OGRE_PLATFORM == OGRE_PLATFORM_WIN32
-    # include "WIN32/OgreConfigDialogImp.h"
-    #elif defined OGRE_GUI_gtk
-    # include "gtk/OgreConfigDialogImp.h"
-    #elif OGRE_PLATFORM == OGRE_PLATFORM_APPLE
-    # include "OSX/OgreConfigDialogImp.h"
-    #endif
-#else
 namespace Ogre
 {
     /** \addtogroup Core
@@ -52,23 +40,14 @@ namespace Ogre
     */
 
     /** Defines the behaviour of an automatic renderer configuration dialog.
-    @remarks
-        OGRE comes with it's own renderer configuration dialog, which
-        applications can use to easily allow the user to configure the
-        settings appropriate to their machine. This class defines the
-        interface to this standard dialog. Because dialogs are inherently
-        tied to a particular platform's windowing system, there will be a
-        different subclass for each platform.
-    @author
-        Steven J. Streeting
     */
     class _OgreExport ConfigDialog : public UtilityAlloc
     {
     public:
-        ConfigDialog();
+        virtual ~ConfigDialog() {}
 
         /** Displays the dialog.
-        @remarks
+
             This method displays the dialog and from then on the dialog
             interacts with the user independently. The dialog will be
             calling the relevant OGRE rendering systems to query them for
@@ -82,17 +61,10 @@ namespace Ogre
         @see
             RenderSystem
         */
-        bool display();
-
-    protected:
-        // platform specific implementation
-        // TODO: use this on remaining platforms instead of duplicating whole header
-        struct PrivateData;
-        PrivateData* mImpl;
+        virtual bool display() = 0;
     };
     /** @} */
     /** @} */
 }
-#endif
 
 #endif

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ THE SOFTWARE.
 #include "OgrePrerequisites.h"
 
 #include "OgreSingleton.h"
-#include "OgreIteratorWrappers.h"
+#include "OgreIteratorWrapper.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
@@ -46,12 +46,12 @@ namespace Ogre {
     */
     class _OgreExport ArchiveManager : public Singleton<ArchiveManager>, public ArchiveAlloc
     {
-    protected:
-        typedef map<String, ArchiveFactory*>::type ArchiveFactoryMap;
+    private:
+        typedef std::map<String, ArchiveFactory*> ArchiveFactoryMap;
         /// Factories available to create archives, indexed by archive type (String identifier e.g. 'Zip')
         ArchiveFactoryMap mArchFactories;
         /// Currently loaded archives
-        typedef map<String, Archive*>::type ArchiveMap;
+        typedef std::map<String, Archive*> ArchiveMap;
         ArchiveMap mArchives;
 
     public:
@@ -63,13 +63,15 @@ namespace Ogre {
         virtual ~ArchiveManager();
 
         /** Opens an archive for file reading.
-            @remarks
-                The archives are created using class factories within
-                extension libraries.
+
+            The archives are created using class factories within
+            extension libraries.
             @param filename
                 The filename that will be opened
             @param archiveType
                 The type of archive that this is. For example: "Zip".
+            @param readOnly
+                Whether the Archive is read only
             @return
                 If the function succeeds, a valid pointer to an Archive
                 object is returned.
@@ -79,12 +81,12 @@ namespace Ogre {
         Archive* load( const String& filename, const String& archiveType, bool readOnly);
 
         /** Unloads an archive.
-        @remarks
+
             You must ensure that this archive is not being used before removing it.
         */
         void unload(Archive* arch);
         /** Unloads an archive by name.
-        @remarks
+
             You must ensure that this archive is not being used before removing it.
         */
         void unload(const String& filename);
@@ -93,43 +95,15 @@ namespace Ogre {
         ArchiveMapIterator getArchiveIterator(void);
 
         /** Adds a new ArchiveFactory to the list of available factories.
-            @remarks
-                Plugin developers who add new archive codecs need to call
-                this after defining their ArchiveFactory subclass and
-                Archive subclasses for their archive type.
+
+            Plugin developers who add new archive codecs need to call
+            this after defining their ArchiveFactory subclass and
+            Archive subclasses for their archive type.
         */
         void addArchiveFactory(ArchiveFactory* factory);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static ArchiveManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static ArchiveManager* getSingletonPtr(void);
     };
     /** @} */

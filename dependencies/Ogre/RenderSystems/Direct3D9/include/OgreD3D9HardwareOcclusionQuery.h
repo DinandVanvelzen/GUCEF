@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,6 @@ namespace Ogre {
         void beginOcclusionQuery(); 
         void endOcclusionQuery();
         bool pullOcclusionQuery( unsigned int* NumOfFragments);
-        unsigned int getLastQuerysPixelcount();
         bool isStillOutstanding(void);
     
         // Called immediately after the Direct3D device has been created.
@@ -102,7 +101,7 @@ namespace Ogre {
         // private members
         //--
     private:                    
-        typedef map<IDirect3DDevice9*, IDirect3DQuery9*>::type DeviceToQueryMap;
+        typedef std::map<IDirect3DDevice9*, IDirect3DQuery9*> DeviceToQueryMap;
         typedef DeviceToQueryMap::iterator                     DeviceToQueryIterator;
 
         DeviceToQueryMap                mMapDeviceToQuery;      

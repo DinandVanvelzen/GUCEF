@@ -33,131 +33,47 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 #include "OgreHardwareBufferManager.h"
 
 namespace Ogre {
-    // Default threshold at which glMapBuffer becomes more efficient than glBufferSubData (32k?)
-    //TODO Double check that this still holds.
-#       define OGRE_GL_DEFAULT_MAP_BUFFER_THRESHOLD (1024 * 32)
 
     /** Implementation of HardwareBufferManager for OpenGL. */
-    class _OgreGL3PlusExport GL3PlusHardwareBufferManagerBase : public HardwareBufferManagerBase
+    class _OgreGL3PlusExport GL3PlusHardwareBufferManager : public HardwareBufferManager
     {
     protected:
-        char* mScratchBufferPool;
-        OGRE_MUTEX(mScratchMutex);
-        size_t mMapBufferThreshold;
+        GL3PlusRenderSystem* mRenderSystem;
 
-        UniformBufferList mShaderStorageBuffers;
+        size_t mUniformBufferCount;
+        size_t mShaderStorageBufferCount;
 
+        VertexDeclaration* createVertexDeclarationImpl(void) override;
     public:
-        GL3PlusHardwareBufferManagerBase();
-        ~GL3PlusHardwareBufferManagerBase();
+        GL3PlusHardwareBufferManager();
+        ~GL3PlusHardwareBufferManager();
         /// Creates a vertex buffer
         HardwareVertexBufferSharedPtr createVertexBuffer(size_t vertexSize,
-                                                         size_t numVerts, HardwareBuffer::Usage usage, bool useShadowBuffer = false);
+                                                         size_t numVerts, HardwareBuffer::Usage usage, bool useShadowBuffer = false) override;
         /// Create a hardware vertex buffer
         HardwareIndexBufferSharedPtr createIndexBuffer(
             HardwareIndexBuffer::IndexType itype, size_t numIndexes,
-            HardwareBuffer::Usage usage, bool useShadowBuffer = false);
+            HardwareBuffer::Usage usage, bool useShadowBuffer = false) override;
         /// Create a uniform buffer
-        HardwareUniformBufferSharedPtr createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
-                                                           bool useShadowBuffer, const String& name = "");
+        HardwareBufferPtr createUniformBuffer(size_t sizeBytes, HardwareBufferUsage usage = HBU_CPU_TO_GPU,
+                                              bool useShadowBuffer = false) override;
 
         /// Create a shader storage buffer.
-        HardwareUniformBufferSharedPtr createShaderStorageBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
-                                                                 bool useShadowBuffer, const String& name = "");
-        /// Create a counter buffer
-        HardwareCounterBufferSharedPtr createCounterBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
-                                                           bool useShadowBuffer, const String& name = "");
-        /// Create a render to vertex buffer
-        RenderToVertexBufferSharedPtr createRenderToVertexBuffer();
+        HardwareBufferPtr createShaderStorageBuffer(size_t sizeBytes,
+                                                    HardwareBufferUsage usage = HBU_CPU_TO_GPU,
+                                                    bool useShadowBuffer = false);
 
-        /// Utility function to get the correct GL usage based on HBU's
-        static GLenum getGLUsage(unsigned int usage);
+        /// Create a render to vertex buffer
+        RenderToVertexBufferSharedPtr createRenderToVertexBuffer() override;
+
+        size_t getUniformBufferCount() { return mUniformBufferCount; }
+        size_t getShaderStorageBufferCount() { return mShaderStorageBufferCount; }
 
         /// Utility function to get the correct GL type based on VET's
-        static GLenum getGLType(unsigned int type);
+        static GLenum getGLType(VertexElementType type);
 
-        /** Allocator method to allow us to use a pool of memory as a scratch
-            area for hardware buffers. This is because glMapBuffer is incredibly
-            inefficient, seemingly no matter what options we give it. So for the
-            period of lock/unlock, we will instead allocate a section of a local
-            memory pool, and use glBufferSubDataARB / glGetBufferSubDataARB
-            instead.
-        */
-        void* allocateScratch(uint32 size);
-
-        /// @see allocateScratch
-        void deallocateScratch(void* ptr);
-
-        /** Threshold after which glMapBuffer is used and not glBufferSubData
-         */
-        size_t getGLMapBufferThreshold() const;
-        void setGLMapBufferThreshold( const size_t value );
+        void notifyContextDestroyed(GLContext* context);
     };
-
-    /// GL3PlusHardwareBufferManagerBase as a Singleton
-    class _OgreGL3PlusExport GL3PlusHardwareBufferManager : public HardwareBufferManager
-    {
-    // protected:
-    //     UniformBufferList mShaderStorageBuffers;
-
-    public:
-    GL3PlusHardwareBufferManager()
-        : HardwareBufferManager(OGRE_NEW GL3PlusHardwareBufferManagerBase())
-        {
-
-        }
-        ~GL3PlusHardwareBufferManager()
-        {
-            // mShaderStorageBuffers.clear();
-            OGRE_DELETE mImpl;
-        }
-
-        /// Utility function to get the correct GL usage based on HBU's.
-        static GLenum getGLUsage(unsigned int usage)
-        { return GL3PlusHardwareBufferManagerBase::getGLUsage(usage); }
-
-        /// Utility function to get the correct GL type based on VET's.
-        static GLenum getGLType(unsigned int type)
-        { return GL3PlusHardwareBufferManagerBase::getGLType(type); }
-
-        /** Allocator method to allow us to use a pool of memory as a scratch
-            area for hardware buffers. This is because glMapBuffer is incredibly
-            inefficient, seemingly no matter what options we give it. So for the
-            period of lock/unlock, we will instead allocate a section of a local
-            memory pool, and use glBufferSubDataARB / glGetBufferSubDataARB
-            instead.
-        */
-        void* allocateScratch(uint32 size)
-        {
-            return static_cast<GL3PlusHardwareBufferManagerBase*>(mImpl)->allocateScratch(size);
-        }
-
-        /// @see allocateScratch
-        void deallocateScratch(void* ptr)
-        {
-            static_cast<GL3PlusHardwareBufferManagerBase*>(mImpl)->deallocateScratch(ptr);
-        }
-
-        /** Threshold after which glMapBuffer is used and not glBufferSubData.
-         */
-        size_t getGLMapBufferThreshold() const
-        {
-            return static_cast<GL3PlusHardwareBufferManagerBase*>(mImpl)->getGLMapBufferThreshold();
-        }
-        void setGLMapBufferThreshold( const size_t value )
-        {
-            static_cast<GL3PlusHardwareBufferManagerBase*>(mImpl)->setGLMapBufferThreshold(value);
-        }
-
-        /// Create a shader storage buffer.
-        HardwareUniformBufferSharedPtr createShaderStorageBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
-                                                                 bool useShadowBuffer, const String& name = "")
-        {
-            return static_cast<GL3PlusHardwareBufferManagerBase*>(mImpl)->createShaderStorageBuffer(sizeBytes, usage, useShadowBuffer, name);
-        }
-
-    };
-
 }
 
 #endif

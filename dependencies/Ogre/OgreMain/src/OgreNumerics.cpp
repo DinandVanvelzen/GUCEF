@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,12 @@ THE SOFTWARE.
 */
 
 #include "OgreStableHeaders.h"
-#include "OgreCommon.h"
 #include "OgreNumerics.h"
 
 
 namespace Ogre
 {
-    bool NumericSolver::solveNxNLinearSysDestr(int n, PreciseReal **coeff, PreciseReal *col)
+    bool NumericSolver::solveNxNLinearSysDestr(int n, double **coeff, double *col)
     {
         // we'll use standard row reduction; since we only care about systems with unique
         // solutions, our job is slightly easier.  more can probably be done later to improve
@@ -53,16 +52,16 @@ namespace Ogre
             }
             if (nonzeroIndex < 0) 
                 return false;
-            PreciseReal *tptr = coeff[j];
+            double *tptr = coeff[j];
             coeff[j] = coeff[nonzeroIndex];
             coeff[nonzeroIndex] = tptr;
-            PreciseReal tval = col[j];
+            double tval = col[j];
             col[j] = col[nonzeroIndex];
             col[nonzeroIndex] = tval;
             nonzeroIndex = j;
 
             // normalize row to have leading coeff of 1 and kill other rows' entries
-            PreciseReal invelt = 1.0 / coeff[nonzeroIndex][j];
+            double invelt = 1.0 / coeff[nonzeroIndex][j];
             int k;
             for (k=j; k<n; k++)
                 coeff[nonzeroIndex][k] *= invelt;
@@ -70,7 +69,7 @@ namespace Ogre
             for (i=0; i<n; i++) {
                 if (i==nonzeroIndex || coeff[i][j] == 0.0)
                     continue;
-                PreciseReal temp = coeff[i][j];
+                double temp = coeff[i][j];
                 for (k=j; k<n; k++)
                     coeff[i][k] -= temp * coeff[nonzeroIndex][k];
                 col[i] -= temp * col[nonzeroIndex];

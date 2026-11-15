@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -176,7 +176,7 @@ namespace Ogre
 
         // check against regular frustum planes
         bool visible_flag;
-        if (mCullFrustum)
+        if (getCullingFrustum())
         {
             // For each frustum plane, see if all points are on the negative side
             // If so, object is not visible
@@ -194,7 +194,7 @@ namespace Ogre
                 // we have to check each corner of the portal
                 for (int corner = 0; corner < 4; corner++)
                 {
-                    Plane::Side side = mCullFrustum->getFrustumPlane(plane).getSide(portal->getDerivedCorner(corner));
+                    Plane::Side side = getCullingFrustum()->getFrustumPlane(plane).getSide(portal->getDerivedCorner(corner));
                     if (side != Plane::NEGATIVE_SIDE)
                     {
                         visible_flag = true;

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreHardwarePixelBuffer.h"
 #include "OgreImage.h"
-#include "OgreException.h"
 
 namespace Ogre 
 {
@@ -36,37 +35,47 @@ namespace Ogre
     //-----------------------------------------------------------------------------    
     HardwarePixelBuffer::HardwarePixelBuffer(uint32 width, uint32 height, uint32 depth,
             PixelFormat format,
-            HardwareBuffer::Usage usage, bool useSystemMemory, bool useShadowBuffer):
-        HardwareBuffer(usage, useSystemMemory, useShadowBuffer),
-        mWidth(width), mHeight(height), mDepth(depth),
+            HardwareBuffer::Usage usage, bool useShadowBuffer):
+        HardwareBuffer(usage, useShadowBuffer),
+        mCurrentLockOptions(), mWidth(width), mHeight(height), mDepth(depth),
         mFormat(format)
     {
         // Default
         mRowPitch = mWidth;
         mSlicePitch = mHeight*mWidth;
-        mSizeInBytes = mHeight*mWidth*PixelUtil::getNumElemBytes(mFormat);
+        mSizeInBytes = PixelUtil::getMemorySize(mWidth, mHeight, mDepth, mFormat);
     }
     
     //-----------------------------------------------------------------------------    
     HardwarePixelBuffer::~HardwarePixelBuffer()
     {
+        if (mUsage & TU_RENDERTARGET)
+        {
+            // Delete all render targets that are not yet deleted via _clearSliceRTT because the rendertarget
+            // was deleted by the user.
+            for (auto rt : mSliceTRT)
+            {
+                if (rt)
+                    Root::getSingleton().getRenderSystem()->destroyRenderTarget(rt->getName());
+            }
+        }
     }
     
     //-----------------------------------------------------------------------------    
-    void* HardwarePixelBuffer::lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt)
+    void* HardwarePixelBuffer::lock(size_t offset, size_t length, LockOptions options)
     {
-        assert(!isLocked() && "Cannot lock this buffer, it is already locked!");
-        assert(offset == 0 && length == mSizeInBytes && "Cannot lock memory region, most lock box or entire buffer");
+        OgreAssert(!isLocked(), "already locked");
+        OgreAssert(offset == 0 && length == mSizeInBytes, "must lock box or entire buffer");
         
-        Image::Box myBox(0, 0, 0, mWidth, mHeight, mDepth);
+        Box myBox(0, 0, 0, mWidth, mHeight, mDepth);
         const PixelBox &rv = lock(myBox, options);
         return rv.data;
     }
     
     //-----------------------------------------------------------------------------    
-    const PixelBox& HardwarePixelBuffer::lock(const Image::Box& lockBox, LockOptions options)
+    const PixelBox& HardwarePixelBuffer::lock(const Box& lockBox, LockOptions options)
     {
-        if (mUseShadowBuffer)
+        if (mShadowBuffer)
         {
             if (options != HBL_READ_ONLY)
             {
@@ -75,10 +84,12 @@ namespace Ogre
                 mShadowUpdated = true;
             }
 
-            mCurrentLock = static_cast<HardwarePixelBuffer*>(mShadowBuffer)->lock(lockBox, options);
+            mCurrentLock = static_cast<HardwarePixelBuffer*>(mShadowBuffer.get())->lock(lockBox, options);
         }
         else
         {
+            mCurrentLockOptions = options;
+            mLockedBox = lockBox;
             // Lock the real buffer if there is no shadow buffer 
             mCurrentLock = lockImpl(lockBox, options);
             mIsLocked = true;
@@ -90,8 +101,7 @@ namespace Ogre
     //-----------------------------------------------------------------------------    
     const PixelBox& HardwarePixelBuffer::getCurrentLock() 
     { 
-        assert(isLocked() && "Cannot get current lock: buffer not locked");
-        
+        OgreAssert(isLocked(), "buffer not locked");
         return mCurrentLock; 
     }
     
@@ -105,57 +115,42 @@ namespace Ogre
 
     //-----------------------------------------------------------------------------    
 
-    void HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Image::Box &srcBox, const Image::Box &dstBox)
+    void HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Box &srcBox, const Box &dstBox)
     {
         if(isLocked() || src->isLocked())
         {
-            OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR,
-                "Source and destination buffer may not be locked!",
-                "HardwarePixelBuffer::blit");
+            OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Source and destination buffer may not be locked!");
         }
-        if(src.getPointer() == this)
+        if(src.get() == this)
         {
-            OGRE_EXCEPT( Exception::ERR_INVALIDPARAMS,
-                "Source must not be the same object",
-                "HardwarePixelBuffer::blit" ) ;
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Source must not be the same object");
         }
-        const PixelBox &srclock = src->lock(srcBox, HBL_READ_ONLY);
 
-        LockOptions method = HBL_NORMAL;
-        if(dstBox.left == 0 && dstBox.top == 0 && dstBox.front == 0 &&
-           dstBox.right == mWidth && dstBox.bottom == mHeight &&
-           dstBox.back == mDepth)
+        LockOptions method = HBL_WRITE_ONLY;
+        if (dstBox.left == 0 && dstBox.top == 0 && dstBox.front == 0 && dstBox.right == mWidth &&
+            dstBox.bottom == mHeight && dstBox.back == mDepth)
             // Entire buffer -- we can discard the previous contents
             method = HBL_DISCARD;
-            
-        const PixelBox &dstlock = lock(dstBox, method);
-        if(dstlock.getWidth() != srclock.getWidth() ||
-            dstlock.getHeight() != srclock.getHeight() ||
-            dstlock.getDepth() != srclock.getDepth())
-        {
-            // Scaling desired
-            Image::scale(srclock, dstlock);
-        }
-        else
-        {
-            // No scaling needed
-            PixelUtil::bulkPixelConversion(srclock, dstlock);
-        }
 
+        src->blitToMemory(srcBox, lock(dstBox, method));
         unlock();
-        src->unlock();
     }
     //-----------------------------------------------------------------------------       
     void HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &src)
     {
-        blit(src, 
-            Box(0,0,0,src->getWidth(),src->getHeight(),src->getDepth()), 
-            Box(0,0,0,mWidth,mHeight,mDepth)
-        );
+        blit(src, Box(src->getSize()), Box(getSize()));
     }
     //-----------------------------------------------------------------------------    
     void HardwarePixelBuffer::readData(size_t offset, size_t length, void* pDest)
     {
+        // allow easy full buffer reads
+        if (offset == 0 && length == mSizeInBytes)
+        {
+            Box box(0, 0, 0, mWidth, mHeight, mDepth);
+            blitToMemory(box, PixelBox(box, mFormat, pDest));
+            return;
+        }
+
         // TODO
         OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
                 "Reading a byte range is not implemented. Use blitToMemory.",
@@ -166,6 +161,15 @@ namespace Ogre
     void HardwarePixelBuffer::writeData(size_t offset, size_t length, const void* pSource,
             bool discardWholeBuffer)
     {
+        // allow easy full buffer updates
+        if (offset == 0 && length == mSizeInBytes)
+        {
+            Box box(0, 0, 0, mWidth, mHeight, mDepth);
+            // we know pSource will not be written to
+            blitFromMemory(PixelBox(box, mFormat, const_cast<void*>(pSource)), box);
+            return;
+        }
+
         // TODO
         OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
                 "Writing a byte range is not implemented. Use blitFromMemory.",
@@ -173,24 +177,24 @@ namespace Ogre
     }
     //-----------------------------------------------------------------------------    
     
-    RenderTexture *HardwarePixelBuffer::getRenderTarget(size_t)
+    RenderTexture *HardwarePixelBuffer::getRenderTarget(size_t zoffset) const
     {
-        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-                "Not yet implemented for this rendersystem.",
-                "HardwarePixelBuffer::getRenderTarget");
+        assert(mUsage & TU_RENDERTARGET);
+        OgreAssert(zoffset < mSliceTRT.size(), "out of range");
+        return mSliceTRT[zoffset];
     }
-
-    //-----------------------------------------------------------------------------    
-    
-    HardwarePixelBufferSharedPtr::HardwarePixelBufferSharedPtr(HardwarePixelBuffer* buf)
-        : SharedPtr<HardwarePixelBuffer>(buf)
-    {
-
-    }   
     //-----------------------------------------------------------------------------    
 
     void HardwarePixelBuffer::_clearSliceRTT(size_t zoffset)
     {
+        if(zoffset < mSliceTRT.size())
+            mSliceTRT[zoffset] = NULL;
     }
 
+
+    String HardwarePixelBuffer::getNameForRenderTexture(const String& parentName, uint32 layer) const
+    {
+        // the parent texture can either have multiple slices or faces - so we can call both layer here
+        return StringUtil::format("%s:layer%d", parentName.c_str(), layer);
+    }
 }

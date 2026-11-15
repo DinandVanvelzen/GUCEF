@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,44 +24,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "OgreShaderFFPLighting.h"
-#ifdef RTSHADER_SYSTEM_BUILD_CORE_SHADERS
-#include "OgreShaderFFPRenderState.h"
-#include "OgreShaderProgram.h"
-#include "OgreShaderParameter.h"
-#include "OgreShaderProgramSet.h"
-#include "OgreGpuProgram.h"
-#include "OgrePass.h"
-#include "OgreShaderGenerator.h"
-#include "OgreSceneManager.h"
-#include "OgreViewport.h"
-#include "OgreMaterialSerializer.h"
-
-
+#include "OgreShaderPrecompiledHeaders.h"
+#if defined(RTSHADER_SYSTEM_BUILD_CORE_SHADERS) || defined(RTSHADER_SYSTEM_BUILD_EXT_SHADERS)
 namespace Ogre {
 namespace RTShader {
 
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-String FFPLighting::Type = "FFP_Lighting";
-Light FFPLighting::msBlankLight;
+const String SRS_PER_VERTEX_LIGHTING = "FFP_Lighting";
 
 //-----------------------------------------------------------------------
 FFPLighting::FFPLighting()
 {
 	mTrackVertexColourType			= TVC_NONE;
 	mSpecularEnable					= false;
-
-	msBlankLight.setDiffuseColour(ColourValue::Black);
-	msBlankLight.setSpecularColour(ColourValue::Black);
-	msBlankLight.setAttenuation(0,1,0,0);
+	mNormalisedEnable               = false;
+	mTwoSidedLighting               = false;
+	mLightCount						= 0;
+	mLtcLUT1SamplerIndex            = -1;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPLighting::getType() const
 {
-	return Type;
+	return SRS_PER_VERTEX_LIGHTING;
 }
 
 
@@ -72,305 +59,88 @@ int	FFPLighting::getExecutionOrder() const
 }
 
 //-----------------------------------------------------------------------
-void FFPLighting::updateGpuProgramsParams(Renderable* rend, Pass* pass, const AutoParamDataSource* source, 
-										  const LightList* pLightList)
-{		
-	if (mLightParamsList.empty())
-		return;
-
-	const Matrix4& matView = source->getViewMatrix();
-	Light::LightTypes curLightType = Light::LT_DIRECTIONAL; 
-	unsigned int curSearchLightIndex = 0;
-
-	// Update per light parameters.
-	for (unsigned int i=0; i < mLightParamsList.size(); ++i)
-	{
-		const LightParams& curParams = mLightParamsList[i];
-
-		if (curLightType != curParams.mType)
-		{
-			curLightType = curParams.mType;
-			curSearchLightIndex = 0;
-		}
-
-		Light*		srcLight = NULL;
-		Vector4		vParameter;
-		ColourValue colour;
-
-		// Search a matching light from the current sorted lights of the given renderable.
-		for (unsigned int j = curSearchLightIndex; j < (pLightList ? pLightList->size() : 0); ++j)
-		{
-			if (pLightList->at(j)->getType() == curLightType)
-			{				
-				srcLight = pLightList->at(j);
-				curSearchLightIndex = j + 1;
-				break;
-			}			
-		}
-
-		// No matching light found -> use a blank dummy light for parameter update.
-		if (srcLight == NULL)
-		{						
-			srcLight = &msBlankLight;
-		}
-					
-		
-		switch (curParams.mType)
-		{
-		case Light::LT_DIRECTIONAL:
-
-			// Update light direction.
-			vParameter = matView.transformAffine(srcLight->getAs4DVector(true));
-			curParams.mDirection->setGpuParameter(vParameter);
-			break;
-
-		case Light::LT_POINT:
-
-			// Update light position.
-			vParameter = matView.transformAffine(srcLight->getAs4DVector(true));
-			curParams.mPosition->setGpuParameter(vParameter);
-
-			// Update light attenuation parameters.
-			vParameter.x = srcLight->getAttenuationRange();
-			vParameter.y = srcLight->getAttenuationConstant();
-			vParameter.z = srcLight->getAttenuationLinear();
-			vParameter.w = srcLight->getAttenuationQuadric();
-			curParams.mAttenuatParams->setGpuParameter(vParameter);
-			break;
-
-		case Light::LT_SPOTLIGHT:
-		{						
-			Vector3 vec3;
-			Matrix3 matViewIT;
-
-			source->getInverseTransposeViewMatrix().extract3x3Matrix(matViewIT);
-
-			
-			// Update light position.
-			vParameter = matView.transformAffine(srcLight->getAs4DVector(true));
-			curParams.mPosition->setGpuParameter(vParameter);
-			
-							
-			vec3 = matViewIT * srcLight->getDerivedDirection();
-			vec3.normalise();
-
-			vParameter.x = -vec3.x;
-			vParameter.y = -vec3.y;
-			vParameter.z = -vec3.z;
-			vParameter.w = 0.0;
-			curParams.mDirection->setGpuParameter(vParameter);
-
-			// Update light attenuation parameters.
-			vParameter.x = srcLight->getAttenuationRange();
-			vParameter.y = srcLight->getAttenuationConstant();
-			vParameter.z = srcLight->getAttenuationLinear();
-			vParameter.w = srcLight->getAttenuationQuadric();
-			curParams.mAttenuatParams->setGpuParameter(vParameter);
-
-			// Update spotlight parameters.
-			Real phi   = Math::Cos(srcLight->getSpotlightOuterAngle().valueRadians() * 0.5f);
-			Real theta = Math::Cos(srcLight->getSpotlightInnerAngle().valueRadians() * 0.5f);
-
-			vec3.x = theta;
-			vec3.y = phi;
-			vec3.z = srcLight->getSpotlightFalloff();
-			
-			curParams.mSpotParams->setGpuParameter(vec3);
-		}
-			break;
-		}
-
-		
-		// Update diffuse colour.
-		if ((mTrackVertexColourType & TVC_DIFFUSE) == 0)
-		{
-			colour = srcLight->getDiffuseColour() * pass->getDiffuse() * srcLight->getPowerScale();
-			curParams.mDiffuseColour->setGpuParameter(colour);					
-		}
-		else
-		{					
-			colour = srcLight->getDiffuseColour() * srcLight->getPowerScale();
-			curParams.mDiffuseColour->setGpuParameter(colour);	
-		}
-
-		// Update specular colour if need to.
-		if (mSpecularEnable)
-		{
-			// Update diffuse colour.
-			if ((mTrackVertexColourType & TVC_SPECULAR) == 0)
-			{
-				colour = srcLight->getSpecularColour() * pass->getSpecular() * srcLight->getPowerScale();
-				curParams.mSpecularColour->setGpuParameter(colour);					
-			}
-			else
-			{					
-				colour = srcLight->getSpecularColour() * srcLight->getPowerScale();
-				curParams.mSpecularColour->setGpuParameter(colour);	
-			}
-		}																			
-	}
-}
-
-//-----------------------------------------------------------------------
 bool FFPLighting::resolveParameters(ProgramSet* programSet)
 {
-	Program* vsProgram = programSet->getCpuVertexProgram();
+	Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
 	Function* vsMain = vsProgram->getEntryPointFunction();
-	bool hasError = false;
 
 	// Resolve world view IT matrix.
-	mWorldViewITMatrix = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_INVERSE_TRANSPOSE_WORLDVIEW_MATRIX, 0);
+	mWorldViewITMatrix = vsProgram->resolveParameter(GpuProgramParameters::ACT_NORMAL_MATRIX);
+	mViewNormal = vsMain->resolveLocalParameter(Parameter::SPC_NORMAL_VIEW_SPACE);
 	
 	// Get surface ambient colour if need to.
 	if ((mTrackVertexColourType & TVC_AMBIENT) == 0)
 	{		
-		mDerivedAmbientLightColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_DERIVED_AMBIENT_LIGHT_COLOUR, 0);
-		hasError |= !(mDerivedAmbientLightColour.get());
+		mDerivedAmbientLightColour = vsProgram->resolveParameter(GpuProgramParameters::ACT_DERIVED_AMBIENT_LIGHT_COLOUR);
 	}
 	else
 	{
-		mLightAmbientColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_AMBIENT_LIGHT_COLOUR, 0);
-		mSurfaceAmbientColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_SURFACE_AMBIENT_COLOUR, 0);
-		
-		hasError |= !(mLightAmbientColour.get()) || !(mSurfaceAmbientColour.get());
+		mLightAmbientColour = vsProgram->resolveParameter(GpuProgramParameters::ACT_AMBIENT_LIGHT_COLOUR);
 	}
-
-	// Get surface diffuse colour if need to.
-	if ((mTrackVertexColourType & TVC_DIFFUSE) == 0)
-	{
-		mSurfaceDiffuseColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_SURFACE_DIFFUSE_COLOUR, 0);
-		hasError |= !(mSurfaceDiffuseColour.get());
-	}
-
-	// Get surface specular colour if need to.
-	if ((mTrackVertexColourType & TVC_SPECULAR) == 0)
-	{
-		mSurfaceSpecularColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_SURFACE_SPECULAR_COLOUR, 0);
-		hasError |= !(mSurfaceSpecularColour.get());
-	}
-		 
 	
 	// Get surface emissive colour if need to.
 	if ((mTrackVertexColourType & TVC_EMISSIVE) == 0)
 	{
-		mSurfaceEmissiveColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_SURFACE_EMISSIVE_COLOUR, 0);
-		hasError |= !(mSurfaceEmissiveColour.get());
+		mSurfaceEmissiveColour = vsProgram->resolveParameter(GpuProgramParameters::ACT_SURFACE_EMISSIVE_COLOUR);
 	}
 
 	// Get derived scene colour.
-	mDerivedSceneColour = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_DERIVED_SCENE_COLOUR, 0);
-	
-	// Get surface shininess.
-	mSurfaceShininess = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_SURFACE_SHININESS, 0);
-	
+	mDerivedSceneColour = vsProgram->resolveParameter(GpuProgramParameters::ACT_DERIVED_SCENE_COLOUR);
+
 	// Resolve input vertex shader normal.
-	mVSInNormal = vsMain->resolveInputParameter(Parameter::SPS_NORMAL, 0, Parameter::SPC_NORMAL_OBJECT_SPACE, GCT_FLOAT3);
+    mVSInNormal = vsMain->resolveInputParameter(Parameter::SPC_NORMAL_OBJECT_SPACE);
 	
 	if (mTrackVertexColourType != 0)
 	{
-		mVSDiffuse = vsMain->resolveInputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
-		hasError |= !(mVSDiffuse.get());
+		mInDiffuse = vsMain->resolveInputParameter(Parameter::SPC_COLOR_DIFFUSE);
 	}
 	
 
 	// Resolve output vertex shader diffuse colour.
-	mVSOutDiffuse = vsMain->resolveOutputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
+	mOutDiffuse = vsMain->resolveOutputParameter(Parameter::SPC_COLOR_DIFFUSE);
 	
 	// Resolve per light parameters.
-	for (unsigned int i=0; i < mLightParamsList.size(); ++i)
-	{		
-		switch (mLightParamsList[i].mType)
-		{
-		case Light::LT_DIRECTIONAL:
-			mLightParamsList[i].mDirection = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_position_view_space");
-			hasError |= !(mLightParamsList[i].mDirection.get());
-			break;
-		
-		case Light::LT_POINT:
-			mWorldViewMatrix = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_WORLDVIEW_MATRIX, 0);
-			
-			mVSInPosition = vsMain->resolveInputParameter(Parameter::SPS_POSITION, 0, Parameter::SPC_POSITION_OBJECT_SPACE, GCT_FLOAT4);
-			
-			mLightParamsList[i].mPosition = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_position_view_space");
-			
-			mLightParamsList[i].mAttenuatParams = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_attenuation");
-			
-			hasError |= !(mWorldViewMatrix.get()) || !(mVSInPosition.get()) || !(mLightParamsList[i].mPosition.get()) || !(mLightParamsList[i].mAttenuatParams.get());
-			break;
-		
-		case Light::LT_SPOTLIGHT:
-			mWorldViewMatrix = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_WORLDVIEW_MATRIX, 0);
-			
-			mVSInPosition = vsMain->resolveInputParameter(Parameter::SPS_POSITION, 0, Parameter::SPC_POSITION_OBJECT_SPACE, GCT_FLOAT4);
-			
-			mLightParamsList[i].mPosition = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_position_view_space");
-			
-			mLightParamsList[i].mDirection = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_direction_view_space");
-			
-			mLightParamsList[i].mAttenuatParams = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_attenuation");
-			
-			mLightParamsList[i].mSpotParams = vsProgram->resolveParameter(GCT_FLOAT3, -1, (uint16)GPV_LIGHTS, "spotlight_params");
-			
-			hasError |= !(mWorldViewMatrix.get()) || !(mVSInPosition.get()) || !(mLightParamsList[i].mPosition.get()) || 
-				!(mLightParamsList[i].mDirection.get()) || !(mLightParamsList[i].mAttenuatParams.get()) || !(mLightParamsList[i].mSpotParams.get());
-			break;
-		}
+	mPositions = vsProgram->resolveParameter(GpuProgramParameters::ACT_LIGHT_POSITION_VIEW_SPACE_ARRAY, mLightCount);
+	mAttenuatParams = vsProgram->resolveParameter(GpuProgramParameters::ACT_LIGHT_ATTENUATION_ARRAY, mLightCount);
+	mDirections = vsProgram->resolveParameter(GpuProgramParameters::ACT_LIGHT_DIRECTION_VIEW_SPACE_ARRAY, mLightCount);
+	mSpotParams = vsProgram->resolveParameter(GpuProgramParameters::ACT_SPOTLIGHT_PARAMS_ARRAY, mLightCount);
 
-		// Resolve diffuse colour.
-		if ((mTrackVertexColourType & TVC_DIFFUSE) == 0)
+	// Resolve diffuse colour.
+	if ((mTrackVertexColourType & TVC_DIFFUSE) == 0)
+	{
+		mDiffuseColours = vsProgram->resolveParameter(GpuProgramParameters::ACT_DERIVED_LIGHT_DIFFUSE_COLOUR_ARRAY, mLightCount);
+	}
+	else
+	{
+		mDiffuseColours = vsProgram->resolveParameter(GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR_POWER_SCALED_ARRAY, mLightCount);
+	}
+
+	if (mSpecularEnable)
+	{
+		// Get surface shininess.
+		mSurfaceShininess = vsProgram->resolveParameter(GpuProgramParameters::ACT_SURFACE_SHININESS);
+
+		// Resolve specular colour.
+		if ((mTrackVertexColourType & TVC_SPECULAR) == 0)
 		{
-			mLightParamsList[i].mDiffuseColour = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_GLOBAL | (uint16)GPV_LIGHTS, "derived_light_diffuse");
-			hasError |= !(mLightParamsList[i].mDiffuseColour.get());
+			mSpecularColours = vsProgram->resolveParameter(GpuProgramParameters::ACT_DERIVED_LIGHT_SPECULAR_COLOUR_ARRAY, mLightCount);
 		}
 		else
 		{
-			mLightParamsList[i].mDiffuseColour = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_diffuse");
-			hasError |= !(mLightParamsList[i].mDiffuseColour.get());
-		}		
+			mSpecularColours = vsProgram->resolveParameter(GpuProgramParameters::ACT_LIGHT_SPECULAR_COLOUR_POWER_SCALED_ARRAY, mLightCount);
+		}
 
-		if (mSpecularEnable)
+		if (mOutSpecular.get() == NULL)
 		{
-			// Resolve specular colour.
-			if ((mTrackVertexColourType & TVC_SPECULAR) == 0)
-			{
-				mLightParamsList[i].mSpecularColour = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_GLOBAL | (uint16)GPV_LIGHTS, "derived_light_specular");
-				hasError |= !(mLightParamsList[i].mSpecularColour.get());
-			}
-			else
-			{
-				mLightParamsList[i].mSpecularColour = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_LIGHTS, "light_specular");
-				hasError |= !(mLightParamsList[i].mSpecularColour.get());
-			}
-
-			if (mVSOutSpecular.get() == NULL)
-			{
-				mVSOutSpecular = vsMain->resolveOutputParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
-				hasError |= !(mVSOutSpecular.get());
-			}
-			
-			if (mVSInPosition.get() == NULL)
-			{
-				mVSInPosition = vsMain->resolveInputParameter(Parameter::SPS_POSITION, 0, Parameter::SPC_POSITION_OBJECT_SPACE, GCT_FLOAT4);
-				hasError |= !(mVSInPosition.get());
-			}
-
-			if (mWorldViewMatrix.get() == NULL)
-			{
-				mWorldViewMatrix = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_WORLDVIEW_MATRIX, 0);
-				hasError |= !(mWorldViewMatrix.get());
-			}			
-		}		
+			mOutSpecular = vsMain->resolveOutputParameter(Parameter::SPC_COLOR_SPECULAR);
+		}
 	}
-	   
-	hasError |= !(mWorldViewITMatrix.get()) || !(mDerivedSceneColour.get()) || !(mSurfaceShininess.get()) || 
-		!(mVSInNormal.get()) || !(mVSOutDiffuse.get());
-	
-	
-	if (hasError)
+
+	//if(needViewPos)
 	{
-		OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, 
-				"Not all parameters could be constructed for the sub-render state.",
-				"PerPixelLighting::resolveGlobalParameters" );
+        mWorldViewMatrix = vsProgram->resolveParameter(GpuProgramParameters::ACT_WORLDVIEW_MATRIX);
+        mVSInPosition = vsMain->resolveInputParameter(Parameter::SPC_POSITION_OBJECT_SPACE);
+        mViewPos = vsMain->resolveLocalParameter(Parameter::SPC_POSITION_VIEW_SPACE);
 	}
 
 	return true;
@@ -379,226 +149,145 @@ bool FFPLighting::resolveParameters(ProgramSet* programSet)
 //-----------------------------------------------------------------------
 bool FFPLighting::resolveDependencies(ProgramSet* programSet)
 {
-	Program* vsProgram = programSet->getCpuVertexProgram();
+	Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
 
-	vsProgram->addDependency(FFP_LIB_COMMON);
-	vsProgram->addDependency(FFP_LIB_LIGHTING);
+	vsProgram->addDependency(FFP_LIB_TRANSFORM);
+	vsProgram->addDependency(SGX_LIB_PERPIXELLIGHTING);
+
+	addDefines(vsProgram);
+
+	if(mSpecularEnable)
+		programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM)->addPreprocessorDefines("USE_SPECULAR");
 
 	return true;
+}
+
+void FFPLighting::addDefines(Program* program)
+{
+	if(mNormalisedEnable)
+	    program->addPreprocessorDefines("NORMALISED");
+
+	if(mSpecularEnable)
+		program->addPreprocessorDefines("USE_SPECULAR");
+
+	if(mTrackVertexColourType & TVC_DIFFUSE)
+		program->addPreprocessorDefines("TVC_DIFFUSE");
+
+	if(mTrackVertexColourType & TVC_SPECULAR)
+		program->addPreprocessorDefines("TVC_SPECULAR");
+
+	program->addPreprocessorDefines("LIGHT_COUNT=" + StringConverter::toString(mLightCount));
 }
 
 //-----------------------------------------------------------------------
 bool FFPLighting::addFunctionInvocations(ProgramSet* programSet)
 {
-	Program* vsProgram = programSet->getCpuVertexProgram();	
+	Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);	
 	Function* vsMain = vsProgram->getEntryPointFunction();	
-	
-	int internalCounter = 0;
-	
+    auto stage = vsMain->getStage(FFP_VS_LIGHTING);
+
 	// Add the global illumination functions.
-	if (false == addGlobalIlluminationInvocation(vsMain, FFP_VS_LIGHTING, internalCounter))
-		return false;
+	addGlobalIlluminationInvocation(stage);
 
+    // Add per light functions.
+	addIlluminationInvocation(stage, nullptr);
 
-	// Add per light functions.
-	for (unsigned int i=0; i < mLightParamsList.size(); ++i)
-	{		
-		if (false == addIlluminationInvocation(&mLightParamsList[i], vsMain, FFP_VS_LIGHTING, internalCounter))
-			return false;
-	}
+    auto psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
+    auto psMain = psProgram->getMain();
+    if (auto shadowFactor = psMain->getLocalParameter("lShadowFactor"))
+    {
+        auto ambient = psProgram->resolveParameter(GpuProgramParameters::ACT_DERIVED_SCENE_COLOUR);
+        auto psOutDiffuse = psMain->resolveOutputParameter(Parameter::SPC_COLOR_DIFFUSE);
 
-	return true;
+        auto fstage = psMain->getStage(FFP_PS_COLOUR_BEGIN);
+
+		std::vector<Operand> args = {In(ambient), In(shadowFactor),InOut(psOutDiffuse)};
+
+        if (mSpecularEnable)
+        {
+            auto psSpecular = psMain->getInputParameter(Parameter::SPC_COLOR_SPECULAR);
+            if (!psSpecular)
+                psSpecular = psMain->getLocalParameter(Parameter::SPC_COLOR_SPECULAR);
+			args.push_back(InOut(psSpecular));
+        }
+
+        fstage.callFunction("SGX_ApplyShadowFactor_Modulative", args);
+    }
+
+    return true;
 }
 
 //-----------------------------------------------------------------------
-bool FFPLighting::addGlobalIlluminationInvocation(Function* vsMain, const int groupOrder, int& internalCounter)
+void FFPLighting::addGlobalIlluminationInvocation(const FunctionStageRef& stage)
 {
-	FunctionInvocation* curFuncInvocation = NULL;	
+    // Transform normal to view space
+	if(mLightCount)
+	    stage.callBuiltin("mul", mWorldViewITMatrix, mVSInNormal, mViewNormal);
+
+    if(mViewPos)
+    {
+        // Transform position to view space.
+        stage.callFunction(FFP_FUNC_TRANSFORM, mWorldViewMatrix, mVSInPosition, mViewPos);
+    }
 
 	if ((mTrackVertexColourType & TVC_AMBIENT) == 0 && 
 		(mTrackVertexColourType & TVC_EMISSIVE) == 0)
 	{
-		curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, groupOrder, internalCounter++); 
-		curFuncInvocation->pushOperand(mDerivedSceneColour, Operand::OPS_IN);
-		curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT);	
-		vsMain->addAtomInstance(curFuncInvocation);		
+		stage.assign(mDerivedSceneColour, mOutDiffuse);
 	}
 	else
 	{
 		if (mTrackVertexColourType & TVC_AMBIENT)
 		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_MODULATE, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mLightAmbientColour, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSDiffuse, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT);	
-			vsMain->addAtomInstance(curFuncInvocation);
+            stage.mul(mLightAmbientColour, mInDiffuse, mOutDiffuse);
 		}
 		else
 		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mDerivedAmbientLightColour, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);
+		    stage.assign(mDerivedAmbientLightColour, mOutDiffuse);
 		}
 
 		if (mTrackVertexColourType & TVC_EMISSIVE)
 		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ADD, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mVSDiffuse, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT);	
-			vsMain->addAtomInstance(curFuncInvocation);
+			stage.add(In(mInDiffuse).xyz(), In(mOutDiffuse).xyz(), Out(mOutDiffuse).xyz());
 		}
 		else
 		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ADD, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mSurfaceEmissiveColour, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT);	
-			vsMain->addAtomInstance(curFuncInvocation);
+            stage.add(mSurfaceEmissiveColour, mOutDiffuse, mOutDiffuse);
 		}		
 	}
-
-	return true;
 }
 
 //-----------------------------------------------------------------------
-bool FFPLighting::addIlluminationInvocation(LightParams* curLightParams, Function* vsMain, const int groupOrder, int& internalCounter)
-{	
-	FunctionInvocation* curFuncInvocation = NULL;	
+void FFPLighting::addIlluminationInvocation(const FunctionStageRef& stage, const ParameterPtr& lights)
+{
+	if(mLightCount == 0)
+		return;
 
-	// Merge diffuse colour with vertex colour if need to.
-	if (mTrackVertexColourType & TVC_DIFFUSE)			
+    // call FFP_Lights
+	std::vector<Operand> args;
+	if (mShadowFactor)
+		args.push_back(In(mShadowFactor));
+
+	if (mLTCLUT1)
+		args.insert(args.end(), {In(mLTCLUT1), In(mLTCLUT2)});
+
+	args.insert(args.end(), {In(mViewNormal), In(mViewPos), In(mPositions), In(mAttenuatParams),
+							In(mDirections), In(mSpotParams), In(mDiffuseColours),
+							InOut(mOutDiffuse).xyz()});
+
+	if (mTrackVertexColourType & (TVC_DIFFUSE | TVC_SPECULAR))
+		args.push_back(In(mInDiffuse));
+
+	if (mSpecularEnable)
+		args.insert(args.end(),
+					{In(mSpecularColours), In(mSurfaceShininess), InOut(mOutSpecular).xyz()});
+
+	if(lights)
 	{
-		curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_MODULATE, groupOrder, internalCounter++); 
-		curFuncInvocation->pushOperand(mVSDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-		curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);
-		curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_OUT, Operand::OPM_XYZ);
-		vsMain->addAtomInstance(curFuncInvocation);
+		args.insert(args.end(), {In(lights)});
 	}
 
-	// Merge specular colour with vertex colour if need to.
-	if (mSpecularEnable && mTrackVertexColourType & TVC_SPECULAR)
-	{							
-		curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_MODULATE, groupOrder, internalCounter++); 
-		curFuncInvocation->pushOperand(mVSDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-		curFuncInvocation->pushOperand(curLightParams->mSpecularColour, Operand::OPS_IN, Operand::OPM_XYZ);
-		curFuncInvocation->pushOperand(curLightParams->mSpecularColour, Operand::OPS_OUT, Operand::OPM_XYZ);
-		vsMain->addAtomInstance(curFuncInvocation);
-	}
-
-	switch (curLightParams->mType)
-	{
-		
-	case Light::LT_DIRECTIONAL:			
-		if (mSpecularEnable)
-		{				
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_DIRECTIONAL_DIFFUSESPECULAR, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mWorldViewMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInPosition, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDirection, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);			
-			curFuncInvocation->pushOperand(curLightParams->mSpecularColour, Operand::OPS_IN, Operand::OPM_XYZ);			
-			curFuncInvocation->pushOperand(mSurfaceShininess, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);
-		}
-
-		else
-		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_DIRECTIONAL_DIFFUSE, groupOrder, internalCounter++); 
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDirection, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);					
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);	
-		}				
-		break;
-
-	case Light::LT_POINT:	
-		if (mSpecularEnable)
-		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_POINT_DIFFUSESPECULAR, groupOrder, internalCounter++); 			
-			curFuncInvocation->pushOperand(mWorldViewMatrix, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mVSInPosition, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mPosition, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mAttenuatParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mSpecularColour, Operand::OPS_IN, Operand::OPM_XYZ);			
-			curFuncInvocation->pushOperand(mSurfaceShininess, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);			
-		}
-		else
-		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_POINT_DIFFUSE, groupOrder, internalCounter++); 			
-			curFuncInvocation->pushOperand(mWorldViewMatrix, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mVSInPosition, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mPosition, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mAttenuatParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);					
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);	
-		}
-				
-		break;
-
-	case Light::LT_SPOTLIGHT:
-		if (mSpecularEnable)
-		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_SPOT_DIFFUSESPECULAR, groupOrder, internalCounter++); 			
-			curFuncInvocation->pushOperand(mWorldViewMatrix, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mVSInPosition, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mPosition, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mDirection, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mAttenuatParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mSpotParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mSpecularColour, Operand::OPS_IN, Operand::OPM_XYZ);			
-			curFuncInvocation->pushOperand(mSurfaceShininess, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutSpecular, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);			
-		}
-		else
-		{
-			curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LIGHT_SPOT_DIFFUSE, groupOrder, internalCounter++); 			
-			curFuncInvocation->pushOperand(mWorldViewMatrix, Operand::OPS_IN);			
-			curFuncInvocation->pushOperand(mVSInPosition, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mWorldViewITMatrix, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(mVSInNormal, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mPosition, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mDirection, Operand::OPS_IN, Operand::OPM_XYZ);
-			curFuncInvocation->pushOperand(curLightParams->mAttenuatParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mSpotParams, Operand::OPS_IN);
-			curFuncInvocation->pushOperand(curLightParams->mDiffuseColour, Operand::OPS_IN, Operand::OPM_XYZ);					
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);	
-			curFuncInvocation->pushOperand(mVSOutDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);	
-			vsMain->addAtomInstance(curFuncInvocation);	
-		}
-		break;
-	}
-
-	return true;
+	stage.callFunction("FFP_Lights", args);
 }
 
 
@@ -607,147 +296,98 @@ void FFPLighting::copyFrom(const SubRenderState& rhs)
 {
 	const FFPLighting& rhsLighting = static_cast<const FFPLighting&>(rhs);
 
-	int lightCount[3];
+	mLightCount 	  = rhsLighting.mLightCount;
+	mNormalisedEnable = rhsLighting.mNormalisedEnable;
+	mTwoSidedLighting = rhsLighting.mTwoSidedLighting;
+}
 
-	rhsLighting.getLightCount(lightCount);
-	setLightCount(lightCount);
+uint16 ensureLtcLUTPresent(Pass* dstPass)
+{
+	auto tus = dstPass->getTextureUnitState("ltc_1.dds");
+	// return idx of existing texture unit
+	if(tus)
+		return dstPass->getTextureUnitStateIndex(tus);
+
+	auto ltcSampler = TextureManager::getSingleton().getSampler("Ogre/LtcLUTSampler");
+	tus = dstPass->createTextureUnitState("ltc_1.dds");
+	tus->setNumMipmaps(0);
+	tus->setName("ltc_1.dds");
+	tus->setSampler(ltcSampler);
+	tus = dstPass->createTextureUnitState("ltc_2.dds");
+	tus->setNumMipmaps(0);
+	tus->setSampler(ltcSampler);
+
+	return dstPass->getNumTextureUnitStates() - 2; // idx of first LUT
 }
 
 //-----------------------------------------------------------------------
 bool FFPLighting::preAddToRenderState(const RenderState* renderState, Pass* srcPass, Pass* dstPass)
 {
-	if (srcPass->getLightingEnabled() == false)
+    //! [disable]
+	if (!srcPass->getLightingEnabled())
 		return false;
+	//! [disable]
 
-	int lightCount[3];
-
-	renderState->getLightCount(lightCount);
+	mLightCount = renderState->getLightCount();
 	
-	setTrackVertexColourType(srcPass->getVertexColourTracking());			
+	setTrackVertexColourType(srcPass->getVertexColourTracking());
 
-	if (srcPass->getShininess() > 0.0 &&
-		srcPass->getSpecular() != ColourValue::Black)
-	{
-		setSpecularEnable(true);
-	}
-	else
-	{
-		setSpecularEnable(false);	
-	}
+	mSpecularEnable = srcPass->getShininess() > 0.0 &&
+		(srcPass->getSpecular() != ColourValue::Black || (srcPass->getVertexColourTracking() & TVC_SPECULAR) != 0);
 
 	// Case this pass should run once per light(s) -> override the light policy.
 	if (srcPass->getIteratePerLight())
 	{		
-
-		// This is the preferred case -> only one type of light is handled.
-		if (srcPass->getRunOnlyForOneLightType())
-		{
-			if (srcPass->getOnlyLightType() == Light::LT_POINT)
-			{
-				lightCount[0] = srcPass->getLightCountPerIteration();
-				lightCount[1] = 0;
-				lightCount[2] = 0;
-			}
-			else if (srcPass->getOnlyLightType() == Light::LT_DIRECTIONAL)
-			{
-				lightCount[0] = 0;
-				lightCount[1] = srcPass->getLightCountPerIteration();
-				lightCount[2] = 0;
-			}
-			else if (srcPass->getOnlyLightType() == Light::LT_SPOTLIGHT)
-			{
-				lightCount[0] = 0;
-				lightCount[1] = 0;
-				lightCount[2] = srcPass->getLightCountPerIteration();
-			}
-		}
-
-		// This is worse case -> all light types expected to be handled.
-		// Can not handle this request in efficient way - throw an exception.
-		else
-		{
-			OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-				"Using iterative lighting method with RT Shader System requires specifying explicit light type.",
-				"FFPLighting::preAddToRenderState");			
-		}
+		mLightCount = srcPass->getLightCountPerIteration();
 	}
 
-	setLightCount(lightCount);
+	if(srcPass->getMaxSimultaneousLights() == 0)
+	{
+		mLightCount = 0;
+	}
+
+	if (renderState->haveAreaLights())
+		mLtcLUT1SamplerIndex = ensureLtcLUTPresent(dstPass);
+
+	if(getType() == SRS_PER_PIXEL_LIGHTING)
+	{
+		srcPass->setShadingMode(SO_PHONG); // signal per-pixe lighting
+	}
 
 	return true;
 }
 
-//-----------------------------------------------------------------------
-void FFPLighting::setLightCount(const int lightCount[3])
+bool FFPLighting::setParameter(const String& name, const String& value)
 {
-	for (int type=0; type < 3; ++type)
+	if(name == "normalise" || name == "normalised") // allow both spelling variations
 	{
-		for (int i=0; i < lightCount[type]; ++i)
-		{
-			LightParams curParams;
-
-			if (type == 0)
-				curParams.mType = Light::LT_POINT;
-			else if (type == 1)
-				curParams.mType = Light::LT_DIRECTIONAL;
-			else if (type == 2)
-				curParams.mType = Light::LT_SPOTLIGHT;
-
-			mLightParamsList.push_back(curParams);
-		}
-	}			
-}
-
-//-----------------------------------------------------------------------
-void FFPLighting::getLightCount(int lightCount[3]) const
-{
-	lightCount[0] = 0;
-	lightCount[1] = 0;
-	lightCount[2] = 0;
-
-	for (unsigned int i=0; i < mLightParamsList.size(); ++i)
-	{
-		const LightParams curParams = mLightParamsList[i];
-
-		if (curParams.mType == Light::LT_POINT)
-			lightCount[0]++;
-		else if (curParams.mType == Light::LT_DIRECTIONAL)
-			lightCount[1]++;
-		else if (curParams.mType == Light::LT_SPOTLIGHT)
-			lightCount[2]++;
+		return StringConverter::parse(value, mNormalisedEnable);
 	}
+
+	return false;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPLightingFactory::getType() const
 {
-	return FFPLighting::Type;
+	return SRS_PER_VERTEX_LIGHTING;
 }
 
 //-----------------------------------------------------------------------
-SubRenderState*	FFPLightingFactory::createInstance(ScriptCompiler* compiler, 
-												PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator)
+SubRenderState* FFPLightingFactory::createInstance(const ScriptProperty& prop, Pass* pass,
+                                                   SGScriptTranslator* translator)
 {
-	if (prop->name == "lighting_stage")
-	{
-		if(prop->values.size() == 1)
-		{
-			String modelType;
+    if (prop.name != "lighting_stage" || prop.values[0] != "ffp")
+        return NULL;
 
-			if(false == SGScriptTranslator::getString(prop->values.front(), &modelType))
-			{
-				compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line);
-				return NULL;
-			}
+    SubRenderState* ret = createOrRetrieveInstance(translator);
 
-			if (modelType == "ffp")
-			{
-				return createOrRetrieveInstance(translator);
-			}
-		}		
-	}
+    if(prop.values.size() >= 2)
+    {
+        ret->setParameter(prop.values[1], "true"); // normalise
+    }
 
-	return NULL;
+    return ret;
 }
 
 //-----------------------------------------------------------------------

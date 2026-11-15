@@ -30,6 +30,8 @@ THE SOFTWARE.
 #define __EAGL2Window_H__
 
 #include "OgreRenderWindow.h"
+#include "OgreGLRenderTarget.h"
+#include "OgreEAGLES2Context.h"
 
 #ifdef __OBJC__
 #import "OgreEAGL2View.h"
@@ -45,13 +47,12 @@ typedef UIWindow *NativeWindowType;
 
 namespace Ogre {
     class EAGL2Support;
-    class EAGLES2Context;
 
-    class _OgrePrivate EAGL2Window : public RenderWindow
+    class _OgrePrivate EAGL2Window : public RenderWindow, public GLRenderTarget
     {
         protected:
-            bool mClosed;
             bool mVisible;
+            bool mHidden;
             /// Is this using an external window handle?
             bool mIsExternal;
             /// Is this using an external view handle?
@@ -69,47 +70,49 @@ namespace Ogre {
             NativeWindowType mWindow;
             EAGL2View *mView;
             EAGL2ViewController *mViewController;
+#else
+            void *mWindowPlaceholder;
+            void *mViewPlaceholder;
+            void *mViewControllerPlaceholder;
 #endif
 
-            void switchFullScreen(bool fullscreen) { }
-            void getLeftAndTopFromNativeWindow(int & left, int & top, uint width, uint height);
-            void initNativeCreatedWindow(const NameValuePairList *miscParams);
-            void createNativeWindow(int &left, int &top, uint &width, uint &height, String &title);
-            void reposition(int left, int top);
-            void resize(unsigned int width, unsigned int height);
+            void createNativeWindow(uint widthPt, uint heightPt, const NameValuePairList *miscParams);
+            void resize(unsigned int widthPt, unsigned int heightPt);
             void windowMovedOrResized();
-            virtual void _beginUpdate();
+            int _getPixelFromPoint(float viewPt) { return mIsContentScalingSupported ? (int)viewPt * mContentScalingFactor : (int)viewPt; }
 
     public:
             EAGL2Window(EAGL2Support* glsupport);
             virtual ~EAGL2Window();
 
-            void create(const String& name, unsigned int width, unsigned int height,
+            float getViewPointToPixelScale() { return mIsContentScalingSupported ? mContentScalingFactor : 1.0f; }
+            void create(const String& name, unsigned int widthPt, unsigned int heightPt,
                         bool fullScreen, const NameValuePairList *miscParams);
 
-            virtual void setFullscreen(bool fullscreen, uint width, uint height);
             void destroy(void);
-            bool isClosed(void) const { return mClosed; }
             bool isVisible(void) const { return mVisible; }
-
             void setVisible(bool visible) { mVisible = visible; }
+            bool isHidden(void) const { return mHidden; }
+            void setHidden(bool hidden);
             void setClosed(bool closed) { mClosed = closed; }
             void swapBuffers();
-            void copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer);
+            void copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer);
             PixelFormat suggestPixelFormat() const { return PF_BYTE_RGBA; }
 
             /**
-               @remarks
+
                * Get custom attribute; the following attributes are valid:
                * WINDOW         The NativeWindowType target for rendering.
                * VIEW           The EAGLView object that is drawn into.
                * VIEWCONTROLLER The UIViewController used for handling view rotation.
-               * GLCONTEXT      The Ogre GLES2Context used for rendering.
+               * GLCONTEXT      The Ogre GLContext used for rendering.
                * SHAREGROUP     The EAGLShareGroup object associated with the main context.
                */
             virtual void getCustomAttribute(const String& name, void* pData);
 
             bool requiresTextureFlipping() const { return false; }
+
+            virtual GLContext* getContext() const { return mContext; }
     };
 }
 

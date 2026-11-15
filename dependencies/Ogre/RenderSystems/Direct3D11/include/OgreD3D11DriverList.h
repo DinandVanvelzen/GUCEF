@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ THE SOFTWARE.
 
 namespace Ogre 
 {
-    class D3D11DriverList
+    class _OgreD3D11Export D3D11DriverList
     {
     public:
         D3D11DriverList(); // does nothing, call refresh() to initialize
@@ -49,7 +49,7 @@ namespace Ogre
         D3D11Driver* findByName( const String &name ); // never fail but can return default driver if requested is not found
 
     private:
-        vector<SharedPtr<D3D11Driver> >::type mDriverList;
+        std::vector<SharedPtr<D3D11Driver> > mDriverList;
         unsigned mHiddenDriversCount;
     };
 }

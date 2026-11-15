@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,12 +29,6 @@ THE SOFTWARE.
 
 #include "OgreStableHeaders.h"
 #include "OgreShadowCameraSetupFocused.h"
-#include "OgreSceneManager.h"
-#include "OgreCamera.h"
-#include "OgreLight.h"
-#include "OgrePlane.h"
-#include "OgreLogManager.h"
-
 
 namespace Ogre
 {
@@ -51,147 +45,14 @@ namespace Ogre
         0, -1,  0,  0,      // z
         0,  0,  0,  1); // w
 
-    FocusedShadowCameraSetup::FocusedShadowCameraSetup(void)
-        : mTempFrustum(OGRE_NEW Frustum())
-        , mLightFrustumCamera(OGRE_NEW Camera("TEMP LIGHT INTERSECT CAM", NULL))
-        , mLightFrustumCameraCalculated(false)
-        , mUseAggressiveRegion(true)
+    FocusedShadowCameraSetup::FocusedShadowCameraSetup(bool useAggressiveRegion)
+        : mUseAggressiveRegion(useAggressiveRegion)
+        , mLightFrustumCamera(NULL)
+        , mLightFrustumCameraCalculated(true)
     {
-        mTempFrustum->setProjectionType(PT_PERSPECTIVE);
     }
-    //-----------------------------------------------------------------------
-    FocusedShadowCameraSetup::~FocusedShadowCameraSetup(void)
-    {
-        OGRE_DELETE mTempFrustum;
-        OGRE_DELETE mLightFrustumCamera;
-    }
-    //-----------------------------------------------------------------------
-    void FocusedShadowCameraSetup::calculateShadowMappingMatrix(const SceneManager& sm,
-        const Camera& cam, const Light& light, Matrix4 *out_view, Matrix4 *out_proj, 
-        Camera *out_cam) const
-    {
-        // get the shadow frustum's far distance
-        Real shadowDist = light.getShadowFarDistance();
-        if (!shadowDist)
-        {
-            // need a shadow distance, make one up
-            shadowDist = cam.getNearClipDistance() * 3000;
-        }
-        Real shadowOffset = shadowDist * sm.getShadowDirLightTextureOffset();
 
-
-        if (light.getType() == Light::LT_DIRECTIONAL)
-        {
-            // generate view matrix if requested
-            if (out_view != NULL)
-            {
-                Vector3 pos;
-                if (sm.getCameraRelativeRendering())
-                {
-                    pos = Vector3::ZERO;
-                }
-                else
-                {
-                    pos = cam.getDerivedPosition();
-                }
-                *out_view = buildViewMatrix(pos, 
-                    light.getDerivedDirection(), 
-                    cam.getDerivedUp());
-            }
-
-            // generate projection matrix if requested
-            if (out_proj != NULL)
-            {
-                *out_proj = Matrix4::getScale(1, 1, -1);
-                //*out_proj = Matrix4::IDENTITY;
-            }
-
-            // set up camera if requested
-            if (out_cam != NULL)
-            {
-                out_cam->setProjectionType(PT_ORTHOGRAPHIC);
-                out_cam->setDirection(light.getDerivedDirection());
-                out_cam->setPosition(cam.getDerivedPosition());
-                out_cam->setFOVy(Degree(90));
-                out_cam->setNearClipDistance(shadowOffset);
-            }
-        }
-        else if (light.getType() == Light::LT_POINT)
-        {
-            // target analogue to the default shadow textures
-            // Calculate look at position
-            // We want to look at a spot shadowOffset away from near plane
-            // 0.5 is a little too close for angles
-            Vector3 target = cam.getDerivedPosition() + 
-                (cam.getDerivedDirection() * shadowOffset);
-            Vector3 lightDir = target - light.getDerivedPosition();
-            lightDir.normalise();
-
-            // generate view matrix if requested
-            if (out_view != NULL)
-            {
-                *out_view = buildViewMatrix(light.getDerivedPosition(), 
-                    lightDir, 
-                    cam.getDerivedUp());
-            }
-
-            // generate projection matrix if requested
-            if (out_proj != NULL)
-            {
-                // set FOV to 120 degrees
-                mTempFrustum->setFOVy(Degree(120));
-
-                mTempFrustum->setNearClipDistance(light._deriveShadowNearClipDistance(&cam));
-                mTempFrustum->setFarClipDistance(light._deriveShadowFarClipDistance(&cam));
-
-                *out_proj = mTempFrustum->getProjectionMatrix();
-            }
-
-            // set up camera if requested
-            if (out_cam != NULL)
-            {
-                out_cam->setProjectionType(PT_PERSPECTIVE);
-                out_cam->setDirection(lightDir);
-                out_cam->setPosition(light.getDerivedPosition());
-                out_cam->setFOVy(Degree(120));
-                out_cam->setNearClipDistance(light._deriveShadowNearClipDistance(&cam));
-                out_cam->setFarClipDistance(light._deriveShadowFarClipDistance(&cam));
-            }
-        }
-        else if (light.getType() == Light::LT_SPOTLIGHT)
-        {
-            // generate view matrix if requested
-            if (out_view != NULL)
-            {
-                *out_view = buildViewMatrix(light.getDerivedPosition(), 
-                    light.getDerivedDirection(), 
-                    cam.getDerivedUp());
-            }
-
-            // generate projection matrix if requested
-            if (out_proj != NULL)
-            {
-                // set FOV slightly larger than spotlight range
-                mTempFrustum->setFOVy(Ogre::Math::Clamp<Radian>(light.getSpotlightOuterAngle() * 1.2, Radian(0), Radian(Math::PI/2.0f)));
-
-                mTempFrustum->setNearClipDistance(light._deriveShadowNearClipDistance(&cam));
-                mTempFrustum->setFarClipDistance(light._deriveShadowFarClipDistance(&cam));
-
-                *out_proj = mTempFrustum->getProjectionMatrix();
-            }
-
-            // set up camera if requested
-            if (out_cam != NULL)
-            {
-                out_cam->setProjectionType(PT_PERSPECTIVE);
-                out_cam->setDirection(light.getDerivedDirection());
-                out_cam->setPosition(light.getDerivedPosition());
-                out_cam->setFOVy(Ogre::Math::Clamp<Radian>(light.getSpotlightOuterAngle() * 1.2, Radian(0), Radian(Math::PI/2.0f)));
-                out_cam->setNearClipDistance(light._deriveShadowNearClipDistance(&cam));
-                out_cam->setFarClipDistance(light._deriveShadowFarClipDistance(&cam));
-            }
-        }
-    }
+    FocusedShadowCameraSetup::~FocusedShadowCameraSetup() {}
     //-----------------------------------------------------------------------
     void FocusedShadowCameraSetup::calculateB(const SceneManager& sm, const Camera& cam, 
         const Light& light, const AxisAlignedBox& sceneBB, const AxisAlignedBox& receiverBB, 
@@ -235,12 +96,6 @@ namespace Ogre
             mBodyB.clip(sceneBB);
 
             // clip with the light frustum
-            // set up light camera to clip with the resulting frustum planes
-            if (!mLightFrustumCameraCalculated)
-            {
-                calculateShadowMappingMatrix(sm, cam, light, NULL, NULL, mLightFrustumCamera);
-                mLightFrustumCameraCalculated = true;
-            }
             mBodyB.clip(*mLightFrustumCamera);
 
             // extract bodyB vertices
@@ -251,7 +106,7 @@ namespace Ogre
         {
             // For directional lights, all we care about is projecting the receivers
             // backwards towards the light, clipped by the camera region
-            mBodyB.clip(receiverBB);
+            mBodyB.clip(receiverBB.intersection(sceneBB));
 
             // Also clip based on shadow far distance if appropriate
             Real farDist = light.getShadowFarDistance();
@@ -261,6 +116,12 @@ namespace Ogre
                     (cam.getDerivedDirection() * farDist);
                 Plane p(cam.getDerivedDirection(), pointOnPlane);
                 mBodyB.clip(p);
+            }
+
+            if(Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_DEPTH_CLAMP))
+            {
+                out_bodyB->build(mBodyB);
+                return;
             }
 
             // Extrude the intersection bodyB into the inverted light direction and store 
@@ -288,12 +149,6 @@ namespace Ogre
         if (light.getType() != Light::LT_DIRECTIONAL)
         {
             // clip with the light frustum
-            // set up light camera to clip the resulting frustum
-            if (!mLightFrustumCameraCalculated)
-            {
-                calculateShadowMappingMatrix(sm, cam, light, NULL, NULL, mLightFrustumCamera);
-                mLightFrustumCameraCalculated = true;
-            }
             bodyLVS.clip(*mLightFrustumCamera);
         }
 
@@ -332,7 +187,7 @@ namespace Ogre
             Vector3::NEGATIVE_UNIT_Z : projectionDir.normalisedCopy();
     }
     //-----------------------------------------------------------------------
-    Vector3 FocusedShadowCameraSetup::getNearCameraPoint_ws(const Matrix4& viewMatrix, 
+    Vector3 FocusedShadowCameraSetup::getNearCameraPoint_ws(const Affine3& viewMatrix,
         const PointListBody& bodyLVS) const
     {
         if (bodyLVS.getPointCount() == 0)
@@ -390,23 +245,6 @@ namespace Ogre
         return mOut;
     }
     //-----------------------------------------------------------------------
-    Matrix4 FocusedShadowCameraSetup::buildViewMatrix(const Vector3& pos, const Vector3& dir, 
-        const Vector3& up) const
-    {
-        Vector3 xN = dir.crossProduct(up);
-        xN.normalise();
-        Vector3 upN = xN.crossProduct(dir);
-        upN.normalise();
-
-        Matrix4 m(xN.x,     xN.y,       xN.z,       -xN.dotProduct(pos),
-            upN.x,      upN.y,      upN.z,      -upN.dotProduct(pos),
-            -dir.x,     -dir.y, -dir.z, dir.dotProduct(pos),
-            0.0,            0.0,        0.0,        1.0
-            );
-
-        return m;
-    }
-    //-----------------------------------------------------------------------
     void FocusedShadowCameraSetup::getShadowCamera (const SceneManager *sm, const Camera *cam, 
         const Viewport *vp, const Light *light, Camera *texCam, size_t iteration) const
     {
@@ -415,28 +253,24 @@ namespace Ogre
         OgreAssert(cam != NULL, "Camera (viewer) is NULL");
         OgreAssert(light != NULL, "Light is NULL");
         OgreAssert(texCam != NULL, "Camera (texture) is NULL");
-        mLightFrustumCameraCalculated = false;
 
         texCam->setNearClipDistance(light->_deriveShadowNearClipDistance(cam));
-        texCam->setFarClipDistance(light->_deriveShadowFarClipDistance(cam));
+        texCam->setFarClipDistance(light->_deriveShadowFarClipDistance());
 
         // calculate standard shadow mapping matrix
-        Matrix4 LView, LProj;
-        calculateShadowMappingMatrix(*sm, *cam, *light, &LView, &LProj, NULL);
+        DefaultShadowCameraSetup::getShadowCamera(sm, cam, vp, light, texCam, iteration);
+        mLightFrustumCamera = texCam;
 
         // build scene bounding box
         const VisibleObjectsBoundsInfo& visInfo = sm->getVisibleObjectsBoundsInfo(texCam);
         AxisAlignedBox sceneBB = visInfo.aabb;
         AxisAlignedBox receiverAABB = sm->getVisibleObjectsBoundsInfo(cam).receiverAabb;
-        sceneBB.merge(receiverAABB);
         sceneBB.merge(cam->getDerivedPosition());
 
         // in case the sceneBB is empty (e.g. nothing visible to the cam) simply
         // return the standard shadow mapping matrix
         if (sceneBB.isNull())
         {
-            texCam->setCustomViewMatrix(true, LView);
-            texCam->setCustomProjectionMatrix(true, LProj);
             return;
         }
 
@@ -448,11 +282,11 @@ namespace Ogre
         // simply return the standard shadow mapping matrix
         if (mPointListBodyB.getPointCount() == 0)
         {
-            texCam->setCustomViewMatrix(true, LView);
-            texCam->setCustomProjectionMatrix(true, LProj);
             return;
         }
 
+        auto LView = texCam->getViewMatrix();
+        auto LProj = texCam->getProjectionMatrix();
         // transform to light space: y -> -z, z -> y
         LProj = msNormalToLightSpace * LProj;
 
@@ -472,7 +306,7 @@ namespace Ogre
         // - position is the origin
         // - the view direction is the calculated viewDir
         // - the up vector is the y-axis
-        LProj = buildViewMatrix(Vector3::ZERO, viewDir, Vector3::UNIT_Y) * LProj;
+        LProj = Matrix4(Math::lookRotation(-viewDir, Vector3::UNIT_Y).transpose()) * LProj;
 
         // map bodyB to unit cube
         LProj = transformToUnitCube(LProj * LView, mPointListBodyB) * LProj;
@@ -532,11 +366,8 @@ namespace Ogre
                 {
                     bool bPresent = false;
 
-                    for(Polygon::VertexList::iterator vit = mBodyPoints.begin();
-                        vit != mBodyPoints.end(); ++vit)
+                    for(auto & v : mBodyPoints)
                     {
-                        const Vector3& v = *vit;
-
                         if (vInsert.positionEquals(v))
                         {
                             bPresent = true;
@@ -658,7 +489,7 @@ namespace Ogre
     //-----------------------------------------------------------------------   
     const Vector3& FocusedShadowCameraSetup::PointListBody::getPoint(size_t cnt) const
     {
-        OgreAssert(cnt < getPointCount(), "Search position out of range");
+        OgreAssertDbg(cnt < getPointCount(), "Search position out of range");
 
         return mBodyPoints[ cnt ];
     }

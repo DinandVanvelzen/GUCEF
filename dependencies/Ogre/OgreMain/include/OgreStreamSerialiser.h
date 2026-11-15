@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,8 @@ THE SOFTWARE.
 #include "OgreDataStream.h"
 #include "OgreHeaderPrefix.h"
 
+#include <deque>
+
 namespace Ogre 
 {
     /** \addtogroup Core
@@ -44,7 +46,7 @@ namespace Ogre
 
     /** Utility class providing helper methods for reading / writing 
         structured data held in a DataStream.
-    @remarks
+
         The structure of a file read / written by this class is a series of 
         'chunks'. A chunk-based format has the advantage of being extensible later, 
         and it's robust, in that a reader can skip chunks that they are not 
@@ -131,22 +133,22 @@ namespace Ogre
         virtual ~StreamSerialiser();
 
         /** Get the endian mode.
-        @remarks
+
             If the result is ENDIAN_AUTO, this mode will change when the first piece of
             data is read / written. 
         */
         virtual Endian getEndian() const { return mEndian; }
 
         /** Pack a 4-character code into a 32-bit identifier.
-        @remarks
+
             You can use this to generate id's for your chunks based on friendlier
             4-character codes rather than assigning numerical IDs, if you like.
-        @param code String to pack - must be 4 characters.
+        @param code String to pack - must be 4 characters and '\0'
         */
-        static uint32 makeIdentifier(const String& code);
+        static uint32 makeIdentifier(const char (&code)[5]);
 
         /** Report the current depth of the chunk nesting, whether reading or writing. 
-        @remarks
+
             Returns how many levels of nested chunks are currently being processed, 
             either writing or reading. In order to tidily finish, you must call
             read/writeChunkEnd this many times.
@@ -169,7 +171,7 @@ namespace Ogre
         size_t getOffsetFromChunkStart() const;
 
         /** Reads the start of the next chunk in the file.
-        @remarks
+
             Files are serialised in a chunk-based manner, meaning that each section
             of data is prepended by a chunk header. After reading this chunk header, 
             the next set of data is available directly afterwards. 
@@ -182,7 +184,7 @@ namespace Ogre
         virtual const Chunk* readChunkBegin();
 
         /** Reads the start of the next chunk so long as it's of a given ID and version.
-        @remarks
+
             This method operates like readChunkBegin, except it checks the ID and
             version.
         @param id The ID you're expecting. If the next chunk isn't of this ID, then
@@ -197,7 +199,7 @@ namespace Ogre
 
         /** Call this to 'rewind' the stream to just before the start of the current
             chunk. 
-        @remarks
+
             The most common case of wanting to use this is if you'd calledReadChunkBegin(), 
             but the chunk you read wasn't one you wanted to process, and rather than
             skipping over it (which readChunkEnd() would do), you want to backtrack
@@ -210,7 +212,7 @@ namespace Ogre
         virtual uint32 peekNextChunkID(); 
 
         /** Finish the reading of a chunk.
-        @remarks
+
             You can call this method at any point after calling readChunkBegin, even
             if you didn't read all the rest of the data in the chunk. If you did 
             not read to the end of a chunk, this method will automatically skip 
@@ -231,7 +233,7 @@ namespace Ogre
         virtual const Chunk* getCurrentChunk() const;
 
         /** Begin writing a new chunk.
-        @remarks
+
             This starts the process of writing a new chunk to the stream. This will 
             write the chunk header for you, and store a pointer so that the
             class can automatically go back and fill in the size for you later
@@ -333,7 +335,7 @@ namespace Ogre
         bool mFlipEndian;
         bool mReadWriteHeader;
         RealStorageFormat mRealFormat;
-        typedef deque<Chunk*>::type ChunkStack;
+        typedef std::deque<Chunk*> ChunkStack;
         /// Current list of open chunks
         ChunkStack mChunkStack;
 
@@ -360,29 +362,18 @@ namespace Ogre
         template <typename T, typename U>
         void writeConverted(const T* src, U typeToWrite, size_t count)
         {
-            U* tmp = OGRE_ALLOC_T(U, count, MEMCATEGORY_GENERAL);
-            U* pDst = tmp;
-            const T* pSrc = src;
-            for (size_t i = 0; i < count; ++i)
-                *pDst++ = static_cast<U>(*pSrc++);
-            
-            writeData(tmp, sizeof(U), count);
-
-            OGRE_FREE(tmp, MEMCATEGORY_GENERAL);
+            std::vector<U> tmp(count);
+            for (auto& e : tmp)
+                e = static_cast<U>(*src++);
+            writeData(tmp.data(), sizeof(U), count);
         }
         template <typename T, typename U>
         void readConverted(T* dst, U typeToRead, size_t count)
         {
-            U* tmp = OGRE_ALLOC_T(U, count, MEMCATEGORY_GENERAL);
-            readData(tmp, sizeof(U), count);
-
-            T* pDst = dst;
-            const U* pSrc = tmp;
-            for (size_t i = 0; i < count; ++i)
-                *pDst++ = static_cast<T>(*pSrc++);
-
-
-            OGRE_FREE(tmp, MEMCATEGORY_GENERAL);
+            std::vector<U> tmp(count);
+            readData(tmp.data(), sizeof(U), count);
+            for (auto& e : tmp)
+                *dst++ = static_cast<T>(e);
         }
 
     };

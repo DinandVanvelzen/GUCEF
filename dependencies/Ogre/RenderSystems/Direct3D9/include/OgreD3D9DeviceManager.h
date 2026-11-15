@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ namespace Ogre {
     // Interface.
     public:     
         void                setActiveDevice                 (D3D9Device* device);
-        D3D9Device*         getActiveDevice                 ();
+        D3D9Device*         getActiveDevice                 () {return mActiveDevice;}
         void                setActiveRenderTargetDevice     (D3D9Device* device);
         D3D9Device*         getActiveRenderTargetDevice     ();     
         UINT                getDeviceCount                  ();
@@ -58,10 +58,10 @@ namespace Ogre {
         ~D3D9DeviceManager  ();
 
     protected:      
-        typedef vector<D3D9Device*>::type        DeviceList;
+        typedef std::vector<D3D9Device*>        DeviceList;
         typedef DeviceList::iterator             DeviceIterator;
         typedef DeviceList::const_iterator       ConstDeviceIterator;
-        typedef vector<D3D9RenderWindow*>::type  D3D9RenderWindowList;
+        typedef std::vector<D3D9RenderWindow*>  D3D9RenderWindowList;
 
     protected:
         D3D9Device*         selectDevice        (D3D9RenderWindow* renderWindow, D3D9RenderWindowList& renderWindowsGroup);

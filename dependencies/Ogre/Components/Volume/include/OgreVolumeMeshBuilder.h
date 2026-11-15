@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,13 +30,18 @@ THE SOFTWARE.
 
 #include <vector>
 #include "OgreManualObject.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 #include "OgreAxisAlignedBox.h"
 #include "OgreVolumePrerequisites.h"
 
 namespace Ogre {
 namespace Volume {
-
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     /** Lightweight struct to represent a mesh vertex.
     */
     typedef struct _OgreVolumeExport Vertex
@@ -95,11 +100,11 @@ namespace Volume {
 
     /** To hold vertices.
     */
-    typedef vector<Vertex>::type VecVertex;
+    typedef std::vector<Vertex> VecVertex;
 
     /** To hold indices.
     */
-    typedef vector<size_t>::type VecIndices;
+    typedef std::vector<uint32> VecIndices;
 
     /** Callback class when the user needs information about the triangles of
         chunks of a LOD level.
@@ -134,7 +139,7 @@ namespace Volume {
         static const unsigned short MAIN_BINDING;
 
         /// Map to get a vertex index.
-        typedef map<Vertex, size_t>::type UMapVertexIndex;
+        typedef std::map<Vertex, uint32> UMapVertexIndex;
         UMapVertexIndex mIndexMap;
 
          /// Holds the vertices of the mesh.
@@ -155,7 +160,7 @@ namespace Volume {
         */
         inline void addVertex(const Vertex &v)
         {
-            size_t i = 0;
+            uint32 i = 0;
             if (mIndexMap.find(v) == mIndexMap.end())
             {
                 i = mVertices.size();
@@ -163,38 +168,7 @@ namespace Volume {
                 mVertices.push_back(v);
 
                 // Update bounding box
-                if (!mBoxInit)
-                {
-                    mBox.setExtents(v.x, v.y, v.z, v.x, v.y, v.z);
-                    mBoxInit = true;
-                }
-                else
-                {
-                    if (v.x < mBox.getMinimum().x)
-                    {
-                        mBox.setMinimumX(v.x);
-                    }
-                    if (v.y < mBox.getMinimum().y)
-                    {
-                        mBox.setMinimumY(v.y);
-                    }
-                    if (v.z < mBox.getMinimum().z)
-                    {
-                        mBox.setMinimumZ(v.z);
-                    }
-                    if (v.x > mBox.getMaximum().x)
-                    {
-                        mBox.setMaximumX(v.x);
-                    }
-                    if (v.y > mBox.getMaximum().y)
-                    {
-                        mBox.setMaximumY(v.y);
-                    }
-                    if (v.z > mBox.getMaximum().z)
-                    {
-                        mBox.setMaximumZ(v.z);
-                    }
-                }
+                mBox.merge(Vector3(v.x, v.y, v.z));
             }
             else
             {
@@ -336,6 +310,8 @@ namespace Volume {
         void executeCallback(MeshBuilderCallback *callback, const SimpleRenderable *simpleRenderable, size_t level, int inProcess) const;
 
     };
+    /** @} */
+    /** @} */
 }
 }
 

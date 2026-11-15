@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreGpuProgram.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre {
 
@@ -41,7 +42,7 @@ namespace Ogre {
     */
     /** Abstract base class representing a high-level program (a vertex or
         fragment program).
-    @remarks
+
         High-level programs are vertex and fragment programs written in a high-level
         language such as Cg or HLSL, and as such do not require you to write assembler code
         like GpuProgram does. However, the high-level program does eventually 
@@ -65,38 +66,45 @@ namespace Ogre {
     protected:
         /// Whether the high-level program (and it's parameter defs) is loaded
         bool mHighLevelLoaded;
+        /// Have we built the name->index parameter map yet?
+        bool mConstantDefsBuilt;
         /// The underlying assembler program
         GpuProgramPtr mAssemblerProgram;
-        /// Have we built the name->index parameter map yet?
-        mutable bool mConstantDefsBuilt;
+        /// Preprocessor options
+        String mPreprocessorDefines;
+        /// Entry point for this program
+        String mEntryPoint;
+
+        /// in-situ parsing of defines
+        static std::vector<std::pair<const char*, const char*>> parseDefines(String& defines);
+
+        String appendBuiltinDefines(String defines);
 
         /// Internal load high-level portion if not loaded
         virtual void loadHighLevel(void);
         /// Internal unload high-level portion if loaded
         virtual void unloadHighLevel(void);
-        /** Internal load implementation, loads just the high-level portion, enough to 
-            get parameters.
-        */
-        virtual void loadHighLevelImpl(void);
         /** Internal method for creating an appropriate low-level program from this
         high-level program, must be implemented by subclasses. */
         virtual void createLowLevelImpl(void) = 0;
         /// Internal unload implementation, must be implemented by subclasses
         virtual void unloadHighLevelImpl(void) = 0;
         /// Populate the passed parameters with name->index map
-        virtual void populateParameterNames(GpuProgramParametersSharedPtr params);
+        void populateParameterNames(const GpuProgramParametersSharedPtr& params);
         /** Build the constant definition map, must be overridden.
         @note The implementation must fill in the (inherited) mConstantDefs field at a minimum, 
             and if the program requires that parameters are bound using logical 
-            parameter indexes then the mFloatLogicalToPhysical and mIntLogicalToPhysical
+            parameter indexes then the mLogicalToPhysical and mIntLogicalToPhysical
             maps must also be populated.
         */
-        virtual void buildConstantDefinitions() const = 0;
+        virtual void buildConstantDefinitions() = 0;
 
         /** @copydoc Resource::loadImpl */
-        void loadImpl();
+        void loadImpl() override;
         /** @copydoc Resource::unloadImpl */
-        void unloadImpl();
+        void unloadImpl() override;
+
+        void setupBaseParamDictionary() override;
     public:
         /** Constructor, should be used only by factory classes. */
         HighLevelGpuProgram(ResourceManager* creator, const String& name, ResourceHandle handle,
@@ -105,30 +113,42 @@ namespace Ogre {
 
 
         /** Creates a new parameters object compatible with this program definition. 
-        @remarks
+
             Unlike low-level assembly programs, parameters objects are specific to the
             program and therefore must be created from it rather than by the 
             HighLevelGpuProgramManager. This method creates a new instance of a parameters
             object containing the definition of the parameters this program understands.
         */
-        GpuProgramParametersSharedPtr createParameters(void);
+        GpuProgramParametersSharedPtr createParameters(void) override;
         /** @copydoc GpuProgram::_getBindingDelegate */
-        GpuProgram* _getBindingDelegate(void) { return mAssemblerProgram.getPointer(); }
+        GpuProgram* _getBindingDelegate(void) override { return mAssemblerProgram.get(); }
 
         /** Get the full list of GpuConstantDefinition instances.
         @note
         Only available if this parameters object has named parameters.
         */
-        const GpuNamedConstants& getConstantDefinitions() const;
+        const GpuNamedConstants& getConstantDefinitions() override;
 
-        virtual size_t calculateSize(void) const;
+        size_t calculateSize(void) const override;
 
+        /** Sets the preprocessor defines used to compile the program. */
+        void setPreprocessorDefines(const String& defines) { mPreprocessorDefines = defines; }
+        /** Gets the preprocessor defines used to compile the program. */
+        const String& getPreprocessorDefines(void) const { return mPreprocessorDefines; }
 
+        /** Sets the entry point for this program i.e, the first method called. */
+        void setEntryPoint(const String& entryPoint) { mEntryPoint = entryPoint; }
+        /** Gets the entry point defined for this program. */
+        const String& getEntryPoint(void) const { return mEntryPoint; }
 
-
+        /// Scan the source for \#include and replace with contents from OGRE resources
+        static String _resolveIncludes(const String& source, Resource* resourceBeingLoaded, const String& fileName, bool supportsFilename = false);
     };
     /** @} */
     /** @} */
 
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif

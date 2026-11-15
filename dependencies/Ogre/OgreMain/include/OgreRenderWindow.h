@@ -4,7 +4,7 @@ This source file is a part of OGRE
 
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -39,25 +39,23 @@ namespace Ogre
     *  @{
     */
     /** Manages the target rendering window.
-        @remarks
-            This class handles a window into which the contents
-            of a scene are rendered. There is a many-to-1 relationship
-            between instances of this class an instance of RenderSystem
-            which controls the rendering of the scene. There may be
-            more than one window in the case of level editor tools etc.
-            This class is abstract since there may be
-            different implementations for different windowing systems.
-        @remarks
-            Instances are created and communicated with by the render system
-            although client programs can get a reference to it from
-            the render system if required for resizing or moving.
-            Note that you can have multiple viewpoints
-            in the window for effects like rear-view mirrors and
-            picture-in-picture views (see Viewport and Camera).
+
+        This class handles a window into which the contents
+        of a scene are rendered. There is a many-to-1 relationship
+        between instances of this class an instance of RenderSystem
+        which controls the rendering of the scene. There may be
+        more than one window in the case of level editor tools etc.
+        This class is abstract since there may be
+        different implementations for different windowing systems.
+
+        Instances are created and communicated with by the render system
+        although client programs can get a reference to it from
+        the render system if required for resizing or moving.
+        Note that you can have multiple viewpoints
+        in the window for effects like rear-view mirrors and
+        picture-in-picture views (see Viewport and Camera).
         @author
             Steven Streeting
-        @version
-            1.0
     */
     class _OgreExport RenderWindow : public RenderTarget
     {
@@ -73,7 +71,7 @@ namespace Ogre
             ~ 100 points per inch (probably 96 on Windows and 72 on Mac), that is independent
             of pixel density of real display, and are used through the all windowing system.
 
-            Sometimes, such view points are choosen bigger for output devices that are viewed
+            Sometimes, such view points are chosen bigger for output devices that are viewed
             from larger distances, like 30" TV comparing to 30" monitor, therefore maintaining
             constant points angular density rather than constant linear density.
 
@@ -91,10 +89,11 @@ namespace Ogre
         virtual float getViewPointToPixelScale() { return 1.0f; }
 
         /** Creates & displays the new window.
+            @param name the internal window name. Not necessarily the title.
             @param
-                width The width of the window in view points.
+                widthPt The width of the window in view points.
             @param
-                height The height of the window in view points.
+                heightPt The height of the window in view points.
             @param
                 fullScreen If true, the window fills the screen,
                 with no title bar or border.
@@ -106,11 +105,12 @@ namespace Ogre
                 bool fullScreen, const NameValuePairList *miscParams) = 0;
 
         /** Alter fullscreen mode options. 
-        @note Nothing will happen unless the settings here are different from the
+        Nothing will happen unless the settings here are different from the
             current settings.
+        @note Only implemented by few RenderSystems. Prefer native windowing API.
         @param fullScreen Whether to use fullscreen mode or not. 
-        @param width The new width to use
-        @param height The new height to use
+        @param widthPt The new width to use
+        @param heightPt The new height to use
         */
         virtual void setFullscreen(bool fullScreen, unsigned int widthPt, unsigned int heightPt)
                 { (void)fullScreen; (void)widthPt; (void)heightPt; }
@@ -121,17 +121,18 @@ namespace Ogre
 
         /** Alter the size of the window.
         */
-        virtual void resize(unsigned int widthPt, unsigned int heightPt) = 0;
+        virtual void resize(unsigned int widthPt, unsigned int heightPt);
 
-        /** Notify that the window has been resized
-        @remarks
-            You don't need to call this unless you created the window externally.
+        /** Query the current size and position from an external window handle.
+            @note most of the time you already know the size and should call @ref resize instead.
         */
         virtual void windowMovedOrResized() {}
 
         /** Reposition the window.
+
+        @note Only implemented by few RenderSystems. Prefer native windowing API.
         */
-        virtual void reposition(int leftPt, int topPt) = 0;
+        virtual void reposition(int leftPt, int topPt) {}
 
         /** Indicates whether the window is visible (not minimized or obscured)
         */
@@ -148,7 +149,7 @@ namespace Ogre
 
         /** Hide (or show) the window. If called with hidden=true, this
             will make the window completely invisible to the user.
-        @remarks
+
             Setting a window to hidden is useful to create a dummy primary
             RenderWindow hidden from the user so that you can create and
             recreate your actual RenderWindows without having to recreate
@@ -174,16 +175,16 @@ namespace Ogre
 
         /** Returns the vertical sync interval. 
         */
-        virtual unsigned int getVSyncInterval() const { return 1; }
+        unsigned int getVSyncInterval() const { return mVSyncInterval; }
         
 
         /** Overridden from RenderTarget, flags invisible windows as inactive
         */
-        virtual bool isActive(void) const { return mActive && isVisible(); }
+        bool isActive(void) const override { return mActive && isVisible(); }
 
         /** Indicates whether the window has been closed by the user.
         */
-        virtual bool isClosed(void) const = 0;
+        virtual bool isClosed(void) const { return mClosed; }
         
         /** Indicates whether the window is the primary window. The
             primary window is special in that it is destroyed when 
@@ -191,7 +192,7 @@ namespace Ogre
             This is the case because it holds the context for vertex,
             index buffers and textures.
         */
-        virtual bool isPrimary(void) const;
+        bool isPrimary(void) const override;
 
         /** Returns true if window is running in fullscreen mode.
         */
@@ -200,11 +201,10 @@ namespace Ogre
         /** Overloaded version of getMetrics from RenderTarget, including extra details
             specific to windowing systems. Result is in pixels.
         */
-        virtual void getMetrics(unsigned int& width, unsigned int& height, unsigned int& colourDepth, 
-            int& left, int& top) const;
+        void getMetrics(unsigned int& width, unsigned int& height, int& left, int& top) const;
 
         /// Override since windows don't usually have alpha
-        PixelFormat suggestPixelFormat() const { return PF_BYTE_RGB; }
+        PixelFormat suggestPixelFormat() const override { return PF_BYTE_RGB; }
 
         /** Returns true if the window will automatically de-activate itself when it loses focus.
         */
@@ -216,12 +216,19 @@ namespace Ogre
           */
         void setDeactivateOnFocusChange(bool deactivate);
 
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
+        virtual void _notifySurfaceDestroyed() = 0;
+        virtual void _notifySurfaceCreated(void* nativeWindow, void* config = NULL) = 0;
+#endif
+
     protected:
         bool mIsFullScreen;
         bool mIsPrimary;
         bool mAutoDeactivatedOnFocusChange;
+        bool mClosed;
         int mLeft;
         int mTop;
+        unsigned int mVSyncInterval;
         
         /** Indicates that this is the primary window. Only to be called by
             Ogre::Root

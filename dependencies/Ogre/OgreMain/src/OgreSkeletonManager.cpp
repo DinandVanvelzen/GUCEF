@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreSkeletonManager.h"
 
-#include "OgreSkeleton.h"
-
 namespace Ogre
 {
     //-----------------------------------------------------------------------
@@ -51,16 +49,16 @@ namespace Ogre
         ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
     }
     //-----------------------------------------------------------------------
-    SkeletonPtr SkeletonManager::getByName(const String& name, const String& groupName)
+    SkeletonPtr SkeletonManager::getByName(const String& name, const String& groupName) const
     {
-        return getResourceByName(name, groupName).staticCast<Skeleton>();
+        return static_pointer_cast<Skeleton>(getResourceByName(name, groupName));
     }
     //-----------------------------------------------------------------------
     SkeletonPtr SkeletonManager::create (const String& name, const String& group,
                                     bool isManual, ManualResourceLoader* loader,
                                     const NameValuePairList* createParams)
     {
-        return createResource(name,group,isManual,loader,createParams).staticCast<Skeleton>();
+        return static_pointer_cast<Skeleton>(createResource(name,group,isManual,loader,createParams));
     }
     //-----------------------------------------------------------------------
     SkeletonManager::~SkeletonManager()

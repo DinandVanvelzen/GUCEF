@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,78 +25,177 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "OgreShaderExLayeredBlending.h"
+#include "OgreShaderPrecompiledHeaders.h"
+#include "OgreStringConverter.h"
 #ifdef RTSHADER_SYSTEM_BUILD_EXT_SHADERS
-#include "OgreShaderFunctionAtom.h"
-#include "OgreShaderProgram.h"
-#include "OgreShaderProgramSet.h"
-#include "OgrePass.h"
-#include "OgreMaterialSerializer.h"
 
 namespace Ogre {
 namespace RTShader {
 
 
 String LayeredBlending::Type = "LayeredBlendRTSSEx";
+const String SRS_LAYERED_BLENDING = "LayeredBlendRTSSEx";
+
+enum BlendMode : int
+{
+    LB_Invalid = -1,
+    LB_FFPBlend,
+    LB_BlendNormal,
+    LB_BlendLighten,
+    LB_BlendDarken,
+    LB_BlendMultiply,
+    LB_BlendAverage,
+    LB_BlendAdd,
+    LB_BlendSubtract,
+    LB_BlendDifference,
+    LB_BlendNegation,
+    LB_BlendExclusion,
+    LB_BlendScreen,
+    LB_BlendOverlay,
+    LB_BlendSoftLight,
+    LB_BlendHardLight,
+    LB_BlendColorDodge,
+    LB_BlendColorBurn,
+    LB_BlendLinearDodge,
+    LB_BlendLinearBurn,
+    LB_BlendLinearLight,
+    LB_BlendVividLight,
+    LB_BlendPinLight,
+    LB_BlendHardMix,
+    LB_BlendReflect,
+    LB_BlendGlow,
+    LB_BlendPhoenix,
+    LB_BlendSaturation,
+    LB_BlendColor,
+    LB_BlendLuminosity,
+    LB_MaxBlendModes
+};
+
+enum SourceModifier : int
+{
+    SM_Invalid = -1,
+    SM_None,
+    SM_Source1Modulate,
+    SM_Source2Modulate,
+    SM_Source1InvModulate,
+    SM_Source2InvModulate,
+    SM_MaxSourceModifiers
+};
+
+namespace {
 
  struct BlendModeDescription {
         /* Type of the blend mode */
-        LayeredBlending::BlendMode type;
+        BlendMode type;
         /* name of the blend mode. */
         const char* name;
         /* shader function name . */
         const char* funcName;
     };
 
-const BlendModeDescription _blendModes[(int)LayeredBlending::LB_MaxBlendModes] = {
-    { LayeredBlending::LB_FFPBlend ,"default", ""},
-    { LayeredBlending::LB_BlendNormal ,"normal", "SGX_blend_normal"},
-    { LayeredBlending::LB_BlendLighten,"lighten", "SGX_blend_lighten"},
-    { LayeredBlending::LB_BlendDarken ,"darken", "SGX_blend_darken"},
-    { LayeredBlending::LB_BlendMultiply ,"multiply", "SGX_blend_multiply"},
-    { LayeredBlending::LB_BlendAverage ,"average", "SGX_blend_average"},
-    { LayeredBlending::LB_BlendAdd ,"add", "SGX_blend_add"},
-    { LayeredBlending::LB_BlendSubtract ,"subtract", "SGX_blend_subtract"},
-    { LayeredBlending::LB_BlendDifference ,"difference", "SGX_blend_difference"},
-    { LayeredBlending::LB_BlendNegation ,"negation", "SGX_blend_negation"},
-    { LayeredBlending::LB_BlendExclusion ,"exclusion", "SGX_blend_exclusion"},
-    { LayeredBlending::LB_BlendScreen ,"screen", "SGX_blend_screen"},
-    { LayeredBlending::LB_BlendOverlay ,"overlay", "SGX_blend_overlay"},
-    { LayeredBlending::LB_BlendHardLight ,"hard_light", "SGX_blend_hardLight"},
-    { LayeredBlending::LB_BlendSoftLight ,"soft_light", "SGX_blend_softLight"},
-    { LayeredBlending::LB_BlendColorDodge ,"color_dodge", "SGX_blend_colorDodge"},
-    { LayeredBlending::LB_BlendColorBurn ,"color_burn", "SGX_blend_colorBurn"},
-    { LayeredBlending::LB_BlendLinearDodge ,"linear_dodge", "SGX_blend_linearDodge"},
-    { LayeredBlending::LB_BlendLinearBurn ,"linear_burn", "SGX_blend_linearBurn"},
-    { LayeredBlending::LB_BlendLinearLight ,"linear_light", "SGX_blend_linearLight"},
-    { LayeredBlending::LB_BlendVividLight ,"vivid_light", "SGX_blend_vividLight"},
-    { LayeredBlending::LB_BlendPinLight ,"pin_light", "SGX_blend_pinLight"},
-    { LayeredBlending::LB_BlendHardMix ,"hard_mix", "SGX_blend_hardMix"},
-    { LayeredBlending::LB_BlendReflect ,"reflect", "SGX_blend_reflect"},
-    { LayeredBlending::LB_BlendGlow ,"glow", "SGX_blend_glow"},
-    { LayeredBlending::LB_BlendPhoenix ,"phoenix", "SGX_blend_phoenix"},
-    { LayeredBlending::LB_BlendSaturation ,"saturation", "SGX_blend_saturation"},
-    { LayeredBlending::LB_BlendColor ,"color", "SGX_blend_color"},
-    { LayeredBlending::LB_BlendLuminosity, "luminosity", "SGX_blend_luminosity"}
-    };
+const BlendModeDescription _blendModes[(int)LB_MaxBlendModes] = {
+    { LB_FFPBlend ,"default", ""},
+    { LB_BlendNormal ,"normal", "SGX_blend_normal"},
+    { LB_BlendLighten,"lighten", "SGX_blend_lighten"},
+    { LB_BlendDarken ,"darken", "SGX_blend_darken"},
+    { LB_BlendMultiply ,"multiply", "SGX_blend_multiply"},
+    { LB_BlendAverage ,"average", "SGX_blend_average"},
+    { LB_BlendAdd ,"add", "SGX_blend_add"},
+    { LB_BlendSubtract ,"subtract", "SGX_blend_subtract"},
+    { LB_BlendDifference ,"difference", "SGX_blend_difference"},
+    { LB_BlendNegation ,"negation", "SGX_blend_negation"},
+    { LB_BlendExclusion ,"exclusion", "SGX_blend_exclusion"},
+    { LB_BlendScreen ,"screen", "SGX_blend_screen"},
+    { LB_BlendOverlay ,"overlay", "SGX_blend_overlay"},
+    { LB_BlendHardLight ,"hard_light", "SGX_blend_hardLight"},
+    { LB_BlendSoftLight ,"soft_light", "SGX_blend_softLight"},
+    { LB_BlendColorDodge ,"color_dodge", "SGX_blend_colorDodge"},
+    { LB_BlendColorBurn ,"color_burn", "SGX_blend_colorBurn"},
+    { LB_BlendLinearDodge ,"linear_dodge", "SGX_blend_linearDodge"},
+    { LB_BlendLinearBurn ,"linear_burn", "SGX_blend_linearBurn"},
+    { LB_BlendLinearLight ,"linear_light", "SGX_blend_linearLight"},
+    { LB_BlendVividLight ,"vivid_light", "SGX_blend_vividLight"},
+    { LB_BlendPinLight ,"pin_light", "SGX_blend_pinLight"},
+    { LB_BlendHardMix ,"hard_mix", "SGX_blend_hardMix"},
+    { LB_BlendReflect ,"reflect", "SGX_blend_reflect"},
+    { LB_BlendGlow ,"glow", "SGX_blend_glow"},
+    { LB_BlendPhoenix ,"phoenix", "SGX_blend_phoenix"},
+    { LB_BlendSaturation ,"saturation", "SGX_blend_saturation"},
+    { LB_BlendColor ,"color", "SGX_blend_color"},
+    { LB_BlendLuminosity, "luminosity", "SGX_blend_luminosity"}
+};
         
 
  struct SourceModifierDescription {
         /* Type of the source modifier*/
-        LayeredBlending::SourceModifier type;
+        SourceModifier type;
         /* name of the source modifier. */
         const char* name;
-        /* shader function name . */
-        const char* funcName;
     };
 
-const SourceModifierDescription _sourceModifiers[(int)LayeredBlending::SM_MaxSourceModifiers] = {
-    { LayeredBlending::SM_None ,""},
-    { LayeredBlending::SM_Source1Modulate ,"src1_modulate"},
-    { LayeredBlending::SM_Source2Modulate ,"src2_modulate"},
-    { LayeredBlending::SM_Source1InvModulate ,"src1_inverse_modulate"},
-    { LayeredBlending::SM_Source2InvModulate ,"src2_inverse_modulate"}
+const SourceModifierDescription _sourceModifiers[(int)SM_MaxSourceModifiers] = {
+    { SM_None ,""},
+    { SM_Source1Modulate ,"src1_modulate"},
+    { SM_Source2Modulate ,"src2_modulate"},
+    { SM_Source1InvModulate ,"src1_inverse_modulate"},
+    { SM_Source2InvModulate ,"src2_inverse_modulate"}
     };
+
+//-----------------------------------------------------------------------
+BlendMode stringToBlendMode(const String &strValue)
+{
+    for(const auto & _blendMode : _blendModes)
+    {
+        if (_blendMode.name == strValue)
+        {
+            return _blendMode.type;
+        }
+    }
+    return LB_Invalid;
+}
+
+//-----------------------------------------------------------------------
+String blendModeToString(BlendMode blendMode)
+{
+    for(const auto & _blendMode : _blendModes)
+    {
+        if (_blendMode.type == blendMode)
+        {
+            return _blendMode.name;
+        }
+    }
+    return "";
+}
+
+//-----------------------------------------------------------------------
+SourceModifier stringToSourceModifier(const String &strValue)
+{
+    for(const auto & _sourceModifier : _sourceModifiers)
+    {
+        if (_sourceModifier.name == strValue)
+        {
+            return _sourceModifier.type;
+        }
+    }
+    return SM_Invalid;
+}
+
+//-----------------------------------------------------------------------
+String sourceModifierToString(SourceModifier modifier)
+{
+    for(const auto & _sourceModifier : _sourceModifiers)
+    {
+        if (_sourceModifier.type == modifier)
+        {
+            return _sourceModifier.name;
+        }
+    }
+    return "";
+}
+}
+
+LayeredBlending::TextureBlend::TextureBlend() : blendMode(LB_Invalid), sourceModifier(SM_Invalid), customNum(0) {}
+
 //-----------------------------------------------------------------------
 LayeredBlending::LayeredBlending()
 {
@@ -106,7 +205,7 @@ LayeredBlending::LayeredBlending()
 //-----------------------------------------------------------------------
 const Ogre::String& LayeredBlending::getType() const
 {
-    return Type;
+    return SRS_LAYERED_BLENDING;
 }
 
 
@@ -120,7 +219,7 @@ bool LayeredBlending::resolveParameters(ProgramSet* programSet)
     if (isSuccess)
     {
         //resolve source modification parameters
-        Program* psProgram = programSet->getCpuFragmentProgram();
+        Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
 
         for(size_t i = mTextureBlends.size() - 1; i != (size_t)-1 ; --i)
         {
@@ -129,7 +228,7 @@ bool LayeredBlending::resolveParameters(ProgramSet* programSet)
                 (texBlend.sourceModifier != SM_None))
             {
                 
-                texBlend.modControlParam = psProgram->resolveAutoParameterInt(
+                texBlend.modControlParam = psProgram->resolveParameter(
                     GpuProgramParameters::ACT_CUSTOM, texBlend.customNum);
                 if (texBlend.modControlParam.get() == NULL)
                 {   
@@ -148,9 +247,9 @@ bool LayeredBlending::resolveParameters(ProgramSet* programSet)
 bool LayeredBlending::resolveDependencies(ProgramSet* programSet)
 {
     FFPTexturing::resolveDependencies(programSet);
-    Program* psProgram = programSet->getCpuFragmentProgram();
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
 
-    psProgram->addDependency(SGX_LIB_LAYEREDBLENDING);
+    psProgram->addDependency("SGXLib_LayeredBlending");
 
     return true;
 }
@@ -172,14 +271,13 @@ void LayeredBlending::addPSBlendInvocations(Function* psMain,
                                          int samplerIndex,
                                          const LayerBlendModeEx& blendMode,
                                          const int groupOrder, 
-                                         int& internalCounter,
-                                         int targetChannels)
+                                         Operand::OpMask mask)
 {
     //
     // Add the modifier invocation
     //
 
-    addPSModifierInvocation(psMain, samplerIndex, arg1, arg2, groupOrder, internalCounter, targetChannels);
+    addPSModifierInvocation(psMain, samplerIndex, arg1, arg2, groupOrder, mask);
 
     //
     // Add the blending function invocations
@@ -189,29 +287,26 @@ void LayeredBlending::addPSBlendInvocations(Function* psMain,
     
     if ((LB_FFPBlend == mode) || (LB_Invalid == mode))
     {
-        FFPTexturing::addPSBlendInvocations(psMain, arg1, arg2, texel, samplerIndex, blendMode, groupOrder, internalCounter, targetChannels);
+        FFPTexturing::addPSBlendInvocations(psMain, arg1, arg2, texel, samplerIndex, blendMode, groupOrder, mask);
     }
     else 
     {
         //find the function name for the blend mode
-        String funcName;
-        for(int i = 0 ; i < (int)LayeredBlending::LB_MaxBlendModes ; ++i)
+        const char* funcName = NULL;
+        for(const auto & _blendMode : _blendModes)
         {
-            if (_blendModes[i].type == mode)
+            if (_blendMode.type == mode)
             {
-                funcName = _blendModes[i].funcName;
+                funcName = _blendMode.funcName;
                 break;
             }
         }
 
         //add the function of the blend mode
-        if (funcName.empty() == false)
+        if (funcName)
         {
-            FunctionInvocation* curFuncInvocation = OGRE_NEW FunctionInvocation(funcName, groupOrder, internalCounter++);
-            curFuncInvocation->pushOperand(arg1, Operand::OPS_IN, targetChannels);
-            curFuncInvocation->pushOperand(arg2, Operand::OPS_IN, targetChannels);
-            curFuncInvocation->pushOperand(mPSOutDiffuse, Operand::OPS_OUT, targetChannels);        
-            psMain->addAtomInstance(curFuncInvocation); 
+            psMain->getStage(groupOrder)
+                .callFunction(funcName, In(arg1).mask(mask), In(arg2).mask(mask), Out(mPSOutDiffuse).mask(mask));
         }
     }
 }
@@ -222,15 +317,14 @@ void LayeredBlending::addPSModifierInvocation(Function* psMain,
                                          ParameterPtr arg1,
                                          ParameterPtr arg2,
                                          const int groupOrder, 
-                                         int& internalCounter,
-                                         int targetChannels)
+                                         Operand::OpMask mask)
 {
     SourceModifier modType;
     int customNum;
     if (getSourceModifier(samplerIndex, modType, customNum) == true)
     {
         ParameterPtr modifiedParam;
-        String funcName;
+        const char* funcName = NULL;
         switch (modType)
         {
         case SM_Source1Modulate: 
@@ -254,32 +348,32 @@ void LayeredBlending::addPSModifierInvocation(Function* psMain,
         }
 
         //add the function of the blend mode
-        if (funcName.empty() == false)
+        if (funcName)
         {
             ParameterPtr& controlParam = mTextureBlends[samplerIndex].modControlParam;
-
-            FunctionInvocation* curFuncInvocation = OGRE_NEW FunctionInvocation(funcName, groupOrder, internalCounter++);
-            curFuncInvocation->pushOperand(modifiedParam, Operand::OPS_IN, targetChannels);
-            curFuncInvocation->pushOperand(controlParam, Operand::OPS_IN, targetChannels);
-            curFuncInvocation->pushOperand(modifiedParam, Operand::OPS_OUT, targetChannels);        
-            psMain->addAtomInstance(curFuncInvocation); 
+            psMain->getStage(groupOrder)
+                .callFunction(funcName, In(modifiedParam).mask(mask), In(controlParam).mask(mask),
+                              Out(modifiedParam).mask(mask));
         }
     }
 }
 
-
-//-----------------------------------------------------------------------
-void LayeredBlending::setBlendMode(unsigned short index, BlendMode mode)
+bool LayeredBlending::setBlendMode(uint16 index, const String& mode)
 {
+    auto blendMode = stringToBlendMode(mode);
+    if (blendMode == LB_Invalid)
+        return false;
+
     if(mTextureBlends.size() < (size_t)index + 1)
     {
         mTextureBlends.resize(index + 1);
     }
-    mTextureBlends[index].blendMode = mode;
+    mTextureBlends[index].blendMode = blendMode;
+    return true;
 }
 
 //-----------------------------------------------------------------------
-LayeredBlending::BlendMode LayeredBlending::getBlendMode(unsigned short index) const
+BlendMode LayeredBlending::getBlendMode(unsigned short index) const
 {
     if(index < mTextureBlends.size())
     {
@@ -290,14 +384,19 @@ LayeredBlending::BlendMode LayeredBlending::getBlendMode(unsigned short index) c
 
 
 //-----------------------------------------------------------------------
-void LayeredBlending::setSourceModifier(unsigned short index, SourceModifier modType, int customNum)
+bool LayeredBlending::setSourceModifier(unsigned short index, const String& modType, int customNum)
 {
+    SourceModifier mod = stringToSourceModifier(modType);
+    if (mod == SM_Invalid)
+        return false;
+
     if(mTextureBlends.size() < (size_t)index + 1)
     {
         mTextureBlends.resize(index + 1);
     }
-    mTextureBlends[index].sourceModifier = modType;
+    mTextureBlends[index].sourceModifier = mod;
     mTextureBlends[index].customNum = customNum;
+    return true;
 }
 
 //-----------------------------------------------------------------------
@@ -318,55 +417,38 @@ bool LayeredBlending::getSourceModifier(unsigned short index, SourceModifier& mo
 //-----------------------------------------------------------------------
 const String& LayeredBlendingFactory::getType() const
 {
-    return LayeredBlending::Type;
+    return SRS_LAYERED_BLENDING;
 }
 
 //-----------------------------------------------------------------------
-SubRenderState* LayeredBlendingFactory::createInstance(ScriptCompiler* compiler, 
-                                    PropertyAbstractNode* prop, TextureUnitState* texState, SGScriptTranslator* translator)
+SubRenderState* LayeredBlendingFactory::createInstance(const ScriptProperty& prop, TextureUnitState* texState,
+                                                       SGScriptTranslator* translator)
 {
-    if (prop->name == "layered_blend")
+    if (prop.name == "layered_blend" && !prop.values.empty())
     {
-        String blendType;
-        if(false == SGScriptTranslator::getString(prop->values.front(), &blendType))
+        if (stringToBlendMode(prop.values[0]) == LB_Invalid)
         {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line);
+            StringVector vec;
+            for (const auto& m : _blendModes)
+                vec.push_back(m.name);
+
+            translator->emitError("Expected one of the following blend modes: " + StringConverter::toString(vec));
             return NULL;
         }
 
-        LayeredBlending::BlendMode blendMode = stringToBlendMode(blendType);
-        if (blendMode == LayeredBlending::LB_Invalid)
-        {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                "Expected one of the following blend modes: default, normal, " \
-                "lighten, darken, multiply, average, add, " \
-                "subtract, difference, negation, exclusion, " \
-                "screen, overlay, hard_light, soft_light, " \
-                "color_dodge, color_burn, linear_dodge, linear_burn, " \
-                "linear_light, vivid_light, pin_light, hard_mix, " \
-                "reflect, glow, phoenix, saturation, color and luminosity");
-            return NULL;
-        }
+        // get the layer blend sub-render state to work on
+        LayeredBlending* layeredBlendState = createOrRetrieveSubRenderState(translator);
 
-        
-        //get the layer blend sub-render state to work on
-        LayeredBlending* layeredBlendState =
-            createOrRetrieveSubRenderState(translator);
-        
         //update the layer sub render state
         unsigned short texIndex = texState->getParent()->getTextureUnitStateIndex(texState);
-        layeredBlendState->setBlendMode(texIndex, blendMode);
+        layeredBlendState->setBlendMode(texIndex, prop.values[0]);
 
         return layeredBlendState;
     }
-    if (prop->name == "source_modifier")
+    if (prop.name == "source_modifier")
     {
-        if(prop->values.size() < 3)
-        {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, 
-                "Expected three or more parameters.");
+        if(prop.values.size() < 3)
             return NULL;
-        }
 
         // Read light model type.
         bool isParseSuccess;
@@ -374,50 +456,40 @@ SubRenderState* LayeredBlendingFactory::createInstance(ScriptCompiler* compiler,
         String paramType;
         int customNum;
         
-        AbstractNodeList::const_iterator itValue = prop->values.begin();
-        isParseSuccess = SGScriptTranslator::getString(*itValue, &modifierString); 
-        LayeredBlending::SourceModifier modType = stringToSourceModifier(modifierString);
-        isParseSuccess &= modType != LayeredBlending::SM_Invalid;
-        if(isParseSuccess == false)
+        modifierString = prop.values[0];
+        isParseSuccess = stringToSourceModifier(modifierString) != SM_Invalid;
+        if (isParseSuccess == false)
         {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, 
-                "Expected one of the following modifier type as first parameter: " \
-                "src1_modulate, src2_modulate, src1_inverse_modulate, src2_inverse_modulate.");
+            translator->emitError("Expected one of the following modifier type as first parameter: "
+                                  "src1_modulate, src2_modulate, src1_inverse_modulate, src2_inverse_modulate.");
             return NULL;
         }
 
-        ++itValue;
-        isParseSuccess = SGScriptTranslator::getString(*itValue, &paramType); 
-        isParseSuccess &= (paramType == "custom");
+        isParseSuccess &= (prop.values[1] == "custom");
         if(isParseSuccess == false)
         {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, 
-                "Expected reserved word custom as second parameter.");
+            translator->emitError("Expected reserved word custom as second parameter.");
             return NULL;
         }
-        ++itValue;
-        isParseSuccess = SGScriptTranslator::getInt(*itValue, &customNum); 
-        if(isParseSuccess == false)
+
+        if(!StringConverter::parse(prop.values[2], customNum))
         {
-            compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, 
-                "Expected number of custom parameter as third parameter.");
+            translator->emitError("Expected number of custom parameter as third parameter.");
             return NULL;
         }
 
         //get the layer blend sub-render state to work on
-        LayeredBlending* layeredBlendState =
-            createOrRetrieveSubRenderState(translator);
-        
+        LayeredBlending* layeredBlendState = createOrRetrieveSubRenderState(translator);
+
         //update the layer sub render state
         unsigned short texIndex = texState->getParent()->getTextureUnitStateIndex(texState);
-        layeredBlendState->setSourceModifier(texIndex, modType, customNum);
+        layeredBlendState->setSourceModifier(texIndex, modifierString, customNum);
 
         return layeredBlendState;
             
     }
     
     return NULL;
-        
 }
 
 //-----------------------------------------------------------------------
@@ -431,15 +503,15 @@ void LayeredBlendingFactory::writeInstance(MaterialSerializer* ser, SubRenderSta
     LayeredBlending* layeredBlendingSubRenderState = static_cast<LayeredBlending*>(subRenderState);
     
     //write the blend mode
-    LayeredBlending::BlendMode blendMode = layeredBlendingSubRenderState->getBlendMode(texIndex);
-    if (blendMode != LayeredBlending::LB_Invalid)
+    BlendMode blendMode = layeredBlendingSubRenderState->getBlendMode(texIndex);
+    if (blendMode != LB_Invalid)
     {
         ser->writeAttribute(5, "layered_blend");    
         ser->writeValue(blendModeToString(blendMode));
     }
 
     //write the source modifier
-    LayeredBlending::SourceModifier modType;
+    SourceModifier modType;
     int customNum;
     if (layeredBlendingSubRenderState->getSourceModifier(texIndex, modType, customNum) == true)
     {
@@ -455,58 +527,6 @@ void LayeredBlendingFactory::writeInstance(MaterialSerializer* ser, SubRenderSta
 SubRenderState* LayeredBlendingFactory::createInstanceImpl()
 {
     return OGRE_NEW LayeredBlending;
-}
-
-//-----------------------------------------------------------------------
-LayeredBlending::BlendMode LayeredBlendingFactory::stringToBlendMode(const String &strValue)
-{
-    for(int i = 0 ; i < (int)LayeredBlending::LB_MaxBlendModes ; ++i)
-    {
-        if (_blendModes[i].name == strValue)
-        {
-            return _blendModes[i].type;
-        }
-    }
-    return LayeredBlending::LB_Invalid;
-}
-
-//-----------------------------------------------------------------------
-String LayeredBlendingFactory::blendModeToString(LayeredBlending::BlendMode blendMode)
-{
-    for(int i = 0 ; i < (int)LayeredBlending::LB_MaxBlendModes ; ++i)
-    {
-        if (_blendModes[i].type == blendMode)
-        {
-            return _blendModes[i].name;
-        }
-    }
-    return "";
-}
-
-//-----------------------------------------------------------------------
-LayeredBlending::SourceModifier LayeredBlendingFactory::stringToSourceModifier(const String &strValue)
-{
-    for(int i = 0 ; i < (int)LayeredBlending::SM_MaxSourceModifiers ; ++i)
-    {
-        if (_sourceModifiers[i].name == strValue)
-        {
-            return _sourceModifiers[i].type;
-        }
-    }
-    return LayeredBlending::SM_Invalid;
-}
-
-//-----------------------------------------------------------------------
-String LayeredBlendingFactory::sourceModifierToString(LayeredBlending::SourceModifier modifier)
-{
-    for(int i = 0 ; i < (int)LayeredBlending::SM_MaxSourceModifiers ; ++i)
-    {
-        if (_sourceModifiers[i].type == modifier)
-        {
-            return _sourceModifiers[i].name;
-        }
-    }
-    return "";
 }
 
 //-----------------------------------------------------------------------

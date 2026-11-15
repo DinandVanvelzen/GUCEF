@@ -5,7 +5,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #include "OgreLodCollapseCost.h"
 #include "OgreLodData.h"
 #include "OgreMatrix4.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
@@ -42,21 +43,24 @@ class _OgreLodExport LodCollapseCostQuadric :
     public LodCollapseCost
 {
 public:
-    virtual void initCollapseCosts(LodData* data);
-    virtual void updateVertexCollapseCost(LodData* data, LodData::Vertex* vertex);
-    virtual Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge);
+    void initCollapseCosts(LodData* data) override;
+    void updateVertexCollapseCost(LodData* data, LodData::Vertex* vertex) override;
+    Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge) override;
 protected:
 
     struct TriangleQuadricPlane {
         Matrix4 quadric;
     };
-    vector<Matrix4>::type mTrianglePlaneQuadricList;
-    vector<Matrix4>::type mVertexQuadricList;
+    std::vector<Matrix4> mTrianglePlaneQuadricList;
+    std::vector<Matrix4> mVertexQuadricList;
     void computeTrianglePlaneQuadric(LodData* data, size_t triangleID);
     void computeVertexQuadric(LodData* data, size_t vertexID);
 };
 
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif
 
 

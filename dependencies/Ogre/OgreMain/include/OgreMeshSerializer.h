@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,12 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreSerializer.h"
-#include "OgreMeshSerializerImpl.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
     
     class MeshSerializerListener;
+    class MeshVersionData;
     
     /// Mesh compatibility versions
     enum MeshVersion 
@@ -66,7 +66,7 @@ namespace Ogre {
     *  @{
     */
     /** Class for serialising mesh data to/from an OGRE .mesh file.
-    @remarks
+
         This class allows exporters to write OGRE .mesh files easily, and allows the
         OGRE engine to import .mesh files into instantiated OGRE Meshes.
         Note that a .mesh file can include not only the Mesh, but also definitions of
@@ -94,20 +94,14 @@ namespace Ogre {
         MeshSerializer();
         virtual ~MeshSerializer();
 
-
-        /** Exports a mesh to the file specified, in the latest format
-        @remarks
-            This method takes an externally created Mesh object, and exports it
-            to a .mesh file in the latest format version available.
-        @param pMesh Pointer to the Mesh to export
-        @param filename The destination filename
-        @param endianMode The endian mode of the written file
-        */
-        void exportMesh(const Mesh* pMesh, const String& filename,
-            Endian endianMode = ENDIAN_NATIVE);
+        /** Support for v1.7 [MeshSerializer_v1.41] and earlier legacy formats.
+         * @attention Legacy formats are not fuzzer tested and contain security vulnerabilities
+         * @param enable True to enable legacy formats, false to disable.
+         */
+        static void enablePre1_8Formats(bool enable) { mSupportLegacyFormats = enable; }
 
         /** Exports a mesh to the file specified, in a specific version format. 
-         @remarks
+
          This method takes an externally created Mesh object, and exports it
          to a .mesh file in the specified format version. Note that picking a
          format version other that the latest will cause some information to be
@@ -117,75 +111,55 @@ namespace Ogre {
          @param version Mesh version to write
          @param endianMode The endian mode of the written file
          */
-        void exportMesh(const Mesh* pMesh, const String& filename,
-                        MeshVersion version,
+        void exportMesh(const Mesh* pMesh, const String& filename, MeshVersion version,
                         Endian endianMode = ENDIAN_NATIVE);
 
-        /** Exports a mesh to the stream specified, in the latest format. 
-        @remarks
-         This method takes an externally created Mesh object, and exports it
-         to a .mesh file in the latest format version. 
-        @param pMesh Pointer to the Mesh to export
-        @param stream Writeable stream
-        @param endianMode The endian mode of the written file
-        */
-        void exportMesh(const Mesh* pMesh, DataStreamPtr stream,
-            Endian endianMode = ENDIAN_NATIVE);
+        /// @overload
+        void exportMesh(const Mesh* pMesh, const String& filename, Endian endianMode = ENDIAN_NATIVE)
+        {
+            exportMesh(pMesh, filename, MESH_VERSION_LATEST, endianMode);
+        }
 
-        /** Exports a mesh to the stream specified, in a specific version format. 
-         @remarks
-         This method takes an externally created Mesh object, and exports it
-         to a .mesh file in the specified format version. Note that picking a
-         format version other that the latest will cause some information to be
-         lost.
-         @param pMesh Pointer to the Mesh to export
-         @param stream Writeable stream
-         @param version Mesh version to write
-         @param endianMode The endian mode of the written file
-         */
-        void exportMesh(const Mesh* pMesh, DataStreamPtr stream,
-                        MeshVersion version,
+        /// @overload
+        void exportMesh(const MeshPtr& pMesh, const String& filename, Endian endianMode = ENDIAN_NATIVE)
+        {
+            exportMesh(pMesh.get(), filename, MESH_VERSION_LATEST, endianMode);
+        }
+
+        /// @overload
+        void exportMesh(const Mesh* pMesh, const DataStreamPtr& stream, Endian endianMode = ENDIAN_NATIVE)
+        {
+            exportMesh(pMesh, stream, MESH_VERSION_LATEST, endianMode);
+        }
+
+        /// @overload
+        void exportMesh(const Mesh* pMesh, DataStreamPtr stream, MeshVersion version,
                         Endian endianMode = ENDIAN_NATIVE);
-        
+
         /** Imports Mesh and (optionally) Material data from a .mesh file DataStream.
-        @remarks
+
             This method imports data from a DataStream opened from a .mesh file and places it's
             contents into the Mesh object which is passed in. 
         @param stream The DataStream holding the .mesh data. Must be initialised (pos at the start of the buffer).
         @param pDest Pointer to the Mesh object which will receive the data. Should be blank already.
         */
-        void importMesh(DataStreamPtr& stream, Mesh* pDest);
+        void importMesh(const DataStreamPtr& stream, Mesh* pDest);
 
         /// Sets the listener for this serializer
         void setListener(MeshSerializerListener *listener);
         /// Returns the current listener
         MeshSerializerListener *getListener();
         
-    protected:
-        
-        class MeshVersionData : public SerializerAlloc
-        {
-        public:
-            MeshVersion version;
-            String versionString;
-            MeshSerializerImpl* impl;
-            
-            MeshVersionData(MeshVersion _ver, const String& _string, MeshSerializerImpl* _impl)
-            : version(_ver), versionString(_string), impl(_impl) {}
-            
-            ~MeshVersionData() { OGRE_DELETE impl; }
-            
-        };
-
-        typedef vector<MeshVersionData*>::type MeshVersionDataList;
+    private:
+        typedef std::vector<MeshVersionData*> MeshVersionDataList;
         MeshVersionDataList mVersionData;
 
         MeshSerializerListener *mListener;
-
+        static bool mSupportLegacyFormats;
     };
 
     /** 
-     @remarks
+
         This class allows users to hook into the mesh loading process and
         modify references within the mesh as they are loading. Material and
         skeletal references can be processed using this interface which allows

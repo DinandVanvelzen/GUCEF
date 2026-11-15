@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -57,8 +57,14 @@ namespace Ogre {
 
         /** Default destructor.
         */
-        virtual ~RenderSystemCapabilitiesManager();
+        ~RenderSystemCapabilitiesManager();
 
+        /** loads a custom capabilites config file
+         *
+         * use with @ref Root::useCustomRenderSystemCapabilities
+         * @return the configured RenderSystemCapabilities
+         */
+        RenderSystemCapabilities* loadCapabilitiesConfig(const String& filename);
 
         /** @see ScriptLoader::parseScript
         */
@@ -70,49 +76,21 @@ namespace Ogre {
         RenderSystemCapabilities* loadParsedCapabilities(const String& name);
 
         /** Access to the internal map of loaded capabilities */
-        const map<String, RenderSystemCapabilities*>::type &getCapabilities() const;
+        const std::map<String, RenderSystemCapabilities*> &getCapabilities() const;
 
         /** Method used by RenderSystemCapabilitiesSerializer::parseScript */
         void _addRenderSystemCapabilities(const String& name, RenderSystemCapabilities* caps);
 
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static RenderSystemCapabilitiesManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static RenderSystemCapabilitiesManager* getSingletonPtr(void);
 
-    protected:
+    private:
 
         RenderSystemCapabilitiesSerializer* mSerializer;
 
-        typedef map<String, RenderSystemCapabilities*>::type CapabilitiesMap;
+        typedef std::map<String, RenderSystemCapabilities*> CapabilitiesMap;
         CapabilitiesMap mCapabilitiesMap;
 
         const String mScriptPattern;

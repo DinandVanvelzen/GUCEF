@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,51 +30,49 @@ THE SOFTWARE.
 
 #include "OgreParticleFXPrerequisites.h"
 #include "OgreParticleAffector.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 
 namespace Ogre {
-
-    /** This class defines a ParticleAffector which deflects particles.
-    @remarks
-        This affector (see ParticleAffector) offers a simple (and inaccurate) physical deflection.
-        All particles which hit the plane are reflected.
-    @par
-        The plane is defined by a point (plane_point) and the normal (plane_normal).
-        In addition it is possible to change the strength of the recoil by using the bounce parameter.
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport DeflectorPlaneAffector : public ParticleAffector
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** This affector defines a plane which deflects particles which collide with it.
+    */
+    class DeflectorPlaneAffector : public ParticleAffector
     {
     public:
         /** Command object for plane point (see ParamCommand).*/
         class CmdPlanePoint : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for plane normal (see ParamCommand).*/
         class CmdPlaneNormal : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for bounce (see ParamCommand).*/
         class CmdBounce : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /// Default constructor
         DeflectorPlaneAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
         /** Sets the plane point of the deflector plane. */
         void setPlanePoint(const Vector3& pos);
@@ -108,7 +106,8 @@ namespace Ogre {
         /// bounce factor (0.5 means 50 percent)
         Real mBounce;
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

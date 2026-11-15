@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,23 +38,23 @@ namespace Ogre {
     /** \addtogroup Core
     *  @{
     */
-    /** \addtogroup General
+    /** \addtogroup RenderSystem
     *  @{
     */
     /** Packages the details of a configuration option.
-        @remarks
-            Used for RenderSystem::getConfigOptions. If immutable is true, this
-            option must be disabled for modifying.
+
+        Used for RenderSystem::getConfigOptions. If immutable is true, this
+        option must be disabled for modifying.
     */
-    typedef struct _ConfigOption
+    struct ConfigOption
     {
         String name;
         String currentValue;
         StringVector possibleValues;
         bool immutable;
-    } ConfigOption;
+    };
 
-    typedef map< String, ConfigOption >::type ConfigOptionMap;
+    typedef std::map< String, ConfigOption > ConfigOptionMap;
     /** @} */
     /** @} */
 }

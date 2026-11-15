@@ -28,58 +28,44 @@ THE SOFTWARE.
 
 #include "OgreRoot.h"
 
-#include "OgreGLES2RenderSystem.h"
+#include "OgreRenderSystem.h"
+#include "OgreLogManager.h"
 #include "OgreEAGLES2Context.h"
 
 #include "OgreEAGL2Support.h"
 #include "OgreEAGL2Window.h"
 
-#include "macUtils.h"
-
 #import <UIKit/UIScreen.h>
 
 namespace Ogre {
-
-    EAGL2Support::EAGL2Support()
+    float EAGLCurrentOSVersion;
+    
+    GLNativeSupport* getGLSupport(int = 0)
     {
-        mCurrentOSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
+        return new EAGL2Support();
+    }
+
+    EAGL2Support::EAGL2Support() : GLNativeSupport(CONTEXT_ES)
+    {
+        EAGLCurrentOSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
     }
 
     EAGL2Support::~EAGL2Support()
     {
     }
 
-    void EAGL2Support::addConfig(void)
+    ConfigOptionMap EAGL2Support::getConfigOptions(void)
     {
-        ConfigOption optFullScreen;
-        ConfigOption optVideoMode;
-        ConfigOption optDisplayFrequency;
+        ConfigOptionMap mOptions;
         ConfigOption optContentScalingFactor;
-        ConfigOption optFSAA;
-        ConfigOption optRTTMode;
-
-        optFullScreen.name = "Full Screen";
-        optFullScreen.possibleValues.push_back("Yes");
-        optFullScreen.possibleValues.push_back("No");
-        optFullScreen.currentValue = "Yes";
-        optFullScreen.immutable = false;
         
         // Get the application frame size.  On all iPhones(including iPhone 4) this will be 320 x 480
         // The iPad, at least with iPhone OS 3.2 will report 768 x 1024
         CGSize screenSize = [[UIScreen mainScreen] bounds].size;
-
-        optVideoMode.name = "Video Mode";
-        optVideoMode.possibleValues.push_back("320 x 480");
-        optVideoMode.possibleValues.push_back("320 x 568");
-        optVideoMode.possibleValues.push_back("768 x 1024");
-        optVideoMode.currentValue = StringConverter::toString(screenSize.width) + " x " + 
-                                    StringConverter::toString(screenSize.height);
-        optVideoMode.immutable = false;
-
-        optDisplayFrequency.name = "Display Frequency";
-        optDisplayFrequency.possibleValues.push_back("0 Hz");
-        optDisplayFrequency.currentValue = "0 Hz";
-        optDisplayFrequency.immutable = false;
+        mVideoModes.push_back({uint32(screenSize.width), uint32(screenSize.height), 0});
+        mVideoModes.push_back({320, 480, 0});
+        mVideoModes.push_back({320, 568, 0});
+        mVideoModes.push_back({768, 1024, 0});
 
         optContentScalingFactor.name = "Content Scaling Factor";
         optContentScalingFactor.possibleValues.push_back( "1.0" );
@@ -89,58 +75,15 @@ namespace Ogre {
         optContentScalingFactor.currentValue = StringConverter::toString([UIScreen mainScreen].scale);
         optContentScalingFactor.immutable = false;
         
-        optFSAA.name = "FSAA";
-        optFSAA.possibleValues.push_back( "0" );
-        optFSAA.possibleValues.push_back( "2" );
-        optFSAA.possibleValues.push_back( "4" );
-        optFSAA.possibleValues.push_back( "8" );
-        optFSAA.currentValue = "0";
-        optFSAA.immutable = false;
+        mFSAALevels.push_back(0);
+        mFSAALevels.push_back(2);
+        mFSAALevels.push_back(4);
+        mFSAALevels.push_back(8);
 
-        optRTTMode.name = "RTT Preferred Mode";
-        optRTTMode.possibleValues.push_back("Copy");
-        optRTTMode.possibleValues.push_back("FBO");
-        optRTTMode.currentValue = "FBO";
-        optRTTMode.immutable = false;
-
-        mOptions[optFullScreen.name] = optFullScreen;
-        mOptions[optVideoMode.name] = optVideoMode;
-        mOptions[optDisplayFrequency.name] = optDisplayFrequency;
         mOptions[optContentScalingFactor.name] = optContentScalingFactor;
-        mOptions[optFSAA.name] = optFSAA;
-        mOptions[optRTTMode.name] = optRTTMode;
-        
-#if OGRE_NO_VIEWPORT_ORIENTATIONMODE == 0
-        ConfigOption optOrientation;
-        optOrientation.name = "Orientation";
-        optOrientation.possibleValues.push_back("Portrait");
-        optOrientation.possibleValues.push_back("Landscape Left");
-        optOrientation.possibleValues.push_back("Landscape Right");
-        optOrientation.currentValue = "Portrait";
-        optOrientation.immutable = false;
-        mOptions[optOrientation.name] = optOrientation;
-#endif
-        
-        // Set the shader cache path
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-        NSString *cachesDirectory = [paths objectAtIndex:0];
 
-        setShaderCachePath([[cachesDirectory stringByAppendingString:@"/"] cStringUsingEncoding:NSASCIIStringEncoding]);
-        
-        // Set the shader library path
-        setShaderLibraryPath(Ogre::macBundlePath() + "/Contents/Media/RTShaderLib");
+        return mOptions;
     }
-
-    String EAGL2Support::validateConfig(void)
-    {
-        // TODO - DJR
-        return BLANKSTRING;
-    }
-
-    String EAGL2Support::getDisplayName(void)
-    {
-        return "todo";
-	}
 
     CFDictionaryRef EAGL2Support::chooseGLConfig(const GLint *attribList, GLint *nElements)
     {
@@ -159,15 +102,6 @@ namespace Ogre {
     }
 
     CFDictionaryRef EAGL2Support::getGLConfigFromContext(EAGLES2Context context)
-    {
-        // TODO: DJR - implement
-        CFDictionaryRef glConfig = 0;
-
-        return glConfig;
-    }
-
-    CFDictionaryRef EAGL2Support::getGLConfigFromDrawable(CAEAGLLayer *drawable,
-                                                    unsigned int *w, unsigned int *h)
     {
         // TODO: DJR - implement
         CFDictionaryRef glConfig = 0;
@@ -225,60 +159,6 @@ namespace Ogre {
         return glConfig;
     }
     
-    RenderWindow * EAGL2Support::createWindow(bool autoCreateWindow,
-                                           GLES2RenderSystem* renderSystem,
-                                           const String& windowTitle)
-    {
-        RenderWindow *window = 0;
-
-        if (autoCreateWindow)
-        {
-            ConfigOptionMap::iterator opt;
-            ConfigOptionMap::iterator end = mOptions.end();
-            NameValuePairList miscParams;
-
-            CGSize screenSize = [[UIScreen mainScreen] bounds].size;
-            bool fullscreen = false;
-            uint w = (uint)screenSize.width, h = (uint)screenSize.height;
-
-            if ((opt = mOptions.find("Full Screen")) != end)
-            {
-                fullscreen = (opt->second.currentValue == "Yes");
-            }
-
-            if ((opt = mOptions.find("Display Frequency")) != end)
-            {
-                miscParams["displayFrequency"] = opt->second.currentValue;
-            }
-
-            if ((opt = mOptions.find("Content Scaling Factor")) != end)
-            {
-                miscParams["contentScalingFactor"] = opt->second.currentValue;
-            }
-            
-            if ((opt = mOptions.find("Video Mode")) != end)
-            {
-                String val = opt->second.currentValue;
-                String::size_type pos = val.find('x');
-
-                if (pos != String::npos)
-                {
-                    w = StringConverter::parseUnsignedInt(val.substr(0, pos));
-                    h = StringConverter::parseUnsignedInt(val.substr(pos + 1));
-                }
-            }
-
-            if ((opt = mOptions.find("FSAA")) != end)
-            {
-                miscParams["FSAA"] = opt->second.currentValue;
-            }
-
-            window = renderSystem->_createRenderWindow(windowTitle, w, h, fullscreen, &miscParams);
-        }
-
-        return window;
-    }
-
     RenderWindow * EAGL2Support::newWindow(const String &name,
                                         unsigned int width, unsigned int height,
                                         bool fullScreen,
@@ -295,22 +175,20 @@ namespace Ogre {
         EAGLES2Context *context = new EAGLES2Context(drawable, group);
         if (context == NULL)
         {
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Fail to create new context",
-                        __FUNCTION__);
+            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Fail to create new context");
             return context;
         }
 
         // Initialise GL3W
-        if (gleswInit())
+        if (glGetError == NULL && gleswInit())
             LogManager::getSingleton().logMessage("Failed to initialize GL3W");
 
         return context;
     }
 
-    void * EAGL2Support::getProcAddress(const Ogre::String& name)
+    void * EAGL2Support::getProcAddress(const char* name) const
     {
-        return NULL;
+        return (void*)gleswGetProcAddress(name);
     }
     
     void EAGL2Support::start()

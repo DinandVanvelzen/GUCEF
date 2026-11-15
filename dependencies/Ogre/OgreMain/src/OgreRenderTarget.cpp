@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,23 +26,16 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreRenderTarget.h"
 
 #include "OgreViewport.h"
-#include "OgreException.h"
-#include "OgreLogManager.h"
 #include "OgreRenderTargetListener.h"
-#include "OgreRoot.h"
-#include "OgreDepthBuffer.h"
-#include "OgreProfiler.h"
 #include "OgreTimer.h"
-#include <iomanip>
 
 namespace Ogre {
 
     RenderTarget::RenderTarget()
         : mPriority(OGRE_DEFAULT_RT_GROUP)
-        , mDepthBufferPoolId(DepthBuffer::POOL_DEFAULT)
+        , mDepthBufferPoolId(RBP_DEFAULT)
         , mDepthBuffer(0)
         , mActive(true)
         , mAutoUpdate(true)
@@ -64,11 +57,10 @@ namespace Ogre {
         ViewportList vlist = mViewportList;
         
         // Delete viewports
-        for (ViewportList::iterator i = vlist.begin();
-            i != vlist.end(); ++i)
+        for (auto & i : vlist)
         {
-            fireViewportRemoved(i->second);
-            OGRE_DELETE (*i).second;
+            fireViewportRemoved(i.second);
+            OGRE_DELETE i.second;
         }
 
         //DepthBuffer keeps track of us, avoid a dangling pointer
@@ -84,30 +76,10 @@ namespace Ogre {
 
     }
 
-    const String& RenderTarget::getName(void) const
-    {
-        return mName;
-    }
-
-
-    void RenderTarget::getMetrics(unsigned int& width, unsigned int& height, unsigned int& colourDepth)
+    void RenderTarget::getMetrics(unsigned int& width, unsigned int& height)
     {
         width = mWidth;
         height = mHeight;
-        colourDepth = mColourDepth;
-    }
-
-    unsigned int RenderTarget::getWidth(void) const
-    {
-        return mWidth;
-    }
-    unsigned int RenderTarget::getHeight(void) const
-    {
-        return mHeight;
-    }
-    unsigned int RenderTarget::getColourDepth(void) const
-    {
-        return mColourDepth;
     }
     //-----------------------------------------------------------------------
     void RenderTarget::setDepthBufferPool( uint16 poolId )
@@ -117,16 +89,6 @@ namespace Ogre {
             mDepthBufferPoolId = poolId;
             detachDepthBuffer();
         }
-    }
-    //-----------------------------------------------------------------------
-    uint16 RenderTarget::getDepthBufferPool() const
-    {
-        return mDepthBufferPoolId;
-    }
-    //-----------------------------------------------------------------------
-    DepthBuffer* RenderTarget::getDepthBuffer() const
-    {
-        return mDepthBuffer;
     }
     //-----------------------------------------------------------------------
     bool RenderTarget::attachDepthBuffer( DepthBuffer *depthBuffer )
@@ -148,13 +110,8 @@ namespace Ogre {
         if( mDepthBuffer )
         {
             mDepthBuffer->_notifyRenderTargetDetached( this );
-            mDepthBuffer = 0;
+            _detachDepthBuffer();
         }
-    }
-    //-----------------------------------------------------------------------
-    void RenderTarget::_detachDepthBuffer()
-    {
-        mDepthBuffer = 0;
     }
 
     void RenderTarget::updateImpl(void)
@@ -177,15 +134,13 @@ namespace Ogre {
     {
         // Go through viewports in Z-order
         // Tell each to refresh
-        ViewportList::iterator it = mViewportList.begin();
-        while (it != mViewportList.end())
+        for (const auto& v : mViewportList)
         {
-            Viewport* viewport = (*it).second;
+            Viewport* viewport = v.second;
             if(viewport->isAutoUpdated())
             {
                 _updateViewport(viewport,updateStatistics);
             }
-            ++it;
         }
     }
 
@@ -214,22 +169,7 @@ namespace Ogre {
         fireViewportPostUpdate(viewport);
     }
 
-    void RenderTarget::_updateViewport(int zorder, bool updateStatistics)
-    {
-        ViewportList::iterator it = mViewportList.find(zorder);
-        if (it != mViewportList.end())
-        {
-            _updateViewport((*it).second,updateStatistics);
-        }
-        else
-        {
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND,"No viewport with given zorder : "
-                + StringConverter::toString(zorder), "RenderTarget::_updateViewport");
-        }
-    }
-
-    Viewport* RenderTarget::addViewport(Camera* cam, int ZOrder, float left, float top ,
-        float width , float height)
+    Viewport* RenderTarget::addViewport(Camera* cam, int ZOrder, FloatRect rect)
     {       
         // Check no existing viewport with this Z-order
         ViewportList::iterator it = mViewportList.find(ZOrder);
@@ -244,9 +184,9 @@ namespace Ogre {
         }
         // Add viewport to list
         // Order based on Z-order
-        Viewport* vp = OGRE_NEW Viewport(cam, this, left, top, width, height, ZOrder);
+        Viewport* vp = OGRE_NEW Viewport(cam, this, rect, ZOrder);
 
-        mViewportList.insert(ViewportList::value_type(ZOrder, vp));
+        mViewportList.emplace(ZOrder, vp);
 
         fireViewportAdded(vp);
 
@@ -270,69 +210,14 @@ namespace Ogre {
         // make a copy of the list to avoid crashes, the viewport destructor change the list
         ViewportList vlist = mViewportList;
 
-        for (ViewportList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+        for (auto& vl : vlist)
         {
-            fireViewportRemoved(it->second);
-            OGRE_DELETE (*it).second;
+            fireViewportRemoved(vl.second);
+            OGRE_DELETE vl.second;
         }
 
         mViewportList.clear();
 
-    }
-
-    void RenderTarget::getStatistics(float& lastFPS, float& avgFPS,
-        float& bestFPS, float& worstFPS) const
-    {
-
-        // Note - the will have been updated by the last render
-        lastFPS = mStats.lastFPS;
-        avgFPS = mStats.avgFPS;
-        bestFPS = mStats.bestFPS;
-        worstFPS = mStats.worstFPS;
-
-
-    }
-
-    const RenderTarget::FrameStats& RenderTarget::getStatistics(void) const
-    {
-        return mStats;
-    }
-
-    float RenderTarget::getLastFPS() const
-    {
-        return mStats.lastFPS;
-    }
-    float RenderTarget::getAverageFPS() const
-    {
-        return mStats.avgFPS;
-    }
-    float RenderTarget::getBestFPS() const
-    {
-        return mStats.bestFPS;
-    }
-    float RenderTarget::getWorstFPS() const
-    {
-        return mStats.worstFPS;
-    }
-
-    size_t RenderTarget::getTriangleCount(void) const
-    {
-        return mStats.triangleCount;
-    }
-
-    size_t RenderTarget::getBatchCount(void) const
-    {
-        return mStats.batchCount;
-    }
-
-    float RenderTarget::getBestFrameTime() const
-    {
-        return (float)mStats.bestFrameTime;
-    }
-
-    float RenderTarget::getWorstFrameTime() const
-    {
-        return (float)mStats.worstFrameTime;
     }
 
     void RenderTarget::resetStatistics(void)
@@ -422,12 +307,9 @@ namespace Ogre {
         RenderTargetEvent evt;
         evt.source = this;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = mListeners.begin();
-        iend = mListeners.end();
-        for(; i != iend; ++i)
+        for(auto& l : mListeners)
         {
-            (*i)->preRenderTargetUpdate(evt);
+            l->preRenderTargetUpdate(evt);
         }
 
 
@@ -438,19 +320,10 @@ namespace Ogre {
         RenderTargetEvent evt;
         evt.source = this;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = mListeners.begin();
-        iend = mListeners.end();
-        for(; i != iend; ++i)
+        for(auto& l : mListeners)
         {
-            (*i)->postRenderTargetUpdate(evt);
+            l->postRenderTargetUpdate(evt);
         }
-    }
-    //-----------------------------------------------------------------------
-    unsigned short RenderTarget::getNumViewports(void) const
-    {
-        return (unsigned short)mViewportList.size();
-
     }
     //-----------------------------------------------------------------------
     Viewport* RenderTarget::getViewport(unsigned short index)
@@ -480,27 +353,14 @@ namespace Ogre {
         return i != mViewportList.end();
     }
     //-----------------------------------------------------------------------
-    bool RenderTarget::isActive() const
-    {
-        return mActive;
-    }
-    //-----------------------------------------------------------------------
-    void RenderTarget::setActive( bool state )
-    {
-        mActive = state;
-    }
-    //-----------------------------------------------------------------------
     void RenderTarget::fireViewportPreUpdate(Viewport* vp)
     {
         RenderTargetViewportEvent evt;
         evt.source = vp;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = mListeners.begin();
-        iend = mListeners.end();
-        for(; i != iend; ++i)
+        for(auto& l : mListeners)
         {
-            (*i)->preViewportUpdate(evt);
+            l->preViewportUpdate(evt);
         }
     }
     //-----------------------------------------------------------------------
@@ -509,12 +369,9 @@ namespace Ogre {
         RenderTargetViewportEvent evt;
         evt.source = vp;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = mListeners.begin();
-        iend = mListeners.end();
-        for(; i != iend; ++i)
+        for(auto& l : mListeners)
         {
-            (*i)->postViewportUpdate(evt);
+            l->postViewportUpdate(evt);
         }
     }
     //-----------------------------------------------------------------------
@@ -523,12 +380,9 @@ namespace Ogre {
         RenderTargetViewportEvent evt;
         evt.source = vp;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = mListeners.begin();
-        iend = mListeners.end();
-        for(; i != iend; ++i)
+        for(auto& l : mListeners)
         {
-            (*i)->viewportAdded(evt);
+            l->viewportAdded(evt);
         }
     }
     //-----------------------------------------------------------------------
@@ -541,29 +395,24 @@ namespace Ogre {
         // some will want to remove themselves as listeners when they get this
         RenderTargetListenerList tempList = mListeners;
 
-        RenderTargetListenerList::iterator i, iend;
-        i = tempList.begin();
-        iend = tempList.end();
-        for(; i != iend; ++i)
+        for(auto& l : tempList)
         {
-            (*i)->viewportRemoved(evt);
+            l->viewportRemoved(evt);
         }
     }
     //-----------------------------------------------------------------------
     String RenderTarget::writeContentsToTimestampedFile(const String& filenamePrefix, const String& filenameSuffix)
     {
-        struct tm *pTime;
-        time_t ctTime; time(&ctTime);
-        pTime = localtime( &ctTime );
-        Ogre::StringStream oss;
-        oss << std::setw(2) << std::setfill('0') << (pTime->tm_mon + 1)
-            << std::setw(2) << std::setfill('0') << pTime->tm_mday
-            << std::setw(2) << std::setfill('0') << (pTime->tm_year + 1900)
-            << "_" << std::setw(2) << std::setfill('0') << pTime->tm_hour
-            << std::setw(2) << std::setfill('0') << pTime->tm_min
-            << std::setw(2) << std::setfill('0') << pTime->tm_sec
-            << std::setw(3) << std::setfill('0') << (mTimer->getMilliseconds() % 1000);
-        String filename = filenamePrefix + oss.str() + filenameSuffix;
+        auto t = std::time(nullptr);
+        auto pTime = std::localtime(&t);
+
+        // use ISO 8601 order
+        StringStream oss;
+        oss << filenamePrefix
+            << std::put_time(pTime, "%Y%m%d_%H%M%S")
+            << std::setw(3) << std::setfill('0') << (mTimer->getMilliseconds() % 1000)
+            << filenameSuffix;
+        String filename = oss.str();
         writeContentsToFile(filename);
         return filename;
 
@@ -571,25 +420,21 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void RenderTarget::writeContentsToFile(const String& filename)
     {
-        PixelFormat pf = suggestPixelFormat();
+        Image img(suggestPixelFormat(), mWidth, mHeight);
 
-        uchar *data = OGRE_ALLOC_T(uchar, mWidth * mHeight * PixelUtil::getNumElemBytes(pf), MEMCATEGORY_RENDERSYS);
-        PixelBox pb(mWidth, mHeight, 1, pf, data);
+        PixelBox pb = img.getPixelBox();
+        copyContentsToMemory(pb, pb);
 
-        copyContentsToMemory(pb);
-
-        Image().loadDynamicImage(data, mWidth, mHeight, 1, pf, false, 1, 0).save(filename);
-
-        OGRE_FREE(data, MEMCATEGORY_RENDERSYS);
+        img.save(filename);
     }
     //-----------------------------------------------------------------------
     void RenderTarget::_notifyCameraRemoved(const Camera* cam)
     {
         ViewportList::iterator i, iend;
         iend = mViewportList.end();
-        for (i = mViewportList.begin(); i != iend; ++i)
+        for (auto& l : mViewportList)
         {
-            Viewport* v = i->second;
+            Viewport* v = l.second;
             if (v->getCamera() == cam)
             {
                 // disable camera link
@@ -598,35 +443,9 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    void RenderTarget::setAutoUpdated(bool autoup)
-    {
-        mAutoUpdate = autoup;
-    }
-    //-----------------------------------------------------------------------
-    bool RenderTarget::isAutoUpdated(void) const
-    {
-        return mAutoUpdate;
-    }
-    //-----------------------------------------------------------------------
-    bool RenderTarget::isPrimary(void) const
-    {
-        // RenderWindow will override and return true for the primary window
-        return false;
-    }  
-	//-----------------------------------------------------------------------
-    bool RenderTarget::isStereoEnabled(void) const
-    {
-        return mStereoEnabled;
-    }
-    //-----------------------------------------------------------------------
-    RenderTarget::Impl *RenderTarget::_getImpl()
-    {
-        return 0;
-    }
-    //-----------------------------------------------------------------------
     void RenderTarget::update(bool swap)
     {
-        OgreProfileBeginGPUEvent("RenderTarget: " + getName());
+        GpuEventScope profileScope(mName);
         // call implementation
         updateImpl();
 
@@ -636,8 +455,5 @@ namespace Ogre {
             // Swap buffers
             swapBuffers();
         }
-        OgreProfileEndGPUEvent("RenderTarget: " + getName());
     }
-    
-
-}        
+}

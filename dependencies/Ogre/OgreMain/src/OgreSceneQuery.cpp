@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,12 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreSceneQuery.h"
-#include "OgreException.h"
-#include "OgreSceneManager.h"
 
 namespace Ogre {
 
     //-----------------------------------------------------------------------
     SceneQuery::SceneQuery(SceneManager* mgr)
-        : mParentSceneMgr(mgr), mQueryMask(0xFFFFFFFF), 
-        mWorldFragmentType(SceneQuery::WFT_NONE)
+        : mParentSceneMgr(mgr), mQueryMask(0xFFFFFFFF)
     {
         // default type mask to everything except lights & fx (previous behaviour)
         mQueryTypeMask = (0xFFFFFFFF & ~SceneManager::FX_TYPE_MASK) 
@@ -67,25 +64,8 @@ namespace Ogre {
         return mQueryTypeMask;
     }
     //-----------------------------------------------------------------------
-    void SceneQuery::setWorldFragmentType(enum SceneQuery::WorldFragmentType wft)
-    {
-        // Check supported
-        if (mSupportedWorldFragments.find(wft) == mSupportedWorldFragments.end())
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "This world fragment type is not supported.",
-                "SceneQuery::setWorldFragmentType");
-        }
-        mWorldFragmentType = wft;
-    }
-    //-----------------------------------------------------------------------
-    SceneQuery::WorldFragmentType 
-    SceneQuery::getWorldFragmentType(void) const
-    {
-        return mWorldFragmentType;
-    }
-    //-----------------------------------------------------------------------
     RegionSceneQuery::RegionSceneQuery(SceneManager* mgr)
-        :SceneQuery(mgr), mLastResult(NULL)
+        :SceneQuery(mgr)
     {
     }
     //-----------------------------------------------------------------------
@@ -94,33 +74,31 @@ namespace Ogre {
         clearResults();
     }
     //-----------------------------------------------------------------------
-    SceneQueryResult& RegionSceneQuery::getLastResults(void) const
+    const SceneQueryResult& RegionSceneQuery::getLastResults(void) const
     {
-        assert(mLastResult);
-        return *mLastResult;
+        return mLastResult;
     }
     //-----------------------------------------------------------------------
     void RegionSceneQuery::clearResults(void)
     {
-        OGRE_DELETE mLastResult;
-        mLastResult = NULL;
+        mLastResult.movables.clear();
+        mLastResult.worldFragments.clear();
     }
     //---------------------------------------------------------------------
     SceneQueryResult&
     RegionSceneQuery::execute(void)
     {
         clearResults();
-        mLastResult = OGRE_NEW SceneQueryResult();
         // Call callback version with self as listener
         execute(this);
-        return *mLastResult;
+        return mLastResult;
     }
     //---------------------------------------------------------------------
     bool RegionSceneQuery::
         queryResult(MovableObject* obj)
     {
         // Add to internal list
-        mLastResult->movables.push_back(obj);
+        mLastResult.movables.push_back(obj);
         // Continue
         return true;
     }
@@ -128,7 +106,7 @@ namespace Ogre {
     bool RegionSceneQuery::queryResult(SceneQuery::WorldFragment* fragment)
     {
         // Add to internal list
-        mLastResult->worldFragments.push_back(fragment);
+        mLastResult.worldFragments.push_back(fragment);
         // Continue
         return true;
     }
@@ -254,7 +232,7 @@ namespace Ogre {
         return mResult;
     }
     //-----------------------------------------------------------------------
-    RaySceneQueryResult& RaySceneQuery::getLastResults(void)
+    const RaySceneQueryResult& RaySceneQuery::getLastResults(void) const
     {
         return mResult;
     }
@@ -288,16 +266,6 @@ namespace Ogre {
         // Continue
         return true;
     }
-    //-----------------------------------------------------------------------
-    /*
-    PyramidSceneQuery::PyramidSceneQuery(SceneManager* mgr) : RegionSceneQuery(mgr)
-    {
-    }
-    //-----------------------------------------------------------------------
-    PyramidSceneQuery::~PyramidSceneQuery()
-    {
-    }
-    */
     //-----------------------------------------------------------------------
     IntersectionSceneQuery::IntersectionSceneQuery(SceneManager* mgr)
     : SceneQuery(mgr), mLastResult(NULL)

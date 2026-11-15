@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,9 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
+#include "OgreException.h"
 #include "OgreLogManager.h"
 #include "OgreGLSLExtSupport.h"
-#include "OgreGLSupport.h"
 
 namespace Ogre
 {
@@ -36,7 +36,7 @@ namespace Ogre
     {
 
     //-----------------------------------------------------------------------------
-    void reportGLSLError(GLenum glErr, const String& ogreMethod, const String& errorTextPrefix, const GLhandleARB obj, const bool forceInfoLog, const bool forceException)
+    void reportGLSLError(GLenum glErr, const String& ogreMethod, const String& errorTextPrefix, const uint obj, const bool forceInfoLog, const bool forceException)
     {
         bool errorsFound = false;
         String msg = errorTextPrefix;
@@ -44,11 +44,7 @@ namespace Ogre
         // get all the GL errors
         while (glErr != GL_NO_ERROR)
         {
-            const char* glerrStr = (const char*)gluErrorString(glErr);
-            if (glerrStr)
-            {
-                msg += String(glerrStr);
-            }
+            msg += glErrorToString(glErr);
             glErr = glGetError();
             errorsFound = true;
         }
@@ -67,10 +63,24 @@ namespace Ogre
         }
     }
 
-    //-----------------------------------------------------------------------------
-    String logObjectInfo(const String& msg, const GLhandleARB obj)
+    String logObjectInfo(const String& msg, GLuint obj)
     {
-        String logMessage = msg;
+        String logMessage = getObjectInfo(obj);
+
+        if (logMessage.empty())
+            return msg;
+
+        logMessage = msg + "\n" + logMessage;
+
+        LogManager::getSingleton().logMessage(LML_CRITICAL, logMessage);
+
+        return logMessage;
+    }
+
+    //-----------------------------------------------------------------------------
+    String getObjectInfo(GLuint obj)
+    {
+        String logMessage;
 
         if (obj > 0)
         {
@@ -79,7 +89,7 @@ namespace Ogre
             if(glIsProgram(obj))
                 glValidateProgram(obj);
 
-            glGetObjectParameterivARB(obj, GL_OBJECT_INFO_LOG_LENGTH_ARB, &infologLength);
+            glGetObjectParameterivARB((GLhandleARB)obj, GL_OBJECT_INFO_LOG_LENGTH_ARB, &infologLength);
 
             if (infologLength > 0)
             {
@@ -87,9 +97,8 @@ namespace Ogre
 
                 GLcharARB * infoLog = new GLcharARB[infologLength];
 
-                glGetInfoLogARB(obj, infologLength, &charsWritten, infoLog);
-                logMessage += String(infoLog);
-                LogManager::getSingleton().logMessage(logMessage);
+                glGetInfoLogARB((GLhandleARB)obj, infologLength, &charsWritten, infoLog);
+                logMessage = String(infoLog);
 
                 delete [] infoLog;
             }

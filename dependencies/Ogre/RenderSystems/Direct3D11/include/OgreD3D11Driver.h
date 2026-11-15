@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,18 +37,18 @@ namespace Ogre
     class D3D11VideoModeList;
     class D3D11VideoMode;
 
-    class D3D11Driver
+    class _OgreD3D11Export D3D11Driver
     {
     private:
         ComPtr<IDXGIAdapterN> mDXGIAdapter;
         DXGI_ADAPTER_DESC1 mAdapterIdentifier;
+        unsigned mSameNameAdapterIndex;
         SharedPtr<D3D11VideoModeList> mVideoModeList;
 
     public:
         // Constructors
         D3D11Driver();      // Default
-        D3D11Driver( const D3D11Driver &ob );   // Copy
-        D3D11Driver( IDXGIAdapterN* pDXGIAdapter );
+        D3D11Driver( IDXGIAdapterN* pDXGIAdapter, const DXGI_ADAPTER_DESC1& desc, unsigned sameNameIndex);
         ~D3D11Driver();
 
         // Information accessors

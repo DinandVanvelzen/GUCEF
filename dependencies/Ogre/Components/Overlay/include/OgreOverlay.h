@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,21 +30,22 @@ THE SOFTWARE.
 #define __Overlay_H__
 
 #include "OgreOverlayPrerequisites.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreMatrix4.h"
 #include "OgreViewport.h"
 
 namespace Ogre {
+    class OverlayContainer;
+    class OverlayElement;
 
-
-    /** \addtogroup Core
+    /** \addtogroup Optional
     *  @{
     */
-    /** \addtogroup Overlays
+    /** \defgroup Overlays Overlay
+    * Layers which is rendered on top of the 'normal' scene contents
     *  @{
     */
     /** Represents a layer which is rendered on top of the 'normal' scene contents.
-    @remarks
+
         An overlay is a container for visual components (2D and 3D) which will be 
         rendered after the main scene in order to composite heads-up-displays, menus
         or other layers on top of the contents of the scene.
@@ -71,7 +72,7 @@ namespace Ogre {
     {
 
     public:
-              typedef list<OverlayContainer*>::type OverlayContainerList;
+              typedef std::list<OverlayContainer*> OverlayContainerList;
     protected:
         String mName;
         /// Internal root node, used as parent for 3D objects
@@ -93,14 +94,14 @@ namespace Ogre {
         mutable Matrix4 mTransform;
         mutable bool mTransformOutOfDate;
         bool mTransformUpdated;
-        ulong mZOrder;
+        ushort mZOrder;
         bool mVisible;
         bool mInitialised;
         String mOrigin;
         /** Internal lazy update method. */
         void updateTransform(void) const;
         /** Internal method for initialising an overlay */
-        void initialise(void);
+        virtual void initialise(void);
         /** Internal method for updating container elements' Z-ordering */
         void assignZOrders(void);
 
@@ -116,7 +117,7 @@ namespace Ogre {
         const String& getName(void) const;
         
         /** Alters the Z-order of this overlay. 
-        @remarks
+
             Values between 0 and 650 are valid here.
         */
         void setZOrder(ushort zorder);
@@ -135,8 +136,11 @@ namespace Ogre {
         /** Hides the overlay if it was visible. */
         void hide(void);
 
+        /** Shows or hides this overlay. */
+        void setVisible(bool visible);
+
         /** Adds a 2D 'container' to the overlay.
-        @remarks
+
             Containers are created and managed using the OverlayManager. A container
             could be as simple as a square panel, or something more complex like
             a grid or tree view. Containers group collections of other elements,
@@ -149,20 +153,20 @@ namespace Ogre {
 
 
         /** Removes a 2D container from the overlay. 
-        @remarks
+
             NOT FAST. Consider OverlayElement::hide.
         */
         void remove2D(OverlayContainer* cont);
 
         /** Adds a node capable of holding 3D objects to the overlay.
-        @remarks    
+
             Although overlays are traditionally associated with 2D elements, there 
             are reasons why you might want to attach 3D elements to the overlay too.
             For example, if you wanted to have a 3D cockpit, which was overlaid with a
             HUD, then you would create 2 overlays, one with a 3D object attached for the
             cockpit, and one with the HUD elements attached (the zorder of the HUD 
             overlay would be higher than the cockpit to ensure it was always on top).
-        @par    
+
             A SceneNode can have any number of 3D objects attached to it. SceneNodes
             are usually created using SceneManager::createSceneNode, but in this case
             you should create a standard SceneNode instance <b>manually</b>; this is
@@ -195,7 +199,7 @@ namespace Ogre {
         void clear();
 
         /** Sets the scrolling factor of this overlay.
-        @remarks
+
             You can use this to set an offset to be used to scroll an 
             overlay around the screen.
         @param x Horizontal scroll value, where 0 = normal, -0.5 = scroll so that only
@@ -212,7 +216,7 @@ namespace Ogre {
         Real getScrollY(void) const;
 
         /** Scrolls the overlay by the offsets provided.
-        @remarks
+
             This method moves the overlay by the amounts provided. As with
             other methods on this object, a full screen width / height is represented
             by the value 1.0.
@@ -229,7 +233,7 @@ namespace Ogre {
         void rotate(const Radian& angle);
 
         /** Sets the scaling factor of this overlay.
-        @remarks
+
             You can use this to set an scale factor to be used to zoom an 
             overlay.
         @param x Horizontal scale value, where 1.0 = normal, 0.5 = half size etc
@@ -247,22 +251,19 @@ namespace Ogre {
         void _getWorldTransforms(Matrix4* xform) const;
 
         /** Internal method to put the overlay contents onto the render queue. */
-        void _findVisibleObjects(Camera* cam, RenderQueue* queue, Viewport* vp);
+        virtual void _findVisibleObjects(Camera* cam, RenderQueue* queue, Viewport* vp);
 
         /** This returns a OverlayElement at position x,y. */
         virtual OverlayElement* findElementAt(Real x, Real y);
 
-        /** Returns an iterator over all 2D elements in this manager.
-        @remarks
-            VectorIterator is actually a too generic name, since it also works for lists.
+        /** Returns all 2D elements in this manager.
         */
-        typedef VectorIterator<OverlayContainerList> Overlay2DElementsIterator ;
-        Overlay2DElementsIterator get2DElementsIterator ()
-        {
-            return Overlay2DElementsIterator (m2DElements.begin(), m2DElements.end());
+        const OverlayContainerList& get2DElements() const {
+            return m2DElements;
         }
+
         /** Get the origin of this overlay, e.g. a script file name.
-        @remarks
+
             This property will only contain something if the creator of
             this overlay chose to populate it. Script loaders are advised
             to populate it.

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 
 #include "OgreBillboard.h"
-
 #include "OgreBillboardSet.h"
 
 namespace Ogre {
@@ -40,8 +39,7 @@ namespace Ogre {
         mTexcoordIndex(0),
         mPosition(Vector3::ZERO),
         mDirection(Vector3::ZERO),        
-        mParentSet(0),
-        mColour(ColourValue::White),
+        mColour(0xFFFFFFFF),
         mRotation(0)
     {
     }
@@ -56,72 +54,16 @@ namespace Ogre {
         , mTexcoordIndex(0)
         , mPosition(position)
         , mDirection(Vector3::ZERO)
-        , mParentSet(owner)
-        , mColour(colour)
+        , mColour(colour.getAsBYTE())
         , mRotation(0)
     {
     }
     //-----------------------------------------------------------------------
-    void Billboard::setRotation(const Radian& rotation)
-    {
-        mRotation = rotation;
-        if (mRotation != Radian(0))
-            mParentSet->_notifyBillboardRotated();
-    }
-    //-----------------------------------------------------------------------
-    void Billboard::setPosition(const Vector3& position)
-    {
-        mPosition = position;
-    }
-    //-----------------------------------------------------------------------
-    void Billboard::setPosition(Real x, Real y, Real z)
-    {
-        mPosition.x = x;
-        mPosition.y = y;
-        mPosition.z = z;
-    }
-    //-----------------------------------------------------------------------
-    const Vector3& Billboard::getPosition(void) const
-    {
-        return mPosition;
-    }
-    //-----------------------------------------------------------------------
-    void Billboard::setDimensions(Real width, Real height)
+    void Billboard::setDimensions(float width, float height)
     {
         mOwnDimensions = true;
         mWidth = width;
         mHeight = height;
-        mParentSet->_notifyBillboardResized();
-    }
-    //-----------------------------------------------------------------------
-    bool Billboard::hasOwnDimensions(void) const
-    {
-        return mOwnDimensions;
-    }
-    //-----------------------------------------------------------------------
-    void Billboard::_notifyOwner(BillboardSet* owner)
-    {
-        mParentSet = owner;
-    }
-    //-----------------------------------------------------------------------
-    void Billboard::setColour(const ColourValue& colour)
-    {
-        mColour = colour;
-    }
-    //-----------------------------------------------------------------------
-    const ColourValue& Billboard::getColour(void) const
-    {
-        return mColour;
-    }
-    //-----------------------------------------------------------------------
-    Real Billboard::getOwnWidth(void) const
-    {
-        return mWidth;
-    }
-    //-----------------------------------------------------------------------
-    Real Billboard::getOwnHeight(void) const
-    {
-        return mHeight;
     }
     //-----------------------------------------------------------------------
     void Billboard::setTexcoordIndex(uint16 texcoordIndex)
@@ -135,12 +77,5 @@ namespace Ogre {
         mTexcoordRect = texcoordRect;
         mUseTexcoordRect = true;
     }
-    //-----------------------------------------------------------------------
-    void Billboard::setTexcoordRect(Real u0, Real v0, Real u1, Real v1)
-    {
-        setTexcoordRect(FloatRect(u0, v0, u1, v1));
-    }
-
-
 }
 

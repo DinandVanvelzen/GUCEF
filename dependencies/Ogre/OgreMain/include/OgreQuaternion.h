@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -61,6 +61,10 @@ namespace Ogre {
             : w(1), x(0), y(0), z(0)
         {
         }
+        /// Copy constructor
+        inline Quaternion(const Ogre::Quaternion& rhs)
+            : w(rhs.w), x(rhs.x), y(rhs.y), z(rhs.z)
+        {}
         /// Construct from an explicit list of values
         inline Quaternion (
             Real fW,
@@ -178,11 +182,16 @@ namespace Ogre {
         }
         Quaternion operator+ (const Quaternion& rkQ) const;
         Quaternion operator- (const Quaternion& rkQ) const;
-        Quaternion operator* (const Quaternion& rkQ) const;
-        Quaternion operator* (Real fScalar) const;
-        _OgreExport friend Quaternion operator* (Real fScalar,
-            const Quaternion& rkQ);
-        Quaternion operator- () const;
+        Quaternion operator*(const Quaternion& rkQ) const;
+        Quaternion operator*(Real s) const
+        {
+            return Quaternion(s * w, s * x, s * y, s * z);
+        }
+        friend Quaternion operator*(Real s, const Quaternion& q)
+        {
+            return q * s;
+        }
+        Quaternion operator-() const { return Quaternion(-w, -x, -y, -z); }
         inline bool operator== (const Quaternion& rhs) const
         {
             return (rhs.x == x) && (rhs.y == y) &&
@@ -194,13 +203,19 @@ namespace Ogre {
         }
         // functions of a quaternion
         /// Returns the dot product of the quaternion
-        Real Dot (const Quaternion& rkQ) const;
-        /* Returns the normal length of this quaternion.
-            @note This does <b>not</b> alter any values.
-        */
-        Real Norm () const;
+        Real Dot(const Quaternion& rkQ) const
+        {
+            return w * rkQ.w + x * rkQ.x + y * rkQ.y + z * rkQ.z;
+        }
+        /// Returns the normal length of this quaternion.
+        Real Norm() const { return Math::Sqrt(w * w + x * x + y * y + z * z); }
         /// Normalises this quaternion, and returns the previous length
-        Real normalise(void); 
+        Real normalise(void)
+        {
+            Real len = Norm();
+            *this = 1.0f / len * *this;
+            return len;
+        }
         Quaternion Inverse () const;  /// Apply to non-zero quaternion
         Quaternion UnitInverse () const;  /// Apply to unit-length quaternion
         Quaternion Exp () const;
@@ -211,40 +226,49 @@ namespace Ogre {
 
         /** Calculate the local roll element of this quaternion.
         @param reprojectAxis By default the method returns the 'intuitive' result
-            that is, if you projected the local Y of the quaternion onto the X and
-            Y axes, the angle between them is returned. If set to false though, the
-            result is the actual yaw that will be used to implement the quaternion,
-            which is the shortest possible path to get to the same orientation and 
-             may involve less axial rotation.  The co-domain of the returned value is 
-             from -180 to 180 degrees.
+            that is, if you projected the local X of the quaternion onto the XY plane,
+            the angle between it and global X is returned. The co-domain of the returned
+            value is from -180 to 180 degrees. If set to false though, the result is
+            the rotation around Z axis that could be used to implement the quaternion
+            using some non-intuitive order of rotations. This behavior is preserved for
+            backward compatibility, to decompose quaternion into yaw, pitch and roll use
+            q.ToRotationMatrix().ToEulerAnglesYXZ(yaw, pitch, roll) instead.
         */
         Radian getRoll(bool reprojectAxis = true) const;
         /** Calculate the local pitch element of this quaternion
         @param reprojectAxis By default the method returns the 'intuitive' result
-            that is, if you projected the local Z of the quaternion onto the X and
-            Y axes, the angle between them is returned. If set to true though, the
-            result is the actual yaw that will be used to implement the quaternion,
-            which is the shortest possible path to get to the same orientation and 
-            may involve less axial rotation.  The co-domain of the returned value is 
-            from -180 to 180 degrees.
+            that is, if you projected the local Y of the quaternion onto the YZ plane,
+            the angle between it and global Y is returned. The co-domain of the returned
+            value is from -180 to 180 degrees. If set to false though, the result is
+            the rotation around X axis that could be used to implement the quaternion
+            using some non-intuitive order of rotations. This behavior is preserved for
+            backward compatibility, to decompose quaternion into yaw, pitch and roll use
+            q.ToRotationMatrix().ToEulerAnglesYXZ(yaw, pitch, roll) instead.
         */
         Radian getPitch(bool reprojectAxis = true) const;
         /** Calculate the local yaw element of this quaternion
         @param reprojectAxis By default the method returns the 'intuitive' result
-            that is, if you projected the local Y of the quaternion onto the X and
-            Z axes, the angle between them is returned. If set to true though, the
-            result is the actual yaw that will be used to implement the quaternion,
-            which is the shortest possible path to get to the same orientation and 
-            may involve less axial rotation. The co-domain of the returned value is 
-            from -180 to 180 degrees.
+            that is, if you projected the local Z of the quaternion onto the ZX plane,
+            the angle between it and global Z is returned. The co-domain of the returned
+            value is from -180 to 180 degrees. If set to false though, the result is
+            the rotation around Y axis that could be used to implement the quaternion 
+            using some non-intuitive order of rotations. This behavior is preserved for
+            backward compatibility, to decompose quaternion into yaw, pitch and roll use
+            q.ToRotationMatrix().ToEulerAnglesYXZ(yaw, pitch, roll) instead.
         */
-        Radian getYaw(bool reprojectAxis = true) const;        
+        Radian getYaw(bool reprojectAxis = true) const;
         
         /** Equality with tolerance (tolerance is max angle difference)
         @remark Both equals() and orientationEquals() measure the exact same thing.
                 One measures the difference by angle, the other by a different, non-linear metric.
         */
-        bool equals(const Quaternion& rhs, const Radian& tolerance) const;
+        bool equals(const Quaternion& rhs, const Radian& tolerance) const
+        {
+            Real d = Dot(rhs);
+            Radian angle = Math::ACos(2.0f * d*d - 1.0f);
+
+            return Math::Abs(angle.valueRadians()) <= tolerance.valueRadians();
+        }
         
         /** Compare two quaternions which are assumed to be used as orientations.
         @remark Both equals() and orientationEquals() measure the exact same thing.
@@ -254,7 +278,7 @@ namespace Ogre {
             therefore be careful if your code relies in the order of the operands.
             This is specially important in IK animation.
         */
-        inline bool orientationEquals( const Quaternion& other, Real tolerance = 1e-3 ) const
+        inline bool orientationEquals( const Quaternion& other, Real tolerance = 1e-3f ) const
         {
             Real d = this->Dot(other);
             return 1 - d*d < tolerance;
@@ -264,7 +288,7 @@ namespace Ogre {
             Slerp ( 0.0f, A, B ) = A
             Slerp ( 1.0f, A, B ) = B
             @return Interpolated quaternion
-            @remarks
+
             Slerp has the proprieties of performing the interpolation at constant
             velocity, and being torque-minimal (unless shortestPath=false).
             However, it's NOT commutative, which means
@@ -296,7 +320,7 @@ namespace Ogre {
         /** Performs Normalised linear interpolation between two quaternions, and returns the result.
             nlerp ( 0.0f, A, B ) = A
             nlerp ( 1.0f, A, B ) = B
-            @remarks
+
             Nlerp is faster than Slerp.
             Nlerp has the proprieties of being commutative (@see Slerp;
             commutativity is desired in certain places, like IK animation), and
@@ -319,23 +343,19 @@ namespace Ogre {
 
         Real w, x, y, z;
 
+#ifndef OGRE_FAST_MATH
         /// Check whether this quaternion contains valid values
         inline bool isNaN() const
         {
             return Math::isNaN(x) || Math::isNaN(y) || Math::isNaN(z) || Math::isNaN(w);
         }
-
-        /** Function for writing to a stream. Outputs "Quaternion(w, x, y, z)" with w,x,y,z
-            being the member values of the quaternion.
-        */
-        inline _OgreExport friend std::ostream& operator <<
-            ( std::ostream& o, const Quaternion& q )
-        {
-            o << "Quaternion(" << q.w << ", " << q.x << ", " << q.y << ", " << q.z << ")";
-            return o;
-        }
-
+#endif
     };
+
+    /** Function for writing to a stream. Outputs "Quaternion(w, x, y, z)" with w,x,y,z
+        being the member values of the quaternion.
+    */
+    _OgreExport std::ostream& operator<<(std::ostream& o, const Quaternion& q);
     /** @} */
     /** @} */
 

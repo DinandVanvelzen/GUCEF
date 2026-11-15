@@ -1,0 +1,25 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Volume component</DescriptionHeadline>
+        <DescriptionDetails>Volume rendering of OGRE 14.6.3: chunked volumes of density values turned into meshes. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreVolume" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="OgreVolume_EXPORTS" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj /fp:contract" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

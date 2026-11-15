@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,40 +30,31 @@ THE SOFTWARE.
 
 #include "OgrePropertyPrerequisites.h"
 #include "OgreAny.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreString.h"
 #include "OgreException.h"
 #include "OgreQuaternion.h"
 #include "OgreMatrix4.h"
 
-#if OGRE_THREAD_PROVIDER == 1
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#elif __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
 #include <functional>
-#else
-#include <tr1/functional>
-#endif
+#include <sstream>
 
-/** \addtogroup Optional Components
+/** \addtogroup Optional
 *  @{
 */
-/** \addtogroup Property
-*  @{
-*/
+/** \defgroup Property Property
+* Associate values of arbitrary type with names
 
-/** @file
     OGRE's property system allows you to associate values of arbitrary type with
     names, and have those values exposed via a self-describing interface. Unlike
     Ogre::StringInterface, the values are passed as their native types without
     needing conversion to or from strings; they are simply wrapped in an Ogre::Any
     and casts are performed to access them.
-    @par
+
     Property values are actually not stored in this system; instead the property
     definitions reference getter & setter methods which provide the 'backing' for
     the property. This means you can directly expose features of your classes as properties
     without any duplication.
-    @par
+
     There are two aspects to exposing a property on your class. One is exposing 
     the definition of the property (PropertyDef), which should be shared between 
     all instances and probably stored in a static PropertyDefMap somewhere. The second
@@ -71,7 +62,7 @@ THE SOFTWARE.
     a method on this particular instance of the class; this is formed by a number of
     Property instances, contained in a PropertySet. Each Property has an explicit
     binding to getter and setter instance methods.
-    @par
+
     So, here's an example of setting up properties on an instance:
 
     @code
@@ -80,9 +71,9 @@ THE SOFTWARE.
     PropertyDefMap::iterator defi = propertyDefs.find("name");
     if (defi == propertyDefs.end())
     {
-        defi = propertyDefs.insert(PropertyDefMap::value_type("name", 
+        defi = propertyDefs.emplace("name",
             PropertyDef("name", 
-                "The name of the object.", PROP_STRING))).first;
+                "The name of the object.", PROP_STRING)).first;
     }
     // This has established the property definition, and its description.
     // Now, we need to 'wire' a property instance for this object instance
@@ -90,26 +81,19 @@ THE SOFTWARE.
     // 'props' is a PropertySet, specific to the instance
     props.addProperty(
         OGRE_NEW Property<String>(&(defi->second),
-            boost::bind(&Foo::getName, inst), 
-            boost::bind(&Foo::setName, inst, _1)));
+            std::bind(&Foo::getName, inst),
+            std::bind(&Foo::setName, inst, _1)));
 
     @endcode
 
 */
 
 /** @} */
-/** @} */
 namespace Ogre
 {
-#if OGRE_THREAD_PROVIDER == 1
-    using boost::function;
-#elif __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
     using std::function;
-#else
-    using std::tr1::function;
-#endif
 
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Property
@@ -139,8 +123,10 @@ namespace Ogre
         PROP_UNKNOWN = 999
     };
 
+    typedef GeneralAllocatedObject PropertyAlloc;
+
     /** Definition of a property of an object.
-    @remarks
+
     This definition is shared between all instances of an object and therefore
     has no value. Property contains values.
     */
@@ -196,7 +182,7 @@ namespace Ogre
     };
 
     /// Map from property name to shared definition
-    typedef map<String, PropertyDef>::type PropertyDefMap;
+    typedef std::map<String, PropertyDef> PropertyDefMap;
 
     /** Base interface for an instance of a property.
     */
@@ -257,7 +243,7 @@ namespace Ogre
             return mGetter();
         }
 
-        Ogre::Any getValue() const
+        Ogre::Any getValue() const override
         {
             return Ogre::Any(get());
         }
@@ -281,7 +267,7 @@ namespace Ogre
         Ogre::Any val;
     };
     /// Defines a transferable map of properties using wrapped value types (Ogre::Any)
-    typedef map<String, PropertyValue>::type PropertyValueMap;
+    typedef std::map<String, PropertyValue> PropertyValueMap;
 
 
     /** Defines a complete set of properties for a single object instance.
@@ -293,13 +279,13 @@ namespace Ogre
         ~PropertySet();
 
         /** Adds a property to this set. 
-        @remarks
+
         The PropertySet is responsible for deleting this object.
         */
         void addProperty(PropertyBase* prop);
 
         /** Gets the property object for a given property name. 
-        @remarks
+
         Note that this property will need to be cast to a templated property
         compatible with the type you will be setting. You might find the 
         overloaded set and get<type> methods quicker if 
@@ -313,10 +299,7 @@ namespace Ogre
         /** Removes the named property from the property set. */
         void removeProperty(const String& name);
 
-        typedef map<String, PropertyBase*>::type PropertyMap;
-        typedef Ogre::MapIterator<PropertyMap> PropertyIterator;
-        /// Get an iterator over the available properties
-        PropertyIterator getPropertyIterator();
+        typedef std::map<String, PropertyBase*> PropertyMap;
 
         /** Gets an independently usable collection of property values from the
         current state.

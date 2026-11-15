@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,34 +27,57 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreLog.h"
-#include <iomanip>
 #include <iostream>
+
+#include "OgreFileSystemUtil.h"
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
 #   include <windows.h>
+#   if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+#       include <werapi.h>
+#   endif
 #endif
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_NACL
-#   include "ppapi/cpp/var.h"
-#   include "ppapi/cpp/instance.h"
-#endif
+// LogMessageLevel + LoggingLevel > OGRE_LOG_THRESHOLD = message logged
+#define OGRE_LOG_THRESHOLD 4
+
+namespace {
+    const char* RED = "\x1b[31;1m";
+    const char* YELLOW = "\x1b[33;1m";
+    const char* RESET = "\x1b[0m";
+}
 
 namespace Ogre
 {
-#if OGRE_PLATFORM == OGRE_PLATFORM_NACL
-    pp::Instance* Log::mInstance = NULL;    
-#endif
-    
     //-----------------------------------------------------------------------
-    Log::Log( const String& name, bool debuggerOuput, bool suppressFile ) : 
-        mLogLevel(LL_NORMAL), mDebugOut(debuggerOuput),
-        mSuppressFile(suppressFile), mTimeStamp(true), mLogName(name)
+    Log::Log( const String& name, bool debuggerOutput, bool suppressFile ) : 
+        mLogLevel(LML_NORMAL), mDebugOut(debuggerOutput),
+        mSuppressFile(suppressFile), mTimeStamp(true), mLogName(name), mTermHasColours(false)
     {
         if (!mSuppressFile)
         {
-            mLog.open(name.c_str());
+            FileSystemUtil::openOutputFile(mLog, name);
+
+#if (OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT) && _WIN32_WINNT >= _WIN32_WINNT_VISTA
+            // Register log file to be collected by Windows Error Reporting
+            const std::wstring wname = FileSystemUtil::toWide(name);
+            if (!wname.empty())
+                WerRegisterFile(wname.c_str(), WerRegFileTypeOther, WER_FILE_ANONYMOUS_DATA);
+#endif
         }
+
+#if OGRE_PLATFORM != OGRE_PLATFORM_WINRT
+        char* val = getenv("OGRE_MIN_LOGLEVEL");
+        int min_lml;
+        if(val && StringConverter::parse(val, min_lml))
+            setMinLogLevel(LogMessageLevel(min_lml));
+
+        if(mDebugOut)
+        {
+            val = getenv("TERM");
+            mTermHasColours = val && String(val).find("xterm") != String::npos;
+        }
+#endif
     }
     //-----------------------------------------------------------------------
     Log::~Log()
@@ -65,56 +88,53 @@ namespace Ogre
             mLog.close();
         }
     }
+
     //-----------------------------------------------------------------------
     void Log::logMessage( const String& message, LogMessageLevel lml, bool maskDebug )
     {
         OGRE_LOCK_AUTO_MUTEX;
-        if ((mLogLevel + lml) >= OGRE_LOG_THRESHOLD)
+        if (lml >= mLogLevel)
         {
             bool skipThisMessage = false;
-            for( mtLogListener::iterator i = mListeners.begin(); i != mListeners.end(); ++i )
-                (*i)->messageLogged( message, lml, maskDebug, mLogName, skipThisMessage);
+            for(auto & l : mListeners)
+                l->messageLogged( message, lml, maskDebug, mLogName, skipThisMessage);
             
             if (!skipThisMessage)
             {
-#if OGRE_PLATFORM == OGRE_PLATFORM_NACL
-                if(mInstance != NULL)
-                {
-                    mInstance->PostMessage(message.c_str());
-                }
-#else
                 if (mDebugOut && !maskDebug)
                 {
 #    if (OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT) && OGRE_DEBUG_MODE
-#        if OGRE_WCHAR_T_STRINGS
-                    OutputDebugStringW(L"Ogre: ");
-                    OutputDebugStringW(message.c_str());
-                    OutputDebugStringW(L"\n");
-#        else
                     OutputDebugStringA("Ogre: ");
                     OutputDebugStringA(message.c_str());
                     OutputDebugStringA("\n");
-#        endif
 #    endif
-                    if (lml == LML_CRITICAL)
-                        std::cerr << message << std::endl;
-                    else
-                        std::cout << message << std::endl;
+
+                    std::ostream& os = int(lml) >= int(LML_WARNING) ? std::cerr : std::cout;
+
+                    if(mTermHasColours) {
+                        if(lml == LML_WARNING)
+                            os << YELLOW;
+                        if(lml == LML_CRITICAL)
+                            os << RED;
+                    }
+
+                    os << message;
+
+                    if(mTermHasColours) {
+                        os << RESET;
+                    }
+
+                    os << std::endl;
                 }
-#endif
 
                 // Write time into log
                 if (!mSuppressFile)
                 {
                     if (mTimeStamp)
                     {
-                        struct tm *pTime;
-                        time_t ctTime; time(&ctTime);
-                        pTime = localtime( &ctTime );
-                        mLog << std::setw(2) << std::setfill('0') << pTime->tm_hour
-                            << ":" << std::setw(2) << std::setfill('0') << pTime->tm_min
-                            << ":" << std::setw(2) << std::setfill('0') << pTime->tm_sec
-                            << ": ";
+                        auto t = std::time(nullptr);
+                        auto pTime = std::localtime(&t);
+                        mLog << std::put_time(pTime, "%H:%M:%S: ");
                     }
                     mLog << message << std::endl;
 
@@ -143,7 +163,13 @@ namespace Ogre
     void Log::setLogDetail(LoggingLevel ll)
     {
         OGRE_LOCK_AUTO_MUTEX;
-        mLogLevel = ll;
+        mLogLevel = LogMessageLevel(OGRE_LOG_THRESHOLD - ll);
+    }
+
+    void Log::setMinLogLevel(LogMessageLevel lml)
+    {
+        OGRE_LOCK_AUTO_MUTEX;
+        mLogLevel = lml;
     }
 
     //-----------------------------------------------------------------------

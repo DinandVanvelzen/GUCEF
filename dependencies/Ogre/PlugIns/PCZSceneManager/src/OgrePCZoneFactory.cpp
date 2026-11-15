@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ Code Style Update    :
 #include "OgreDefaultZone.h"
 #include "OgreLogManager.h"
 
-namespace Ogre 
+namespace Ogre
 {
     //-------------------------------------------------------------------------
     // PCZoneFactory functions
@@ -50,7 +50,7 @@ namespace Ogre
     }
     //-------------------------------------------------------------------------
     // DefaultZoneFactory functions
-    //String defaultString = String("ZoneType_Default"); 
+    //String defaultString = String("ZoneType_Default");
     DefaultZoneFactory::DefaultZoneFactory() : PCZoneFactory("ZoneType_Default")
     {
     }
@@ -77,8 +77,8 @@ namespace Ogre
         return msSingleton;
     }
     PCZoneFactoryManager& PCZoneFactoryManager::getSingleton(void)
-    {  
-        assert( msSingleton );  return ( *msSingleton );  
+    {
+        assert( msSingleton );  return ( *msSingleton );
     }
     PCZoneFactoryManager::PCZoneFactoryManager()
     {
@@ -100,7 +100,7 @@ namespace Ogre
         {
             //find and remove factory from mPCZoneFactories
             // Note that this does not free the factory from memory, just removes from the factory manager
-            String name = factory->getFactoryTypeName();
+            const String& name = factory->getFactoryTypeName();
             PCZoneFactoryMap::iterator zi = mPCZoneFactories.find(name);
             if (zi != mPCZoneFactories.end())
             {
@@ -110,30 +110,30 @@ namespace Ogre
         }
     }
     PCZone* PCZoneFactoryManager::createPCZone(PCZSceneManager * pczsm,
-                                               const String& zoneType, 
+                                               const String& zoneType,
                                                const String& zoneName)
     {
         //find a factory that supports this zone type and then call createPCZone() on it
         PCZone * inst = 0;
-        for(PCZoneFactoryMap::iterator i = mPCZoneFactories.begin(); i != mPCZoneFactories.end(); ++i)
+        for(const auto& z : mPCZoneFactories)
         {
-            if (i->second->supportsPCZoneType(zoneType))
+            if (z.second->supportsPCZoneType(zoneType))
             {
                 // use this factory
-                inst = i->second->createPCZone(pczsm, zoneName);
+                inst = z.second->createPCZone(pczsm, zoneName);
             }
         }
         if (!inst)
         {
             // Error!
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND,
                 "No factory found for zone of type '" + zoneType + "'",
                 "PCZoneFactoryManager::createPCZone");
         }
         return inst;
     }
     //-----------------------------------------------------------------------
-    PCZoneFactoryManager::PCZoneFactoryIterator 
+    PCZoneFactoryManager::PCZoneFactoryIterator
     PCZoneFactoryManager::getPCZoneFactoryIterator(void)
     {
         return PCZoneFactoryIterator(mPCZoneFactories.begin(), mPCZoneFactories.end());

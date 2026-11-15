@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 #include "OgreInstanceBatch.h"
 #include "OgreTexture.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
@@ -42,17 +43,17 @@ namespace Ogre
 
     /** Instancing implementation using vertex texture through Vertex Texture Fetch (VTF)
         This implementation has the following advantages:
-          * Supports huge amount of instances per batch
-          * Supports skinning even with huge ammounts of instances per batch
-          * Doesn't need shader constants registers.
-          * Best suited for skinned entities
+          - Supports huge amount of instances per batch
+          - Supports skinning even with huge ammounts of instances per batch
+          - Doesn't need shader constants registers.
+          - Best suited for skinned entities
 
         But beware the disadvantages:
-          * VTF is only fast on modern GPUs (ATI Radeon HD 2000+, GeForce 8+ series onwards)
-          * On GeForce 6/7 series VTF is too slow
-          * VTF isn't (controversely) supported on old ATI X1800 hardware
-          * Only one bone weight per vertex is supported
-          * GPUs with low memory bandwidth (i.e. laptops and integrated GPUs)
+          - VTF is only fast on modern GPUs (ATI Radeon HD 2000+, GeForce 8+ series onwards)
+          - On GeForce 6/7 series VTF is too slow
+          - VTF isn't (controversely) supported on old ATI X1800 hardware
+          - Only one bone weight per vertex is supported
+          - GPUs with low memory bandwidth (i.e. laptops and integrated GPUs)
           may perform even worse than no instancing
 
         Whether this performs great or bad depends on the hardware. It improved up to 4x performance on
@@ -61,22 +62,16 @@ namespace Ogre
         Each BaseInstanceBatchVTF has it's own texture, which occupies memory in VRAM.
         Approx VRAM usage can be computed by doing 12 bytes * 3 * numInstances * numBones
         Use flag IM_VTFBESTFIT to avoid wasting VRAM (but may reduce amount of instances per batch).
-        @par
-        The material requires at least a texture unit stage named "InstancingVTF"
 
-        @remarks
-            Design discussion webpage: http://www.ogre3d.org/forums/viewtopic.php?f=4&t=59902
-        @author
-            Matias N. Goldberg ("dark_sylinc")
-        @version
-            1.0
+        The material requires at least a texture unit stage named @c InstancingVTF
+
      */
     class _OgreExport BaseInstanceBatchVTF : public InstanceBatch
     {
     protected:
-        typedef vector<uint8>::type HWBoneIdxVec;
-        typedef vector<float>::type HWBoneWgtVec;
-        typedef vector<Matrix4>::type Matrix4Vec;
+        typedef std::vector<uint8> HWBoneIdxVec;
+        typedef std::vector<float> HWBoneWgtVec;
+        typedef std::vector<Matrix4> Matrix4Vec;
 
         size_t                  mMatricesPerInstance; //number of bone matrices per instance
         size_t                  mNumWorldMatrices;  //Num bones * num instances
@@ -91,7 +86,7 @@ namespace Ogre
         size_t                  mRowLength;
         size_t                  mWeightCount;
         //Temporary array used to store 3x4 matrices before they are converted to dual quaternions
-        float*                  mTempTransformsArray3x4;
+        Matrix3x4f*             mTempTransformsArray3x4;
 
         // The state of the usage of bone matrix lookup
         bool mUseBoneMatrixLookup;
@@ -119,7 +114,7 @@ namespace Ogre
         void retrieveBoneIdxWithWeights(VertexData *baseVertexData, HWBoneIdxVec &outBoneIdx, HWBoneWgtVec &outBoneWgt);
 
         /** Setups the material to use a vertex texture */
-        void setupMaterialToUseVTF( TextureType textureType, MaterialPtr &material );
+        void setupMaterialToUseVTF( TextureType textureType, MaterialPtr &material ) const;
 
         /** Creates the vertex texture */
         void createVertexTexture( const SubMesh* baseSubMesh );
@@ -128,7 +123,7 @@ namespace Ogre
         virtual void createVertexSemantics( VertexData *thisVertexData, VertexData *baseVertexData,
                                     const HWBoneIdxVec &hwBoneIdx, const HWBoneWgtVec &hwBoneWgt) = 0;
 
-        size_t convert3x4MatricesToDualQuaternions(float* matrices, size_t numOfMatrices, float* outDualQuaternions);
+        size_t convert3x4MatricesToDualQuaternions(Matrix3x4f* matrices, size_t numOfMatrices, float* outDualQuaternions);
                                     
         /** Keeps filling the VTF with world matrix data */
         void updateVertexTexture(void);
@@ -140,7 +135,7 @@ namespace Ogre
         virtual void updateSharedLookupIndexes();
 
         /** @see InstanceBatch::generateInstancedEntity() */
-        virtual InstancedEntity* generateInstancedEntity(size_t num);
+        InstancedEntity* generateInstancedEntity(size_t num) override;
 
     public:
         BaseInstanceBatchVTF( InstanceManager *creator, MeshPtr &meshReference, const MaterialPtr &material,
@@ -149,14 +144,13 @@ namespace Ogre
         virtual ~BaseInstanceBatchVTF();
 
         /** @see InstanceBatch::buildFrom */
-        void buildFrom( const SubMesh *baseSubMesh, const RenderOperation &renderOperation );
+        void buildFrom( const SubMesh *baseSubMesh, const RenderOperation &renderOperation ) override;
 
         //Renderable overloads
-        void getWorldTransforms( Matrix4* xform ) const;
-        unsigned short getNumWorldTransforms(void) const;
+        void getWorldTransforms( Matrix4* xform ) const override;
 
         /** Overloaded to be able to updated the vertex texture */
-        void _updateRenderQueue(RenderQueue* queue);
+        void _updateRenderQueue(RenderQueue* queue) override;
 
         /** Sets the state of the usage of bone matrix lookup
         
@@ -194,7 +188,7 @@ namespace Ogre
         bool useOneWeight() const { return mUseOneWeight; }
 
         /** @see InstanceBatch::useBoneWorldMatrices()  */
-        virtual bool useBoneWorldMatrices() const { return !mUseBoneMatrixLookup; }
+        bool useBoneWorldMatrices() const override { return !mUseBoneMatrixLookup; }
 
         /** @return the maximum amount of shared transform entities when using lookup table*/
         virtual size_t getMaxLookupTableInstances() const { return mMaxLookupTableInstances; }
@@ -204,14 +198,14 @@ namespace Ogre
     class _OgreExport InstanceBatchVTF : public BaseInstanceBatchVTF
     {
         
-        void setupVertices( const SubMesh* baseSubMesh );
-        void setupIndices( const SubMesh* baseSubMesh );
+        void setupVertices( const SubMesh* baseSubMesh ) override;
+        void setupIndices( const SubMesh* baseSubMesh ) override;
 
         /** Creates 2 TEXCOORD semantics that will be used to sample the vertex texture */
         void createVertexSemantics( VertexData *thisVertexData, VertexData *baseVertexData,
-            const HWBoneIdxVec &hwBoneIdx, const HWBoneWgtVec &hwBoneWgt );
+            const HWBoneIdxVec &hwBoneIdx, const HWBoneWgtVec &hwBoneWgt ) override;
 
-        virtual bool matricesTogetherPerRow() const { return false; }
+        bool matricesTogetherPerRow() const override { return false; }
     public:
         InstanceBatchVTF( InstanceManager *creator, MeshPtr &meshReference, const MaterialPtr &material,
                             size_t instancesPerBatch, const Mesh::IndexMap *indexToBoneMap,
@@ -219,8 +213,10 @@ namespace Ogre
         virtual ~InstanceBatchVTF();
 
         /** @see InstanceBatch::calculateMaxNumInstances */
-        size_t calculateMaxNumInstances( const SubMesh *baseSubMesh, uint16 flags ) const;
+        size_t calculateMaxNumInstances( const SubMesh *baseSubMesh, uint16 flags ) const override;
     };
 }
+
+#include "OgreHeaderSuffix.h"
 
 #endif

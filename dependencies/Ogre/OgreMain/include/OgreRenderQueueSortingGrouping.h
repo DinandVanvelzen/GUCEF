@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ THE SOFTWARE.
 // Precompiler options
 #include "OgrePrerequisites.h"
 #include "OgrePass.h"
-#include "OgreRadixSort.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre {
 
@@ -41,6 +41,9 @@ namespace Ogre {
     /** \addtogroup RenderSystem
     *  @{
     */
+
+    typedef std::vector<Renderable*> RenderableList;
+
     /** Struct associating a single Pass with a single Renderable. 
         This is used to for objects sorted by depth and thus not
         grouped by pass.
@@ -57,7 +60,7 @@ namespace Ogre {
 
 
     /** Visitor interface for items in a QueuedRenderableCollection.
-    @remarks
+
         Those wishing to iterate over the items in a 
         QueuedRenderableCollection should implement this visitor pattern,
         since internal organisation of the collection depends on the 
@@ -71,35 +74,23 @@ namespace Ogre {
         
         /** Called when visiting a RenderablePass, i.e. items in a
             sorted collection where items are not grouped by pass.
-        @remarks
-            If this is called, neither of the other 2 visit methods
-            will be called.
+
+            If this is called, the other visit method
+            will not be called.
         */
         virtual void visit(RenderablePass* rp) = 0;
 
-        /* When visiting a collection grouped by pass, this is
-            called when the grouping pass changes.
-        @remarks
+        /** When visiting a collection grouped by pass, this is
+            called.
+
             If this method is called, the RenderablePass visit 
-            method will not be called for this collection. The 
-            Renderable visit method will be called for each item
-            underneath the pass grouping level.
-        @return True to continue, false to skip the Renderables underneath
+            method will not be called for this collection.
         */
-        virtual bool visit(const Pass* p) = 0;
-        /** Visit method called once per Renderable on a grouped 
-            collection.
-        @remarks
-            If this method is called, the RenderablePass visit 
-            method will not be called for this collection. 
-        */
-        virtual void visit(Renderable* r) = 0;
-        
-        
+        virtual void visit(const Pass* p, RenderableList& rs) = 0;
     };
 
     /** Lowest level collection of renderables.
-    @remarks
+
         To iterate over items in this collection, you must call
         the accept method and supply a QueuedRenderableVisitor.
         The order of the iteration, and whether that iteration is
@@ -111,7 +102,7 @@ namespace Ogre {
     {
     public:
         /** Organisation modes required for this collection.
-        @remarks
+
             This affects the internal placement of the items added to this collection;
             if only one type of sorting / grouping is to be required, then renderables
             can be stored only once, whilst if multiple types are going to be needed
@@ -130,18 +121,18 @@ namespace Ogre {
             OM_SORT_ASCENDING = 6
         };
 
-    protected:
+    private:
         /// Comparator to order pass groups
         struct PassGroupLess
         {
-            bool _OgreExport operator()(const Pass* a, const Pass* b) const
+            bool operator()(const Pass* a, const Pass* b) const
             {
                 // Sort by passHash, which is pass, then texture unit changes
                 uint32 hasha = a->getHash();
                 uint32 hashb = b->getHash();
                 if (hasha == hashb)
                 {
-                    // Must differentTransparentQueueItemLessiate by pointer incase 2 passes end up with the same hash
+                    // Must differentTransparentQueueItemLessiate by pointer in case 2 passes end up with the same hash
                     return a < b;
                 }
                 else
@@ -150,83 +141,12 @@ namespace Ogre {
                 }
             }
         };
-        /// Comparator to order objects by descending camera distance
-        struct DepthSortDescendingLess
-        {
-            const Camera* camera;
-
-            DepthSortDescendingLess(const Camera* cam)
-                : camera(cam)
-            {
-            }
-
-            bool _OgreExport operator()(const RenderablePass& a, const RenderablePass& b) const
-            {
-                if (a.renderable == b.renderable)
-                {
-                    // Same renderable, sort by pass hash
-                    return a.pass->getHash() < b.pass->getHash();
-                }
-                else
-                {
-                    // Different renderables, sort by depth
-                    Real adepth = a.renderable->getSquaredViewDepth(camera);
-                    Real bdepth = b.renderable->getSquaredViewDepth(camera);
-                    if (Math::RealEqual(adepth, bdepth))
-                    {
-                        // Must return deterministic result, doesn't matter what
-                        return a.pass < b.pass;
-                    }
-                    else
-                    {
-                        // Sort DESCENDING by depth (i.e. far objects first)
-                        return (adepth > bdepth);
-                    }
-                }
-
-            }
-        };
-
         /** Vector of RenderablePass objects, this is built on the assumption that
          vectors only ever increase in size, so even if we do clear() the memory stays
          allocated, ie fast */
-        typedef vector<RenderablePass>::type RenderablePassList;
-        typedef vector<Renderable*>::type RenderableList;
+        typedef std::vector<RenderablePass> RenderablePassList;
         /** Map of pass to renderable lists, this is a grouping by pass. */
-        typedef map<Pass*, RenderableList*, PassGroupLess>::type PassGroupRenderableMap;
-
-        /// Functor for accessing sort value 1 for radix sort (Pass)
-        struct RadixSortFunctorPass
-        {
-            uint32 operator()(const RenderablePass& p) const
-            {
-                return p.pass->getHash();
-            }
-        };
-
-        /// Radix sorter for accessing sort value 1 (Pass)
-        static RadixSort<RenderablePassList, RenderablePass, uint32> msRadixSorter1;
-
-        /// Functor for descending sort value 2 for radix sort (distance)
-        struct RadixSortFunctorDistance
-        {
-            const Camera* camera;
-
-            RadixSortFunctorDistance(const Camera* cam)
-                : camera(cam)
-            {
-            }
-
-            float operator()(const RenderablePass& p) const
-            {
-                // Sort DESCENDING by depth (ie far objects first), use negative distance
-                // here because radix sorter always dealing with accessing sort
-                return static_cast<float>(- p.renderable->getSquaredViewDepth(camera));
-            }
-        };
-
-        /// Radix sorter for sort value 2 (distance)
-        static RadixSort<RenderablePassList, RenderablePass, float> msRadixSorter2;
+        typedef std::map<Pass*, RenderableList, PassGroupLess> PassGroupRenderableMap;
 
         /// Bitmask of the organisation modes requested
         uint8 mOrganisationMode;
@@ -245,20 +165,19 @@ namespace Ogre {
 
     public:
         QueuedRenderableCollection();
-        ~QueuedRenderableCollection();
 
         /// Empty the collection
         void clear(void);
 
         /** Remove the group entry (if any) for a given Pass.
-        @remarks
+
             To be used when a pass is destroyed, such that any
             grouping level for it becomes useless.
         */  
         void removePassGroup(Pass* p);
         
         /** Reset the organisation modes required for this collection. 
-        @remarks
+
             You can only do this when the collection is empty.
         @see OrganisationMode
         */
@@ -268,13 +187,13 @@ namespace Ogre {
         }
         
         /** Add a required sorting / grouping mode to this collection when next used.
-        @remarks
+
             You can only do this when the collection is empty.
         @see OrganisationMode
         */
         void addOrganisationMode(OrganisationMode om) 
         { 
-            mOrganisationMode |= om; 
+            mOrganisationMode |= uint8(om);
         }
 
         /// Add a renderable to the collection using a given pass
@@ -299,7 +218,7 @@ namespace Ogre {
     };
 
     /** Collection of renderables by priority.
-    @remarks
+
         This class simply groups renderables for rendering. All the 
         renderables contained in this class are destined for the same
         RenderQueueGroup (coarse groupings like those between the main
@@ -319,7 +238,7 @@ namespace Ogre {
     */
     class _OgreExport RenderPriorityGroup : public RenderQueueAlloc
     {
-    protected:
+    private:
 
         /// Parent queue group
         RenderQueueGroup* mParent;
@@ -341,15 +260,8 @@ namespace Ogre {
 
         /// remove a pass entry from all collections
         void removePassEntry(Pass* p);
-
-        /// Internal method for adding a solid renderable
-        void addSolidRenderable(Technique* pTech, Renderable* rend, bool toNoShadowMap);
         /// Internal method for adding a solid renderable
         void addSolidRenderableSplitByLightType(Technique* pTech, Renderable* rend);
-        /// Internal method for adding an unsorted transparent renderable
-        void addUnsortedTransparentRenderable(Technique* pTech, Renderable* rend);
-        /// Internal method for adding a transparent renderable
-        void addTransparentRenderable(Technique* pTech, Renderable* rend);
 
     public:
         RenderPriorityGroup(RenderQueueGroup* parent, 
@@ -386,7 +298,7 @@ namespace Ogre {
 
 
         /** Reset the organisation modes required for the solids in this group. 
-        @remarks
+
             You can only do this when the group is empty, i.e. after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
@@ -394,7 +306,7 @@ namespace Ogre {
         void resetOrganisationModes(void);
         
         /** Add a required sorting / grouping mode for the solids in this group.
-        @remarks
+
             You can only do this when the group is empty, i.e. after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
@@ -402,7 +314,7 @@ namespace Ogre {
         void addOrganisationMode(QueuedRenderableCollection::OrganisationMode om); 
 
         /** Set the sorting / grouping mode for the solids in this group to the default.
-        @remarks
+
             You can only do this when the group is empty, i.e. after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
@@ -454,19 +366,18 @@ namespace Ogre {
 
     /** A grouping level underneath RenderQueue which groups renderables
     to be issued at coarsely the same time to the renderer.
-    @remarks
-        Each instance of this class itself hold RenderPriorityGroup instances, 
-        which are the groupings of renderables by priority for fine control
-        of ordering (not required for most instances).
+
+    Each instance of this class itself hold RenderPriorityGroup instances,
+    which are the groupings of renderables by priority for fine control
+    of ordering (not required for most instances).
     */
     class _OgreExport RenderQueueGroup : public RenderQueueAlloc
     {
     public:
-        typedef map<ushort, RenderPriorityGroup*, std::less<ushort> >::type PriorityMap;
+        typedef std::map<ushort, RenderPriorityGroup*, std::less<ushort> > PriorityMap;
         typedef MapIterator<PriorityMap> PriorityMapIterator;
         typedef ConstMapIterator<PriorityMap> ConstPriorityMapIterator;
-    protected:
-        RenderQueue* mParent;
+    private:
         bool mSplitPassesByLightingType;
         bool mSplitNoShadowPasses;
         bool mShadowCastersNotReceivers;
@@ -479,12 +390,10 @@ namespace Ogre {
 
 
     public:
-        RenderQueueGroup(RenderQueue* parent,
-            bool splitPassesByLightingType,
+        RenderQueueGroup(bool splitPassesByLightingType,
             bool splitNoShadowPasses,
             bool shadowCastersNotReceivers) 
-            : mParent(parent)
-            , mSplitPassesByLightingType(splitPassesByLightingType)
+            : mSplitPassesByLightingType(splitPassesByLightingType)
             , mSplitNoShadowPasses(splitNoShadowPasses)
             , mShadowCastersNotReceivers(shadowCastersNotReceivers)
             , mShadowsEnabled(true)
@@ -501,17 +410,7 @@ namespace Ogre {
             }
         }
 
-        /** Get an iterator for browsing through child contents. */
-        PriorityMapIterator getIterator(void)
-        {
-            return PriorityMapIterator(mPriorityGroups.begin(), mPriorityGroups.end());
-        }
-
-        /** Get a const iterator for browsing through child contents. */
-        ConstPriorityMapIterator getIterator(void) const
-        {
-            return ConstPriorityMapIterator(mPriorityGroups.begin(), mPriorityGroups.end());
-        }
+        const PriorityMap& getPriorityGroups() const { return mPriorityGroups; }
 
         /** Add a renderable to this group, with the given priority. */
         void addRenderable(Renderable* pRend, Technique* pTech, ushort priority)
@@ -532,7 +431,7 @@ namespace Ogre {
                     pPriorityGrp->addOrganisationMode((QueuedRenderableCollection::OrganisationMode)mOrganisationMode);
                 }
 
-                mPriorityGroups.insert(PriorityMap::value_type(priority, pPriorityGrp));
+                mPriorityGroups.emplace(priority, pPriorityGrp);
             }
             else
             {
@@ -570,7 +469,7 @@ namespace Ogre {
 
         /** Indicate whether a given queue group will be doing any
         shadow setup.
-        @remarks
+
         This method allows you to inform the queue about a queue group, and to 
         indicate whether this group will require shadow processing of any sort.
         In order to preserve rendering order, OGRE has to treat queue groups
@@ -626,7 +525,7 @@ namespace Ogre {
             }
         }
         /** Reset the organisation modes required for the solids in this group. 
-        @remarks
+
             You can only do this when the group is empty, ie after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
@@ -644,14 +543,14 @@ namespace Ogre {
         }
         
         /** Add a required sorting / grouping mode for the solids in this group.
-        @remarks
+
             You can only do this when the group is empty, ie after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
         */
         void addOrganisationMode(QueuedRenderableCollection::OrganisationMode om)
         {
-            mOrganisationMode |= om;
+            mOrganisationMode |= uint8(om);
 
             PriorityMap::iterator i, iend;
             iend = mPriorityGroups.end();
@@ -662,7 +561,7 @@ namespace Ogre {
         }
 
         /** Setthe  sorting / grouping mode for the solids in this group to the default.
-        @remarks
+
             You can only do this when the group is empty, ie after clearing the 
             queue.
         @see QueuedRenderableCollection::OrganisationMode
@@ -683,12 +582,10 @@ namespace Ogre {
         */
         void merge( const RenderQueueGroup* rhs )
         {
-            ConstPriorityMapIterator it = rhs->getIterator();
-
-            while( it.hasMoreElements() )
+            for ( const auto& pg : rhs->getPriorityGroups() )
             {
-                ushort priority = it.peekNextKey();
-                RenderPriorityGroup* pSrcPriorityGrp = it.getNext();
+                ushort priority = pg.first;
+                RenderPriorityGroup* pSrcPriorityGrp = pg.second;
                 RenderPriorityGroup* pDstPriorityGrp;
 
                 // Check if priority group is there
@@ -706,7 +603,7 @@ namespace Ogre {
                         pDstPriorityGrp->addOrganisationMode((QueuedRenderableCollection::OrganisationMode)mOrganisationMode);
                     }
 
-                    mPriorityGroups.insert(PriorityMap::value_type(priority, pDstPriorityGrp));
+                    mPriorityGroups.emplace(priority, pDstPriorityGrp);
                 }
                 else
                 {
@@ -724,6 +621,8 @@ namespace Ogre {
 
 
 }
+
+#include "OgreHeaderSuffix.h"
 
 #endif
 

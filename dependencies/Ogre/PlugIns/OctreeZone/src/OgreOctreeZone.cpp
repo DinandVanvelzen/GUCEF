@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -293,6 +293,7 @@ namespace Ogre
                             }
                         }
                         break;
+                    case Light::LT_RECTLIGHT:
                     case Light::LT_SPOTLIGHT:
                         // spotlights - just check if within illumination range
                         // Technically, we should check if the portal is within
@@ -343,7 +344,7 @@ namespace Ogre
             Portal * p = *it;
             bool portalNeedUpdate = p->needUpdate();
 
-            Real pRadius = p->getRadius();
+            Real pRadius = p->getDerivedRadius();
 
             // First we check against portals in the SAME zone (and only if they have a 
             // target zone different from the home zone)
@@ -367,7 +368,7 @@ namespace Ogre
                 // Skip portal if it's pointing to the same target zone as this portal points to
                 if (p2->getTargetZone() == p->getTargetZone()) continue;
 
-                if (pRadius > p2->getRadius())
+                if (pRadius > p2->getDerivedRadius())
                 {
                     // Portal#1 is bigger than Portal#2, check for crossing
                     if (p2->getCurrentHomeZone() != p->getTargetZone() && p2->crossedPortal(p))
@@ -377,7 +378,7 @@ namespace Ogre
                         transferPortalList.push_back(p2);
                     }
                 }
-                else if (pRadius < p2->getRadius())
+                else if (pRadius < p2->getDerivedRadius())
                 {
                     // Portal #2 is bigger than Portal #1, check for crossing
                     if (p->getCurrentHomeZone() != p2->getTargetZone() && p->crossedPortal(p2))
@@ -400,7 +401,7 @@ namespace Ogre
                 if (!portalNeedUpdate && !ap->needUpdate()) continue;
 
                 // only check for crossing if AntiPortal smaller than portal.
-                if (pRadius > ap->getRadius())
+                if (pRadius > ap->getDerivedRadius())
                 {
                     // Portal#1 is bigger than AntiPortal, check for crossing
                     if (ap->crossedPortal(p))
@@ -424,7 +425,7 @@ namespace Ogre
                 {
                     Portal * p3 = (*it3);
                     // only check against bigger regular portals
-                    if (pRadius < p3->getRadius())
+                    if (pRadius < p3->getDerivedRadius())
                     {
                         // Portal#3 is bigger than Portal#1, check for crossing
                         if (p->getCurrentHomeZone() != p3->getTargetZone() && p->crossedPortal(p3))
@@ -733,14 +734,9 @@ namespace Ogre
                         // add it to the list of visible nodes
                         visibleNodeList.push_back( sn );
                         // if we are displaying nodes, add the node renderable to the queue
-                        if ( displayNodes )
+                        if ( mPCZSM->getDebugDrawer() )
                         {
-                            queue -> addRenderable( sn->getDebugRenderable() );
-                        }
-                        // if the scene manager or the node wants the bounding box shown, add it to the queue
-                        if (sn->getShowBoundingBox() || showBoundingBoxes)
-                        {
-                            sn->_addBoundingBoxToQueue(queue);
+                            mPCZSM->getDebugDrawer()->drawSceneNode(sn);
                         }
                         // flag the node as being visible this frame
                         sn->setLastVisibleFrame(mLastVisibleFrame);
@@ -1255,10 +1251,8 @@ namespace Ogre
         mOctreeWorldAABB.setNull();
 
         // need to use object iterator here.
-        SceneNode::ObjectIterator oit = mAssociatedNode->getAttachedObjectIterator();
-        while( oit.hasMoreElements() )
+        for (auto m : mAssociatedNode->getAttachedObjects())
         {
-            MovableObject * m = oit.getNext();
             // merge world bounds of object
             mOctreeWorldAABB.merge( m->getWorldBoundingBox(true) );
         }

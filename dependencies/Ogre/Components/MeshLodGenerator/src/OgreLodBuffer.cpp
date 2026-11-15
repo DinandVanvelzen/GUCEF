@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,30 +26,11 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "OgreLodBuffer.h"
-#include "OgreHardwareBufferManager.h"
-#include "OgreVector3.h"
-#include "OgreSubMesh.h"
-#include "OgreMesh.h"
+#include "OgreMeshLodPrecompiledHeaders.h"
+#include "OgreDefaultHardwareBufferManager.h"
 
 namespace Ogre
 {
-    void LodIndexBuffer::fillBuffer( Ogre::IndexData* data )
-    {
-        indexCount = data->indexCount;
-        if (indexCount > 0) {
-            const HardwareIndexBufferSharedPtr& hwIndexBuffer = data->indexBuffer;
-            indexSize = hwIndexBuffer->getIndexSize();
-            unsigned char* pBuffer = (unsigned char*) hwIndexBuffer->lock(HardwareBuffer::HBL_READ_ONLY);
-            size_t offset = data->indexStart * indexSize;
-            indexBuffer = Ogre::SharedPtr<unsigned char>(new unsigned char[indexCount * indexSize]);
-            indexStart = 0;
-            indexBufferSize = 0;
-            memcpy(indexBuffer.get(), pBuffer + offset, indexCount * indexSize);
-            hwIndexBuffer->unlock();
-        }
-    }
-
     void LodVertexBuffer::fillBuffer( Ogre::VertexData* data )
     {
         vertexCount = data->vertexCount;
@@ -58,10 +39,10 @@ namespace Ogre
             const VertexElement* elemPos = data->vertexDeclaration->findElementBySemantic(VES_POSITION);
 
             // Only float supported.
-            OgreAssert(elemPos->getSize() == 12, "");
+            OgreAssert(elemPos->getType() == VET_FLOAT3, "");
 
             HardwareVertexBufferSharedPtr vbuf = data->vertexBufferBinding->getBuffer(elemPos->getSource());
-            vertexBuffer = Ogre::SharedPtr<Vector3>(new Vector3[vertexCount]);
+            vertexBuffer = std::make_shared<DefaultHardwareBuffer>(vertexCount * 3 * sizeof(float));
 
             // Lock the buffer for reading.
             unsigned char* vStart = static_cast<unsigned char*>(vbuf->lock(HardwareBuffer::HBL_READ_ONLY));
@@ -71,41 +52,32 @@ namespace Ogre
             const VertexElement* elemNormal = 0;
             HardwareVertexBufferSharedPtr vNormalBuf;
             unsigned char* vNormal = NULL;
-            Vector3* pNormalOut = NULL;
+            Vector3f* pNormalOut = NULL;
             size_t vNormalSize = 0;
             bool useVertexNormals = true;
             elemNormal = data->vertexDeclaration->findElementBySemantic(VES_NORMAL);
             useVertexNormals = useVertexNormals && (elemNormal != 0);
             if(useVertexNormals){
-                vertexNormalBuffer = Ogre::SharedPtr<Vector3>(new Vector3[vertexCount]);
-                pNormalOut = vertexNormalBuffer.get();
+                vertexNormalBuffer = std::make_shared<DefaultHardwareBuffer>(vertexCount * sizeof(Vector3f));
+                pNormalOut = (Vector3f *)vertexNormalBuffer->lock(HardwareBuffer::HBL_DISCARD);
                 if(elemNormal->getSource() == elemPos->getSource()){
                     vNormalBuf = vbuf;
                     vNormal = vStart;
                 }  else {
                     vNormalBuf = data->vertexBufferBinding->getBuffer(elemNormal->getSource());
-                    assert(vNormalBuf->getSizeInBytes() == vbuf->getSizeInBytes());
-                    assert(vNormalBuf->getVertexSize() == vbuf->getVertexSize());
                     vNormal = static_cast<unsigned char*>(vNormalBuf->lock(HardwareBuffer::HBL_READ_ONLY));
                 }
                 vNormalSize = vNormalBuf->getVertexSize();
             }
 
             // Loop through all vertices and insert them to the Unordered Map.
-            Vector3* pOut = vertexBuffer.get();
-            Vector3* pEnd = pOut + vertexCount;
+            Vector3f* pOut = (Vector3f *)vertexBuffer->lock(HardwareBuffer::HBL_DISCARD);
+            Vector3f* pEnd = pOut + vertexCount;
             for (; pOut < pEnd; pOut++) {
-                float* pFloat;
-                elemPos->baseVertexPointerToElement(vertex, &pFloat);
-                pOut->x = *pFloat;
-                pOut->y = *(++pFloat);
-                pOut->z = *(++pFloat);
+                memcpy(pOut, vertex + elemPos->getOffset(), sizeof(Vector3f));
                 vertex += vSize;
                 if(useVertexNormals){
-                    elemNormal->baseVertexPointerToElement(vNormal, &pFloat);
-                    pNormalOut->x = *pFloat;
-                    pNormalOut->y = *(++pFloat);
-                    pNormalOut->z = *(++pFloat);
+                    memcpy(pNormalOut, vNormal + elemNormal->getOffset(), sizeof(Vector3f));
                     pNormalOut++;
                     vNormal += vNormalSize;
                 }
@@ -113,6 +85,10 @@ namespace Ogre
             vbuf->unlock();
             if(elemNormal && elemNormal->getSource() != elemPos->getSource()){
                 vNormalBuf->unlock();
+            }
+            vertexBuffer->unlock();
+            if (useVertexNormals){
+                vertexNormalBuffer->unlock();
             }
         }
     }
@@ -122,12 +98,17 @@ namespace Ogre
         meshName = mesh->getName();
         boundingSphereRadius = mesh->getBoundingSphereRadius();
         bool sharedVerticesAdded = false;
-        unsigned short submeshCount = mesh->getNumSubMeshes();
+        size_t submeshCount = mesh->getNumSubMeshes();
         submesh.resize(submeshCount);
-        for (unsigned short i = 0; i < submeshCount; i++) {
+        DefaultHardwareBufferManagerBase bfrMgr;
+        for (size_t i = 0; i < submeshCount; i++) {
             const SubMesh* ogresubmesh = mesh->getSubMesh(i);
             LodInputBuffer::Submesh& outsubmesh = submesh[i];
-            outsubmesh.indexBuffer.fillBuffer(ogresubmesh->indexData);
+            outsubmesh.operationType = ogresubmesh->operationType;
+
+            std::unique_ptr<IndexData> tmp(ogresubmesh->indexData->clone(true, &bfrMgr));
+            outsubmesh.indexBuffer = *tmp;
+
             outsubmesh.useSharedVertexBuffer = ogresubmesh->useSharedVertices;
             if (!outsubmesh.useSharedVertexBuffer) {
                 outsubmesh.vertexBuffer.fillBuffer(ogresubmesh->vertexData);

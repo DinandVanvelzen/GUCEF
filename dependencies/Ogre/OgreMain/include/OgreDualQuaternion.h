@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,7 @@ namespace Ogre {
         }
         
         /// Construct a dual quaternion from a transformation matrix
-        inline DualQuaternion(const Matrix4& rot)
+        inline DualQuaternion(const Affine3& rot)
         {
             this->fromTransformationMatrix(rot);
         }
@@ -143,13 +143,15 @@ namespace Ogre {
             std::swap(dy, other.dy);
             std::swap(dz, other.dz);
         }
-        
+
+#ifndef OGRE_FAST_MATH
         /// Check whether this dual quaternion contains valid values
         inline bool isNaN() const
         {
             return Math::isNaN(w) || Math::isNaN(x) || Math::isNaN(y) || Math::isNaN(z) ||  
                 Math::isNaN(dw) || Math::isNaN(dx) || Math::isNaN(dy) || Math::isNaN(dz);
         }
+#endif
 
         /// Construct a dual quaternion from a rotation described by a Quaternion and a translation described by a Vector3
         void fromRotationTranslation (const Quaternion& q, const Vector3& trans);
@@ -158,10 +160,10 @@ namespace Ogre {
         void toRotationTranslation (Quaternion& q, Vector3& translation) const;
 
         /// Construct a dual quaternion from a 4x4 transformation matrix
-        void fromTransformationMatrix (const Matrix4& kTrans);
+        void fromTransformationMatrix (const Affine3& kTrans);
         
         /// Convert a dual quaternion to a 4x4 transformation matrix
-        void toTransformationMatrix (Matrix4& kTrans) const;
+        void toTransformationMatrix (Affine3& kTrans) const;
 
         Real w, x, y, z, dw, dx, dy, dz;
 

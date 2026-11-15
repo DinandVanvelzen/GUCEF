@@ -1,0 +1,8 @@
+<PROJECTGENERATOR>
+    <!-- Windows uses WGL (the directory win32), the other platforms use EGL. The GLX and OSX directories are the alternatives for
+         Linux and macOS which are not built. -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="GLX" TYPE="DIR" />
+        <ITEM NAME="OSX" TYPE="DIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

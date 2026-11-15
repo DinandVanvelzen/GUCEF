@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreHeaderPrefix.h"
-#include "OgreIteratorWrappers.h"
 
 namespace Ogre {
 
@@ -46,7 +45,7 @@ namespace Ogre {
     */
     /** Enumeration of queue groups, by which the application may group queued renderables
         so that they are rendered together with events in between
-    @remarks
+
         When passed into methods these are actually passed as a uint8 to allow you
         to use values in between if you want to.
     */
@@ -67,21 +66,24 @@ namespace Ogre {
         RENDER_QUEUE_7 = 70,
         RENDER_QUEUE_WORLD_GEOMETRY_2 = 75,
         RENDER_QUEUE_8 = 80,
-        RENDER_QUEUE_9 = 90,
-        /// Penultimate queue(before overlays), used for skyboxes if rendered last
-        RENDER_QUEUE_SKIES_LATE = 95,
+        /// Used for skyboxes if rendered last
+        RENDER_QUEUE_SKIES_LATE = 90,
+        /// Penultimate queue(before overlays)
+        RENDER_QUEUE_TRANSPARENTS = 95,
         /// Use this queue for objects which must be rendered last e.g. overlays
         RENDER_QUEUE_OVERLAY = 100, 
         /// Final possible render queue, don't exceed this
-        RENDER_QUEUE_MAX = 105
+        RENDER_QUEUE_MAX = 105,
+        RENDER_QUEUE_COUNT
     };
 
-    #define OGRE_RENDERABLE_DEFAULT_PRIORITY  100
+    /// @deprecated
+    #define OGRE_RENDERABLE_DEFAULT_PRIORITY  Ogre::Renderable::DEFAULT_PRIORITY
 
     /** Class to manage the scene object rendering queue.
-        @remarks
-            Objects are grouped by material to minimise rendering state changes. The map from
-            material to renderable object is wrapped in a class for ease of use.
+
+        Objects are grouped by material to minimise rendering state changes. The map from
+        material to renderable object is wrapped in a class for ease of use.
         @par
             This class now includes the concept of 'queue groups' which allows the application
             adding the renderable to specifically schedule it so that it is included in 
@@ -93,13 +95,10 @@ namespace Ogre {
     {
     public:
 
-        typedef map< uint8, RenderQueueGroup* >::type RenderQueueGroupMap;
-        /// Iterator over queue groups
-        typedef MapIterator<RenderQueueGroupMap> QueueGroupIterator;
-        typedef ConstMapIterator<RenderQueueGroupMap> ConstQueueGroupIterator;
+        typedef std::unique_ptr<RenderQueueGroup> RenderQueueGroupMap[RENDER_QUEUE_COUNT];
 
         /** Class to listen in on items being added to the render queue. 
-        @remarks
+
             Use RenderQueue::setRenderableListener to get callbacks when an item
             is added to the render queue.
         */
@@ -110,7 +109,7 @@ namespace Ogre {
             virtual ~RenderableListener() {}
 
             /** Method called when a Renderable is added to the queue.
-            @remarks
+
                 You can use this event hook to alter the Technique used to
                 render a Renderable as the item is added to the queue. This is
                 a low-level way to override the material settings for a given
@@ -131,7 +130,7 @@ namespace Ogre {
             virtual bool renderableQueued(Renderable* rend, uint8 groupID, 
                 ushort priority, Technique** ppTech, RenderQueue* pQueue) = 0;
         };
-    protected:
+    private:
         RenderQueueGroupMap mGroups;
         /// The current default queue group
         uint8 mDefaultQueueGroup;
@@ -154,14 +153,14 @@ namespace Ogre {
         void clear(bool destroyPassMaps = false);
 
         /** Get a render queue group.
-        @remarks
+
             OGRE registers new queue groups as they are requested, 
             therefore this method will always return a valid group.
         */
         RenderQueueGroup* getQueueGroup(uint8 qid);
 
         /** Add a renderable object to the queue.
-        @remarks
+
             This methods adds a Renderable to the queue, which will be rendered later by 
             the SceneManager. This is the advanced version of the call which allows the renderable
             to be added to any queue.
@@ -185,7 +184,7 @@ namespace Ogre {
         void addRenderable(Renderable* pRend, uint8 groupID, ushort priority);
 
         /** Add a renderable object to the queue.
-        @remarks
+
             This methods adds a Renderable to the queue, which will be rendered later by 
             the SceneManager. This is the simplified version of the call which does not 
             require a priority to be specified. The queue priority is take from the
@@ -204,7 +203,7 @@ namespace Ogre {
         void addRenderable(Renderable* pRend, uint8 groupId);
 
         /** Add a renderable object to the queue.
-        @remarks
+
             This methods adds a Renderable to the queue, which will be rendered later by 
             the SceneManager. This is the simplified version of the call which does not 
             require a queue or priority to be specified. The queue group is taken from the
@@ -239,9 +238,10 @@ namespace Ogre {
         */
         void setDefaultQueueGroup(uint8 grp);
         
-        /** Internal method, returns an iterator for the queue groups. */
-        QueueGroupIterator _getQueueGroupIterator(void);
-        ConstQueueGroupIterator _getQueueGroupIterator(void) const;
+        /** Internal method, returns the queue groups. */
+        const RenderQueueGroupMap& _getQueueGroups() const {
+            return mGroups;
+        }
 
         /** Sets whether or not the queue will split passes by their lighting type,
             ie ambient, per-light and decal. 
@@ -276,7 +276,7 @@ namespace Ogre {
         bool getShadowCastersCannotBeReceivers(void) const;
 
         /** Set a renderable listener on the queue.
-        @remarks
+
             There can only be a single renderable listener on the queue, since
             that listener has complete control over the techniques in use.
         */

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,13 +28,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreConvexBody.h"
-#include "OgreException.h"
-#include "OgreVector3.h"
-#include "OgreLogManager.h"
-#include "OgreRay.h"
-#include "OgreFrustum.h"
-#include "OgreAxisAlignedBox.h"
-
 
 namespace Ogre
 {
@@ -44,9 +37,7 @@ namespace Ogre
     // Statics
     //-----------------------------------------------------------------------
     ConvexBody::PolygonList ConvexBody::msFreePolygons;
-#if OGRE_THREAD_SUPPORT
     OGRE_STATIC_MUTEX_INSTANCE(ConvexBody::msFreePolygonsMutex);
-#endif
     //-----------------------------------------------------------------------
     void ConvexBody::_initialisePool()
     {
@@ -67,12 +58,11 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::_destroyPool()
     {
-            OGRE_LOCK_MUTEX(msFreePolygonsMutex);
+        OGRE_LOCK_MUTEX(msFreePolygonsMutex);
         
-        for (PolygonList::iterator i = msFreePolygons.begin(); 
-            i != msFreePolygons.end(); ++i)
+        for (auto *p : msFreePolygons)
         {
-            OGRE_DELETE_T(*i, Polygon, MEMCATEGORY_SCENE_CONTROL);
+            OGRE_DELETE_T(p, Polygon, MEMCATEGORY_SCENE_CONTROL);
         }
         msFreePolygons.clear();
     }
@@ -101,7 +91,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::freePolygon(Polygon* poly)
     {
-            OGRE_LOCK_MUTEX(msFreePolygonsMutex);
+        OGRE_LOCK_MUTEX(msFreePolygonsMutex);
         msFreePolygons.push_back(poly);
     }
     //-----------------------------------------------------------------------
@@ -362,7 +352,7 @@ namespace Ogre
         {
             const Polygon& p = body.getPolygon( iPoly );
 
-            OgreAssert( p.getVertexCount() >= 3, "A valid polygon must contain at least three vertices." );
+            OgreAssertDbg( p.getVertexCount() >= 3, "A valid polygon must contain at least three vertices." );
 
             // set up plane with first three vertices of the polygon (a polygon is always planar)
             pl.redefine( p.getVertex( 0 ), p.getVertex( 1 ), p.getVertex( 2 ) );
@@ -464,10 +454,9 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::reset( void )
     {
-        for (PolygonList::iterator it = mPolygons.begin(); 
-            it != mPolygons.end(); ++it)
+        for (auto *p : mPolygons)
         {
-            freePolygon(*it);
+            freePolygon(p);
         }
         mPolygons.clear();
     }
@@ -479,7 +468,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     size_t ConvexBody::getVertexCount( size_t poly ) const
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range" );
         
         return mPolygons[ poly ]->getVertexCount();
     }
@@ -585,7 +574,7 @@ namespace Ogre
                                 }
 
                                 // delete the two old ones
-                                OgreAssert( iPolyA != iPolyB, "PolyA and polyB are the same!" );
+                                OgreAssertDbg( iPolyA != iPolyB, "PolyA and polyB are the same!" );
                                 
                                 // polyB is always higher than polyA, so delete polyB first
                                 deletePolygon( iPolyB );
@@ -629,7 +618,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     const Vector3& ConvexBody::getNormal( size_t poly )
     {
-        OgreAssert( poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg( poly < getPolygonCount(), "Search position out of range" );
         
         return mPolygons[ poly ]->getNormal();
     }
@@ -717,8 +706,8 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::insertPolygon(Polygon* pdata, size_t poly )
     {
-        OgreAssert(poly <= getPolygonCount(), "Insert position out of range" );
-        OgreAssert( pdata != NULL, "Polygon is NULL" );
+        OgreAssertDbg(poly <= getPolygonCount(), "Insert position out of range" );
+        OgreAssertDbg( pdata != NULL, "Polygon is NULL" );
 
         PolygonList::iterator it = mPolygons.begin();
         std::advance(it, poly);
@@ -729,7 +718,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::insertPolygon(Polygon* pdata)
     {
-        OgreAssert( pdata != NULL, "Polygon is NULL" );
+        OgreAssertDbg( pdata != NULL, "Polygon is NULL" );
 
         mPolygons.push_back( pdata );
 
@@ -737,21 +726,21 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::insertVertex(size_t poly, const Vector3& vdata, size_t vertex )
     {
-        OgreAssert(poly < getPolygonCount(), "Search position (polygon) out of range" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position (polygon) out of range" );
         
         mPolygons[poly]->insertVertex(vdata, vertex);
     }
     //-----------------------------------------------------------------------
     void ConvexBody::insertVertex(size_t poly, const Vector3& vdata)
     {
-        OgreAssert(poly < getPolygonCount(), "Search position (polygon) out of range" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position (polygon) out of range" );
 
         mPolygons[poly]->insertVertex(vdata);
     }
     //-----------------------------------------------------------------------
     void ConvexBody::deletePolygon(size_t poly)
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range" );
 
         PolygonList::iterator it = mPolygons.begin();
         std::advance(it, poly);
@@ -762,7 +751,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     Polygon* ConvexBody::unlinkPolygon(size_t poly)
     {
-        OgreAssert( poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg( poly < getPolygonCount(), "Search position out of range" );
 
         PolygonList::iterator it = mPolygons.begin();
         std::advance(it, poly);
@@ -785,22 +774,22 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void ConvexBody::deleteVertex(size_t poly, size_t vertex)
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range" );
 
         mPolygons[poly]->deleteVertex(vertex);
     }
     //-----------------------------------------------------------------------
     const Polygon& ConvexBody::getPolygon(size_t poly) const
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range");
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range");
 
         return *mPolygons[poly];
     }
     //-----------------------------------------------------------------------
     void ConvexBody::setPolygon(Polygon* pdata, size_t poly)
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range" );
-        OgreAssert(pdata != NULL, "Polygon is NULL" );
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg(pdata != NULL, "Polygon is NULL" );
 
         if (pdata != mPolygons[poly])
         {
@@ -814,22 +803,22 @@ namespace Ogre
     //-----------------------------------------------------------------------
     const Vector3& ConvexBody::getVertex(size_t poly, size_t vertex) const
     {
-        OgreAssert( poly < getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg( poly < getPolygonCount(), "Search position out of range" );
         
         return mPolygons[poly]->getVertex(vertex);
     }
     //-----------------------------------------------------------------------
     void ConvexBody::setVertex(size_t poly, const Vector3& vdata, size_t vertex)
     {
-        OgreAssert(poly < getPolygonCount(), "Search position out of range");
+        OgreAssertDbg(poly < getPolygonCount(), "Search position out of range");
         
         mPolygons[poly]->setVertex(vdata, vertex);
     }
     //-----------------------------------------------------------------------
     void ConvexBody::storeEdgesOfPolygon(size_t poly, Polygon::EdgeMap *edgeMap ) const
     {
-        OgreAssert(poly <= getPolygonCount(), "Search position out of range" );
-        OgreAssert( edgeMap != NULL, "TEdgeMap ptr is NULL" );
+        OgreAssertDbg(poly <= getPolygonCount(), "Search position out of range" );
+        OgreAssertDbg( edgeMap != NULL, "TEdgeMap ptr is NULL" );
 
         mPolygons[poly]->storeEdges(edgeMap);
     }
@@ -1209,14 +1198,6 @@ namespace Ogre
         }
 
         return false; // not found!
-    }
-    //-----------------------------------------------------------------------
-    void ConvexBody::logInfo( void ) const
-    {
-        StringStream ssOut( std::stringstream::out );
-        ssOut << *this;
-        
-        Ogre::LogManager::getSingleton().logMessage( Ogre::LML_NORMAL, ssOut.str()  );
     }
 }
 

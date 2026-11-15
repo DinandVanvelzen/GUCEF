@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,7 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreRenderOperation.h"
-#include "OgreVector3.h"
-#include "OgreVector4.h"
+#include "OgreVector.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
@@ -46,7 +45,7 @@ namespace Ogre {
 
     /** This class contains the information required to describe the edge connectivity of a
         given set of vertices and indexes. 
-    @remarks 
+
         This information is built using the EdgeListBuilder class. Note that for a given mesh,
         which can be made up of multiple submeshes, there are separate edge lists for when 
     */
@@ -60,14 +59,14 @@ namespace Ogre {
         struct Triangle {
             /** The set of indexes this triangle came from (NB it is possible that the triangles on 
                one side of an edge are using a different vertex buffer from those on the other side.) */
-            size_t indexSet; 
+            uint32 indexSet;
             /** The vertex set these vertices came from. */
-            size_t vertexSet;
+            uint32 vertexSet;
             /// Vertex indexes, relative to the original buffer
-            size_t vertIndex[3];
+            uint32 vertIndex[3];
             /** Vertex indexes, relative to a shared vertex buffer with
                 duplicates eliminated (this buffer is not exposed) */
-            size_t sharedVertIndex[3];
+            uint32 sharedVertIndex[3];
 
             Triangle() :indexSet(0), vertexSet(0) {}
         };
@@ -76,12 +75,12 @@ namespace Ogre {
             /** The indexes of the 2 tris attached, note that tri 0 is the one where the 
                 indexes run _anti_ clockwise along the edge. Indexes must be
                 reversed for tri 1. */
-            size_t triIndex[2];
+            uint32 triIndex[2];
             /** The vertex indices for this edge. Note that both vertices will be in the vertex
                 set as specified in 'vertexSet', which will also be the same as tri 0 */
-            size_t vertIndex[2];
+            uint32 vertIndex[2];
             /** Vertex indices as used in the shared vertex list, not exposed. */
-            size_t sharedVertIndex[2];
+            uint32 sharedVertIndex[2];
             /** Indicates if this is a degenerate edge, ie it does not have 2 triangles */
             bool degenerate;
         };
@@ -89,36 +88,36 @@ namespace Ogre {
         /** Array of 4D vector of triangle face normal, which is unit vector orthogonal
             to the triangles, plus distance from origin.
             Use aligned policy here because we are intended to use in SIMD optimised routines. */
-        typedef std::vector<Vector4, STLAllocator<Vector4, CategorisedAlignAllocPolicy<MEMCATEGORY_GEOMETRY> > > TriangleFaceNormalList;
+        typedef aligned_vector<Vector4> TriangleFaceNormalList;
 
         /** Working vector used when calculating the silhouette.
             Use std::vector<char> instead of std::vector<bool> which might implemented
             similar bit-fields causing loss performance. */
-        typedef vector<char>::type TriangleLightFacingList;
+        typedef std::vector<char> TriangleLightFacingList;
 
-        typedef vector<Triangle>::type TriangleList;
-        typedef vector<Edge>::type EdgeList;
+        typedef std::vector<Triangle> TriangleList;
+        typedef std::vector<Edge> EdgeList;
 
         /** A group of edges sharing the same vertex data. */
         struct EdgeGroup
         {
             /** The vertex set index that contains the vertices for this edge group. */
-            size_t vertexSet;
+            uint32 vertexSet;
             /** Pointer to vertex data used by this edge group. */
             const VertexData* vertexData;
             /** Index to main triangles array, indicate the first triangle of this edge
                 group, and all triangles of this edge group are stored continuous in
                 main triangles array.
             */
-            size_t triStart;
+            uint32 triStart;
             /** Number triangles of this edge group. */
-            size_t triCount;
+            uint32 triCount;
             /** The edges themselves. */
             EdgeList edges;
 
         };
 
-        typedef vector<EdgeGroup>::type EdgeGroupList;
+        typedef std::vector<EdgeGroup> EdgeGroupList;
 
         /** Main triangles array, stores all triangles of this edge list. Note that
             triangles are grouping against edge group.
@@ -135,7 +134,7 @@ namespace Ogre {
 
 
         /** Calculate the light facing state of the triangles in this edge list
-        @remarks
+
             This is normally the first stage of calculating a silhouette, i.e.
             establishing which tris are facing the light and which are facing
             away. This state is stored in the 'triangleLightFacings'.
@@ -151,7 +150,7 @@ namespace Ogre {
         */
         void updateFaceNormals(size_t vertexSet, const HardwareVertexBufferSharedPtr& positionBuffer);
 
-        EdgeData* clone();
+        EdgeData* clone() OGRE_NODISCARD;
 
 
         /// Debugging method
@@ -160,7 +159,7 @@ namespace Ogre {
     };
 
     /** General utility class for building edge lists for geometry.
-    @remarks
+
         You can add multiple sets of vertex and index data to build and edge list. 
         Edges will be built between the various sets as well as within sets; this allows 
         you to use a model which is built from multiple SubMeshes each using 
@@ -173,15 +172,14 @@ namespace Ogre {
     public:
 
         EdgeListBuilder();
-        virtual ~EdgeListBuilder();
         /** Add a set of vertex geometry data to the edge builder. 
-        @remarks
+
             You must add at least one set of vertex data to the builder before invoking the
             build method.
         */
         void addVertexData(const VertexData* vertexData);
         /** Add a set of index geometry data to the edge builder. 
-        @remarks
+
             You must add at least one set of index data to the builder before invoking the
             build method.
         @param indexData The index information which describes the triangles.
@@ -194,14 +192,14 @@ namespace Ogre {
             RenderOperation::OperationType opType = RenderOperation::OT_TRIANGLE_LIST);
 
         /** Builds the edge information based on the information built up so far.
-        @remarks
+
             The caller takes responsibility for deleting the returned structure.
         */
         EdgeData* build(void);
 
         /// Debugging method
         void log(Log* l);
-    protected:
+    private:
 
         /** A vertex can actually represent several vertices in the final model, because
         vertices along texture seams etc will have been duplicated. In order to properly
@@ -209,65 +207,57 @@ namespace Ogre {
         and the faces hold the detail of the duplicated vertices.
         */
         struct CommonVertex {
-            Vector3  position;  /// Location of point in euclidean space
-            size_t index;       /// Place of vertex in common vertex list
-            size_t vertexSet;   /// The vertex set this came from
-            size_t indexSet;    /// The index set this was referenced (first) from
-            size_t originalIndex; /// Place of vertex in original vertex set
+            Vector3f  position;  /// Location of point in euclidean space
+            uint32 index;       /// Place of vertex in common vertex list
+            uint32 vertexSet;   /// The vertex set this came from
+            uint32 indexSet;    /// The index set this was referenced (first) from
+            uint32 originalIndex; /// Place of vertex in original vertex set
         };
         /** A set of indexed geometry data */
         struct Geometry {
-            size_t vertexSet;           /// The vertex data set this geometry data refers to
-            size_t indexSet;            /// The index data set this geometry data refers to
+            uint32 vertexSet;           /// The vertex data set this geometry data refers to
+            uint32 indexSet;            /// The index data set this geometry data refers to
             const IndexData* indexData; /// The index information which describes the triangles.
             RenderOperation::OperationType opType;  /// The operation type used to render this geometry
         };
-        /** Comparator for sorting geometries by vertex set */
-        struct geometryLess {
-            bool operator()(const Geometry& a, const Geometry& b) const
-            {
-                if (a.vertexSet < b.vertexSet) return true;
-                if (a.vertexSet > b.vertexSet) return false;
-                return a.indexSet < b.indexSet;
-            }
-        };
+        friend struct geometryLess;
         /** Comparator for unique vertex list */
         struct vectorLess {
-            bool operator()(const Vector3& a, const Vector3& b) const
+            bool operator()(const Vector3f& a, const Vector3f& b) const
             {
-                if (a.x < b.x) return true;
-                if (a.x > b.x) return false;
-                if (a.y < b.y) return true;
-                if (a.y > b.y) return false;
-                return a.z < b.z;
+                if (a[0] < b[0]) return true;
+                if (a[0] > b[0]) return false;
+                if (a[1] < b[1]) return true;
+                if (a[1] > b[1]) return false;
+                return a[2] < b[2];
             }
         };
 
-        typedef vector<const VertexData*>::type VertexDataList;
-        typedef vector<Geometry>::type GeometryList;
-        typedef vector<CommonVertex>::type CommonVertexList;
+        typedef std::vector<const VertexData*> VertexDataList;
+        typedef std::vector<Geometry> GeometryList;
+        typedef std::vector<CommonVertex> CommonVertexList;
 
         GeometryList mGeometryList;
         VertexDataList mVertexDataList;
         CommonVertexList mVertices;
         EdgeData* mEdgeData;
         /// Map for identifying common vertices
-        typedef map<Vector3, size_t, vectorLess>::type CommonVertexMap;
+        typedef std::map<Vector3f, size_t, vectorLess> CommonVertexMap;
         CommonVertexMap mCommonVertexMap;
         /** Edge map, used to connect edges. Note we allow many triangles on an edge,
         after connected an existing edge, we will remove it and never used again.
         */
-        typedef multimap< std::pair<size_t, size_t>, std::pair<size_t, size_t> >::type EdgeMap;
+        typedef std::multimap< std::pair<uint32, uint32>, std::pair<uint32, uint32> > EdgeMap;
         EdgeMap mEdgeMap;
 
         void buildTrianglesEdges(const Geometry &geometry);
 
         /// Finds an existing common vertex, or inserts a new one
-        size_t findOrCreateCommonVertex(const Vector3& vec, size_t vertexSet, 
-            size_t indexSet, size_t originalIndex);
+        uint32 findOrCreateCommonVertex(const Vector3f& vec, uint32 vertexSet,
+            uint32 indexSet, uint32 originalIndex);
         /// Connect existing edge or create a new edge - utility method during building
-        void connectOrCreateEdge(size_t vertexSet, size_t triangleIndex, size_t vertIndex0, size_t vertIndex1, 
-            size_t sharedVertIndex0, size_t sharedVertIndex1);
+        void connectOrCreateEdge(uint32 vertexSet, uint32 triangleIndex, uint32 vertIndex0, uint32 vertIndex1,
+            uint32 sharedVertIndex0, uint32 sharedVertIndex1);
     };
     /** @} */
     /** @} */

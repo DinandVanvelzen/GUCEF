@@ -1,0 +1,7 @@
+<PROJECTGENERATOR>
+    <!-- Cg support of the OpenGL ES 2 render system is not built -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="OgreGLSLESCgProgram.h" TYPE="FILE" />
+        <ITEM NAME="OgreGLSLESCgProgramFactory.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

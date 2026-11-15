@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ PortalBase::PortalBase(const String& name, const PORTAL_TYPE type)
     mLocalsUpToDate(false),
     mDerivedUpToDate(false),
     // set prevWorldTransform to a zero'd out matrix
-    mPrevWorldTransform(Matrix4::ZERO),
+    mPrevWorldTransform(Affine3::ZERO),
     // default to enabled
     mEnabled(true),
     mWasMoved(true)
@@ -167,7 +167,6 @@ void PortalBase::setCorners(const Vector3* corners)
 void PortalBase::calcDirectionAndRadius(void) const
 {
     Vector3 radiusVector;
-    Vector3 side1, side2;
 
     // for AAB building.
     Vector3 min(Math::POS_INFINITY, Math::POS_INFINITY, Math::POS_INFINITY);
@@ -177,11 +176,7 @@ void PortalBase::calcDirectionAndRadius(void) const
     {
     default:
     case PORTAL_TYPE_QUAD:
-        // first calculate local direction
-        side1 = mCorners[1] - mCorners[0];
-        side2 = mCorners[2] - mCorners[0];
-        mDirection = side1.crossProduct(side2);
-        mDirection.normalise();
+        mDirection = Math::calculateBasicFaceNormal(mCorners[0], mCorners[1], mCorners[2]);
         // calculate local cp
         mLocalCP = Vector3::ZERO;
         for (int i=0;i<4;i++)
@@ -221,18 +216,17 @@ void PortalBase::calcDirectionAndRadius(void) const
         radiusVector = mCorners[1] - mLocalCP;
         mRadius = radiusVector.length();
 
-        min = mDerivedCP - mRadius;
-        max = mDerivedCP + mRadius;
+        min = mLocalCP - mRadius;
+        max = mLocalCP + mRadius;
         break;
     }
-    mDerivedSphere.setRadius(mRadius);
     mLocalPortalAAB.setExtents(min, max);
     // locals are now up to date
     mLocalsUpToDate = true;
 }
 
 // Calculate the local bounding sphere of the portal from the corner points
-Real PortalBase::getRadius( void ) const
+Real PortalBase::getBoundingRadius( void ) const
 {
     if (!mLocalsUpToDate)
     {
@@ -263,12 +257,14 @@ void PortalBase::updateDerivedValues(void) const
             mCurrentHomeZone->setPortalsUpdated(true);
         }
         // save world transform
-        Matrix4 transform = mParentNode->_getFullTransform();
-        Matrix3 rotation;
+        Affine3 transform = mParentNode->_getFullTransform();
         // save off the current DerivedCP
         mPrevDerivedCP = mDerivedCP;
         mDerivedCP = transform * mLocalCP;
         mDerivedSphere.setCenter(mDerivedCP);
+        mDerivedRadius = getBoundingRadiusScaled();
+        mDerivedSphere.setRadius(mDerivedRadius);
+
         switch(mType)
         {
         case PORTAL_TYPE_QUAD:
@@ -276,8 +272,7 @@ void PortalBase::updateDerivedValues(void) const
             {
                 mDerivedCorners[i] =  transform * mCorners[i];
             }
-            transform.extract3x3Matrix(rotation);
-            mDerivedDirection = rotation * mDirection;
+            mDerivedDirection = transform.linear() * mDirection;
             break;
         case PORTAL_TYPE_AABB:
             {
@@ -298,7 +293,7 @@ void PortalBase::updateDerivedValues(void) const
             }
             break;
         }
-        if (mPrevWorldTransform != Matrix4::ZERO)
+        if (mPrevWorldTransform != Affine3::ZERO)
         {
             // save previous calc'd plane
             mPrevDerivedPlane = mDerivedPlane;
@@ -321,18 +316,20 @@ void PortalBase::updateDerivedValues(void) const
             // this is first time, so there is no previous, so prev = current.
             mPrevDerivedPlane = mDerivedPlane;
             mPrevDerivedCP = mDerivedCP;
-            mPrevWorldTransform = Matrix4::IDENTITY;
+            mPrevWorldTransform = Affine3::IDENTITY;
             mPrevWorldTransform = transform;
         }
     }
     else // no associated node, so just use the local values as derived values
     {
-        if (mPrevWorldTransform != Matrix4::ZERO)
+        if (mPrevWorldTransform != Affine3::ZERO)
         {
             // save off the current DerivedCP
             mPrevDerivedCP = mDerivedCP;
             mDerivedCP = mLocalCP;
             mDerivedSphere.setCenter(mDerivedCP);
+            mDerivedRadius = mRadius;
+            mDerivedSphere.setRadius(mDerivedRadius);
             for (int i=0;i<numCorners;i++)
             {
                 mDerivedCorners[i] = mCorners[i];
@@ -355,6 +352,8 @@ void PortalBase::updateDerivedValues(void) const
             mDerivedCP = mLocalCP;
             mPrevDerivedCP = mDerivedCP;
             mDerivedSphere.setCenter(mDerivedCP);
+            mDerivedRadius = mRadius;
+            mDerivedSphere.setRadius(mDerivedRadius);
             for (int i=0;i<numCorners;i++)
             {
                 mDerivedCorners[i] = mCorners[i];
@@ -365,7 +364,7 @@ void PortalBase::updateDerivedValues(void) const
             // this is first time, so there is no previous, so prev = current.
             mPrevDerivedPlane = mDerivedPlane;
             // flag as initialized
-            mPrevWorldTransform = Matrix4::IDENTITY;
+            mPrevWorldTransform = Affine3::IDENTITY;
         }
     }
 
@@ -374,7 +373,7 @@ void PortalBase::updateDerivedValues(void) const
     mPortalAAB.merge(mPrevPortalAAB);
     mPrevPortalAAB = mWorldAABB;
 
-    mPortalCapsule.set(mPrevDerivedCP, mDerivedCP, mRadius);
+    mPortalCapsule.set(mPrevDerivedCP, mDerivedCP, mDerivedRadius);
     mDerivedUpToDate = true;
 }
 
@@ -665,9 +664,9 @@ PortalBase::PortalIntersectResult PortalBase::intersects(PCZSceneNode* pczsn)
                     // small enough to fit through the portal! (avoid the "elephant fitting 
                     // through a mouse hole" case)
                     Vector3 nodeHalfVector = pczsn->_getWorldAABB().getHalfSize();
-                    Vector3 portalBox = Vector3(mRadius, mRadius, mRadius);
+                    Vector3 portalBox = Vector3(mDerivedRadius, mDerivedRadius, mDerivedRadius);
                     portalBox.makeFloor(nodeHalfVector);
-                    if (portalBox.x < mRadius)
+                    if (portalBox.x < mDerivedRadius)
                     {
                         // crossing occurred!
                         return PortalBase::INTERSECT_CROSS;
@@ -747,12 +746,12 @@ PortalBase::PortalIntersectResult PortalBase::intersects(PCZSceneNode* pczsn)
             // the sphere surface (or vice versa) for crossing.  
             //Real previousDistance2 = mPrevDerivedCP.squaredDistance(pczsn->getPrevPosition());
             Real currentDistance2 = mDerivedCP.squaredDistance(pczsn->_getDerivedPosition());
-            Real mRadius2 = mRadius * mRadius;
+            Real mDerivedRadius2 = mDerivedRadius * mDerivedRadius;
             if (mDirection == Vector3::UNIT_Z)
             {
                 // portal norm is "outward" pointing, look for going from outside to inside 
-                //if (previousDistance2 >= mRadius2 &&
-                if (currentDistance2 < mRadius2)
+                //if (previousDistance2 >= mDerivedRadius2 &&
+                if (currentDistance2 < mDerivedRadius2)
                 {
                     return PortalBase::INTERSECT_CROSS;
                 }
@@ -760,14 +759,14 @@ PortalBase::PortalIntersectResult PortalBase::intersects(PCZSceneNode* pczsn)
             else
             {
                 // portal norm is "inward" pointing, look for going from inside to outside
-                //if (previousDistance2 < mRadius2 &&
-                if (currentDistance2 >= mRadius2)
+                //if (previousDistance2 < mDerivedRadius2 &&
+                if (currentDistance2 >= mDerivedRadius2)
                 {
                     return PortalBase::INTERSECT_CROSS;
                 }
             }
             // no crossing, but might be touching - check distance 
-            if (Math::Sqrt(Math::Abs(mRadius2 - currentDistance2)) <= mRadius)
+            if (Math::Sqrt(Math::Abs(mDerivedRadius2 - currentDistance2)) <= mDerivedRadius)
             {
                 return PortalBase::INTERSECT_NO_CROSS;
             }
@@ -842,12 +841,12 @@ bool PortalBase::crossedPortal(const PortalBase* otherPortal)
                     // the sphere surface (or vice versa) for crossing.  
                     //Real previousDistance2 = mPrevDerivedCP.squaredDistance(otherPortal->getPrevDerivedCP());
                     Real currentDistance2 = mDerivedCP.squaredDistance(otherPortal->getDerivedCP());
-                    Real mRadius2 = Math::Sqr(otherPortal->getRadius());
+                    Real mDerivedRadius2 = Math::Sqr(otherPortal->getDerivedRadius());
                     if (otherPortal->getDerivedDirection() == Vector3::UNIT_Z)
                     {
                         // portal norm is "outward" pointing, look for going from outside to inside 
-                        //if (previousDistance2 >= mRadius2 &&
-                        if (currentDistance2 < mRadius2)
+                        //if (previousDistance2 >= mDerivedRadius2 &&
+                        if (currentDistance2 < mDerivedRadius2)
                         {
                             return true;
                         }
@@ -855,8 +854,8 @@ bool PortalBase::crossedPortal(const PortalBase* otherPortal)
                     else
                     {
                         // portal norm is "inward" pointing, look for going from inside to outside
-                        //if (previousDistance2 < mRadius2 &&
-                        if (currentDistance2 >= mRadius2)
+                        //if (previousDistance2 < mDerivedRadius2 &&
+                        if (currentDistance2 >= mDerivedRadius2)
                         {
                             return true;
                         }
@@ -907,7 +906,7 @@ bool PortalBase::closeTo(const PortalBase* otherPortal)
     case PORTAL_TYPE_SPHERE:
         // NOTE: Spheres must match perfectly
         if (mDerivedCP == otherPortal->getDerivedCP() &&
-            mRadius == otherPortal->getRadius())
+            mDerivedRadius == otherPortal->getDerivedRadius())
         {
             close = true;
         }

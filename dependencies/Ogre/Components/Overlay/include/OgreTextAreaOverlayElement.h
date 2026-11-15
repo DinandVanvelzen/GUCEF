@@ -4,7 +4,7 @@ This source file is a part of OGRE
 
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -29,10 +29,11 @@ THE SOFTWARE
 
 #include "OgreOverlayElement.h"
 #include "OgreRenderOperation.h"
+#include "OgreFont.h"
 
 namespace Ogre
 {
-    /** \addtogroup Core
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Overlays
@@ -55,14 +56,14 @@ namespace Ogre
         TextAreaOverlayElement(const String& name);
         virtual ~TextAreaOverlayElement();
 
-        virtual void initialise(void);
+        void initialise(void) override;
 
-        /** @copydoc OverlayElement::_releaseManualHardwareResources. */
-        virtual void _releaseManualHardwareResources();
-        /** @copydoc OverlayElement::_restoreManualHardwareResources. */
-        virtual void _restoreManualHardwareResources();
+        /** @copydoc OverlayElement::_releaseManualHardwareResources */
+        void _releaseManualHardwareResources() override;
+        /** @copydoc OverlayElement::_restoreManualHardwareResources */
+        void _restoreManualHardwareResources() override;
 
-        virtual void setCaption(const DisplayString& text);
+        void setCaption(const DisplayString& text) override;
 
         void setCharHeight( Real height );
         Real getCharHeight() const;
@@ -70,30 +71,30 @@ namespace Ogre
         void setSpaceWidth( Real width );
         Real getSpaceWidth() const;
 
-        void setFontName( const String& font );
-        const String& getFontName() const;
+        void setFontName( const String& font, const String& group = DEFAULT_RESOURCE_GROUP );
+        /// @deprecated use getFont()
+        OGRE_DEPRECATED const String& getFontName() const;
 
-        /** See OverlayElement. */
-        virtual const String& getTypeName(void) const;
-        /** See Renderable. */
-        const MaterialPtr& getMaterial(void) const;
-        /** See Renderable. */
-        void getRenderOperation(RenderOperation& op);
-        /** Overridden from OverlayElement */
-        void setMaterialName(const String& matName);
+        const FontPtr& getFont() const {
+            return mFont;
+        }
+
+        const String& getTypeName(void) const override;
+        const MaterialPtr& getMaterial(void) const override;
+        void getRenderOperation(RenderOperation& op) override;
 
         /** Sets the colour of the text. 
-        @remarks
+
             This method establishes a constant colour for 
             the entire text. Also see setColourBottom and 
             setColourTop which allow you to set a colour gradient.
         */
-        void setColour(const ColourValue& col);
+        void setColour(const ColourValue& col) override;
 
         /** Gets the colour of the text. */
-        const ColourValue& getColour(void) const;
+        const ColourValue& getColour(void) const override;
         /** Sets the colour of the bottom of the letters.
-        @remarks
+
             By setting a separate top and bottom colour, you
             can create a text area which has a graduated colour
             effect to it.
@@ -102,7 +103,7 @@ namespace Ogre
         /** Gets the colour of the bottom of the letters. */
         const ColourValue& getColourBottom(void) const;
         /** Sets the colour of the top of the letters.
-        @remarks
+
             By setting a separate top and bottom colour, you
             can create a text area which has a graduated colour
             effect to it.
@@ -122,93 +123,11 @@ namespace Ogre
         }
 
         /** Overridden from OverlayElement */
-        void setMetricsMode(GuiMetricsMode gmm);
+        void setMetricsMode(GuiMetricsMode gmm) override;
 
         /** Overridden from OverlayElement */
-        void _update(void);
-
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the caption.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdCaption : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the char height.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdCharHeight : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the width of a space.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdSpaceWidth : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the caption.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdFontName : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the top colour.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdColourTop : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the bottom colour.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdColourBottom : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the constant colour.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdColour : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-        //-----------------------------------------------------------------------------------------
-        /** Command object for setting the alignment.
-                @see ParamCommand
-        */
-        class _OgrePrivate CmdAlignment : public ParamCommand
-        {
-        public:
-            String doGet( const void* target ) const;
-            void doSet( void* target, const String& val );
-        };
-
-    protected:
+        void _update(void) override;
+    private:
         /// The text alignment
         Alignment mAlignment;
 
@@ -219,24 +138,13 @@ namespace Ogre
         RenderOperation mRenderOp;
 
         /// Method for setting up base parameters for this class
-        void addBaseParameters(void);
+        void addBaseParameters(void) override;
 
         static String msTypeName;
-
-        // Command objects
-        static CmdCharHeight msCmdCharHeight;
-        static CmdSpaceWidth msCmdSpaceWidth;
-        static CmdFontName msCmdFontName;
-        static CmdColour msCmdColour;
-        static CmdColourTop msCmdColourTop;
-        static CmdColourBottom msCmdColourBottom;
-        static CmdAlignment msCmdAlignment;
-
 
         FontPtr mFont;
         Real mCharHeight;
         ushort mPixelCharHeight;
-        bool mSpaceWidthOverridden;
         Real mSpaceWidth;
         ushort mPixelSpaceWidth;
         size_t mAllocSize;
@@ -251,9 +159,9 @@ namespace Ogre
         /// Internal method to allocate memory, only reallocates when necessary
         void checkMemoryAllocation( size_t numChars );
         /// Inherited function
-        virtual void updatePositionGeometry();
+        void updatePositionGeometry() override;
         /// Inherited function
-        virtual void updateTextureGeometry();
+        void updateTextureGeometry() override;
         /// Updates vertex colours
         virtual void updateColours(void);
     };

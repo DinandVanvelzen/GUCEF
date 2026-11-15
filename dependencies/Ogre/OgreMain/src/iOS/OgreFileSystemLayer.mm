@@ -29,9 +29,20 @@
 #include "macUtils.h"
 #import <Foundation/NSPathUtilities.h>
 #import <Foundation/NSFileManager.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 namespace Ogre
 {
+    String FileSystemLayer::resolveBundlePath(String path)
+    {
+        if(!path.empty() && path[0] != '/')             // only adjust relative dirs
+            path = macBundlePath() + "/" + path;
+
+        return path;
+    }
+
 	void FileSystemLayer::getConfigPaths()
 	{
         mConfigPaths.push_back(Ogre::iOSDocumentsDirectory() + "/");
@@ -42,7 +53,7 @@ namespace Ogre
 	{
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 
-        mHomePath = Ogre::String([[paths objectAtIndex:0] cStringUsingEncoding:NSASCIIStringEncoding]) + "/";
+        mHomePath = Ogre::String([[paths objectAtIndex:0] cStringUsingEncoding:NSUTF8StringEncoding]) + "/";
 	}
     //---------------------------------------------------------------------
     bool FileSystemLayer::fileExists(const Ogre::String& path)
@@ -67,16 +78,16 @@ namespace Ogre
     //---------------------------------------------------------------------
     bool FileSystemLayer::removeDirectory(const Ogre::String& path)
     {
-        return false;
+        return !rmdir(path.c_str()) || errno == ENOENT;
     }
     //---------------------------------------------------------------------
     bool FileSystemLayer::removeFile(const Ogre::String& path)
     {
-        return false;
+        return !unlink(path.c_str()) || errno == ENOENT;
     }
     //---------------------------------------------------------------------
     bool FileSystemLayer::renameFile(const Ogre::String& oldname, const Ogre::String& newname)
     {
-        return false;
+        return !rename(oldname.c_str(), newname.c_str());
     }
 }

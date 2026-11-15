@@ -1,0 +1,194 @@
+#-------------------------------------------------------------------
+# This file is part of the CMake build system for OGRE
+#     (Object-oriented Graphics Rendering Engine)
+# For the latest info, see http://www.ogre3d.org/
+#
+# The contents of this file are placed in the public domain. Feel
+# free to make use of it in any way you like.
+#-------------------------------------------------------------------
+
+# Find OGRE includes and library
+#
+# This module defines
+#  OGRE_INCLUDE_DIRS - the OGRE include directories 
+#  OGRE_LIBRARIES - link these to use the OGRE
+#  OGRE_LIBRARY_DIRS, the location of the libraries
+#  OGRE_STATIC - whther ogre was build as static lib
+#  OGRE_${COMPONENT}_FOUND - ${COMPONENT} is available
+#  OGRE_${COMPONENT}_LIBRARIES - link these to only use ${COMPONENT} 
+#  OGRE_PLUGIN_DIR - The directory where the OGRE plugins are located
+#  OGRE_MEDIA_DIR - The directory where the OGRE sample media is located
+#  OGRE_CONFIG_DIR - The directory where the OGRE config files are located
+
+@PACKAGE_INIT@
+
+set(OGRE_STATIC @OGRE_STATIC@)
+set_and_check(OGRE_MEDIA_DIR "@PACKAGE_OGRE_MEDIA_PATH@")
+set_and_check(OGRE_PLUGIN_DIR "@PACKAGE_OGRE_PLUGINS_PATH@")
+set_and_check(OGRE_CONFIG_DIR "@PACKAGE_OGRE_CFG_INSTALL_PATH@")
+
+set(OGRE_PREFIX_DIR "@PACKAGE_CMAKE_INSTALL_PREFIX@")
+get_filename_component(OGRE_LIBRARY_DIRS "${OGRE_PREFIX_DIR}/lib" ABSOLUTE)
+get_filename_component(OGRE_INCLUDE_DIRS "${OGRE_PREFIX_DIR}/include/OGRE" ABSOLUTE)
+set(OGRE_LIBRARIES)
+
+cmake_policy(PUSH)
+cmake_policy(SET CMP0012 NEW)
+
+if(@OGRE_THREAD_PROVIDER@ EQUAL 1)
+    list(APPEND OGRE_INCLUDE_DIRS @Boost_INCLUDE_DIRS@)
+endif()
+
+list(APPEND OGRE_LIBRARIES @OGRE_THREAD_LIBRARIES@)
+
+set(OGRE_COMPONENTS)
+set(OGRE_PLUGINS)
+
+macro(ogre_declare_component COMPONENT)
+    set(OGRE_${COMPONENT}_FOUND TRUE)
+    set(OGRE_${COMPONENT}_LIBRARIES Ogre${COMPONENT}) # backwards compatibility
+    
+    list(APPEND OGRE_COMPONENTS ${COMPONENT})
+    list(APPEND OGRE_LIBRARIES Ogre${COMPONENT})
+endmacro()
+
+macro(ogre_declare_plugin TYPE COMPONENT)
+    set(OGRE_${TYPE}_${COMPONENT}_FOUND TRUE)
+    set(OGRE_${TYPE}_${COMPONENT}_LIBRARIES ${TYPE}_${COMPONENT})
+    
+    if(@OGRE_STATIC@)
+        list(APPEND OGRE_LIBRARIES ${TYPE}_${COMPONENT})
+    endif()
+    
+    list(APPEND OGRE_PLUGINS ${TYPE}_${COMPONENT})
+endmacro()
+
+## COMPONENTS
+include("${CMAKE_CURRENT_LIST_DIR}/OgreTargets.cmake")
+
+if(@OGRE_STATIC@)
+    # Static targets keep their private dependencies in the link interface as
+    # $<LINK_ONLY:...>, so the packages providing those imported targets have
+    # to be found before a consumer links them. This is quiet because only
+    # users of the respective target need them; those that do get a clear
+    # error about the missing target.
+    if(@OGRE_BUILD_PLUGIN_ASSIMP@)
+        # assimp >= 5.1, older versions do not provide assimp::assimp
+        find_package(assimp QUIET)
+    endif()
+    if(@OGRE_BUILD_PLUGIN_DOT_SCENE@)
+        find_package(pugixml QUIET)
+    endif()
+    if(@OGRE_BUILD_COMPONENT_BITES@ AND @SDL2_FOUND@)
+        find_package(SDL2 QUIET)
+    endif()
+    if(@OGRE_BUILD_COMPONENT_OVERLAY@ AND @ZLIB_FOUND@)
+        find_package(ZLIB QUIET)
+    endif()
+endif()
+
+if(@OGRE_BUILD_COMPONENT_BITES@)
+    ogre_declare_component(Bites)
+endif()
+if(@OGRE_BUILD_COMPONENT_BULLET@)
+    ogre_declare_component(Bullet)
+endif()
+if(@OGRE_BUILD_COMPONENT_MESHLODGENERATOR@)
+    ogre_declare_component(MeshLodGenerator)
+endif()
+if(@OGRE_BUILD_COMPONENT_OVERLAY@)
+    ogre_declare_component(Overlay)
+endif()
+if(@OGRE_BUILD_COMPONENT_PAGING@)
+    ogre_declare_component(Paging)
+endif()
+if(@OGRE_BUILD_COMPONENT_PROPERTY@)
+    ogre_declare_component(Property)
+endif()
+if(@OGRE_BUILD_COMPONENT_RTSHADERSYSTEM@)
+    ogre_declare_component(RTShaderSystem)
+endif()
+if(@OGRE_BUILD_COMPONENT_TERRAIN@)
+    ogre_declare_component(Terrain)
+endif()
+if(@OGRE_BUILD_COMPONENT_VOLUME@)
+    ogre_declare_component(Volume)
+endif()
+
+## PLUGINS
+if(@OGRE_BUILD_PLUGIN_BSP@)
+    ogre_declare_plugin(Plugin BSPSceneManager)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_CG@)
+    ogre_declare_plugin(Plugin CgProgramManager)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_OCTREE@)
+    ogre_declare_plugin(Plugin OctreeSceneManager)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_PCZ@)
+    ogre_declare_plugin(Plugin PCZSceneManager)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_PFX@)
+    ogre_declare_plugin(Plugin ParticleFX)
+endif()
+
+if(@OGRE_BUILD_RENDERSYSTEM_GL@)
+    ogre_declare_plugin(RenderSystem GL)
+endif()
+
+if(@OGRE_BUILD_RENDERSYSTEM_GLES2@)
+    ogre_declare_plugin(RenderSystem GLES2)
+endif()
+
+if(@OGRE_BUILD_RENDERSYSTEM_GL3PLUS@)
+    ogre_declare_plugin(RenderSystem GL3Plus)
+endif()
+
+if(@OGRE_BUILD_RENDERSYSTEM_D3D9@)
+    ogre_declare_plugin(RenderSystem Direct3D9)
+endif()
+
+if(@OGRE_BUILD_RENDERSYSTEM_D3D11@)
+    ogre_declare_plugin(RenderSystem Direct3D11)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_STBI@)
+    ogre_declare_plugin(Codec STBI)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_FREEIMAGE@)
+    ogre_declare_plugin(Codec FreeImage)
+endif()
+
+if(@OGRE_BUILD_PLUGIN_EXRCODEC@)
+    ogre_declare_plugin(Codec EXR)
+endif()
+cmake_policy(POP)
+
+if(@OGRE_STATIC@)
+    list(APPEND OGRE_LIBRARIES OgreGLSupport@OGRE_LIB_SUFFIX@ @CMAKE_DL_LIBS@) # glXXw uses dlopen
+    list(APPEND OGRE_LIBRARY_DIRS "${OGRE_LIBRARY_DIRS}/OGRE") # plugins folder
+endif()
+
+# must come last in case of static build
+list(APPEND OGRE_LIBRARIES OgreMain)
+
+foreach(_comp ${OGRE_FIND_COMPONENTS})
+  list (FIND OGRE_COMPONENTS ${_comp} _index)
+  if (_index EQUAL -1 AND OGRE_FIND_REQUIRED_${_comp})
+    set(OGRE_FOUND False)
+    set(OGRE_NOT_FOUND_MESSAGE "Component '${_comp}' is required but was not found")
+  endif()
+endforeach()
+
+if(NOT OGRE_FIND_QUIETLY)
+    message(STATUS "Found OGRE")
+    message(STATUS "  static     : ${OGRE_STATIC}")
+    message(STATUS "  components : ${OGRE_COMPONENTS}")
+    message(STATUS "  plugins    : ${OGRE_PLUGINS}")
+    message(STATUS "  media      : ${OGRE_MEDIA_DIR}")
+endif()

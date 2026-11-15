@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-
 #include "OgrePatchSurface.h"
-#include "OgreException.h"
 
 #define LEVEL_WIDTH(lvl) ((1 << (lvl+1)) + 1)
 
@@ -65,11 +63,11 @@ namespace Ogre {
         mVecCtlPoints.clear();
         const VertexElement* elem = declaration->findElementBySemantic(VES_POSITION);
         size_t vertSize = declaration->getVertexSize(0);
-        const unsigned char *pVert = static_cast<const unsigned char*>(controlPointBuffer);
+        uchar *pVert = static_cast<uchar*>(controlPointBuffer);
         float* pFloat;
         for (size_t i = 0; i < mCtlCount; ++i)
         {
-            elem->baseVertexPointerToElement(const_cast<unsigned char*>(pVert), &pFloat);
+            elem->baseVertexPointerToElement(pVert, &pFloat);
             mVecCtlPoints.push_back(Vector3(pFloat[0], pFloat[1], pFloat[2]));
             pVert += vertSize;
         }
@@ -110,24 +108,22 @@ namespace Ogre {
         mRequiredIndexCount = (mMeshWidth-1) * (mMeshHeight-1) * 2 * iterations * 3;
 
         // Calculate bounds based on control points
-        vector<Vector3>::type::const_iterator ctli;
         Vector3 min = Vector3::ZERO, max = Vector3::UNIT_SCALE;
         Real maxSqRadius = 0;
         bool first = true;
-        for (ctli = mVecCtlPoints.begin(); ctli != mVecCtlPoints.end(); ++ctli)
+        for (const auto& ctli : mVecCtlPoints)
         {
             if (first)
             {
-                min = max = *ctli;
-                maxSqRadius = ctli->squaredLength();
+                min = max = ctli;
+                maxSqRadius = ctli.squaredLength();
                 first = false;
             }
             else
             {
-                min.makeFloor(*ctli);
-                max.makeCeil(*ctli);
-                maxSqRadius = std::max(ctli->squaredLength(), maxSqRadius);
-
+                min.makeFloor(ctli);
+                max.makeCeil(ctli);
+                maxSqRadius = std::max(ctli.squaredLength(), maxSqRadius);
             }
         }
         mAABB.setExtents(min, max);
@@ -168,12 +164,12 @@ namespace Ogre {
         mIndexOffset = indexStart;
 
         // Lock just the region we are interested in 
-        void* lockedBuffer = mVertexBuffer->lock(
+        HardwareBufferLockGuard vertexLock(mVertexBuffer,
             mVertexOffset * mDeclaration->getVertexSize(0), 
             mRequiredVertexCount * mDeclaration->getVertexSize(0),
             HardwareBuffer::HBL_NO_OVERWRITE);
 
-        distributeControlPoints(lockedBuffer);
+        distributeControlPoints(vertexLock.pData);
 
         // Subdivide the curve to the MAX :)
         // Do u direction first, so need to step over v levels not done yet
@@ -184,17 +180,17 @@ namespace Ogre {
         for (v = 0; v < mMeshHeight; v += vStep)
         {
             // subdivide this row in u
-            subdivideCurve(lockedBuffer, v*mMeshWidth, uStep, mMeshWidth / uStep, mULevel);
+            subdivideCurve(vertexLock.pData, v*mMeshWidth, uStep, mMeshWidth / uStep, mULevel);
         }
 
         // Now subdivide in v direction, this time all the u direction points are there so no step
         for (u = 0; u < mMeshWidth; ++u)
         {
-            subdivideCurve(lockedBuffer, u, vStep*mMeshWidth, mMeshHeight / vStep, mVLevel);
+            subdivideCurve(vertexLock.pData, u, vStep*mMeshWidth, mMeshHeight / vStep, mVLevel);
         }
         
 
-        mVertexBuffer->unlock();
+        vertexLock.unlock();
 
         // Make triangles from mesh at this current level of detail
         makeTriangles();
@@ -355,7 +351,7 @@ namespace Ogre {
         Vector3 min, max;
         Real maxSquaredRadius;
         bool first = true;
-        vector<Vector3>::type::iterator i, iend;
+        std::vector<Vector3>::iterator i, iend;
         iend = mVecCtlPoints.end();
         for (i = mVecCtlPoints.begin(); i != iend; ++i)
         {
@@ -537,24 +533,12 @@ namespace Ogre {
 
         size_t v1, v2, v3;
         // Lock just the section of the buffer we need
-        unsigned short* p16 = 0;
-        unsigned int* p32 = 0;
-        if (use32bitindexes)
-        {
-            p32 = static_cast<unsigned int*>(
-                mIndexBuffer->lock(
-                    mIndexOffset * sizeof(uint32), 
-                    mRequiredIndexCount * sizeof(uint32), 
-                    HardwareBuffer::HBL_NO_OVERWRITE));
-        }
-        else
-        {
-            p16 = static_cast<unsigned short*>(
-                mIndexBuffer->lock(
-                    mIndexOffset * sizeof(unsigned short), 
-                    mRequiredIndexCount * sizeof(unsigned short), 
-                    HardwareBuffer::HBL_NO_OVERWRITE));
-        }
+        HardwareBufferLockGuard indexLock(mIndexBuffer,
+                                          mIndexOffset * (use32bitindexes ? 4 : 2),
+                                          mRequiredIndexCount * (use32bitindexes ? 4 : 2),
+                                          HardwareBuffer::HBL_NO_OVERWRITE);
+        unsigned short* p16 = static_cast<unsigned short*>(indexLock.pData);
+        unsigned int* p32 = static_cast<unsigned int*>(indexLock.pData);
 
         while (iterations--)
         {
@@ -620,10 +604,6 @@ namespace Ogre {
             vInc = -vInc;
 
         }
-
-        mIndexBuffer->unlock();
-
-
     }
     //-----------------------------------------------------------------------
     void PatchSurface::interpolateVertexData(void* lockedBuffer, size_t leftIdx, size_t rightIdx, size_t destIdx)

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,7 @@ namespace Ogre {
     */
     /** This class allows you to plug in new ways to define the camera setup when
         rendering and projecting shadow textures.
-    @remarks
+
         The default projection used when rendering shadow textures is a uniform
         frustum. This is pretty straight forward but doesn't make the best use of 
         the space in the shadow map since texels closer to the camera will be larger, 
@@ -77,21 +77,24 @@ namespace Ogre {
 
 
     /** Implements default shadow camera setup
-        @remarks
-            This implements the default shadow camera setup algorithm.  This is what might
-            be referred to as "normal" shadow mapping.  
+
+        This implements the default shadow camera setup algorithm.  This is what might
+        be referred to as "normal" shadow mapping.
     */
     class _OgreExport DefaultShadowCameraSetup : public ShadowCameraSetup
     {
     public:
-        /// Default constructor
         DefaultShadowCameraSetup();
-        /// Destructor
         virtual ~DefaultShadowCameraSetup();
 
+        static ShadowCameraSetupPtr create()
+        {
+            return std::make_shared<DefaultShadowCameraSetup>();
+        }
+
         /// Default shadow camera setup
-        virtual void getShadowCamera (const SceneManager *sm, const Camera *cam, 
-                                      const Viewport *vp, const Light *light, Camera *texCam, size_t iteration) const;
+        void getShadowCamera (const SceneManager *sm, const Camera *cam,
+                                      const Viewport *vp, const Light *light, Camera *texCam, size_t iteration) const override;
     };
 
     /** @} */

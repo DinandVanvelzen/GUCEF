@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,33 +34,34 @@ THE SOFTWARE.
 
 namespace Ogre {
 
-class _OgreGLExport GLGpuProgramManager : public GpuProgramManager
+typedef GpuProgram* (*CreateGpuProgramCallback)(ResourceManager* creator,
+    const String& name, ResourceHandle handle,
+    const String& group, bool isManual, ManualResourceLoader* loader,
+    GpuProgramType gptype, const String& syntaxCode);
+
+struct CreateCallbackWrapper : public GpuProgramFactory
 {
+    String language;
+    CreateGpuProgramCallback callback;
+    const String& getLanguage(void) const override { return language; };
+    GpuProgram* create(ResourceManager* creator, const String& name, ResourceHandle handle,
+                       const String& group, bool isManual, ManualResourceLoader* loader) override
+    {
+        // type and syntax code will be corrected by GpuProgramManager
+        return callback(creator, name, handle, group, isManual, loader, GPT_VERTEX_PROGRAM, "");
+    }
+    CreateCallbackWrapper(const String& lang, CreateGpuProgramCallback cb) : language(lang), callback(cb) {}
+};
+
+class GLGpuProgramManager
+{
+    std::list<CreateCallbackWrapper> mFactories;
 public:
-    typedef GpuProgram* (*CreateGpuProgramCallback)(ResourceManager* creator, 
-        const String& name, ResourceHandle handle, 
-        const String& group, bool isManual, ManualResourceLoader* loader,
-        GpuProgramType gptype, const String& syntaxCode);
-
-private:
-    typedef map<String, CreateGpuProgramCallback>::type ProgramMap;
-    ProgramMap mProgramMap;
-
-protected:
-    /// @copydoc ResourceManager::createImpl
-    Resource* createImpl(const String& name, ResourceHandle handle, 
-        const String& group, bool isManual, ManualResourceLoader* loader,
-        const NameValuePairList* createParams);
-    /// Specialised create method with specific parameters
-    Resource* createImpl(const String& name, ResourceHandle handle, 
-        const String& group, bool isManual, ManualResourceLoader* loader,
-        GpuProgramType gptype, const String& syntaxCode);
-
-public:
-    GLGpuProgramManager();
-    ~GLGpuProgramManager();
-    bool registerProgramFactory(const String& syntaxCode, CreateGpuProgramCallback createFn);
-    bool unregisterProgramFactory(const String& syntaxCode);
+    void registerProgramFactory(const String& syntaxCode, CreateGpuProgramCallback createFn)
+    {
+        mFactories.emplace_back(syntaxCode, createFn);
+        GpuProgramManager::getSingleton().addFactory(&mFactories.back());
+    }
 };
 
 } //namespace Ogre

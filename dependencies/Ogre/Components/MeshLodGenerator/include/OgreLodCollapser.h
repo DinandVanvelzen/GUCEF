@@ -5,7 +5,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,10 +32,16 @@
 
 #include "OgreLodPrerequisites.h"
 #include "OgreLodData.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
-
+/** \addtogroup Optional
+*  @{
+*/
+/** \addtogroup MeshLodGenerator
+*  @{
+*/
 class _OgreLodExport LodCollapser
 {
 public:
@@ -71,7 +77,7 @@ protected:
         unsigned short submeshID;
     };
     
-    typedef vector<CollapsedEdge>::type CollapsedEdges;
+    typedef std::vector<CollapsedEdge> CollapsedEdges;
 
     /// tmp variable, to overcome allocation on every collapse.
     CollapsedEdges tmpCollapsedEdges;
@@ -84,13 +90,19 @@ protected:
     void assertOutdatedCollapseCost(LodData* data, LodCollapseCost* cost, LodData::Vertex* vertex);
     void assertValidMesh(LodData* data);
     void assertValidVertex(LodData* data, LodData::Vertex* v);
-    bool hasSrcID(unsigned int srcID, unsigned short submeshID);
+    bool hasSrcID(unsigned int srcID, size_t submeshID);
     void removeTriangleFromEdges(LodData::Triangle* triangle, LodData::Vertex* skip);
-    size_t findDstID(unsigned int srcID, unsigned short submeshID);
+    void removeLine(LodData::Line* triangle, LodData::Vertex* skip);
+    size_t findDstID(unsigned int srcID, size_t submeshID);
     void replaceVertexID(LodData::Triangle* triangle, unsigned int oldID, unsigned int newID, LodData::Vertex* dst);
+    void replaceVertexID(LodData::Line* line, unsigned int oldID, unsigned int newID, LodData::Vertex* dst);
 };
-
+/** @} */
+/** @} */
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif
 
 

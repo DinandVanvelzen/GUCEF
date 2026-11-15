@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,12 +41,12 @@ namespace Ogre {
     *  @{
     */
     /** Patch specialisation of Mesh. 
-    @remarks
+
         Instances of this class should be created by calling MeshManager::createBezierPatch.
     */
     class _OgreExport PatchMesh : public Mesh
     {
-    protected:
+    private:
         /// Internal surface definition
         PatchSurface mSurface;
         /// Vertex declaration, cloned from the input
@@ -65,19 +65,18 @@ namespace Ogre {
             size_t uMaxSubdivisionLevel = PatchSurface::AUTO_LEVEL, 
             size_t vMaxSubdivisionLevel = PatchSurface::AUTO_LEVEL,
             PatchSurface::VisibleSide visibleSide = PatchSurface::VS_FRONT,
-            HardwareBuffer::Usage vbUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage ibUsage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY,
+            HardwareBuffer::Usage vbUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage ibUsage = HBU_CPU_TO_GPU,
             bool vbUseShadow = false, bool ibUseShadow = false);
 
         /* Sets the current subdivision level as a proportion of full detail.
         @param factor Subdivision factor as a value from 0 (control points only) to 1 (maximum
             subdivision). */
         void setSubdivision(Real factor);
-    protected:
-        /// Overridden from Resource
-        void loadImpl(void);
+    private:
+        void loadImpl(void) override;
         /// Overridden from Resource - do nothing (no disk caching)
-        void prepareImpl(void) {}
+        void prepareImpl(void) override {}
 
     };
     /** @} */

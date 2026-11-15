@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -97,13 +97,13 @@ namespace Volume {
         Real error = (Real)0.0;
         Vector4 value;
         Vector3 gradient;
-        for (size_t i = 0; i < 19; ++i)
+        for (auto & position : positions)
         {
-            value = mSrc->getValueAndGradient(positions[i][0]);
+            value = mSrc->getValueAndGradient(position[0]);
             gradient.x = value.x;
             gradient.y = value.y;
             gradient.z = value.z;
-            Real interpolated = interpolate(f000, f001, f010, f011, f100, f101, f110, f111, positions[i][1]);
+            Real interpolated = interpolate(f000, f001, f010, f011, f100, f101, f110, f111, position[1]);
             Real gradientMagnitude = gradient.length();
             if (gradientMagnitude < FLT_EPSILON)
             {

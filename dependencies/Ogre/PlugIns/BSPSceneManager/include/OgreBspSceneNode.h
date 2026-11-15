@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,14 @@ THE SOFTWARE.
 #include "OgreSceneNode.h"
 
 namespace Ogre {
-
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup BSPSceneManager
+    *  @{
+    */
     /** Specialisation of SceneNode for the BspSceneManager.
-    @remarks
+
         This specialisation of SceneNode is to enable information about the
         leaf node in which any attached objects are held is stored for
         use in the visibility determination. 
@@ -49,31 +54,31 @@ namespace Ogre {
     class BspSceneNode : public SceneNode
     {
     protected:
-        /// Overridden from SceneNode
-        void setInSceneGraph(bool inGraph);     
+        void setInSceneGraph(bool inGraph) override;
     public:
         BspSceneNode(SceneManager* creator) : SceneNode(creator) {}
         BspSceneNode(SceneManager* creator, const String& name) 
             : SceneNode(creator, name) {}
         /// Overridden from Node
-        void _update(bool updateChildren, bool parentHasChanged);
+        void _update(bool updateChildren, bool parentHasChanged) override;
         /** Detaches the indexed object from this scene node.
-        @remarks
+
             Detaches by index, see the alternate version to detach by name. Object indexes
             may change as other objects are added / removed.
         */
-        MovableObject* detachObject(unsigned short index);
+        MovableObject* detachObject(unsigned short index) override;
 
         /** Detaches the named object from this node and returns a pointer to it. */
-        MovableObject* detachObject(const String& name);
+        MovableObject* detachObject(const String& name) override;
 
         /** Detaches all objects attached to this node.
         */
-        void detachAllObjects(void);
+        void detachAllObjects(void) override;
 
 
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

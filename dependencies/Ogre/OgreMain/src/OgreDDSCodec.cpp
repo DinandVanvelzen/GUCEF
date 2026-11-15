@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,18 +28,14 @@ THE SOFTWARE.
 
 #include "OgreStableHeaders.h"
 
-#include "OgreRoot.h"
-#include "OgreRenderSystem.h"
 #include "OgreDDSCodec.h"
 #include "OgreImage.h"
-#include "OgreException.h"
-#include "OgreLogManager.h"
-#include "OgreBitwise.h"
+#include "OgreRoot.h"
+
+#include <climits>
 
 namespace Ogre {
     // Internal DDS structure definitions
-#define FOURCC(c0, c1, c2, c3) (c0 | (c1 << 8) | (c2 << 16) | (c3 << 24))
-    
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC
 #pragma pack (push, 1)
 #else
@@ -126,6 +122,7 @@ namespace Ogre {
 #pragma pack ()
 #endif
 
+namespace {
     const uint32 DDS_MAGIC = FOURCC('D', 'D', 'S', ' ');
     const uint32 DDS_PIXELFORMAT_SIZE = 8 * sizeof(uint32);
     const uint32 DDS_CAPS_SIZE = 4 * sizeof(uint32);
@@ -163,7 +160,7 @@ namespace Ogre {
     const uint32 D3DFMT_R32F            = 114;
     const uint32 D3DFMT_G32R32F         = 115;
     const uint32 D3DFMT_A32B32G32R32F   = 116;
-
+}
 
     //---------------------------------------------------------------------
     DDSCodec* DDSCodec::msInstance = 0;
@@ -195,58 +192,47 @@ namespace Ogre {
     }
     //---------------------------------------------------------------------
     DDSCodec::DDSCodec():
-        mType("dds")
+        mType("dds"),
+        mDecodeEnforce(false)
     { 
     }
     //---------------------------------------------------------------------
-    DataStreamPtr DDSCodec::encode(MemoryDataStreamPtr& input, Codec::CodecDataPtr& pData) const
-    {        
-        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-            "DDS encoding not supported",
-            "DDSCodec::encode" ) ;
-    }
-    //---------------------------------------------------------------------
-    void DDSCodec::encodeToFile(MemoryDataStreamPtr& input,
-        const String& outFileName, Codec::CodecDataPtr& pData) const
+    DataStreamPtr DDSCodec::encode(const Any& input) const
     {
-        // Unwrap codecDataPtr - data is cleaned by calling function
-        ImageData* imgData = static_cast<ImageData* >(pData.getPointer());  
+        Image* image = any_cast<Image*>(input);
 
-
-        // Check size for cube map faces
-        bool isCubeMap = (imgData->size == 
-            Image::calculateSize(imgData->num_mipmaps, 6, imgData->width, 
-            imgData->height, imgData->depth, imgData->format));
+        bool isCubeMap = image->hasFlag(IF_CUBEMAP);
 
         // Establish texture attributes
-        bool isVolume = (imgData->depth > 1);       
-        bool isFloat32r = (imgData->format == PF_FLOAT32_R);
-        bool isFloat16 = (imgData->format == PF_FLOAT16_RGBA);
-        bool isFloat32 = (imgData->format == PF_FLOAT32_RGBA);
+        bool isVolume = (image->getDepth() > 1);
+        bool isFloat32r = (image->getFormat() == PF_FLOAT32_R);
+        bool isFloat16 = (image->getFormat() == PF_FLOAT16_RGBA);
+        bool isFloat16r = (image->getFormat() == PF_FLOAT16_R);
+        bool isFloat32 = (image->getFormat() == PF_FLOAT32_RGBA);
         bool notImplemented = false;
         String notImplementedString = "";
 
         // Check for all the 'not implemented' conditions
-        if ((isVolume == true)&&(imgData->width != imgData->height))
+        if ((isVolume == true)&&(image->getWidth() != image->getHeight()))
         {
             // Square textures only
             notImplemented = true;
-            notImplementedString += " non square textures";
+            notImplementedString += "non square textures";
         }
 
         uint32 size = 1;
-        while (size < imgData->width)
+        while (size < image->getWidth())
         {
             size <<= 1;
         }
-        if (size != imgData->width)
+        if (size != image->getWidth())
         {
             // Power two textures only
             notImplemented = true;
-            notImplementedString += " non power two textures";
+            notImplementedString += "non power two textures";
         }
 
-        switch(imgData->format)
+        switch(image->getFormat())
         {
         case PF_A8R8G8B8:
         case PF_X8R8G8B8:
@@ -255,13 +241,14 @@ namespace Ogre {
         case PF_X8B8G8R8:
         case PF_B8G8R8:
         case PF_FLOAT32_R:
+        case PF_FLOAT16_R:
         case PF_FLOAT16_RGBA:
         case PF_FLOAT32_RGBA:
             break;
         default:
             // No crazy FOURCC or 565 et al. file formats at this stage
             notImplemented = true;
-            notImplementedString = " unsupported pixel format";
+            notImplementedString = PixelUtil::getFormatName(image->getFormat());
             break;
         }       
 
@@ -271,8 +258,7 @@ namespace Ogre {
         if (notImplemented)
         {
             OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-                "DDS encoding for" + notImplementedString + " not supported",
-                "DDSCodec::encodeToFile" ) ;
+                        "DDS encoding for " + notImplementedString + " not supported");
         }
         else
         {
@@ -294,16 +280,18 @@ namespace Ogre {
             bool flipRgbMasks = false;
 
             // Initalise the rgbBits flags
-            switch(imgData->format)
+            switch(image->getFormat())
             {
             case PF_A8B8G8R8:
                 flipRgbMasks = true;
+                OGRE_FALLTHROUGH;
             case PF_A8R8G8B8:
                 ddsHeaderRgbBits = 8 * 4;
                 hasAlpha = true;
                 break;
             case PF_X8B8G8R8:
                 flipRgbMasks = true;
+                OGRE_FALLTHROUGH;
             case PF_X8R8G8B8:
                 ddsHeaderRgbBits = 8 * 4;
                 break;
@@ -313,6 +301,9 @@ namespace Ogre {
                 break;
             case PF_FLOAT32_R:
                 ddsHeaderRgbBits = 32;
+                break;
+            case PF_FLOAT16_R:
+                ddsHeaderRgbBits = 16;
                 break;
             case PF_FLOAT16_RGBA:
                 ddsHeaderRgbBits = 16 * 4;
@@ -328,7 +319,7 @@ namespace Ogre {
             }
 
             // Initalise the SizeOrPitch flags (power two textures for now)
-            ddsHeaderSizeOrPitch = static_cast<uint32>(ddsHeaderRgbBits * imgData->width);
+            ddsHeaderSizeOrPitch = static_cast<uint32>(ddsHeaderRgbBits * image->getWidth());
 
             // Initalise the caps flags
             ddsHeaderCaps1 = (isVolume||isCubeMap) ? DDSCAPS_COMPLEX|DDSCAPS_TEXTURE : DDSCAPS_TEXTURE;
@@ -344,30 +335,33 @@ namespace Ogre {
                     DDSCAPS2_CUBEMAP_POSITIVEZ|DDSCAPS2_CUBEMAP_NEGATIVEZ;
             }
 
-            if( imgData->num_mipmaps > 0 )
+            if( image->getNumMipmaps() > 0 )
                 ddsHeaderCaps1 |= DDSCAPS_MIPMAP;
 
             // Populate the DDS header information
             DDSHeader ddsHeader;
             ddsHeader.size = DDS_HEADER_SIZE;
             ddsHeader.flags = ddsHeaderFlags;       
-            ddsHeader.width = (uint32)imgData->width;
-            ddsHeader.height = (uint32)imgData->height;
-            ddsHeader.depth = (uint32)(isVolume ? imgData->depth : 0);
+            ddsHeader.width = image->getWidth();
+            ddsHeader.height = image->getHeight();
+            ddsHeader.depth = (uint32)(isVolume ? image->getDepth() : 0);
             ddsHeader.depth = (uint32)(isCubeMap ? 6 : ddsHeader.depth);
-            ddsHeader.mipMapCount = imgData->num_mipmaps + 1;
+            ddsHeader.mipMapCount = image->getNumMipmaps() + 1;
             ddsHeader.sizeOrPitch = ddsHeaderSizeOrPitch;
-            for (uint32 reserved1=0; reserved1<11; reserved1++) // XXX nasty constant 11
+            for (unsigned int & reserved1 : ddsHeader.reserved1) // XXX nasty constant 11
             {
-                ddsHeader.reserved1[reserved1] = 0;
+                reserved1 = 0;
             }
             ddsHeader.reserved2 = 0;
 
             ddsHeader.pixelFormat.size = DDS_PIXELFORMAT_SIZE;
             ddsHeader.pixelFormat.flags = (hasAlpha) ? DDPF_RGB|DDPF_ALPHAPIXELS : DDPF_RGB;
-            ddsHeader.pixelFormat.flags = (isFloat32r || isFloat16 || isFloat32) ? DDPF_FOURCC : ddsHeader.pixelFormat.flags;
+            ddsHeader.pixelFormat.flags = (isFloat32r || isFloat16r || isFloat16 || isFloat32) ? DDPF_FOURCC : ddsHeader.pixelFormat.flags;
             if (isFloat32r) {
                 ddsHeader.pixelFormat.fourCC = D3DFMT_R32F;
+            }
+            else if (isFloat16r) {
+                ddsHeader.pixelFormat.fourCC = D3DFMT_R16F;
             }
             else if (isFloat16) {
                 ddsHeader.pixelFormat.fourCC = D3DFMT_A16B16G16R16F;
@@ -381,10 +375,10 @@ namespace Ogre {
             ddsHeader.pixelFormat.rgbBits = ddsHeaderRgbBits;
 
             ddsHeader.pixelFormat.alphaMask = (hasAlpha)   ? 0xFF000000 : 0x00000000;
-            ddsHeader.pixelFormat.alphaMask = (isFloat32r) ? 0x00000000 : ddsHeader.pixelFormat.alphaMask;
-            ddsHeader.pixelFormat.redMask   = (isFloat32r) ? 0xFFFFFFFF :0x00FF0000;
-            ddsHeader.pixelFormat.greenMask = (isFloat32r) ? 0x00000000 :0x0000FF00;
-            ddsHeader.pixelFormat.blueMask  = (isFloat32r) ? 0x00000000 :0x000000FF;
+            ddsHeader.pixelFormat.alphaMask = (isFloat32r || isFloat16r) ? 0x00000000 : ddsHeader.pixelFormat.alphaMask;
+            ddsHeader.pixelFormat.redMask   = (isFloat32r || isFloat16r) ? 0xFFFFFFFF :0x00FF0000;
+            ddsHeader.pixelFormat.greenMask = (isFloat32r || isFloat16r) ? 0x00000000 :0x0000FF00;
+            ddsHeader.pixelFormat.blueMask  = (isFloat32r || isFloat16r) ? 0x00000000 :0x000000FF;
 
             if( flipRgbMasks )
                 std::swap( ddsHeader.pixelFormat.redMask, ddsHeader.pixelFormat.blueMask );
@@ -399,40 +393,141 @@ namespace Ogre {
             flipEndian(&ddsHeader, 4, sizeof(DDSHeader) / 4);
 
             char *tmpData = 0;
-            char const *dataPtr = (char const *)input->getPtr();
+            char *dataPtr = (char*)image->getData();
 
-            if( imgData->format == PF_B8G8R8 )
+            if( image->getFormat() == PF_B8G8R8 )
             {
-                PixelBox src( imgData->size / 3, 1, 1, PF_B8G8R8, input->getPtr() );
-                tmpData = new char[imgData->size];
-                PixelBox dst( imgData->size / 3, 1, 1, PF_R8G8B8, tmpData );
+                PixelBox src( image->getSize() / 3, 1, 1, PF_B8G8R8, image->getData() );
+                tmpData = new char[image->getSize()];
+                PixelBox dst( image->getSize() / 3, 1, 1, PF_R8G8B8, tmpData );
 
                 PixelUtil::bulkPixelConversion( src, dst );
 
                 dataPtr = tmpData;
             }
 
-            try
-            {
-                // Write the file
-                std::ofstream of;
-                of.open(outFileName.c_str(), std::ios_base::binary|std::ios_base::out);
-                of.write((const char *)&ddsMagic, sizeof(uint32));
-                of.write((const char *)&ddsHeader, DDS_HEADER_SIZE);
-                // XXX flipEndian on each pixel chunk written unless isFloat32r ?
-                of.write(dataPtr, (uint32)imgData->size);
-                of.close();
+            size_t totalSize = sizeof(uint32) + DDS_HEADER_SIZE + image->getSize();
+            auto pMemStream = OGRE_NEW Ogre::MemoryDataStream(totalSize);
+
+            pMemStream->write(&ddsMagic, sizeof(uint32));
+            pMemStream->write(&ddsHeader, DDS_HEADER_SIZE);
+            pMemStream->write(dataPtr, image->getSize());
+            pMemStream->seek(0);
+
+            delete [] tmpData;
+
+            return Ogre::DataStreamPtr(pMemStream);
+        }
+    }
+    //---------------------------------------------------------------------
+    void DDSCodec::encodeToFile(const Any& input, const String& outFileName) const
+    {
+        DataStreamPtr strm = encode(input);
+
+        try
+        {
+            // Write the file
+            DataStreamPtr of = Root::createFileStream(outFileName, "", true);
+
+            const size_t buffSize = 4096;
+            char buffer[buffSize];
+
+            while (!strm->eof()) {
+                size_t bytesRead = strm->read(buffer, buffSize);
+                of->write(buffer, bytesRead);
             }
-            catch(...)
-            {
-                delete [] tmpData;
-            }
+
+            of->close();
+        }
+        catch(...)
+        {
         }
     }
     //---------------------------------------------------------------------
     PixelFormat DDSCodec::convertDXToOgreFormat(uint32 dxfmt) const
     {
         switch (dxfmt) {
+			case 2: // DXGI_FORMAT_R32G32B32A32_FLOAT
+				return PF_FLOAT32_RGBA;
+			case 3: // DXGI_FORMAT_R32G32B32A32_UINT
+				return PF_R32G32B32A32_UINT;
+			case 4: //DXGI_FORMAT_R32G32B32A32_SINT
+				return PF_R32G32B32A32_SINT;
+			case 6: // DXGI_FORMAT_R32G32B32_FLOAT
+				return PF_FLOAT32_RGB;
+			case 7: // DXGI_FORMAT_R32G32B32_UINT
+				return PF_R32G32B32_UINT;
+			case 8: // DXGI_FORMAT_R32G32B32_SINT
+				return PF_R32G32B32_SINT;
+			case 10: // DXGI_FORMAT_R16G16B16A16_FLOAT
+				return PF_FLOAT16_RGBA;
+			case 12: // DXGI_FORMAT_R16G16B16A16_UINT
+				return PF_R16G16B16A16_UINT;
+			case 13: // DXGI_FORMAT_R16G16B16A16_SNORM
+				return PF_R16G16B16A16_SNORM;
+			case 14: // DXGI_FORMAT_R16G16B16A16_SINT
+				return PF_R16G16B16A16_SINT;
+			case 16: // DXGI_FORMAT_R32G32_FLOAT
+				return PF_FLOAT32_GR;
+			case 17: // DXGI_FORMAT_R32G32_UINT
+				return PF_R32G32_UINT;
+			case 18: // DXGI_FORMAT_R32G32_SINT
+				return PF_R32G32_SINT;
+			case 24: // DXGI_FORMAT_R10G10B10A2_UNORM
+			case 25: // DXGI_FORMAT_R10G10B10A2_UINT
+				return PF_A2B10G10R10;
+			case 26: // DXGI_FORMAT_R11G11B10_FLOAT
+				return PF_R11G11B10_FLOAT;
+			case 28: // DXGI_FORMAT_R8G8B8A8_UNORM
+			case 29: // DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+				return PF_A8B8G8R8;
+			case 30: // DXGI_FORMAT_R8G8B8A8_UINT
+				return PF_R8G8B8A8_UINT;
+			case 31: // DXGI_FORMAT_R8G8B8A8_SNORM
+				return PF_R8G8B8A8_SNORM;
+			case 32: // DXGI_FORMAT_R8G8B8A8_SINT
+				return PF_R8G8B8A8_SINT;
+			case 34: // DXGI_FORMAT_R16G16_FLOAT
+				return PF_FLOAT16_GR;
+			case 35: // DXGI_FORMAT_R16G16_UNORM
+				return PF_SHORT_GR;
+			case 36: // DXGI_FORMAT_R16G16_UINT
+				return PF_R16G16_UINT;
+			case 37: // DXGI_FORMAT_R16G16_SNORM
+				return PF_R16G16_SNORM;
+			case 38: // DXGI_FORMAT_R16G16_SINT
+				return PF_R16G16_SINT;
+			case 41: // DXGI_FORMAT_R32_FLOAT
+				return PF_FLOAT32_R;
+			case 42: // DXGI_FORMAT_R32_UINT
+				return PF_R32_UINT;
+			case 43: // DXGI_FORMAT_R32_SINT
+				return PF_R32_SINT;
+			case 49: // DXGI_FORMAT_R8G8_UNORM
+			case 50: // DXGI_FORMAT_R8G8_UINT
+				return PF_R8G8_UINT;
+			case 52: // DXGI_FORMAT_R8G8_SINT
+				return PF_R8G8_SINT;
+			case 54: // DXGI_FORMAT_R16_FLOAT
+				return PF_FLOAT16_R;
+			case 56: // DXGI_FORMAT_R16_UNORM
+				return PF_L16;
+			case 57: // DXGI_FORMAT_R16_UINT
+				return PF_R16_UINT;
+			case 58: // DXGI_FORMAT_R16_SNORM
+				return PF_R16_SNORM;
+			case 59: // DXGI_FORMAT_R16_SINT
+				return PF_R16_SINT;
+			case 61: // DXGI_FORMAT_R8_UNORM
+				return PF_R8;
+			case 62: // DXGI_FORMAT_R8_UINT
+				return PF_R8_UINT;
+			case 63: // DXGI_FORMAT_R8_SNORM
+				return PF_R8_SNORM;
+			case 64: // DXGI_FORMAT_R8_SINT
+				return PF_R8_SINT;
+			case 65: // DXGI_FORMAT_A8_UNORM
+				return PF_A8;
             case 80: // DXGI_FORMAT_BC4_UNORM
                 return PF_BC4_UNORM;
             case 81: // DXGI_FORMAT_BC4_SNORM
@@ -441,14 +536,27 @@ namespace Ogre {
                 return PF_BC5_UNORM;
             case 84: // DXGI_FORMAT_BC5_SNORM
                 return PF_BC5_SNORM;
+			case 85: // DXGI_FORMAT_B5G6R5_UNORM
+				return PF_R5G6B5;
+			case 86: // DXGI_FORMAT_B5G5R5A1_UNORM
+				return PF_A1R5G5B5;
+			case 87: // DXGI_FORMAT_B8G8R8A8_UNORM
+				return PF_A8R8G8B8;
+			case 88: // DXGI_FORMAT_B8G8R8X8_UNORM
+				return PF_X8R8G8B8;
             case 95: // DXGI_FORMAT_BC6H_UF16
                 return PF_BC6H_UF16;
             case 96: // DXGI_FORMAT_BC6H_SF16
                 return PF_BC6H_SF16;
             case 98: // DXGI_FORMAT_BC7_UNORM
-                return PF_BC7_UNORM;
             case 99: // DXGI_FORMAT_BC7_UNORM_SRGB
-                return PF_BC7_UNORM_SRGB;
+                return PF_BC7_UNORM;
+            case 20: // DXGI_FORMAT_D32_FLOAT_S8X24_UINT
+            case 22: // DXGI_FORMAT_X32_TYPELESS_G8X24_UINT
+            case 40: // DXGI_FORMAT_D32_FLOAT
+            case 45: // DXGI_FORMAT_D24_UNORM_S8_UINT
+            case 47: // DXGI_FORMAT_X24_TYPELESS_G8_UINT
+            case 55: // DXGI_FORMAT_D16_UNORM
             default:
                 OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND,
                             "Unsupported DirectX format found in DDS file",
@@ -591,12 +699,12 @@ namespace Ogre {
         // Note - we assume all values have already been endian swapped
         
         // This is an explicit alpha block, 4 bits per pixel, LSB first
-        for (size_t row = 0; row < 4; ++row)
+        for (unsigned short row : block.alphaRow)
         {
             for (size_t x = 0; x < 4; ++x)
             {
                 // Shift and mask off to 4 bits
-                uint8 val = static_cast<uint8>(block.alphaRow[row] >> (x * 4) & 0xF);
+                uint8 val = static_cast<uint8>(row >> (x * 4) & 0xF);
                 // Convert to [0,1]
                 pCol->a = (Real)val / (Real)0xF;
                 pCol++;
@@ -651,8 +759,9 @@ namespace Ogre {
             pCol[i].a = derivedAlphas[dw & 0x7];
     }
     //---------------------------------------------------------------------
-    Codec::DecodeResult DDSCodec::decode(DataStreamPtr& stream) const
+    void DDSCodec::decode(const DataStreamPtr& stream, const Any& output) const
     {
+        Image* image = any_cast<Image*>(output);
         // Read 4 character code
         uint32 fileType;
         stream->read(&fileType, sizeof(uint32));
@@ -660,8 +769,7 @@ namespace Ogre {
         
         if (FOURCC('D', 'D', 'S', ' ') != fileType)
         {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "This is not a DDS file!", "DDSCodec::decode");
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "This is not a DDS file");
         }
         
         // Read header in full
@@ -672,46 +780,47 @@ namespace Ogre {
         flipEndian(&header, 4, sizeof(DDSHeader) / 4);
 
         // Check some sizes
-        if (header.size != DDS_HEADER_SIZE)
+        if (header.size != DDS_HEADER_SIZE || header.pixelFormat.size != DDS_PIXELFORMAT_SIZE)
         {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "DDS header size mismatch!", "DDSCodec::decode");
-        }
-        if (header.pixelFormat.size != DDS_PIXELFORMAT_SIZE)
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "DDS header size mismatch!", "DDSCodec::decode");
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "DDS header size mismatch");
         }
 
-        ImageData* imgData = OGRE_NEW ImageData();
-        MemoryDataStreamPtr output;
-
-        imgData->depth = 1; // (deal with volume later)
-        imgData->width = header.width;
-        imgData->height = header.height;
-        size_t numFaces = 1; // assume one face until we know otherwise
-
-        if (header.caps.caps1 & DDSCAPS_MIPMAP)
+        // prevent overflow in size calculations
+        // this allows a single 64GB texture and is much larger than any current hardware support
+        const uint32 MAX_IMAGE_DIMENSION = USHRT_MAX;
+        if (header.width == 0 || header.height == 0 || header.width > MAX_IMAGE_DIMENSION ||
+            header.height > MAX_IMAGE_DIMENSION)
         {
-            imgData->num_mipmaps = static_cast<uint8>(header.mipMapCount - 1);
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "DDS file has invalid width or height");
+        }
+
+        uint32 imgDepth = 1; // (deal with volume later)
+        uint32 numFaces = 1; // assume one face until we know otherwise
+        uint32 num_mipmaps = 0;
+        PixelFormat format = PF_UNKNOWN;
+
+        if ((header.caps.caps1 & DDSCAPS_MIPMAP) && header.mipMapCount > 1)
+        {
+            num_mipmaps = static_cast<uint8>(header.mipMapCount - 1);
         }
         else
         {
-            imgData->num_mipmaps = 0;
+            num_mipmaps = 0;
         }
-        imgData->flags = 0;
 
         bool decompressDXT = false;
         // Figure out basic image type
         if (header.caps.caps2 & DDSCAPS2_CUBEMAP)
         {
-            imgData->flags |= IF_CUBEMAP;
             numFaces = 6;
         }
         else if (header.caps.caps2 & DDSCAPS2_VOLUME)
         {
-            imgData->flags |= IF_3D_TEXTURE;
-            imgData->depth = header.depth;
+            imgDepth = header.depth;
+            if (imgDepth == 0 || imgDepth > MAX_IMAGE_DIMENSION)
+            {
+                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "DDS volume texture has invalid depth");
+            }
         }
         // Pixel format
         PixelFormat sourceFormat = PF_UNKNOWN;
@@ -725,7 +834,7 @@ namespace Ogre {
                 stream->read(&extHeader, sizeof(DDSExtendedHeader));
 
                 // Endian flip if required, all 32-bit values
-                flipEndian(&header, sizeof(DDSExtendedHeader));
+                flipEndian(&extHeader, 4, sizeof(DDSExtendedHeader) / 4);
                 sourceFormat = convertDXToOgreFormat(extHeader.dxgiFormat);
             }
             else
@@ -745,9 +854,8 @@ namespace Ogre {
         if (PixelUtil::isCompressed(sourceFormat))
         {
             if (Root::getSingleton().getRenderSystem() == NULL ||
-                !Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_TEXTURE_COMPRESSION_DXT)
-                || (!Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_AUTOMIPMAP)
-                && !imgData->num_mipmaps))
+                !Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_TEXTURE_COMPRESSION_DXT) ||
+                mDecodeEnforce)
             {
                 // We'll need to decompress
                 decompressDXT = true;
@@ -771,11 +879,11 @@ namespace Ogre {
                     // colour_0 <= colour_1 means transparency in DXT1
                     if (block.colour_0 <= block.colour_1)
                     {
-                        imgData->format = PF_BYTE_RGBA;
+                        format = PF_BYTE_RGBA;
                     }
                     else
                     {
-                        imgData->format = PF_BYTE_RGB;
+                        format = PF_BYTE_RGB;
                     }
                     break;
                 case PF_DXT2:
@@ -783,7 +891,7 @@ namespace Ogre {
                 case PF_DXT4:
                 case PF_DXT5:
                     // full alpha present, formats vary only in encoding 
-                    imgData->format = PF_BYTE_RGBA;
+                    format = PF_BYTE_RGBA;
                     break;
                 default:
                     // all other cases need no special format handling
@@ -793,40 +901,33 @@ namespace Ogre {
             else
             {
                 // Use original format
-                imgData->format = sourceFormat;
-                // Keep DXT data compressed
-                imgData->flags |= IF_COMPRESSED;
+                format = sourceFormat;
             }
         }
         else // not compressed
         {
             // Don't test against DDPF_RGB since greyscale DDS doesn't set this
             // just derive any other kind of format
-            imgData->format = sourceFormat;
+            format = sourceFormat;
         }
 
         // Calculate total size from number of mipmaps, faces and size
-        imgData->size = Image::calculateSize(imgData->num_mipmaps, numFaces, 
-            imgData->width, imgData->height, imgData->depth, imgData->format);
-
-        // Bind output buffer
-        output.bind(OGRE_NEW MemoryDataStream(imgData->size));
-
+        image->create(format, header.width, header.height, imgDepth, numFaces, num_mipmaps);
 
         // Now deal with the data
-        void* destPtr = output->getPtr();
+        void* destPtr = image->getData();
 
         // all mips for a face, then each face
         for(size_t i = 0; i < numFaces; ++i)
-        {   
-            uint32 width = imgData->width;
-            uint32 height = imgData->height;
-            uint32 depth = imgData->depth;
+        {
+            uint32 width = image->getWidth();
+            uint32 height = image->getHeight();
+            uint32 depth = image->getDepth();
 
-            for(size_t mip = 0; mip <= imgData->num_mipmaps; ++mip)
+            for(size_t mip = 0; mip <= num_mipmaps; ++mip)
             {
-                size_t dstPitch = width * PixelUtil::getNumElemBytes(imgData->format);
-
+                size_t dstPitch = width * PixelUtil::getNumElemBytes(format);
+                
                 if (PixelUtil::isCompressed(sourceFormat))
                 {
                     // Compressed data
@@ -837,18 +938,28 @@ namespace Ogre {
                         DXTExplicitAlphaBlock eAlpha;
                         // 4x4 block of decompressed colour
                         ColourValue tempColours[16];
-                        size_t destBpp = PixelUtil::getNumElemBytes(imgData->format);
-                        size_t sx = std::min((size_t)width, (size_t)4);
-                        size_t sy = std::min((size_t)height, (size_t)4);
-                        size_t destPitchMinus4 = dstPitch - destBpp * sx;
+                        size_t destBpp = PixelUtil::getNumElemBytes(format);
+
                         // slices are done individually
                         for(size_t z = 0; z < depth; ++z)
                         {
+                            size_t remainingHeight = height;
+
                             // 4x4 blocks in x/y
                             for (size_t y = 0; y < height; y += 4)
                             {
+                                size_t sy = std::min<size_t>( remainingHeight, 4u );
+                                remainingHeight -= sy;
+
+                                size_t remainingWidth = width;
+
                                 for (size_t x = 0; x < width; x += 4)
                                 {
+                                    size_t sx = std::min<size_t>( remainingWidth, 4u );
+                                    size_t destPitchMinus4 = dstPitch - destBpp * sx;
+
+                                    remainingWidth -= sx;
+
                                     if (sourceFormat == PF_DXT2 || 
                                         sourceFormat == PF_DXT3)
                                     {
@@ -878,7 +989,7 @@ namespace Ogre {
                                         for (size_t bx = 0; bx < sx; ++bx)
                                         {
                                             PixelUtil::packColour(tempColours[by*4+bx],
-                                                imgData->format, destPtr);
+                                                format, destPtr);
                                             destPtr = static_cast<void*>(
                                                 static_cast<uchar*>(destPtr) + destBpp);
                                         }
@@ -913,7 +1024,7 @@ namespace Ogre {
                     {
                         // load directly
                         // DDS format lies! sizeOrPitch is not always set for DXT!!
-                        size_t dxtSize = PixelUtil::getMemorySize(width, height, depth, imgData->format);
+                        size_t dxtSize = PixelUtil::getMemorySize(width, height, depth, format);
                         stream->read(destPtr, dxtSize);
                         destPtr = static_cast<void*>(static_cast<uchar*>(destPtr) + dxtSize);
                     }
@@ -939,33 +1050,11 @@ namespace Ogre {
             }
 
         }
-
-        DecodeResult ret;
-        ret.first = output;
-        ret.second = CodecDataPtr(imgData);
-        return ret;
-        
-
-
     }
     //---------------------------------------------------------------------    
     String DDSCodec::getType() const 
     {
         return mType;
-    }
-    //---------------------------------------------------------------------    
-    void DDSCodec::flipEndian(void * pData, size_t size, size_t count)
-    {
-#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
-		Bitwise::bswapChunks(pData, size, count);
-#endif
-    }
-    //---------------------------------------------------------------------    
-    void DDSCodec::flipEndian(void * pData, size_t size)
-    {
-#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
-        Bitwise::bswapBuffer(pData, size);
-#endif
     }
     //---------------------------------------------------------------------
     String DDSCodec::magicNumberToFileExt(const char *magicNumberPtr, size_t maxbytes) const
@@ -984,6 +1073,14 @@ namespace Ogre {
 
         return BLANKSTRING;
 
+    }
+    //---------------------------------------------------------------------
+    bool DDSCodec::setParameter(const String& name, const String& value)
+    {
+        if (name == "decode_enforce")
+            return StringConverter::parse(value, mDecodeEnforce);
+
+        return false;
     }
     
 }

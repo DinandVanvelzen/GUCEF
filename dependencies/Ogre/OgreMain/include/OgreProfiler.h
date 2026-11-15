@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,12 +49,12 @@ Ogre-dependent is in the visualization/logging routines and the use of the Timer
 #   define OgreProfile( a ) Ogre::Profile _OgreProfileInstance( (a) )
 #   define OgreProfileBegin( a ) Ogre::Profiler::getSingleton().beginProfile( (a) )
 #   define OgreProfileEnd( a ) Ogre::Profiler::getSingleton().endProfile( (a) )
-#   define OgreProfileGroup( a, g ) Ogre::Profile _OgreProfileInstance( (a), (g) )
+#   define OgreProfileGroup( a, g ) Ogre::Profile OGRE_TOKEN_PASTE(_OgreProfileInstance, __LINE__) ( (a), (g) )
 #   define OgreProfileBeginGroup( a, g ) Ogre::Profiler::getSingleton().beginProfile( (a), (g) )
 #   define OgreProfileEndGroup( a, g ) Ogre::Profiler::getSingleton().endProfile( (a), (g) )
-#   define OgreProfileBeginGPUEvent( g ) Ogre::Profiler::getSingleton().beginGPUEvent(g)
-#   define OgreProfileEndGPUEvent( g ) Ogre::Profiler::getSingleton().endGPUEvent(g)
-#   define OgreProfileMarkGPUEvent( e ) Ogre::Profiler::getSingleton().markGPUEvent(e)
+#   define OgreProfileBeginGPUEvent( g ) Ogre::Root::getSingleton().getRenderSystem()->beginProfileEvent(g)
+#   define OgreProfileEndGPUEvent( g ) Ogre::Root::getSingleton().getRenderSystem()->endProfileEvent()
+#   define OgreProfileMarkGPUEvent( e ) Ogre::Root::getSingleton().getRenderSystem()->markProfileEvent(e)
 #else
 #   define OgreProfile( a )
 #   define OgreProfileBegin( a )
@@ -88,33 +88,6 @@ namespace Ogre {
         OGREPROF_CULLING = 0x40000000,
         /// Rendering
         OGREPROF_RENDERING = 0x20000000
-    };
-
-    /** An individual profile that will be processed by the Profiler
-        @remarks
-            Use the macro OgreProfile(name) instead of instantiating this profile directly
-        @remarks
-            We use this Profile to allow scoping rules to signify the beginning and end of
-            the profile. Use the Profiler singleton (through the macro OgreProfileBegin(name)
-            and OgreProfileEnd(name)) directly if you want a profile to last
-            outside of a scope (i.e. the main game loop).
-        @author Amit Mathew (amitmathew (at) yahoo (dot) com)
-    */
-    class _OgreExport Profile : 
-        public ProfilerAlloc 
-    {
-
-        public:
-            Profile(const String& profileName, uint32 groupID = (uint32)OGREPROF_USER_DEFAULT);
-            ~Profile();
-
-        protected:
-
-            /// The name of this profile
-            String mName;
-            /// The group ID
-            uint32 mGroupID;
-            
     };
 
     /** Represents the total timing information of a profile
@@ -177,7 +150,7 @@ namespace Ogre {
         ProfileInstance(void);
         virtual ~ProfileInstance(void);
 
-        typedef Ogre::map<String,ProfileInstance*>::type ProfileChildren;
+        typedef std::map<String,ProfileInstance*> ProfileChildren;
 
         void logResults();
         void reset();
@@ -228,15 +201,6 @@ namespace Ogre {
     class _OgreExport ProfileSessionListener
     {
     public:
-        enum DisplayMode
-        {
-            /// Display % frame usage on the overlay
-            DISPLAY_PERCENTAGE,
-            /// Display milliseconds on the overlay
-            DISPLAY_MILLISECONDS
-        };
-
-        ProfileSessionListener() : mDisplayMode(DISPLAY_MILLISECONDS) {}
         virtual ~ProfileSessionListener() {}
 
         /// Create the internal resources
@@ -253,25 +217,15 @@ namespace Ogre {
         
         /// Here we get the real profiling information which we can use 
         virtual void displayResults(const ProfileInstance& instance, ulong maxTotalFrameTime) {};
-
-        /// Set the display mode for the overlay. 
-        void setDisplayMode(DisplayMode d) { mDisplayMode = d; }
-    
-        /// Get the display mode for the overlay. 
-        DisplayMode getDisplayMode() const { return mDisplayMode; }
-    
-    protected:
-        /// How to display the overlay
-        DisplayMode mDisplayMode;
     };
 
     /** The profiler allows you to measure the performance of your code
-        @remarks
-            Do not create profiles directly from this unless you want a profile to last
-            outside of its scope (i.e. the main game loop). For most cases, use the macro
-            OgreProfile(name) and braces to limit the scope. You must enable the Profile
-            before you can used it with setEnabled(true). If you want to disable profiling
-            in Ogre, simply set the macro OGRE_PROFILING to 0.
+
+        Do not create profiles directly from this unless you want a profile to last
+        outside of its scope (i.e. the main game loop). For most cases, use the macro
+        OgreProfile(name) and braces to limit the scope. You must enable the Profile
+        before you can used it with setEnabled(true). If you want to disable profiling
+        in Ogre, simply set the macro OGRE_PROFILING to 0.
         @author Amit Mathew (amitmathew (at) yahoo (dot) com)
         @todo resolve artificial cap on number of profiles displayed
         @todo fix display ordering of profiles not called every frame
@@ -291,10 +245,10 @@ namespace Ogre {
             Timer* getTimer();
 
             /** Begins a profile
-            @remarks 
+
                 Use the macro OgreProfileBegin(name) instead of calling this directly 
                 so that profiling can be ignored in the release version of your app. 
-            @remarks 
+
                 You only use the macro (or this) if you want a profile to last outside
                 of its scope (i.e. the main game loop). If you use this function, make sure you 
                 use a corresponding OgreProfileEnd(name). Usually you would use the macro 
@@ -306,10 +260,10 @@ namespace Ogre {
             void beginProfile(const String& profileName, uint32 groupID = (uint32)OGREPROF_USER_DEFAULT);
 
             /** Ends a profile
-            @remarks 
+
                 Use the macro OgreProfileEnd(name) instead of calling this directly so that
                 profiling can be ignored in the release version of your app.
-            @remarks
+
                 This function is usually not called directly unless you want a profile to
                 last outside of its scope. In most cases, using the macro OgreProfile(name) 
                 which will call this function automatically when it goes out of scope. Make 
@@ -320,21 +274,6 @@ namespace Ogre {
             @param groupID A profile group identifier, which can allow you to mask profiles
             */
             void endProfile(const String& profileName, uint32 groupID = (uint32)OGREPROF_USER_DEFAULT);
-
-            /** Mark the beginning of a GPU event group
-             @remarks Can be safely called in the middle of the profile.
-             */
-            void beginGPUEvent(const String& event);
-
-            /** Mark the end of a GPU event group
-             @remarks Can be safely called in the middle of the profile.
-             */
-            void endGPUEvent(const String& event);
-
-            /** Mark a specific, ungrouped, GPU event
-             @remarks Can be safely called in the middle of the profile.
-             */
-            void markGPUEvent(const String& event);
 
             /** Sets whether this profiler is enabled. Only takes effect after the
                 the frame has ended.
@@ -382,6 +321,7 @@ namespace Ogre {
             @remarks If this is called during a frame, it will be reading the results
             from the previous frame. Therefore, it is best to use this after the frame
             has ended.
+            @param profileName Must be unique and must not be an empty string
             @param limit A number between 0 and 1 representing the percentage of frame time
             @param greaterThan If true, this will return whether the limit is exceeded. Otherwise,
             it will return if the frame time has gone under this limit.
@@ -401,7 +341,7 @@ namespace Ogre {
             uint getUpdateDisplayFrequency() const;
 
             /**
-            @remarks
+
                 Register a ProfileSessionListener from the Profiler
             @param listener
                 A valid listener derived class
@@ -409,50 +349,22 @@ namespace Ogre {
             void addListener(ProfileSessionListener* listener);
 
             /**
-            @remarks
+
                 Unregister a ProfileSessionListener from the Profiler
             @param listener
                 A valid listener derived class
             */
             void removeListener(ProfileSessionListener* listener);
 
-            /** Override standard Singleton retrieval.
-            @remarks
-            Why do we do this? Well, it's because the Singleton
-            implementation is in a .h file, which means it gets compiled
-            into anybody who includes it. This is needed for the
-            Singleton template to work, but we actually only want it
-            compiled into the implementation of the class based on the
-            Singleton, not all of them. If we don't change this, we get
-            link errors when trying to use the Singleton-based class from
-            an outside dll.
-            @par
-            This method just delegates to the template version anyway,
-            but the implementation stays in this single compilation unit,
-            preventing link errors.
-            */
+            /// @copydoc Singleton::getSingleton()
             static Profiler& getSingleton(void);
-            /** Override standard Singleton retrieval.
-            @remarks
-            Why do we do this? Well, it's because the Singleton
-            implementation is in a .h file, which means it gets compiled
-            into anybody who includes it. This is needed for the
-            Singleton template to work, but we actually only want it
-            compiled into the implementation of the class based on the
-            Singleton, not all of them. If we don't change this, we get
-            link errors when trying to use the Singleton-based class from
-            an outside dll.
-            @par
-            This method just delegates to the template version anyway,
-            but the implementation stays in this single compilation unit,
-            preventing link errors.
-            */
+            /// @copydoc Singleton::getSingleton()
             static Profiler* getSingletonPtr(void);
 
-        protected:
+        private:
             friend class ProfileInstance;
 
-            typedef vector<ProfileSessionListener*>::type TProfileSessionListener;
+            typedef std::vector<ProfileSessionListener*> TProfileSessionListener;
             TProfileSessionListener mListeners;
 
             /** Initializes the profiler's GUI elements */
@@ -469,7 +381,7 @@ namespace Ogre {
             void changeEnableState();
 
             // lol. Uses typedef; put's original container type in name.
-            typedef set<String>::type DisabledProfileMap;
+            typedef std::set<String> DisabledProfileMap;
             typedef ProfileInstance::ProfileChildren ProfileChildren;
 
             ProfileInstance* mCurrent;
@@ -514,6 +426,34 @@ namespace Ogre {
 
 
     }; // end class
+
+    /** An individual profile that will be processed by the Profiler
+
+        Use the macro OgreProfile(name) instead of instantiating this profile directly
+
+        We use this Profile to allow scoping rules to signify the beginning and end of
+        the profile. Use the Profiler singleton (through the macro OgreProfileBegin(name)
+        and OgreProfileEnd(name)) directly if you want a profile to last
+        outside of a scope (i.e. the main game loop).
+        @author Amit Mathew (amitmathew (at) yahoo (dot) com)
+    */
+    class Profile : public ProfilerAlloc
+    {
+
+    public:
+        Profile(const String& profileName, uint32 groupID = (uint32)OGREPROF_USER_DEFAULT)
+            : mName(profileName), mGroupID(groupID)
+        {
+            Profiler::getSingleton().beginProfile(profileName, groupID);
+        }
+        ~Profile() { Profiler::getSingleton().endProfile(mName, mGroupID); }
+
+    private:
+        /// The name of this profile
+        String mName;
+        /// The group ID
+        uint32 mGroupID;
+    };
     /** @} */
     /** @} */
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
- Copyright (c) 2000-2016 Torus Knot Software Ltd
+ Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +36,31 @@ THE SOFTWARE.
 namespace Ogre {
     //---------------------------------------------------------------------
     String PanelOverlayElement::msTypeName = "Panel";
-    PanelOverlayElement::CmdTiling PanelOverlayElement::msCmdTiling;
-    PanelOverlayElement::CmdTransparent PanelOverlayElement::msCmdTransparent;
-    PanelOverlayElement::CmdUVCoords PanelOverlayElement::msCmdUVCoords;
+    /** Command object for specifying tiling (see ParamCommand).*/
+    class _OgrePrivate CmdTiling : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    /** Command object for specifying transparency (see ParamCommand).*/
+    class _OgrePrivate CmdTransparent : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    /** Command object for specifying UV coordinates (see ParamCommand).*/
+    class _OgrePrivate CmdUVCoords : public ParamCommand
+    {
+    public:
+        String doGet(const void* target) const override;
+        void doSet(void* target, const String& val) override;
+    };
+    // Command objects
+    static CmdTiling msCmdTiling;
+    static CmdTransparent msCmdTransparent;
+    static CmdUVCoords msCmdUVCoords;
     //---------------------------------------------------------------------
     // vertex buffer bindings, set at compile time (we could look these up but no point)
     #define POSITION_BINDING 0
@@ -96,7 +118,7 @@ namespace Ogre {
             // No indexes & issue as a strip
             mRenderOp.useIndexes = false;
             mRenderOp.operationType = RenderOperation::OT_TRIANGLE_STRIP;
-            mRenderOp.useGlobalInstancingVertexBufferIsAvailable = false;
+            mRenderOp.useGlobalInstancing = false;
 
             mInitialised = true;
 
@@ -115,8 +137,8 @@ namespace Ogre {
         HardwareVertexBufferSharedPtr vbuf =
             HardwareBufferManager::getSingleton().createVertexBuffer(
             decl->getVertexSize(POSITION_BINDING), mRenderOp.vertexData->vertexCount,
-            HardwareBuffer::HBU_STATIC_WRITE_ONLY// mostly static except during resizing
-            );
+            HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY,// mostly static except during resizing
+            true);//Workaround, using shadow buffer to avoid stall due to buffer mapping
         // Bind buffer
         mRenderOp.vertexData->vertexBufferBinding->setBinding(POSITION_BINDING, vbuf);
 
@@ -131,12 +153,14 @@ namespace Ogre {
             return;
 
         VertexBufferBinding* bind = mRenderOp.vertexData->vertexBufferBinding;
-        bind->unsetBinding(POSITION_BINDING);
+        if (bind->isBufferBound(POSITION_BINDING))
+            bind->unsetBinding(POSITION_BINDING);
 
         // Remove all texcoord element declarations
         if(mNumTexCoordsInBuffer > 0)
         {
-            bind->unsetBinding(TEXCOORD_BINDING);
+            if (bind->isBufferBound (TEXCOORD_BINDING))
+                bind->unsetBinding(TEXCOORD_BINDING);
 
             VertexDeclaration* decl = mRenderOp.vertexData->vertexDeclaration;
             for(size_t i = mNumTexCoordsInBuffer; i > 0; --i)
@@ -150,8 +174,8 @@ namespace Ogre {
     //---------------------------------------------------------------------
     void PanelOverlayElement::setTiling(Real x, Real y, ushort layer)
     {
-        assert (layer < OGRE_MAX_TEXTURE_COORD_SETS);
-        assert (x != 0 && y != 0);
+        OgreAssert (layer < OGRE_MAX_TEXTURE_COORD_SETS, "out of bounds");
+        OgreAssert (x != 0 && y != 0, "tile number must be > 0");
 
         mTileX[layer] = x;
         mTileY[layer] = y;
@@ -206,27 +230,21 @@ namespace Ogre {
         op = mRenderOp;
     }
     //---------------------------------------------------------------------
-    void PanelOverlayElement::setMaterialName(const String& matName)
-    {
-        OverlayContainer::setMaterialName(matName);
-    }
-    //---------------------------------------------------------------------
     void PanelOverlayElement::_updateRenderQueue(RenderQueue* queue)
     {
         if (mVisible)
         {
 
-            if (!mTransparent && !mMaterial.isNull())
+            if (!mTransparent && mMaterial)
             {
                 OverlayElement::_updateRenderQueue(queue);
             }
 
             // Also add children
-            ChildIterator it = getChildIterator();
-            while (it.hasMoreElements())
+            for (const auto& p : getChildren())
             {
                 // Give children Z-order 1 higher than this
-                it.getNext()->_updateRenderQueue(queue);
+                p.second->_updateRenderQueue(queue);
             }
         }
     }
@@ -256,8 +274,8 @@ namespace Ogre {
 
         HardwareVertexBufferSharedPtr vbuf =
             mRenderOp.vertexData->vertexBufferBinding->getBuffer(POSITION_BINDING);
-        float* pPos = static_cast<float*>(
-            vbuf->lock(HardwareBuffer::HBL_DISCARD, Root::getSingleton().getFreqUpdatedBuffersUploadOption()) );
+        HardwareBufferLockGuard vbufLock(vbuf, HardwareBuffer::HBL_DISCARD);
+        float* pPos = static_cast<float*>(vbufLock.pData);
 
         // Use the furthest away depth value, since materials should have depth-check off
         // This initialised the depth buffer for any 3D objects in front
@@ -277,14 +295,12 @@ namespace Ogre {
         *pPos++ = right;
         *pPos++ = bottom;
         *pPos++ = zValue;
-
-        vbuf->unlock();
     }
     //---------------------------------------------------------------------
     void PanelOverlayElement::updateTextureGeometry(void)
     {
         // Generate for as many texture layers as there are in material
-        if (!mMaterial.isNull() && mInitialised)
+        if (mMaterial && mInitialised)
         {
             // Assume one technique and pass for the moment
             size_t numLayers = mMaterial->getTechnique(0)->getPass(0)->getNumTextureUnitStates();
@@ -306,11 +322,9 @@ namespace Ogre {
                 size_t offset = VertexElement::getTypeSize(VET_FLOAT2) * mNumTexCoordsInBuffer;
                 for (size_t i = mNumTexCoordsInBuffer; i < numLayers; ++i)
                 {
-                    decl->addElement(TEXCOORD_BINDING,
-                        offset, VET_FLOAT2, VES_TEXTURE_COORDINATES, 
-                        static_cast<unsigned short>(i));
-                    offset += VertexElement::getTypeSize(VET_FLOAT2);
-
+                    offset += decl->addElement(TEXCOORD_BINDING, offset, VET_FLOAT2,
+                                               VES_TEXTURE_COORDINATES, ushort(i))
+                                  .getSize();
                 }
             }
 
@@ -321,8 +335,8 @@ namespace Ogre {
                 HardwareVertexBufferSharedPtr newbuf =
                     HardwareBufferManager::getSingleton().createVertexBuffer(
                     decl->getVertexSize(TEXCOORD_BINDING), mRenderOp.vertexData->vertexCount,
-                    HardwareBuffer::HBU_STATIC_WRITE_ONLY // mostly static except during resizing
-                    );
+                    HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY, // mostly static except during resizing
+                    true);//Workaround, using shadow buffer to avoid stall due to buffer mapping
                 // Bind buffer, note this will unbind the old one and destroy the buffer it had
                 mRenderOp.vertexData->vertexBufferBinding->setBinding(TEXCOORD_BINDING, newbuf);
                 // Set num tex coords in use now
@@ -334,8 +348,8 @@ namespace Ogre {
             {
                 HardwareVertexBufferSharedPtr vbuf =
                     mRenderOp.vertexData->vertexBufferBinding->getBuffer(TEXCOORD_BINDING);
-                float* pVBStart = static_cast<float*>(
-                    vbuf->lock(HardwareBuffer::HBL_DISCARD) );
+                HardwareBufferLockGuard vbufLock(vbuf, HardwareBuffer::HBL_DISCARD);
+                float* pVBStart = static_cast<float*>(vbufLock.pData);
 
                 size_t uvSize = VertexElement::getTypeSize(VET_FLOAT2) / sizeof(float);
                 size_t vertexSize = decl->getVertexSize(TEXCOORD_BINDING) / sizeof(float);
@@ -371,7 +385,6 @@ namespace Ogre {
                     pTex[0] = upperX;
                     pTex[1] = upperY;
                 }
-                vbuf->unlock();
             }
         }
     }
@@ -400,7 +413,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     // Command objects
     //-----------------------------------------------------------------------
-    String PanelOverlayElement::CmdTiling::doGet(const void* target) const
+    String CmdTiling::doGet(const void* target) const
     {
         // NB only returns 1st layer tiling
         String ret = "0 " + StringConverter::toString(
@@ -409,11 +422,11 @@ namespace Ogre {
             static_cast<const PanelOverlayElement*>(target)->getTileY() );
         return ret;
     }
-    void PanelOverlayElement::CmdTiling::doSet(void* target, const String& val)
+    void CmdTiling::doSet(void* target, const String& val)
     {
         // 3 params: <layer> <x_tile> <y_tile>
         // Param count is validated higher up
-        vector<String>::type vec = StringUtil::split(val);
+        std::vector<String> vec = StringUtil::split(val);
         ushort layer = (ushort)StringConverter::parseUnsignedInt(vec[0]);
         Real x_tile = StringConverter::parseReal(vec[1]);
         Real y_tile = StringConverter::parseReal(vec[2]);
@@ -421,18 +434,18 @@ namespace Ogre {
         static_cast<PanelOverlayElement*>(target)->setTiling(x_tile, y_tile, layer);
     }
     //-----------------------------------------------------------------------
-    String PanelOverlayElement::CmdTransparent::doGet(const void* target) const
+    String CmdTransparent::doGet(const void* target) const
     {
         return StringConverter::toString(
             static_cast<const PanelOverlayElement*>(target)->isTransparent() );
     }
-    void PanelOverlayElement::CmdTransparent::doSet(void* target, const String& val)
+    void CmdTransparent::doSet(void* target, const String& val)
     {
         static_cast<PanelOverlayElement*>(target)->setTransparent(
             StringConverter::parseBool(val));
     }
     //-----------------------------------------------------------------------
-    String PanelOverlayElement::CmdUVCoords::doGet(const void* target) const
+    String CmdUVCoords::doGet(const void* target) const
     {
         Real u1, v1, u2, v2;
 
@@ -443,9 +456,9 @@ namespace Ogre {
 
         return ret;
     }
-    void PanelOverlayElement::CmdUVCoords::doSet(void* target, const String& val)
+    void CmdUVCoords::doSet(void* target, const String& val)
     {
-        vector<String>::type vec = StringUtil::split(val);
+        std::vector<String> vec = StringUtil::split(val);
 
         static_cast<PanelOverlayElement*>(target)->setUV(
             StringConverter::parseReal(vec[0]),

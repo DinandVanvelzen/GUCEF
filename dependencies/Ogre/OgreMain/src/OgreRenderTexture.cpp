@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,6 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-
-#include "OgreRenderTexture.h"
-#include "OgreException.h"
 #include "OgreHardwarePixelBuffer.h"
 
 namespace Ogre
@@ -41,25 +38,21 @@ namespace Ogre
         mPriority = OGRE_REND_TO_TEX_RT_GROUP;
         mWidth = mBuffer->getWidth();
         mHeight = mBuffer->getHeight();
-        mColourDepth = static_cast<unsigned int>(
-            Ogre::PixelUtil::getNumElemBits(mBuffer->getFormat()));
+
+        if(PixelUtil::isDepth(mBuffer->getFormat()))
+            mDepthBufferPoolId = RBP_NONE;
     }
     RenderTexture::~RenderTexture()
     {
         mBuffer->_clearSliceRTT(0);
     }
 
-    void RenderTexture::copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer)
+    void RenderTexture::copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer)
     {
         if (buffer == FB_AUTO) buffer = FB_FRONT;
-        if (buffer != FB_FRONT)
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-                        "Invalid buffer.",
-                        "RenderTexture::copyContentsToMemory" );
-        }
+        OgreAssert(buffer == FB_FRONT, "Invalid buffer");
 
-        mBuffer->blitToMemory(dst);
+        mBuffer->blitToMemory(src, dst);
     }
     //---------------------------------------------------------------------
     PixelFormat RenderTexture::suggestPixelFormat() const
@@ -74,8 +67,22 @@ namespace Ogre
         /// Width and height is unknown with no targets attached
         mWidth = mHeight = 0;
     }
+    void MultiRenderTarget::bindSurface(size_t attachment, RenderTexture* target)
+    {
+        if(PixelUtil::isDepth(target->suggestPixelFormat()))
+            setDepthBufferPool(RBP_NONE); // unbinds any previously bound depth render buffer
+
+        for (size_t i = mBoundSurfaces.size(); i <= attachment; ++i)
+        {
+            mBoundSurfaces.push_back(0);
+        }
+        mBoundSurfaces[attachment] = target;
+
+        bindSurfaceImpl(attachment, target);
+    }
+
     //-----------------------------------------------------------------------------
-    void MultiRenderTarget::copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer)
+    void MultiRenderTarget::copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer)
     {
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
                     "Cannot get MultiRenderTargets pixels",

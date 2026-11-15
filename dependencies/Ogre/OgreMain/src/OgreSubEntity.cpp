@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,20 +26,12 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreSubEntity.h"
-
-#include "OgreEntity.h"
-#include "OgreMaterialManager.h"
-#include "OgreSubMesh.h"
-#include "OgreLogManager.h"
-#include "OgreMesh.h"
-#include "OgreException.h"
 
 namespace Ogre {
     //-----------------------------------------------------------------------
     SubEntity::SubEntity (Entity* parent, SubMesh* subMeshBasis)
         : Renderable(), mParentEntity(parent),
-        mSubMesh(subMeshBasis), mMaterialLodIndex(0), mCachedCamera(0)
+        mSubMesh(subMeshBasis), mCachedCamera(0)
     {
         mVisible = true;
         mRenderQueueID = 0;
@@ -47,51 +39,26 @@ namespace Ogre {
         mRenderQueuePrioritySet = false;
         mSkelAnimVertexData = 0;
         mVertexAnimationAppliedThisFrame = false;
-        mSoftwareVertexAnimVertexData = 0;
-        mHardwareVertexAnimVertexData = 0;
         mHardwarePoseCount = 0;
         mIndexStart = 0;
         mIndexEnd = 0;
-        setMaterialName("BaseWhite");
+        setMaterial(MaterialManager::getSingleton().getDefaultMaterial());
     }
-    //-----------------------------------------------------------------------
-    SubEntity::~SubEntity()
-    {
-        OGRE_DELETE mSkelAnimVertexData;
-        OGRE_DELETE mHardwareVertexAnimVertexData;
-        OGRE_DELETE mSoftwareVertexAnimVertexData;
-    }
-    //-----------------------------------------------------------------------
-    SubMesh* SubEntity::getSubMesh(void)
-    {
-        return mSubMesh;
-    }
+    SubEntity::~SubEntity() = default; // ensure unique_ptr destructors are in cpp
     //-----------------------------------------------------------------------
     const String& SubEntity::getMaterialName(void) const
     {
-        return !mMaterialPtr.isNull() ? mMaterialPtr->getName() : BLANKSTRING;
+        return mMaterialPtr ? mMaterialPtr->getName() : BLANKSTRING;
     }
     //-----------------------------------------------------------------------
     void SubEntity::setMaterialName( const String& name, const String& groupName /* = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME */)
     {
         MaterialPtr material = MaterialManager::getSingleton().getByName(name, groupName);
 
-        if( material.isNull() )
+        if( !material )
         {
-            LogManager::getSingleton().logMessage("Can't assign material " + name +
-                " to SubEntity of " + mParentEntity->getName() + " because this "
-                "Material does not exist. Have you forgotten to define it in a "
-                ".material script?", LML_CRITICAL);
-
-            material = MaterialManager::getSingleton().getByName("BaseWhite");
-
-            if (material.isNull())
-            {
-                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Can't assign default material "
-                    "to SubEntity of " + mParentEntity->getName() + ". Did "
-                    "you forget to call MaterialManager::initialise()?",
-                    "SubEntity::setMaterialName");
-            }
+            logMaterialNotFound(name, groupName, "SubEntity of", mParentEntity->getName());
+            material = MaterialManager::getSingleton().getDefaultMaterial();
         }
 
         setMaterial( material );
@@ -101,22 +68,12 @@ namespace Ogre {
     {
         mMaterialPtr = material;
         
-        if (mMaterialPtr.isNull())
+        if (!mMaterialPtr)
         {
-            LogManager::getSingleton().logMessage("Can't assign material "  
-                " to SubEntity of " + mParentEntity->getName() + " because this "
-                "Material does not exist. Have you forgotten to define it in a "
-                ".material script?", LML_CRITICAL);
+            LogManager::getSingleton().logError("Can't assign nullptr material "
+                "to SubEntity of '" + mParentEntity->getName() + "'. Falling back to default");
             
-            mMaterialPtr = MaterialManager::getSingleton().getByName("BaseWhite");
-            
-            if (mMaterialPtr.isNull())
-            {
-                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Can't assign default material "
-                    "to SubEntity of " + mParentEntity->getName() + ". Did "
-                    "you forget to call MaterialManager::initialise()?",
-                    "SubEntity::setMaterial");
-            }
+            mMaterialPtr = MaterialManager::getSingleton().getDefaultMaterial();
         }
         
         // Ensure new material loaded (will not load again if already loaded)
@@ -124,16 +81,6 @@ namespace Ogre {
 
         // tell parent to reconsider material vertex processing options
         mParentEntity->reevaluateVertexProcessing();
-    }
-    //-----------------------------------------------------------------------
-    const MaterialPtr& SubEntity::getMaterial(void) const
-    {
-        return mMaterialPtr;
-    }
-    //-----------------------------------------------------------------------
-    Technique* SubEntity::getTechnique(void) const
-    {
-        return mMaterialPtr->getBestTechnique(mMaterialLodIndex, this);
     }
     //-----------------------------------------------------------------------
     void SubEntity::getRenderOperation(RenderOperation& op)
@@ -151,26 +98,16 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    void SubEntity::setIndexDataStartIndex(size_t start_index)
+    void SubEntity::setIndexDataStartIndex(uint32 start_index)
     {
         if(start_index < mSubMesh->indexData->indexCount)
             mIndexStart = start_index;
     }
     //-----------------------------------------------------------------------
-    size_t SubEntity::getIndexDataStartIndex() const
+    void SubEntity::setIndexDataEndIndex(uint32 end_index)
     {
-        return mIndexStart;
-    }
-    //-----------------------------------------------------------------------
-    void SubEntity::setIndexDataEndIndex(size_t end_index)
-    {
-        if(end_index > 0 && end_index <= mSubMesh->indexData->indexCount)
+        if(end_index <= mSubMesh->indexData->indexCount)
             mIndexEnd = end_index;
-    }
-    //-----------------------------------------------------------------------
-    size_t SubEntity::getIndexDataEndIndex() const
-    {
-        return mIndexEnd;
     }
     //-----------------------------------------------------------------------
     void SubEntity::resetIndexDataStartEndIndex()
@@ -195,11 +132,11 @@ namespace Ogre {
             case Entity::BIND_ORIGINAL:
                 return mSubMesh->vertexData;
             case Entity::BIND_HARDWARE_MORPH:
-                return mHardwareVertexAnimVertexData;
+                return mHardwareVertexAnimVertexData.get();
             case Entity::BIND_SOFTWARE_MORPH:
-                return mSoftwareVertexAnimVertexData;
+                return mSoftwareVertexAnimVertexData.get();
             case Entity::BIND_SOFTWARE_SKELETAL:
-                return mSkelAnimVertexData;
+                return mSkelAnimVertexData.get();
             };
             // keep compiler happy
             return mSubMesh->vertexData;
@@ -222,22 +159,29 @@ namespace Ogre {
                 mSubMesh->parent->sharedBlendIndexToBoneIndexMap : mSubMesh->blendIndexToBoneIndexMap;
             assert(indexMap.size() <= mParentEntity->mNumBoneMatrices);
 
+            if (MeshManager::getBonesUseObjectSpace())
+            {
+                *xform++ = mParentEntity->_getParentNodeFullTransform();
+            }
+
             if (mParentEntity->_isSkeletonAnimated())
             {
                 // Bones, use cached matrices built when Entity::_updateRenderQueue was called
-                assert(mParentEntity->mBoneWorldMatrices);
+                auto boneMatrices = MeshManager::getBonesUseObjectSpace() ? mParentEntity->mBoneMatrices
+                                                                          : mParentEntity->mBoneWorldMatrices;
+                assert(boneMatrices);
 
-                Mesh::IndexMap::const_iterator it, itend;
-                itend = indexMap.end();
-                for (it = indexMap.begin(); it != itend; ++it, ++xform)
+                for (auto idx : indexMap)
                 {
-                    *xform = mParentEntity->mBoneWorldMatrices[*it];
+                    *xform++ = boneMatrices[idx];
                 }
             }
             else
             {
+                auto& value = MeshManager::getBonesUseObjectSpace() ? Affine3::IDENTITY
+                                                                    : mParentEntity->_getParentNodeFullTransform();
                 // All animations disabled, use parent entity world transform only
-                std::fill_n(xform, indexMap.size(), mParentEntity->_getParentNodeFullTransform());
+                std::fill_n(xform, indexMap.size(), value);
             }
         }
     }
@@ -257,7 +201,7 @@ namespace Ogre {
                 mSubMesh->parent->sharedBlendIndexToBoneIndexMap : mSubMesh->blendIndexToBoneIndexMap;
             assert(indexMap.size() <= mParentEntity->mNumBoneMatrices);
 
-            return static_cast<unsigned short>(indexMap.size());
+            return uint16(indexMap.size()) + uint16(MeshManager::getBonesUseObjectSpace());
         }
     }
     //-----------------------------------------------------------------------
@@ -274,15 +218,16 @@ namespace Ogre {
         Real dist;
         if (!mSubMesh->extremityPoints.empty())
         {
+            bool euclidean = cam->getSortMode() == SM_DISTANCE;
+            Vector3 zAxis = cam->getDerivedDirection();
             const Vector3 &cp = cam->getDerivedPosition();
-            const Matrix4 &l2w = mParentEntity->_getParentNodeFullTransform();
+            const Affine3 &l2w = mParentEntity->_getParentNodeFullTransform();
             dist = std::numeric_limits<Real>::infinity();
-            for (vector<Vector3>::type::const_iterator i = mSubMesh->extremityPoints.begin();
-                 i != mSubMesh->extremityPoints.end (); ++i)
+            for (const Vector3& v : mSubMesh->extremityPoints)
             {
-                Vector3 v = l2w * (*i);
-                Real d = (v - cp).squaredLength();
-                
+                Vector3 diff = l2w * v - cp;
+                Real d = euclidean ? diff.squaredLength() : Math::Sqr(zAxis.dotProduct(diff));
+
                 dist = std::min(d, dist);
             }
         }
@@ -305,31 +250,14 @@ namespace Ogre {
         mVisible = visible;
     }
     //-----------------------------------------------------------------------
-    bool SubEntity::isVisible(void) const
-    {
-        return mVisible;
-    }
-    //-----------------------------------------------------------------------
     void SubEntity::prepareTempBlendBuffers(void)
     {
         if (mSubMesh->useSharedVertices)
             return;
 
-        if (mSkelAnimVertexData) 
-        {
-            OGRE_DELETE mSkelAnimVertexData;
-            mSkelAnimVertexData = 0;
-        }
-        if (mSoftwareVertexAnimVertexData) 
-        {
-            OGRE_DELETE mSoftwareVertexAnimVertexData;
-            mSoftwareVertexAnimVertexData = 0;
-        }
-        if (mHardwareVertexAnimVertexData) 
-        {
-            OGRE_DELETE mHardwareVertexAnimVertexData;
-            mHardwareVertexAnimVertexData = 0;
-        }
+        mSkelAnimVertexData.reset();
+        mSoftwareVertexAnimVertexData.reset();
+        mHardwareVertexAnimVertexData.reset();
 
         if (!mSubMesh->useSharedVertices)
         {
@@ -339,12 +267,12 @@ namespace Ogre {
                 // Prepare temp vertex data if needed
                 // Clone without copying data, don't remove any blending info
                 // (since if we skeletally animate too, we need it)
-                mSoftwareVertexAnimVertexData = mSubMesh->vertexData->clone(false);
-                mParentEntity->extractTempBufferInfo(mSoftwareVertexAnimVertexData, &mTempVertexAnimInfo);
+                mSoftwareVertexAnimVertexData.reset(mSubMesh->vertexData->clone(false));
+                mTempVertexAnimInfo.extractFrom(mSoftwareVertexAnimVertexData.get());
 
                 // Also clone for hardware usage, don't remove blend info since we'll
                 // need it if we also hardware skeletally animate
-                mHardwareVertexAnimVertexData = mSubMesh->vertexData->clone(false);
+                mHardwareVertexAnimVertexData.reset(mSubMesh->vertexData->clone(false));
             }
 
             if (mParentEntity->hasSkeleton())
@@ -353,10 +281,8 @@ namespace Ogre {
                 // Prepare temp vertex data if needed
                 // Clone without copying data, remove blending info
                 // (since blend is performed in software)
-                mSkelAnimVertexData = 
-                    mParentEntity->cloneVertexDataRemoveBlendInfo(mSubMesh->vertexData);
-                mParentEntity->extractTempBufferInfo(mSkelAnimVertexData, &mTempSkelAnimInfo);
-
+                mSkelAnimVertexData.reset(mSubMesh->vertexData->_cloneRemovingBlendData());
+                mTempSkelAnimInfo.extractFrom(mSkelAnimVertexData.get());
             }
         }
     }
@@ -369,29 +295,19 @@ namespace Ogre {
     VertexData* SubEntity::_getSkelAnimVertexData(void) 
     {
         assert (mSkelAnimVertexData && "Not software skinned or has no dedicated geometry!");
-        return mSkelAnimVertexData;
+        return mSkelAnimVertexData.get();
     }
     //-----------------------------------------------------------------------
     VertexData* SubEntity::_getSoftwareVertexAnimVertexData(void)
     {
         assert (mSoftwareVertexAnimVertexData && "Not vertex animated or has no dedicated geometry!");
-        return mSoftwareVertexAnimVertexData;
+        return mSoftwareVertexAnimVertexData.get();
     }
     //-----------------------------------------------------------------------
     VertexData* SubEntity::_getHardwareVertexAnimVertexData(void)
     {
         assert (mHardwareVertexAnimVertexData && "Not vertex animated or has no dedicated geometry!");
-        return mHardwareVertexAnimVertexData;
-    }
-    //-----------------------------------------------------------------------
-    TempBlendedBufferInfo* SubEntity::_getSkelAnimTempBufferInfo(void) 
-    {
-        return &mTempSkelAnimInfo;
-    }
-    //-----------------------------------------------------------------------
-    TempBlendedBufferInfo* SubEntity::_getVertexAnimTempBufferInfo(void) 
-    {
-        return &mTempVertexAnimInfo;
+        return mHardwareVertexAnimVertexData.get();
     }
     //-----------------------------------------------------------------------
     void SubEntity::_updateCustomGpuParameter(
@@ -404,7 +320,7 @@ namespace Ogre {
             // Pack into 4-element constants offset based on constant data index
             // If there are more than 4 entries, this will be called more than once
             Vector4 val(0.0f,0.0f,0.0f,0.0f);
-            const VertexData* vd = mHardwareVertexAnimVertexData ? mHardwareVertexAnimVertexData : mParentEntity->mHardwareVertexAnimVertexData;
+            const auto& vd = mHardwareVertexAnimVertexData ? mHardwareVertexAnimVertexData : mParentEntity->mHardwareVertexAnimVertexData;
             
             size_t animIndex = constantEntry.data * 4;
             for (size_t i = 0; i < 4 && 
@@ -468,7 +384,7 @@ namespace Ogre {
             && mSubMesh->getVertexAnimationType() == VAT_POSE)
         {
             mParentEntity->bindMissingHardwarePoseBuffers(
-                mSubMesh->vertexData, mHardwareVertexAnimVertexData);
+                mSubMesh->vertexData, mHardwareVertexAnimVertexData.get());
         }
 
     }
@@ -484,26 +400,6 @@ namespace Ogre {
         setRenderQueueGroup(queueID);
         mRenderQueuePrioritySet = true;
         mRenderQueuePriority = priority;
-    }
-    //-----------------------------------------------------------------------
-    uint8 SubEntity::getRenderQueueGroup(void) const
-    {
-        return mRenderQueueID;
-    }
-    //-----------------------------------------------------------------------
-    ushort SubEntity::getRenderQueuePriority(void) const
-    {
-        return mRenderQueuePriority;
-    }
-    //-----------------------------------------------------------------------
-    bool SubEntity::isRenderQueueGroupSet(void) const
-    {
-        return mRenderQueueIDSet;
-    }
-    //-----------------------------------------------------------------------
-    bool SubEntity::isRenderQueuePrioritySet(void) const
-    {
-        return mRenderQueuePrioritySet;
     }
     //-----------------------------------------------------------------------
 }

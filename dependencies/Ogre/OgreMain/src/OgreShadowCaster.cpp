@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,27 +26,101 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreLight.h"
 #include "OgreEdgeListBuilder.h"
 #include "OgreOptimisedUtil.h"
-#include "OgreLogManager.h"
-#include "OgreRoot.h"
-#include "OgreSceneManager.h"
 
 namespace Ogre {
+    ShadowRenderable::ShadowRenderable(MovableObject* parent, const HardwareIndexBufferSharedPtr& indexBuffer,
+                                   const VertexData* vertexData, bool createSeparateLightCap,
+                                   bool isLightCap)
+    : mLightCap(0), mParent(parent)
+    {
+        // Initialise render op
+        mRenderOp.indexData = OGRE_NEW IndexData();
+        mRenderOp.indexData->indexBuffer = indexBuffer;
+        mRenderOp.indexData->indexStart = 0;
+        // index start and count are sorted out later
+
+        // Create vertex data which just references position component (and 2 component)
+        mRenderOp.vertexData = OGRE_NEW VertexData();
+        // Map in position data
+        mRenderOp.vertexData->vertexDeclaration->addElement(0,0,VET_FLOAT3, VES_POSITION);
+        ushort origPosBind =
+            vertexData->vertexDeclaration->findElementBySemantic(VES_POSITION)->getSource();
+        mPositionBuffer = vertexData->vertexBufferBinding->getBuffer(origPosBind);
+        mRenderOp.vertexData->vertexBufferBinding->setBinding(0, mPositionBuffer);
+        // Map in w-coord buffer (if present)
+        if(vertexData->hardwareShadowVolWBuffer)
+        {
+            mRenderOp.vertexData->vertexDeclaration->addElement(1,0,VET_FLOAT1, VES_TEXTURE_COORDINATES, 0);
+            mWBuffer = vertexData->hardwareShadowVolWBuffer;
+            mRenderOp.vertexData->vertexBufferBinding->setBinding(1, mWBuffer);
+        }
+        // Use same vertex start as input
+        mRenderOp.vertexData->vertexStart = vertexData->vertexStart;
+
+        if (isLightCap)
+        {
+            // Use original vertex count, no extrusion
+            mRenderOp.vertexData->vertexCount = vertexData->vertexCount;
+        }
+        else
+        {
+            // Vertex count must take into account the doubling of the buffer,
+            // because second half of the buffer is the extruded copy
+            mRenderOp.vertexData->vertexCount = vertexData->vertexCount * 2;
+
+            if (createSeparateLightCap)
+            {
+                // Create child light cap
+                mLightCap = OGRE_NEW ShadowRenderable(parent, indexBuffer, vertexData, false, true);
+            }
+        }
+    }
+    ShadowRenderable::~ShadowRenderable()
+    {
+        delete mLightCap;
+        delete mRenderOp.indexData;
+        delete mRenderOp.vertexData;
+    }
+    void ShadowRenderable::rebindIndexBuffer(const HardwareIndexBufferSharedPtr& indexBuffer)
+    {
+        mRenderOp.indexData->indexBuffer = indexBuffer;
+        if (mLightCap) mLightCap->rebindIndexBuffer(indexBuffer);
+    }
+    void ShadowRenderable::getWorldTransforms(Matrix4* xform) const
+    {
+        *xform = mParent->_getParentNodeFullTransform();
+    }
     const LightList& ShadowRenderable::getLights(void) const 
     {
         // return empty
         static LightList ll;
         return ll;
     }
+    //-----------------------------------------------------------------------
+    const ShadowRenderableList& ShadowCaster::getShadowVolumeRenderableList(
+        const Light* light, const HardwareIndexBufferPtr& indexBuffer, size_t& indexBufferUsedSize,
+        float extrusionDist, int flags)
+    {
+        static ShadowRenderableList dummyList;
+        return dummyList;
+    }
+    //-----------------------------------------------------------------------
+    const AxisAlignedBox& ShadowCaster::getDarkCapBounds(const Light& light, Real extrusionDist) const
+    {
+        // Extrude own light cap bounds
+        mWorldDarkCapBounds = getLightCapBounds();
+        extrudeBounds(mWorldDarkCapBounds, light.getAs4DVector(), extrusionDist);
+        return mWorldDarkCapBounds;
+    }
     // ------------------------------------------------------------------------
     void ShadowCaster::clearShadowRenderableList(ShadowRenderableList& shadowRenderables)
     {
-        for(ShadowRenderableList::iterator si = shadowRenderables.begin(), siend = shadowRenderables.end(); si != siend; ++si)
+        for(auto & shadowRenderable : shadowRenderables)
         {
-            OGRE_DELETE *si;
-            *si = 0;
+            OGRE_DELETE shadowRenderable;
+            shadowRenderable = 0;
         }
         shadowRenderables.clear();
     }
@@ -55,6 +129,63 @@ namespace Ogre {
         const Vector4& lightPos)
     {
         edgeData->updateTriangleLightFacing(lightPos);
+    }
+    // ------------------------------------------------------------------------
+    static bool isBoundOkForMcGuire(const AxisAlignedBox& lightCapBounds, const Ogre::Vector3& lightPosition)
+    {
+        // If light position is inside light cap bound then extrusion could be in opposite directions
+        // and McGuire cap could intersect near clip plane of camera frustum without being noticed
+        if(lightCapBounds.contains(lightPosition))
+            return false;
+
+        // If angular size of object is too high then extrusion could be in almost opposite directions,
+        // interpolated points would be extruded by shorter distance, and strange geometry of McGuire cap
+        // could be visible even for well tesselated meshes. As a heuristic we will avoid McGuire cap if
+        // angular size is larger than 60 degrees - it guarantees that interpolated points would be
+        // extruded by at least cos(60deg/2) ~ 86% of the original extrusion distance.
+        if(lightCapBounds.getHalfSize().length() / (lightCapBounds.getCenter() - lightPosition).length() > 0.5) // if boundingSphereAngularSize > 60deg
+        {
+            // Calculate angular size one more time using edge corners angular distance comparision,
+            // Determine lit sides of the bound, store in mask
+            enum { L = 1, R = 2, B = 4, T = 8, F = 16, N = 32 }; // left, right, bottom, top, far, near
+            unsigned lightSidesMask = 
+                (lightPosition.x < lightCapBounds.getMinimum().x ? L : 0) | // left
+                (lightPosition.x > lightCapBounds.getMaximum().x ? R : 0) | // right
+                (lightPosition.y < lightCapBounds.getMinimum().y ? B : 0) | // bottom
+                (lightPosition.y > lightCapBounds.getMaximum().y ? T : 0) | // top
+                (lightPosition.z < lightCapBounds.getMinimum().z ? F : 0) | // far
+                (lightPosition.z > lightCapBounds.getMaximum().z ? N : 0);  // near
+            
+            // find corners on lit/unlit edge (should not be more than 6 simultaneously, but better be safe than sorry)
+            Ogre::Vector3 edgeCorners[8]; 
+            unsigned edgeCornersCount = 0;
+            std::pair<unsigned, AxisAlignedBox::CornerEnum> cornerMap[8] = {
+                { F|L|B, AxisAlignedBox::FAR_LEFT_BOTTOM }, { F|R|B, AxisAlignedBox::FAR_RIGHT_BOTTOM },
+                { F|L|T, AxisAlignedBox::FAR_LEFT_TOP },    { F|R|T, AxisAlignedBox::FAR_RIGHT_TOP },
+                { N|L|B, AxisAlignedBox::NEAR_LEFT_BOTTOM },{ N|R|B, AxisAlignedBox::NEAR_RIGHT_BOTTOM },
+                { N|L|T, AxisAlignedBox::NEAR_LEFT_TOP },   { N|R|T, AxisAlignedBox::NEAR_RIGHT_TOP }};
+            for(auto& c : cornerMap)
+                if((lightSidesMask & c.first) != 0 && (lightSidesMask & c.first) != c.first) // if adjacent sides not all lit or all unlit
+                    edgeCorners[edgeCornersCount++] = lightCapBounds.getCorner(c.second);
+            
+            // find max angular size in range [0..pi] by finding min cos of angular size, range [1..-1]
+            Real cosAngle = 1.0;
+            for(unsigned i0 = 0; i0 + 1 < edgeCornersCount; ++i0)
+                for(unsigned i1 = i0 + 1; i1 < edgeCornersCount; ++i1)
+                {
+                    // 4~6 edge corners, 6~15 angular distance calculations
+                    Vector3 a = (edgeCorners[i0] - lightPosition).normalisedCopy();
+                    Vector3 b = (edgeCorners[i1] - lightPosition).normalisedCopy();
+                    Real cosAB = a.dotProduct(b);
+                    if(cosAngle > cosAB)
+                        cosAngle  = cosAB;
+                }
+            
+            if(cosAngle < 0.5) // angularSize > 60 degrees
+                return false;
+        }
+
+        return true;
     }
     // ------------------------------------------------------------------------
     void ShadowCaster::generateShadowVolume(EdgeData* edgeData, 
@@ -68,30 +199,21 @@ namespace Ogre {
 
         // Whether to use the McGuire method, a triangle fan covering all silhouette
         // This won't work properly with multiple separate edge groups (should be one fan per group, not implemented)
-        // or when light position is inside light cap bound as extrusion could be in opposite directions
-        // and McGuire cap could intersect near clip plane of camera frustum without being noticed.
+        // or when light position is too close to light cap bound.
         bool useMcGuire = edgeData->edgeGroups.size() <= 1 && 
-            (lightType == Light::LT_DIRECTIONAL || !getLightCapBounds().contains(light->getDerivedPosition()));
-        EdgeData::EdgeGroupList::const_iterator egi, egiend;
+            (lightType == Light::LT_DIRECTIONAL || isBoundOkForMcGuire(getLightCapBounds(), light->getDerivedPosition()));
         ShadowRenderableList::const_iterator si;
 
         // pre-count the size of index data we need since it makes a big perf difference
         // to GL in particular if we lock a smaller area of the index buffer
-        size_t preCountIndexes = 0;
+        uint32 preCountIndexes = 0;
 
         si = shadowRenderables.begin();
-        egiend = edgeData->edgeGroups.end();
-        for (egi = edgeData->edgeGroups.begin(); egi != egiend; ++egi, ++si)
+        for (auto& eg : edgeData->edgeGroups)
         {
-            const EdgeData::EdgeGroup& eg = *egi;
             bool  firstDarkCapTri = true;
-
-            EdgeData::EdgeList::const_iterator i, iend;
-            iend = eg.edges.end();
-            for (i = eg.edges.begin(); i != iend; ++i)
+            for (auto& edge :  eg.edges)
             {
-                const EdgeData::Edge& edge = *i;
-
                 // Silhouette edge, when two tris has opposite light facing, or
                 // degenerate edge where only tri 1 is valid and the tri light facing
                 char lightFacing = edgeData->triangleLightFacings[edge.triIndex[0]];
@@ -173,16 +295,17 @@ namespace Ogre {
                     }
                 }
             }
+            ++si;
         }
         // End pre-count
         
         //Check if index buffer is to small 
         if (preCountIndexes > indexBuffer->getNumIndexes())
         {
-            LogManager::getSingleton().logMessage(LML_CRITICAL, 
-                String("Warning: shadow index buffer size to small. Auto increasing buffer size to") + 
+            LogManager::getSingleton().logWarning(
+                "shadow index buffer size to small. Auto increasing buffer size to" +
                 StringConverter::toString(sizeof(unsigned short) * preCountIndexes));
-            
+
             SceneManager* pManager = Root::getSingleton()._getCurrentSceneManager();
             if (pManager)
             {
@@ -204,18 +327,17 @@ namespace Ogre {
         }
 
         // Lock index buffer for writing, just enough length as we need
-        unsigned short* pIdx = static_cast<unsigned short*>(
-            indexBuffer->lock(sizeof(unsigned short) * indexBufferUsedSize, sizeof(unsigned short) * preCountIndexes,
-            indexBufferUsedSize == 0 ? HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NO_OVERWRITE));
-        size_t numIndices = indexBufferUsedSize;
+        HardwareBufferLockGuard indexLock(indexBuffer,
+            sizeof(unsigned short) * indexBufferUsedSize, sizeof(unsigned short) * preCountIndexes,
+            indexBufferUsedSize == 0 ? HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NO_OVERWRITE);
+        unsigned short* pIdx = static_cast<unsigned short*>(indexLock.pData);
+        uint32 numIndices = indexBufferUsedSize;
         
         // Iterate over the groups and form renderables for each based on their
         // lightFacing
         si = shadowRenderables.begin();
-        egiend = edgeData->edgeGroups.end();
-        for (egi = edgeData->edgeGroups.begin(); egi != egiend; ++egi, ++si)
+        for (auto& eg : edgeData->edgeGroups)
         {
-            const EdgeData::EdgeGroup& eg = *egi;
             // Initialise the index start for this shadow renderable
             IndexData* indexData = (*si)->getRenderOperationForUpdate()->indexData;
 
@@ -227,24 +349,20 @@ namespace Ogre {
 
             indexData->indexStart = numIndices;
             // original number of verts (without extruded copy)
-            size_t originalVertexCount = eg.vertexData->vertexCount;
+            uint32 originalVertexCount = eg.vertexData->vertexCount;
             bool  firstDarkCapTri = true;
             unsigned short darkCapStart = 0;
 
-            EdgeData::EdgeList::const_iterator i, iend;
-            iend = eg.edges.end();
-            for (i = eg.edges.begin(); i != iend; ++i)
+            for (auto& edge : eg.edges)
             {
-                const EdgeData::Edge& edge = *i;
-
                 // Silhouette edge, when two tris has opposite light facing, or
                 // degenerate edge where only tri 1 is valid and the tri light facing
                 char lightFacing = edgeData->triangleLightFacings[edge.triIndex[0]];
                 if ((edge.degenerate && lightFacing) ||
                     (!edge.degenerate && (lightFacing != edgeData->triangleLightFacings[edge.triIndex[1]])))
                 {
-                    size_t v0 = edge.vertIndex[0];
-                    size_t v1 = edge.vertIndex[1];
+                    uint32 v0 = edge.vertIndex[0];
+                    uint32 v1 = edge.vertIndex[1];
                     if (!lightFacing)
                     {
                         // Inverse edge indexes when t1 is light away
@@ -384,10 +502,8 @@ namespace Ogre {
             // update index count for current index data (either this shadow renderable or its light cap)
             indexData->indexCount = numIndices - indexData->indexStart;
 
+            ++si;
         }
-
-        // Unlock index buffer
-        indexBuffer->unlock();
 
         // In debug mode, check we didn't overrun the index buffer
         assert(numIndices == indexBufferUsedSize + preCountIndexes);
@@ -409,8 +525,8 @@ namespace Ogre {
         // Lock the entire buffer for writing, even though we'll only be
         // updating the latter because you can't have 2 locks on the same
         // buffer
-        float* pSrc = static_cast<float*>(
-            vertexBuffer->lock(HardwareBuffer::HBL_NORMAL));
+        HardwareBufferLockGuard vertexLock(vertexBuffer, HardwareBuffer::HBL_NORMAL);
+        float* pSrc = static_cast<float*>(vertexLock.pData);
 
         // TODO: We should add extra (ununsed) vertices ensure source and
         // destination buffer have same alignment for slight performance gain.
@@ -419,9 +535,6 @@ namespace Ogre {
         OptimisedUtil::getImplementation()->extrudeVertices(
             light, extrudeDist,
             pSrc, pDest, originalVertexCount);
-
-        vertexBuffer->unlock();
-
     }
     // ------------------------------------------------------------------------
     void ShadowCaster::extrudeBounds(AxisAlignedBox& box, const Vector4& light, Real extrudeDist) const
@@ -496,11 +609,4 @@ namespace Ogre {
         }
 
     }
-    // ------------------------------------------------------------------------
-    Real ShadowCaster::getExtrusionDistance(const Vector3& objectPos, const Light* light) const
-    {
-        Vector3 diff = objectPos - light->getDerivedPosition();
-        return light->getAttenuationRange() - diff.length();
-    }
-
 }

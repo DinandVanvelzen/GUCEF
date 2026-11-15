@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include "OgreMatrix4.h"
 #include "OgreMaterial.h"
 #include "OgrePlane.h"
-#include "OgreVector4.h"
+#include "OgreVector.h"
 #include "OgreException.h"
 #include "OgreUserObjectBindings.h"
 #include "OgreHeaderPrefix.h"
@@ -50,7 +50,7 @@ namespace Ogre {
     *  @{
     */
     /** Abstract class defining the interface all renderable objects must implement.
-    @remarks
+
         This interface abstracts renderable discrete objects which will be queued in the render pipeline,
         grouped by material. Classes implementing this interface must be based on a single material, a single
         world matrix (or a collection of world matrices which are blended by weights), and must be 
@@ -63,36 +63,38 @@ namespace Ogre {
     class _OgreExport Renderable
     {
     public:
-        /** An internal class that should be used only by a render system for internal use 
-        @remarks
-            This class was created so a render system can associate internal data to this class.
-            The need for this class started when the DX10 render system needed to save state objects.
-        */
-        class RenderSystemData {}; 
-        typedef SharedPtr<RenderSystemData> RenderSystemDataPtr;
-        
-    public:
-        Renderable() : mPolygonModeOverrideable(true), mUseIdentityProjection(false), mUseIdentityView(false){}
+        enum
+        {
+            DEFAULT_PRIORITY = 100
+        };
+
+        Renderable()
+            : mMaterialLodIndex(0), mPolygonModeOverrideable(true), mUseIdentityProjection(false),
+              mUseIdentityView(false)
+        {
+        }
         /** Virtual destructor needed as class has virtual methods. */
         virtual ~Renderable() {}
         /** Retrieves a weak reference to the material this renderable object uses.
-        @remarks
+
             Note that the Renderable also has the option to override the getTechnique method
             to specify a particular Technique to use instead of the best one available.
         */
         virtual const MaterialPtr& getMaterial(void) const = 0;
         /** Retrieves a pointer to the Material Technique this renderable object uses.
-        @remarks
+
             This is to allow Renderables to use a chosen Technique if they wish, otherwise
             they will use the best Technique available for the Material they are using.
         */
-        virtual Technique* getTechnique(void) const { return getMaterial()->getBestTechnique(0, this); }
+        virtual Technique* getTechnique(void) const { return getMaterial()->getBestTechnique(mMaterialLodIndex, this); }
         /** Gets the render operation required to send this object to the frame buffer.
         */
         virtual void getRenderOperation(RenderOperation& op) = 0;
 
+        uint16 _getMaterialLodIndex() const { return mMaterialLodIndex; }
+
         /** Called just prior to the Renderable being rendered. 
-        @remarks
+
             OGRE is a queued renderer, so the actual render commands are executed 
             at a later time than the point at which an object is discovered to be
             visible. This allows ordering & grouping of renders without the discovery
@@ -124,31 +126,37 @@ namespace Ogre {
                 { (void)sm; (void)rsys; }
 
         /** Gets the world transform matrix / matrices for this renderable object.
-        @remarks
+
             If the object has any derived transforms, these are expected to be up to date as long as
             all the SceneNode structures have been updated before this is called.
-        @par
-            This method will populate transform with 1 matrix if it does not use vertex blending. If it
-            does use vertex blending it will fill the passed in pointer with an array of matrices,
-            the length being the value returned from getNumWorldTransforms.
+
         @note
             Internal Ogre never supports non-affine matrix for world transform matrix/matrices,
-            the behavior is undefined if returns non-affine matrix here. @see Matrix4::isAffine.
+            the behavior is undefined if returns non-affine matrix here.
+
+            This method will populate transform with 1 matrix if it does not use GPU vertex blending. If it
+            does use GPU vertex blending it will fill the passed in pointer with an array of matrices,
+            the length being the value returned from @ref getNumWorldTransforms.
+
+        @note If @ref MeshManager::getBonesUseObjectSpace() is true, the first matrix must contain the world
+            transform of the object, and the rest of the matrices must contain the bone transforms in object space.
         */
         virtual void getWorldTransforms(Matrix4* xform) const = 0;
 
         /** Returns the number of world transform matrices this renderable requires.
-        @remarks
-            When a renderable uses vertex blending, it uses multiple world matrices instead of a single
+
+            When a renderable uses GPU vertex blending, it uses multiple world matrices instead of a single
             one. Each vertex sent to the pipeline can reference one or more matrices in this list
             with given weights.
             If a renderable does not use vertex blending this method returns 1, which is the default for 
             simplicity.
+            @note If @ref MeshManager::getBonesUseObjectSpace() is true, this method must return
+            numBones + 1
         */
-        virtual unsigned short getNumWorldTransforms(void) const { return 1; }
+        virtual uint16 getNumWorldTransforms(void) const { return 1; }
 
         /** Sets whether or not to use an 'identity' projection.
-        @remarks
+
             Usually Renderable objects will use a projection matrix as determined
             by the active camera. However, if they want they can cancel this out
             and use an identity projection, which effectively projects in 2D using
@@ -162,7 +170,7 @@ namespace Ogre {
         }
 
         /** Returns whether or not to use an 'identity' projection.
-        @remarks
+
             Usually Renderable objects will use a projection matrix as determined
             by the active camera. However, if they want they can cancel this out
             and use an identity projection, which effectively projects in 2D using
@@ -173,7 +181,7 @@ namespace Ogre {
         bool getUseIdentityProjection(void) const { return mUseIdentityProjection; }
 
         /** Sets whether or not to use an 'identity' view.
-        @remarks
+
             Usually Renderable objects will use a view matrix as determined
             by the active camera. However, if they want they can cancel this out
             and use an identity matrix, which means all geometry is assumed
@@ -187,7 +195,7 @@ namespace Ogre {
         }
 
         /** Returns whether or not to use an 'identity' view.
-        @remarks
+
             Usually Renderable objects will use a view matrix as determined
             by the active camera. However, if they want they can cancel this out
             and use an identity matrix, which means all geometry is assumed
@@ -197,22 +205,22 @@ namespace Ogre {
         */
         bool getUseIdentityView(void) const { return mUseIdentityView; }
 
-        /** Returns the camera-relative squared depth of this renderable.
-        @remarks
-            Used to sort transparent objects. Squared depth is used rather than
-            actual depth to avoid having to perform a square root on the result.
+        /** Returns the squared distance between the camera and this renderable.
+
+            Used to sort transparent objects. Squared distance is used
+            to avoid having to perform a square root on the result.
         */
         virtual Real getSquaredViewDepth(const Camera* cam) const = 0;
 
         /** Gets a list of lights, ordered relative to how close they are to this renderable.
-        @remarks
+
             Directional lights, which have no position, will always be first on this list.
         */
         virtual const LightList& getLights(void) const = 0;
 
         /** Method which reports whether this renderable would normally cast a
             shadow. 
-        @remarks
+
             Subclasses should override this if they could have been used to 
             generate a shadow.
         */
@@ -220,7 +228,7 @@ namespace Ogre {
 
         /** Sets a custom parameter for this Renderable, which may be used to 
             drive calculations for this specific Renderable, like GPU program parameters.
-        @remarks
+
             Calling this method simply associates a numeric index with a 4-dimensional
             value for this specific Renderable. This is most useful if the material
             which this Renderable uses a vertex or fragment program, and has an 
@@ -233,51 +241,29 @@ namespace Ogre {
             two is performed by the ACT_CUSTOM entry, if that is used.
         @param value The value to associate.
         */
-        void setCustomParameter(size_t index, const Vector4& value) 
-        {
-            mCustomParameters[index] = value;
-        }
+        void setCustomParameter(size_t index, const Vector4f& value);
 
         /** Removes a custom value which is associated with this Renderable at the given index.
         @param index Index of the parameter to remove.
             @see setCustomParameter for full details.
         */
-        void removeCustomParameter(size_t index)
-        {
-            mCustomParameters.erase(index);
-        }
+        void removeCustomParameter(size_t index);
 
         /** Checks whether a custom value is associated with this Renderable at the given index.
         @param index Index of the parameter to check for existence.
             @see setCustomParameter for full details.
         */
-        bool hasCustomParameter(size_t index) const
-        {
-            return mCustomParameters.find(index) != mCustomParameters.end();
-        }
+        bool hasCustomParameter(size_t index) const;
 
         /** Gets the custom value associated with this Renderable at the given index.
         @param index Index of the parameter to retrieve.
             @see setCustomParameter for full details.
         */
-        const Vector4& getCustomParameter(size_t index) const
-        {
-            CustomParameterMap::const_iterator i = mCustomParameters.find(index);
-            if (i != mCustomParameters.end())
-            {
-                return i->second;
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                    "Parameter at the given index was not found.",
-                    "Renderable::getCustomParameter");
-            }
-        }
+        const Vector4f& getCustomParameter(size_t index) const;
 
         /** Update a custom GpuProgramParameters constant which is derived from 
             information only this Renderable knows.
-        @remarks
+
             This method allows a Renderable to map in a custom GPU program parameter
             based on it's own data. This is represented by a GPU auto parameter
             of ACT_CUSTOM, and to allow there to be more than one of these per
@@ -299,24 +285,15 @@ namespace Ogre {
         @param params The parameters object which this method should call to 
             set the updated parameters.
         */
-        virtual void _updateCustomGpuParameter(
-            const GpuProgramParameters::AutoConstantEntry& constantEntry,
-            GpuProgramParameters* params) const
-        {
-            CustomParameterMap::const_iterator i = mCustomParameters.find(constantEntry.data);
-            if (i != mCustomParameters.end())
-            {
-                params->_writeRawConstant(constantEntry.physicalIndex, i->second, 
-                    constantEntry.elementCount);
-            }
-        }
+        virtual void _updateCustomGpuParameter(const GpuProgramParameters::AutoConstantEntry& constantEntry,
+                                               GpuProgramParameters* params) const;
 
         /** Sets whether this renderable's chosen detail level can be
             overridden (downgraded) by the camera setting. 
         @param override true means that a lower camera detail will override this
             renderables detail level, false means it won't.
         */
-        virtual void setPolygonModeOverrideable(bool override)
+        void setPolygonModeOverrideable(bool override)
         {
             mPolygonModeOverrideable = override;
         }
@@ -324,41 +301,29 @@ namespace Ogre {
         /** Gets whether this renderable's chosen detail level can be
             overridden (downgraded) by the camera setting. 
         */
-        virtual bool getPolygonModeOverrideable(void) const
+        bool getPolygonModeOverrideable(void) const
         {
             return mPolygonModeOverrideable;
         }
 
         /** @deprecated use UserObjectBindings::setUserAny via getUserObjectBindings() instead.
-            Sets any kind of user value on this object.
-        @remarks
-            This method allows you to associate any user value you like with 
-            this Renderable. This can be a pointer back to one of your own
-            classes for instance.
         */
-        OGRE_DEPRECATED virtual void setUserAny(const Any& anything) { getUserObjectBindings().setUserAny(anything); }
+        OGRE_DEPRECATED void setUserAny(const Any& anything) { getUserObjectBindings().setUserAny(anything); }
 
         /** @deprecated use UserObjectBindings::getUserAny via getUserObjectBindings() instead.
-            Retrieves the custom user value associated with this object.
         */
-        OGRE_DEPRECATED virtual const Any& getUserAny(void) const { return getUserObjectBindings().getUserAny(); }
+        OGRE_DEPRECATED const Any& getUserAny(void) const { return getUserObjectBindings().getUserAny(); }
 
-        /** Return an instance of user objects binding associated with this class.
-            You can use it to associate one or more custom objects with this class instance.
-        @see UserObjectBindings::setUserAny.
-        */
+        /// @copydoc UserObjectBindings
         UserObjectBindings& getUserObjectBindings() { return mUserObjectBindings; }
 
-        /** Return an instance of user objects binding associated with this class.
-            You can use it to associate one or more custom objects with this class instance.
-        @see UserObjectBindings::setUserAny.
-        */
+        /// @overload
         const UserObjectBindings& getUserObjectBindings() const { return mUserObjectBindings; }
 
 
         /** Visitor object that can be used to iterate over a collection of Renderable
             instances abstractly.
-        @remarks
+
             Different scene objects use Renderable differently; some will have a 
             single Renderable, others will have many. This visitor interface allows
             classes using Renderable to expose a clean way for external code to
@@ -387,32 +352,14 @@ namespace Ogre {
                 Any* pAny = 0) = 0;
         };
 
-        /** Gets RenderSystem private data
-        @remarks
-            This should only be used by a RenderSystem
-        */
-        virtual const RenderSystemDataPtr& getRenderSystemData() const 
-        { 
-            return mRenderSystemData; 
-        }
-        /** Sets RenderSystem private data
-        @remarks
-            This should only be used by a RenderSystem
-        */
-        virtual void setRenderSystemData(RenderSystemDataPtr val) const
-        { 
-            mRenderSystemData = val; 
-        }
-
-
     protected:
-        typedef map<size_t, Vector4>::type CustomParameterMap;
+        typedef std::map<size_t, Vector4f> CustomParameterMap;
         CustomParameterMap mCustomParameters;
+        UserObjectBindings mUserObjectBindings;      /// User objects binding.
+        uint16 mMaterialLodIndex;
         bool mPolygonModeOverrideable;
         bool mUseIdentityProjection;
         bool mUseIdentityView;
-        UserObjectBindings mUserObjectBindings;      /// User objects binding.
-        mutable RenderSystemDataPtr mRenderSystemData;/// This should be used only by a render system for internal use
     };
 
     /** @} */

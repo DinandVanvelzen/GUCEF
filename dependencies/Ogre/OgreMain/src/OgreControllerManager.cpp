@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreControllerManager.h"
 
-#include "OgreRoot.h"
 #include "OgrePredefinedControllers.h"
 
 namespace Ogre {
@@ -56,17 +55,17 @@ namespace Ogre {
         clearControllers();
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createController(
+    ControllerFloat* ControllerManager::createController(
         const ControllerValueRealPtr& src, const ControllerValueRealPtr& dest,
         const ControllerFunctionRealPtr& func)
     {
-        Controller<Real>* c = OGRE_NEW Controller<Real>(src, dest, func);
+        ControllerFloat* c = OGRE_NEW ControllerFloat(src, dest, func);
 
-        mControllers.insert(c);
+        mControllers.push_back(c);
         return c;
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createFrameTimePassthroughController(
+    ControllerFloat* ControllerManager::createFrameTimePassthroughController(
         const ControllerValueRealPtr& dest)
     {
         return createController(getFrameTimeSource(), dest, getPassthroughControllerFunction());
@@ -78,10 +77,10 @@ namespace Ogre {
         unsigned long thisFrameNumber = Root::getSingleton().getNextFrameNumber();
         if (thisFrameNumber != mLastFrameNumber)
         {
-            ControllerList::const_iterator ci;
-            for (ci = mControllers.begin(); ci != mControllers.end(); ++ci)
+            auto controllersCopy = mControllers;
+            for (auto *ci : controllersCopy)
             {
-                (*ci)->update();
+                ci->update();
             }
             mLastFrameNumber = thisFrameNumber;
         }
@@ -89,10 +88,9 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void ControllerManager::clearControllers(void)
     {
-        ControllerList::iterator ci;
-        for (ci = mControllers.begin(); ci != mControllers.end(); ++ci)
+        for (auto *ci : mControllers)
         {
-            OGRE_DELETE *ci;
+            OGRE_DELETE ci;
         }
         mControllers.clear();
     }
@@ -107,139 +105,113 @@ namespace Ogre {
         return mPassthroughFunction;
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureAnimator(TextureUnitState* layer, Real sequenceTime)
+    ControllerFloat* ControllerManager::createTextureAnimator(TextureUnitState* layer, Real sequenceTime)
     {
-        SharedPtr< ControllerValue<Real> > texVal(OGRE_NEW TextureFrameControllerValue(layer));
-        SharedPtr< ControllerFunction<Real> > animFunc(OGRE_NEW AnimationControllerFunction(sequenceTime));
-
-        return createController(mFrameTimeController, texVal, animFunc);
+        return createController(mFrameTimeController, TextureFrameControllerValue::create(layer),
+                                AnimationControllerFunction::create(sequenceTime));
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureUVScroller(TextureUnitState* layer, Real speed)
+    ControllerFloat* ControllerManager::createTextureUVScroller(TextureUnitState* layer, Real speed)
     {
-        Controller<Real>* ret = 0;
+        ControllerFloat* ret = 0;
 
         if (speed != 0)
         {
-            SharedPtr< ControllerValue<Real> > val;
-            SharedPtr< ControllerFunction<Real> > func;
-
             // We do both scrolls with a single controller
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, true, true));
             // Create function: use -speed since we're altering texture coords so they have reverse effect
-            func.bind(OGRE_NEW ScaleControllerFunction(-speed, true));
-            ret = createController(mFrameTimeController, val, func);
+            ret = createController(mFrameTimeController, TexCoordModifierControllerValue::create(layer, true, true),
+                                   ScaleControllerFunction::create(-speed, true));
         }
 
         return ret;
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureUScroller(TextureUnitState* layer, Real uSpeed)
+    ControllerFloat* ControllerManager::createTextureUScroller(TextureUnitState* layer, Real uSpeed)
     {
-        Controller<Real>* ret = 0;
+        ControllerFloat* ret = 0;
 
         if (uSpeed != 0)
         {
-            SharedPtr< ControllerValue<Real> > uVal;
-            SharedPtr< ControllerFunction<Real> > uFunc;
-
-                uVal.bind(OGRE_NEW TexCoordModifierControllerValue(layer, true));
             // Create function: use -speed since we're altering texture coords so they have reverse effect
-            uFunc.bind(OGRE_NEW ScaleControllerFunction(-uSpeed, true));
-            ret = createController(mFrameTimeController, uVal, uFunc);
+            ret = createController(mFrameTimeController, TexCoordModifierControllerValue::create(layer, true),
+                                   ScaleControllerFunction::create(-uSpeed, true));
         }
 
         return ret;
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureVScroller(TextureUnitState* layer, Real vSpeed)
+    ControllerFloat* ControllerManager::createTextureVScroller(TextureUnitState* layer, Real vSpeed)
     {
-        Controller<Real>* ret = 0;
+        ControllerFloat* ret = 0;
 
         if (vSpeed != 0)
         {
-            SharedPtr< ControllerValue<Real> > vVal;
-            SharedPtr< ControllerFunction<Real> > vFunc;
-
             // Set up a second controller for v scroll
-            vVal.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, true));
             // Create function: use -speed since we're altering texture coords so they have reverse effect
-            vFunc.bind(OGRE_NEW ScaleControllerFunction(-vSpeed, true));
-            ret = createController(mFrameTimeController, vVal, vFunc);
+            ret = createController(mFrameTimeController, TexCoordModifierControllerValue::create(layer, false, true),
+                                   ScaleControllerFunction::create(-vSpeed, true));
         }
 
         return ret;
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureRotater(TextureUnitState* layer, Real speed)
+    ControllerFloat* ControllerManager::createTextureRotater(TextureUnitState* layer, Real speed)
     {
-        SharedPtr< ControllerValue<Real> > val;
-        SharedPtr< ControllerFunction<Real> > func;
-
         // Target value is texture coord rotation
-        val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, false, false, false, true));
         // Function is simple scale (seconds * speed)
         // Use -speed since altering texture coords has the reverse visible effect
-        func.bind(OGRE_NEW ScaleControllerFunction(-speed, true));
-
-        return createController(mFrameTimeController, val, func);
-
+        return createController(mFrameTimeController,
+                                TexCoordModifierControllerValue::create(layer, false, false, false, false, true),
+                                ScaleControllerFunction::create(-speed, true));
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createTextureWaveTransformer(TextureUnitState* layer,
+    ControllerFloat* ControllerManager::createTextureWaveTransformer(TextureUnitState* layer,
         TextureUnitState::TextureTransformType ttype, WaveformType waveType, Real base, Real frequency, Real phase, Real amplitude)
     {
-        SharedPtr< ControllerValue<Real> > val;
-        SharedPtr< ControllerFunction<Real> > func;
+        ControllerValueRealPtr val;
 
         switch (ttype)
         {
         case TextureUnitState::TT_TRANSLATE_U:
             // Target value is a u scroll
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, true));
+            val = TexCoordModifierControllerValue::create(layer, true);
             break;
         case TextureUnitState::TT_TRANSLATE_V:
             // Target value is a v scroll
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, true));
+            val = TexCoordModifierControllerValue::create(layer, false, true);
             break;
         case TextureUnitState::TT_SCALE_U:
             // Target value is a u scale
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, false, true));
+            val = TexCoordModifierControllerValue::create(layer, false, false, true);
             break;
         case TextureUnitState::TT_SCALE_V:
             // Target value is a v scale
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, false, false, true));
+            val = TexCoordModifierControllerValue::create(layer, false, false, false, true);
             break;
         case TextureUnitState::TT_ROTATE:
             // Target value is texture coord rotation
-            val.bind(OGRE_NEW TexCoordModifierControllerValue(layer, false, false, false, false, true));
+            val = TexCoordModifierControllerValue::create(layer, false, false, false, false, true);
             break;
         }
         // Create new wave function for alterations
-        func.bind(OGRE_NEW WaveformControllerFunction(waveType, base, frequency, phase, amplitude, true));
-
-        return createController(mFrameTimeController, val, func);
+        return createController(mFrameTimeController, val,
+                                WaveformControllerFunction::create(waveType, base, frequency, phase, amplitude, true));
     }
     //-----------------------------------------------------------------------
-    Controller<Real>* ControllerManager::createGpuProgramTimerParam(
+    ControllerFloat* ControllerManager::createGpuProgramTimerParam(
         GpuProgramParametersSharedPtr params, size_t paramIndex, Real timeFactor)
     {
-        SharedPtr< ControllerValue<Real> > val;
-        SharedPtr< ControllerFunction<Real> > func;
-
-        val.bind(OGRE_NEW FloatGpuParameterControllerValue(params, paramIndex));
-        func.bind(OGRE_NEW ScaleControllerFunction(timeFactor, true));
-
-        return createController(mFrameTimeController, val, func);
-
+        return createController(mFrameTimeController, FloatGpuParameterControllerValue::create(params, paramIndex),
+                                ScaleControllerFunction::create(timeFactor, true));
     }
     //-----------------------------------------------------------------------
-    void ControllerManager::destroyController(Controller<Real>* controller)
+    void ControllerManager::destroyController(ControllerFloat* controller)
     {
-        ControllerList::iterator i = mControllers.find(controller);
+        ControllerList::iterator i = std::find(mControllers.begin(), mControllers.end(), controller);
         if (i != mControllers.end())
         {
-            mControllers.erase(i);
+            std::swap(*i, mControllers.back());
+            mControllers.pop_back();
             OGRE_DELETE controller;
         }
     }
@@ -249,7 +221,7 @@ namespace Ogre {
     }
     //-----------------------------------------------------------------------
     void ControllerManager::setTimeFactor(Real tf) {
-        static_cast<FrameTimeControllerValue*>(mFrameTimeController.getPointer())->setTimeFactor(tf);
+        static_cast<FrameTimeControllerValue*>(mFrameTimeController.get())->setTimeFactor(tf);
     }
     //-----------------------------------------------------------------------
     Real ControllerManager::getFrameDelay(void) const {
@@ -257,7 +229,7 @@ namespace Ogre {
     }
     //-----------------------------------------------------------------------
     void ControllerManager::setFrameDelay(Real fd) {
-        static_cast<FrameTimeControllerValue*>(mFrameTimeController.getPointer())->setFrameDelay(fd);
+        static_cast<FrameTimeControllerValue*>(mFrameTimeController.get())->setFrameDelay(fd);
     }
     //-----------------------------------------------------------------------
     Real ControllerManager::getElapsedTime(void) const

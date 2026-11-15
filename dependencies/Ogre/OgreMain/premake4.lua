@@ -23,30 +23,22 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "EMSCRIPTEN" } )
+
+
+configuration( { EMSCRIPTEN } )
+kind( "StaticLib" )
 
 
 configuration( {} )
 kind( "SharedLib" )
 
-configuration( {} )
-links( { "freetype" } )
-links( { "freetype" } )
-
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "OGRE_NONCLIENT_BUILD", "OGRE_NO_CONFIG_DIALOG" } )
-  links( { "atomic", "dl" } )
-  links( { "atomic", "dl" } )
-  links( { "atomic", "dl" } )
-  
-
-configuration( { LINUX32 } )
-defines( { "_GNU_SOURCE" } )
-  links( { "atomic", "dl" } )
-  
-
-configuration( { LINUX64 } )
-defines( { "_GNU_SOURCE" } )
+defines( { "MINIZ_NO_STDIO", "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "MODULE_SEMVER=14_6_3_0", "OgreMain_EXPORTS" } )
+  links( { "android", "atomic", "dl", "log" } )
+  links( { "atomic", "dl", "pthread" } )
+  links( { "atomic", "dl", "pthread" } )
 
 
 configuration( {} )
@@ -62,7 +54,6 @@ files( {
   "include/OgreArchive.h",
   "include/OgreArchiveFactory.h",
   "include/OgreArchiveManager.h",
-  "include/OgreAtomicObject.h",
   "include/OgreAtomicScalar.h",
   "include/OgreAutoParamDataSource.h",
   "include/OgreAxisAlignedBox.h",
@@ -93,19 +84,19 @@ files( {
   "include/OgreControllerManager.h",
   "include/OgreConvexBody.h",
   "include/OgreCustomCompositionPass.h",
-  "include/OgreDDSCodec.h",
   "include/OgreDataStream.h",
+  "include/OgreDefaultDebugDrawer.h",
   "include/OgreDefaultHardwareBufferManager.h",
+  "include/OgreDefaultWorkQueue.h",
   "include/OgreDeflate.h",
+  "include/OgreDeprecated.h",
   "include/OgreDepthBuffer.h",
   "include/OgreDistanceLodStrategy.h",
   "include/OgreDualQuaternion.h",
   "include/OgreDynLib.h",
   "include/OgreDynLibManager.h",
-  "include/OgreETCCodec.h",
   "include/OgreEdgeListBuilder.h",
   "include/OgreEntity.h",
-  "include/OgreErrorDialog.h",
   "include/OgreException.h",
   "include/OgreExternalTextureSource.h",
   "include/OgreExternalTextureSourceManager.h",
@@ -113,7 +104,6 @@ files( {
   "include/OgreFileSystem.h",
   "include/OgreFileSystemLayer.h",
   "include/OgreFrameListener.h",
-  "include/OgreFreeImageCodec.h",
   "include/OgreFrustum.h",
   "include/OgreGpuProgram.h",
   "include/OgreGpuProgramManager.h",
@@ -131,8 +121,6 @@ files( {
   "include/OgreHeaderSuffix.h",
   "include/OgreHighLevelGpuProgram.h",
   "include/OgreHighLevelGpuProgramManager.h",
-  "include/OgreId.h",
-  "include/OgreIdString.h",
   "include/OgreImage.h",
   "include/OgreImageCodec.h",
   "include/OgreInstanceBatch.h",
@@ -142,8 +130,6 @@ files( {
   "include/OgreInstanceBatchVTF.h",
   "include/OgreInstanceManager.h",
   "include/OgreInstancedEntity.h",
-  "include/OgreInstancedGeometry.h",
-  "include/OgreIteratorRange.h",
   "include/OgreIteratorWrapper.h",
   "include/OgreIteratorWrappers.h",
   "include/OgreKeyFrame.h",
@@ -160,33 +146,21 @@ files( {
   "include/OgreMath.h",
   "include/OgreMatrix3.h",
   "include/OgreMatrix4.h",
-  "include/OgreMemoryAllocatedObject.h",
   "include/OgreMemoryAllocatorConfig.h",
-  "include/OgreMemoryNedAlloc.h",
-  "include/OgreMemoryNedPooling.h",
-  "include/OgreMemorySTLAllocator.h",
-  "include/OgreMemoryStdAlloc.h",
-  "include/OgreMemoryTracker.h",
   "include/OgreMesh.h",
-  "include/OgreMeshFileFormat.h",
   "include/OgreMeshManager.h",
   "include/OgreMeshSerializer.h",
-  "include/OgreMeshSerializerImpl.h",
   "include/OgreMovableObject.h",
   "include/OgreMovablePlane.h",
+  "include/OgreMurmurHash3.h",
   "include/OgreNameGenerator.h",
   "include/OgreNode.h",
-  "include/OgreNumerics.h",
   "include/OgreOptimisedUtil.h",
-  "include/OgrePOSIXTimerImp.h",
-  "include/OgrePVRTCCodec.h",
   "include/OgreParticle.h",
   "include/OgreParticleAffector.h",
   "include/OgreParticleAffectorFactory.h",
   "include/OgreParticleEmitter.h",
-  "include/OgreParticleEmitterCommands.h",
   "include/OgreParticleEmitterFactory.h",
-  "include/OgreParticleIterator.h",
   "include/OgreParticleSystem.h",
   "include/OgreParticleSystemManager.h",
   "include/OgreParticleSystemRenderer.h",
@@ -195,7 +169,6 @@ files( {
   "include/OgrePatchSurface.h",
   "include/OgrePixelCountLodStrategy.h",
   "include/OgrePixelFormat.h",
-  "include/OgrePixelFormatDescriptions.h",
   "include/OgrePlane.h",
   "include/OgrePlaneBoundedVolume.h",
   "include/OgrePlatform.h",
@@ -204,17 +177,14 @@ files( {
   "include/OgrePolygon.h",
   "include/OgrePose.h",
   "include/OgrePredefinedControllers.h",
-  "include/OgrePrefabFactory.h",
   "include/OgrePrerequisites.h",
   "include/OgreProfiler.h",
   "include/OgreQuaternion.h",
-  "include/OgreRadixSort.h",
   "include/OgreRay.h",
   "include/OgreRectangle2D.h",
   "include/OgreRenderObjectListener.h",
   "include/OgreRenderOperation.h",
   "include/OgreRenderQueue.h",
-  "include/OgreRenderQueueInvocation.h",
   "include/OgreRenderQueueListener.h",
   "include/OgreRenderQueueSortingGrouping.h",
   "include/OgreRenderSystem.h",
@@ -234,17 +204,12 @@ files( {
   "include/OgreRibbonTrail.h",
   "include/OgreRoot.h",
   "include/OgreRotationalSpline.h",
-  "include/OgreSTBICodec.h",
   "include/OgreSceneManager.h",
-  "include/OgreSceneManagerEnumerator.h",
   "include/OgreSceneNode.h",
   "include/OgreSceneQuery.h",
   "include/OgreScriptCompiler.h",
-  "include/OgreScriptLexer.h",
   "include/OgreScriptLoader.h",
-  "include/OgreScriptParser.h",
   "include/OgreScriptTranslator.h",
-  "include/OgreSearchOps.h",
   "include/OgreSerializer.h",
   "include/OgreShadowCameraSetup.h",
   "include/OgreShadowCameraSetupFocused.h",
@@ -252,8 +217,6 @@ files( {
   "include/OgreShadowCameraSetupPSSM.h",
   "include/OgreShadowCameraSetupPlaneOptimal.h",
   "include/OgreShadowCaster.h",
-  "include/OgreShadowTextureManager.h",
-  "include/OgreShadowVolumeExtrudeProgram.h",
   "include/OgreSharedPtr.h",
   "include/OgreSimpleRenderable.h",
   "include/OgreSimpleSpline.h",
@@ -264,9 +227,6 @@ files( {
   "include/OgreSkeletonManager.h",
   "include/OgreSkeletonSerializer.h",
   "include/OgreSphere.h",
-  "include/OgreSpotShadowFadePng.h",
-  "include/OgreStableHeaders.h",
-  "include/OgreStaticFaceGroup.h",
   "include/OgreStaticGeometry.h",
   "include/OgreStdHeaders.h",
   "include/OgreStreamSerialiser.h",
@@ -283,43 +243,53 @@ files( {
   "include/OgreTextureManager.h",
   "include/OgreTextureUnitState.h",
   "include/OgreTimer.h",
-  "include/OgreUTFString.h",
-  "include/OgreUnifiedHighLevelGpuProgram.h",
   "include/OgreUserObjectBindings.h",
+  "include/OgreVector.h",
   "include/OgreVector2.h",
   "include/OgreVector3.h",
   "include/OgreVector4.h",
   "include/OgreVertexBoneAssignment.h",
   "include/OgreVertexIndexData.h",
   "include/OgreViewport.h",
-  "include/OgreWindowEventUtilities.h",
   "include/OgreWireBoundingBox.h",
   "include/OgreWorkQueue.h",
   "include/OgreZip.h",
-  "include/asm_math.h",
-  "include/Hash/MurmurHash3.h",
-  "include/Threading/OgreBarrier.h",
-  "include/Threading/OgreDefaultWorkQueue.h",
-  "include/Threading/OgreDefaultWorkQueueStandard.h",
-  "include/Threading/OgreDefaultWorkQueueTBB.h",
-  "include/Threading/OgreLightweightMutex.h",
   "include/Threading/OgreThreadDefines.h",
   "include/Threading/OgreThreadDefinesBoost.h",
   "include/Threading/OgreThreadDefinesNone.h",
   "include/Threading/OgreThreadDefinesPoco.h",
-  "include/Threading/OgreThreadDefinesTBB.h",
+  "include/Threading/OgreThreadDefinesSTD.h",
   "include/Threading/OgreThreadHeaders.h",
   "include/Threading/OgreThreadHeadersBoost.h",
   "include/Threading/OgreThreadHeadersPoco.h",
-  "include/Threading/OgreThreadHeadersTBB.h",
-  "include/Threading/OgreThreads.h",
+  "include/Threading/OgreThreadHeadersSTD.h",
+  "src/OgreASTCCodec.h",
+  "src/OgreBuiltinMovableFactories.h",
+  "src/OgreBuiltinScriptTranslators.h",
+  "src/OgreDDSCodec.h",
+  "src/OgreETCCodec.h",
+  "src/OgreFileSystemUtil.h",
+  "src/OgreFroxelizer.h",
   "src/OgreImageResampler.h",
+  "src/OgreMeshFileFormat.h",
+  "src/OgreMeshSerializerImpl.h",
+  "src/OgreNumerics.h",
+  "src/OgreParticleEmitterCommands.h",
   "src/OgrePixelConversions.h",
+  "src/OgrePixelFormatDescriptions.h",
+  "src/OgrePrefabFactory.h",
+  "src/OgreRadixSort.h",
   "src/OgreSIMDHelper.h",
-  "src/nedmalloc/malloc.c.h",
-  "src/nedmalloc/nedmalloc.h",
-  "src/stbi/stb_image.h",
-  "src/stbi/stb_image_write.h"
+  "src/OgreSceneManagerEnumerator.h",
+  "src/OgreScriptLexer.h",
+  "src/OgreScriptParser.h",
+  "src/OgreShadowTextureManager.h",
+  "src/OgreShadowVolumeExtrudeProgram.h",
+  "src/OgreStableHeaders.h",
+  "src/OgreUnifiedHighLevelGpuProgram.h",
+  "src/SSE2NEON.h",
+  "src/zip/miniz.h",
+  "src/zip/zip.h"
  } )
 
 
@@ -327,6 +297,7 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/OgreASTCCodec.cpp",
   "src/OgreAlignedAllocator.cpp",
   "src/OgreAnimable.cpp",
   "src/OgreAnimation.cpp",
@@ -334,7 +305,6 @@ files( {
   "src/OgreAnimationTrack.cpp",
   "src/OgreArchive.cpp",
   "src/OgreArchiveManager.cpp",
-  "src/OgreAtomicScalar.cpp",
   "src/OgreAutoParamDataSource.cpp",
   "src/OgreAxisAlignedBox.cpp",
   "src/OgreBillboard.cpp",
@@ -353,14 +323,15 @@ files( {
   "src/OgreCompositorChain.cpp",
   "src/OgreCompositorInstance.cpp",
   "src/OgreCompositorManager.cpp",
-  "src/OgreConfigDialogNoOp.cpp",
   "src/OgreConfigFile.cpp",
   "src/OgreControllerManager.cpp",
   "src/OgreConvexBody.cpp",
   "src/OgreDDSCodec.cpp",
   "src/OgreDataStream.cpp",
+  "src/OgreDefaultDebugDrawer.cpp",
   "src/OgreDefaultHardwareBufferManager.cpp",
   "src/OgreDefaultSceneQueries.cpp",
+  "src/OgreDefaultWorkQueueStandard.cpp",
   "src/OgreDeflate.cpp",
   "src/OgreDepthBuffer.cpp",
   "src/OgreDistanceLodStrategy.cpp",
@@ -370,25 +341,22 @@ files( {
   "src/OgreETCCodec.cpp",
   "src/OgreEdgeListBuilder.cpp",
   "src/OgreEntity.cpp",
-  "src/OgreErrorDialogNoOp.cpp",
   "src/OgreException.cpp",
   "src/OgreExternalTextureSource.cpp",
   "src/OgreExternalTextureSourceManager.cpp",
   "src/OgreFileSystem.cpp",
+  "src/OgreFroxelizer.cpp",
   "src/OgreFrustum.cpp",
   "src/OgreGpuProgram.cpp",
   "src/OgreGpuProgramManager.cpp",
   "src/OgreGpuProgramParams.cpp",
   "src/OgreGpuProgramUsage.cpp",
   "src/OgreHardwareBufferManager.cpp",
-  "src/OgreHardwareCounterBuffer.cpp",
   "src/OgreHardwareIndexBuffer.cpp",
   "src/OgreHardwareOcclusionQuery.cpp",
   "src/OgreHardwarePixelBuffer.cpp",
-  "src/OgreHardwareUniformBuffer.cpp",
   "src/OgreHardwareVertexBuffer.cpp",
   "src/OgreHighLevelGpuProgram.cpp",
-  "src/OgreHighLevelGpuProgramManager.cpp",
   "src/OgreImage.cpp",
   "src/OgreInstanceBatch.cpp",
   "src/OgreInstanceBatchHW.cpp",
@@ -397,7 +365,6 @@ files( {
   "src/OgreInstanceBatchVTF.cpp",
   "src/OgreInstanceManager.cpp",
   "src/OgreInstancedEntity.cpp",
-  "src/OgreInstancedGeometry.cpp",
   "src/OgreKeyFrame.cpp",
   "src/OgreLight.cpp",
   "src/OgreLodStrategy.cpp",
@@ -411,26 +378,20 @@ files( {
   "src/OgreMath.cpp",
   "src/OgreMatrix3.cpp",
   "src/OgreMatrix4.cpp",
-  "src/OgreMemoryAllocatedObject.cpp",
-  "src/OgreMemoryNedAlloc.cpp",
-  "src/OgreMemoryNedPooling.cpp",
-  "src/OgreMemoryTracker.cpp",
   "src/OgreMesh.cpp",
   "src/OgreMeshManager.cpp",
   "src/OgreMeshSerializer.cpp",
   "src/OgreMeshSerializerImpl.cpp",
   "src/OgreMovableObject.cpp",
   "src/OgreMovablePlane.cpp",
+  "src/OgreMurmurHash3.cpp",
   "src/OgreNode.cpp",
   "src/OgreNumerics.cpp",
   "src/OgreOptimisedUtil.cpp",
   "src/OgreOptimisedUtilGeneral.cpp",
   "src/OgreOptimisedUtilSSE.cpp",
-  "src/OgrePVRTCCodec.cpp",
-  "src/OgreParticle.cpp",
   "src/OgreParticleEmitter.cpp",
   "src/OgreParticleEmitterCommands.cpp",
-  "src/OgreParticleIterator.cpp",
   "src/OgreParticleSystem.cpp",
   "src/OgreParticleSystemManager.cpp",
   "src/OgrePass.cpp",
@@ -438,18 +399,15 @@ files( {
   "src/OgrePatchSurface.cpp",
   "src/OgrePixelCountLodStrategy.cpp",
   "src/OgrePixelFormat.cpp",
-  "src/OgrePlane.cpp",
   "src/OgrePlatformInformation.cpp",
   "src/OgrePolygon.cpp",
   "src/OgrePose.cpp",
-  "src/OgrePrecompiledHeaders.cpp",
   "src/OgrePredefinedControllers.cpp",
   "src/OgrePrefabFactory.cpp",
   "src/OgreProfiler.cpp",
   "src/OgreQuaternion.cpp",
   "src/OgreRectangle2D.cpp",
   "src/OgreRenderQueue.cpp",
-  "src/OgreRenderQueueInvocation.cpp",
   "src/OgreRenderQueueSortingGrouping.cpp",
   "src/OgreRenderSystem.cpp",
   "src/OgreRenderSystemCapabilities.cpp",
@@ -459,6 +417,7 @@ files( {
   "src/OgreRenderTexture.cpp",
   "src/OgreRenderToVertexBuffer.cpp",
   "src/OgreRenderWindow.cpp",
+  "src/OgreRenderable.cpp",
   "src/OgreResource.cpp",
   "src/OgreResourceBackgroundQueue.cpp",
   "src/OgreResourceGroupManager.cpp",
@@ -466,7 +425,6 @@ files( {
   "src/OgreRibbonTrail.cpp",
   "src/OgreRoot.cpp",
   "src/OgreRotationSpline.cpp",
-  "src/OgreSTBICodec.cpp",
   "src/OgreSceneManager.cpp",
   "src/OgreSceneManagerEnumerator.cpp",
   "src/OgreSceneNode.cpp",
@@ -490,7 +448,9 @@ files( {
   "src/OgreSkeletonInstance.cpp",
   "src/OgreSkeletonManager.cpp",
   "src/OgreSkeletonSerializer.cpp",
+  "src/OgreSkyRenderer.cpp",
   "src/OgreStaticGeometry.cpp",
+  "src/OgreStencilShadowRenderer.cpp",
   "src/OgreStreamSerialiser.cpp",
   "src/OgreString.cpp",
   "src/OgreStringConverter.cpp",
@@ -502,239 +462,100 @@ files( {
   "src/OgreTechnique.cpp",
   "src/OgreTexture.cpp",
   "src/OgreTextureManager.cpp",
+  "src/OgreTextureShadowRenderer.cpp",
   "src/OgreTextureUnitState.cpp",
-  "src/OgreUTFString.cpp",
+  "src/OgreTimer.cpp",
   "src/OgreUnifiedHighLevelGpuProgram.cpp",
   "src/OgreUserObjectBindings.cpp",
-  "src/OgreVector2.cpp",
-  "src/OgreVector3.cpp",
-  "src/OgreVector4.cpp",
+  "src/OgreVector.cpp",
   "src/OgreVertexIndexData.cpp",
   "src/OgreViewport.cpp",
-  "src/OgreWindowEventUtilities.cpp",
   "src/OgreWireBoundingBox.cpp",
   "src/OgreWorkQueue.cpp",
   "src/OgreZip.cpp",
-  "src/Hash/MurmurHash3.cpp",
-  "src/nedmalloc/nedmalloc.c"
+  "src/zip/zip.c"
  } )
 
 
 
-configuration( { "ANDROID32" } )
+configuration( { "ANDROID" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/Android/OgreAPKFileSystemArchive.h",
-      "include/Android/OgreAPKZipArchive.h",
-      "include/Android/OgreAndroidLogListener.h"
+      "src/OgreSearchOps.h",
+      "src/Android/OgreAndroidLogListener.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/OgreSearchOps.cpp",
       "src/Android/OgreAPKFileSystemArchive.cpp",
       "src/Android/OgreAPKZipArchive.cpp",
       "src/Android/OgreAndroidLogListener.cpp",
-      "src/Android/OgreFileSystemLayer.cpp",
-      "src/Android/JNI/OgreActivityJNI.cpp",
-      "src/Threading/OgreBarrierPThreads.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreLightweightMutexPThreads.cpp",
-      "src/Threading/OgreThreadsPThreads.cpp"
+      "src/Android/OgreFileSystemLayer.cpp"
     } )
 
 
 
-configuration( { "ANDROID64" } )
+configuration( { "EMSCRIPTEN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/Android/OgreAPKFileSystemArchive.h",
-      "include/Android/OgreAPKZipArchive.h",
-      "include/Android/OgreAndroidLogListener.h"
+      "src/OgreSearchOps.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/Android/OgreAPKFileSystemArchive.cpp",
-      "src/Android/OgreAPKZipArchive.cpp",
-      "src/Android/OgreAndroidLogListener.cpp",
-      "src/Android/OgreFileSystemLayer.cpp",
-      "src/Android/JNI/OgreActivityJNI.cpp",
-      "src/Threading/OgreBarrierPThreads.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreLightweightMutexPThreads.cpp",
-      "src/Threading/OgreThreadsPThreads.cpp"
-    } )
-
-
-
-configuration( { "EMSCRIPTEN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/Emscripten/OgreTimerImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/Emscripten/OgreTimer.cpp"
-    } )
-
-
-
-configuration( { "EMSCRIPTEN64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/Emscripten/OgreTimerImp.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/Emscripten/OgreTimer.cpp"
-    } )
-
-
-
-configuration( { "GLX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "src/GLX/GLX_backdrop.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/GLX/OgreConfigDialog.cpp",
-      "src/GLX/OgreFileSystemLayer.cpp"
-    } )
-
-
-
-configuration( { "GTK" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/gtk/OgreConfigDialogImp.h",
-      "src/gtk/GLX_backdrop.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/gtk/OgreConfigDialog.cpp",
-      "src/gtk/OgreErrorDialog.cpp",
-      "src/gtk/OgreFileSystemLayer.cpp"
-    } )
-
-
-
-configuration( { "IOS" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/iOS/OgreOSXCocoaTouchView.h",
-      "include/iOS/macUtils.h"
+      "src/OgreFileSystemLayerNoOp.cpp",
+      "src/OgreSearchOps.cpp"
     } )
 
 
 
 configuration( { "LINUX32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/OgreSearchOps.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/Threading/OgreBarrierPThreads.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreLightweightMutexPThreads.cpp",
-      "src/Threading/OgreThreadsPThreads.cpp"
+      "src/OgreSearchOps.cpp",
+      "src/GLX/OgreFileSystemLayer.cpp"
     } )
 
 
 
 configuration( { "LINUX64" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/Threading/OgreBarrierPThreads.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreLightweightMutexPThreads.cpp",
-      "src/Threading/OgreThreadsPThreads.cpp"
-    } )
-
-
-
-configuration( { "NACL" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/NaCl/OgreFileSystemLayer.cpp"
-    } )
-
-
-
-configuration( { "OSX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/OSX/OgreConfigDialogImp.h",
-      "include/OSX/macUtils.h"
+      "src/OgreSearchOps.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/OSX/OgreFileSystemLayer.cpp"
+      "src/OgreSearchOps.cpp",
+      "src/GLX/OgreFileSystemLayer.cpp"
     } )
 
 
 
 configuration( { "WIN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/WIN32/OgreComPtr.h",
-      "include/WIN32/OgreConfigDialogImp.h",
-      "include/WIN32/OgreErrorDialogImp.h",
-      "include/WIN32/OgreMinGWSupport.h",
-      "include/WIN32/OgreTimerImp.h",
-      "src/WIN32/resource.h"
-    } )
-
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/Threading/OgreBarrierWin.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreThreadsWin.cpp",
-      "src/WIN32/OgreFileSystemLayer.cpp",
-      "src/WIN32/OgreMinGWSupport.cpp",
-      "src/WIN32/OgreOptimisedUtilDirectXMath.cpp",
-      "src/WIN32/OgreTimer.cpp"
-    } )
-
-
-
-configuration( { "WIN64" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/Threading/OgreBarrierWin.cpp",
-      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
-      "src/Threading/OgreThreadsWin.cpp"
+      "src/WIN32/OgreFileSystemLayer.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "../include", "include", "include/Hash", "include/Threading", "src", "src/nedmalloc", "src/stbi" } )
+includedirs( { "../include", "include", "include/Threading", "src", "src/zip" } )
 
-configuration( { "ANDROID32" } )
-includedirs( { "include/Android" } )
+configuration( { "ANDROID" } )
+includedirs( { "src", "src/Android" } )
 
-configuration( { "ANDROID64" } )
-includedirs( { "include/Android" } )
+configuration( { "EMSCRIPTEN" } )
+includedirs( { "src" } )
 
-configuration( { "EMSCRIPTEN32" } )
-includedirs( { "include/Emscripten" } )
+configuration( { "LINUX32" } )
+includedirs( { "src" } )
 
-configuration( { "EMSCRIPTEN64" } )
-includedirs( { "include/Emscripten" } )
-
-configuration( { "GLX" } )
-includedirs( { "src/GLX" } )
-
-configuration( { "GTK" } )
-includedirs( { "include/gtk", "src/gtk" } )
-
-configuration( { "IOS" } )
-includedirs( { "include/iOS" } )
-
-configuration( { "OSX" } )
-includedirs( { "include/OSX" } )
-
-configuration( { "WIN32" } )
-includedirs( { "include/WIN32", "src/WIN32" } )
+configuration( { "LINUX64" } )
+includedirs( { "src" } )

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +31,6 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreHardwareBufferManager.h"
-#include "OgreHardwareCounterBuffer.h"
-#include "OgreHardwareIndexBuffer.h"
-#include "OgreHardwareUniformBuffer.h"
-#include "OgreHardwareVertexBuffer.h"
 
 namespace Ogre {
     /** \addtogroup Core
@@ -44,111 +40,25 @@ namespace Ogre {
     *  @{
     */
 
-    /// Specialisation of HardwareVertexBuffer for emulation
-    class _OgreExport DefaultHardwareVertexBuffer : public HardwareVertexBuffer 
+    /// Specialisation of HardwareBuffer for emulation
+    class _OgreExport DefaultHardwareBuffer : public HardwareBuffer
     {
-    protected:
+    private:
         unsigned char* mData;
-        /** See HardwareBuffer. */
-        void* lockImpl(size_t offset, size_t length, LockOptions options);
-        /** See HardwareBuffer. */
-        void unlockImpl(void);
+        void* lockImpl(size_t offset, size_t length, LockOptions options) override;
+        void unlockImpl(void) override;
     public:
-        DefaultHardwareVertexBuffer(size_t vertexSize, size_t numVertices, HardwareBuffer::Usage usage);
-        DefaultHardwareVertexBuffer(HardwareBufferManagerBase* mgr, size_t vertexSize, size_t numVertices, 
-            HardwareBuffer::Usage usage);
-        ~DefaultHardwareVertexBuffer();
-        /** See HardwareBuffer. */
-        void readData(size_t offset, size_t length, void* pDest);
-        /** See HardwareBuffer. */
-        void writeData(size_t offset, size_t length, const void* pSource,
-                bool discardWholeBuffer = false);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void* lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt = HBU_DEFAULT);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void unlock(void);
-
-
+        DefaultHardwareBuffer(size_t sizeInBytes);
+        ~DefaultHardwareBuffer();
+        void readData(size_t offset, size_t length, void* pDest) override;
+        void writeData(size_t offset, size_t length, const void* pSource, bool discardWholeBuffer = false) override;
+        bool isSystemMemory(void) const override { return true; }
     };
 
-    /// Specialisation of HardwareIndexBuffer for emulation
-    class _OgreExport DefaultHardwareIndexBuffer : public HardwareIndexBuffer
-    {
-    protected:
-        unsigned char* mData;
-        /** See HardwareBuffer. */
-        void* lockImpl(size_t offset, size_t length, LockOptions options);
-        /** See HardwareBuffer. */
-        void unlockImpl(void);
-    public:
-        DefaultHardwareIndexBuffer(IndexType idxType, size_t numIndexes, HardwareBuffer::Usage usage);
-        ~DefaultHardwareIndexBuffer();
-        /** See HardwareBuffer. */
-        void readData(size_t offset, size_t length, void* pDest);
-        /** See HardwareBuffer. */
-        void writeData(size_t offset, size_t length, const void* pSource,
-                bool discardWholeBuffer = false);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void* lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt = HBU_DEFAULT);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void unlock(void);
-
-    };
-
-    /// Specialisation of HardwareUniformBuffer for emulation
-    class _OgreExport DefaultHardwareUniformBuffer : public HardwareUniformBuffer
-    {
-    protected:
-        unsigned char* mData;
-        /** See HardwareBuffer. */
-        void* lockImpl(size_t offset, size_t length, LockOptions options);
-        /** See HardwareBuffer. */
-        void unlockImpl(void);
-        /**  */
-        //bool updateStructure(const Any& renderSystemInfo);
-
-    public:
-        DefaultHardwareUniformBuffer(HardwareBufferManagerBase* mgr, size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer = false, const String& name = "");
-        ~DefaultHardwareUniformBuffer();
-        /** See HardwareBuffer. */
-        void readData(size_t offset, size_t length, void* pDest);
-        /** See HardwareBuffer. */
-        void writeData(size_t offset, size_t length, const void* pSource,
-                bool discardWholeBuffer = false);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void* lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt = HBU_DEFAULT);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void unlock(void);
-    };
-
-    /// Specialisation of HardwareCounterBuffer for emulation
-    class _OgreExport DefaultHardwareCounterBuffer : public HardwareCounterBuffer
-    {
-    protected:
-        unsigned char* mData;
-        /** See HardwareBuffer. */
-        void* lockImpl(size_t offset, size_t length, LockOptions options);
-        /** See HardwareBuffer. */
-        void unlockImpl(void);
-        /**  */
-        //bool updateStructure(const Any& renderSystemInfo);
-
-    public:
-        DefaultHardwareCounterBuffer(HardwareBufferManagerBase* mgr, size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer = false, const String& name = "");
-        ~DefaultHardwareCounterBuffer();
-        /** See HardwareBuffer. */
-        void readData(size_t offset, size_t length, void* pDest);
-        /** See HardwareBuffer. */
-        void writeData(size_t offset, size_t length, const void* pSource,
-                       bool discardWholeBuffer = false);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void* lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt = HBU_DEFAULT);
-        /** Override HardwareBuffer to turn off all shadowing. */
-        void unlock(void);
-    };
+    typedef DefaultHardwareBuffer DefaultHardwareUniformBuffer;
 
     /** Specialisation of HardwareBufferManagerBase to emulate hardware buffers.
-    @remarks
+
         You might want to instantiate this class if you want to utilise
         classes like MeshSerializer without having initialised the 
         rendering system (which is required to create a 'real' hardware
@@ -159,38 +69,53 @@ namespace Ogre {
     public:
         DefaultHardwareBufferManagerBase();
         ~DefaultHardwareBufferManagerBase();
-        /// Creates a vertex buffer
-        HardwareVertexBufferSharedPtr 
-            createVertexBuffer(size_t vertexSize, size_t numVerts, 
-                HardwareBuffer::Usage usage, bool useShadowBuffer = false);
-        /// Create a hardware index buffer
-        HardwareIndexBufferSharedPtr 
-            createIndexBuffer(HardwareIndexBuffer::IndexType itype, size_t numIndexes, 
-                HardwareBuffer::Usage usage, bool useShadowBuffer = false);
-        /// Create a hardware vertex buffer
-        RenderToVertexBufferSharedPtr createRenderToVertexBuffer();
-        /// Create a hardware uniform buffer
-        HardwareUniformBufferSharedPtr createUniformBuffer(size_t sizeBytes, 
-                                    HardwareBuffer::Usage usage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE, 
-                                    bool useShadowBuffer = false, const String& name = "");
-        /// Create a hardware counter buffer
-        HardwareCounterBufferSharedPtr createCounterBuffer(size_t sizeBytes,
-                                                           HardwareBuffer::Usage usage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE,
-                                                           bool useShadowBuffer = false, const String& name = "");
+        HardwareVertexBufferPtr createVertexBuffer(size_t vertexSize, size_t numVerts, HardwareBuffer::Usage usage,
+                                                   bool useShadowBuffer = false) override;
+        HardwareIndexBufferPtr createIndexBuffer(HardwareIndexBuffer::IndexType itype, size_t numIndexes,
+                                                 HardwareBuffer::Usage usage, bool useShadowBuffer = false) override;
+        HardwareBufferPtr createUniformBuffer(size_t sizeBytes, HardwareBufferUsage = HBU_CPU_ONLY,
+                                              bool = false) override
+        {
+            return std::make_shared<DefaultHardwareBuffer>(sizeBytes);
+        }
     };
 
     /// DefaultHardwareBufferManager as a Singleton
     class _OgreExport DefaultHardwareBufferManager : public HardwareBufferManager
     {
+        std::unique_ptr<HardwareBufferManagerBase> mImpl;
     public:
-        DefaultHardwareBufferManager()
-            : HardwareBufferManager(OGRE_NEW DefaultHardwareBufferManagerBase()) 
-        {
-
-        }
+        DefaultHardwareBufferManager() : mImpl(new DefaultHardwareBufferManagerBase()) {}
         ~DefaultHardwareBufferManager()
         {
-            OGRE_DELETE mImpl;
+            // have to do this before mImpl is gone
+            destroyAllDeclarations();
+            destroyAllBindings();
+        }
+
+        HardwareVertexBufferSharedPtr
+            createVertexBuffer(size_t vertexSize, size_t numVerts, HardwareBuffer::Usage usage,
+            bool useShadowBuffer = false) override
+        {
+            return mImpl->createVertexBuffer(vertexSize, numVerts, usage, useShadowBuffer);
+        }
+
+        HardwareIndexBufferSharedPtr
+            createIndexBuffer(HardwareIndexBuffer::IndexType itype, size_t numIndexes,
+            HardwareBuffer::Usage usage, bool useShadowBuffer = false) override
+        {
+            return mImpl->createIndexBuffer(itype, numIndexes, usage, useShadowBuffer);
+        }
+
+        RenderToVertexBufferSharedPtr createRenderToVertexBuffer() override
+        {
+            return mImpl->createRenderToVertexBuffer();
+        }
+
+        HardwareBufferPtr createUniformBuffer(size_t sizeBytes, HardwareBufferUsage usage,
+                                              bool useShadowBuffer) override
+        {
+            return mImpl->createUniformBuffer(sizeBytes, usage, useShadowBuffer);
         }
     };
 

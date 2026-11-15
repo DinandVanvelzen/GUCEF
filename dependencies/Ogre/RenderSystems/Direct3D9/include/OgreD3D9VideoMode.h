@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,7 +54,6 @@ namespace Ogre
         unsigned int getHeight() const { return mDisplayMode.Height; }
         D3DFORMAT getFormat() const { return mDisplayMode.Format; }
         unsigned int getRefreshRate() const { return mDisplayMode.RefreshRate; }
-        unsigned int getColourDepth() const;
         D3DDISPLAYMODE getDisplayMode() const { return mDisplayMode; }
         void increaseRefreshRate(unsigned int rr) { mDisplayMode.RefreshRate = rr; } 
         String getDescription() const;

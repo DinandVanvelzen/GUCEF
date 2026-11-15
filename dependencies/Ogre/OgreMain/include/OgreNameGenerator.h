@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,17 +29,6 @@ THE SOFTWARE.
 #define __NameGenerator_H__
 
 #include "OgreString.h"
-
-#if defined ( OGRE_GCC_VISIBILITY )
-#   pragma GCC visibility push(default)
-#endif
-
-#include <sstream>
-
-#if defined ( OGRE_GCC_VISIBILITY )
-#   pragma GCC visibility pop
-#endif
-
 #include "OgreHeaderPrefix.h"
 
 #include "Threading/OgreThreadHeaders.h"
@@ -55,7 +44,7 @@ namespace Ogre {
     /// Utility class to generate a sequentially numbered series of names
     class _OgreExport NameGenerator
     {
-    protected:
+    private:
         String mPrefix;
         unsigned long long int mNext;
         OGRE_AUTO_MUTEX;
@@ -69,9 +58,7 @@ namespace Ogre {
         String generate()
         {
             OGRE_LOCK_AUTO_MUTEX;
-            StringStream s;
-            s << mPrefix << mNext++;
-            return s.str();
+            return StringUtil::format("%s%llu", mPrefix.c_str(), mNext++);
         }
 
         /// Reset the internal counter

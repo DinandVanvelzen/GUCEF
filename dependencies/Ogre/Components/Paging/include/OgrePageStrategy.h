@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,13 +34,13 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Paging
     *  Some details on paging component
+    *  @{
     */
-    /*@{*/
 
 
     /** Abstract marker class representing the data held against the PagedWorldSection
@@ -64,7 +64,7 @@ namespace Ogre
     /** Defines the interface to a strategy class which is responsible for deciding
         when Page instances are requested for addition and removal from the 
         paging system.
-    @remarks
+
         The interface is deliberately light, with no specific mention of requesting
         new Page instances. It is entirely up to the PageStrategy to respond
         to the events raised on it and to call methods on other classes (such as
@@ -92,12 +92,13 @@ namespace Ogre
         /// Called when the frame ends
         virtual void frameEnd(Real timeElapsed, PagedWorldSection* section) {}
         /** Called when a camera is used for any kind of rendering.
-        @remarks
+
             This is probably the primary way in which the strategy will request
             new pages. 
         @param cam Camera which is being used for rendering. Class should not
             rely on this pointer remaining valid permanently because no notification 
-            will be given when the camera is destroyed. 
+            will be given when the camera is destroyed.
+        @param section
         */
         virtual void notifyCamera(Camera* cam, PagedWorldSection* section) {}
 
@@ -107,7 +108,7 @@ namespace Ogre
             This data will be held by a given PagedWorldSection and the structure of
             the data will be specific to the PageStrategy subclass.
         */
-        virtual PageStrategyData* createData() = 0;
+        virtual PageStrategyData* createData() OGRE_NODISCARD = 0;
 
         /** Destroy a PageStrategyData instance containing the data specific to this
         PageStrategy. 
@@ -119,7 +120,7 @@ namespace Ogre
 
         /** Update the contents of the passed in SceneNode to reflect the 
             debug display of a given page. 
-        @remarks
+
             The PageStrategy is to have complete control of the contents of this
             SceneNode, it must not be altered / added to by others.
         */

@@ -5,7 +5,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #include "OgreLodCollapseCost.h"
 #include "OgreLodData.h"
 #include "OgreLodConfig.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
@@ -43,21 +44,21 @@ class _OgreLodExport LodCollapseCostProfiler :
 {
 public:
     LodCollapseCostProfiler(LodProfile& profile, LodCollapseCostPtr& costCalculator) : mProfile(profile), mCostCalculator(costCalculator) {}
-    virtual void initCollapseCosts(LodData* data);
-    virtual void computeVertexCollapseCost(LodData* data, LodData::Vertex* vertex, Real& collapseCost, LodData::Vertex*& collapseTo);
-    virtual Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge);
-protected:
+    void initCollapseCosts(LodData* data) override;
+    void computeVertexCollapseCost(LodData* data, LodData::Vertex* vertex, Real& collapseCost, LodData::Vertex*& collapseTo) override;
+    Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge) override;
+private:
 
     struct ProfiledEdge {
         LodData::Vertex* dst;
         Real cost;
     };
 
-    typedef vector<bool>::type HasVertexProfileList;
+    typedef std::vector<bool> HasVertexProfileList;
 
     HasVertexProfileList mHasProfile;
 
-    typedef OGRE_HashMultiMap<LodData::Vertex*, ProfiledEdge> ProfileLookup;
+    typedef std::unordered_multimap<LodData::Vertex*, ProfiledEdge> ProfileLookup;
     ProfileLookup mProfileLookup;
     LodProfile mProfile;
 
@@ -68,6 +69,7 @@ protected:
 };
 
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif
-
-

@@ -1,30 +1,40 @@
 <ModuleInfoEntry>
-    <Module Name="Ogre" Type="SharedLibrary" Platform="All">
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE 3D rendering engine, the core library (OgreMain)</DescriptionHeadline>
+        <DescriptionDetails>The core of OGRE 14.6.3 (the classic Ogre 1.x line, not Ogre-Next): scene management, resources, scripts, materials, compositors, animation, image and mesh codecs and ZIP archives. The configuration headers which the upstream CMake build generates are checked in under dependencies/Ogre/include. It is built as C++14, which is what OGRE requires.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="Ogre" Type="SharedLibrary" Platform="All" Tags="ogre">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
-	    <Dependency Name="freetype" />
         </Dependencies>
-        <Linker>
-            <Dependency Name="freetype" />
-        </Linker>
         <Preprocessor>
-            <Define String="OGRE_NONCLIENT_BUILD" />
-            <Define String="OGRE_NO_CONFIG_DIALOG" />
+            <Define String="OgreMain_EXPORTS" />
+            <Define String="MINIZ_NO_STDIO" />
         </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj /fp:contract" />
+        </Compiler>
     </Module>
-    <Module Platform="Linux">
-        <Preprocessor>
-            <Define String="_GNU_SOURCE" />
-        </Preprocessor>
+    <!-- WebAssembly builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+    <Module Platform="linux">
         <Linker>
             <Dependency Name="dl" />
-	   <Dependency Name="atomic" />
+            <Dependency Name="pthread" />
+            <Dependency Name="atomic" />
         </Linker>
     </Module>
-    <Module Platform="Android">
+    <Module Platform="android">
         <Linker>
             <Dependency Name="dl" />
-			<Dependency Name="atomic" />
+            <Dependency Name="atomic" />
+            <Dependency Name="log" />
+            <Dependency Name="android" />
         </Linker>
-    </Module>	
+    </Module>
 </ModuleInfoEntry>

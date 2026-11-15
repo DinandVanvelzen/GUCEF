@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,13 +54,16 @@ namespace Ogre {
         virtual ~CompositorChain();
         
         /// Data types
-        typedef vector<CompositorInstance*>::type Instances;
+        typedef std::vector<CompositorInstance*> Instances;
         typedef VectorIterator<Instances> InstanceIterator;
         
-        /// Identifier for "last" compositor in chain.
-        static const size_t LAST = (size_t)-1;
-        /// Identifier for best technique.
-        static const size_t BEST = 0;
+        enum {
+            /// Identifier for best technique.
+            BEST = 0,
+            /// Identifier for "last" compositor in chain.
+            LAST = (size_t)-1,
+            NPOS = LAST
+        };
         
         /** Apply a compositor. Initially, the filter is enabled.
         @param filter
@@ -70,7 +73,7 @@ namespace Ogre {
         @param scheme
             Scheme to use (blank means default).
         */
-        CompositorInstance* addCompositor(CompositorPtr filter, size_t addPosition=LAST, const String& scheme = BLANKSTRING);
+        CompositorInstance* addCompositor(const CompositorPtr& filter, size_t addPosition=LAST, const String& scheme = BLANKSTRING);
 
         /** Remove a compositor.
         @param position
@@ -78,53 +81,50 @@ namespace Ogre {
         */
         void removeCompositor(size_t position=LAST);
         
-        /** Get the number of compositors.
-        */
-        size_t getNumCompositors();
+        /// @deprecated use getCompositorInstances
+        OGRE_DEPRECATED size_t getNumCompositors();
         
         /** Remove all compositors.
         */
         void removeAllCompositors();
         
-        /** Get compositor instance by position.
-        */
-        CompositorInstance *getCompositor(size_t index);
-
         /** Get compositor instance by name. Returns null if not found.
         */
-        CompositorInstance *getCompositor(const String& name);
+        CompositorInstance* getCompositor(const String& name) const;
+
+        /// @overload
+        CompositorInstance *getCompositor(size_t index) const { return mInstances.at(index); }
+
+        /// Get compositor position by name. Returns #NPOS if not found.
+        size_t getCompositorPosition(const String& name) const;
 
         /** Get the original scene compositor instance for this chain (internal use). 
         */
         CompositorInstance* _getOriginalSceneCompositor(void) { return mOriginalScene; }
 
-        /** Get an iterator over the compositor instances. The first compositor in this list is applied first, the last one is applied last.
+        /** The compositor instances. The first compositor in this list is applied first, the last one is applied last.
         */
-        InstanceIterator getCompositors();
+        const Instances& getCompositorInstances() const { return mInstances; }
+
+        /// @deprecated use getCompositorInstances
+        OGRE_DEPRECATED InstanceIterator getCompositors();
     
         /** Enable or disable a compositor, by position. Disabling a compositor stops it from rendering
             but does not free any resources. This can be more efficient than using removeCompositor and 
             addCompositor in cases the filter is switched on and off a lot.
         @param position
             Position in filter chain of filter
+        @param state enabled flag
         */
         void setCompositorEnabled(size_t position, bool state);
 
-        /** @see RenderTargetListener::preRenderTargetUpdate */
-        virtual void preRenderTargetUpdate(const RenderTargetEvent& evt);
-        /** @see RenderTargetListener::postRenderTargetUpdate */
-        virtual void postRenderTargetUpdate(const RenderTargetEvent& evt);
-        /** @see RenderTargetListener::preViewportUpdate */
-        virtual void preViewportUpdate(const RenderTargetViewportEvent& evt);
-        /** @see RenderTargetListener::postViewportUpdate */
-        virtual void postViewportUpdate(const RenderTargetViewportEvent& evt);
-
-        /** @see Viewport::Listener::viewportCameraChanged */
-        virtual void viewportCameraChanged(Viewport* viewport);
-        /** @see Viewport::Listener::viewportDimensionsChanged */
-        virtual void viewportDimensionsChanged(Viewport* viewport);
-        /** @see Viewport::Listener::viewportDestroyed */
-        virtual void viewportDestroyed(Viewport* viewport);
+        void preRenderTargetUpdate(const RenderTargetEvent& evt) override;
+        void postRenderTargetUpdate(const RenderTargetEvent& evt) override;
+        void preViewportUpdate(const RenderTargetViewportEvent& evt) override;
+        void postViewportUpdate(const RenderTargetViewportEvent& evt) override;
+        void viewportCameraChanged(Viewport* viewport) override;
+        void viewportDimensionsChanged(Viewport* viewport) override;
+        void viewportDestroyed(Viewport* viewport) override;
 
         /** Mark state as dirty, and to be recompiled next frame.
         */
@@ -156,7 +156,7 @@ namespace Ogre {
         */
         CompositorInstance* getNextInstance(CompositorInstance* curr, bool activeOnly = true);
 
-    protected:
+    private:
         /// Viewport affected by this CompositorChain
         Viewport *mViewport;
         
@@ -180,7 +180,7 @@ namespace Ogre {
         /// Render System operations queued by last compile, these are created by this
         /// instance thus managed and deleted by it. The list is cleared with 
         /// clearCompilationState()
-        typedef vector<CompositorInstance::RenderSystemOperation*>::type RenderSystemOperations;
+        typedef std::vector<CompositorInstance::RenderSystemOperation*> RenderSystemOperations;
         RenderSystemOperations mRenderSystemOperations;
 
         /** Clear compiled state */
@@ -201,7 +201,6 @@ namespace Ogre {
         void destroyResources(void);
         
         /** Internal method to get a unique name of a compositor
-        @param viewport Pointer to a viewport used for generating the compositor name.
         */
         const String getCompositorName() const;
 
@@ -211,12 +210,7 @@ namespace Ogre {
         public:
             RQListener() : mOperation(0), mSceneManager(0), mRenderSystem(0), mViewport(0) {}
 
-            /** @copydoc RenderQueueListener::renderQueueStarted
-            */
-            virtual void renderQueueStarted(uint8 queueGroupId, const String& invocation, bool& skipThisInvocation);
-            /** @copydoc RenderQueueListener::renderQueueEnded
-            */
-            virtual void renderQueueEnded(uint8 queueGroupId, const String& invocation, bool& repeatThisInvocation);
+            void renderQueueStarted(uint8 queueGroupId, const String& cameraName, bool& skipThisInvocation) override;
 
             /** Set current operation and target. */
             void setOperation(CompositorInstance::TargetOperation *op,SceneManager *sm,RenderSystem *rs);

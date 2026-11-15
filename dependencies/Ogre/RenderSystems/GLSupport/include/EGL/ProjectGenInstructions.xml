@@ -1,0 +1,35 @@
+<PROJECTGENERATOR>
+    <!-- EGL is the context and window system of Linux (with X11), Android and WebAssembly. The window system specific files are
+         in the directories X11, Android and Emscripten and are listed per platform here. Windows uses WGL, so the EGL files
+         are left out there, including the directory of the EGL implementation for Windows. Wayland is an alternative for
+         Linux which is not built. -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="Android" TYPE="DIR" />
+        <ITEM NAME="Emscripten" TYPE="DIR" />
+        <ITEM NAME="WIN32" TYPE="DIR" />
+        <ITEM NAME="X11" TYPE="DIR" />
+        <ITEM NAME="Wayland" TYPE="DIR" />
+        <ITEM NAME="OgreEGLContext.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLRenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLWindow.h" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux;android;emscripten">
+        <ITEM NAME="OgreEGLContext.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLRenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="OgreEGLWindow.h" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="android">
+        <ITEM NAME="Android/OgreAndroidEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="Android/OgreAndroidEGLWindow.h" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="emscripten">
+        <ITEM NAME="Emscripten/OgreEmscriptenEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="Emscripten/OgreEmscriptenEGLWindow.h" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="X11/OgreX11EGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="X11/OgreX11EGLWindow.h" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

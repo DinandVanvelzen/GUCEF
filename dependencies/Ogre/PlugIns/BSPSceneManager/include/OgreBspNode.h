@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,59 @@ THE SOFTWARE.
 #include "OgreSceneQuery.h"
 
 namespace Ogre {
+    class BspLevel;
+
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup BSPSceneManager
+    *  @{
+    */
+
+    /** This type can be used by collaborating applications & SceneManagers to
+        agree on the type of world geometry to be returned from queries. Not all
+        these types will be supported by all SceneManagers; once the application
+        has decided which SceneManager specialisation to use, it is expected that
+        it will know which type of world geometry abstraction is available to it.
+    */
+    enum WorldFragmentType {
+        /// Return no world geometry hits at all
+        WFT_NONE,
+        /// Return pointers to convex plane-bounded regions
+        WFT_PLANE_BOUNDED_REGION,
+        /// Return a single intersection point (typically RaySceneQuery only)
+        WFT_SINGLE_INTERSECTION,
+        /// Custom geometry as defined by the SceneManager
+        WFT_CUSTOM_GEOMETRY,
+        /// General RenderOperation structure
+        WFT_RENDER_OPERATION
+    };
+
+    /** Represents part of the world geometry that is a result of a SceneQuery.
+
+        Since world geometry is normally vast and sprawling, we need a way of
+        retrieving parts of it based on a query. That is what this struct is for;
+        note there are potentially as many data structures for world geometry as there
+        are SceneManagers, however this structure includes a few common abstractions as
+        well as a more general format.
+    @par
+        The type of world fragment that is returned from a query depends on the
+        SceneManager, and the option set using SceneQuery::setWorldFragmentType.
+        You can see what fragment types are supported on the query in question by
+        calling SceneQuery::getSupportedWorldFragmentTypes().
+    */
+    struct WorldFragment {
+        /// The type of this world fragment
+        WorldFragmentType fragmentType;
+        /// Single intersection point, only applicable for WFT_SINGLE_INTERSECTION
+        Vector3 singleIntersection;
+        /// Planes bounding a convex region, only applicable for WFT_PLANE_BOUNDED_REGION
+        std::vector<Plane>* planes;
+        /// Custom geometry block, only applicable for WFT_CUSTOM_GEOMETRY
+        void* geometry;
+        /// General render operation structure, fallback if nothing else is available
+        RenderOperation* renderOp;
+    };
 
     /** Encapsulates a node in a BSP tree.
         A BSP tree represents space partitioned by planes . The space which is
@@ -142,14 +195,14 @@ namespace Ogre {
         /// Gets the signed distance to the dividing plane
         Real getDistance(const Vector3& pos) const;
 
-        typedef set<const MovableObject*>::type IntersectingObjectSet;
+        typedef std::set<const MovableObject*> IntersectingObjectSet;
 
         struct Brush
         {
-            list<Plane>::type planes;
+            std::vector<Plane> planes;
             SceneQuery::WorldFragment fragment; /// For query reporting
         };
-        typedef vector<Brush*>::type NodeBrushList; /// Main brush memory held on level
+        typedef std::vector<Brush*> NodeBrushList; /// Main brush memory held on level
 
         /** Get the list of solid Brushes for this node.
         @remarks Only applicable for leaf nodes. 
@@ -205,7 +258,8 @@ namespace Ogre {
 
 
     };
-
+    /** @} */
+    /** @} */
 
 }
 

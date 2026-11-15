@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,12 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 
+#ifdef bswap16
+#undef bswap16
+#undef bswap32
+#undef bswap64
+#endif
+
 #ifndef __has_builtin
     // Compatibility with non-clang compilers
     #define __has_builtin(x) 0
@@ -49,7 +55,7 @@ namespace Ogre {
     public:
         /** Returns value with reversed bytes order.
         */
-        static FORCEINLINE uint16 bswap16(uint16 arg)
+        static OGRE_FORCE_INLINE uint16 bswap16(uint16 arg)
         {
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC && OGRE_COMP_VER >= 1310
             return _byteswap_ushort(arg);
@@ -61,7 +67,7 @@ namespace Ogre {
         }
         /** Returns value with reversed bytes order.
         */
-        static FORCEINLINE uint32 bswap32(uint32 arg)
+        static OGRE_FORCE_INLINE uint32 bswap32(uint32 arg)
         {
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC && OGRE_COMP_VER >= 1310
             return _byteswap_ulong(arg);
@@ -73,7 +79,7 @@ namespace Ogre {
         }
         /** Returns value with reversed bytes order.
         */
-        static FORCEINLINE uint64 bswap64(uint64 arg)
+        static OGRE_FORCE_INLINE uint64 bswap64(uint64 arg)
         {
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC && OGRE_COMP_VER >= 1310
             return _byteswap_uint64(arg);
@@ -121,20 +127,23 @@ namespace Ogre {
 
         /** Returns the most significant bit set in a value.
         */
-        static FORCEINLINE unsigned int mostSignificantBitSet(unsigned int value)
+        static OGRE_FORCE_INLINE unsigned int mostSignificantBitSet(unsigned int value)
         {
+            //                                     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F
+            static const unsigned char msb[16] = { 0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+
             unsigned int result = 0;
-            while (value != 0) {
-                ++result;
-                value >>= 1;
-            }
+            if(value & 0xFFFF0000) { result += 16;value >>= 16; }
+            if(value & 0x0000FF00) { result += 8; value >>= 8; }
+            if(value & 0x000000F0) { result += 4; value >>= 4; }
+            result += msb[value];
             return result-1;
         }
         /** Returns the closest power-of-two number greater or equal to value.
             @note 0 and 1 are powers of two, so 
                 firstPO2From(0)==0 and firstPO2From(1)==1.
         */
-        static FORCEINLINE uint32 firstPO2From(uint32 n)
+        static OGRE_FORCE_INLINE uint32 firstPO2From(uint32 n)
         {
             --n;            
             n |= n >> 16;
@@ -146,10 +155,10 @@ namespace Ogre {
             return n;
         }
         /** Determines whether the number is power-of-two or not.
-            @note 0 and 1 are tread as power of two.
+            @note 0 and 1 are treat as power of two.
         */
         template<typename T>
-        static FORCEINLINE bool isPO2(T n)
+        static OGRE_FORCE_INLINE bool isPO2(T n)
         {
             return (n & (n-1)) == 0;
         }
@@ -157,7 +166,7 @@ namespace Ogre {
             remove right-hand zeros.
         */
         template<typename T>
-        static FORCEINLINE unsigned int getBitShift(T mask)
+        static OGRE_FORCE_INLINE unsigned int getBitShift(T mask)
         {
             if (mask == 0)
                 return 0;
@@ -172,8 +181,8 @@ namespace Ogre {
 
         /** Takes a value with a given src bit mask, and produces another
             value with a desired bit mask.
-            @remarks
-                This routine is useful for colour conversion.
+
+            This routine is useful for colour conversion.
         */
         template<typename SrcT, typename DestT>
         static inline DestT convertBitPattern(SrcT srcValue, SrcT srcBitMask, DestT destBitMask)
@@ -229,7 +238,7 @@ namespace Ogre {
         {
             if(value <= 0.0f) return 0;
             else if (value >= 1.0f) return (1<<bits)-1;
-            else return (unsigned int)(value * (1<<bits));     
+            else return (unsigned int)(value * float(1<<bits));
         }
 
         /**
@@ -237,7 +246,7 @@ namespace Ogre {
          */
         static inline float fixedToFloat(unsigned value, unsigned int bits)
         {
-            return (float)value/(float)((1<<bits)-1);
+            return bits ? (float)value/(float)((1<<bits)-1) : 0.0f;
         }
 
         /**
@@ -294,7 +303,7 @@ namespace Ogre {
         }
 
         /** Convert a float32 to a float16 (NV_half_float)
-            Courtesy of OpenEXR
+            Courtesy of meshoptimizer
         */
         static inline uint16 floatToHalf(float i)
         {
@@ -304,48 +313,29 @@ namespace Ogre {
         }
         /** Converts float in uint32 format to a a half in uint16 format
         */
-        static inline uint16 floatToHalfI(uint32 i)
+        static inline uint16 floatToHalfI(uint32 ui)
         {
-            register int s =  (i >> 16) & 0x00008000;
-            register int e = ((i >> 23) & 0x000000ff) - (127 - 15);
-            register int m =   i        & 0x007fffff;
-        
-            if (e <= 0)
-            {
-                if (e < -10)
-                {
-                    return 0;
-                }
-                m = (m | 0x00800000) >> (1 - e);
-        
-                return static_cast<uint16>(s | (m >> 13));
-            }
-            else if (e == 0xff - (127 - 15))
-            {
-                if (m == 0) // Inf
-                {
-                    return static_cast<uint16>(s | 0x7c00);
-                } 
-                else    // NAN
-                {
-                    m >>= 13;
-                    return static_cast<uint16>(s | 0x7c00 | m | (m == 0));
-                }
-            }
-            else
-            {
-                if (e > 30) // Overflow
-                {
-                    return static_cast<uint16>(s | 0x7c00);
-                }
-        
-                return static_cast<uint16>(s | (e << 10) | (m >> 13));
-            }
+            int s = (ui >> 16) & 0x8000;
+            int em = ui & 0x7fffffff;
+
+            // bias exponent and round to nearest; 112 is relative exponent bias (127-15)
+            int h = (em - (112 << 23) + (1 << 12)) >> 13;
+
+            // underflow: flush to zero; 113 encodes exponent -14
+            h = (em < (113 << 23)) ? 0 : h;
+
+            // overflow: infinity; 143 encodes exponent 16
+            h = (em >= (143 << 23)) ? 0x7c00 : h;
+
+            // NaN; note that we convert all types of NaN to qNaN
+            h = (em > (255 << 23)) ? 0x7e00 : h;
+
+            return (unsigned short)(s | h);
         }
         
         /**
          * Convert a float16 (NV_half_float) to a float32
-         * Courtesy of OpenEXR
+         * Courtesy of meshoptimizer
          */
         static inline float halfToFloat(uint16 y)
         {
@@ -356,46 +346,22 @@ namespace Ogre {
         /** Converts a half in uint16 format to a float
             in uint32 format
          */
-        static inline uint32 halfToFloatI(uint16 y)
+        static inline uint32 halfToFloatI(uint16 h)
         {
-            register int s = (y >> 15) & 0x00000001;
-            register int e = (y >> 10) & 0x0000001f;
-            register int m =  y        & 0x000003ff;
-        
-            if (e == 0)
-            {
-                if (m == 0) // Plus or minus zero
-                {
-                    return s << 31;
-                }
-                else // Denormalized number -- renormalize it
-                {
-                    while (!(m & 0x00000400))
-                    {
-                        m <<= 1;
-                        e -=  1;
-                    }
-        
-                    e += 1;
-                    m &= ~0x00000400;
-                }
-            }
-            else if (e == 31)
-            {
-                if (m == 0) // Inf
-                {
-                    return (s << 31) | 0x7f800000;
-                }
-                else // NaN
-                {
-                    return (s << 31) | 0x7f800000 | (m << 13);
-                }
-            }
-        
-            e = e + (127 - 15);
-            m = m << 13;
-        
-            return (s << 31) | (e << 23) | m;
+            unsigned int s = unsigned(h & 0x8000) << 16;
+            int em = h & 0x7fff;
+
+            // bias exponent and pad mantissa with 0; 112 is relative exponent bias (127-15)
+            int r = (em + (112 << 10)) << 13;
+
+            // denormal: flush to zero
+            r = (em < (1 << 10)) ? 0 : r;
+
+            // infinity/NaN; note that we preserve NaN payload as a byproduct of unifying inf/nan cases
+            // 112 is an exponent bias fixup; since we already applied it once, applying it twice converts 31 to 255
+            r += (em >= (31 << 10)) ? (112 << 23) : 0;
+
+            return s | r;
         }
          
 

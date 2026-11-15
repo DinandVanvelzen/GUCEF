@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,8 @@ THE SOFTWARE.
 // Precompiler options
 #include "OgrePrerequisites.h"
 
-#include "OgreVector3.h"
+#include "OgreVector.h"
+#include "OgrePlane.h"
 
 namespace Ogre {
 
@@ -43,14 +44,14 @@ namespace Ogre {
     *  @{
     */
     /** A sphere primitive, mostly used for bounds checking. 
-    @remarks
+
         A sphere in math texts is normally represented by the function
         x^2 + y^2 + z^2 = r^2 (for sphere's centered on the origin). Ogre stores spheres
         simply as a center point and a radius.
     */
     class _OgreExport Sphere
     {
-    protected:
+    private:
         Real mRadius;
         Vector3 mCenter;
     public:
@@ -89,7 +90,7 @@ namespace Ogre {
         /** Returns whether or not this sphere intersects a plane. */
         bool intersects(const Plane& plane) const
         {
-            return Math::intersects(*this, plane);
+            return Math::Abs(plane.getDistance(getCenter())) <= getRadius();
         }
         /** Returns whether or not this sphere intersects a point. */
         bool intersects(const Vector3& v) const
@@ -122,9 +123,12 @@ namespace Ogre {
             mCenter = mCenter + diff * t;
             mRadius = 0.5f * (length + mRadius + oth.getRadius());
         }
-        
-
     };
+
+    inline bool Math::intersects(const Sphere& sphere, const Plane& plane)
+    {
+        return sphere.intersects(plane);
+    }
     /** @} */
     /** @} */
 

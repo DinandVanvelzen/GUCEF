@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +29,6 @@ THE SOFTWARE.
 
 #include "OgreOptimisedUtil.h"
 
-#include "OgreVector3.h"
-#include "OgreMatrix4.h"
-
 namespace Ogre {
 
 //-------------------------------------------------------------------------
@@ -46,54 +43,54 @@ namespace Ogre {
     {
     public:
         /// @copydoc OptimisedUtil::softwareVertexSkinning
-        virtual void softwareVertexSkinning(
+        void softwareVertexSkinning(
             const float *srcPosPtr, float *destPosPtr,
             const float *srcNormPtr, float *destNormPtr,
             const float *blendWeightPtr, const unsigned char* blendIndexPtr,
-            const Matrix4* const* blendMatrices,
+            const Affine3* const* blendMatrices,
             size_t srcPosStride, size_t destPosStride,
             size_t srcNormStride, size_t destNormStride,
             size_t blendWeightStride, size_t blendIndexStride,
             size_t numWeightsPerVertex,
-            size_t numVertices);
+            size_t numVertices) override;
 
         /// @copydoc OptimisedUtil::softwareVertexMorph
-        virtual void softwareVertexMorph(
-            Real t,
+        void softwareVertexMorph(
+            float t,
             const float *srcPos1, const float *srcPos2,
             float *dstPos,
             size_t pos1VSize, size_t pos2VSize, size_t dstVSize, 
             size_t numVertices,
-            bool morphNormals);
+            bool morphNormals) override;
 
         /// @copydoc OptimisedUtil::concatenateAffineMatrices
-        virtual void concatenateAffineMatrices(
-            const Matrix4& baseMatrix,
-            const Matrix4* srcMatrices,
-            Matrix4* dstMatrices,
-            size_t numMatrices);
+        void concatenateAffineMatrices(
+            const Affine3& baseMatrix,
+            const Affine3* srcMatrices,
+            Affine3* dstMatrices,
+            size_t numMatrices) override;
 
         /// @copydoc OptimisedUtil::calculateFaceNormals
-        virtual void calculateFaceNormals(
+        void calculateFaceNormals(
             const float *positions,
             const EdgeData::Triangle *triangles,
             Vector4 *faceNormals,
-            size_t numTriangles);
+            size_t numTriangles) override;
 
         /// @copydoc OptimisedUtil::calculateLightFacing
-        virtual void calculateLightFacing(
+        void calculateLightFacing(
             const Vector4& lightPos,
             const Vector4* faceNormals,
             char* lightFacings,
-            size_t numFaces);
+            size_t numFaces) override;
 
         /// @copydoc OptimisedUtil::extrudeVertices
-        virtual void extrudeVertices(
+        void extrudeVertices(
             const Vector4& lightPos,
             Real extrudeDist,
             const float* srcPositions,
             float* destPositions,
-            size_t numVertices);
+            size_t numVertices) override;
     };
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
@@ -102,7 +99,7 @@ namespace Ogre {
         const float *pSrcPos, float *pDestPos,
         const float *pSrcNorm, float *pDestNorm,
         const float *pBlendWeight, const unsigned char* pBlendIndex,
-        const Matrix4* const* blendMatrices,
+        const Affine3* const* blendMatrices,
         size_t srcPosStride, size_t destPosStride,
         size_t srcNormStride, size_t destNormStride,
         size_t blendWeightStride, size_t blendIndexStride,
@@ -150,7 +147,7 @@ namespace Ogre {
                 if (weight)
                 {
                     // Blend position, use 3x4 matrix
-                    const Matrix4& mat = *blendMatrices[pBlendIndex[blendIdx]];
+                    const Affine3& mat = *blendMatrices[pBlendIndex[blendIdx]];
                     accumVecPos.x +=
                         (mat[0][0] * sourceVec.x +
                          mat[0][1] * sourceVec.y +
@@ -222,39 +219,14 @@ namespace Ogre {
     }
     //---------------------------------------------------------------------
     void OptimisedUtilGeneral::concatenateAffineMatrices(
-        const Matrix4& baseMatrix,
-        const Matrix4* pSrcMat,
-        Matrix4* pDstMat,
+        const Affine3& baseMatrix,
+        const Affine3* pSrcMat,
+        Affine3* pDstMat,
         size_t numMatrices)
     {
-        const Matrix4& m = baseMatrix;
-
         for (size_t i = 0; i < numMatrices; ++i)
         {
-            const Matrix4& s = *pSrcMat;
-            Matrix4& d = *pDstMat;
-
-            // TODO: Promote following code to Matrix4 class.
-
-            d[0][0] = m[0][0] * s[0][0] + m[0][1] * s[1][0] + m[0][2] * s[2][0];
-            d[0][1] = m[0][0] * s[0][1] + m[0][1] * s[1][1] + m[0][2] * s[2][1];
-            d[0][2] = m[0][0] * s[0][2] + m[0][1] * s[1][2] + m[0][2] * s[2][2];
-            d[0][3] = m[0][0] * s[0][3] + m[0][1] * s[1][3] + m[0][2] * s[2][3] + m[0][3];
-
-            d[1][0] = m[1][0] * s[0][0] + m[1][1] * s[1][0] + m[1][2] * s[2][0];
-            d[1][1] = m[1][0] * s[0][1] + m[1][1] * s[1][1] + m[1][2] * s[2][1];
-            d[1][2] = m[1][0] * s[0][2] + m[1][1] * s[1][2] + m[1][2] * s[2][2];
-            d[1][3] = m[1][0] * s[0][3] + m[1][1] * s[1][3] + m[1][2] * s[2][3] + m[1][3];
-
-            d[2][0] = m[2][0] * s[0][0] + m[2][1] * s[1][0] + m[2][2] * s[2][0];
-            d[2][1] = m[2][0] * s[0][1] + m[2][1] * s[1][1] + m[2][2] * s[2][1];
-            d[2][2] = m[2][0] * s[0][2] + m[2][1] * s[1][2] + m[2][2] * s[2][2];
-            d[2][3] = m[2][0] * s[0][3] + m[2][1] * s[1][3] + m[2][2] * s[2][3] + m[2][3];
-
-            d[3][0] = 0;
-            d[3][1] = 0;
-            d[3][2] = 0;
-            d[3][3] = 1;
+            *pDstMat = baseMatrix * *pSrcMat ;
 
             ++pSrcMat;
             ++pDstMat;
@@ -262,7 +234,7 @@ namespace Ogre {
     }
     //---------------------------------------------------------------------
     void OptimisedUtilGeneral::softwareVertexMorph(
-        Real t,
+        float t,
         const float *pSrc1, const float *pSrc2,
         float *pDst,
         size_t pos1VSize, size_t pos2VSize, size_t dstVSize,
@@ -273,7 +245,7 @@ namespace Ogre {
         size_t src2Skip = pos2VSize/sizeof(float) - 3 - (morphNormals ? 3 : 0);
         size_t dstSkip = dstVSize/sizeof(float) - 3 - (morphNormals ? 3 : 0);
         
-        Vector3 nlerpNormal;
+        Vector3f nlerpNormal;
         for (size_t i = 0; i < numVertices; ++i)
         {
             // x
@@ -291,16 +263,16 @@ namespace Ogre {
                 // normals must be in the same buffer as pos
                 // perform an nlerp
                 // we don't have enough information for a spherical interp
-                nlerpNormal.x = *pSrc1 + t * (*pSrc2 - *pSrc1);
+                nlerpNormal[0] = *pSrc1 + t * (*pSrc2 - *pSrc1);
                 ++pSrc1; ++pSrc2;
-                nlerpNormal.y = *pSrc1 + t * (*pSrc2 - *pSrc1);
+                nlerpNormal[1] = *pSrc1 + t * (*pSrc2 - *pSrc1);
                 ++pSrc1; ++pSrc2;
-                nlerpNormal.z = *pSrc1 + t * (*pSrc2 - *pSrc1);
+                nlerpNormal[2] = *pSrc1 + t * (*pSrc2 - *pSrc1);
                 ++pSrc1; ++pSrc2;
                 nlerpNormal.normalise();
-                *pDst++ = nlerpNormal.x;
-                *pDst++ = nlerpNormal.y;                
-                *pDst++ = nlerpNormal.z;                
+                *pDst++ = nlerpNormal[0];
+                *pDst++ = nlerpNormal[1];
+                *pDst++ = nlerpNormal[2];
             }
             
             pSrc1 += src1Skip;
@@ -394,6 +366,7 @@ namespace Ogre {
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
+    extern OptimisedUtil* _getOptimisedUtilGeneral(void);
     extern OptimisedUtil* _getOptimisedUtilGeneral(void)
     {
         static OptimisedUtilGeneral msOptimisedUtilGeneral;

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 // NB All code adapted from Wild Magic 0.2 Matrix math (free source code)
 // http://www.geometrictools.com/
@@ -72,15 +72,12 @@ namespace Ogre
             @note
                 It does <b>NOT</b> initialize the matrix for efficiency.
         */
-        inline Matrix3 () {}
-        inline explicit Matrix3 (const Real arr[3][3])
+        Matrix3 () {}
+        explicit Matrix3 (const Real arr[3][3])
         {
             memcpy(m,arr,9*sizeof(Real));
         }
-        inline Matrix3 (const Matrix3& rkMatrix)
-        {
-            memcpy(m,rkMatrix.m,9*sizeof(Real));
-        }
+
         Matrix3 (Real fEntry00, Real fEntry01, Real fEntry02,
                     Real fEntry10, Real fEntry11, Real fEntry12,
                     Real fEntry20, Real fEntry21, Real fEntry22)
@@ -96,47 +93,34 @@ namespace Ogre
             m[2][2] = fEntry22;
         }
 
-        /** Exchange the contents of this matrix with another. 
-        */
-        inline void swap(Matrix3& other)
-        {
-            std::swap(m[0][0], other.m[0][0]);
-            std::swap(m[0][1], other.m[0][1]);
-            std::swap(m[0][2], other.m[0][2]);
-            std::swap(m[1][0], other.m[1][0]);
-            std::swap(m[1][1], other.m[1][1]);
-            std::swap(m[1][2], other.m[1][2]);
-            std::swap(m[2][0], other.m[2][0]);
-            std::swap(m[2][1], other.m[2][1]);
-            std::swap(m[2][2], other.m[2][2]);
-        }
-
         /// Member access, allows use of construct mat[r][c]
-        inline const Real* operator[] (size_t iRow) const
+        const Real* operator[] (size_t iRow) const
         {
             return m[iRow];
         }
 
-        inline Real* operator[] (size_t iRow)
+        Real* operator[] (size_t iRow)
         {
             return m[iRow];
         }
 
-
-
-        /*inline operator Real* ()
+        Vector3 GetColumn(size_t iCol) const
         {
-            return (Real*)m[0];
-        }*/
-        Vector3 GetColumn (size_t iCol) const;
-        void SetColumn(size_t iCol, const Vector3& vec);
-        void FromAxes(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis);
-
-        /// Assignment and comparison
-        inline Matrix3& operator= (const Matrix3& rkMatrix)
+            assert(iCol < 3);
+            return Vector3(m[0][iCol], m[1][iCol], m[2][iCol]);
+        }
+        void SetColumn(size_t iCol, const Vector3& vec)
         {
-            memcpy(m,rkMatrix.m,9*sizeof(Real));
-            return *this;
+            assert(iCol < 3);
+            m[0][iCol] = vec.x;
+            m[1][iCol] = vec.y;
+            m[2][iCol] = vec.z;
+        }
+        void FromAxes(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis)
+        {
+            SetColumn(0, xAxis);
+            SetColumn(1, yAxis);
+            SetColumn(2, zAxis);
         }
 
         /** Tests 2 matrices for equality.
@@ -145,7 +129,7 @@ namespace Ogre
 
         /** Tests 2 matrices for inequality.
          */
-        inline bool operator!= (const Matrix3& rkMatrix) const
+        bool operator!= (const Matrix3& rkMatrix) const
         {
             return !operator==(rkMatrix);
         }
@@ -164,9 +148,6 @@ namespace Ogre
         Matrix3 operator* (const Matrix3& rkMatrix) const;
         Matrix3 operator- () const;
 
-        /// Matrix * vector [3x3 * 3x1 = 3x1]
-        Vector3 operator* (const Vector3& rkVector) const;
-
         /// Vector * matrix [1x3 * 3x3 = 1x3]
         _OgreExport friend Vector3 operator* (const Vector3& rkVector,
             const Matrix3& rkMatrix);
@@ -179,9 +160,23 @@ namespace Ogre
 
         // utilities
         Matrix3 Transpose () const;
-        bool Inverse (Matrix3& rkInverse, Real fTolerance = 1e-06) const;
-        Matrix3 Inverse (Real fTolerance = 1e-06) const;
-        Real Determinant () const;
+        bool Inverse (Matrix3& rkInverse, Real fTolerance = 1e-06f) const;
+        Matrix3 Inverse (Real fTolerance = 1e-06f) const;
+        Real Determinant() const { return determinant(); }
+
+        Matrix3 transpose() const { return Transpose(); }
+        Matrix3 inverse() const { return Inverse(); }
+        Real determinant() const
+        {
+            Real fCofactor00 = m[1][1] * m[2][2] - m[1][2] * m[2][1];
+            Real fCofactor10 = m[1][2] * m[2][0] - m[1][0] * m[2][2];
+            Real fCofactor20 = m[1][0] * m[2][1] - m[1][1] * m[2][0];
+
+            return m[0][0] * fCofactor00 + m[0][1] * fCofactor10 + m[0][2] * fCofactor20;
+        }
+
+        /** Determines if this matrix involves a negative scaling. */
+        bool hasNegativeScale() const { return determinant() < 0; }
 
         /// Singular value decomposition
         void SingularValueDecomposition (Matrix3& rkL, Vector3& rkS,
@@ -189,8 +184,37 @@ namespace Ogre
         void SingularValueComposition (const Matrix3& rkL,
             const Vector3& rkS, const Matrix3& rkR);
 
-        /// Gram-Schmidt orthonormalization (applied to columns of rotation matrix)
-        void Orthonormalize ();
+        /// Gram-Schmidt orthogonalisation (applied to columns of rotation matrix)
+        Matrix3 orthonormalised() const
+        {
+            // Algorithm uses Gram-Schmidt orthogonalisation.  If 'this' matrix is
+            // M = [m0|m1|m2], then orthonormal output matrix is Q = [q0|q1|q2],
+            //
+            //   q0 = m0/|m0|
+            //   q1 = (m1-(q0*m1)q0)/|m1-(q0*m1)q0|
+            //   q2 = (m2-(q0*m2)q0-(q1*m2)q1)/|m2-(q0*m2)q0-(q1*m2)q1|
+            //
+            // where |V| indicates length of vector V and A*B indicates dot
+            // product of vectors A and B.
+
+            Matrix3 Q;
+            // compute q0
+            Q.SetColumn(0, GetColumn(0) / GetColumn(0).length());
+
+            // compute q1
+            Real dot0 = Q.GetColumn(0).dotProduct(GetColumn(1));
+            Q.SetColumn(1, (GetColumn(1) - dot0 * Q.GetColumn(0)).normalisedCopy());
+
+            // compute q2
+            Real dot1 = Q.GetColumn(1).dotProduct(GetColumn(2));
+            dot0 = Q.GetColumn(0).dotProduct(GetColumn(2));
+            Q.SetColumn(2, (GetColumn(2) - dot0 * Q.GetColumn(0) + dot1 * Q.GetColumn(1)).normalisedCopy());
+
+            return Q;
+        }
+
+        /// @deprecated
+        OGRE_DEPRECATED void Orthonormalize() { *this = orthonormalised(); }
 
         /// Orthogonal Q, diagonal D, upper triangular U stored as (u01,u02,u12)
         void QDUDecomposition (Matrix3& rkQ, Vector3& rkD,
@@ -207,27 +231,32 @@ namespace Ogre
         }
         void FromAngleAxis (const Vector3& rkAxis, const Radian& fRadians);
 
-        /** The matrix must be orthonormal.  The decomposition is yaw*pitch*roll
-            where yaw is rotation about the Up vector, pitch is rotation about the
-            Right axis, and roll is rotation about the Direction axis. */
-        bool ToEulerAnglesXYZ (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        bool ToEulerAnglesXZY (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        bool ToEulerAnglesYXZ (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        bool ToEulerAnglesYZX (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        bool ToEulerAnglesZXY (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        bool ToEulerAnglesZYX (Radian& rfYAngle, Radian& rfPAngle,
-            Radian& rfRAngle) const;
-        void FromEulerAnglesXYZ (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
-        void FromEulerAnglesXZY (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
-        void FromEulerAnglesYXZ (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
-        void FromEulerAnglesYZX (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
-        void FromEulerAnglesZXY (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
-        void FromEulerAnglesZYX (const Radian& fYAngle, const Radian& fPAngle, const Radian& fRAngle);
+        /**
+            @name Euler angle conversions
+            (De-)composes the matrix in/ from yaw, pitch and roll angles,
+            where yaw is rotation about the Y vector, pitch is rotation about the
+            X axis, and roll is rotation about the Z axis.
+
+            The function suffix indicates the (de-)composition order;
+            e.g. with the YXZ variants the matrix will be (de-)composed as yaw*pitch*roll
+
+            For ToEulerAngles*, the return value denotes whether the solution is unique.
+            @note The matrix to be decomposed must be orthonormal.
+            @{
+        */
+        bool ToEulerAnglesXYZ(Radian& xAngle, Radian& yAngle, Radian& zAngle) const;
+        bool ToEulerAnglesXZY(Radian& xAngle, Radian& zAngle, Radian& yAngle) const;
+        bool ToEulerAnglesYXZ(Radian& yAngle, Radian& xAngle, Radian& zAngle) const;
+        bool ToEulerAnglesYZX(Radian& yAngle, Radian& zAngle, Radian& xAngle) const;
+        bool ToEulerAnglesZXY(Radian& zAngle, Radian& xAngle, Radian& yAngle) const;
+        bool ToEulerAnglesZYX(Radian& zAngle, Radian& yAngle, Radian& xAngle) const;
+        void FromEulerAnglesXYZ(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle);
+        void FromEulerAnglesXZY(const Radian& xAngle, const Radian& zAngle, const Radian& yAngle);
+        void FromEulerAnglesYXZ(const Radian& yAngle, const Radian& xAngle, const Radian& zAngle);
+        void FromEulerAnglesYZX(const Radian& yAngle, const Radian& zAngle, const Radian& xAngle);
+        void FromEulerAnglesZXY(const Radian& zAngle, const Radian& xAngle, const Radian& yAngle);
+        void FromEulerAnglesZYX(const Radian& zAngle, const Radian& yAngle, const Radian& xAngle);
+        /// @}
         /// Eigensolver, matrix must be symmetric
         void EigenSolveSymmetric (Real afEigenvalue[3],
             Vector3 akEigenvector[3]) const;
@@ -236,7 +265,7 @@ namespace Ogre
             Matrix3& rkProduct);
 
         /** Determines if this matrix involves a scaling. */
-        inline bool hasScale() const
+        bool hasScale() const
         {
             // check magnitude of column vectors (==local axes)
             Real t = m[0][0] * m[0][0] + m[1][0] * m[1][0] + m[2][0] * m[2][0];
@@ -252,28 +281,16 @@ namespace Ogre
             return false;
         }
 
-        /** Function for writing to a stream.
-        */
-        inline _OgreExport friend std::ostream& operator <<
-            ( std::ostream& o, const Matrix3& mat )
-        {
-            o << "Matrix3(" << mat[0][0] << ", " << mat[0][1] << ", " << mat[0][2] << ", " 
-                            << mat[1][0] << ", " << mat[1][1] << ", " << mat[1][2] << ", " 
-                            << mat[2][0] << ", " << mat[2][1] << ", " << mat[2][2] << ")";
-            return o;
-        }
-
         static const Real EPSILON;
         static const Matrix3 ZERO;
         static const Matrix3 IDENTITY;
 
-    protected:
+    private:
         // support for eigensolver
         void Tridiagonal (Real afDiag[3], Real afSubDiag[3]);
         bool QLAlgorithm (Real afDiag[3], Real afSubDiag[3]);
 
         // support for singular value decomposition
-        static const Real msSvdEpsilon;
         static const unsigned int msSvdMaxIterations;
         static void Bidiagonalize (Matrix3& kA, Matrix3& kL,
             Matrix3& kR);
@@ -288,6 +305,29 @@ namespace Ogre
         // for faster access
         friend class Matrix4;
     };
+
+    /// Matrix * vector [3x3 * 3x1 = 3x1]
+    inline Vector3 operator*(const Matrix3& m, const Vector3& v)
+    {
+        return Vector3(
+                m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z,
+                m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z,
+                m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z);
+    }
+
+    inline Matrix3 Math::lookRotation(const Vector3& direction, const Vector3& yaw)
+    {
+        Matrix3 ret;
+        // cross twice to rederive, only direction is unaltered
+        const Vector3& xAxis = yaw.crossProduct(direction).normalisedCopy();
+        const Vector3& yAxis = direction.crossProduct(xAxis);
+        ret.FromAxes(xAxis, yAxis, direction);
+        return ret;
+    }
+
+    /** Function for writing to a stream.
+     */
+    _OgreExport std::ostream& operator<<(std::ostream& o, const Matrix3& mat);
     /** @} */
     /** @} */
 }

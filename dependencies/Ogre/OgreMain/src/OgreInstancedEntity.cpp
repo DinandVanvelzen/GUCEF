@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,12 @@ THE SOFTWARE.
 #include "OgreSkeletonInstance.h"
 #include "OgreAnimationState.h"
 #include "OgreOptimisedUtil.h"
-#include "OgreCamera.h"
-#include "OgreException.h"
 #include "OgreNameGenerator.h"
 
 namespace Ogre
 {
+    const String MOT_INSTANCED_ENTITY = "InstancedEntity";
+
     NameGenerator InstancedEntity::msNameGenerator("");
 
     InstancedEntity::InstancedEntity( InstanceBatch *batchOwner, uint32 instanceID, InstancedEntity* sharedTransformEntity ) :
@@ -87,7 +87,7 @@ namespace Ogre
     bool InstancedEntity::shareTransformWith( InstancedEntity *slave )
     {
         if( !this->mBatchOwner->_getMeshRef()->hasSkeleton() ||
-            this->mBatchOwner->_getMeshRef()->getSkeleton().isNull() ||
+            !this->mBatchOwner->_getMeshRef()->getSkeleton() ||
             !this->mBatchOwner->_supportsSkeletalAnimation() )
         {
             return false;
@@ -152,8 +152,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     const String& InstancedEntity::getMovableType(void) const
     {
-        static String sType = "InstancedEntity";
-        return sType;
+        return MOT_INSTANCED_ENTITY;
     }
     //-----------------------------------------------------------------------
     size_t InstancedEntity::getTransforms( Matrix4 *xform ) const
@@ -170,7 +169,7 @@ namespace Ogre
             }
             else
             {
-                Matrix4* matrices = mBatchOwner->useBoneWorldMatrices() ? mBoneWorldMatrices : mBoneMatrices;
+                Affine3* matrices = mBatchOwner->useBoneWorldMatrices() ? mBoneWorldMatrices : mBoneMatrices;
                 const Mesh::IndexMap *indexMap = mBatchOwner->_getIndexToBoneMap();
                 Mesh::IndexMap::const_iterator itor = indexMap->begin();
                 Mesh::IndexMap::const_iterator end  = indexMap->end();
@@ -186,13 +185,13 @@ namespace Ogre
             if( mSkeletonInstance )
                 retVal = mBatchOwner->_getIndexToBoneMap()->size();
 
-            std::fill_n( xform, retVal, Matrix4::ZEROAFFINE );
+            std::fill_n( xform, retVal, Matrix4::ZERO );
         }
 
         return retVal;
     }
     //-----------------------------------------------------------------------
-    size_t InstancedEntity::getTransforms3x4( float *xform ) const
+    size_t InstancedEntity::getTransforms3x4( Matrix3x4f *xform ) const
     {
         size_t retVal;
         //When not attached, returns zero matrix to avoid rendering this one, not identity
@@ -200,34 +199,20 @@ namespace Ogre
         {
             if( !mSkeletonInstance )
             {
-                const Matrix4& mat = mBatchOwner->useBoneWorldMatrices() ? 
-                    _getParentNodeFullTransform() : Matrix4::IDENTITY;
-                for( int i=0; i<3; ++i )
-                {
-                    Real const *row = mat[i];
-                    for( int j=0; j<4; ++j )
-                        *xform++ = static_cast<float>( *row++ );
-                }
+                const Affine3& mat = mBatchOwner->useBoneWorldMatrices() ?
+                    _getParentNodeFullTransform() : Affine3::IDENTITY;
 
+                *xform = Matrix3x4f(mat[0]);
                 retVal = 12;
             }
             else
             {
-                Matrix4* matrices = mBatchOwner->useBoneWorldMatrices() ? mBoneWorldMatrices : mBoneMatrices;
-
+                Affine3* matrices = mBatchOwner->useBoneWorldMatrices() ? mBoneWorldMatrices : mBoneMatrices;
                 const Mesh::IndexMap *indexMap = mBatchOwner->_getIndexToBoneMap();
-                Mesh::IndexMap::const_iterator itor = indexMap->begin();
-                Mesh::IndexMap::const_iterator end  = indexMap->end();
                 
-                while( itor != end )
+                for(auto i : *indexMap)
                 {
-                    const Matrix4 &mat = matrices[*itor++];
-                    for( int i=0; i<3; ++i )
-                    {
-                        Real const *row = mat[i];
-                        for( int j=0; j<4; ++j )
-                            *xform++ = static_cast<float>( *row++ );
-                    }
+                    *xform++ = Matrix3x4f(matrices[i][0]);
                 }
 
                 retVal = indexMap->size() * 4 * 3;
@@ -240,7 +225,7 @@ namespace Ogre
             else
                 retVal = 12;
             
-            std::fill_n( xform, retVal, 0.0f );
+            std::fill_n( xform, retVal/12, Matrix3x4f(Affine3::ZERO[0]) );
         }
 
         return retVal;
@@ -257,7 +242,7 @@ namespace Ogre
 
             //Object's bounding box is viewed by the camera
             if( retVal && camera )
-                retVal = camera->isVisible(Sphere(_getDerivedPosition(),getBoundingRadius()));
+                retVal = camera->isVisible(Sphere(_getDerivedPosition(),getBoundingRadius() * getMaxScaleCoef()));
         }
 
         return retVal;
@@ -267,20 +252,21 @@ namespace Ogre
     {
         //Is mesh skeletally animated?
         if( mBatchOwner->_getMeshRef()->hasSkeleton() &&
-            !mBatchOwner->_getMeshRef()->getSkeleton().isNull() &&
+            mBatchOwner->_getMeshRef()->getSkeleton() &&
             mBatchOwner->_supportsSkeletalAnimation() )
         {
             mSkeletonInstance = OGRE_NEW SkeletonInstance( mBatchOwner->_getMeshRef()->getSkeleton() );
             mSkeletonInstance->load();
 
-            mBoneMatrices       = static_cast<Matrix4*>(OGRE_MALLOC_SIMD( sizeof(Matrix4) *
+            mBoneMatrices       = static_cast<Affine3*>(OGRE_MALLOC_SIMD( sizeof(Affine3) *
                                                                     mSkeletonInstance->getNumBones(),
                                                                     MEMCATEGORY_ANIMATION));
             if (mBatchOwner->useBoneWorldMatrices())
             {
-                mBoneWorldMatrices  = static_cast<Matrix4*>(OGRE_MALLOC_SIMD( sizeof(Matrix4) *
+                mBoneWorldMatrices  = static_cast<Affine3*>(OGRE_MALLOC_SIMD( sizeof(Affine3) *
                                                                     mSkeletonInstance->getNumBones(),
                                                                     MEMCATEGORY_ANIMATION));
+                std::fill(mBoneWorldMatrices, mBoneWorldMatrices + mSkeletonInstance->getNumBones(), Affine3::IDENTITY);
             }
 
             mAnimationState = OGRE_NEW AnimationStateSet();
@@ -362,7 +348,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     Real InstancedEntity::getBoundingRadius(void) const
     {
-        return mBatchOwner->_getMeshReference()->getBoundingSphereRadius() * getMaxScaleCoef();
+        return mBatchOwner->_getMeshReference()->getBoundingSphereRadius();
     }
     //-----------------------------------------------------------------------
     Real InstancedEntity::getSquaredViewDepth( const Camera* cam ) const
@@ -479,35 +465,38 @@ namespace Ogre
     //---------------------------------------------------------------------------
     Real InstancedEntity::getMaxScaleCoef() const 
     { 
-        if (mParentNode)
-        {
-            const Ogre::Vector3& parentScale = mParentNode->_getDerivedScale();
-            return mMaxScaleLocal * std::max<Real>(std::max<Real>(
-                Math::Abs(parentScale.x), Math::Abs(parentScale.y)), Math::Abs(parentScale.z)); 
-        }
-        return mMaxScaleLocal; 
+        return mMaxScaleLocal;
     }
 
     //---------------------------------------------------------------------------
     void InstancedEntity::updateTransforms()
     {
-        if (mUseLocalTransform && mNeedTransformUpdate)
+        if (mNeedTransformUpdate)
         {
-            if (mParentNode)
+            if (mUseLocalTransform)
             {
-                const Vector3& parentPosition = mParentNode->_getDerivedPosition();
-                const Quaternion& parentOrientation = mParentNode->_getDerivedOrientation();
-                const Vector3& parentScale = mParentNode->_getDerivedScale();
-                
-                Quaternion derivedOrientation = parentOrientation * mOrientation;
-                Vector3 derivedScale = parentScale * mScale;
-                mDerivedLocalPosition = parentOrientation * (parentScale * mPosition) + parentPosition;
-            
-                mFullLocalTransform.makeTransform(mDerivedLocalPosition, derivedScale, derivedOrientation);
-            }
-            else
-            {
-                mFullLocalTransform.makeTransform(mPosition,mScale,mOrientation);
+                if (mParentNode)
+                {
+                    const Vector3& parentPosition = mParentNode->_getDerivedPosition();
+                    const Quaternion& parentOrientation = mParentNode->_getDerivedOrientation();
+                    const Vector3& parentScale = mParentNode->_getDerivedScale();
+
+                    Quaternion derivedOrientation = parentOrientation * mOrientation;
+                    Vector3 derivedScale = parentScale * mScale;
+                    mDerivedLocalPosition = parentOrientation * (parentScale * mPosition) + parentPosition;
+
+                    mFullLocalTransform.makeTransform(mDerivedLocalPosition, derivedScale, derivedOrientation);
+                }
+                else
+                {
+                    mFullLocalTransform.makeTransform(mPosition,mScale,mOrientation);
+                }
+            } else {
+                if (mParentNode) {
+                    const Ogre::Vector3& parentScale = mParentNode->_getDerivedScale();
+                    mMaxScaleLocal = std::max<Real>(std::max<Real>(
+                            Math::Abs(parentScale.x), Math::Abs(parentScale.y)), Math::Abs(parentScale.z));
+                }
             }
             mNeedTransformUpdate = false;
         }
@@ -521,12 +510,12 @@ namespace Ogre
         mUseLocalTransform &= used;
     }
     //---------------------------------------------------------------------------
-    void InstancedEntity::setCustomParam( unsigned char idx, const Vector4 &newParam )
+    void InstancedEntity::setCustomParam( unsigned char idx, const Vector4f &newParam )
     {
         mBatchOwner->_setCustomParam( this, idx, newParam );
     }
     //---------------------------------------------------------------------------
-    const Vector4& InstancedEntity::getCustomParam( unsigned char idx )
+    const Vector4f& InstancedEntity::getCustomParam( unsigned char idx )
     {
         return mBatchOwner->_getCustomParam( this, idx );
     }

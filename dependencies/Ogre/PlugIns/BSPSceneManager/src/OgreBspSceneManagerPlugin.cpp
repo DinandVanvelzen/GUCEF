@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,16 +28,38 @@ THE SOFTWARE.
 
 #include "OgreBspSceneManagerPlugin.h"
 #include "OgreRoot.h"
+#include "OgreCodec.h"
+#include "OgreQuake3ShaderManager.h"
 
 namespace Ogre 
 {
+namespace {
+    struct BspSceneCodec : public Codec
+    {
+        String magicNumberToFileExt(const char* magicNumberPtr, size_t maxbytes) const override { return ""; }
+        String getType() const override { return "bsp"; }
+        void decode(const DataStreamPtr& stream, const Any& output) const override
+        {
+            auto group = ResourceGroupManager::getSingleton().getWorldResourceGroupName();
+            auto rootNode = any_cast<SceneNode*>(output);
+            BspSceneManager* mgr = dynamic_cast<BspSceneManager*>(rootNode->getCreator());
+
+            OgreAssert(mgr, "only loading into a BspSceneManager supported");
+            OgreAssert(mgr->getRootSceneNode() == rootNode, "BspCodec only supports loading into RootSceneNode");
+
+            mgr->setLevel(BspLevelPtr()); // clear
+
+            auto bspLevel = std::make_shared<BspLevel>(nullptr, "bsplevel", 0, group, false, nullptr);
+            bspLevel->load(stream);
+
+            mgr->setLevel(bspLevel);
+        }
+    };
+}
     const String sPluginName = "BSP Scene Manager";
     //---------------------------------------------------------------------
-    BspSceneManagerPlugin::BspSceneManagerPlugin()
-        :mBspFactory(0), mBspResourceManager(0)
-    {
-
-    }
+    BspSceneManagerPlugin::BspSceneManagerPlugin() : mBspFactory(0) {}
+    BspSceneManagerPlugin::~BspSceneManagerPlugin() {}
     //---------------------------------------------------------------------
     const String& BspSceneManagerPlugin::getName() const
     {
@@ -55,8 +77,12 @@ namespace Ogre
     {
         // Register (factory not dependent on rsys resources)
         Root::getSingleton().addSceneManagerFactory(mBspFactory);
-        // Create resource manager (registers itself)
-        mBspResourceManager = OGRE_NEW BspResourceManager();
+
+        // Also create related shader manager (singleton managed)
+        mShaderMgr = OGRE_NEW Quake3ShaderManager();
+
+        mCodec.reset(new BspSceneCodec());
+        Codec::registerCodec(mCodec.get());
     }
     //---------------------------------------------------------------------
     void BspSceneManagerPlugin::shutdown()
@@ -64,10 +90,10 @@ namespace Ogre
         // Unregister SM factory
         Root::getSingleton().removeSceneManagerFactory(mBspFactory);
 
-        // delete resource manager, will unregister itself
-        OGRE_DELETE mBspResourceManager;
-        mBspResourceManager = 0;
+        Codec::unregisterCodec(mCodec.get());
+        mCodec.reset();
 
+        OGRE_DELETE mShaderMgr;
     }
     //---------------------------------------------------------------------
     void BspSceneManagerPlugin::uninstall()

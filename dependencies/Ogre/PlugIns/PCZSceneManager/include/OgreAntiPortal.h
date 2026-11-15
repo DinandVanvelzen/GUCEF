@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-PortalBase.h  -  PortalBase is the base class for Portal and AntiPortal.
-
 */
 
 #ifndef ANTIPORTAL_H
@@ -42,8 +40,8 @@ namespace Ogre
         AntiPortal(const String &name, const PORTAL_TYPE type = PORTAL_TYPE_QUAD);
         virtual ~AntiPortal();
 
-        /** @copydoc MovableObject::getMovableType. */
-        const String& getMovableType() const;
+        /** @copydoc MovableObject::getMovableType */
+        const String& getMovableType() const override;
 
     };
 
@@ -51,7 +49,7 @@ namespace Ogre
     class _OgrePCZPluginExport AntiPortalFactory : public PortalBaseFactory
     {
     protected:
-        MovableObject* createInstanceImpl(const String& name, const NameValuePairList* params);
+        MovableObject* createInstanceImpl(const String& name, const NameValuePairList* params) override;
     public:
         AntiPortalFactory() {}
         ~AntiPortalFactory() {}
@@ -59,13 +57,11 @@ namespace Ogre
         static String FACTORY_TYPE_NAME;
         static unsigned long FACTORY_TYPE_FLAG;
 
-        const String& getType() const
+        const String& getType() const override
         { return FACTORY_TYPE_NAME; }
 
-        void destroyInstance(MovableObject* obj);
-
         /** Return true here as we want to get a unique type flag. */
-        bool requestTypeFlags() const
+        bool requestTypeFlags() const override
         { return true; }
 
     };

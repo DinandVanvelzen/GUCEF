@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,14 +33,16 @@ THE SOFTWARE.
 #include "OgreStringInterface.h"
 
 namespace Ogre {
-
-
-    /** This plugin subclass of ParticleAffector allows you to alter the scale of particles.
-    @remarks
-        This class supplies the ParticleAffector implementation required to make the particle expand
-        or contract in mid-flight.
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport ScaleAffector : public ParticleAffector
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+
+    /** This affector scales particles in flight.
+    */
+    class ScaleAffector : public ParticleAffector
     {
     public:
 
@@ -48,15 +50,15 @@ namespace Ogre {
         class CmdScaleAdjust : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Default constructor. */
         ScaleAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _initParticle(Particle* pParticle) override;
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
         /** Sets the scale adjustment to be made per second to particles. 
         @param rate
@@ -69,14 +71,18 @@ namespace Ogre {
         /** Gets the scale adjustment to be made per second to particles. */
         Real getAdjust(void) const;
 
+        const Vector2& getScaleRange() const {  return mScaleRange; }
+        void setScaleRange(const Vector2& range) {  mScaleRange = range; }
+
         static CmdScaleAdjust msScaleCmd;
 
     protected:
-        Real mScaleAdj;
-
+        float mScaleAdj;
+        Vector2 mScaleRange;
     };
 
-
+    /** @} */
+    /** @} */
 }
 
 

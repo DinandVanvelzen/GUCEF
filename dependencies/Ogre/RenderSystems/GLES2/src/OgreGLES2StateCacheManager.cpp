@@ -26,198 +26,379 @@
  -----------------------------------------------------------------------------
  */
 
-#include "OgreStableHeaders.h"
 #include "OgreGLES2StateCacheManager.h"
 #include "OgreGLES2RenderSystem.h"
-#include "OgreLogManager.h"
 #include "OgreRoot.h"
-
-#if OGRE_NO_GL_STATE_CACHE_SUPPORT == 0
-#   include "OgreGLES2StateCacheManagerImp.h"
-#else
-#   include "OgreGLES2NullStateCacheManagerImp.h"
-#endif
 
 namespace Ogre {
     
-    GLES2StateCacheManager::GLES2StateCacheManager() 
+    GLES2StateCacheManager::GLES2StateCacheManager(void)
     {
-        mImp = new GLES2StateCacheManagerImp();
+        clearCache();
     }
     
-    GLES2StateCacheManager::~GLES2StateCacheManager()
-    {
-        delete mImp;
-        mImp = 0;
-    }
-
     void GLES2StateCacheManager::initializeCache()
     {
-        mImp->initializeCache();
+        OGRE_CHECK_GL_ERROR(glBlendEquation(GL_FUNC_ADD));
+        
+        OGRE_CHECK_GL_ERROR(glBlendFunc(GL_ONE, GL_ZERO));
+        
+        OGRE_CHECK_GL_ERROR(glCullFace(mCullFace));
+
+        OGRE_CHECK_GL_ERROR(glDepthFunc(mDepthFunc));
+
+        OGRE_CHECK_GL_ERROR(glDepthMask(mDepthMask));
+
+        OGRE_CHECK_GL_ERROR(glStencilMask(mStencilMask));
+
+        OGRE_CHECK_GL_ERROR(glClearDepthf(mClearDepth));
+
+        OGRE_CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, 0));
+
+        OGRE_CHECK_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+        OGRE_CHECK_GL_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+        OGRE_CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+        OGRE_CHECK_GL_ERROR(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+
+        OGRE_CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0));
+
+        OGRE_CHECK_GL_ERROR(glClearColor(mClearColour[0], mClearColour[1], mClearColour[2], mClearColour[3]));
+
+        OGRE_CHECK_GL_ERROR(glColorMask(mColourMask[0], mColourMask[1], mColourMask[2], mColourMask[3]));
     }
     
     void GLES2StateCacheManager::clearCache()
     {
-        mImp->clearCache();
+        mDepthMask = GL_TRUE;
+        mBlendEquationRGB = GL_FUNC_ADD;
+        mBlendEquationAlpha = GL_FUNC_ADD;
+        mCullFace = GL_BACK;
+        mDepthFunc = GL_LESS;
+        mStencilMask = 0xFFFFFFFF;
+        mActiveTextureUnit = 0;
+        mClearDepth = 1.0f;
+        mLastBoundTexID = 0;
+        
+        // Initialize our cache variables and also the GL so that the
+        // stored values match the GL state
+        mBlendFuncSource = GL_ONE;
+        mBlendFuncDest = GL_ZERO;
+        mBlendFuncSourceAlpha = GL_ONE;
+        mBlendFuncDestAlpha = GL_ZERO;
+        
+        mClearColour[0] = mClearColour[1] = mClearColour[2] = mClearColour[3] = 0.0f;
+        mColourMask[0] = mColourMask[1] = mColourMask[2] = mColourMask[3] = GL_TRUE;
+        
+        mActiveVertexArray = 0;
+
+#ifdef OGRE_ENABLE_STATE_CACHE
+        mEnableVector.reserve(25);
+        mEnableVector.clear();
+        mActiveBufferMap.clear();
+        mTexUnitsMap.clear();
+#endif
+    }
+
+    void GLES2StateCacheManager::bindGLBuffer(GLenum target, GLuint buffer)
+    {
+#ifdef OGRE_ENABLE_STATE_CACHE
+        auto ret = mActiveBufferMap.emplace(target, buffer);
+        if(ret.first->second != buffer) // Update the cached value if needed
+        {
+            ret.first->second = buffer;
+            ret.second = true;
+        }
+
+        // Update GL
+        if(ret.second)
+#endif
+        {
+            if(target == GL_FRAMEBUFFER)
+            {
+                OgreAssert(false, "not implemented");
+            }
+            else if(target == GL_RENDERBUFFER)
+            {
+                OGRE_CHECK_GL_ERROR(glBindRenderbuffer(target, buffer));
+            }
+            else
+            {
+                OGRE_CHECK_GL_ERROR(glBindBuffer(target, buffer));
+            }
+        }
     }
     
-    void GLES2StateCacheManager::bindGLBuffer(GLenum target, GLuint buffer, bool force)
+    void GLES2StateCacheManager::deleteGLBuffer(GLenum target, GLuint buffer)
     {
-        mImp->bindGLBuffer(target, buffer, force);
+        // Buffer name 0 is reserved and we should never try to delete it
+        if(buffer == 0)
+            return;
+        
+        if(target == GL_FRAMEBUFFER)
+        {
+            OGRE_CHECK_GL_ERROR(glDeleteFramebuffers(1, &buffer));
+        }
+        else if(target == GL_RENDERBUFFER)
+        {
+            OGRE_CHECK_GL_ERROR(glDeleteRenderbuffers(1, &buffer));
+        }
+        else
+        {
+            OGRE_CHECK_GL_ERROR(glDeleteBuffers(1, &buffer));
+        }
+
+#ifdef OGRE_ENABLE_STATE_CACHE
+        BindBufferMap::iterator i = mActiveBufferMap.find(target);
+        
+        if (i != mActiveBufferMap.end() && ((*i).second == buffer))
+        {
+            // Currently bound buffer is being deleted, update the cached value to 0,
+            // which it likely the buffer that will be bound by the driver.
+            // An update will be forced next time we try to bind on this target.
+            (*i).second = 0;
+        }
+#endif
     }
-    
-    void GLES2StateCacheManager::deleteGLBuffer(GLenum target, GLuint buffer, bool force)
+
+    void GLES2StateCacheManager::bindGLVertexArray(GLuint vao)
     {
-        mImp->deleteGLBuffer(target, buffer, force);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mActiveVertexArray != vao)
+        {
+            mActiveVertexArray = vao;
+            OGRE_CHECK_GL_ERROR(glBindVertexArrayOES(vao));
+            //we also need to clear the cached GL_ELEMENT_ARRAY_BUFFER value, as it is invalidated by glBindVertexArray
+            mActiveBufferMap[GL_ELEMENT_ARRAY_BUFFER] = 0;
+        }
+#else
+        OGRE_CHECK_GL_ERROR(glBindVertexArrayOES(vao));
+#endif
     }
 
     void GLES2StateCacheManager::invalidateStateForTexture(GLuint texture)
     {
-        mImp->invalidateStateForTexture(texture);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        mTexUnitsMap.erase(texture);
+#endif
     }
 
+    // TODO: Store as high/low bits of a GLuint, use vector instead of map for TexParameteriMap
     void GLES2StateCacheManager::setTexParameteri(GLenum target, GLenum pname, GLint param)
     {
-        mImp->setTexParameteri(target, pname, param);
-    }
+#ifdef OGRE_ENABLE_STATE_CACHE
+        // Check if we have a map entry for this texture id. If not, create a blank one and insert it.
+        TexUnitsMap::iterator it = mTexUnitsMap.find(mLastBoundTexID);
+        if (it == mTexUnitsMap.end())
+        {
+            TexParameteriMap unit;
+            mTexUnitsMap[mLastBoundTexID] = unit;
+            
+            // Update the iterator
+            it = mTexUnitsMap.find(mLastBoundTexID);
+        }
+        
+        // Get a local copy of the parameter map and search for this parameter
+        TexParameteriMap &myMap = (*it).second;
+        auto ret = myMap.emplace(pname, param);
+        TexParameteriMap::iterator i = ret.first;
 
-    void GLES2StateCacheManager::setTexParameterf(GLenum target, GLenum pname, GLfloat param)
-    {
-        mImp->setTexParameterf(target, pname, param);
-    }
-
-    void GLES2StateCacheManager::getTexParameterfv(GLenum target, GLenum pname, GLfloat *param)
-    {
-        mImp->getTexParameterfv(target, pname, param);
+        // Update the cached value if needed
+        if((*i).second != param || ret.second)
+        {
+            (*i).second = param;
+            
+            // Update GL
+            OGRE_CHECK_GL_ERROR(glTexParameteri(target, pname, param));
+        }
+#else
+        OGRE_CHECK_GL_ERROR(glTexParameteri(target, pname, param));
+#endif
     }
 
     void GLES2StateCacheManager::bindGLTexture(GLenum target, GLuint texture)
     {
-        mImp->bindGLTexture(target, texture);
+        mLastBoundTexID = texture;
+        
+        // Update GL
+        OGRE_CHECK_GL_ERROR(glBindTexture(target, texture));
     }
     
-    bool GLES2StateCacheManager::activateGLTextureUnit(unsigned char unit)
+    bool GLES2StateCacheManager::activateGLTextureUnit(size_t unit)
     {
-        return mImp->activateGLTextureUnit(unit);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if (mActiveTextureUnit == unit)
+            return true;
+#endif
+
+        OGRE_CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + unit));
+        mActiveTextureUnit = unit;
+        return true;
     }
-    
-    void GLES2StateCacheManager::setBlendFunc(GLenum source, GLenum dest)
+
+    void GLES2StateCacheManager::setBlendFunc(GLenum source, GLenum dest, GLenum sourceA, GLenum destA)
     {
-        mImp->setBlendFunc(source, dest);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mBlendFuncSource != source || mBlendFuncDest != dest || sourceA != mBlendFuncSourceAlpha || destA != mBlendFuncDestAlpha )
+#endif
+        {
+            mBlendFuncSource = source;
+            mBlendFuncDest = dest;
+            mBlendFuncSourceAlpha = sourceA;
+            mBlendFuncDestAlpha = destA;
+            
+            OGRE_CHECK_GL_ERROR(glBlendFuncSeparate(source, dest, sourceA, destA));
+        }
     }
-    
-    void GLES2StateCacheManager::setBlendEquation(GLenum eq)
+
+    void GLES2StateCacheManager::setBlendEquation(GLenum eqRGB, GLenum eqAlpha)
     {
-        mImp->setBlendEquation(eq);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mBlendEquationRGB != eqRGB || mBlendEquationAlpha != eqAlpha)
+#endif
+        {
+            mBlendEquationRGB = eqRGB;
+            mBlendEquationAlpha = eqAlpha;
+
+            OGRE_CHECK_GL_ERROR(glBlendEquationSeparate(eqRGB, eqAlpha));
+        }
     }
     
     void GLES2StateCacheManager::setDepthMask(GLboolean mask)
     {
-        mImp->setDepthMask(mask);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mDepthMask != mask)
+#endif
+        {
+            mDepthMask = mask;
+            
+            OGRE_CHECK_GL_ERROR(glDepthMask(mask));
+        }
     }
     
     void GLES2StateCacheManager::setDepthFunc(GLenum func)
     {
-        mImp->setDepthFunc(func);
+        if(mDepthFunc != func)
+        {
+            mDepthFunc = func;
+            
+            OGRE_CHECK_GL_ERROR(glDepthFunc(func));
+        }
     }
     
     void GLES2StateCacheManager::setClearDepth(GLclampf depth)
     {
-        mImp->setClearDepth(depth);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mClearDepth != depth)
+#endif
+        {
+            mClearDepth = depth;
+            
+            OGRE_CHECK_GL_ERROR(glClearDepthf(depth));
+        }
     }
     
     void GLES2StateCacheManager::setClearColour(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
     {
-        mImp->setClearColour(red, green, blue, alpha);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if((mClearColour[0] != red) ||
+           (mClearColour[1] != green) ||
+           (mClearColour[2] != blue) ||
+           (mClearColour[3] != alpha))
+#endif
+        {
+            mClearColour[0] = red;
+            mClearColour[1] = green;
+            mClearColour[2] = blue;
+            mClearColour[3] = alpha;
+            
+            OGRE_CHECK_GL_ERROR(glClearColor(mClearColour[0], mClearColour[1], mClearColour[2], mClearColour[3]));
+        }
     }
     
     void GLES2StateCacheManager::setColourMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
     {
-        mImp->setColourMask(red, green, blue, alpha);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if((mColourMask[0] != red) ||
+           (mColourMask[1] != green) ||
+           (mColourMask[2] != blue) ||
+           (mColourMask[3] != alpha))
+#endif
+        {
+            mColourMask[0] = red;
+            mColourMask[1] = green;
+            mColourMask[2] = blue;
+            mColourMask[3] = alpha;
+            
+            OGRE_CHECK_GL_ERROR(glColorMask(mColourMask[0], mColourMask[1], mColourMask[2], mColourMask[3]));
+        }
     }
     
     void GLES2StateCacheManager::setStencilMask(GLuint mask)
     {
-        mImp->setStencilMask(mask);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mStencilMask != mask)
+#endif
+        {
+            mStencilMask = mask;
+            
+            OGRE_CHECK_GL_ERROR(glStencilMask(mask));
+        }
     }
     
     void GLES2StateCacheManager::setEnabled(GLenum flag)
     {
-        mImp->setEnabled(flag);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        bool found = std::find(mEnableVector.begin(), mEnableVector.end(), flag) != mEnableVector.end();
+        if(!found)
+        {
+            mEnableVector.push_back(flag);
+            
+            OGRE_CHECK_GL_ERROR(glEnable(flag));
+        }
+#else
+        OGRE_CHECK_GL_ERROR(glEnable(flag));
+#endif
     }
     
     void GLES2StateCacheManager::setDisabled(GLenum flag)
     {
-        mImp->setDisabled(flag);
-    }
+#ifdef OGRE_ENABLE_STATE_CACHE
+        auto iter = std::find(mEnableVector.begin(), mEnableVector.end(), flag);
+        if(iter != mEnableVector.end())
+        {
+            mEnableVector.erase(iter);
 
-    void GLES2StateCacheManager::setVertexAttribEnabled(GLuint attrib)
-    {
-        mImp->setVertexAttribEnabled(attrib);
-    }
-
-    void GLES2StateCacheManager::setVertexAttribDisabled(GLuint attrib)
-    {
-        mImp->setVertexAttribDisabled(attrib);
+            OGRE_CHECK_GL_ERROR(glDisable(flag));
+        }
+#else
+        OGRE_CHECK_GL_ERROR(glDisable(flag));
+#endif
     }
 
     void GLES2StateCacheManager::setCullFace(GLenum face)
     {
-        mImp->setCullFace(face);
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mCullFace != face)
+#endif
+        {
+            mCullFace = face;
+            
+            OGRE_CHECK_GL_ERROR(glCullFace(face));
+        }
     }
-    
-    GLenum GLES2StateCacheManager::getBlendEquation() const
+
+    void GLES2StateCacheManager::setViewport(const Rect& r)
     {
-        return mImp->getBlendEquation();
+#ifdef OGRE_ENABLE_STATE_CACHE
+        if(mViewport != r)
+#endif
+        {
+            mViewport = r;
+            OGRE_CHECK_GL_ERROR(glViewport(r.left, r.top, r.width(), r.height()));
+        }
     }
-    
-    GLboolean GLES2StateCacheManager::getDepthMask() const
-    {
-        return mImp->getDepthMask();
-    }
-    
-    GLenum GLES2StateCacheManager::getDepthFunc() const
-    {
-        return mImp->getDepthFunc();
-    }
-    
-    GLclampf GLES2StateCacheManager::getClearDepth() const
-    {
-        return mImp->getClearDepth();
-    }
-    
-    vector<GLboolean>::type & GLES2StateCacheManager::getColourMask() const
-    {
-        return mImp->getColourMask();
-    }
-    
-    GLuint GLES2StateCacheManager::getStencilMask() const
-    {
-        return mImp->getStencilMask();
-    }
-    
-    unsigned int GLES2StateCacheManager::getDiscardBuffers() const
-    {
-        return mImp->getDiscardBuffers();
-    }
-    
-    void GLES2StateCacheManager::setDiscardBuffers(unsigned int flags)
-    {
-        mImp->setDiscardBuffers(flags);
-    }
-    
-    GLenum GLES2StateCacheManager::getPolygonMode() const
-    {
-        return mImp->getPolygonMode();
-    }
-    
-    void GLES2StateCacheManager::setPolygonMode(GLenum mode)
-    {
-        mImp->setPolygonMode(mode);
-    }
-    
-    GLenum GLES2StateCacheManager::getCullFace() const
-    {
-        return mImp->getCullFace();
-    }
+
 }

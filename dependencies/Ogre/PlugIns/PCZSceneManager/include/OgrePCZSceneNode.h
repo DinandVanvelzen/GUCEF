@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,20 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-PCZSceneNode.h  -  Node Zone Info header file.
-The PCZSceneNode is an extension used to store zone information and provide
-additional functionality for a given Ogre::SceneNode.  A PCZSceneNode contains
-a pointer to the home zone for the node and a list of all zones being visited by
-the node.  The PCZSceneManager contains a STD::MAP of PCZSceneNodes which are
-keyed by the name of each node (each PCZSceneNode has an identical name to the 
-scene node which it is associated with).  This allows quick lookup of
-a given scenenode's PCZSceneNode by the scene manager.
------------------------------------------------------------------------------
-begin                : Sat Mar 24 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    :
------------------------------------------------------------------------------
 */
 
 #ifndef PCZ_SCENE_NODE_H
@@ -49,13 +35,28 @@ Code Style Update    :
 
 namespace Ogre
 {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup PCZSceneManager
+    *  @{
+    */
     // forward declarations
     class PCZone;
     class ZoneData;
     class PCZCamera;
-    typedef map<String, PCZone*>::type ZoneMap;
-    typedef map<String, ZoneData*>::type ZoneDataMap;
+    typedef std::map<String, PCZone*> ZoneMap;
+    typedef std::map<String, ZoneData*> ZoneDataMap;
 
+    /**
+        The PCZSceneNode is an extension used to store zone information and provide
+        additional functionality for a given Ogre::SceneNode.  A PCZSceneNode contains
+        a pointer to the home zone for the node and a list of all zones being visited by
+        the node.  The PCZSceneManager contains a STD::MAP of PCZSceneNodes which are
+        keyed by the name of each node (each PCZSceneNode has an identical name to the
+        scene node which it is associated with).  This allows quick lookup of
+        a given scenenode's PCZSceneNode by the scene manager.
+     */
     class _OgrePCZPluginExport PCZSceneNode : public SceneNode
     {
     public:
@@ -65,30 +66,13 @@ namespace Ogre
         PCZSceneNode( SceneManager* creator, const String& name );
         /** Standard destructor */
         ~PCZSceneNode();
-        void _update(bool updateChildren, bool parentHasChanged);
-        void updateFromParentImpl() const;
+        void _update(bool updateChildren, bool parentHasChanged) override;
+        void updateFromParentImpl() const override;
 
-        /** Creates an unnamed new SceneNode as a child of this node.
-        @param
-            translate Initial translation offset of child relative to parent
-        @param
-            rotate Initial rotation relative to parent
-        */
-        virtual SceneNode* createChildSceneNode(
-            const Vector3& translate = Vector3::ZERO, 
-            const Quaternion& rotate = Quaternion::IDENTITY );
-
-        /** Creates a new named SceneNode as a child of this node.
-        @remarks
-            This creates a child node with a given name, which allows you to look the node up from 
-            the parent which holds this collection of nodes.
-            @param
-                translate Initial translation offset of child relative to parent
-            @param
-                rotate Initial rotation relative to parent
-        */
-        virtual SceneNode* createChildSceneNode(const String& name, const Vector3& translate = Vector3::ZERO, const Quaternion& rotate = Quaternion::IDENTITY);
-
+        SceneNode* createChildSceneNode(const Vector3& translate = Vector3::ZERO,
+                                        const Quaternion& rotate = Quaternion::IDENTITY) override;
+        SceneNode* createChildSceneNode(const String& name, const Vector3& translate = Vector3::ZERO,
+                                        const Quaternion& rotate = Quaternion::IDENTITY) override;
 
         PCZone*     getHomeZone(void);
         void        setHomeZone(PCZone * zone);
@@ -131,6 +115,8 @@ namespace Ogre
         bool            mEnabled;
         mutable bool    mMoved;
     };
+    /** @} */
+    /** @} */
 }
 
 #endif // PCZ_SCENE_NODE_H

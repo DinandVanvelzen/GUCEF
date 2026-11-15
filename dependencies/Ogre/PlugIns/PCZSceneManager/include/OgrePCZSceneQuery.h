@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
------------------------------------------------------------------------------
-OgrePCZSceneQuery.h  -  description
------------------------------------------------------------------------------
-begin                : Wed Feb 21, 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    :
 -----------------------------------------------------------------------------
 */
 
@@ -51,7 +44,7 @@ namespace Ogre
         ~PCZIntersectionSceneQuery();
 
         /** See IntersectionSceneQuery. */
-        void execute(IntersectionSceneQueryListener* listener);
+        void execute(IntersectionSceneQueryListener* listener) override;
     };
     /** PCZ implementation of AxisAlignedBoxSceneQuery. */
     class _OgrePCZPluginExport PCZAxisAlignedBoxSceneQuery : public DefaultAxisAlignedBoxSceneQuery
@@ -61,7 +54,7 @@ namespace Ogre
         ~PCZAxisAlignedBoxSceneQuery();
 
         /** See RaySceneQuery. */
-        void execute(SceneQueryListener* listener);
+        void execute(SceneQueryListener* listener) override;
 
         /** set the zone to start the scene query */
         void setStartZone(PCZone * startZone) {mStartZone = startZone;}
@@ -79,7 +72,7 @@ namespace Ogre
         ~PCZRaySceneQuery();
 
         /** See RayScenQuery. */
-        void execute(RaySceneQueryListener* listener);
+        void execute(RaySceneQueryListener* listener) override;
 
         /** set the zone to start the scene query */
         void setStartZone(PCZone * startZone) {mStartZone = startZone;}
@@ -97,7 +90,7 @@ namespace Ogre
         ~PCZSphereSceneQuery();
 
         /** See SceneQuery. */
-        void execute(SceneQueryListener* listener);
+        void execute(SceneQueryListener* listener) override;
 
         /** set the zone to start the scene query */
         void setStartZone(PCZone * startZone) {mStartZone = startZone;}
@@ -115,7 +108,7 @@ namespace Ogre
         ~PCZPlaneBoundedVolumeListSceneQuery();
 
         /** See SceneQuery. */
-        void execute(SceneQueryListener* listener);
+        void execute(SceneQueryListener* listener) override;
 
         /** set the zone to start the scene query */
         void setStartZone(PCZone * startZone) {mStartZone = startZone;}

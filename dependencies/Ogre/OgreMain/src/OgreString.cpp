@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,16 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreString.h"
+
+// A quick define to overcome different names for the same function
+#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
+#   define strnicmp _strnicmp
+#else
+#   define strnicmp strncasecmp
+#endif
 
 namespace Ogre {
+    const String& StringUtil::BLANK = BLANKSTRING;
 
     //-----------------------------------------------------------------------
     void StringUtil::trim(String& str, bool left, bool right)
@@ -226,40 +233,30 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     bool StringUtil::startsWith(const String& str, const String& pattern, bool lowerCase)
     {
-        size_t thisLen = str.length();
-        size_t patternLen = pattern.length();
-        if (thisLen < patternLen || patternLen == 0)
+        if (pattern.empty())
             return false;
 
-        String startOfThis = str.substr(0, patternLen);
         if (lowerCase)
         {
-            String lowerCasePattern = pattern;
-            StringUtil::toLowerCase(lowerCasePattern);
-            StringUtil::toLowerCase(startOfThis);
-            return (startOfThis == lowerCasePattern);
+            return strnicmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
         }
 
-        return (startOfThis == pattern);
+        return strncmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
     }
     //-----------------------------------------------------------------------
     bool StringUtil::endsWith(const String& str, const String& pattern, bool lowerCase)
     {
-        size_t thisLen = str.length();
-        size_t patternLen = pattern.length();
-        if (thisLen < patternLen || patternLen == 0)
+        if (pattern.empty())
             return false;
 
-        String endOfThis = str.substr(thisLen - patternLen, patternLen);
+        size_t offset = str.size() - pattern.size();
+
         if (lowerCase)
         {
-            String lowerCasePattern = pattern;
-            StringUtil::toLowerCase(lowerCasePattern);
-            StringUtil::toLowerCase(endOfThis);
-            return (endOfThis == lowerCasePattern);
+            return strnicmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
         }
 
-        return (endOfThis == pattern);
+        return strncmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
     }
     //-----------------------------------------------------------------------
     String StringUtil::standardisePath(const String& init)
@@ -295,7 +292,7 @@ namespace Ogre {
         //The outer loop loops over directories
         while (indexSrc < pathLen)
         {       
-            if ((bufferSrc[indexSrc] == '\\') || (bufferSrc[indexSrc] == '/'))
+            if (indexSrc && ((bufferSrc[indexSrc] == '\\') || (bufferSrc[indexSrc] == '/')))
             {
                 //check if we have a directory delimiter if so skip it (we should already
                 //have written such a delimiter by this point
@@ -383,7 +380,7 @@ namespace Ogre {
     void StringUtil::splitBaseFilename(const Ogre::String& fullName, 
         Ogre::String& outBasename, Ogre::String& outExtention)
     {
-        size_t i = fullName.find_last_of(".");
+        size_t i = fullName.find_last_of('.');
         if (i == Ogre::String::npos)
         {
             outExtention.clear();
@@ -417,59 +414,38 @@ namespace Ogre {
         String::const_iterator strIt = tmpStr.begin();
         String::const_iterator patIt = tmpPattern.begin();
         String::const_iterator lastWildCardIt = tmpPattern.end();
-        while (strIt != tmpStr.end() && patIt != tmpPattern.end())
+        String::const_iterator lastWildCardStrIt = tmpStr.end();
+        while (strIt != tmpStr.end())
         {
-            if (*patIt == '*')
+            if (patIt != tmpPattern.end() && *patIt == '*')
             {
+                // remember the wildcard, let it match nothing for now
                 lastWildCardIt = patIt;
-                // Skip over looking for next character
+                lastWildCardStrIt = strIt;
                 ++patIt;
-                if (patIt == tmpPattern.end())
-                {
-                    // Skip right to the end since * matches the entire rest of the string
-                    strIt = tmpStr.end();
-                }
-                else
-                {
-                    // scan until we find next pattern character
-                    while(strIt != tmpStr.end() && *strIt != *patIt)
-                        ++strIt;
-                }
+            }
+            else if (patIt != tmpPattern.end() && *patIt == *strIt)
+            {
+                ++patIt;
+                ++strIt;
+            }
+            else if (lastWildCardIt != tmpPattern.end())
+            {
+                // let the last wildcard match one more character and retry from there
+                patIt = lastWildCardIt + 1;
+                strIt = ++lastWildCardStrIt;
             }
             else
             {
-                if (*patIt != *strIt)
-                {
-                    if (lastWildCardIt != tmpPattern.end())
-                    {
-                        // The last wildcard can match this incorrect sequence
-                        // rewind pattern to wildcard and keep searching
-                        patIt = lastWildCardIt;
-                        lastWildCardIt = tmpPattern.end();
-                    }
-                    else
-                    {
-                        // no wildwards left
-                        return false;
-                    }
-                }
-                else
-                {
-                    ++patIt;
-                    ++strIt;
-                }
+                // no wildcards left
+                return false;
             }
+        }
+        // the string is consumed, only wildcards may remain in the pattern
+        while (patIt != tmpPattern.end() && *patIt == '*')
+            ++patIt;
 
-        }
-        // If we reached the end of both the pattern and the string, we succeeded
-        if (patIt == tmpPattern.end() && strIt == tmpStr.end())
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return patIt == tmpPattern.end();
 
     }
     //-----------------------------------------------------------------------
@@ -487,4 +463,31 @@ namespace Ogre {
         return result;
     }
 
+    String StringUtil::format(const char* fmt, ...)
+    {
+        // try to use a stack buffer and fall back to heap for large strings
+        char sbuf[1024];
+        size_t bsize = sizeof(sbuf);
+        std::vector<char> hbuf;
+        char* pbuf = sbuf;
+
+        while (true)
+        {
+            va_list va;
+            va_start(va, fmt);
+            int len = vsnprintf(pbuf, bsize, fmt, va);
+            va_end(va);
+
+            OgreAssert(len >= 0, "Check format string for errors");
+            if (size_t(len) >= bsize)
+            {
+                hbuf.resize(len + 1);
+                pbuf = hbuf.data();
+                bsize = hbuf.size();
+                continue;
+            }
+            pbuf[bsize - 1] = 0;
+            return String(pbuf, len);
+        }
+    }
 }

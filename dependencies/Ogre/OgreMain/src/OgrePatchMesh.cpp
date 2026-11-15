@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgrePatchMesh.h"
-#include "OgreSubMesh.h"
-#include "OgreHardwareBufferManager.h"
 
 namespace Ogre {
 
@@ -46,10 +44,8 @@ namespace Ogre {
             HardwareBuffer::Usage ibUsage,
             bool vbUseShadow, bool ibUseShadow) 
     {
-        mVertexBufferUsage = vbUsage;
-        mVertexBufferShadowBuffer = vbUseShadow;
-        mIndexBufferUsage = ibUsage;
-        mIndexBufferShadowBuffer = ibUseShadow;
+        setVertexBufferPolicy(vbUsage, vbUseShadow);
+        setIndexBufferPolicy(ibUsage, ibUseShadow);
 
         // Init patch builder
         // define the surface
@@ -86,30 +82,29 @@ namespace Ogre {
     void PatchMesh::loadImpl(void)
     {
         SubMesh* sm = this->createSubMesh();
-        sm->vertexData = OGRE_NEW VertexData();
-        sm->useSharedVertices = false;
+        sm->createVertexData();
 
         // Set up vertex buffer
         sm->vertexData->vertexStart = 0;
         sm->vertexData->vertexCount = mSurface.getRequiredVertexCount();
         sm->vertexData->vertexDeclaration = mDeclaration;
-        HardwareVertexBufferSharedPtr vbuf = HardwareBufferManager::getSingleton().
+        HardwareVertexBufferSharedPtr vbuf = getHardwareBufferManager()->
             createVertexBuffer(
                 mDeclaration->getVertexSize(0), 
                 sm->vertexData->vertexCount, 
-                mVertexBufferUsage, 
-                mVertexBufferShadowBuffer);
+                getVertexBufferUsage(),
+                isVertexBufferShadowed());
         sm->vertexData->vertexBufferBinding->setBinding(0, vbuf);
 
         // Set up index buffer
         sm->indexData->indexStart = 0;
         sm->indexData->indexCount = mSurface.getRequiredIndexCount();
-        sm->indexData->indexBuffer = HardwareBufferManager::getSingleton().
+        sm->indexData->indexBuffer = getHardwareBufferManager()->
             createIndexBuffer(
                 HardwareIndexBuffer::IT_16BIT, // only 16-bit indexes supported, patches shouldn't be bigger than that
                 sm->indexData->indexCount,
-                mIndexBufferUsage, 
-                mIndexBufferShadowBuffer);
+                getIndexBufferUsage(),
+                isIndexBufferShadowed());
         
         // Build patch
         mSurface.build(vbuf, 0, sm->indexData->indexBuffer, 0);

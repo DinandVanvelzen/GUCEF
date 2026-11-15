@@ -1,0 +1,13 @@
+<PROJECTGENERATOR>
+    <!-- The window system support of the OpenGL render systems. Linux uses EGL with X11 (the directory X11 holds the helpers
+         for that), Android and WebAssembly use EGL with their own window system, Windows uses WGL (the directory win32).
+         The GLX and OSX directories are the alternatives for Linux and macOS which are not built. -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="GLX" TYPE="DIR" />
+        <ITEM NAME="OSX" TYPE="DIR" />
+        <ITEM NAME="X11" TYPE="DIR" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="X11" TYPE="DIR" />
+    </INCLUDES>
+</PROJECTGENERATOR>

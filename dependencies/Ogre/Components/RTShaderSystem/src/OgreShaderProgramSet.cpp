@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -25,82 +25,81 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-#include "OgreShaderProgramSet.h"
-#include "OgreShaderProgramManager.h"
+#include "OgreShaderPrecompiledHeaders.h"
 
 namespace Ogre {
 namespace RTShader {
 
 //-----------------------------------------------------------------------------
-ProgramSet::ProgramSet() : mVSCpuProgram(0), mPSCpuProgram(0)
-{   
+ProgramSet::ProgramSet() {}
+
+//-----------------------------------------------------------------------------
+ProgramSet::~ProgramSet() {}
+
+//-----------------------------------------------------------------------------
+void ProgramSet::setCpuProgram(std::unique_ptr<Program>&& program)
+{
+    switch(program->getType())
+    {
+    case GPT_VERTEX_PROGRAM:
+        mVSCpuProgram = std::move(program);
+        break;
+    case GPT_FRAGMENT_PROGRAM:
+        mPSCpuProgram = std::move(program);
+        break;
+    default:
+        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
+        break;
+    }
 }
 
 //-----------------------------------------------------------------------------
-ProgramSet::~ProgramSet()
+Program* ProgramSet::getCpuProgram(GpuProgramType type) const
 {
-    if (mVSCpuProgram != NULL)
+    switch(type)
     {
-        ProgramManager::getSingleton().destroyCpuProgram(mVSCpuProgram);
-        mVSCpuProgram = NULL;
+    case GPT_VERTEX_PROGRAM:
+        return mVSCpuProgram.get();
+    case GPT_FRAGMENT_PROGRAM:
+        return mPSCpuProgram.get();
+    default:
+        return NULL;
+    }
+}
+//-----------------------------------------------------------------------------
+void ProgramSet::setGpuProgram(const GpuProgramPtr& program)
+{
+    switch(program->getType())
+    {
+    case GPT_VERTEX_PROGRAM:
+        mVSGpuProgram = program;
+        break;
+    case GPT_FRAGMENT_PROGRAM:
+        mPSGpuProgram = program;
+        break;
+    default:
+        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
+        break;
+    }
+}
+
+//-----------------------------------------------------------------------------
+const GpuProgramPtr& ProgramSet::getGpuProgram(GpuProgramType type) const
+{
+    switch(type)
+    {
+    case GPT_VERTEX_PROGRAM:
+        return mVSGpuProgram;
+        break;
+    case GPT_FRAGMENT_PROGRAM:
+        return mPSGpuProgram;
+        break;
+    default:
+        break;
     }
 
-    if (mPSCpuProgram != NULL)
-    {
-        ProgramManager::getSingleton().destroyCpuProgram(mPSCpuProgram);
-        mPSCpuProgram = NULL;
-    }
-                
-    mVSGpuProgram.setNull();                    
-    mPSGpuProgram.setNull();    
-}
-
-//-----------------------------------------------------------------------------
-void ProgramSet::setCpuVertexProgram(Program* vsCpuProgram)
-{
-    mVSCpuProgram = vsCpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-Program* ProgramSet::getCpuVertexProgram()
-{
-    return mVSCpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-void ProgramSet::setCpuFragmentProgram(Program* psCpuProgram)
-{
-    mPSCpuProgram = psCpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-Program* ProgramSet::getCpuFragmentProgram()
-{
-    return mPSCpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-void ProgramSet::setGpuVertexProgram(GpuProgramPtr vsGpuProgram)
-{
-    mVSGpuProgram = vsGpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-GpuProgramPtr ProgramSet::getGpuVertexProgram()
-{
-    return mVSGpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-void ProgramSet::setGpuFragmentProgram(GpuProgramPtr psGpuProgram)
-{
-    mPSGpuProgram = psGpuProgram;
-}
-
-//-----------------------------------------------------------------------------
-GpuProgramPtr ProgramSet::getGpuFragmentProgram()
-{
-    return mPSGpuProgram;
+    static GpuProgramPtr nullPtr;
+    return nullPtr;
 }
 
 }

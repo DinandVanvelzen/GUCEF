@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,59 +30,56 @@ THE SOFTWARE.
 
 #include "OgreParticleFXPrerequisites.h"
 #include "OgreParticleAffector.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 
 namespace Ogre {
-
-    /** This class defines a ParticleAffector which applies randomness to the movement of the particles.
-    @remarks
-        This affector (see ParticleAffector) applies randomness to the movement of the particles by
-        changing the direction vectors.
-    @par
-        The most important parameter to control the effect is randomness. It controls the range in which changes
-        are applied to each axis of the direction vector.
-        The parameter scope can be used to limit the effect to a certain percentage of the particles.
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport DirectionRandomiserAffector : public ParticleAffector
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** This affector applies randomness to the movement of the particles.
+    */
+    class DirectionRandomiserAffector : public ParticleAffector
     {
     public:
         /** Command object for randomness (see ParamCommand).*/
         class CmdRandomness : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for scope (see ParamCommand).*/
         class CmdScope : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for keep_velocity (see ParamCommand).*/
         class CmdKeepVelocity : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /// Default constructor
         DirectionRandomiserAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
 
-        /** Sets the randomness to apply to the particles in a system. */
+        /** The amount of randomness to introduce in each axial direction. */
         void setRandomness(Real force);
-        /** Sets the scope (percentage of particles which are randomised). */
+        /** The percentage of particles affected in each run of the affector. */
         void setScope(Real force);
-        /** Set flag which detemines whether particle speed is changed. */
+        /** Determines whether the velocity of particles is unchanged. */
         void setKeepVelocity(bool keepVelocity);
 
         /** Gets the randomness to apply to the particles in a system. */

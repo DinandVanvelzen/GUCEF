@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -68,9 +68,6 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void LinearForceAffector::_affectParticles(ParticleSystem* pSystem, Real timeElapsed)
     {
-        ParticleIterator pi = pSystem->_getIterator();
-        Particle *p;
-
         Vector3 scaledVector = Vector3::ZERO;
 
         // Precalc scaled force for optimisation
@@ -80,9 +77,8 @@ namespace Ogre {
             scaledVector = mForceVector * timeElapsed;
         }
 
-        while (!pi.end())
+        for (auto p : pSystem->_getActiveParticles())
         {
-            p = pi.getNext();
             if (mForceApplication == FA_ADD)
             {
                 p->mDirection += scaledVector;

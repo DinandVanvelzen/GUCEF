@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,8 @@ THE SOFTWARE.
 
 #include "OgreStableHeaders.h"
 #include "OgreRenderToVertexBuffer.h"
-#include "OgreMaterialManager.h"
+
+#include <memory>
 
 namespace Ogre {
     //-----------------------------------------------------------------------
@@ -39,13 +40,9 @@ namespace Ogre {
         mSourceRenderable(0),
         mMaxVertexCount(1000)
     {
-        mVertexData = OGRE_NEW VertexData;
+        mVertexData = std::make_unique<VertexData>();
     }
-    //-----------------------------------------------------------------------
-    RenderToVertexBuffer::~RenderToVertexBuffer()
-    {
-        OGRE_DELETE mVertexData;
-    }
+    RenderToVertexBuffer::~RenderToVertexBuffer() = default; // ensure unique_ptr destructors are in cpp
     //-----------------------------------------------------------------------
     VertexDeclaration* RenderToVertexBuffer::getVertexDeclaration()
     {
@@ -57,7 +54,7 @@ namespace Ogre {
     {
         mMaterial = MaterialManager::getSingleton().getByName(materialName);
 
-        if (mMaterial.isNull())
+        if (!mMaterial)
             OGRE_EXCEPT( Exception::ERR_ITEM_NOT_FOUND, "Could not find material " + materialName,
                          "RenderToVertexBuffer::setRenderToBufferMaterialName" );
 
@@ -65,5 +62,36 @@ namespace Ogre {
            already loaded anyway)
         */
         mMaterial->load();
+    }
+    void RenderToVertexBuffer::getRenderOperation(RenderOperation& op)
+    {
+        op.operationType = mOperationType;
+        op.useIndexes = false;
+        op.vertexData = mVertexData.get();
+    }
+    Pass* RenderToVertexBuffer::derivePass(SceneManager* sceneMgr)
+    {
+        // Single pass only for now.
+        Ogre::Pass* r2vbPass = mMaterial->getBestTechnique()->getPass(0);
+        // Set pass before binding buffers to activate the GPU programs.
+        sceneMgr->_setPass(r2vbPass);
+
+        r2vbPass->_updateAutoParams(sceneMgr->_getAutoParamDataSource(), GPV_GLOBAL);
+
+        // Bind shader parameters.
+        RenderSystem* targetRenderSystem = Root::getSingleton().getRenderSystem();
+        if (r2vbPass->hasVertexProgram())
+        {
+            targetRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM,
+                                                         r2vbPass->getVertexProgramParameters(), GPV_ALL);
+        }
+        if (r2vbPass->hasGeometryProgram())
+        {
+            targetRenderSystem->bindGpuProgramParameters(GPT_GEOMETRY_PROGRAM,
+                                                         r2vbPass->getGeometryProgramParameters(), GPV_ALL);
+        }
+        //TODO add tessellation stages
+
+        return r2vbPass;
     }
 }

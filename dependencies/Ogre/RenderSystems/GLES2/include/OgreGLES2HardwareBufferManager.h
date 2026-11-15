@@ -31,73 +31,38 @@ THE SOFTWARE.
 
 #include "OgreGLES2Prerequisites.h"
 #include "OgreHardwareBufferManager.h"
+#include "OgreGLES2RenderSystem.h"
 
 namespace Ogre {
     class GLES2StateCacheManager;
 
     /** Implementation of HardwareBufferManager for OpenGL ES. */
-    class _OgreGLES2Export GLES2HardwareBufferManagerBase : public HardwareBufferManagerBase
+    class _OgreGLES2Export GLES2HardwareBufferManager : public HardwareBufferManager
     {
         protected:
-            GLES2StateCacheManager* mStateCacheManager;
+            GLES2RenderSystem* mRenderSystem;
             /// Internal method for creates a new vertex declaration, may be overridden by certain rendering APIs
-            VertexDeclaration* createVertexDeclarationImpl(void);
-            /// Internal method for destroys a vertex declaration, may be overridden by certain rendering APIs
-            void destroyVertexDeclarationImpl(VertexDeclaration* decl);
-
+            VertexDeclaration* createVertexDeclarationImpl(void) override;
         public:
-            GLES2HardwareBufferManagerBase();
-            virtual ~GLES2HardwareBufferManagerBase();
+            GLES2HardwareBufferManager();
+            virtual ~GLES2HardwareBufferManager();
             /// Creates a vertex buffer
             HardwareVertexBufferSharedPtr createVertexBuffer(size_t vertexSize,
-                size_t numVerts, HardwareBuffer::Usage usage, bool useShadowBuffer = false);
+                size_t numVerts, HardwareBuffer::Usage usage, bool useShadowBuffer = false) override;
             /// Create a hardware vertex buffer
             HardwareIndexBufferSharedPtr createIndexBuffer(
                 HardwareIndexBuffer::IndexType itype, size_t numIndexes,
-                HardwareBuffer::Usage usage, bool useShadowBuffer = false);
+                HardwareBuffer::Usage usage, bool useShadowBuffer = false) override;
             /// Create a render to vertex buffer
-            RenderToVertexBufferSharedPtr createRenderToVertexBuffer();
-            HardwareUniformBufferSharedPtr
-            createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage, bool useShadowBuffer, const String& name = "");
+            RenderToVertexBufferSharedPtr createRenderToVertexBuffer() override;
             /// Create a uniform buffer
-            HardwareUniformBufferSharedPtr createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
-                                                               bool useShadowBuffer, size_t binding, const String& name = "");
-            HardwareCounterBufferSharedPtr createCounterBuffer(size_t sizeBytes,
-                                                               HardwareBuffer::Usage usage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE,
-                                                               bool useShadowBuffer = false, const String& name = "");
-
-            /// Utility function to get the correct GL usage based on HBU's
-            static GLenum getGLUsage(unsigned int usage);
-
+            HardwareBufferPtr createUniformBuffer(size_t sizeBytes, HardwareBufferUsage usage,
+                                                  bool useShadowBuffer) override;
             /// Utility function to get the correct GL type based on VET's
-            static GLenum getGLType(unsigned int type);
+            static GLenum getGLType(VertexElementType type);
 
-            GLES2StateCacheManager * getStateCacheManager() { return mStateCacheManager; }
+            void notifyContextDestroyed(GLContext* context);
     };
-
-    /// GLES2HardwareBufferManagerBase as a Singleton
-    class _OgreGLES2Export GLES2HardwareBufferManager : public HardwareBufferManager
-    {
-    public:
-        GLES2HardwareBufferManager()
-            : HardwareBufferManager(OGRE_NEW GLES2HardwareBufferManagerBase()) 
-        {
-
-        }
-        ~GLES2HardwareBufferManager()
-        {
-            OGRE_DELETE mImpl;
-        }
-
-        /// Utility function to get the correct GL usage based on HBU's
-        static GLenum getGLUsage(unsigned int usage) 
-            { return GLES2HardwareBufferManagerBase::getGLUsage(usage); }
-
-        /// Utility function to get the correct GL type based on VET's
-        static GLenum getGLType(unsigned int type)
-            { return GLES2HardwareBufferManagerBase::getGLType(type); }
-    };
-
 }
 
 #endif

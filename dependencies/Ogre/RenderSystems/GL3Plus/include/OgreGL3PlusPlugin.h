@@ -29,32 +29,33 @@ THE SOFTWARE.
 #define __GL3PlusPlugin_H__
 
 #include "OgrePlugin.h"
-#include "OgreGL3PlusRenderSystem.h"
+#include "OgreGL3PlusExports.h"
 
 namespace Ogre
 {
+    class GL3PlusRenderSystem;
 
     /** Plugin instance for GL3Plus Manager */
-    class GL3PlusPlugin : public Plugin
+    class _OgreGL3PlusExport GL3PlusPlugin : public Plugin
     {
     public:
         GL3PlusPlugin();
 
 
         /// @copydoc Plugin::getName
-        const String& getName() const;
+        const String& getName() const override;
 
         /// @copydoc Plugin::install
-        void install();
+        void install() override;
 
         /// @copydoc Plugin::initialise
-        void initialise();
+        void initialise() override;
 
         /// @copydoc Plugin::shutdown
-        void shutdown();
+        void shutdown() override;
 
         /// @copydoc Plugin::uninstall
-        void uninstall();
+        void uninstall() override;
     protected:
         GL3PlusRenderSystem* mRenderSystem;
     };

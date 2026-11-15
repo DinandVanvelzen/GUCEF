@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-PortalBase.h  -  PortalBase is the base class for Portal and AntiPortal.
-
 */
 
 #ifndef PORTALBASE_H
@@ -60,9 +58,9 @@ namespace Ogre
         virtual ~PortalBase();
 
         /** Retrieves the axis-aligned bounding box for this object in world coordinates. */
-        virtual const AxisAlignedBox& getWorldBoundingBox(bool derive = false) const;
+        const AxisAlignedBox& getWorldBoundingBox(bool derive = false) const override;
         /** Retrieves the worldspace bounding sphere for this object. */
-        virtual const Sphere& getWorldBoundingSphere(bool derive = false) const;
+        const Sphere& getWorldBoundingSphere(bool derive = false) const override;
 
         /** Set the SceneNode the Portal is associated with */
         void setNode(SceneNode* sn);
@@ -108,8 +106,9 @@ namespace Ogre
 
         /** Get the type of portal */
         PORTAL_TYPE getType() const {return mType;}
-        /** Retrieve the radius of the portal (calculates if necessary for quad portals) */
-        Real getRadius() const;
+        /** Retrieve the radius of the portal in world coordinates */
+        Real getDerivedRadius() const
+        { return mDerivedRadius; }
 
         /** Get the Zone the Portal is currently "in" */
         PCZone* getCurrentHomeZone()
@@ -188,30 +187,29 @@ namespace Ogre
         /** Check if portal touches another portal */
         bool closeTo(const PortalBase* otherPortal);
 
-        /** @copydoc MovableObject::getBoundingBox. */
-        const AxisAlignedBox& getBoundingBox() const;
+        /** @copydoc MovableObject::getBoundingBox */
+        const AxisAlignedBox& getBoundingBox() const override;
 
-        /** @copydoc MovableObject::getBoundingRadius. */
-        Real getBoundingRadius() const
-        { return getRadius(); }
+        /** @copydoc MovableObject::getBoundingRadius */
+        Real getBoundingRadius() const override;
 
-        /** @copydoc MovableObject::_updateRenderQueue. */
-        void _updateRenderQueue(RenderQueue* queue)
+        /** @copydoc MovableObject::_updateRenderQueue */
+        void _updateRenderQueue(RenderQueue* queue) override
         { /* Draw debug info if needed? */ }
 
-        /** @copydoc MovableObject::visitRenderables. */
-        void visitRenderables(Renderable::Visitor* visitor, bool debugRenderables = false)
+        /** @copydoc MovableObject::visitRenderables */
+        void visitRenderables(Renderable::Visitor* visitor, bool debugRenderables = false) override
         { }
 
         /** Called when scene node moved. */
-        void _notifyMoved()
+        void _notifyMoved() override
         {
             updateDerivedValues();
             mWasMoved = true;
         }
 
         /** Called when attached to a scene node. */
-        void _notifyAttached(Node* parent, bool isTagPoint = false)
+        void _notifyAttached(Node* parent, bool isTagPoint = false) override
         {
             MovableObject::_notifyAttached(parent, isTagPoint);
             mDerivedUpToDate = false;
@@ -257,6 +255,8 @@ namespace Ogre
         /// Derived (world coordinates) direction of the portal
         // NOTE: Only applicable for a Quad portal
         mutable Vector3 mDerivedDirection;
+        /// Derived (world coordinates) radius of the sphere enclosing the portal
+        mutable Real mDerivedRadius;
         /// Derived (world coordinates) of portal (center point)
         mutable Vector3 mDerivedCP;
         /// Sphere of the portal centered on the derived CP
@@ -274,7 +274,7 @@ namespace Ogre
         /// Flag indicating whether or not derived values are up-to-date
         mutable bool mDerivedUpToDate;
         /// Previous world transform
-        mutable Matrix4 mPrevWorldTransform;
+        mutable Affine3 mPrevWorldTransform;
         /// Flag defining if portal is enabled or disabled.
         bool mEnabled;
         /// Cache of portal's capsule.

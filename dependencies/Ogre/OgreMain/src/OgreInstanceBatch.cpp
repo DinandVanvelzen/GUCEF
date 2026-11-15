@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,14 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreInstanceManager.h"
 #include "OgreInstanceBatch.h"
-#include "OgreSubMesh.h"
 #include "OgreInstancedEntity.h"
-#include "OgreSceneNode.h"
-#include "OgreCamera.h"
-#include "OgreException.h"
 #include "OgreRenderQueue.h"
+#include "OgreLodListener.h"
 
 namespace Ogre
 {
+    const String MOT_INSTANCE_BATCH = "InstanceBatch";
+
     InstanceBatch::InstanceBatch( InstanceManager *creator, MeshPtr &meshReference,
                                     const MaterialPtr &material, size_t instancesPerBatch,
                                     const Mesh::IndexMap *indexToBoneMap, const String &batchName ) :
@@ -51,9 +50,9 @@ namespace Ogre
                 mBoundsDirty( false ),
                 mBoundsUpdated( false ),
                 mCurrentCamera( 0 ),
-                mMaterialLodIndex( 0 ),
                 mDirtyAnimation(true),
                 mTechnSupportsSkeletal( true ),
+                mCameraDistLastUpdateFrameNumber( std::numeric_limits<unsigned long>::max() ),
                 mCachedCamera( 0 ),
                 mTransformSharingDirty(true),
                 mRemoveOwnVertexData(false),
@@ -76,7 +75,7 @@ namespace Ogre
         mName = batchName;
 		if (mCreator != NULL)
 		{
-		    mCustomParams.resize( mCreator->getNumCustomParams() * mInstancesPerBatch, Ogre::Vector4::ZERO );
+		    mCustomParams.resize( mCreator->getNumCustomParams() * mInstancesPerBatch, Vector4f(0) );
 	    }
 		
 	}
@@ -90,7 +89,7 @@ namespace Ogre
         if( sceneNode )
         {
             sceneNode->detachAllObjects();
-            sceneNode->getParentSceneNode()->removeAndDestroyChild( sceneNode->getName() );
+            sceneNode->getParentSceneNode()->removeAndDestroyChild( sceneNode );
         }
 
         if( mRemoveOwnVertexData )
@@ -102,22 +101,15 @@ namespace Ogre
 
     void InstanceBatch::_setInstancesPerBatch( size_t instancesPerBatch )
     {
-        if( !mInstancedEntities.empty() )
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Instances per batch can only be changed before"
-                        " building the batch.", "InstanceBatch::_setInstancesPerBatch");
-        }
-
+        OgreAssert(mInstancedEntities.empty(),
+                   "Instances per batch can only be changed before building the batch");
         mInstancesPerBatch = instancesPerBatch;
     }
     //-----------------------------------------------------------------------
     bool InstanceBatch::checkSubMeshCompatibility( const SubMesh* baseSubMesh )
     {
-        if( baseSubMesh->operationType != RenderOperation::OT_TRIANGLE_LIST )
-        {
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Only meshes with OT_TRIANGLE_LIST are supported",
-                        "InstanceBatch::checkSubMeshCompatibility");
-        }
+        OgreAssert(baseSubMesh->operationType == RenderOperation::OT_TRIANGLE_LIST,
+                   "Only meshes with OT_TRIANGLE_LIST are supported");
 
         if( !mCustomParams.empty() && mCreator->getInstancingTechnique() != InstanceManager::HWInstancingBasic )
         {
@@ -135,22 +127,16 @@ namespace Ogre
     void InstanceBatch::_updateBounds(void)
     {
         mFullBoundingBox.setNull();
-
-        InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
         Real maxScale = 0;
-        while( itor != end )
-        {
-            InstancedEntity* ent = (*itor);
-            //Only increase the bounding box for those objects we know are in the scene
-            if( ent->isInScene() )
-            {
-                maxScale = std::max(maxScale, ent->getMaxScaleCoef());
-                mFullBoundingBox.merge( ent->_getDerivedPosition() );
-            }
 
-            ++itor;
+        for(auto *e : mInstancedEntities)
+        {
+            //Only increase the bounding box for those objects we know are in the scene
+            if(e->isInScene())
+            {
+                maxScale = std::max(maxScale, e->getMaxScaleCoef());
+                mFullBoundingBox.merge( e->_getDerivedPosition() );
+            }
         }
 
         Real addToBound = maxScale * _getMeshReference()->getBoundingSphereRadius();
@@ -158,8 +144,12 @@ namespace Ogre
         mFullBoundingBox.setMinimum(mFullBoundingBox.getMinimum() - addToBound);
 
 
-        mBoundingRadius = Math::boundingRadiusFromAABB( mFullBoundingBox );
-        mBoundsDirty    = false;
+        mBoundingRadius = Math::boundingRadiusFromAABBCentered( mFullBoundingBox );
+        if (mParentNode) {
+            mParentNode->needUpdate();
+        }
+	    mBoundsUpdated  = true;
+        mBoundsDirty = false;
     }
 
     //-----------------------------------------------------------------------
@@ -201,42 +191,29 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void InstanceBatch::deleteAllInstancedEntities()
     {
-        InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-        while( itor != end )
+        for (auto *e : mInstancedEntities)
         {
-            if( (*itor)->getParentSceneNode() )
-                (*itor)->getParentSceneNode()->detachObject( (*itor) );
-
-            OGRE_DELETE *itor++;
+            if(e->getParentSceneNode() )
+                e->getParentSceneNode()->detachObject(e);
+            OGRE_DELETE e;
         }
     }
     //-----------------------------------------------------------------------
     void InstanceBatch::deleteUnusedInstancedEntities()
     {
-        InstancedEntityVec::const_iterator itor = mUnusedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mUnusedEntities.end();
-
-        while( itor != end )
-            OGRE_DELETE *itor++;
+        for (auto *e : mUnusedEntities)
+            OGRE_DELETE e;
 
         mUnusedEntities.clear();
     }
     //-----------------------------------------------------------------------
-    void InstanceBatch::makeMatrixCameraRelative3x4( float *mat3x4, size_t numFloats )
+    void InstanceBatch::makeMatrixCameraRelative3x4( Matrix3x4f *mat3x4, size_t count )
     {
         const Vector3 &cameraRelativePosition = mCurrentCamera->getDerivedPosition();
 
-        for( size_t i=0; i<numFloats >> 2; i += 3 )
+        for( size_t i=0; i<count; i++ )
         {
-            const Vector3 worldTrans( mat3x4[(i+0) * 4 + 3], mat3x4[(i+1) * 4 + 3],
-                                        mat3x4[(i+2) * 4 + 3] );
-            const Vector3 newPos( worldTrans - cameraRelativePosition );
-
-            mat3x4[(i+0) * 4 + 3] = (float)newPos.x;
-            mat3x4[(i+1) * 4 + 3] = (float)newPos.y;
-            mat3x4[(i+2) * 4 + 3] = (float)newPos.z;
+            mat3x4[i].setTrans(mat3x4[i].getTrans() - Vector<3, float>(cameraRelativePosition));
         }
     }
     //-----------------------------------------------------------------------
@@ -280,19 +257,9 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void InstanceBatch::removeInstancedEntity( InstancedEntity *instancedEntity )
     {
-        if( instancedEntity->mBatchOwner != this )
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-                        "Trying to remove an InstancedEntity from scene created"
-                        " with a different InstanceBatch",
-                        "InstanceBatch::removeInstancedEntity()");
-        }
-        if( !instancedEntity->isInUse() )
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE,
-                        "Trying to remove an InstancedEntity that is already removed!",
-                        "InstanceBatch::removeInstancedEntity()");
-        }
+        OgreAssert(instancedEntity->mBatchOwner == this,
+                   "Trying to remove an InstancedEntity from scene created with a different InstanceBatch");
+        OgreAssert(instancedEntity->isInUse(), "Trying to remove an InstancedEntity that is already removed");
 
         if( instancedEntity->getParentSceneNode() )
             instancedEntity->getParentSceneNode()->detachObject( instancedEntity );
@@ -307,20 +274,12 @@ namespace Ogre
     void InstanceBatch::getInstancedEntitiesInUse( InstancedEntityVec &outEntities,
                                                     CustomParamsVec &outParams )
     {
-        InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-        while( itor != end )
-        {
-            if( (*itor)->isInUse() )
-            {
-                outEntities.push_back( *itor );
-
+        for (auto *e : mInstancedEntities) {
+            if (e->isInUse()) {
+                outEntities.push_back(e);
                 for( unsigned char i=0; i<mCreator->getNumCustomParams(); ++i )
-                    outParams.push_back( _getCustomParam( *itor, i ) );
+                    outParams.push_back(_getCustomParam(e, i));
             }
-
-            ++itor;
         }
     }
     //-----------------------------------------------------------------------
@@ -431,14 +390,9 @@ namespace Ogre
 
         //Reassign instance IDs and tell we're the new parent
         uint32 instanceId = 0;
-        InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-        while( itor != end )
-        {
-            (*itor)->mInstanceId = instanceId++;
-            (*itor)->mBatchOwner = this;
-            ++itor;
+        for (auto *e : mInstancedEntities) {
+            e->mInstanceId = instanceId++;
+            e->mBatchOwner = this;
         }
 
         //Recreate unused entities, if there's left space in our container
@@ -451,7 +405,7 @@ namespace Ogre
             InstancedEntity *instance = generateInstancedEntity(i);
             mInstancedEntities.push_back( instance );
             mUnusedEntities.push_back( instance );
-            mCustomParams.push_back( Ogre::Vector4::ZERO );
+            mCustomParams.push_back( Vector4f(0) );
         }
 
         //We've potentially changed our bounds
@@ -475,8 +429,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     const String& InstanceBatch::getMovableType(void) const
     {
-        static String sType = "InstanceBatch";
-        return sType;
+        return MOT_INSTANCE_BATCH;
     }
     //-----------------------------------------------------------------------
     void InstanceBatch::_notifyCurrentCamera( Camera* cam )
@@ -487,9 +440,9 @@ namespace Ogre
         //We use our own because our SceneNode is just filled with zeroes, and updating it
         //with real values is expensive, plus we would need to make sure it doesn't get to
         //the shader
-        Real depth = Math::Sqrt( getSquaredViewDepth(cam) ) -
-                     mMeshReference->getBoundingSphereRadius();
+		Real depth = Math::Sqrt(getSquaredViewDepth(cam)) - getBoundingRadius();          
         depth = std::max( depth, Real(0) );
+
         Real lodValue = depth * cam->_getLodBiasInverse();
 
         //Now calculate Material LOD
@@ -513,10 +466,52 @@ namespace Ogre
         //Notify LOD event listeners
         cam->getSceneManager()->_notifyEntityMaterialLodChanged(subEntEvt);*/
 
-        //Change LOD index
+        // Change LOD index
         mMaterialLodIndex = idx;
 
-        MovableObject::_notifyCurrentCamera( cam );
+        mBeyondFarDistance = false;
+
+        if (cam->getUseRenderingDistance() && mUpperDistance > 0)
+        {
+            if (depth > mUpperDistance)
+                mBeyondFarDistance = true;
+        }
+
+        if (!mBeyondFarDistance && cam->getUseMinPixelSize() && mMinPixelSize > 0)
+        {
+            Real pixelRatio = cam->getPixelDisplayRatio();
+
+            Ogre::Vector3 objBound =
+                getBoundingBox().getSize() * getParentNode()->_getDerivedScale();
+            objBound.x = Math::Sqr(objBound.x);
+            objBound.y = Math::Sqr(objBound.y);
+            objBound.z = Math::Sqr(objBound.z);
+            float sqrObjMedianSize = std::max(
+                std::max(std::min(objBound.x, objBound.y), std::min(objBound.x, objBound.z)),
+                std::min(objBound.y, objBound.z));
+
+            // If we have a perspective camera calculations are done relative to distance
+            Real sqrDistance = 1;
+
+            if (cam->getProjectionType() == PT_PERSPECTIVE)
+                sqrDistance = getSquaredViewDepth(cam->getLodCamera()); // it's ok
+
+            mBeyondFarDistance =
+                sqrObjMedianSize < sqrDistance * Math::Sqr(pixelRatio * mMinPixelSize);
+        }
+
+        if (mParentNode)
+        {
+            MovableObjectLodChangedEvent evt;
+            evt.movableObject = this;
+            evt.camera = cam;
+
+            cam->getSceneManager()->_notifyMovableObjectLodChanged(evt);
+        }
+
+        mRenderingDisabled = mListener && !mListener->objectRendering(this, cam);
+
+        // MovableObject::_notifyCurrentCamera( cam ); // it does not suit
     }
     //-----------------------------------------------------------------------
     const AxisAlignedBox& InstanceBatch::getBoundingBox(void) const
@@ -531,21 +526,15 @@ namespace Ogre
     //-----------------------------------------------------------------------
     Real InstanceBatch::getSquaredViewDepth( const Camera* cam ) const
     {
-        if( mCachedCamera != cam )
+        unsigned long currentFrameNumber = Root::getSingleton().getNextFrameNumber();
+
+        if (mCameraDistLastUpdateFrameNumber != currentFrameNumber || mCachedCamera != cam)
         {
-            mCachedCameraDist = std::numeric_limits<Real>::infinity();
-
-            InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-            InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-            while( itor != end )
-            {
-                if( (*itor)->isVisible() )
-                    mCachedCameraDist = std::min( mCachedCameraDist, (*itor)->getSquaredViewDepth( cam ) );
-                ++itor;
-            }
+            mCachedCameraDist =
+                getBoundingBox().getCenter().squaredDistance(cam->getDerivedPosition());
 
             mCachedCamera = cam;
+            mCameraDistLastUpdateFrameNumber = currentFrameNumber;
         }
 
         return mCachedCameraDist;
@@ -554,11 +543,6 @@ namespace Ogre
     const LightList& InstanceBatch::getLights( void ) const
     {
         return queryLights();
-    }
-    //-----------------------------------------------------------------------
-    Technique* InstanceBatch::getTechnique( void ) const
-    {
-        return mMaterial->getBestTechnique( mMaterialLodIndex, this );
     }
     //-----------------------------------------------------------------------
     void InstanceBatch::_updateRenderQueue( RenderQueue* queue )
@@ -573,15 +557,9 @@ namespace Ogre
 
         if( mVisible )
         {
-            if( mMeshReference->hasSkeleton() )
-            {
-                InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-                InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-                while( itor != end )    
-                {
-                    mDirtyAnimation |= (*itor)->_updateAnimation();
-                    ++itor;
+            if( mMeshReference->hasSkeleton() ) {
+                for (auto *e : mInstancedEntities) {
+                    mDirtyAnimation |= e->_updateAnimation();
                 }
             }
 
@@ -599,12 +577,12 @@ namespace Ogre
     }
     //-----------------------------------------------------------------------
     void InstanceBatch::_setCustomParam( InstancedEntity *instancedEntity, unsigned char idx,
-                                         const Vector4 &newParam )
+                                         const Vector4f &newParam )
     {
         mCustomParams[instancedEntity->mInstanceId * mCreator->getNumCustomParams() + idx] = newParam;
     }
     //-----------------------------------------------------------------------
-    const Vector4& InstanceBatch::_getCustomParam( InstancedEntity *instancedEntity, unsigned char idx )
+    const Vector4f& InstanceBatch::_getCustomParam( InstancedEntity *instancedEntity, unsigned char idx )
     {
         return mCustomParams[instancedEntity->mInstanceId * mCreator->getNumCustomParams() + idx];
     }

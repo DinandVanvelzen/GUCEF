@@ -1,0 +1,30 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Terrain component</DescriptionHeadline>
+        <DescriptionDetails>Height field terrain of OGRE 14.6.3 with paging, blend maps and shader based materials. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreTerrain" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="OgrePaging" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="OgrePaging" />
+        </Linker>
+        <Preprocessor>
+            <Define String="OGRE_TERRAIN_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj /fp:contract" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,36 +31,10 @@ THE SOFTWARE.
 #include "OgrePrerequisites.h"
 #include "OgreHeaderPrefix.h"
 
-// If we're using the GCC 3.1 C++ Std lib
-#if OGRE_COMPILER == OGRE_COMPILER_GNUC && OGRE_COMP_VER >= 310 && !defined(STLPORT)
-
-// For gcc 4.3 see http://gcc.gnu.org/gcc-4.3/changes.html
-#   if OGRE_COMP_VER >= 430
-#       include <tr1/unordered_map>
-#   else
-#       include <ext/hash_map>
-namespace __gnu_cxx
-{
-    template <> struct hash< Ogre::_StringBase >
-    {
-        size_t operator()( const Ogre::_StringBase _stringBase ) const
-        {
-            /* This is the PRO-STL way, but it seems to cause problems with VC7.1
-               and in some other cases (although I can't recreate it)
-               hash<const char*> H;
-               return H(_stringBase.c_str());
-            */
-            /** This is our custom way */
-            register size_t ret = 0;
-            for( Ogre::_StringBase::const_iterator it = _stringBase.begin(); it != _stringBase.end(); ++it )
-                ret = 5 * ret + *it;
-
-            return ret;
-        }
-    };
-}
-#   endif
-
+#if OGRE_COMPILER == OGRE_COMPILER_GNUC || OGRE_COMPILER == OGRE_COMPILER_CLANG
+#define OGRE_FORMAT_PRINTF(string_idx, first_to_check) __attribute__ ((format (printf, string_idx, first_to_check)))
+#else
+#define OGRE_FORMAT_PRINTF(A, B)
 #endif
 
 namespace Ogre {
@@ -75,10 +49,12 @@ namespace Ogre {
     class _OgreExport StringUtil
     {
     public:
+        OGRE_DEPRECATED static const String& BLANK; //!< @deprecated use Ogre::BLANKSTRING instead
+        OGRE_DEPRECATED typedef StringStream StrStreamType; //!< @deprecated use Ogre::StringStream instead
 
         /** Removes any whitespace characters, be it standard space or
             TABs and so on.
-            @remarks
+
             The user may specify whether they want to trim only the
             beginning or the end of the String ( the default action is
             to trim both).
@@ -87,6 +63,7 @@ namespace Ogre {
 
         /** Returns a StringVector that contains all the substrings delimited
             by the characters in the passed <code>delims</code> argument.
+            @param str
             @param
             delims A list of delimiter characters to split by
             @param
@@ -95,21 +72,22 @@ namespace Ogre {
             @param
             preserveDelims Flag to determine if delimiters should be saved as substrings
         */
-        static vector<String>::type split( const String& str, const String& delims = "\t\n ", unsigned int maxSplits = 0, bool preserveDelims = false);
+        static std::vector<String> split( const String& str, const String& delims = "\t\n ", unsigned int maxSplits = 0, bool preserveDelims = false);
 
         /** Returns a StringVector that contains all the substrings delimited
             by the characters in the passed <code>delims</code> argument,
             or in the <code>doubleDelims</code> argument, which is used to include (normal)
-            delimeters in the tokenised string. For example, "strings like this".
+            delimiters in the tokenised string. For example, "strings like this".
+            @param str
             @param
             delims A list of delimiter characters to split by
             @param
-            doubleDelims A list of double delimeters characters to tokenise by
+            doubleDelims A list of double delimiters characters to tokenise by
             @param
             maxSplits The maximum number of splits to perform (0 for unlimited splits). If this
             parameters is > 0, the splitting process will stop after this many splits, left to right.
         */
-        static vector<String>::type tokenise( const String& str, const String& delims = "\t\n ", const String& doubleDelims = "\"", unsigned int maxSplits = 0);
+        static std::vector<String> tokenise( const String& str, const String& delims = "\t\n ", const String& doubleDelims = "\"", unsigned int maxSplits = 0);
 
         /** Lower-cases all the characters in the string.
          */
@@ -125,6 +103,7 @@ namespace Ogre {
 
 
         /** Returns whether the string begins with the pattern passed in.
+            @param str
             @param pattern The pattern to compare with.
             @param lowerCase If true, the start of the string will be lower cased before
             comparison, pattern should also be in lower case.
@@ -132,6 +111,7 @@ namespace Ogre {
         static bool startsWith(const String& str, const String& pattern, bool lowerCase = true);
 
         /** Returns whether the string ends with the pattern passed in.
+            @param str
             @param pattern The pattern to compare with.
             @param lowerCase If true, the end of the string will be lower cased before
             comparison, pattern should also be in lower case.
@@ -152,12 +132,12 @@ namespace Ogre {
             @param init The file path to normalize.
             @param makeLowerCase If true, transforms all characters in the string to lowercase.
         */
-        static String normalizeFilePath(const String& init, bool makeLowerCase = true);
+        static String normalizeFilePath(const String& init, bool makeLowerCase = false);
 
 
         /** Method for splitting a fully qualified filename into the base name
             and path.
-            @remarks
+
             Path is standardised as in standardisePath
         */
         static void splitFilename(const String& qualifiedName,
@@ -165,7 +145,7 @@ namespace Ogre {
 
         /** Method for splitting a fully qualified filename into the base name,
             extension and path.
-            @remarks
+
             Path is standardised as in standardisePath
         */
         static void splitFullFilename(const Ogre::String& qualifiedName,
@@ -194,28 +174,15 @@ namespace Ogre {
             @return An updated string with the sub-string replaced
         */
         static const String replaceAll(const String& source, const String& replaceWhat, const String& replaceWithWhat);
+
+        /** create a string from a printf expression
+         *
+         * @note this function - like printf - uses a locale dependent decimal point
+         */
+        static String format(const char* fmt, ...) OGRE_FORMAT_PRINTF(1, 2);
     };
 
-
-#if OGRE_COMPILER == OGRE_COMPILER_GNUC && OGRE_COMP_VER >= 310 && !defined(STLPORT)
-#   if OGRE_COMP_VER < 430
-    typedef ::__gnu_cxx::hash< _StringBase > _StringHash;
-#   else
-    typedef ::std::tr1::hash< _StringBase > _StringHash;
-#   endif
-#elif OGRE_COMPILER == OGRE_COMPILER_CLANG
-#   if defined(_LIBCPP_VERSION)
-    typedef ::std::hash< _StringBase > _StringHash;
-#   else
-    typedef ::std::tr1::hash< _StringBase > _StringHash;
-#   endif
-#elif OGRE_COMPILER == OGRE_COMPILER_MSVC && OGRE_COMP_VER >= 1600 && !defined(STLPORT) // VC++ 10.0
-    typedef ::std::tr1::hash< _StringBase > _StringHash;
-#elif !defined( _STLP_HASH_FUN_H )
-    typedef stdext::hash_compare< _StringBase, std::less< _StringBase > > _StringHash;
-#else
-    typedef std::hash< _StringBase > _StringHash;
-#endif
+    typedef ::std::hash< String > _StringHash;
     /** @} */
     /** @} */
 

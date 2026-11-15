@@ -27,27 +27,154 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 */
 
 #include "OgreGL3PlusTextureManager.h"
-#include "OgreGL3PlusRenderTexture.h"
+#include "OgreGL3PlusStateCacheManager.h"
+#include "OgreGL3PlusRenderSystem.h"
+#include "OgreGLRenderTexture.h"
 #include "OgreRoot.h"
-#include "OgreRenderSystem.h"
+#include "OgreGL3PlusPixelFormat.h"
+
+#ifndef GL_EXT_texture_filter_anisotropic
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT     0x84FE
+#endif
 
 namespace Ogre {
-    GL3PlusTextureManager::GL3PlusTextureManager(GL3PlusSupport& support)
-        : TextureManager(), mGLSupport(support), mWarningTextureID(0)//, mImages()
+    GLint GL3PlusSampler::getCombinedMinMipFilter(FilterOptions min, FilterOptions mip)
+    {
+        switch(min)
+        {
+        case FO_ANISOTROPIC:
+        case FO_LINEAR:
+            switch (mip)
+            {
+            case FO_ANISOTROPIC:
+            case FO_LINEAR:
+                // linear min, linear mip
+                return GL_LINEAR_MIPMAP_LINEAR;
+            case FO_POINT:
+                // linear min, point mip
+                return GL_LINEAR_MIPMAP_NEAREST;
+            case FO_NONE:
+                // linear min, no mip
+                return GL_LINEAR;
+            }
+            break;
+        case FO_POINT:
+        case FO_NONE:
+            switch (mip)
+            {
+            case FO_ANISOTROPIC:
+            case FO_LINEAR:
+                // nearest min, linear mip
+                return GL_NEAREST_MIPMAP_LINEAR;
+            case FO_POINT:
+                // nearest min, point mip
+                return GL_NEAREST_MIPMAP_NEAREST;
+            case FO_NONE:
+                // nearest min, no mip
+                return GL_NEAREST;
+            }
+            break;
+        }
+
+        // should never get here
+        return 0;
+    }
+
+    GLint GL3PlusSampler::getTextureAddressingMode(TextureAddressingMode tam)
+    {
+        switch (tam)
+        {
+        default:
+        case TextureUnitState::TAM_WRAP:
+            return GL_REPEAT;
+        case TextureUnitState::TAM_MIRROR:
+            return GL_MIRRORED_REPEAT;
+        case TextureUnitState::TAM_CLAMP:
+            return GL_CLAMP_TO_EDGE;
+        case TextureUnitState::TAM_BORDER:
+            return GL_CLAMP_TO_BORDER;
+        }
+    }
+
+    GL3PlusSampler::GL3PlusSampler(GL3PlusRenderSystem* rs) : mSamplerId(0)
+    {
+        glGenSamplers(1, &mSamplerId);
+    }
+    GL3PlusSampler::~GL3PlusSampler()
+    {
+        glDeleteSamplers(1, &mSamplerId);
+    }
+    void GL3PlusSampler::bind(uint32 unit)
+    {
+        OGRE_CHECK_GL_ERROR(glBindSampler(unit, mSamplerId));
+
+        if(!mDirty)
+            return;
+
+        OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_WRAP_S,
+                                                getTextureAddressingMode(mAddressMode.u)));
+        OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_WRAP_T,
+                                                getTextureAddressingMode(mAddressMode.v)));
+        OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_WRAP_R,
+                                                getTextureAddressingMode(mAddressMode.w)));
+
+        bool reversedZ = Root::getSingleton().getRenderSystem()->isReverseDepthBufferEnabled();
+
+        if (mAddressMode.u == TAM_BORDER || mAddressMode.v == TAM_BORDER || mAddressMode.w == TAM_BORDER)
+        {
+            auto borderColour = (reversedZ && mCompareEnabled) ? ColourValue::White - mBorderColour : mBorderColour;
+            OGRE_CHECK_GL_ERROR(glSamplerParameterfv( mSamplerId, GL_TEXTURE_BORDER_COLOR, borderColour.ptr()));
+        }
+        OGRE_CHECK_GL_ERROR(glSamplerParameterf(mSamplerId, GL_TEXTURE_LOD_BIAS, mMipmapBias));
+
+        auto caps = Root::getSingleton().getRenderSystem()->getCapabilities();
+        if (caps->hasCapability(RSC_ANISOTROPY))
+            OGRE_CHECK_GL_ERROR(
+                glSamplerParameteri(mSamplerId, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                    std::min<uint>(caps->getMaxSupportedAnisotropy(), mMaxAniso)));
+
+        OGRE_CHECK_GL_ERROR(
+            glSamplerParameteri(mSamplerId, GL_TEXTURE_COMPARE_MODE,
+                                mCompareEnabled ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE));
+
+        auto cmpFunc = mCompareFunc;
+        if(reversedZ)
+            cmpFunc = GL3PlusRenderSystem::reverseCompareFunction(cmpFunc);
+
+        OGRE_CHECK_GL_ERROR(
+            glSamplerParameteri(mSamplerId, GL_TEXTURE_COMPARE_FUNC,
+                                GL3PlusRenderSystem::convertCompareFunction(cmpFunc)));
+
+        // Combine with existing mip filter
+        OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_MIN_FILTER,
+                                                getCombinedMinMipFilter(mMinFilter, mMipFilter)));
+
+        switch (mMagFilter)
+        {
+        case FO_ANISOTROPIC: // GL treats linear and aniso the same
+        case FO_LINEAR:
+            OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            break;
+        case FO_POINT:
+        case FO_NONE:
+            OGRE_CHECK_GL_ERROR(glSamplerParameteri(mSamplerId, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+            break;
+        }
+
+        mDirty = false;
+    }
+
+    GL3PlusTextureManager::GL3PlusTextureManager(GL3PlusRenderSystem* renderSystem)
+        : TextureManager(), mRenderSystem(renderSystem)
     {
         // Register with group manager
         ResourceGroupManager::getSingleton()._registerResourceManager(mResourceType, this);
-
-        createWarningTexture();
     }
 
     GL3PlusTextureManager::~GL3PlusTextureManager()
     {
         // Unregister with group manager
         ResourceGroupManager::getSingleton()._unregisterResourceManager(mResourceType);
-
-        // Delete warning texture
-        OGRE_CHECK_GL_ERROR(glDeleteTextures(1, &mWarningTextureID));
     }
 
     Resource* GL3PlusTextureManager::createImpl(const String& name, ResourceHandle handle,
@@ -55,9 +182,13 @@ namespace Ogre {
                                                 ManualResourceLoader* loader,
                                                 const NameValuePairList* createParams)
     {
-        return new GL3PlusTexture(this, name, handle, group, isManual, loader, mGLSupport);
+        return new GL3PlusTexture(this, name, handle, group, isManual, loader, mRenderSystem);
     }
 
+    SamplerPtr GL3PlusTextureManager::_createSamplerImpl()
+    {
+        return std::make_shared<GL3PlusSampler>(mRenderSystem);
+    }
 
     // TexturePtr GL3PlusTextureManager::createManual(const String & name, const String& group,
     //                                                TextureType texType, uint width, uint height, uint depth, int numMipmaps,
@@ -78,34 +209,6 @@ namespace Ogre {
     //     return texture;
     // }
 
-    
-    void GL3PlusTextureManager::createWarningTexture()
-    {
-        // Generate warning texture
-        uint32 width = 8;
-        uint32 height = 8;
-
-        uint32* data = new uint32[width * height]; // 0xXXRRGGBB
-
-        // Yellow/black stripes
-        for(size_t y = 0; y < height; ++y)
-        {
-            for(size_t x = 0; x < width; ++x)
-            {
-                data[y * width + x] = (((x + y) % 8) < 4) ? 0x000000 : 0xFFFF00;
-            }
-        }
-
-        // Create GL resource
-        OGRE_CHECK_GL_ERROR(glGenTextures(1, &mWarningTextureID));
-        OGRE_CHECK_GL_ERROR(glBindTexture(GL_TEXTURE_2D, mWarningTextureID));
-        OGRE_CHECK_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-        OGRE_CHECK_GL_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
-        OGRE_CHECK_GL_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)data));
-
-        // Free memory
-        delete [] data;
-    }
 
     PixelFormat GL3PlusTextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
     {
@@ -117,13 +220,13 @@ namespace Ogre {
         if(PixelUtil::isCompressed(format) &&
            !caps->hasCapability( RSC_TEXTURE_COMPRESSION_DXT ))
         {
-            return PF_A8R8G8B8;
+            return PF_BYTE_RGBA;
         }
         // if floating point textures not supported, revert to PF_A8R8G8B8
         if (PixelUtil::isFloatingPoint(format) &&
             !caps->hasCapability(RSC_TEXTURE_FLOAT))
         {
-            return PF_A8R8G8B8;
+            return PF_BYTE_RGBA;
         }
 
         // Check if this is a valid rendertarget format
@@ -134,60 +237,12 @@ namespace Ogre {
             return GL3PlusRTTManager::getSingleton().getSupportedAlternative(format);
         }
 
+        if(GL3PlusPixelUtil::getGLInternalFormat(format) == GL_NONE)
+        {
+            return PF_BYTE_RGBA;
+        }
+
         // Supported
         return format;
     }
-
-    bool GL3PlusTextureManager::isHardwareFilteringSupported(TextureType ttype, PixelFormat format, int usage,
-                                                             bool preciseFormatOnly)
-    {
-        if (format == PF_UNKNOWN)
-        {
-            return false;
-        }
-
-        // Check native format
-        PixelFormat nativeFormat = getNativeFormat(ttype, format, usage);
-        if (preciseFormatOnly && format != nativeFormat)
-        {
-            return false;
-        }
-
-        // Assume non-floating point is supported always
-        if (!PixelUtil::isFloatingPoint(nativeFormat))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    // void GL3PlusTextureManager::registerImage(TexturePtr texture)
-    // {
-    //     mImages.push_back(texture);
-    // }
-
-    //FIXME Should this become a standard Texture class feature?
-    // void GL3PlusTextureManager::bindImages()
-    // {
-    //     //FIXME currently produces a GL_INVALID_OPERATION, so temporarily run once
-    //     // static bool images_bound = false;
-
-    //     TexturePtrList::iterator texture = mImages.begin();
-    //     TexturePtrList::iterator end = mImages.end();
-
-    //     // if (!images_bound && !mImages.empty()) {
-    //         for (; texture != end; texture++)
-    //         {
-    //             //std::cout << "IMAGE LOAD/STORE" << std::endl;
-    //             GL3PlusTexturePtr tex = texture->staticCast<GL3PlusTexture>();
-    //             //TODO This needs to be redone so that:
-    //             // * binding point (first parameter) and possibly other parameters come from shader
-    //             // * simple conversion of shader format to GLenum format
-    //             // * material scripts can create images
-    //             //OGRE_CHECK_GL_ERROR(glBindImageTexture(0, tex->getGLID(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-    //         }
-    //         // images_bound = true;
-    //     // }
-    // }
 }

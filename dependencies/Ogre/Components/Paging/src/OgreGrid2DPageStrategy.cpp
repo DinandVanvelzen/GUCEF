@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreGrid2DPageStrategy.h"
+
+#include <cmath>
 #include "OgreStreamSerialiser.h"
 #include "OgreCamera.h"
 #include "OgrePagedWorldSection.h"
@@ -159,8 +161,8 @@ namespace Ogre
         relPos.x += offset;
         relPos.y += offset;
 
-        *x = static_cast<int32>(floor(relPos.x / mCellSize));
-        *y = static_cast<int32>(floor(relPos.y / mCellSize));
+        *x = static_cast<int32>(std::floor(relPos.x / mCellSize));
+        *y = static_cast<int32>(std::floor(relPos.y / mCellSize));
 
     }
     //---------------------------------------------------------------------
@@ -401,7 +403,7 @@ namespace Ogre
 
             String matName = "Ogre/G2D/Debug";
             MaterialPtr mat = MaterialManager::getSingleton().getByName(matName);
-            if (mat.isNull())
+            if (!mat)
             {
                 mat = MaterialManager::getSingleton().create(matName, ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
                 Pass* pass = mat->getTechnique(0)->getPass(0);

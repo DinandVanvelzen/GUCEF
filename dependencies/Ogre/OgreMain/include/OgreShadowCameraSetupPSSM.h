@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,7 +43,7 @@ namespace Ogre
     *  @{
     */
     /** Parallel Split Shadow Map (PSSM) shadow camera setup. 
-    @remarks
+
         A PSSM shadow system uses multiple shadow maps per light and maps each
         texture into a region of space, progressing away from the camera. As such
         it is most appropriate for directional light setups. This particular version
@@ -53,13 +53,14 @@ namespace Ogre
         the number of shadow textures available (via SceneManager) to match the 
         number of shadow maps required (default is 3 per light). 
     */
-    class _OgreExport PSSMShadowCameraSetup : public Ogre::LiSPSMShadowCameraSetup
+    class _OgreExport PSSMShadowCameraSetup : public LiSPSMShadowCameraSetup
     {
+        using LiSPSMShadowCameraSetup::setOptimalAdjustFactor;
     public:
-        typedef vector<Real>::type SplitPointList;
-        typedef vector<Real>::type OptimalAdjustFactorList;
+        typedef std::vector<Real> SplitPointList;
+        typedef std::vector<Real> OptimalAdjustFactorList;
 
-    protected:
+    private:
         uint mSplitCount;
         SplitPointList mSplitPoints;
         OptimalAdjustFactorList mOptimalAdjustFactors;
@@ -68,9 +69,15 @@ namespace Ogre
         mutable size_t mCurrentIteration;
 
     public:
-        /// Constructor, defaults to 3 splits
+        /// @deprecated use create()
         PSSMShadowCameraSetup();
         virtual ~PSSMShadowCameraSetup();
+
+        /// Constructor, defaults to 3 splits
+        static ShadowCameraSetupPtr create()
+        {
+            return std::make_shared<PSSMShadowCameraSetup>();
+        }
 
         /** Calculate a new splitting scheme.
         @param splitCount The number of splits to use
@@ -78,7 +85,7 @@ namespace Ogre
         @param farDist The far plane to use for the last split
         @param lambda Factor to use to reduce the split size 
         */
-        void calculateSplitPoints(uint splitCount, Real nearDist, Real farDist, Real lambda = 0.95);
+        void calculateSplitPoints(uint splitCount, Real nearDist, Real farDist, Real lambda = 0.95f);
 
         /** Manually configure a new splitting scheme.
         @param newSplitPoints A list which is splitCount + 1 entries long, containing the
@@ -106,8 +113,8 @@ namespace Ogre
         uint getSplitCount() const { return mSplitCount; }
 
         /// Returns a LiSPSM shadow camera with PSSM splits base on iteration.
-        virtual void getShadowCamera(const Ogre::SceneManager *sm, const Ogre::Camera *cam,
-            const Ogre::Viewport *vp, const Ogre::Light *light, Ogre::Camera *texCam, size_t iteration) const;
+        void getShadowCamera(const Ogre::SceneManager *sm, const Ogre::Camera *cam,
+            const Ogre::Viewport *vp, const Ogre::Light *light, Ogre::Camera *texCam, size_t iteration) const override;
 
         /// Returns the calculated split points.
         inline const SplitPointList& getSplitPoints() const
@@ -118,7 +125,7 @@ namespace Ogre
         { return mOptimalAdjustFactors[splitIndex]; }
 
         /// Overridden, recommended internal use only since depends on current iteration
-        Real getOptimalAdjustFactor() const;
+        Real getOptimalAdjustFactor() const override;
 
     };
     /** @} */

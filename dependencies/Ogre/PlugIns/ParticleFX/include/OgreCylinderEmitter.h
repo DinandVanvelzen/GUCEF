@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-
+// Original author: Tels <http://bloodgate.com>, released as public domain
 
 #ifndef __CylinderEmitter_H__
 #define __CylinderEmitter_H__
@@ -34,26 +34,24 @@ THE SOFTWARE.
 #include "OgreAreaEmitter.h"
 
 namespace Ogre {
-
-    /** Particle emitter which emits particles randomly from points inside a cylinder.
-    @remarks
-        This basic particle emitter emits particles from a cylinder area. The
-        initial direction of these particles can either be a single direction
-        (i.e. a line), a random scattering inside a cone, or a random
-        scattering in all directions, depending the 'angle' parameter, which
-        is the angle across which to scatter the particles either side of the
-        base direction of the emitter. 
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport CylinderEmitter : public AreaEmitter
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** This emitter emits particles in a random direction from within a cylinder area, where the cylinder is oriented along the Z-axis.
+    */
+    class CylinderEmitter : public AreaEmitter
     {
     public:
         /** See AreaEmitter. */
         CylinderEmitter(ParticleSystem* psys);
 
-        /** See ParticleEmitter. */
-        void _initParticle(Particle* pParticle);
+        void _initParticle(Particle* pParticle) override;
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

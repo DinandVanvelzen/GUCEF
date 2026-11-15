@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ Modified to use with PCZones 2007 by Eric Cha
 
 namespace Ogre
 {
-
+    namespace {
     /* INTERSECTION UTILITY FUNCTIONS ***/
 
     enum Intersection
@@ -260,6 +260,7 @@ namespace Ogre
         }
 
 
+    }
     }
     /***************************************************/
 

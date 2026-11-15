@@ -28,18 +28,12 @@ THE SOFTWARE.
 
 #include "OgreGLES2RenderToVertexBuffer.h"
 
-#if OGRE_NO_GLES3_SUPPORT == 0
 #include "OgreHardwareBufferManager.h"
-#include "OgreGLES2HardwareVertexBuffer.h"
-#include "OgreGLES2VertexDeclaration.h"
+#include "OgreGLES2HardwareBuffer.h"
 #include "OgreRenderable.h"
-#include "OgreSceneManager.h"
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
-#include "OgreGLSLESLinkProgramManager.h"
-#include "OgreGLSLESProgramPipelineManager.h"
-#include "OgreStringConverter.h"
-#include "OgreTechnique.h"
+#include "OgreGLSLESProgramManager.h"
 
 namespace Ogre {
 //-----------------------------------------------------------------------------
@@ -60,26 +54,10 @@ namespace Ogre {
         }
     }
 //-----------------------------------------------------------------------------
-    static GLint getVertexCountPerPrimitive(RenderOperation::OperationType operationType)
+    GLES2RenderToVertexBuffer::GLES2RenderToVertexBuffer()
     {
-        //We can only get points, lines or triangles since they are the only
-        //legal R2VB output primitive types
-        switch (operationType)
-        {
-        case RenderOperation::OT_POINT_LIST:
-            return 1;
-        case RenderOperation::OT_LINE_LIST:
-            return 2;
-        default:
-        case RenderOperation::OT_TRIANGLE_LIST:
-            return 3;
-        }
-    }
-//-----------------------------------------------------------------------------
-    GLES2RenderToVertexBuffer::GLES2RenderToVertexBuffer() : mFrontBufferIndex(-1)
-    {
-        mVertexBuffers[0].setNull();
-        mVertexBuffers[1].setNull();
+        mVertexBuffers[0].reset();
+        mVertexBuffers[1].reset();
 
         // Create query objects
         OGRE_CHECK_GL_ERROR(glGenQueries(1, &mPrimitivesDrawnQuery));
@@ -90,51 +68,39 @@ namespace Ogre {
         OGRE_CHECK_GL_ERROR(glDeleteQueries(1, &mPrimitivesDrawnQuery));
     }
 //-----------------------------------------------------------------------------
-    void GLES2RenderToVertexBuffer::getRenderOperation(RenderOperation& op)
-    {
-        op.operationType = mOperationType;
-        op.useIndexes = false;
-        op.vertexData = mVertexData;
-    }
-//-----------------------------------------------------------------------------
     void GLES2RenderToVertexBuffer::update(SceneManager* sceneMgr)
     {
         size_t bufSize = mVertexData->vertexDeclaration->getVertexSize(0) * mMaxVertexCount;
-        if (mVertexBuffers[0].isNull() || mVertexBuffers[0]->getSizeInBytes() != bufSize)
+        if (!mVertexBuffers[0] || mVertexBuffers[0]->getSizeInBytes() != bufSize)
         {
             // Buffers don't match. Need to reallocate.
             mResetRequested = true;
         }
-        
-        // Single pass only for now
-        Ogre::Pass* r2vbPass = mMaterial->getBestTechnique()->getPass(0);
-        // Set pass before binding buffers to activate the GPU programs
-        sceneMgr->_setPass(r2vbPass);
-        
+
+        Ogre::Pass* r2vbPass = derivePass(sceneMgr);
+
         bindVerticesOutput(r2vbPass);
 
         RenderOperation renderOp;
-        size_t targetBufferIndex;
+        auto targetBufferIndex = mTargetBufferIndex;
         if (mResetRequested || mResetsEveryUpdate)
         {
             // Use source data to render to first buffer
             mSourceRenderable->getRenderOperation(renderOp);
-            targetBufferIndex = 0;
         }
         else
         {
             // Use current front buffer to render to back buffer
             this->getRenderOperation(renderOp);
-            targetBufferIndex = 1 - mFrontBufferIndex;
         }
 
-        if (mVertexBuffers[targetBufferIndex].isNull() || 
+        if (!mVertexBuffers[targetBufferIndex] || 
             mVertexBuffers[targetBufferIndex]->getSizeInBytes() != bufSize)
         {
             reallocateBuffer(targetBufferIndex);
         }
 
-        GLES2HardwareVertexBuffer* vertexBuffer = static_cast<GLES2HardwareVertexBuffer*>(mVertexBuffers[targetBufferIndex].getPointer());
+        auto vertexBuffer = mVertexBuffers[targetBufferIndex]->_getImpl<GLES2HardwareBuffer>();
 /*        if(Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_SEPARATE_SHADER_OBJECTS))
         {
             GLSLESProgramPipeline* programPipeline =
@@ -155,24 +121,6 @@ namespace Ogre {
 
         RenderSystem* targetRenderSystem = Root::getSingleton().getRenderSystem();
         // Draw the object
-        targetRenderSystem->_setWorldMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setViewMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setProjectionMatrix(Matrix4::IDENTITY);
-        if (r2vbPass->hasVertexProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM, 
-                                                         r2vbPass->getVertexProgramParameters(), GPV_ALL);
-        }
-        if (r2vbPass->hasFragmentProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_FRAGMENT_PROGRAM,
-                                                         r2vbPass->getFragmentProgramParameters(), GPV_ALL);
-        }
-        if (r2vbPass->hasGeometryProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_GEOMETRY_PROGRAM,
-                                                         r2vbPass->getGeometryProgramParameters(), GPV_ALL);
-        }
         OGRE_CHECK_GL_ERROR(glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, mPrimitivesDrawnQuery));
 
         OGRE_CHECK_GL_ERROR(glBeginTransformFeedback(getR2VBPrimitiveType(mOperationType)));
@@ -191,58 +139,16 @@ namespace Ogre {
         OGRE_CHECK_GL_ERROR(glGetQueryObjectuiv(mPrimitivesDrawnQuery, GL_QUERY_RESULT, &primitivesWritten));
         mVertexData->vertexCount = primitivesWritten * getVertexCountPerPrimitive(mOperationType);
 
-        // Switch the vertex binding if necessary
-        if (targetBufferIndex != mFrontBufferIndex)
-        {
-            mVertexData->vertexBufferBinding->unsetAllBindings();
-            mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
-            mFrontBufferIndex = targetBufferIndex;
-        }
+        // Switch the vertex binding
+        mVertexData->vertexBufferBinding->unsetAllBindings();
+        mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
+        mTargetBufferIndex = mTargetBufferIndex == 0 ? 1 : 0;
 
         // Enable rasterization
         OGRE_CHECK_GL_ERROR(glDisable(GL_RASTERIZER_DISCARD));
 
         // Clear the reset flag
         mResetRequested = false;
-    }
-//-----------------------------------------------------------------------------
-    void GLES2RenderToVertexBuffer::reallocateBuffer(size_t index)
-    {
-        assert(index == 0 || index == 1);
-        if (!mVertexBuffers[index].isNull())
-        {
-            mVertexBuffers[index].setNull();
-        }
-        
-        mVertexBuffers[index] = HardwareBufferManager::getSingleton().createVertexBuffer(
-            mVertexData->vertexDeclaration->getVertexSize(0), mMaxVertexCount, 
-#if OGRE_DEBUG_MODE
-            //Allow to read the contents of the buffer in debug mode
-            HardwareBuffer::HBU_DYNAMIC
-#else
-            HardwareBuffer::HBU_STATIC_WRITE_ONLY
-#endif
-            );
-    }
-//-----------------------------------------------------------------------------
-    String GLES2RenderToVertexBuffer::getSemanticVaryingName(VertexElementSemantic semantic, unsigned short index)
-    {
-        switch (semantic)
-        {
-        case VES_POSITION:
-            return "gl_Position";
-        case VES_TEXTURE_COORDINATES:
-            return String("oUv") + StringConverter::toString(index);
-        case VES_DIFFUSE:
-            return "oColour";
-        case VES_SPECULAR:
-            return "oSecColour";
-        //TODO : Implement more?
-        default:
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "Unsupported vertex element sematic in render to vertex buffer", 
-                "OgreGLES2RenderToVertexBuffer::getSemanticVaryingName");
-        }
     }
 //-----------------------------------------------------------------------------
     void GLES2RenderToVertexBuffer::bindVerticesOutput(Pass* pass)
@@ -254,17 +160,8 @@ namespace Ogre {
         {
             GLuint linkProgramId = 0;
             // Have GLSL shaders, using varying attributes
-            if(Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_SEPARATE_SHADER_OBJECTS))
-            {
-                GLSLESProgramPipeline* programPipeline =
-                    GLSLESProgramPipelineManager::getSingleton().getActiveProgramPipeline();
-                linkProgramId = programPipeline->getGLProgramPipelineHandle();
-            }
-            else
-            {
-                GLSLESLinkProgram* linkProgram = GLSLESLinkProgramManager::getSingleton().getActiveLinkProgram();
-                linkProgramId = linkProgram->getGLProgramHandle();
-            }
+            GLSLESProgramCommon* linkProgram = GLSLESProgramManager::getSingleton().getActiveProgram();
+            linkProgramId = linkProgram->getGLProgramHandle();
 
             // Note: 64 is the minimum number of interleaved attributes allowed by GL_EXT_transform_feedback
             // So we are using it. Otherwise we could query during rendersystem initialisation and use a dynamic sized array.
@@ -282,4 +179,3 @@ namespace Ogre {
         }
     }
 }
-#endif

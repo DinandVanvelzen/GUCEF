@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,24 +42,15 @@ namespace Ogre {
     /** \addtogroup Scene
     *  @{
     */
-    /** Pre-transforms and batches up meshes for efficient use as static
+    /** Pre-transforms and batches up meshes on the CPU for efficient use as static
         geometry in a scene.
-    @remarks
-        Modern graphics cards (GPUs) prefer to receive geometry in large
-        batches. It is orders of magnitude faster to render 10 batches
-        of 10,000 triangles than it is to render 10,000 batches of 10 
-        triangles, even though both result in the same number of on-screen
-        triangles.
-    @par
-        Therefore it is important when you are rendering a lot of geometry to 
-        batch things up into as few rendering calls as possible. This
-        class allows you to build a batched object from a series of entities 
-        in order to benefit from this behaviour.
+
+        This class allows you to build a batched object from a series of entities.
         Batching has implications of it's own though:
-        @li Batched geometry cannot be subdivided; that means that the whole
+        - Batched geometry cannot be subdivided; that means that the whole
             group will be displayed, or none of it will. This obivously has
             culling issues.
-        @li A single world transform must apply to the entire batch. Therefore
+        - A single world transform must apply to the entire batch. Therefore
             once you have batched things, you can't move them around relative to
             each other. That's why this class is most useful when dealing with 
             static geometry (hence the name). In addition, geometry is 
@@ -68,18 +59,18 @@ namespace Ogre {
             space than the movable version (which re-uses the same geometry). 
             So you trade memory and flexibility of movement for pure speed when
             using this class.
-        @li A single material must apply for each batch. In fact this class 
+        - A single material must apply for each batch. In fact this class
             allows you to use multiple materials, but you should be aware that 
             internally this means that there is one batch per material. 
             Therefore you won't gain as much benefit from the batching if you 
             use many different materials; try to keep the number down.
-    @par
+
         In order to retain some sort of culling, this class will batch up 
         meshes in localised regions. The size and shape of these blocks is
         controlled by the SceneManager which constructs this object, since it
         makes sense to batch things up in the most appropriate way given the 
         existing partitioning of the scene. 
-    @par
+
         The LOD settings of both the Mesh and the Materials used in 
         constructing this static geometry will be respected. This means that 
         if you use meshes/materials which have LOD, batches in the distance 
@@ -91,15 +82,15 @@ namespace Ogre {
         not degraded). Be aware that using Mesh LOD in this class will 
         further increase the memory required. Only generated LOD
         is supported for meshes.
-    @par
+
         There are 2 ways you can add geometry to this class; you can add
         Entity objects directly with predetermined positions, scales and 
         orientations, or you can add an entire SceneNode and it's subtree, 
         including all the objects attached to it. Once you've added everything
         you need to, you have to call build() the fix the geometry in place. 
     @note
-        This class is not a replacement for world geometry (@see 
-        SceneManager::setWorldGeometry). The single most efficient way to 
+        This class is not a replacement for world geometry (@ref
+        Ogre::SceneManager::setWorldGeometry). The single most efficient way to
         render large amounts of static geometry is to use a SceneManager which 
         is specialised for dealing with that particular world structure. 
         However, this class does provide you with a good 'halfway house'
@@ -107,14 +98,8 @@ namespace Ogre {
         SceneManagers but isn't efficient when using very large numbers, and 
         highly specialised world geometry which is extremely fast but not 
         generic and typically requires custom world editors.
-    @par
-        You should not construct instances of this class directly; instead, cal 
-        SceneManager::createStaticGeometry, which gives the SceneManager the 
-        option of providing you with a specialised version of this class if it
-        wishes, and also handles the memory management for you like other 
-        classes.
-    @note
-        Warning: this class only works with indexed triangle lists at the moment,
+    @attention
+        this class only works with indexed triangle lists at the moment,
         do not pass it triangle strips, fans or lines / points, or unindexed geometry.
     */
     class _OgreExport StaticGeometry : public BatchedGeometryAlloc
@@ -122,7 +107,7 @@ namespace Ogre {
     public:
         /** Struct holding geometry optimised per SubMesh / LOD level, ready
             for copying to instances. 
-        @remarks
+
             Since we're going to be duplicating geometry lots of times, it's
             far more important that we don't have redundant vertex data. If a 
             SubMesh uses shared geometry, or we're looking at a lower LOD, not
@@ -144,7 +129,7 @@ namespace Ogre {
             VertexData *vertexData;
             IndexData *indexData;
         };
-        typedef list<OptimisedSubMeshGeometry*>::type OptimisedSubMeshGeometryList;
+        typedef std::list<OptimisedSubMeshGeometry*> OptimisedSubMeshGeometryList;
         /// Saved link between SubMesh at a LOD and vertex/index data
         /// May point to original or optimised geometry
         struct SubMeshLodGeometryLink
@@ -152,22 +137,22 @@ namespace Ogre {
             VertexData* vertexData;
             IndexData* indexData;
         };
-        typedef vector<SubMeshLodGeometryLink>::type SubMeshLodGeometryLinkList;
-        typedef map<SubMesh*, SubMeshLodGeometryLinkList*>::type SubMeshGeometryLookup;
+        typedef std::vector<SubMeshLodGeometryLink> SubMeshLodGeometryLinkList;
+        typedef std::map<SubMesh*, SubMeshLodGeometryLinkList*> SubMeshGeometryLookup;
         /// Structure recording a queued submesh for the build
         struct QueuedSubMesh : public BatchedGeometryAlloc
         {
             SubMesh* submesh;
+            MaterialPtr material;
             /// Link to LOD list of geometry, potentially optimised
             SubMeshLodGeometryLinkList* geometryLodList;
-            String materialName;
             Vector3 position;
             Quaternion orientation;
             Vector3 scale;
             /// Pre-transformed world AABB 
             AxisAlignedBox worldBounds;
         };
-        typedef vector<QueuedSubMesh*>::type QueuedSubMeshList;
+        typedef std::vector<QueuedSubMesh*> QueuedSubMeshList;
         /// Structure recording a queued geometry for low level builds
         struct QueuedGeometry : public BatchedGeometryAlloc
         {
@@ -176,7 +161,7 @@ namespace Ogre {
             Quaternion orientation;
             Vector3 scale;
         };
-        typedef vector<QueuedGeometry*>::type QueuedGeometryList;
+        typedef std::vector<QueuedGeometry*> QueuedGeometryList;
         
         // forward declarations
         class LODBucket;
@@ -189,42 +174,20 @@ namespace Ogre {
         */
         class _OgreExport GeometryBucket :  public Renderable,  public BatchedGeometryAlloc
         {
-        protected:
             /// Geometry which has been queued up pre-build (not for deallocation)
             QueuedGeometryList mQueuedGeometry;
             /// Pointer to parent bucket
             MaterialBucket* mParent;
-            /// String identifying the vertex / index format
-            String mFormatString;
             /// Vertex information, includes current number of vertices
             /// committed to be a part of this bucket
             VertexData* mVertexData;
             /// Index information, includes index type which limits the max
             /// number of vertices which are allowed in one bucket
             IndexData* mIndexData;
-            /// Size of indexes
-            HardwareIndexBuffer::IndexType mIndexType;
             /// Maximum vertex indexable
             size_t mMaxVertexIndex;
-
-            template<typename T>
-            void copyIndexes(const T* src, T* dst, size_t count, size_t indexOffset)
-            {
-                if (indexOffset == 0)
-                {
-                    memcpy(dst, src, sizeof(T) * count);
-                }
-                else
-                {
-                    while(count--)
-                    {
-                        *dst++ = static_cast<T>(*src++ + indexOffset);
-                    }
-                }
-            }
         public:
-            GeometryBucket(MaterialBucket* parent, const String& formatString, 
-                const VertexData* vData, const IndexData* iData);
+            GeometryBucket(MaterialBucket* parent, const VertexData* vData, const IndexData* iData);
             virtual ~GeometryBucket();
             MaterialBucket* getParent(void) { return mParent; }
             /// Get the vertex data for this geometry 
@@ -232,13 +195,13 @@ namespace Ogre {
             /// Get the index data for this geometry 
             const IndexData* getIndexData(void) const { return mIndexData; }
             /// @copydoc Renderable::getMaterial
-            const MaterialPtr& getMaterial(void) const;
-            Technique* getTechnique(void) const;
-            void getRenderOperation(RenderOperation& op);
-            void getWorldTransforms(Matrix4* xform) const;
-            Real getSquaredViewDepth(const Camera* cam) const;
-            const LightList& getLights(void) const;
-            bool getCastsShadows(void) const;
+            const MaterialPtr& getMaterial(void) const override;
+            Technique* getTechnique(void) const override;
+            void getRenderOperation(RenderOperation& op) override;
+            void getWorldTransforms(Matrix4* xform) const override;
+            Real getSquaredViewDepth(const Camera* cam) const override;
+            const LightList& getLights(void) const override;
+            bool getCastsShadows(void) const override;
             
             /** Try to assign geometry to this bucket.
             @return false if there is no room left in this bucket
@@ -247,7 +210,7 @@ namespace Ogre {
             /// Build
             void build(bool stencilShadows);
             /// Dump contents for diagnostics
-            void dump(std::ofstream& of) const;
+            _OgreExport friend std::ostream& operator<<(std::ostream& o, const GeometryBucket& b);
         };
         /** A MaterialBucket is a collection of smaller buckets with the same 
             Material (and implicitly the same LOD). */
@@ -255,12 +218,10 @@ namespace Ogre {
         {
         public:
             /// list of Geometry Buckets in this region
-            typedef vector<GeometryBucket*>::type GeometryBucketList;
-        protected:
+            typedef std::vector<GeometryBucket*> GeometryBucketList;
+        private:
             /// Pointer to parent LODBucket
             LODBucket* mParent;
-            /// Material being used
-            String mMaterialName;
             /// Pointer to material being used
             MaterialPtr mMaterial;
             /// Active technique
@@ -269,17 +230,15 @@ namespace Ogre {
             /// list of Geometry Buckets in this region
             GeometryBucketList mGeometryBucketList;
             // index to current Geometry Buckets for a given geometry format
-            typedef map<String, GeometryBucket*>::type CurrentGeometryMap;
+            typedef std::map<uint32, GeometryBucket*> CurrentGeometryMap;
             CurrentGeometryMap mCurrentGeometryMap;
-            /// Get a packed string identifying the geometry format
-            String getGeometryFormatString(SubMeshLodGeometryLink* geom);
             
         public:
-            MaterialBucket(LODBucket* parent, const String& materialName);
+            MaterialBucket(LODBucket* parent, const MaterialPtr& material);
             virtual ~MaterialBucket();
             LODBucket* getParent(void) { return mParent; }
             /// Get the material name
-            const String& getMaterialName(void) const { return mMaterialName; }
+            const String& getMaterialName(void) const { return mMaterial->getName(); }
             /// Assign geometry to this bucket
             void assign(QueuedGeometry* qsm);
             /// Build
@@ -289,18 +248,22 @@ namespace Ogre {
                 Real lodValue);
             /// Get the material for this bucket
             const MaterialPtr& getMaterial(void) const { return mMaterial; }
+            /// Override Material without changing the partitioning. For advanced use only.
+            void _setMaterial(const MaterialPtr& material);
             /// Iterator over geometry
             typedef VectorIterator<GeometryBucketList> GeometryIterator;
-            /// Get an iterator over the contained geometry
-            GeometryIterator getGeometryIterator(void);
+            /// Get a list of the contained geometry
+            const GeometryBucketList& getGeometryList() const { return mGeometryBucketList; }
+            /// @deprecated use getGeometryList()
+            OGRE_DEPRECATED GeometryIterator getGeometryIterator(void);
             /// Get the current Technique
             Technique* getCurrentTechnique(void) const { return mTechnique; }
             /// Dump contents for diagnostics
-            void dump(std::ofstream& of) const;
+            _OgreExport friend std::ostream& operator<<(std::ostream& o, const MaterialBucket& b);
             void visitRenderables(Renderable::Visitor* visitor, bool debugRenderables);
         };
         /** A LODBucket is a collection of smaller buckets with the same LOD. 
-        @remarks
+
             LOD refers to Mesh LOD here. Material LOD can change separately
             at the next bucket down from this.
         */
@@ -308,31 +271,8 @@ namespace Ogre {
         {
         public:
             /// Lookup of Material Buckets in this region
-            typedef map<String, MaterialBucket*>::type MaterialBucketMap;
-        protected:
-            /** Nested class to allow shadows. */
-            class _OgreExport LODShadowRenderable : public ShadowRenderable
-            {
-            protected:
-                LODBucket* mParent;
-                // Shared link to position buffer
-                HardwareVertexBufferSharedPtr mPositionBuffer;
-                // Shared link to w-coord buffer (optional)
-                HardwareVertexBufferSharedPtr mWBuffer;
-
-            public:
-                LODShadowRenderable(LODBucket* parent, 
-                    HardwareIndexBufferSharedPtr* indexBuffer, const VertexData* vertexData, 
-                    bool createSeparateLightCap, bool isLightCap = false);
-                ~LODShadowRenderable();
-                /// Overridden from ShadowRenderable
-                void getWorldTransforms(Matrix4* xform) const;
-                HardwareVertexBufferSharedPtr getPositionBuffer(void) { return mPositionBuffer; }
-                HardwareVertexBufferSharedPtr getWBuffer(void) { return mWBuffer; }
-                /// Overridden from ShadowRenderable
-                virtual void rebindIndexBuffer(const HardwareIndexBufferSharedPtr& indexBuffer);
-
-            };
+            typedef std::map<String, MaterialBucket*> MaterialBucketMap;
+        private:
             /// Pointer to parent region
             Region* mParent;
             /// LOD level (0 == full LOD)
@@ -367,22 +307,21 @@ namespace Ogre {
             /// Iterator over the materials in this LOD
             typedef MapIterator<MaterialBucketMap> MaterialIterator;
             /// Get an iterator over the materials in this LOD
-            MaterialIterator getMaterialIterator(void);
+            const MaterialBucketMap& getMaterialBuckets() const { return mMaterialBucketMap; }
+            /// @deprecated use getMaterialBuckets()
+            OGRE_DEPRECATED MaterialIterator getMaterialIterator(void);
             /// Dump contents for diagnostics
-            void dump(std::ofstream& of) const;
+            _OgreExport friend std::ostream& operator<<(std::ostream& o, const LODBucket& b);
             void visitRenderables(Renderable::Visitor* visitor, bool debugRenderables);
             EdgeData* getEdgeList() const { return mEdgeList; }
             ShadowCaster::ShadowRenderableList& getShadowRenderableList() { return mShadowRenderables; }
             bool isVertexProgramInUse() const { return mVertexProgramInUse; }
-            void updateShadowRenderables(
-                ShadowTechnique shadowTechnique, const Vector4& lightPos, 
-                HardwareIndexBufferSharedPtr* indexBuffer, 
-                bool extrudeVertices, Real extrusionDistance, unsigned long flags = 0 );
-            
+            void updateShadowRenderables(const Vector4& lightPos, const HardwareIndexBufferPtr& indexBuffer,
+                                         Real extrusionDistance, int flags = 0);
         };
         /** The details of a topological region which is the highest level of
             partitioning for this class.
-        @remarks
+
             The size & shape of regions entirely depends on the SceneManager
             specific implementation. It is a MovableObject since it will be
             attached to a node based on the local centre - in practice it
@@ -394,14 +333,10 @@ namespace Ogre {
             friend class GeometryBucket;
         public:
             /// list of LOD Buckets in this region
-            typedef vector<LODBucket*>::type LODBucketList;
-        protected:
+            typedef std::vector<LODBucket*> LODBucketList;
+        private:
             /// Parent static geometry
             StaticGeometry* mParent;
-            /// Scene manager link
-            SceneManager* mSceneMgr;
-            /// Scene node
-            SceneNode* mNode;
             /// Local list of queued meshes (not used for deallocation)
             QueuedSubMeshList mQueuedSubMeshes;
             /// Unique identifier for the region
@@ -422,8 +357,6 @@ namespace Ogre {
             LODBucketList mLodBucketList;
             /// List of lights for this region
             mutable LightList mLightList;
-            /// The last frame that this light list was updated in
-            mutable ulong mLightListUpdated;
             /// LOD strategy reference
             const LodStrategy *mLodStrategy;
             /// Current camera
@@ -445,52 +378,47 @@ namespace Ogre {
             uint32 getID(void) const { return mRegionID; }
             /// Get the centre point of the region
             const Vector3& getCentre(void) const { return mCentre; }
-            const String& getMovableType(void) const;
-            void _notifyCurrentCamera(Camera* cam);
-            const AxisAlignedBox& getBoundingBox(void) const;
-            Real getBoundingRadius(void) const;
-            void _updateRenderQueue(RenderQueue* queue);
+            const String& getMovableType(void) const override;
+            void _notifyCurrentCamera(Camera* cam) override;
+            const AxisAlignedBox& getBoundingBox(void) const override;
+            Real getBoundingRadius(void) const override;
+            void _updateRenderQueue(RenderQueue* queue) override;
             /// @copydoc MovableObject::visitRenderables
             void visitRenderables(Renderable::Visitor* visitor, 
-                bool debugRenderables = false);
-            bool isVisible(void) const;
-            uint32 getTypeFlags(void) const;
+                bool debugRenderables = false) override;
+            bool isVisible(void) const override;
+            uint32 getTypeFlags(void) const override;
 
             typedef VectorIterator<LODBucketList> LODIterator;
-            /// Get an iterator over the LODs in this region
-            LODIterator getLODIterator(void);
-            /// @copydoc ShadowCaster::getShadowVolumeRenderableIterator
-            ShadowRenderableListIterator getShadowVolumeRenderableIterator(
-                ShadowTechnique shadowTechnique, const Light* light, 
-                HardwareIndexBufferSharedPtr* indexBuffer, size_t* indexBufferUsedSize,
-                bool extrudeVertices, Real extrusionDistance, unsigned long flags = 0 );
-            /// Overridden from MovableObject
-            EdgeData* getEdgeList(void);
-            /** Overridden member from ShadowCaster. */
-            bool hasEdgeList(void);
+            /// @deprecated use getLODBuckets()
+            OGRE_DEPRECATED LODIterator getLODIterator(void);
+            /// Get an list of the LODs in this region
+            const LODBucketList& getLODBuckets() const { return mLodBucketList; }
+            const ShadowRenderableList&
+            getShadowVolumeRenderableList(const Light* light, const HardwareIndexBufferPtr& indexBuffer,
+                                          size_t& indexBufferUsedSize, float extrusionDistance,
+                                          int flags = 0) override;
+            EdgeData* getEdgeList(void) override;
 
-            /** @copydoc MovableObject::_releaseManualHardwareResources. */
-            void _releaseManualHardwareResources();
-            /** @copydoc MovableObject::_restoreManualHardwareResources. */
-            void _restoreManualHardwareResources();
+            void _releaseManualHardwareResources() override;
+            void _restoreManualHardwareResources() override;
 
             /// Dump contents for diagnostics
-            void dump(std::ofstream& of) const;
+            _OgreExport friend std::ostream& operator<<(std::ostream& o, const Region& r);
             
         };
         /** Indexed region map based on packed x/y/z region index, 10 bits for
             each axis.
-        @remarks
+
             Regions are indexed 0-1023 in all axes, where for example region 
             0 in the x axis begins at mOrigin.x + (mRegionDimensions.x * -512), 
             and region 1023 ends at mOrigin + (mRegionDimensions.x * 512).
         */
-        typedef map<uint32, Region*>::type RegionMap;
-    protected:
+        typedef std::map<uint32, Region*> RegionMap;
+    private:
         // General state & settings
         SceneManager* mOwner;
         String mName;
-        bool mBuilt;
         Real mUpperDistance;
         Real mSquaredUpperDistance;
         bool mCastShadows;
@@ -557,7 +485,7 @@ namespace Ogre {
         void splitGeometry(VertexData* vd, IndexData* id, 
             SubMeshLodGeometryLink* targetGeomLink);
 
-        typedef map<size_t, size_t>::type IndexRemap;
+        typedef std::map<size_t, size_t> IndexRemap;
         /** Method for figuring out which vertices are used by an index buffer
             and calculating a remap lookup for a vertex buffer just containing
             those vertices. 
@@ -569,7 +497,7 @@ namespace Ogre {
             for (size_t i = 0; i < numIndexes; ++i)
             {
                 // use insert since duplicates are silently discarded
-                remap.insert(IndexRemap::value_type(*pBuffer++, remap.size()));
+                remap.emplace(*pBuffer++, remap.size());
                 // this will have mapped oldindex -> new index IF oldindex
                 // wasn't already there
             }
@@ -589,7 +517,12 @@ namespace Ogre {
         }
         
     public:
-        /// Constructor; do not use directly (@see SceneManager::createStaticGeometry)
+        /**
+            You should not construct instances of this class directly; instead, call
+            SceneManager::createStaticGeometry, which gives the SceneManager the
+            option of providing you with a specialised version of this class if it
+            wishes, and also handles the memory management for you like other classes.
+         */
         StaticGeometry(SceneManager* owner, const String& name);
         /// Destructor
         virtual ~StaticGeometry();
@@ -597,7 +530,7 @@ namespace Ogre {
         /// Get the name of this object
         const String& getName(void) const { return mName; }
         /** Adds an Entity to the static geometry.
-        @remarks
+
             This method takes an existing Entity and adds its details to the 
             list of elements to include when building. Note that the Entity
             itself is not copied or referenced in this method; an Entity is 
@@ -613,6 +546,8 @@ namespace Ogre {
         @param position The world position at which to add this Entity
         @param orientation The world orientation at which to add this Entity
         @param scale The scale at which to add this entity
+        @attention Do not unload the Mesh used by the Entity until after you have
+            called build(), as the geometry is read at that time.
         */
         virtual void addEntity(Entity* ent, const Vector3& position,
             const Quaternion& orientation = Quaternion::IDENTITY, 
@@ -620,7 +555,7 @@ namespace Ogre {
 
         /** Adds all the Entity objects attached to a SceneNode and all it's
             children to the static geometry.
-        @remarks
+
             This method performs just like addEntity, except it adds all the 
             entities attached to an entire sub-tree to the geometry. 
             The position / orientation / scale parameters are taken from the
@@ -630,16 +565,18 @@ namespace Ogre {
             it's parent, so if you have this node already attached to the scene
             graph, you will need to remove it if you wish to avoid the overhead
             of rendering <i>both</i> the original objects and their new static
-            versions! We don't do this for you incase you are preparing this 
+            versions! We don't do this for you in case you are preparing this
             in advance and so don't want the originals detached yet. 
         @note Must be called before 'build'.
+        @attention Do not unload the Mesh used by the Entities until after you have
+            called build(), as the geometry is read at that time.
         @param node Pointer to the node to use to provide a set of Entity 
             templates
         */
         virtual void addSceneNode(const SceneNode* node);
 
         /** Build the geometry. 
-        @remarks
+
             Based on all the entities which have been added, and the batching 
             options which have been set, this method constructs the batched 
             geometry structures required. The batches are added to the scene 
@@ -651,19 +588,19 @@ namespace Ogre {
         virtual void build(void);
 
         /** Destroys all the built geometry state (reverse of build). 
-        @remarks
+
             You can call build() again after this and it will pick up all the
             same entities / nodes you queued last time.
         */
-        virtual void destroy(void);
+        void destroy(void);
 
         /** Clears any of the entities / nodes added to this geometry and 
             destroys anything which has already been built.
         */
-        virtual void reset(void);
+        void reset(void);
 
         /** Sets the distance at which batches are no longer rendered.
-        @remarks
+
             This lets you turn off batches at a given distance. This can be 
             useful for things like detail meshes (grass, foliage etc) and could
             be combined with a shader which fades the geometry out beforehand 
@@ -690,7 +627,7 @@ namespace Ogre {
         virtual bool isVisible(void) const { return mVisible; }
 
         /** Sets whether this geometry should cast shadows.
-        @remarks
+
             No matter what the settings on the original entities,
             the StaticGeometry class defaults to not casting shadows. 
             This is because, being static, unless you have moving lights
@@ -711,7 +648,7 @@ namespace Ogre {
         virtual bool getCastShadows(void) { return mCastShadows; }
 
         /** Sets the size of a single region of geometry.
-        @remarks
+
             This method allows you to configure the physical world size of 
             each region, so you can balance culling against batch size. Entities
             will be fitted within the batch they most closely fit, and the 
@@ -727,7 +664,7 @@ namespace Ogre {
         /** Gets the size of a single batch of geometry. */
         virtual const Vector3& getRegionDimensions(void) const { return mRegionDimensions; }
         /** Sets the origin of the geometry.
-        @remarks
+
             This method allows you to configure the world centre of the geometry,
             thus the place which all regions surround. You probably don't need 
             to mess with this unless you have a seriously large world, since the
@@ -747,7 +684,7 @@ namespace Ogre {
         uint32 getVisibilityFlags() const;
 
         /** Sets the render queue group this object will be rendered through.
-        @remarks
+
             Render queues are grouped to allow you to more tightly control the ordering
             of rendered objects. If you do not call this method, all  objects default
             to the default queue (RenderQueue::getDefaultQueueGroup), which is fine for 
@@ -767,15 +704,15 @@ namespace Ogre {
         
         /// Iterator for iterating over contained regions
         typedef MapIterator<RegionMap> RegionIterator;
-        /// Get an iterator over the regions in this geometry
-        RegionIterator getRegionIterator(void);
+        /// Get an list of the regions in this geometry
+        const RegionMap& getRegions() const { return mRegionMap; }
+        /// @deprecated use getRegions()
+        OGRE_DEPRECATED RegionIterator getRegionIterator(void);
 
-        /** Dump the contents of this StaticGeometry to a file for diagnostic
+        /** Dump the contents of this StaticGeometry for diagnostic
             purposes.
         */
-        virtual void dump(const String& filename) const;
-
-
+        _OgreExport friend std::ostream& operator<<(std::ostream& o, const StaticGeometry& g);
     };
     /** @} */
     /** @} */

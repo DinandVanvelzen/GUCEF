@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,11 +32,12 @@ THE SOFTWARE.
 #include "OgreTerrainPrerequisites.h"
 #include "OgreCommon.h"
 #include "OgreDataStream.h"
+#include "OgreImage.h"
 
 namespace Ogre
 {
     class Image;
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Terrain
@@ -48,7 +49,7 @@ namespace Ogre
     /** Class exposing an interface to a blend map for a given layer. 
     Each layer after the first layer in a terrain has a blend map which 
     expresses how it is alpha blended with the layers beneath. Internally, this
-    blend map is packed into one channel of an RGB or RGBA texture in
+    blend map is packed into one channel of an RGBA texture in
     order to use the smallest number of samplers, but this class allows
     a caller to manipulate the data more easily without worrying about
     this packing. Also, the values you use to interact with the blend map are
@@ -59,7 +60,6 @@ namespace Ogre
     */
     class _OgreTerrainExport TerrainLayerBlendMap : public TerrainAlloc
     {
-    protected:
         Terrain* mParent;
         uint8 mLayerIdx;
         uint8 mChannel; // RGBA
@@ -67,7 +67,7 @@ namespace Ogre
         Box mDirtyBox;
         bool mDirty;
         HardwarePixelBuffer* mBuffer;
-        float* mData;
+        Image mData;
 
         void download();
         void upload();
@@ -119,16 +119,16 @@ namespace Ogre
         @param x,y Coordinates of the point of data to get, in image space (top down)
         @return The blend data
         */
-        float getBlendValue(size_t x, size_t y);
+        float getBlendValue(uint32 x, uint32 y);
 
         /** Set a single value of blend information (0 = transparent, 255 = solid)
         @param x,y Coordinates of the point of data to get, in image space (top down)
         @param val The blend value to set (0..1)
         */
-        void setBlendValue(size_t x, size_t y, float val);
+        void setBlendValue(uint32 x, uint32 y, float val);
 
         /** Get a pointer to the whole blend data. 
-        @remarks
+
             This method allows you to get a raw pointer to all the blend data, to 
             update it as you like. However, you must then call dirtyRect manually 
             if you want those changes to be recognised. 
@@ -146,7 +146,7 @@ namespace Ogre
 
         /** Blits a set of values into a region on the blend map. 
             @param src      PixelBox containing the source pixels and format 
-            @param dstBox   Image::Box describing the destination region in this map
+            @param dstBox   Box describing the destination region in this map
             @remarks The source and destination regions dimensions don't have to match, in which
             case scaling is done. 
             @note You can call this method in a background thread if you want.
@@ -185,7 +185,7 @@ namespace Ogre
 
     };
 
-    typedef vector<TerrainLayerBlendMap*>::type TerrainLayerBlendMapList;
+    typedef std::vector<TerrainLayerBlendMap*> TerrainLayerBlendMapList;
 
     /** @} */
     /** @} */

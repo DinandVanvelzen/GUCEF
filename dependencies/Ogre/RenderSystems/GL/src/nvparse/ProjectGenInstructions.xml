@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- the test program of the register combiner parser has its own main -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="ps1.0__test_main.cpp" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

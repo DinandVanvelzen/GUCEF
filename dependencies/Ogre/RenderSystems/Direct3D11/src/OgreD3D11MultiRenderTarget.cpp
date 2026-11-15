@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,6 @@ namespace Ogre
         /// Clear targets
         for(size_t x=0; x<OGRE_MAX_MULTIPLE_RENDER_TARGETS; ++x)
         {
-            targets[x] = 0;
             mRenderTargetViews[x] = 0;
             mRenderTargets[x] = 0;
         }
@@ -54,34 +53,33 @@ namespace Ogre
     void D3D11MultiRenderTarget::bindSurfaceImpl(size_t attachment, RenderTexture *target)
     {
         assert(attachment<OGRE_MAX_MULTIPLE_RENDER_TARGETS);
-        /// Get buffer and surface to bind to
-        D3D11HardwarePixelBuffer *buffer = 0;
-        target->getCustomAttribute("BUFFER", &buffer);
-        assert(buffer);
+
+        D3D11RenderTarget* d3d11RenderTarget = dynamic_cast<D3D11RenderTarget*>(target);
 
         /// Find first non-null target
         int y;
-        for(y=0; y<OGRE_MAX_MULTIPLE_RENDER_TARGETS && !targets[y]; ++y) ;
+        for(y=0; y<OGRE_MAX_MULTIPLE_RENDER_TARGETS && !mRenderTargets[y]; ++y) ;
 
         if(y!=OGRE_MAX_MULTIPLE_RENDER_TARGETS)
         {
             /// If there is another target bound, compare sizes
-            if(targets[y]->getWidth() != buffer->getWidth() ||
-                targets[y]->getHeight() != buffer->getHeight())
+            if(mRenderTargets[y]->getWidth() != target->getWidth() ||
+                mRenderTargets[y]->getHeight() != target->getHeight())
             {
-				OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                    "MultiRenderTarget surfaces are not of same size", 
-                    "D3D11MultiRenderTarget::bindSurface"
-                    );
+                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "MultiRenderTarget surfaces are not of same size");
             }
         }
 
-        targets[attachment] = buffer;
         mRenderTargets[attachment] = target;
 
-        ID3D11RenderTargetView** v;
-        target->getCustomAttribute( "ID3D11RenderTargetView", &v );
-        mRenderTargetViews[attachment] = *v;
+        if(PixelUtil::isDepth(target->suggestPixelFormat()))
+        {
+            attachDepthBuffer(target->getDepthBuffer());
+            return;
+        }
+
+        mRenderTargetViews[attachment] =
+            d3d11RenderTarget ? d3d11RenderTarget->getRenderTargetView() : NULL;
 
         if(mNumberOfViews < OGRE_MAX_MULTIPLE_RENDER_TARGETS)
             mNumberOfViews++;
@@ -92,7 +90,6 @@ namespace Ogre
     void D3D11MultiRenderTarget::unbindSurfaceImpl(size_t attachment)
     {
         assert(attachment<OGRE_MAX_MULTIPLE_RENDER_TARGETS);
-        targets[attachment] = 0;
         mRenderTargetViews[attachment] = 0;
 
         if(mNumberOfViews > 0)
@@ -107,57 +104,27 @@ namespace Ogre
 
         MultiRenderTarget::update();
     }
-    //---------------------------------------------------------------------
-    void D3D11MultiRenderTarget::getCustomAttribute(const String& name, void *pData)
+
+    uint D3D11MultiRenderTarget::getNumberOfViews() const { return mNumberOfViews; }
+
+    ID3D11Texture2D* D3D11MultiRenderTarget::getSurface(uint index) const
     {
-        if(name == "DDBACKBUFFER")
-        {
-            ID3D11Texture2D ** pSurf = (ID3D11Texture2D **)pData;
-            /// Transfer surfaces
-            for(size_t x=0; x<OGRE_MAX_MULTIPLE_RENDER_TARGETS; ++x)
-            {
-                if(targets[x])
-                    pSurf[x] = targets[x]->getParentTexture()->GetTex2D();
-            }
-            return;
-        }
-        else if(name == "ID3D11RenderTargetView")
-        {
-            //*static_cast<ID3D11RenderTargetView***>(pData) = mRenderTargetViews;
-            ID3D11RenderTargetView ** pRTView = (ID3D11RenderTargetView**)pData;
-
-            memset(pRTView,0,sizeof(pRTView));
-
-            for(int y=0; y<OGRE_MAX_MULTIPLE_RENDER_TARGETS && mRenderTargets[y]; ++y)
-            {
-                ID3D11RenderTargetView * view;
-                mRenderTargets[y]->getCustomAttribute("ID3D11RenderTargetView",&view);
-                pRTView[y]=view;
-            }
-            return;
-        }
-        else if( name == "numberOfViews" )
-        {
-            uint* n = static_cast<unsigned int*>(pData);
-            *n = mNumberOfViews;
-            return;
-        }
-        else if(name == "isTexture")
-        {
-            bool *b = static_cast< bool * >( pData );
-            *b = false;
-            return;
-        }
-
-        MultiRenderTarget::getCustomAttribute(name, pData);
+        D3D11RenderTarget* renderTarget = dynamic_cast<D3D11RenderTarget*>(mRenderTargets[index]);
+        return renderTarget ? renderTarget->getSurface() : NULL;
     }
-    //---------------------------------------------------------------------
+
+    ID3D11RenderTargetView* D3D11MultiRenderTarget::getRenderTargetView(uint index) const
+    {
+        D3D11RenderTarget* renderTarget = dynamic_cast<D3D11RenderTarget*>(mRenderTargets[index]);
+        return renderTarget ? renderTarget->getRenderTargetView() : NULL;
+    }
+
     void D3D11MultiRenderTarget::checkAndUpdate()
     {
-        if(targets[0])
+        if(mRenderTargets[0])
         {
-            mWidth = static_cast<unsigned int>(targets[0]->getWidth());
-            mHeight = static_cast<unsigned int>(targets[0]->getHeight());
+            mWidth = static_cast<unsigned int>(mRenderTargets[0]->getWidth());
+            mHeight = static_cast<unsigned int>(mRenderTargets[0]->getHeight());
         }
         else
         {

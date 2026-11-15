@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,15 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "OgreShaderFFPFog.h"
+#include "OgreShaderPrecompiledHeaders.h"
 #ifdef RTSHADER_SYSTEM_BUILD_CORE_SHADERS
-#include "OgreShaderFFPRenderState.h"
-#include "OgreShaderProgram.h"
-#include "OgreShaderParameter.h"
-#include "OgreShaderProgramSet.h"
-#include "OgrePass.h"
-#include "OgreShaderGenerator.h"
-#include "OgreMaterialSerializer.h"
 
 namespace Ogre {
 namespace RTShader {
@@ -40,63 +33,25 @@ namespace RTShader {
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-String FFPFog::Type = "FFP_Fog";
+const String SRS_FOG = "FFP_Fog";
 
 //-----------------------------------------------------------------------
 FFPFog::FFPFog()
 {
     mFogMode                = FOG_NONE;
-    mCalcMode               = CM_PER_VERTEX;    
-    mPassOverrideParams     = false;
+    mCalcMode               = CM_PER_VERTEX;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPFog::getType() const
 {
-    return Type;
+    return SRS_FOG;
 }
-
 
 //-----------------------------------------------------------------------
 int FFPFog::getExecutionOrder() const
 {
     return FFP_FOG;
-}
-//-----------------------------------------------------------------------
-void FFPFog::updateGpuProgramsParams(Renderable* rend, Pass* pass, const AutoParamDataSource* source, 
-                                     const LightList* pLightList)
-{   
-    if (mFogMode == FOG_NONE)
-        return;
-
-    FogMode fogMode;
-    ColourValue newFogColour;
-    Real newFogStart, newFogEnd, newFogDensity;
-
-    if (mPassOverrideParams)
-    {
-        fogMode         = pass->getFogMode();
-        newFogColour    = pass->getFogColour();
-        newFogStart     = pass->getFogStart();
-        newFogEnd       = pass->getFogEnd();
-        newFogDensity   = pass->getFogDensity();
-    }
-    else
-    {
-        SceneManager* sceneMgr = ShaderGenerator::getSingleton().getActiveSceneManager();
-        
-        fogMode         = sceneMgr->getFogMode();
-        newFogColour    = sceneMgr->getFogColour();
-        newFogStart     = sceneMgr->getFogStart();
-        newFogEnd       = sceneMgr->getFogEnd();
-        newFogDensity   = sceneMgr->getFogDensity();                
-    }
-
-    // Set fog properties.
-    setFogProperties(fogMode, newFogColour, newFogStart, newFogEnd, newFogDensity);
-
-    mFogParams->setGpuParameter(mFogParamsValue);
-    mFogColour->setGpuParameter(mFogColourValue);
 }
 
 //-----------------------------------------------------------------------
@@ -105,69 +60,45 @@ bool FFPFog::resolveParameters(ProgramSet* programSet)
     if (mFogMode == FOG_NONE)
         return true;
 
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
     Function* vsMain = vsProgram->getEntryPointFunction();
     Function* psMain = psProgram->getEntryPointFunction();
-    bool hasError = false;
-
-    // Resolve world view matrix.
-    mWorldViewProjMatrix = vsProgram->resolveAutoParameterInt(GpuProgramParameters::ACT_WORLDVIEWPROJ_MATRIX, 0);
     
-    // Resolve vertex shader input position.
-    mVSInPos = vsMain->resolveInputParameter(Parameter::SPS_POSITION, 0, Parameter::SPC_POSITION_OBJECT_SPACE, GCT_FLOAT4);
+    // Resolve vertex shader output position.
+    mVSOutPos = vsMain->resolveOutputParameter(Parameter::SPC_POSITION_PROJECTIVE_SPACE);
     
     // Resolve fog colour.
-    mFogColour = psProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_GLOBAL, "gFogColor");
+    mFogColour = psProgram->resolveParameter(GpuProgramParameters::ACT_FOG_COLOUR);
     
     // Resolve pixel shader output diffuse color.
-    mPSOutDiffuse = psMain->resolveOutputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
+    mPSOutDiffuse = psMain->resolveOutputParameter(Parameter::SPC_COLOR_DIFFUSE);
     
     // Per pixel fog.
     if (mCalcMode == CM_PER_PIXEL)
     {
         // Resolve fog params.      
-        mFogParams = psProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_GLOBAL, "gFogParams");
+        mFogParams = psProgram->resolveParameter(GpuProgramParameters::ACT_FOG_PARAMS);
         
         // Resolve vertex shader output depth.      
-        mVSOutDepth = vsMain->resolveOutputParameter(Parameter::SPS_TEXTURE_COORDINATES, -1, 
-            Parameter::SPC_DEPTH_VIEW_SPACE,
-            GCT_FLOAT1);
+        mVSOutDepth = vsMain->resolveOutputParameter(Parameter::SPC_DEPTH_VIEW_SPACE);
         
         // Resolve pixel shader input depth.
-        mPSInDepth = psMain->resolveInputParameter(Parameter::SPS_TEXTURE_COORDINATES, mVSOutDepth->getIndex(), 
-            mVSOutDepth->getContent(),
-            GCT_FLOAT1);
-        
-        hasError |= !(mPSInDepth.get()) || !(mVSOutDepth.get()) || !(mFogParams.get());
+        mPSInDepth = psMain->resolveInputParameter(mVSOutDepth);
     }
     // Per vertex fog.
     else
     {       
         // Resolve fog params.      
-        mFogParams = vsProgram->resolveParameter(GCT_FLOAT4, -1, (uint16)GPV_GLOBAL, "gFogParams");
+        mFogParams = vsProgram->resolveParameter(GpuProgramParameters::ACT_FOG_PARAMS);
         
-        // Resolve vertex shader output fog factor.     
-        mVSOutFogFactor = vsMain->resolveOutputParameter(Parameter::SPS_TEXTURE_COORDINATES, -1, 
-            Parameter::SPC_UNKNOWN,
-            GCT_FLOAT1);
-        
+        // Resolve vertex shader output fog factor.
+        mVSOutFogFactor = vsMain->resolveOutputParameter(Parameter::SPC_UNKNOWN, GCT_FLOAT1);
+
         // Resolve pixel shader input fog factor.
-        mPSInFogFactor = psMain->resolveInputParameter(Parameter::SPS_TEXTURE_COORDINATES, mVSOutFogFactor->getIndex(), 
-            mVSOutFogFactor->getContent(),
-            GCT_FLOAT1);
-
-        hasError |= !(mPSInFogFactor.get()) || !(mVSOutFogFactor.get()) || !(mFogParams.get());
+        mPSInFogFactor = psMain->resolveInputParameter(mVSOutFogFactor);
     }
 
-    hasError |= !(mWorldViewProjMatrix.get()) || !(mVSInPos.get()) || !(mFogColour.get()) || !(mPSOutDiffuse.get());
-        
-    if (hasError)
-    {
-        OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, 
-                "Not all parameters could be constructed for the sub-render state.",
-                "FFPFog::resolveParameters" );
-    }
     return true;
 }
 
@@ -177,18 +108,18 @@ bool FFPFog::resolveDependencies(ProgramSet* programSet)
     if (mFogMode == FOG_NONE)
         return true;
 
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
-
-    vsProgram->addDependency(FFP_LIB_FOG);
-    psProgram->addDependency(FFP_LIB_COMMON);
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
 
     // Per pixel fog.
     if (mCalcMode == CM_PER_PIXEL)
     {
         psProgram->addDependency(FFP_LIB_FOG);
-
-    }   
+    }
+    else
+    {
+        vsProgram->addDependency(FFP_LIB_FOG);
+    }
 
     return true;
 }
@@ -199,89 +130,32 @@ bool FFPFog::addFunctionInvocations(ProgramSet* programSet)
     if (mFogMode == FOG_NONE)
         return true;
 
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
     Function* vsMain = vsProgram->getEntryPointFunction();
     Function* psMain = psProgram->getEntryPointFunction();
-    FunctionInvocation* curFuncInvocation = NULL;   
-    int internalCounter;
-
-
+    
     // Per pixel fog.
     if (mCalcMode == CM_PER_PIXEL)
     {
-        internalCounter = 0;
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_PIXELFOG_DEPTH, FFP_VS_FOG, internalCounter++);
-        curFuncInvocation->pushOperand(mWorldViewProjMatrix, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mVSInPos, Operand::OPS_IN);  
-        curFuncInvocation->pushOperand(mVSOutDepth, Operand::OPS_OUT);  
-        vsMain->addAtomInstance(curFuncInvocation);     
+        vsMain->getStage(FFP_VS_FOG).assign(In(mVSOutPos).w(), mVSOutDepth);
+        psProgram->addPreprocessorDefines(StringUtil::format("FOG_TYPE=%d", mFogMode));
 
-        internalCounter = 0;
-        switch (mFogMode)
-        {
-        case FOG_LINEAR:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_PIXELFOG_LINEAR, FFP_PS_FOG, internalCounter++);
-            break;
-        case FOG_EXP:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_PIXELFOG_EXP, FFP_PS_FOG, internalCounter++);
-            break;
-        case FOG_EXP2:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_PIXELFOG_EXP2, FFP_PS_FOG, internalCounter++);
-            break;
-        case FOG_NONE:
-        default:
-            break;
-        }
-
-        curFuncInvocation->pushOperand(mPSInDepth, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mFogParams, Operand::OPS_IN);    
-        curFuncInvocation->pushOperand(mFogColour, Operand::OPS_IN);        
-        curFuncInvocation->pushOperand(mPSOutDiffuse, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSOutDiffuse, Operand::OPS_OUT);
-        psMain->addAtomInstance(curFuncInvocation); 
-        
+        psMain->getStage(FFP_PS_FOG)
+            .callFunction("FFP_PixelFog",
+                          {In(mPSInDepth), In(mFogParams), In(mFogColour), In(mPSOutDiffuse), Out(mPSOutDiffuse)});
     }
 
     // Per vertex fog.
     else
     {
-        internalCounter = 0;
-
-        switch (mFogMode)
-        {
-        case FOG_LINEAR:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_VERTEXFOG_LINEAR, FFP_VS_FOG, internalCounter++);
-            break;
-        case FOG_EXP:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_VERTEXFOG_EXP, FFP_VS_FOG, internalCounter++);
-            break;
-        case FOG_EXP2:
-            curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_VERTEXFOG_EXP2, FFP_VS_FOG, internalCounter++);
-            break;
-        case FOG_NONE:
-        default:
-            break;
-        }
-            
-        curFuncInvocation->pushOperand(mWorldViewProjMatrix, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mVSInPos, Operand::OPS_IN);      
-        curFuncInvocation->pushOperand(mFogParams, Operand::OPS_IN);        
-        curFuncInvocation->pushOperand(mVSOutFogFactor, Operand::OPS_OUT);
-        vsMain->addAtomInstance(curFuncInvocation);     
-
-
-        internalCounter = 0;
-
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_LERP, FFP_PS_FOG, internalCounter++);
-        curFuncInvocation->pushOperand(mFogColour, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSOutDiffuse, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSInFogFactor, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSOutDiffuse, Operand::OPS_OUT);
-        psMain->addAtomInstance(curFuncInvocation); 
+        vsProgram->addPreprocessorDefines(StringUtil::format("FOG_TYPE=%d", mFogMode));
+        //! [func_invoc]
+        auto vsFogStage = vsMain->getStage(FFP_VS_FOG);
+        vsFogStage.callFunction("FFP_FogFactor", In(mVSOutPos).w(), mFogParams, mVSOutFogFactor);
+        //! [func_invoc]
+        psMain->getStage(FFP_VS_FOG).callBuiltin("mix", mFogColour, mPSOutDiffuse, mPSInFogFactor, mPSOutDiffuse);
     }
-
-
 
     return true;
 }
@@ -292,121 +166,59 @@ void FFPFog::copyFrom(const SubRenderState& rhs)
     const FFPFog& rhsFog = static_cast<const FFPFog&>(rhs);
 
     mFogMode            = rhsFog.mFogMode;
-    mFogColourValue     = rhsFog.mFogColourValue;
-    mFogParamsValue     = rhsFog.mFogParamsValue;
 
     setCalcMode(rhsFog.mCalcMode);
 }
 
 //-----------------------------------------------------------------------
 bool FFPFog::preAddToRenderState(const RenderState* renderState, Pass* srcPass, Pass* dstPass)
-{   
-    FogMode fogMode;
-    ColourValue newFogColour;
-    Real newFogStart, newFogEnd, newFogDensity;
-
+{
     if (srcPass->getFogOverride())
     {
-        fogMode         = srcPass->getFogMode();
-        newFogColour    = srcPass->getFogColour();
-        newFogStart     = srcPass->getFogStart();
-        newFogEnd       = srcPass->getFogEnd();
-        newFogDensity   = srcPass->getFogDensity();
-        mPassOverrideParams = true;
+        mFogMode         = srcPass->getFogMode();
     }
-    else
+    else if(SceneManager* sceneMgr = ShaderGenerator::getSingleton().getActiveSceneManager())
     {
-        SceneManager* sceneMgr = ShaderGenerator::getSingleton().getActiveSceneManager();
-        
-        if (sceneMgr == NULL)
-        {
-            fogMode         = FOG_NONE;
-            newFogColour    = ColourValue::White;
-            newFogStart     = 0.0;
-            newFogEnd       = 0.0;
-            newFogDensity   = 0.0;
-        }
-        else
-        {
-            fogMode         = sceneMgr->getFogMode();
-            newFogColour    = sceneMgr->getFogColour();
-            newFogStart     = sceneMgr->getFogStart();
-            newFogEnd       = sceneMgr->getFogEnd();
-            newFogDensity   = sceneMgr->getFogDensity();            
-        }
-        mPassOverrideParams = false;
+        mFogMode         = sceneMgr->getFogMode();
     }
 
-    // Set fog properties.
-    setFogProperties(fogMode, newFogColour, newFogStart, newFogEnd, newFogDensity);
-    
-    
-    // Override scene fog since it will happen in shader.
-    dstPass->setFog(true, FOG_NONE, newFogColour, newFogDensity, newFogStart, newFogEnd);   
-
-    return true;
+    return mFogMode != FOG_NONE;
 }
 
 //-----------------------------------------------------------------------
-void FFPFog::setFogProperties(FogMode fogMode, 
-                             const ColourValue& fogColour, 
-                             float fogStart, 
-                             float fogEnd, 
-                             float fogDensity)
+bool FFPFog::setParameter(const String& name, const String& value)
 {
-    mFogMode            = fogMode;
-    mFogColourValue     = fogColour;
-    mFogParamsValue.x   = fogDensity;
-    mFogParamsValue.y   = fogStart;
-    mFogParamsValue.z   = fogEnd;
-    mFogParamsValue.w   = fogEnd != fogStart ? 1 / (fogEnd - fogStart) : 0; 
+	if(name == "calc_mode" && !value.empty())
+	{
+        CalcMode cm = value == "per_vertex" ? CM_PER_VERTEX : CM_PER_PIXEL;
+		setCalcMode(cm);
+		return true;
+	}
+
+	return false;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPFogFactory::getType() const
 {
-    return FFPFog::Type;
+    return SRS_FOG;
 }
 
 //-----------------------------------------------------------------------
-SubRenderState* FFPFogFactory::createInstance(ScriptCompiler* compiler, 
-                                                    PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator)
+SubRenderState* FFPFogFactory::createInstance(const ScriptProperty& prop, Pass* pass, SGScriptTranslator* translator)
 {
-    if (prop->name == "fog_stage")
+    if (prop.name == "fog_stage")
     {
-        if(prop->values.size() >= 1)
+        if(prop.values.size() >= 1)
         {
-            String strValue;
-
-            if(false == SGScriptTranslator::getString(prop->values.front(), &strValue))
-            {
-                compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line);
-                return NULL;
-            }
-
-            if (strValue == "ffp")
+            if (prop.values[0] == "ffp")
             {
                 SubRenderState* subRenderState = createOrRetrieveInstance(translator);
-                FFPFog* fogSubRenderState = static_cast<FFPFog*>(subRenderState);
-                AbstractNodeList::const_iterator it = prop->values.begin();
 
-                if(prop->values.size() >= 2)
+                if(prop.values.size() >= 2)
                 {
-                    ++it;
-                    if (false == SGScriptTranslator::getString(*it, &strValue))
-                    {
-                        compiler->addError(ScriptCompiler::CE_STRINGEXPECTED, prop->file, prop->line);
-                        return NULL;
-                    }
-
-                    if (strValue == "per_vertex")
-                    {
-                        fogSubRenderState->setCalcMode(FFPFog::CM_PER_VERTEX);
-                    }
-                    else if (strValue == "per_pixel")
-                    {
-                        fogSubRenderState->setCalcMode(FFPFog::CM_PER_PIXEL);
-                    }
+                    if(!subRenderState->setParameter("calc_mode", prop.values[1]))
+                        translator->emitError();
                 }
                 
                 return subRenderState;

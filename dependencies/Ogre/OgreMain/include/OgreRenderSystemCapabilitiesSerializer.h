@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,11 +49,9 @@ namespace Ogre {
     public:
         /** default constructor*/
         RenderSystemCapabilitiesSerializer();
-        /** default destructor*/
-        virtual ~RenderSystemCapabilitiesSerializer() {}
 
         /** Writes a RenderSystemCapabilities object to a data stream */
-        void writeScript(const RenderSystemCapabilities* caps, const String &name, String filename);
+        void writeScript(const RenderSystemCapabilities* caps, const String &name, const String& filename);
         
         /** Writes a RenderSystemCapabilities object to a string */
         String writeString(const RenderSystemCapabilities* caps, const String &name);
@@ -63,8 +61,8 @@ namespace Ogre {
         */
         void parseScript(DataStreamPtr& stream);
 
-    protected:
-
+    private:
+        void write(const RenderSystemCapabilities* caps, const String &name, std::ostream &file);
 
         enum CapabilityKeywordType {UNDEFINED_CAPABILITY_TYPE = 0, SET_STRING_METHOD, SET_INT_METHOD, SET_BOOL_METHOD, SET_REAL_METHOD,
                                 SET_CAPABILITY_ENUM_BOOL, ADD_SHADER_PROFILE_STRING};
@@ -72,40 +70,40 @@ namespace Ogre {
         // "automipmap" and "pbuffer" are both activated with setCapability (passing RSC_AUTOMIPMAP and RSC_PBUFFER respectivelly)
         // while "max_num_multi_render_targets" is an integer and has it's own method: setMaxMultiNumRenderTargets
         // we need to know these types to automatically parse each capability
-        typedef map<String, CapabilityKeywordType>::type KeywordTypeMap;
+        typedef std::map<String, CapabilityKeywordType> KeywordTypeMap;
         KeywordTypeMap mKeywordTypeMap;
 
         typedef void (RenderSystemCapabilities::*SetStringMethod)(const String&);
         // maps capability keywords to setCapability(String& cap) style methods
-        typedef map<String, SetStringMethod>::type SetStringMethodDispatchTable;
+        typedef std::map<String, SetStringMethod> SetStringMethodDispatchTable;
         SetStringMethodDispatchTable mSetStringMethodDispatchTable;
 
         // SET_INT_METHOD parsing tables
         typedef void (RenderSystemCapabilities::*SetIntMethod)(ushort);
-        typedef map<String, SetIntMethod>::type SetIntMethodDispatchTable;
+        typedef std::map<String, SetIntMethod> SetIntMethodDispatchTable;
         SetIntMethodDispatchTable mSetIntMethodDispatchTable;
 
         // SET_BOOL_METHOD parsing tables
         typedef void (RenderSystemCapabilities::*SetBoolMethod)(bool);
-        typedef map<String, SetBoolMethod>::type SetBoolMethodDispatchTable;
+        typedef std::map<String, SetBoolMethod> SetBoolMethodDispatchTable;
         SetBoolMethodDispatchTable mSetBoolMethodDispatchTable;
 
         // SET_REAL_METHOD parsing tables
         typedef void (RenderSystemCapabilities::*SetRealMethod)(Real);
-        typedef map<String, SetRealMethod>::type SetRealMethodDispatchTable;
+        typedef std::map<String, SetRealMethod> SetRealMethodDispatchTable;
         SetRealMethodDispatchTable mSetRealMethodDispatchTable;
 
-        typedef map<String, Capabilities>::type CapabilitiesMap;
+        typedef std::map<String, Capabilities> CapabilitiesMap;
         CapabilitiesMap mCapabilitiesMap;
 
-        inline void addCapabilitiesMapping(String name, Capabilities cap)
+        inline void addCapabilitiesMapping(const String& name, Capabilities cap)
         {
-            mCapabilitiesMap.insert(CapabilitiesMap::value_type(name, cap));
+            mCapabilitiesMap.emplace(name, cap);
         }
 
 
         // capabilities lines for parsing are collected along with their line numbers for debugging
-        typedef vector<std::pair<String, int> >::type CapabilitiesLinesList;
+        typedef std::vector<std::pair<String, int> > CapabilitiesLinesList;
         // the set of states that the parser can be in
         enum ParseAction {PARSE_HEADER, FIND_OPEN_BRACE, COLLECT_LINES};
 
@@ -115,26 +113,24 @@ namespace Ogre {
 
         RenderSystemCapabilities* mCurrentCapabilities;
 
-        inline void addKeywordType(String keyword, CapabilityKeywordType type)
+        inline void addKeywordType(const String& keyword, CapabilityKeywordType type)
         {
-            mKeywordTypeMap.insert(KeywordTypeMap::value_type(keyword, type));
+            mKeywordTypeMap.emplace(keyword, type);
         }
 
-        inline CapabilityKeywordType getKeywordType(const String& keyword) const
+        CapabilityKeywordType getKeywordType(const String& keyword) const
         {
-                        KeywordTypeMap::const_iterator it = mKeywordTypeMap.find(keyword);
-            if(it != mKeywordTypeMap.end())
-                             return (*it).second;
-                        else
-                        {
-                             logParseError("Can't find the type for keyword: " + keyword);
-                             return UNDEFINED_CAPABILITY_TYPE;
-                        }
+            KeywordTypeMap::const_iterator it = mKeywordTypeMap.find(keyword);
+            if (it != mKeywordTypeMap.end())
+                return (*it).second;
+
+            // default
+            return SET_CAPABILITY_ENUM_BOOL;
         }
 
-        inline void addSetStringMethod(String keyword, SetStringMethod method)
+        inline void addSetStringMethod(const String& keyword, SetStringMethod method)
         {
-            mSetStringMethodDispatchTable.insert(SetStringMethodDispatchTable::value_type(keyword, method));
+            mSetStringMethodDispatchTable.emplace(keyword, method);
         }
 
         inline void callSetStringMethod(String& keyword, String& val)
@@ -152,9 +148,9 @@ namespace Ogre {
         }
 
 
-        inline void addSetIntMethod(String keyword, SetIntMethod method)
+        inline void addSetIntMethod(const String& keyword, SetIntMethod method)
         {
-            mSetIntMethodDispatchTable.insert(SetIntMethodDispatchTable::value_type(keyword, method));
+            mSetIntMethodDispatchTable.emplace(keyword, method);
         }
 
         inline void callSetIntMethod(String& keyword, ushort val)
@@ -172,9 +168,9 @@ namespace Ogre {
         }
 
 
-        inline void addSetBoolMethod(String keyword, SetBoolMethod method)
+        inline void addSetBoolMethod(const String& keyword, SetBoolMethod method)
         {
-            mSetBoolMethodDispatchTable.insert(SetBoolMethodDispatchTable::value_type(keyword, method));
+            mSetBoolMethodDispatchTable.emplace(keyword, method);
         }
 
         inline void callSetBoolMethod(String& keyword, bool val)
@@ -192,9 +188,9 @@ namespace Ogre {
         }
 
 
-        inline void addSetRealMethod(String keyword, SetRealMethod method)
+        inline void addSetRealMethod(const String& keyword, SetRealMethod method)
         {
-            mSetRealMethodDispatchTable.insert(SetRealMethodDispatchTable::value_type(keyword, method));
+            mSetRealMethodDispatchTable.emplace(keyword, method);
         }
 
         inline void callSetRealMethod(String& keyword, Real val)

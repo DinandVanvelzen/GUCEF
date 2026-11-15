@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,13 +32,14 @@ THE SOFTWARE.
 #include "OgreTerrainPrerequisites.h"
 #include "OgreTerrain.h"
 #include "OgreWorkQueue.h"
-#include "OgreIteratorWrappers.h"
+#include "OgreIteratorWrapper.h"
+#include "OgreConfigFile.h"
 
 namespace Ogre
 {
     class TerrainAutoUpdateLod;
 
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Terrain
@@ -48,7 +49,7 @@ namespace Ogre
 
     /** Helper class to assist you in managing multiple terrain instances
         that are connected to each other. 
-    @remarks
+
         This class makes it easy to specify the same options for a group of
         terrain instances and have them positioned relative to each other and
         associated via each other's neighbour connections. You can do all this
@@ -68,8 +69,7 @@ namespace Ogre
         to define, load and remove. Automatic paging is handled separately by the Paging
         component. 
     */
-    class _OgreTerrainExport TerrainGroup : public WorkQueue::RequestHandler, 
-        public WorkQueue::ResponseHandler, public TerrainAlloc
+    class _OgreTerrainExport TerrainGroup
     {
     public:
         /** Constructor.
@@ -81,16 +81,16 @@ namespace Ogre
         TerrainGroup(SceneManager* sm, Terrain::Alignment align, uint16 terrainSize, 
             Real terrainWorldSize);
         /** Alternate constructor.
-        @remarks
+
             You can ONLY use this constructor if you subsequently call loadGroupDefinition
-            to populate the rest.
+            or loadLegacyTerrain to populate the rest.
         */
         TerrainGroup(SceneManager* sm);
         virtual ~TerrainGroup();
 
         /** Retrieve a shared structure which will provide the base settings for
             all terrains created via this group.
-        @remarks
+
             All neighbouring terrains should have the same basic settings (particularly
             the size parameters) - to avoid having to set the terrain import information 
             more than once, you can retrieve the standard settings for this group
@@ -141,7 +141,7 @@ namespace Ogre
         virtual SceneManager* getSceneManager() const { return mSceneManager; }
 
         /** Set the naming convention for file names in this terrain group. 
-        @remarks
+
             You can more easily generate file names for saved / loaded terrain slots
             if you define a naming prefix. When you call saveAllTerrains(), all the
             terrain instances currently loaded will be saved to a file named
@@ -165,7 +165,7 @@ namespace Ogre
         const String& getResourceGroup() const { return mResourceGroup; }
         /** Define a 'slot' in the terrain grid - in this case to be loaded from 
             a generated file name.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -179,7 +179,7 @@ namespace Ogre
         virtual void defineTerrain(long x, long y);
 
         /** Define a 'slot' in the terrain grid - in this case a flat terrain.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -191,7 +191,7 @@ namespace Ogre
         virtual void defineTerrain(long x, long y, float constantHeight);
 
         /** Define the content of a 'slot' in the terrain grid.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -203,7 +203,7 @@ namespace Ogre
         virtual void defineTerrain(long x, long y, const Terrain::ImportData* importData);
 
         /** Define the content of a 'slot' in the terrain grid.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -217,7 +217,7 @@ namespace Ogre
         virtual void defineTerrain(long x, long y, const Image* img, const Terrain::LayerInstanceList* layers = 0);
 
         /** Define the content of a 'slot' in the terrain grid.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -231,7 +231,7 @@ namespace Ogre
         virtual void defineTerrain(long x, long y, const float* pFloat, const Terrain::LayerInstanceList* layers = 0);
 
         /** Define the content of a 'slot' in the terrain grid.
-        @remarks
+
             At this stage the terrain instance isn't actually present in the grid, 
             you're merely expressing an intention for it to take its place there
             once it's loaded. The reason we do it like this is to support
@@ -245,20 +245,32 @@ namespace Ogre
 
         /** Load any terrain instances that have been defined but not loaded yet. 
         @param synchronous Whether we should force this to happen entirely in the
-            primary thread (default false, operations are threaded if possible)
+            primary thread
         */
         virtual void loadAllTerrains(bool synchronous = false);
         
         /** Load a specific terrain slot based on the definition that has already 
             been supplied.
         @param x, y The coordinates of the terrain slot relative to the centre slot (signed).
-        @param synchronous Whether we should force this to happen entirely in the
-            primary thread (default false, operations are threaded if possible)
+        @copydetails loadAllTerrains
         */
         virtual void loadTerrain(long x, long y, bool synchronous = false);
         
+        /** Load a terrain.cfg as used by the terrain scene manager into a single terrain slot
+         *
+         * automatically configures the SM2Profile if it is used.
+         * @attention not all of the legacy parameters/ parameter combinations are supported
+         * @param cfgFilename .cfg file that specifices what textures/scale/mipmaps/etc to use.
+         * @param x, y The coordinates of the terrain slot relative to the centre slot (signed).
+         * @copydetails loadAllTerrains
+         */
+        void loadLegacyTerrain(const String& cfgFilename, long x = 0, long y = 0, bool synchronous = true);
+
+        /// @overload
+        void loadLegacyTerrain(const ConfigFile& cfg, long x = 0, long y = 0, bool synchronous = true);
+
         /** Unload a specific terrain slot.
-        @remarks
+
             This destroys the Terrain instance but retains the slot definition (so
             it would be reloaded next time you call loadAllTerrains() if you did not
             remove it beforehand).
@@ -272,7 +284,7 @@ namespace Ogre
         virtual void unloadTerrain(long x, long y);
 
         /** Remove a specific terrain slot.
-        @remarks
+
             This destroys any Terrain instance at this position and also removes the 
             definition, so it essentially no longer exists. 
         @param x, y The coordinates of the terrain slot relative to the centre slot (signed).
@@ -335,7 +347,7 @@ namespace Ogre
         };
         
         /** Get the definition of a slot in the terrain.
-        @remarks
+
             Definitions exist before the actual instances to allow background loading.
         @param x, y The coordinates of the terrain slot relative to the centre slot (signed).
         @return The definition, or null if nothing is in this slot. While this return value is
@@ -417,9 +429,9 @@ namespace Ogre
          */
         RayResult rayIntersects(const Ray& ray, Real distanceLimit = 0) const; 
         
-        typedef vector<Terrain*>::type TerrainList; 
+        typedef std::vector<Terrain*> TerrainList; 
         /** Test intersection of a box with the terrain. 
-        @remarks
+
             Tests an AABB for overlap with a terrain bounding box. Note that this does not mean that the box
             touches the terrain itself, just the bounding box for the terrain. You can use this to get region
             results for further testing or use (e.g. painting areas). 
@@ -429,7 +441,7 @@ namespace Ogre
         */
         void boxIntersects(const AxisAlignedBox& box, TerrainList* resultList) const;
         /** Test intersection of a sphere with the terrain. 
-        @remarks
+
             Tests a sphere for overlap with a terrain bounding box. Note that this does not mean that the sphere
             touches the terrain itself, just the bounding box for the terrain. You can use this to get region
             results for further testing or use (e.g. painting areas). 
@@ -457,23 +469,17 @@ namespace Ogre
         bool isDerivedDataUpdateInProgress() const;
 
         /// Packed map, signed 16 bits for each axis from -32767 to +32767
-        typedef map<uint32, TerrainSlot*>::type TerrainSlotMap;
+        typedef std::map<uint32, TerrainSlot*> TerrainSlotMap;
         typedef MapIterator<TerrainSlotMap> TerrainIterator;
         typedef ConstMapIterator<TerrainSlotMap> ConstTerrainIterator;
 
-        /// Get an iterator over the defined terrains.
-        TerrainIterator getTerrainIterator();
-        /// Get an iterator over the defined terrains (const)
-        ConstTerrainIterator getTerrainIterator() const;
+        /// @deprecated use getTerrainSlots()
+        OGRE_DEPRECATED TerrainIterator getTerrainIterator();
+        /// @deprecated use getTerrainSlots()
+        OGRE_DEPRECATED ConstTerrainIterator getTerrainIterator() const;
 
-        /// WorkQueue::RequestHandler override
-        bool canHandleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
-        /// WorkQueue::RequestHandler override
-        WorkQueue::Response* handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
-        /// WorkQueue::ResponseHandler override
-        bool canHandleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
-        /// WorkQueue::ResponseHandler override
-        void handleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
+        /// Get the defined terrains
+        const TerrainSlotMap& getTerrainSlots() const { return mTerrainSlots; }
 
         /// Convert coordinates to a packed integer index
         uint32 packIndex(long x, long y) const;
@@ -497,8 +503,6 @@ namespace Ogre
         */
         void loadGroupDefinition(StreamSerialiser& stream);
 
-
-        static const uint16 WORKQUEUE_LOAD_REQUEST;
         static const uint32 CHUNK_ID;
         static const uint16 CHUNK_VERSION;
 
@@ -512,7 +516,17 @@ namespace Ogre
         void autoUpdateLod(long x, long y, bool synchronous, const Any &data);
         void autoUpdateLodAll(bool synchronous, const Any &data);
 
-    protected:
+        /** Get the number of terrains that are still waiting for the Terrain::prepare() to be called.
+         *
+         * @note Terrain::prepare() happens in background thread so the actual call will be completed
+         *       a bit before this returns the reduced number.
+         *
+         * @return Amount of terrain prepare requests pending.
+         */
+        size_t getNumTerrainPrepareRequests() const;
+
+    private:
+        typedef std::map<TerrainSlot*, WorkQueue::RequestID> TerrainPrepareRequestMap;
         SceneManager *mSceneManager;
         Terrain::Alignment mAlignment;
         uint16 mTerrainSize;
@@ -520,7 +534,7 @@ namespace Ogre
         Terrain::ImportData mDefaultImportData;
         Vector3 mOrigin;
         TerrainSlotMap mTerrainSlots;
-        uint16 mWorkQueueChannel;
+        TerrainPrepareRequestMap mTerrainPrepareRequests;
         String mFilenamePrefix;
         String mFilenameExtension;
         String mResourceGroup;
@@ -532,20 +546,15 @@ namespace Ogre
         /// Retrieve a slot, potentially allocate one
         TerrainSlot* getTerrainSlot(long x, long y, bool createIfMissing);
         TerrainSlot* getTerrainSlot(long x, long y) const;
+        void freeTerrainSlotInstance(TerrainSlot* slot);
         void connectNeighbour(TerrainSlot* slot, long offsetx, long offsety);
 
         void loadTerrainImpl(TerrainSlot* slot, bool synchronous);
 
-        /// Structure for holding the load request
-        struct LoadRequest
-        {
-            TerrainSlot* slot;
-            TerrainGroup* origin;
-            static uint loadingTaskNum;
-            _OgreTerrainExport friend std::ostream& operator<<(std::ostream& o, const LoadRequest& r)
-            { return o; }       
-        };
-        
+        /// WorkQueue::RequestHandler override
+        WorkQueue::Response* handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ);
+        /// WorkQueue::ResponseHandler override
+        void handleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ);
 
     };
 

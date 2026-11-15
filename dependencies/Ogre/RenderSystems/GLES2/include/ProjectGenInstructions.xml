@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- EAGL is the context of the Apple mobile platforms, which are not built -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="EAGL" TYPE="DIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

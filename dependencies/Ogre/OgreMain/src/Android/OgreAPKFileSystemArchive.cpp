@@ -1,20 +1,65 @@
-#include "Android/OgreAPKFileSystemArchive.h"
+#include "OgreStableHeaders.h"
 
-#include <OgreStringConverter.h>
-#include <OgreLogManager.h>
+#include <android/asset_manager.h>
 
 namespace Ogre{
+namespace {
+    class APKFileSystemArchive : public Archive
+    {
+    private:
+        AAssetManager* mAssetMgr;
+        String mPathPreFix;
 
-	static std::map<String, std::vector< String > > mFiles;
+    public:
+        APKFileSystemArchive(const String& name, const String& archType, AAssetManager* assetMgr);
+        ~APKFileSystemArchive();
 
-	bool IsFolderParsed( String Folder ) {
+        /// @copydoc Archive::isCaseSensitive
+        bool isCaseSensitive(void) const override;
+
+        /// @copydoc Archive::load
+        void load() override;
+        /// @copydoc Archive::unload
+        void unload() override;
+
+        /// @copydoc Archive::open
+        DataStreamPtr open(const String& filename, bool readOnly = true) const override;
+
+        /// @copydoc Archive::create
+        DataStreamPtr create(const String& filename) override;
+
+        /// @copydoc Archive::remove
+        void remove(const String& filename) override;
+
+        /// @copydoc Archive::list
+        StringVectorPtr list(bool recursive = true, bool dirs = false) const override;
+
+        /// @copydoc Archive::listFileInfo
+        FileInfoListPtr listFileInfo(bool recursive = true, bool dirs = false) const override;
+
+        /// @copydoc Archive::find
+        StringVectorPtr find(const String& pattern, bool recursive = true, bool dirs = false) const override;
+
+        /// @copydoc Archive::findFileInfo
+        FileInfoListPtr findFileInfo(const String& pattern, bool recursive = true, bool dirs = false) const override;
+
+        /// @copydoc Archive::exists
+        bool exists(const String& filename) const override;
+
+        /// @copydoc Archive::getModifiedTime
+        time_t getModifiedTime(const String& filename) const override;
+    };
+
+	std::map<String, std::vector< String > > mFiles;
+
+	bool IsFolderParsed( const String& Folder ) {
 		bool parsed = false;
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( Folder );
 		if(iter != mFiles.end()) parsed = true;
 		return parsed;
 	}
 
-	void ParseFolder( AAssetManager* AssetMgr, String Folder ) {
+	void ParseFolder( AAssetManager* AssetMgr, const String& Folder ) {
 		std::vector<String> mFilenames;
 		AAssetDir* dir = AAssetManager_openDir(AssetMgr, Folder.c_str());
 		const char* fileName = NULL;
@@ -23,16 +68,16 @@ namespace Ogre{
 		}
 		mFiles.insert( std::make_pair( Folder, mFilenames ) );
 	}
-
+}
 	APKFileSystemArchive::APKFileSystemArchive(const String& name, const String& archType, AAssetManager* assetMgr)
 		:Archive(name, archType), mAssetMgr(assetMgr)
 	{
-        if (mName.size() > 0 && mName[0] == '/')
-        	mName.erase(mName.begin());
+		if (mName.size() > 0 && mName[0] == '/')
+			mName.erase(mName.begin());
 
-        mPathPreFix = mName;
-        if (mPathPreFix.size() > 0)
-        	mPathPreFix += "/";
+		mPathPreFix = mName;
+		if (mPathPreFix.size() > 0)
+			mPathPreFix += "/";
 			
 		if(!IsFolderParsed( mName )) {
 			ParseFolder( mAssetMgr, mName );
@@ -42,8 +87,10 @@ namespace Ogre{
 	APKFileSystemArchive::~APKFileSystemArchive()
 	{
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( mName );
-		iter->second.clear(); 
-		mFiles.erase( iter );  	
+		if (iter != mFiles.end()) {
+			iter->second.clear();
+			mFiles.erase( iter );
+		}
 		unload();
 	}
 
@@ -62,18 +109,16 @@ namespace Ogre{
 
 	}
 
-	DataStreamPtr APKFileSystemArchive::open(const Ogre::String &filename, bool readOnly)
+	DataStreamPtr APKFileSystemArchive::open(const Ogre::String &filename, bool readOnly) const
 	{
-		DataStreamPtr stream;
+	    MemoryDataStreamPtr stream;
 		AAsset* asset = AAssetManager_open(mAssetMgr, (mPathPreFix + filename).c_str(), AASSET_MODE_BUFFER);
 		if(asset)
 		{
 			off_t length = AAsset_getLength(asset);
-			void* membuf = OGRE_MALLOC(length, Ogre::MEMCATEGORY_GENERAL);
-			memcpy(membuf, AAsset_getBuffer(asset), length);
+            stream = std::make_shared<MemoryDataStream>(filename, length, true, true);
+			memcpy(stream->getPtr(), AAsset_getBuffer(asset), length);
 			AAsset_close(asset);
-
-			stream = Ogre::DataStreamPtr(new Ogre::MemoryDataStream(membuf, length, true, true));
 		}
 		return stream;
 	}
@@ -88,7 +133,7 @@ namespace Ogre{
 
 	}
 
-	StringVectorPtr APKFileSystemArchive::list(bool recursive, bool dirs)
+	StringVectorPtr APKFileSystemArchive::list(bool recursive, bool dirs) const
 	{
 		StringVectorPtr files(new StringVector);
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( mName );
@@ -100,7 +145,7 @@ namespace Ogre{
 		return files;
 	}
 
-	FileInfoListPtr APKFileSystemArchive::listFileInfo(bool recursive, bool dirs)
+	FileInfoListPtr APKFileSystemArchive::listFileInfo(bool recursive, bool dirs) const
 	{
 		FileInfoListPtr files(new FileInfoList);
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( mName );
@@ -124,7 +169,7 @@ namespace Ogre{
 		return files;
 	}
 
-	StringVectorPtr APKFileSystemArchive::find(const String& pattern, bool recursive, bool dirs)
+	StringVectorPtr APKFileSystemArchive::find(const String& pattern, bool recursive, bool dirs) const
 	{
 		StringVectorPtr files(new StringVector);
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( mName );
@@ -137,7 +182,7 @@ namespace Ogre{
 		return files;
 	}
 
-	FileInfoListPtr APKFileSystemArchive::findFileInfo(const String& pattern, bool recursive, bool dirs)
+	FileInfoListPtr APKFileSystemArchive::findFileInfo(const String& pattern, bool recursive, bool dirs) const
 	{
 		FileInfoListPtr files(new FileInfoList);
 		std::map<String, std::vector< String > >::iterator iter = mFiles.find( mName );
@@ -163,7 +208,7 @@ namespace Ogre{
 		return files;
 	}
 
-	bool APKFileSystemArchive::exists(const String& filename)
+	bool APKFileSystemArchive::exists(const String& filename) const
 	{
 		AAsset* asset = AAssetManager_open(mAssetMgr, (mPathPreFix + filename).c_str(), AASSET_MODE_UNKNOWN);
 		if(asset)
@@ -174,7 +219,7 @@ namespace Ogre{
 		return false;
 	}
 
-	time_t APKFileSystemArchive::getModifiedTime(const Ogre::String &filename)
+	time_t APKFileSystemArchive::getModifiedTime(const Ogre::String &filename) const
 	{
 		return 0;
 	}
@@ -187,4 +232,8 @@ namespace Ogre{
 		return type;
 	}
 
+    Archive *APKFileSystemArchiveFactory::createInstance( const String& name, bool readOnly )
+    {
+        return OGRE_NEW APKFileSystemArchive(name, getType(), mAssetMgr);
+    }
 }

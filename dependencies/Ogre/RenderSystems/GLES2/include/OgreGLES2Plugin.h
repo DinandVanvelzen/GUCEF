@@ -30,31 +30,33 @@ THE SOFTWARE.
 #define __GLES2Plugin_H__
 
 #include "OgrePlugin.h"
-#include "OgreGLES2RenderSystem.h"
+#include "OgreGLES2Exports.h"
 
 namespace Ogre 
 {
+    class GLES2RenderSystem;
+
     /** Plugin instance for GL ES 2 Manager */
-    class GLES2Plugin : public Plugin
+    class _OgreGLES2Export GLES2Plugin : public Plugin
     {
 
     public:
         GLES2Plugin();
 
         /// @copydoc Plugin::getName
-        const String& getName() const;
+        const String& getName() const override;
 
         /// @copydoc Plugin::install
-        void install();
+        void install() override;
 
         /// @copydoc Plugin::initialise
-        void initialise();
+        void initialise() override;
 
         /// @copydoc Plugin::shutdown
-        void shutdown();
+        void shutdown() override;
 
         /// @copydoc Plugin::uninstall
-        void uninstall();
+        void uninstall() override;
     protected:
         GLES2RenderSystem* mRenderSystem;
 

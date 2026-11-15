@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,12 +49,10 @@ namespace Ogre
         Basically it has the benefits of both TextureVTF (skeleton animations) and HWInstancingBasic
         (lower memory consumption and basic culling) techniques
 
-        @remarks
-            Design discussion webpage: http://www.ogre3d.org/forums/viewtopic.php?f=4&t=59902
+
+        Design discussion webpage: http://www.ogre3d.org/forums/viewtopic.php?f=4&t=59902
         @author
             Matias N. Goldberg ("dark_sylinc")
-        @version
-            1.2
      */
     class _OgreExport InstanceBatchHW_VTF : public BaseInstanceBatchVTF
     {
@@ -64,12 +62,12 @@ namespace Ogre
         //Pointer to the buffer containing the per instance vertex data
         HardwareVertexBufferSharedPtr mInstanceVertexBuffer;
 
-        void setupVertices( const SubMesh* baseSubMesh );
-        void setupIndices( const SubMesh* baseSubMesh );
+        void setupVertices( const SubMesh* baseSubMesh ) override;
+        void setupIndices( const SubMesh* baseSubMesh ) override;
 
         /** Creates 2 TEXCOORD semantics that will be used to sample the vertex texture */
         void createVertexSemantics( VertexData *thisVertexData, VertexData *baseVertexData,
-            const HWBoneIdxVec &hwBoneIdx, const HWBoneWgtVec& hwBoneWgt );
+            const HWBoneIdxVec &hwBoneIdx, const HWBoneWgtVec& hwBoneWgt ) override;
 
         /** updates the vertex buffer containing the per instance data 
         @param[in] isFirstTime Tells if this is the first time the buffer is being updated
@@ -79,32 +77,32 @@ namespace Ogre
         virtual size_t updateInstanceDataBuffer(bool isFirstTime, Camera* currentCamera);
 
 
-        virtual bool checkSubMeshCompatibility( const SubMesh* baseSubMesh );
+        bool checkSubMeshCompatibility( const SubMesh* baseSubMesh ) override;
 
         /** Keeps filling the VTF with world matrix data. Overloaded to avoid culled objects
             and update visible instances' animation
         */
         size_t updateVertexTexture( Camera *currentCamera );
 
-        virtual bool matricesTogetherPerRow() const { return true; }
+        bool matricesTogetherPerRow() const override { return true; }
     public:
         InstanceBatchHW_VTF( InstanceManager *creator, MeshPtr &meshReference, const MaterialPtr &material,
                             size_t instancesPerBatch, const Mesh::IndexMap *indexToBoneMap,
                             const String &batchName );
         virtual ~InstanceBatchHW_VTF();
         /** @see InstanceBatch::calculateMaxNumInstances */
-        size_t calculateMaxNumInstances( const SubMesh *baseSubMesh, uint16 flags ) const;
+        size_t calculateMaxNumInstances( const SubMesh *baseSubMesh, uint16 flags ) const override;
 
         /** @copydoc InstanceBatchHW::_boundsDirty */
-        void _boundsDirty(void);
+        void _boundsDirty(void) override;
 
         /** @copydoc InstanceBatchHW::setStaticAndUpdate */
-        void setStaticAndUpdate( bool bStatic );
+        void setStaticAndUpdate( bool bStatic ) override;
 
-        bool isStatic() const { return mKeepStatic; }
+        bool isStatic() const override { return mKeepStatic; }
 
         /** Overloaded to visibility on a per unit basis and finally updated the vertex texture */
-        virtual void _updateRenderQueue( RenderQueue* queue );
+        void _updateRenderQueue( RenderQueue* queue ) override;
     };
 
 }

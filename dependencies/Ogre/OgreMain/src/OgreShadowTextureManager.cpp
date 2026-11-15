@@ -4,7 +4,7 @@ This source file is a part of OGRE
 
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -28,9 +28,6 @@ the OGRE Unrestricted License provided you have obtained such a license from
 Torus Knot Software Ltd.
 -------------------------------------------------------------------------*/
 #include "OgreStableHeaders.h"
-#include "OgreShadowTextureManager.h"
-#include "OgreResourceGroupManager.h"
-#include "OgreTextureManager.h"
 #include "OgreHardwarePixelBuffer.h"
 
 namespace Ogre
@@ -74,30 +71,29 @@ namespace Ogre
         clear();
     }
     //---------------------------------------------------------------------
-    void ShadowTextureManager::getShadowTextures(const ShadowTextureConfigList& configList, 
+    void ShadowTextureManager::getShadowTextures(ShadowTextureConfigList& configList,
         ShadowTextureList& listToPopulate)
     {
         listToPopulate.clear();
 
-        set<Texture*>::type usedTextures;
+        std::set<Texture*> usedTextures;
 
-        for (ShadowTextureConfigList::const_iterator c = configList.begin(); c != configList.end(); ++c)
+        for (ShadowTextureConfig& config : configList)
         {
-            const ShadowTextureConfig& config = *c;
             bool found = false;
-            for (ShadowTextureList::iterator t = mTextureList.begin(); t != mTextureList.end(); ++t)
+            for (auto & tex : mTextureList)
             {
-                const TexturePtr& tex = *t;
                 // Skip if already used this one
-                if (usedTextures.find(tex.getPointer()) != usedTextures.end())
+                if (usedTextures.find(tex.get()) != usedTextures.end())
                     continue;
 
-                if (config.width == tex->getWidth() && config.height == tex->getHeight()
-                    && config.format == tex->getFormat() && config.fsaa == tex->getFSAA())
+                if (config.width == tex->getWidth() && config.height == tex->getHeight() &&
+                    config.depth == tex->getDepth() && config.type == tex->getTextureType() &&
+                    config.format == tex->getFormat() && config.fsaa == tex->getFSAA())
                 {
                     // Ok, a match
                     listToPopulate.push_back(tex);
-                    usedTextures.insert(tex.getPointer());
+                    usedTextures.insert(tex.get());
                     found = true;
                     break;
                 }
@@ -105,29 +101,28 @@ namespace Ogre
             if (!found)
             {
                 // Create a new texture
-                static const String baseName = "Ogre/ShadowTexture";
-                String targName = baseName + StringConverter::toString(mCount++);
+                String targName = StringUtil::format("Ogre/ShadowTexture%zu", mCount++);
                 TexturePtr shadowTex = TextureManager::getSingleton().createManual(
-                    targName, 
-                    ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME, 
-                    TEX_TYPE_2D, config.width, config.height, 0, config.format, 
-                    TU_RENDERTARGET, NULL, false, config.fsaa);
+                    targName, RGN_INTERNAL, config.type, config.width, config.height, config.depth, 0, config.format,
+                    TU_RENDERTARGET | config.extraFlags, NULL, false, config.fsaa);
+                OgreAssert(shadowTex, "Unsupported shadow texture configuration");
                 // Ensure texture loaded
                 shadowTex->load();
+
+                // update with actual format, if the requested format is not supported
+                config.format = shadowTex->getFormat();
                 listToPopulate.push_back(shadowTex);
-                usedTextures.insert(shadowTex.getPointer());
+                usedTextures.insert(shadowTex.get());
                 mTextureList.push_back(shadowTex);
             }
         }
 
     }
     //---------------------------------------------------------------------
-    TexturePtr ShadowTextureManager::getNullShadowTexture(PixelFormat format)
+    TexturePtr ShadowTextureManager::getNoShadowTexture(PixelFormat format)
     {
-        for (ShadowTextureList::iterator t = mNullTextureList.begin(); t != mNullTextureList.end(); ++t)
+        for (auto & tex : mNullTextureList)
         {
-            const TexturePtr& tex = *t;
-
             if (format == tex->getFormat())
             {
                 // Ok, a match
@@ -146,13 +141,14 @@ namespace Ogre
         mNullTextureList.push_back(shadowTex);
 
         // lock & populate the texture based on format
-        shadowTex->getBuffer()->lock(HardwareBuffer::HBL_DISCARD);
+        if(PixelUtil::isDepth(format))
+            return shadowTex;
+
+        HardwareBufferLockGuard shadowTexLock(shadowTex->getBuffer(), HardwareBuffer::HBL_DISCARD);
         const PixelBox& box = shadowTex->getBuffer()->getCurrentLock();
 
         // set high-values across all bytes of the format 
-        PixelUtil::packColour( 1.0f, 1.0f, 1.0f, 1.0f, format, box.data );
-
-        shadowTex->getBuffer()->unlock();
+        PixelUtil::packColour( 1.0f, 1.0f, 1.0f, 1.0f, shadowTex->getFormat(), box.data );
 
         return shadowTex;
     
@@ -165,7 +161,7 @@ namespace Ogre
             // Unreferenced if only this reference and the resource system
             // Any cached shadow textures should be re-bound each frame dropping
             // any old references
-            if ((*i).useCount() == ResourceGroupManager::RESOURCE_SYSTEM_NUM_REFERENCE_COUNTS + 1)
+            if ((*i).use_count() == ResourceGroupManager::RESOURCE_SYSTEM_NUM_REFERENCE_COUNTS + 1)
             {
                 TextureManager::getSingleton().remove((*i)->getHandle());
                 i = mTextureList.erase(i);
@@ -180,7 +176,7 @@ namespace Ogre
             // Unreferenced if only this reference and the resource system
             // Any cached shadow textures should be re-bound each frame dropping
             // any old references
-            if ((*i).useCount() == ResourceGroupManager::RESOURCE_SYSTEM_NUM_REFERENCE_COUNTS + 1)
+            if ((*i).use_count() == ResourceGroupManager::RESOURCE_SYSTEM_NUM_REFERENCE_COUNTS + 1)
             {
                 TextureManager::getSingleton().remove((*i)->getHandle());
                 i = mNullTextureList.erase(i);
@@ -195,9 +191,9 @@ namespace Ogre
     //---------------------------------------------------------------------
     void ShadowTextureManager::clear()
     {
-        for (ShadowTextureList::iterator i = mTextureList.begin(); i != mTextureList.end(); ++i)
+        for (auto & i : mTextureList)
         {
-            TextureManager::getSingleton().remove((*i)->getHandle());
+            TextureManager::getSingleton().remove(i->getHandle());
         }
         mTextureList.clear();
 

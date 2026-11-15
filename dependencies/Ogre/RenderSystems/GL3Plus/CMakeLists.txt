@@ -11,183 +11,246 @@
 
 # Configuration for module: OgreRenderSystem_GL3Plus
 
-set( HEADER_FILES 
-  include/OgreGL3PlusContext.h
-  include/OgreGL3PlusDefaultHardwareBufferManager.h
-  include/OgreGL3PlusDepthBuffer.h
-  include/OgreGL3PlusFBOMultiRenderTarget.h
-  include/OgreGL3PlusFBORenderTexture.h
-  include/OgreGL3PlusFrameBufferObject.h
-  include/OgreGL3PlusHardwareBufferManager.h
-  include/OgreGL3PlusHardwareCounterBuffer.h
-  include/OgreGL3PlusHardwareIndexBuffer.h
-  include/OgreGL3PlusHardwareOcclusionQuery.h
-  include/OgreGL3PlusHardwarePixelBuffer.h
-  include/OgreGL3PlusHardwareShaderStorageBuffer.h
-  include/OgreGL3PlusHardwareUniformBuffer.h
-  include/OgreGL3PlusHardwareVertexBuffer.h
-  include/OgreGL3PlusPixelFormat.h
-  include/OgreGL3PlusPlugin.h
-  include/OgreGL3PlusPrerequisites.h
-  include/OgreGL3PlusRenderSystem.h
-  include/OgreGL3PlusRenderTexture.h
-  include/OgreGL3PlusRenderToVertexBuffer.h
-  include/OgreGL3PlusSupport.h
-  include/OgreGL3PlusTexture.h
-  include/OgreGL3PlusTextureBuffer.h
-  include/OgreGL3PlusTextureManager.h
-  include/OgreGL3PlusVertexArrayObject.h
-  include/GL/gl3w.h
-  include/GL/glcorearb.h
-  include/GL/glext.h
-  include/GL/glxext.h
-  include/GL/glxtokens-backup.h
-  include/GL/wglext.h
-  include/GLSL/OgreGLSLExtSupport.h
-  include/GLSL/OgreGLSLMonolithicProgram.h
-  include/GLSL/OgreGLSLMonolithicProgramManager.h
-  include/GLSL/OgreGLSLPreprocessor.h
-  include/GLSL/OgreGLSLProgram.h
-  include/GLSL/OgreGLSLProgramManager.h
-  include/GLSL/OgreGLSLSeparableProgram.h
-  include/GLSL/OgreGLSLSeparableProgramManager.h
-  include/GLSL/OgreGLSLShader.h
-  include/GLSL/OgreGLSLShaderFactory.h
-  include/GLSL/OgreGLSLShaderManager.h
-)
-
-set( SOURCE_FILES 
-  src/OgreGL3PlusContext.cpp
-  src/OgreGL3PlusDefaultHardwareBufferManager.cpp
-  src/OgreGL3PlusDepthBuffer.cpp
-  src/OgreGL3PlusEngineDll.cpp
-  src/OgreGL3PlusFBOMultiRenderTarget.cpp
-  src/OgreGL3PlusFBORenderTexture.cpp
-  src/OgreGL3PlusFrameBufferObject.cpp
-  src/OgreGL3PlusHardwareBufferManager.cpp
-  src/OgreGL3PlusHardwareCounterBuffer.cpp
-  src/OgreGL3PlusHardwareIndexBuffer.cpp
-  src/OgreGL3PlusHardwareOcclusionQuery.cpp
-  src/OgreGL3PlusHardwarePixelBuffer.cpp
-  src/OgreGL3PlusHardwareShaderStorageBuffer.cpp
-  src/OgreGL3PlusHardwareUniformBuffer.cpp
-  src/OgreGL3PlusHardwareVertexBuffer.cpp
-  src/OgreGL3PlusPixelFormat.cpp
-  src/OgreGL3PlusPlugin.cpp
-  src/OgreGL3PlusRenderSystem.cpp
-  src/OgreGL3PlusRenderTexture.cpp
-  src/OgreGL3PlusRenderToVertexBuffer.cpp
-  src/OgreGL3PlusSupport.cpp
-  src/OgreGL3PlusTexture.cpp
-  src/OgreGL3PlusTextureBuffer.cpp
-  src/OgreGL3PlusTextureManager.cpp
-  src/OgreGL3PlusVertexArrayObject.cpp
-  src/gl3w.cpp
-  src/GLSL/OgreGLSLExtSupport.cpp
-  src/GLSL/OgreGLSLMonolithicProgram.cpp
-  src/GLSL/OgreGLSLMonolithicProgramManager.cpp
-  src/GLSL/OgreGLSLPreprocessor.cpp
-  src/GLSL/OgreGLSLProgram.cpp
-  src/GLSL/OgreGLSLProgramManager.cpp
-  src/GLSL/OgreGLSLSeparableProgram.cpp
-  src/GLSL/OgreGLSLSeparableProgramManager.cpp
-  src/GLSL/OgreGLSLShader.cpp
-  src/GLSL/OgreGLSLShaderFactory.cpp
-  src/GLSL/OgreGLSLShaderManager.cpp
-)
 
 
-
-if (GLX)
+if (LINUX32)
   set( PLATFORM_HEADER_FILES 
-    include/windowing/GLX/OgreGLXContext.h
-    include/windowing/GLX/OgreGLXGLSupport.h
-    include/windowing/GLX/OgreGLXUtils.h
-    include/windowing/GLX/OgreGLXWindow.h
-    src/windowing/GLX/OgreGL3PlusUtil.h
+    include/OgreGL3PlusFBORenderTexture.h
+    include/OgreGL3PlusFrameBufferObject.h
+    include/OgreGL3PlusHardwareBuffer.h
+    include/OgreGL3PlusHardwareBufferManager.h
+    include/OgreGL3PlusHardwareOcclusionQuery.h
+    include/OgreGL3PlusHardwarePixelBuffer.h
+    include/OgreGL3PlusPixelFormat.h
+    include/OgreGL3PlusPlugin.h
+    include/OgreGL3PlusPrerequisites.h
+    include/OgreGL3PlusRenderSystem.h
+    include/OgreGL3PlusRenderToVertexBuffer.h
+    include/OgreGL3PlusStateCacheManager.h
+    include/OgreGL3PlusTexture.h
+    include/OgreGL3PlusTextureBuffer.h
+    include/OgreGL3PlusTextureManager.h
+    include/OgreSPIRVShaderFactory.h
+    include/GL/gl3w.h
+    include/GL/glcorearb.h
+    src/GLSL/include/OgreGLSLExtSupport.h
+    src/GLSL/include/OgreGLSLMonolithicProgram.h
+    src/GLSL/include/OgreGLSLProgram.h
+    src/GLSL/include/OgreGLSLProgramManager.h
+    src/GLSL/include/OgreGLSLSeparableProgram.h
+    src/GLSL/include/OgreGLSLShader.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "GLX" )
+  set( PLATFORM_HEADER_INSTALL "LINUX32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/windowing/GLX/OgreGLXContext.cpp
-    src/windowing/GLX/OgreGLXGLSupport.cpp
-    src/windowing/GLX/OgreGLXWindow.cpp
+    src/OgreGL3PlusEngineDll.cpp
+    src/OgreGL3PlusFBORenderTexture.cpp
+    src/OgreGL3PlusFrameBufferObject.cpp
+    src/OgreGL3PlusHardwareBuffer.cpp
+    src/OgreGL3PlusHardwareBufferManager.cpp
+    src/OgreGL3PlusHardwareOcclusionQuery.cpp
+    src/OgreGL3PlusHardwarePixelBuffer.cpp
+    src/OgreGL3PlusPixelFormat.cpp
+    src/OgreGL3PlusPlugin.cpp
+    src/OgreGL3PlusRenderSystem.cpp
+    src/OgreGL3PlusRenderToVertexBuffer.cpp
+    src/OgreGL3PlusStateCacheManager.cpp
+    src/OgreGL3PlusTexture.cpp
+    src/OgreGL3PlusTextureBuffer.cpp
+    src/OgreGL3PlusTextureManager.cpp
+    src/OgreSPIRVShaderFactory.cpp
+    src/gl3w.c
+    src/GLSL/src/OgreGLSLExtSupport.cpp
+    src/GLSL/src/OgreGLSLMonolithicProgram.cpp
+    src/GLSL/src/OgreGLSLProgram.cpp
+    src/GLSL/src/OgreGLSLProgramManager.cpp
+    src/GLSL/src/OgreGLSLSeparableProgram.cpp
+    src/GLSL/src/OgreGLSLShader.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "GLX" )
+  set( PLATFORM_SOURCE_INSTALL "LINUX32" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (GTK)
+elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
-    include/windowing/gtk/OgreGTKGLSupport.h
-    include/windowing/gtk/OgreGTKWindow.h
-    src/windowing/gtk/OgreGL3PlusUtil.h
+    include/OgreGL3PlusFBORenderTexture.h
+    include/OgreGL3PlusFrameBufferObject.h
+    include/OgreGL3PlusHardwareBuffer.h
+    include/OgreGL3PlusHardwareBufferManager.h
+    include/OgreGL3PlusHardwareOcclusionQuery.h
+    include/OgreGL3PlusHardwarePixelBuffer.h
+    include/OgreGL3PlusPixelFormat.h
+    include/OgreGL3PlusPlugin.h
+    include/OgreGL3PlusPrerequisites.h
+    include/OgreGL3PlusRenderSystem.h
+    include/OgreGL3PlusRenderToVertexBuffer.h
+    include/OgreGL3PlusStateCacheManager.h
+    include/OgreGL3PlusTexture.h
+    include/OgreGL3PlusTextureBuffer.h
+    include/OgreGL3PlusTextureManager.h
+    include/OgreSPIRVShaderFactory.h
+    include/GL/gl3w.h
+    include/GL/glcorearb.h
+    src/GLSL/include/OgreGLSLExtSupport.h
+    src/GLSL/include/OgreGLSLMonolithicProgram.h
+    src/GLSL/include/OgreGLSLProgram.h
+    src/GLSL/include/OgreGLSLProgramManager.h
+    src/GLSL/include/OgreGLSLSeparableProgram.h
+    src/GLSL/include/OgreGLSLShader.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "GTK" )
+  set( PLATFORM_HEADER_INSTALL "LINUX64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/windowing/gtk/OgreGTKGLSupport.cpp
-    src/windowing/gtk/OgreGTKWindow.cpp
+    src/OgreGL3PlusEngineDll.cpp
+    src/OgreGL3PlusFBORenderTexture.cpp
+    src/OgreGL3PlusFrameBufferObject.cpp
+    src/OgreGL3PlusHardwareBuffer.cpp
+    src/OgreGL3PlusHardwareBufferManager.cpp
+    src/OgreGL3PlusHardwareOcclusionQuery.cpp
+    src/OgreGL3PlusHardwarePixelBuffer.cpp
+    src/OgreGL3PlusPixelFormat.cpp
+    src/OgreGL3PlusPlugin.cpp
+    src/OgreGL3PlusRenderSystem.cpp
+    src/OgreGL3PlusRenderToVertexBuffer.cpp
+    src/OgreGL3PlusStateCacheManager.cpp
+    src/OgreGL3PlusTexture.cpp
+    src/OgreGL3PlusTextureBuffer.cpp
+    src/OgreGL3PlusTextureManager.cpp
+    src/OgreSPIRVShaderFactory.cpp
+    src/gl3w.c
+    src/GLSL/src/OgreGLSLExtSupport.cpp
+    src/GLSL/src/OgreGLSLMonolithicProgram.cpp
+    src/GLSL/src/OgreGLSLProgram.cpp
+    src/GLSL/src/OgreGLSLProgramManager.cpp
+    src/GLSL/src/OgreGLSLSeparableProgram.cpp
+    src/GLSL/src/OgreGLSLShader.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "GTK" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (OSX)
-  set( PLATFORM_HEADER_FILES 
-    include/windowing/OSX/OgreOSXCocoaContext.h
-    include/windowing/OSX/OgreOSXCocoaView.h
-    include/windowing/OSX/OgreOSXCocoaWindow.h
-    include/windowing/OSX/OgreOSXCocoaWindowDelegate.h
-    include/windowing/OSX/OgreOSXGL3PlusSupport.h
-    src/windowing/OSX/OgreGL3PlusUtil.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "OSX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-elseif (SDL)
-  set( PLATFORM_HEADER_FILES 
-    include/windowing/SDL/OgreSDLGLSupport.h
-    include/windowing/SDL/OgreSDLPrerequisites.h
-    include/windowing/SDL/OgreSDLWindow.h
-    src/windowing/SDL/OgreGL3PlusUtil.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "SDL" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/windowing/SDL/OgreSDLGLSupport.cpp
-    src/windowing/SDL/OgreSDLWindow.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "SDL" )
+  set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
-    include/windowing/win32/OgreWin32Context.h
-    include/windowing/win32/OgreWin32GLSupport.h
-    include/windowing/win32/OgreWin32Prerequisites.h
-    include/windowing/win32/OgreWin32Window.h
-    src/windowing/win32/OgreGL3PlusUtil.h
+    include/OgreGL3PlusFBORenderTexture.h
+    include/OgreGL3PlusFrameBufferObject.h
+    include/OgreGL3PlusHardwareBuffer.h
+    include/OgreGL3PlusHardwareBufferManager.h
+    include/OgreGL3PlusHardwareOcclusionQuery.h
+    include/OgreGL3PlusHardwarePixelBuffer.h
+    include/OgreGL3PlusPixelFormat.h
+    include/OgreGL3PlusPlugin.h
+    include/OgreGL3PlusPrerequisites.h
+    include/OgreGL3PlusRenderSystem.h
+    include/OgreGL3PlusRenderToVertexBuffer.h
+    include/OgreGL3PlusStateCacheManager.h
+    include/OgreGL3PlusTexture.h
+    include/OgreGL3PlusTextureBuffer.h
+    include/OgreGL3PlusTextureManager.h
+    include/OgreSPIRVShaderFactory.h
+    include/GL/gl3w.h
+    include/GL/glcorearb.h
+    src/GLSL/include/OgreGLSLExtSupport.h
+    src/GLSL/include/OgreGLSLMonolithicProgram.h
+    src/GLSL/include/OgreGLSLProgram.h
+    src/GLSL/include/OgreGLSLProgramManager.h
+    src/GLSL/include/OgreGLSLSeparableProgram.h
+    src/GLSL/include/OgreGLSLShader.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/windowing/win32/OgreWin32Context.cpp
-    src/windowing/win32/OgreWin32GLSupport.cpp
-    src/windowing/win32/OgreWin32Window.cpp
+    src/OgreGL3PlusEngineDll.cpp
+    src/OgreGL3PlusFBORenderTexture.cpp
+    src/OgreGL3PlusFrameBufferObject.cpp
+    src/OgreGL3PlusHardwareBuffer.cpp
+    src/OgreGL3PlusHardwareBufferManager.cpp
+    src/OgreGL3PlusHardwareOcclusionQuery.cpp
+    src/OgreGL3PlusHardwarePixelBuffer.cpp
+    src/OgreGL3PlusPixelFormat.cpp
+    src/OgreGL3PlusPlugin.cpp
+    src/OgreGL3PlusRenderSystem.cpp
+    src/OgreGL3PlusRenderToVertexBuffer.cpp
+    src/OgreGL3PlusStateCacheManager.cpp
+    src/OgreGL3PlusTexture.cpp
+    src/OgreGL3PlusTextureBuffer.cpp
+    src/OgreGL3PlusTextureManager.cpp
+    src/OgreSPIRVShaderFactory.cpp
+    src/gl3w.c
+    src/GLSL/src/OgreGLSLExtSupport.cpp
+    src/GLSL/src/OgreGLSLMonolithicProgram.cpp
+    src/GLSL/src/OgreGLSLProgram.cpp
+    src/GLSL/src/OgreGLSLProgramManager.cpp
+    src/GLSL/src/OgreGLSLSeparableProgram.cpp
+    src/GLSL/src/OgreGLSLShader.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WIN64)
+  set( PLATFORM_HEADER_FILES 
+    include/OgreGL3PlusFBORenderTexture.h
+    include/OgreGL3PlusFrameBufferObject.h
+    include/OgreGL3PlusHardwareBuffer.h
+    include/OgreGL3PlusHardwareBufferManager.h
+    include/OgreGL3PlusHardwareOcclusionQuery.h
+    include/OgreGL3PlusHardwarePixelBuffer.h
+    include/OgreGL3PlusPixelFormat.h
+    include/OgreGL3PlusPlugin.h
+    include/OgreGL3PlusPrerequisites.h
+    include/OgreGL3PlusRenderSystem.h
+    include/OgreGL3PlusRenderToVertexBuffer.h
+    include/OgreGL3PlusStateCacheManager.h
+    include/OgreGL3PlusTexture.h
+    include/OgreGL3PlusTextureBuffer.h
+    include/OgreGL3PlusTextureManager.h
+    include/OgreSPIRVShaderFactory.h
+    include/GL/gl3w.h
+    include/GL/glcorearb.h
+    src/GLSL/include/OgreGLSLExtSupport.h
+    src/GLSL/include/OgreGLSLMonolithicProgram.h
+    src/GLSL/include/OgreGLSLProgram.h
+    src/GLSL/include/OgreGLSLProgramManager.h
+    src/GLSL/include/OgreGLSLSeparableProgram.h
+    src/GLSL/include/OgreGLSLShader.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreGL3PlusEngineDll.cpp
+    src/OgreGL3PlusFBORenderTexture.cpp
+    src/OgreGL3PlusFrameBufferObject.cpp
+    src/OgreGL3PlusHardwareBuffer.cpp
+    src/OgreGL3PlusHardwareBufferManager.cpp
+    src/OgreGL3PlusHardwareOcclusionQuery.cpp
+    src/OgreGL3PlusHardwarePixelBuffer.cpp
+    src/OgreGL3PlusPixelFormat.cpp
+    src/OgreGL3PlusPlugin.cpp
+    src/OgreGL3PlusRenderSystem.cpp
+    src/OgreGL3PlusRenderToVertexBuffer.cpp
+    src/OgreGL3PlusStateCacheManager.cpp
+    src/OgreGL3PlusTexture.cpp
+    src/OgreGL3PlusTextureBuffer.cpp
+    src/OgreGL3PlusTextureManager.cpp
+    src/OgreSPIRVShaderFactory.cpp
+    src/gl3w.c
+    src/GLSL/src/OgreGLSLExtSupport.cpp
+    src/GLSL/src/OgreGLSLMonolithicProgram.cpp
+    src/GLSL/src/OgreGLSLProgram.cpp
+    src/GLSL/src/OgreGLSLProgramManager.cpp
+    src/GLSL/src/OgreGLSLSeparableProgram.cpp
+    src/GLSL/src/OgreGLSLShader.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
@@ -195,76 +258,121 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} Ogre )
-target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus;MODULE_NAME=OgreRenderSystem_GL3Plus;RenderSystem_GL3Plus_EXPORTS" )
+
+if( LINUX32 )
+  set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
+elseif( LINUX64 )
+  set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
+elseif( WIN32 )
+  set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
+elseif( WIN64 )
+  set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
+endif()
+if( LINUX32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( LINUX64 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( WIN32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( WIN64 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
+  add_dependencies( ${MODULE_NAME} Ogre OgreGLSupport )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreGLSupport )
+target_link_libraries( ${MODULE_NAME} PRIVATE dl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_GL3Plus;MODULE_SEMVER=14_6_3_0;OGRE_GCC_VISIBILITY;RenderSystem_GL3Plus_EXPORTS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
+  add_dependencies( ${MODULE_NAME} Ogre OgreGLSupport )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreGLSupport )
+target_link_libraries( ${MODULE_NAME} PRIVATE dl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_GL3Plus;MODULE_SEMVER=14_6_3_0;OGRE_GCC_VISIBILITY;RenderSystem_GL3Plus_EXPORTS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
+  add_dependencies( ${MODULE_NAME} Ogre OgreGLSupport )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreGLSupport )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_GL3Plus;MODULE_SEMVER=14_6_3_0;OGRE_GCC_VISIBILITY;RenderSystem_GL3Plus_EXPORTS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
+  add_dependencies( ${MODULE_NAME} Ogre OgreGLSupport )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreGLSupport )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_GL3Plus;MODULE_SEMVER=14_6_3_0;OGRE_GCC_VISIBILITY;RenderSystem_GL3Plus_EXPORTS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN64 )
 
-include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL include/GLSL )
+if ( LINUX32 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include ../GLSupport/include ../GLSupport/include/EGL ../GLSupport/include/EGL/X11/ ../GLSupport/include/GLSL ../GLSupport/src/X11 include include/GL src/GLSL/include )
+endif( LINUX32 )
 
-if ( ANDROID32 )
-  include_directories( ../../OgreMain/include/Android )
-endif( ANDROID32 )
-
-if ( ANDROID64 )
-  include_directories( ../../OgreMain/include/Android )
-endif( ANDROID64 )
-
-if ( EMSCRIPTEN32 )
-  include_directories( ../../OgreMain/include/Emscripten )
-endif( EMSCRIPTEN32 )
-
-if ( EMSCRIPTEN64 )
-  include_directories( ../../OgreMain/include/Emscripten )
-endif( EMSCRIPTEN64 )
-
-if ( GLX )
-  include_directories( include/windowing include/windowing/GLX src src/windowing src/windowing/GLX )
-endif( GLX )
-
-if ( GTK )
-  include_directories( include/windowing include/windowing/gtk src src/windowing src/windowing/gtk )
-endif( GTK )
-
-if ( IOS )
-  include_directories( ../../OgreMain/include/iOS )
-endif( IOS )
-
-if ( OSX )
-  include_directories( ../../OgreMain/include/OSX include/windowing include/windowing/OSX src src/windowing src/windowing/OSX )
-endif( OSX )
-
-if ( SDL )
-  include_directories( include/windowing include/windowing/SDL src src/windowing src/windowing/SDL )
-endif( SDL )
+if ( LINUX64 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include ../GLSupport/include ../GLSupport/include/EGL ../GLSupport/include/EGL/X11/ ../GLSupport/include/GLSL ../GLSupport/src/X11 include include/GL src/GLSL/include )
+endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../OgreMain/include/WIN32 ../../OgreMain/src/WIN32 include/windowing include/windowing/win32 src src/windowing src/windowing/win32 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include ../GLSupport/include ../GLSupport/include/GLSL ../GLSupport/include/win32 ../GLSupport/include/win32/GL include include/GL src/GLSL/include )
 endif( WIN32 )
+
+if ( WIN64 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include ../GLSupport/include ../GLSupport/include/GLSL include include/GL src/GLSL/include )
+endif( WIN64 )
 
 
 
 #******** START OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
 
 
+
+
+if (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )
+elseif (LINUX64)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (WIN32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (WIN64)
+GUCEF_config_lib( ${MODULE_NAME} )
+endif()
+
 
 
 #******** END OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********

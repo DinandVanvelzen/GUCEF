@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -63,50 +63,44 @@ namespace Ogre {
 
     D3D11HardwarePixelBuffer::D3D11HardwarePixelBuffer(D3D11Texture * parentTexture, D3D11Device & device, UINT mipLevel,
         size_t width, size_t height, size_t depth, UINT face, PixelFormat format, HardwareBuffer::Usage usage):
-    HardwarePixelBuffer(width, height, depth, format, usage, false, false),
+    HardwarePixelBuffer(width, height, depth, format, usage, false),
         mParentTexture(parentTexture),
         mDevice(device),
         mFace(face),
         mMipLevel(mipLevel)
     {
-        if(mUsage & TU_RENDERTARGET)
+        if(parentTexture->getUsage() & TU_RENDERTARGET)
         {
-            // Create render target for each slice
-            mSliceTRT.reserve(mDepth);
-            for(size_t zoffset=0; zoffset<mDepth; ++zoffset)
+            if (parentTexture->getUsage() & TU_TARGET_ALL_LAYERS)
             {
-                String name;
-                name = "rtt/"+StringConverter::toString((size_t)mParentTexture) + "/" + StringConverter::toString(mMipLevel) + "/" + parentTexture->getName();
+                depth = 1;
+                if(face > 0) // only one rendertarget for all layers
+                    return;
+            }
 
+            // Create render target for each slice
+            mSliceTRT.reserve(depth);
+            for(size_t zoffset=0; zoffset<depth; ++zoffset)
+            {
+                String name = getNameForRenderTexture(parentTexture->getName(), zoffset + face);
                 RenderTexture *trt = new D3D11RenderTexture(name, this, zoffset, mDevice);
                 mSliceTRT.push_back(trt);
                 Root::getSingleton().getRenderSystem()->attachRenderTarget(*trt);
             }
         }
-		
-		mSizeInBytes = PixelUtil::getMemorySize(mWidth, mHeight, mDepth, mFormat);
-		
     }
     D3D11HardwarePixelBuffer::~D3D11HardwarePixelBuffer()
     {
-        if(!mSliceTRT.empty())
-        {   
-            // Delete all render targets that are not yet deleted via _clearSliceRTT
-            for(size_t zoffset=0; zoffset<mDepth; ++zoffset)
-            {
-                if(mSliceTRT[zoffset])
-                    Root::getSingleton().getRenderSystem()->destroyRenderTarget(mSliceTRT[zoffset]->getName());
-            }
-        }
     }
     //-----------------------------------------------------------------------------  
     void D3D11HardwarePixelBuffer::_map(ID3D11Resource *res, D3D11_MAP flags, PixelBox & box)
     {
-        assert(mLockBox.getDepth() == 1 || mParentTexture->getTextureType() == TEX_TYPE_3D);
+        assert(mLockedBox.getDepth() == 1 || mParentTexture->getTextureType() == TEX_TYPE_3D);
 
         D3D11_MAPPED_SUBRESOURCE pMappedResource = { 0 };
+        UINT subresource = (res == mStagingBuffer.Get()) ? 0 : getSubresourceIndex(mLockedBox.front);
 
-        HRESULT hr = mDevice.GetImmediateContext()->Map(res, getSubresourceIndex(mLockBox.front), flags, 0, &pMappedResource);
+        HRESULT hr = mDevice.GetImmediateContext()->Map(res, subresource, flags, 0, &pMappedResource);
         if(FAILED(hr) || mDevice.isError())
         {
             String errorDescription; errorDescription
@@ -123,31 +117,31 @@ namespace Ogre {
         if(!mStagingBuffer)
             createStagingBuffer();
 
-        if(flags == D3D11_MAP_READ_WRITE || flags == D3D11_MAP_READ || flags == D3D11_MAP_WRITE)  
+        if(flags == D3D11_MAP_READ_WRITE || flags == D3D11_MAP_READ)
         {
-            if(mLockBox.getHeight() == mParentTexture->getHeight() && mLockBox.getWidth() == mParentTexture->getWidth())
-                mDevice.GetImmediateContext()->CopyResource(mStagingBuffer.Get(), mParentTexture->getTextureResource());
-            else
-            {
-                D3D11_BOX box = getSubresourceBox(mLockBox);
-                UINT subresource = getSubresourceIndex(mLockBox.front);
-                mDevice.GetImmediateContext()->CopySubresourceRegion(mStagingBuffer.Get(), subresource, box.left, box.top, box.front, mParentTexture->getTextureResource(), subresource, &box);
-            }
+            D3D11_BOX boxDx11 = getSubresourceBox(mLockedBox); // both src and dest
+            UINT subresource = getSubresourceIndex(mLockedBox.front);
+            mDevice.GetImmediateContext()->CopySubresourceRegion(
+                mStagingBuffer.Get(), 0, boxDx11.left, boxDx11.top, boxDx11.front,
+                mParentTexture->getTextureResource(), subresource, &boxDx11);
         }
         else if(flags == D3D11_MAP_WRITE_DISCARD)
+        {
             flags = D3D11_MAP_WRITE; // stagingbuffer doesn't support discarding
+            mCurrentLockOptions = HBL_WRITE_ONLY;
+        }
 
         _map(mStagingBuffer.Get(), flags, box);
     }
     //-----------------------------------------------------------------------------  
-    PixelBox D3D11HardwarePixelBuffer::lockImpl(const Image::Box &lockBox, LockOptions options)
+    PixelBox D3D11HardwarePixelBuffer::lockImpl(const Box &lockBox, LockOptions options)
     {
         // Check for misuse
         if(mUsage & TU_RENDERTARGET)
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "DirectX does not allow locking of or directly writing to RenderTargets. Use blitFromMemory if you need the contents.",
             "D3D11HardwarePixelBuffer::lockImpl");  
 
-        mLockBox = lockBox;
+
 
         // Set extents and format
         // Note that we do not carry over the left/top/front here, since the returned
@@ -176,38 +170,23 @@ namespace Ogre {
             break;
         };
 
-        size_t offset = 0;
-
-        if(mUsage == HBU_STATIC || mUsage & HBU_DYNAMIC)
-        {
-            if(mUsage == HBU_STATIC || options == HBL_READ_ONLY || options == HBL_NORMAL || options == HBL_WRITE_ONLY)
-                _mapstagingbuffer(flags, rval);
-            else
-                _map(mParentTexture->getTextureResource(), flags, rval);
-
-            // calculate the offset in bytes
-			offset = PixelUtil::getMemorySize(rval.left, rval.front, 1, rval.format);
-            // add the offset, so the right memory will be changed
-            //rval.data = static_cast<int*>(rval.data) + offset;
-        }
+        int usage = mUsage & 0xF; // drop TU_* flags
+        if(usage == HBU_GPU_ONLY || usage == HBU_GPU_TO_CPU || options == HBL_READ_ONLY || options == HBL_NORMAL)
+            _mapstagingbuffer(flags, rval);
         else
-        {
-            mDataForStaticUsageLock.resize(rval.getConsecutiveSize());
-            rval.data = mDataForStaticUsageLock.data();
-        }
+            _map(mParentTexture->getTextureResource(), flags, rval);
+
         // save without offset
         mCurrentLock = rval;
-        mCurrentLockOptions = options;
-
-        // add the offset, so the right memory will be changed
-		rval.data = static_cast<int*>(rval.data) + offset;	// TODO: why offsetInBytes is added to (int*) pointer ???
 
         return rval;
     }
     //-----------------------------------------------------------------------------
     void D3D11HardwarePixelBuffer::_unmap(ID3D11Resource *res)
     {
-        mDevice.GetImmediateContext()->Unmap(res, getSubresourceIndex(mLockBox.front));
+        UINT subresource = (res == mStagingBuffer.Get()) ? 0 : getSubresourceIndex(mLockedBox.front);
+        mDevice.GetImmediateContext()->Unmap(res, subresource);
+
         if (mDevice.isError())
         {
             String errorDescription = mDevice.getErrorDescription();
@@ -217,73 +196,39 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------------  
-    void D3D11HardwarePixelBuffer::_unmapstaticbuffer()
-    {
-        D3D11_BOX box = getSubresourceBox(mLockBox);
-        UINT subresource = getSubresourceIndex(mLockBox.front);
-        UINT srcRowPitch = PixelUtil::getMemorySize(mCurrentLock.getWidth(), 1, 1, mCurrentLock.format);
-        UINT srcDepthPitch = PixelUtil::getMemorySize(mCurrentLock.getWidth(), mCurrentLock.getHeight(), 1, mCurrentLock.format); // H * rowPitch is invalid for compressed formats
-
-        mDevice.GetImmediateContext()->UpdateSubresource(mParentTexture->getTextureResource(), subresource, &box, mDataForStaticUsageLock.data(), srcRowPitch, srcDepthPitch);
-        if (mDevice.isError())
-        {
-            String errorDescription; errorDescription
-                .append("D3D11 device cannot update staging ").append(toString(mParentTexture->getTextureType()))
-                .append("\nError Description:").append(mDevice.getErrorDescription());
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, errorDescription, "D3D11HardwarePixelBuffer::_unmapstaticbuffer");
-        }
-
-        mDataForStaticUsageLock.swap(vector<int8>::type()); // i.e. shrink_to_fit
-    }
-    //-----------------------------------------------------------------------------  
     void D3D11HardwarePixelBuffer::_unmapstagingbuffer(bool copyback)
     {
         _unmap(mStagingBuffer.Get());
 
         if(copyback)
         {
-            if(mLockBox.getHeight() == mParentTexture->getHeight() && mLockBox.getWidth() == mParentTexture->getWidth())
-                mDevice.GetImmediateContext()->CopyResource(mParentTexture->getTextureResource(), mStagingBuffer.Get());
-            else
-            {
-                D3D11_BOX box = getSubresourceBox(mLockBox);
-                UINT subresource = getSubresourceIndex(mLockBox.front);
-                mDevice.GetImmediateContext()->CopySubresourceRegion(mParentTexture->getTextureResource(), subresource, box.left, box.top, box.front, mStagingBuffer.Get(), subresource, &box);
-            }
+            D3D11_BOX boxDx11 = getSubresourceBox(mLockedBox); // both src and dest
+            UINT subresource = getSubresourceIndex(mLockedBox.front);
+
+            mDevice.GetImmediateContext()->CopySubresourceRegion(
+                mParentTexture->getTextureResource(), subresource, boxDx11.left, boxDx11.top, boxDx11.front,
+                mStagingBuffer.Get(), 0, &boxDx11);
+
+            mStagingBuffer.Reset();
         }
     }
     //-----------------------------------------------------------------------------  
     void D3D11HardwarePixelBuffer::unlockImpl(void)
     {
-        if(mUsage == HBU_STATIC)
-            _unmapstagingbuffer();
-        else if(mUsage & HBU_DYNAMIC)
+        int usage = mUsage & 0xF; // drop TU_* flags
+        if(usage == HBU_GPU_ONLY || usage == HBU_GPU_TO_CPU || mCurrentLockOptions == HBL_NORMAL || mCurrentLockOptions == HBL_READ_ONLY)
         {
-            if(mCurrentLockOptions == HBL_READ_ONLY || mCurrentLockOptions == HBL_NORMAL || mCurrentLockOptions == HBL_WRITE_ONLY)
-            {
-                PixelBox box;
-                box.format = mFormat;
-                _map(mParentTexture->getTextureResource(), D3D11_MAP_WRITE_DISCARD, box);
-                void *data = box.data; 
-				memcpy(data, mCurrentLock.data, mSizeInBytes);
-                // unmap the texture and the staging buffer
-                _unmap(mParentTexture->getTextureResource());
-                _unmapstagingbuffer(false);
-            }
-            else
-                _unmap(mParentTexture->getTextureResource());
+            _unmapstagingbuffer(mCurrentLockOptions == HBL_NORMAL || mCurrentLockOptions == HBL_WRITE_ONLY);
         }
         else
-            _unmapstaticbuffer();
+            _unmap(mParentTexture->getTextureResource());
 
         _genMipmaps();
     }
     //-----------------------------------------------------------------------------  
-    void D3D11HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Image::Box &srcBox, const Image::Box &dstBox)
+    void D3D11HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Box &srcBox, const Box &dstBox)
     {
-        if (srcBox.getWidth() != dstBox.getWidth()
-            || srcBox.getHeight() != dstBox.getHeight()
-            || srcBox.getDepth() != dstBox.getDepth())
+        if (srcBox.getSize() != dstBox.getSize())
         {
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
                 "D3D11 device cannot copy a subresource - source and dest size are not the same and they have to be the same in DX11.",
@@ -296,7 +241,7 @@ namespace Ogre {
         if (srcBox.getDepth() > 1 &&
             (mParentTexture->getTextureType() == TEX_TYPE_2D_ARRAY || srcDx11->mParentTexture->getTextureType() == TEX_TYPE_2D_ARRAY))
         {
-            Image::Box srcSlice = srcBox, dstSlice = dstBox;
+            Box srcSlice = srcBox, dstSlice = dstBox;
             srcSlice.back = srcSlice.front + 1;
             dstSlice.back = dstSlice.front + 1;
             for(uint32 slice = srcBox.front; slice < srcBox.back; ++slice)
@@ -330,11 +275,9 @@ namespace Ogre {
         _genMipmaps();
     }
     //-----------------------------------------------------------------------------  
-    void D3D11HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::Box &dst)
+    void D3D11HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Box &dst)
     {
-        if (src.getWidth() != dst.getWidth()
-            || src.getHeight() != dst.getHeight()
-            || src.getDepth() != dst.getDepth())
+        if (src.getSize() != dst.getSize())
         {
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
                 "D3D11 device cannot copy a subresource - source and dest size are not the same and they have to be the same in DX11.",
@@ -344,7 +287,7 @@ namespace Ogre {
         // convert to pixelbuffer's native format if necessary
         if(src.format != mFormat)
         {
-            vector<uint8>::type buffer;
+            std::vector<uint8> buffer;
             buffer.resize(PixelUtil::getMemorySize(src.getWidth(), src.getHeight(), src.getDepth(), mFormat));
             PixelBox converted = PixelBox(src.getWidth(), src.getHeight(), src.getDepth(), mFormat, buffer.data());
             PixelUtil::bulkPixelConversion(src, converted);
@@ -356,7 +299,7 @@ namespace Ogre {
         if (src.getDepth() > 1 && mParentTexture->getTextureType() == TEX_TYPE_2D_ARRAY)
         {
             PixelBox srcSlice = src;
-            Image::Box dstSlice = dst;
+            Box dstSlice = dst;
             srcSlice.back = srcSlice.front + 1;
             dstSlice.back = dstSlice.front + 1;
             for(uint32 slice = src.front; slice < src.back; ++slice)
@@ -379,8 +322,20 @@ namespace Ogre {
         {
             D3D11_BOX dstBox = getSubresourceBox(dst);
             UINT dstSubresource = getSubresourceIndex(dst.front);
-            UINT srcRowPitch = PixelUtil::getMemorySize(src.getWidth(), 1, 1, src.format);
-            UINT srcDepthPitch = PixelUtil::getMemorySize(src.getWidth(), src.getHeight(), 1, src.format); // H * rowPitch is invalid for compressed formats
+
+            UINT srcRowPitch, srcDepthPitch;
+            if (PixelUtil::isCompressed(src.format))
+            {
+                // pitches in blocks - consecutive layout assumed
+                srcRowPitch   = PixelUtil::getMemorySize(src.getWidth(), 1, 1, src.format);
+                srcDepthPitch = PixelUtil::getMemorySize(src.getWidth(), src.getHeight(), 1, src.format);
+            }
+            else
+            {
+                size_t elemBytes = PixelUtil::getNumElemBytes(src.format);
+                srcRowPitch   = UINT(src.rowPitch * elemBytes);
+                srcDepthPitch = UINT(src.slicePitch * elemBytes);
+            }
 
             mDevice.GetImmediateContext()->UpdateSubresource(
                 mParentTexture->getTextureResource(), dstSubresource, &dstBox,
@@ -398,41 +353,74 @@ namespace Ogre {
         _genMipmaps();
     }
     //-----------------------------------------------------------------------------  
-    void D3D11HardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBox &dst)
+    void D3D11HardwarePixelBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst)
     {
         assert(srcBox.getDepth() == 1 && dst.getDepth() == 1);
 
         //This is a pointer to the texture we're trying to copy
         //Only implemented for 2D at the moment...
-        ID3D11Texture2D *textureResource = mParentTexture->GetTex2D();
+        ID3D11Texture2D *texture = mParentTexture->GetTex2D();
+        HRESULT hr = texture ? S_OK : E_INVALIDARG;
+        mDevice.throwIfFailed(hr, "blitToMemory is implemented only for 2D textures", "D3D11HardwarePixelBuffer::blitToMemory");
 
         // get the description of the texture
         D3D11_TEXTURE2D_DESC desc = {0};
-        textureResource->GetDesc( &desc );
-        //Alter the description to set up a staging texture
-        desc.Usage = D3D11_USAGE_STAGING;
-        //This texture is not bound to any part of the pipeline
-        desc.BindFlags = 0;
-        //Allow CPU Access
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        //No Misc Flags
-        desc.MiscFlags = 0;
-        //Create the staging texture
-        ID3D11Texture2D* pStagingTexture = NULL;
-        mDevice->CreateTexture2D( &desc, NULL, &pStagingTexture );
-        //Copy our texture into the staging texture
-        mDevice.GetImmediateContext()->CopyResource( pStagingTexture, textureResource );
-        //Create a mapped resource and map the staging texture to the resource
+        texture->GetDesc( &desc );
+        UINT srcSubresource = getSubresourceIndex(srcBox.front); // one face of cubemap, one item of array
+        D3D11_BOX srcBoxDx11 = getSubresourceBox(srcBox);
+
+        // MSAA content must be resolved before being copied to a staging texture
+        ComPtr<ID3D11Texture2D> textureNoMSAA;
+        if(desc.SampleDesc.Count == 1)
+        {
+            textureNoMSAA = texture;
+        }
+        else
+        {
+            // Note - we create textureNoMSAA with all mip levels of parent texture (not good), but will resolve only required one.
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
+
+            hr = mDevice->CreateTexture2D(&desc, NULL, textureNoMSAA.ReleaseAndGetAddressOf());
+            mDevice.throwIfFailed(hr, "Error creating texture without MSAA", "D3D11HardwarePixelBuffer::blitToMemory");
+
+            mDevice.GetImmediateContext()->ResolveSubresource(textureNoMSAA.Get(), srcSubresource, texture, srcSubresource, desc.Format);
+            mDevice.throwIfFailed("Error resolving MSAA subresource", "D3D11HardwarePixelBuffer::blitToMemory");
+        }
+
+        // Create the staging texture
+        ComPtr<ID3D11Texture2D> stagingTexture;
+        if(desc.Usage == D3D11_USAGE_STAGING && (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ))
+        {
+            stagingTexture.Swap(textureNoMSAA); // Handle case where the source is already a staging texture we can use directly
+        }
+        else
+        {
+            desc.Usage = D3D11_USAGE_STAGING;
+            desc.BindFlags = 0;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+            desc.MiscFlags &= D3D11_RESOURCE_MISC_TEXTURECUBE;
+            hr = mDevice->CreateTexture2D(&desc, NULL, stagingTexture.ReleaseAndGetAddressOf());
+            mDevice.throwIfFailed(hr, "Error creating staging texture", "D3D11HardwarePixelBuffer::blitToMemory");
+
+            // Copy our texture into the staging texture
+            mDevice.GetImmediateContext()->CopySubresourceRegion(
+                stagingTexture.Get(), srcSubresource, srcBoxDx11.left, srcBoxDx11.top, srcBoxDx11.front,
+                textureNoMSAA.Get(), srcSubresource, &srcBoxDx11);
+            mDevice.throwIfFailed("Error while copying to staging texture", "D3D11HardwarePixelBuffer::blitToMemory");
+        }
+
+        // Map the subresource of the staging texture
         D3D11_MAPPED_SUBRESOURCE mapped = {0};
-        mDevice.GetImmediateContext()->Map( pStagingTexture, 0, D3D11_MAP_READ , 0, &mapped );
+        hr = mDevice.GetImmediateContext()->Map(stagingTexture.Get(), srcSubresource, D3D11_MAP_READ, 0, &mapped);
+        mDevice.throwIfFailed(hr, "Error while mapping staging texture", "D3D11HardwarePixelBuffer::blitToMemory");
         
-        // read the data out of the texture.
-        PixelBox locked = D3D11Mappings::getPixelBoxWithMapping(dst.getWidth(), dst.getHeight(), dst.getDepth(), D3D11Mappings::_getPF(desc.Format), mapped);
+        // Read the data out of the texture.
+        PixelBox locked = D3D11Mappings::getPixelBoxWithMapping(srcBoxDx11, desc.Format, mapped);
         PixelUtil::bulkPixelConversion(locked, dst);
 
-        //Release the staging texture
-        mDevice.GetImmediateContext()->Unmap( pStagingTexture, 0 );
-        pStagingTexture->Release();
+        // Release the staging texture
+        mDevice.GetImmediateContext()->Unmap(stagingTexture.Get(), srcSubresource);
     }
 
     //-----------------------------------------------------------------------------  
@@ -440,7 +428,7 @@ namespace Ogre {
     {
         if(mParentTexture->HasAutoMipMapGenerationEnabled())
         {
-            ID3D11ShaderResourceView *pShaderResourceView = mParentTexture->getTexture();
+            ID3D11ShaderResourceView *pShaderResourceView = mParentTexture->getSrvView();
             ID3D11DeviceContextN * context =  mDevice.GetImmediateContext();
             context->GenerateMips(pShaderResourceView);
             if (mDevice.isError())
@@ -452,13 +440,6 @@ namespace Ogre {
             }   
         }
 
-    }
-    //-----------------------------------------------------------------------------    
-    RenderTexture *D3D11HardwarePixelBuffer::getRenderTarget(size_t zoffset)
-    {
-        assert(mUsage & TU_RENDERTARGET);
-        assert(zoffset < mDepth);
-        return mSliceTRT[zoffset];
     }
     //-----------------------------------------------------------------------------    
     D3D11Texture * D3D11HardwarePixelBuffer::getParentTexture() const
@@ -476,7 +457,7 @@ namespace Ogre {
         return mMipLevel;
     }
     //-----------------------------------------------------------------------------  
-    D3D11_BOX D3D11HardwarePixelBuffer::getSubresourceBox(const Image::Box &inBox) const
+    D3D11_BOX D3D11HardwarePixelBuffer::getSubresourceBox(const Box &inBox) const
     {
         // Ogre index Tex2DArray using Z component of the box, but Direct3D expect 
         // this index to be in subresource, and Z component should be sanitized
@@ -497,6 +478,11 @@ namespace Ogre {
         return mFace;
     }
     //-----------------------------------------------------------------------------    
+    UINT D3D11HardwarePixelBuffer::getMipLevel() const
+    {
+        return mMipLevel;
+    }
+    //-----------------------------------------------------------------------------
     void D3D11HardwarePixelBuffer::createStagingBuffer()
     {
         D3D11Texture *tex = static_cast<D3D11Texture*>(mParentTexture);
@@ -508,6 +494,8 @@ namespace Ogre {
                 D3D11_TEXTURE1D_DESC desc;
                 tex->GetTex1D()->GetDesc(&desc);
 
+                desc.Width     = mWidth;
+                desc.MipLevels = 0;
                 desc.BindFlags = 0;
                 desc.MiscFlags = 0;
                 desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
@@ -523,6 +511,9 @@ namespace Ogre {
                 D3D11_TEXTURE2D_DESC desc;
                 tex->GetTex2D()->GetDesc(&desc);
 
+                desc.Width     = mWidth;
+                desc.Height    = mHeight;
+                desc.MipLevels = 0;
                 desc.BindFlags = 0;
                 desc.MiscFlags = 0;
                 desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
@@ -536,6 +527,10 @@ namespace Ogre {
                 D3D11_TEXTURE3D_DESC desc;
                 tex->GetTex3D()->GetDesc(&desc);
 
+                desc.Width     = mWidth;
+                desc.Height    = mHeight;
+                desc.Depth     = mDepth;
+                desc.MipLevels = 0;
                 desc.BindFlags = 0;
                 desc.MiscFlags = 0;
                 desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;

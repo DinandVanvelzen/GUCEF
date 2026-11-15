@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,123 +26,81 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "OgreLodOutputProviderBuffer.h"
-#include "OgreMesh.h"
-#include "OgreSubMesh.h"
-#include "OgreHardwareBufferManager.h"
+#include "OgreMeshLodPrecompiledHeaders.h"
+#include "OgreDefaultHardwareBufferManager.h"
 
 namespace Ogre
 {
-    LodOutputBuffer& LodOutputProviderBuffer::getBuffer()
-    {
-        return mBuffer;
-    }
-
     void LodOutputProviderBuffer::prepare( LodData* data )
     {
+        LodOutputProvider::prepare(data);
 
         mBuffer.submesh.resize(data->mIndexBufferInfoList.size());
     }
 
-    void LodOutputProviderBuffer::bakeManualLodLevel( LodData* data, String& manualMeshName, int lodIndex )
+    void LodOutputProviderBuffer::inject()
     {
-        // placeholder dummy
-        unsigned short submeshCount = mBuffer.submesh.size();
-        LodIndexBuffer buffer;
-        buffer.indexSize = 2;
-        buffer.indexCount = 0;
-        buffer.indexStart = 0;
-        buffer.indexBufferSize = 0;
-        if(lodIndex < 0) {
-            for (unsigned short i = 0; i < submeshCount; i++) {
-                mBuffer.submesh[i].genIndexBuffers.push_back(buffer);
-            }
-        } else {
-            for (unsigned short i = 0; i < submeshCount; i++) {
-                mBuffer.submesh[i].genIndexBuffers.insert(mBuffer.submesh[i].genIndexBuffers.begin() + lodIndex, buffer);
-            }
-        }
-    }
-
-    void LodOutputProviderBuffer::bakeLodLevel(LodData* data, int lodIndex)
-    {
-        unsigned short submeshCount = mBuffer.submesh.size();
-
-        // Create buffers.
+        ushort submeshCount = Math::uint16Cast(mBuffer.submesh.size());
+        OgreAssert(mMesh->getNumSubMeshes() == submeshCount, "");
+        mMesh->removeLodLevels();
         for (unsigned short i = 0; i < submeshCount; i++) {
-            vector<LodIndexBuffer>::type& lods = mBuffer.submesh[i].genIndexBuffers;
-            size_t indexCount = data->mIndexBufferInfoList[i].indexCount;
-            lods.reserve(lods.size() + 1);
-            LodIndexBuffer& curLod = *lods.insert(lods.begin() + lodIndex, LodIndexBuffer());
-            if (indexCount == 0) {
-                curLod.indexCount = 3;
-            } else {
-                curLod.indexCount = indexCount;
-            }
-            curLod.indexStart = 0;
-            curLod.indexSize = data->mIndexBufferInfoList[i].indexSize;
-            curLod.indexBufferSize = 0; // It means same as index count
-            curLod.indexBuffer = Ogre::SharedPtr<unsigned char>(new unsigned char[curLod.indexCount * curLod.indexSize]);
-            // buf is an union, so pint=pshort
-            data->mIndexBufferInfoList[i].buf.pshort = (unsigned short*) curLod.indexBuffer.get();
+            SubMesh::LODFaceList& lods = mMesh->getSubMesh(i)->mLodFaceList;
+            typedef std::vector<IndexData> GenBuffers;
+            GenBuffers& buffers = mBuffer.submesh[i].genIndexBuffers;
 
-            if (indexCount == 0) {
-                memset(data->mIndexBufferInfoList[i].buf.pshort, 0, 3 * data->mIndexBufferInfoList[i].indexSize);
-            }
-        }
-
-        // Fill buffers.
-        size_t triangleCount = data->mTriangleList.size();
-        for (size_t i = 0; i < triangleCount; i++) {
-            if (!data->mTriangleList[i].isRemoved) {
-                if (data->mIndexBufferInfoList[data->mTriangleList[i].submeshID].indexSize == 2) {
-                    for (int m = 0; m < 3; m++) {
-                        *(data->mIndexBufferInfoList[data->mTriangleList[i].submeshID].buf.pshort++) =
-                            static_cast<unsigned short>(data->mTriangleList[i].vertexID[m]);
-                    }
-                } else {
-                    for (int m = 0; m < 3; m++) {
-                        *(data->mIndexBufferInfoList[data->mTriangleList[i].submeshID].buf.pint++) =
-                            static_cast<unsigned int>(data->mTriangleList[i].vertexID[m]);
+            size_t buffCount = buffers.size();
+            for (size_t n=0; n<buffCount;n++) {
+                auto& buff = buffers[n];
+                OgreAssert((int)buff.indexCount >= 0, "");
+                lods.push_back(OGRE_NEW IndexData());
+                lods.back()->indexStart = buff.indexStart;
+                lods.back()->indexCount = buff.indexCount;
+                if(buff.indexBuffer && buff.indexBuffer->getNumIndexes() != 0) {
+                    if(n > 0 && buffers[n-1].indexBuffer == buff.indexBuffer){
+                        lods.back()->indexBuffer = (*(++lods.rbegin()))->indexBuffer;
+                    } else {
+                        lods.back()->indexBuffer = mMesh->getHardwareBufferManager()->createIndexBuffer(
+                            buff.indexBuffer->getType(), buff.indexBuffer->getNumIndexes(),
+                            mMesh->getIndexBufferUsage(), mMesh->isIndexBufferShadowed());
+                        lods.back()->indexBuffer->copyData(*buff.indexBuffer);
                     }
                 }
             }
         }
     }
 
-void LodOutputProviderBuffer::inject()
-{
-    unsigned short submeshCount = mBuffer.submesh.size();
-    OgreAssert(mMesh->getNumSubMeshes() == submeshCount, "");
-    mMesh->removeLodLevels();
-    for (unsigned short i = 0; i < submeshCount; i++) {
-        SubMesh::LODFaceList& lods = mMesh->getSubMesh(i)->mLodFaceList;
-        typedef vector<LodIndexBuffer>::type GenBuffers;
-        GenBuffers& buffers = mBuffer.submesh[i].genIndexBuffers;
-
-        size_t buffCount = buffers.size();
-        for (size_t n=0; n<buffCount;n++) {
-            LodIndexBuffer& buff = buffers[n];
-            size_t indexCount = (buff.indexBufferSize ? buff.indexBufferSize : buff.indexCount);
-            OgreAssert((int)buff.indexCount >= 0, "");
-            lods.push_back(OGRE_NEW IndexData());
-            lods.back()->indexStart = buff.indexStart;
-            lods.back()->indexCount = buff.indexCount;
-            if(indexCount != 0) {
-                if(n > 0 && buffers[n-1].indexBuffer == buff.indexBuffer){
-                    lods.back()->indexBuffer = (*(++lods.rbegin()))->indexBuffer;
-                } else {
-                    lods.back()->indexBuffer = HardwareBufferManager::getSingleton().createIndexBuffer(
-                        buff.indexSize == 2 ?
-                        HardwareIndexBuffer::IT_16BIT : HardwareIndexBuffer::IT_32BIT,
-                        indexCount, mMesh->getIndexBufferUsage(), mMesh->isIndexBufferShadowed());
-                    size_t sizeInBytes = lods.back()->indexBuffer->getSizeInBytes();
-                    void* pOutBuff = lods.back()->indexBuffer->lock(0, sizeInBytes, HardwareBuffer::HBL_DISCARD);
-                    memcpy(pOutBuff, buff.indexBuffer.get(), sizeInBytes);
-                    lods.back()->indexBuffer->unlock();
-                }
-            }
-        }
+    size_t LodOutputProviderBuffer::getSubMeshCount()
+    {
+        return mBuffer.submesh.size();
     }
-}
+
+    HardwareIndexBufferPtr LodOutputProviderBuffer::createIndexBufferImpl(size_t indexCount)
+    {
+        auto indexType = indexCount - 1 <= std::numeric_limits<uint16>::max() ? HardwareIndexBuffer::IT_16BIT : HardwareIndexBuffer::IT_32BIT;
+        DefaultHardwareBufferManagerBase bfrMgr;
+        return bfrMgr.createIndexBuffer(indexType, indexCount, HBU_CPU_ONLY);
+    }
+
+    void LodOutputProviderBuffer::createSubMeshLodIndexData(size_t subMeshIndex, int lodIndex, const HardwareIndexBufferPtr & indexBuffer, size_t indexStart, size_t indexCount)
+    {
+        auto& lods = mBuffer.submesh[subMeshIndex].genIndexBuffers;
+        lods.reserve(lods.size() + 1);
+        IndexData * curLod;
+
+        // I don't know what the negative lodIndex should mean but this logic
+        // was present in the original code.
+        if (lodIndex < 0)
+        {
+            lods.push_back(IndexData());
+            curLod = &lods.back();
+        }
+        else
+        {
+            curLod = &*lods.insert(lods.begin() + lodIndex, IndexData());
+        }
+
+        curLod->indexStart = indexStart;
+        curLod->indexCount = indexCount;
+        curLod->indexBuffer = indexBuffer;
+    }
 }

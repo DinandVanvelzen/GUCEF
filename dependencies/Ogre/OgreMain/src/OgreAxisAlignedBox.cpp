@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,27 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreAxisAlignedBox.h"
 
 namespace Ogre
 {
     const AxisAlignedBox AxisAlignedBox::BOX_NULL;
     const AxisAlignedBox AxisAlignedBox::BOX_INFINITE(AxisAlignedBox::EXTENT_INFINITE);
+
+    std::ostream& operator<<(std::ostream& o, const AxisAlignedBox& aab)
+    {
+        if (aab.isNull())
+        {
+            o << "AxisAlignedBox(null)";
+        }
+        else if (aab.isFinite())
+        {
+            o << "AxisAlignedBox(min=" << aab.getMinimum() << ", max=" << aab.getMaximum() << ")";
+        }
+        else
+        {
+            o << "AxisAlignedBox(infinite)";
+        }
+        return o;
+    }
 }
 

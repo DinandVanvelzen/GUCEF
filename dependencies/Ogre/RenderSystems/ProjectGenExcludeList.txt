@@ -1,2 +1,0 @@
-GLES
-GLeS2

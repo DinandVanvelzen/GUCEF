@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,10 +43,10 @@ namespace Ogre {
     *  @{
     */
 /** Abstract class defining the interface to be implemented by particle affectors.
-    @remarks
-        Particle affectors modify particles in a particle system over their lifetime. They can be
-        grouped into types, e.g. 'vector force' affectors, 'fader' affectors etc; each type will 
-        modify particles in a different way, using different parameters.
+
+    Particle affectors modify particles in a particle system over their lifetime. They can be
+    grouped into types, e.g. 'vector force' affectors, 'fader' affectors etc; each type will
+    modify particles in a different way, using different parameters.
     @par
         Because there are so many types of affectors you could use, OGRE chooses not to dictate
         the available types. It comes with some in-built, but allows plugins or applications to extend the affector types available.
@@ -68,7 +68,7 @@ namespace Ogre {
         String mType;
 
         /** Internal method for setting up the basic parameter definitions for a subclass. 
-        @remarks
+
             Because StringInterface holds a dictionary of parameters per class, subclasses need to
             call this to ask the base class to add it's parameters to their dictionary as well.
             Can't do this in the constructor because that runs in a non-virtual context.
@@ -85,7 +85,7 @@ namespace Ogre {
         virtual ~ParticleAffector();
 
         /** Method called to allow the affector to initialize all newly created particles in the system.
-        @remarks
+
             This is where the affector gets the chance to initialize it's effects to the particles of a system.
             The affector is expected to initialize some or all of the particles in the system
             passed to it, depending on the affector's approach.
@@ -99,7 +99,7 @@ namespace Ogre {
                 }
 
         /** Method called to allow the affector to 'do it's stuff' on all active particles in the system.
-        @remarks
+
             This is where the affector gets the chance to apply it's effects to the particles of a system.
             The affector is expected to apply it's effect to some or all of the particles in the system
             passed to it, depending on the affector's approach.
@@ -111,7 +111,7 @@ namespace Ogre {
         virtual void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) = 0;
 
         /** Returns the name of the type of affector. 
-        @remarks
+
             This property is useful for determining the type of affector procedurally so another
             can be created.
         */

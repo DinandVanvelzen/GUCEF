@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,76 +28,25 @@ THE SOFTWARE.
 #ifndef __OgreGLFBO_H__
 #define __OgreGLFBO_H__
 
-#include "OgreGLRenderTexture.h"
+#include "OgreGLCopyingRenderTexture.h"
 #include "OgreGLContext.h"
 
 namespace Ogre {
     
     /** Frame Buffer Object abstraction.
     */
-    class _OgreGLExport GLFrameBufferObject
+    class _OgreGLExport GLFrameBufferObject : public GLFrameBufferObjectCommon
     {
     public:
-        GLFrameBufferObject(GLFBOManager *manager, uint fsaa);
+        GLFrameBufferObject(uint fsaa);
         ~GLFrameBufferObject();
 
-        /** Bind a surface to a certain attachment point.
-            attachment: 0..OGRE_MAX_MULTIPLE_RENDER_TARGETS-1
-        */
-        void bindSurface(size_t attachment, const GLSurfaceDesc &target);
-        /** Unbind attachment
-        */
-        void unbindSurface(size_t attachment);
-        
-        /** Bind FrameBufferObject
-        */
-        void bind();
-
-        /** Swap buffers - only useful when using multisample buffers.
-        */
-        void swapBuffers();
-
-        /** This function acts very similar to @see GLFBORenderTexture::attachDepthBuffer
-            The difference between D3D & OGL is that D3D setups the DepthBuffer before rendering,
-            while OGL setups the DepthBuffer per FBO. So the DepthBuffer (RenderBuffer) needs to
-            be attached for OGL.
-        */
-        void attachDepthBuffer( DepthBuffer *depthBuffer );
-        void detachDepthBuffer();
-        
-        /// Get the GL id for the FBO
-        GLuint getGLFBOID() const { return mFB; }
-        /// Get the GL id for the multisample FBO
-        GLuint getGLMultisampleFBOID() const { return mMultisampleFB; }
-        
-        /// Accessors
-        uint32 getWidth();
-        uint32 getHeight();
-        PixelFormat getFormat();
-        GLsizei getFSAA();
-        
-        GLFBOManager *getManager() { return mManager; }
-        const GLSurfaceDesc &getSurface(size_t attachment) { return mColour[attachment]; }
+        bool bind(bool recreateIfNeeded) override;
+        void swapBuffers() override;
+        void attachDepthBuffer( DepthBuffer *depthBuffer ) override;
+        void detachDepthBuffer() override;
     private:
-        GLFBOManager *mManager;
-        GLsizei mNumSamples;
-        GLuint mFB;
-        GLuint mMultisampleFB;
-        GLSurfaceDesc mMultisampleColourBuffer;
-        GLSurfaceDesc mDepth;
-        GLSurfaceDesc mStencil;
-        // Arbitrary number of texture surfaces
-        GLSurfaceDesc mColour[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
-
-
-        /** Initialise object (find suitable depth and stencil format).
-            Must be called every time the bindings change.
-            It fails with an exception (ERR_INVALIDPARAMS) if:
-            - Attachment point 0 has no binding
-            - Not all bound surfaces have the same size
-            - Not all bound surfaces have the same internal format
-        */
-        void initialise();
+        void initialise() override;
     };
 
 }

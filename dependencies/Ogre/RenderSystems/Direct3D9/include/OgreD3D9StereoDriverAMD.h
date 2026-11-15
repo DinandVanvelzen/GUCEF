@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@ namespace Ogre {
 	  bool sendStereoCommand(ATIDX9STEREOCOMMAND stereoCommand, BYTE* outBuffer, DWORD outBufferSize, BYTE* inBuffer, DWORD inBufferSize);
 	  void releaseResources();
 
-	  typedef map<String, D3D9RenderWindow*>::type RenderWindowMap;
+	  typedef std::map<String, D3D9RenderWindow*> RenderWindowMap;
 	  RenderWindowMap mRenderWindowMap;
 
 	  bool mStereoEnabled;

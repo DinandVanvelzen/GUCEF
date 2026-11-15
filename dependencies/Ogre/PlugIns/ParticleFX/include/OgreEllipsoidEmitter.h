@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-
+// Original author: Tels <http://bloodgate.com>, released as public domain
 #ifndef __EllipsoidEmitter_H__
 #define __EllipsoidEmitter_H__
 
@@ -33,26 +33,24 @@ THE SOFTWARE.
 #include "OgreAreaEmitter.h"
 
 namespace Ogre {
-
-    /** Particle emitter which emits particles randomly from points inside an ellipsoid.
-    @remarks
-        This basic particle emitter emits particles from a ellipsoid area.
-        The initial direction of these particles can either be a single
-        direction (i.e. a line), a random scattering inside a cone, or a random
-        scattering in all directions, depending the 'angle' parameter, which
-        is the angle across which to scatter the particles either side of the
-        base direction of the emitter. 
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport EllipsoidEmitter : public AreaEmitter
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** Particle emitter which emits particles randomly from points inside an ellipsoid.
+    */
+    class EllipsoidEmitter : public AreaEmitter
     {
     public:
         /** See AreaEmitter. */
         EllipsoidEmitter(ParticleSystem* psys);
 
-        /** See ParticleEmitter. */
-        void _initParticle(Particle* pParticle);
+        void _initParticle(Particle* pParticle) override;
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

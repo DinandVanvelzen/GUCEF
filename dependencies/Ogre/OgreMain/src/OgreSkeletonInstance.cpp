@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,16 +27,14 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreSkeletonInstance.h"
-#include "OgreBone.h"
 #include "OgreTagPoint.h"
 
 
 namespace Ogre {
     //-------------------------------------------------------------------------
-    SkeletonInstance::SkeletonInstance(const SkeletonPtr& masterCopy) 
-        : Skeleton()
+    SkeletonInstance::SkeletonInstance(const SkeletonPtr& masterCopy)
+        : Skeleton(masterCopy->getName(), masterCopy->getHandle(), masterCopy->getGroup())
         , mSkeleton(masterCopy)
-        , mNextTagPointAutoHandle(0)
     {
     }
     //-------------------------------------------------------------------------
@@ -64,13 +62,13 @@ namespace Ogre {
         return mSkeleton->createAnimation(name, length);
     }
     //-------------------------------------------------------------------------
-    Animation* SkeletonInstance::getAnimation(const String& name, 
+    Animation* SkeletonInstance::getAnimation(const String& name,
         const LinkedSkeletonAnimationSource** linker) const
     {
         return mSkeleton->getAnimation(name, linker);
     }
     //-------------------------------------------------------------------------
-    Animation* SkeletonInstance::_getAnimationImpl(const String& name, 
+    Animation* SkeletonInstance::_getAnimationImpl(const String& name,
         const LinkedSkeletonAnimationSource** linker) const
     {
         return mSkeleton->_getAnimationImpl(name, linker);
@@ -81,7 +79,7 @@ namespace Ogre {
         mSkeleton->removeAnimation(name);
     }
     //-------------------------------------------------------------------------
-    void SkeletonInstance::addLinkedSkeletonAnimationSource(const String& skelName, 
+    void SkeletonInstance::addLinkedSkeletonAnimationSource(const String& skelName,
         Real scale)
     {
         mSkeleton->addLinkedSkeletonAnimationSource(skelName, scale);
@@ -92,10 +90,17 @@ namespace Ogre {
         mSkeleton->removeAllLinkedSkeletonAnimationSources();
     }
     //-------------------------------------------------------------------------
-    Skeleton::LinkedSkeletonAnimSourceIterator 
+    const Skeleton::LinkedSkeletonAnimSourceList&
+    SkeletonInstance::getLinkedSkeletonAnimationSources() const
+    {
+        return mSkeleton->getLinkedSkeletonAnimationSources();
+    }
+    Skeleton::LinkedSkeletonAnimSourceIterator
     SkeletonInstance::getLinkedSkeletonAnimationSourceIterator(void) const
     {
-        return mSkeleton->getLinkedSkeletonAnimationSourceIterator();
+        return Skeleton::LinkedSkeletonAnimSourceIterator(
+            mSkeleton->getLinkedSkeletonAnimationSources().begin(),
+            mSkeleton->getLinkedSkeletonAnimationSources().end());
     }
     //-------------------------------------------------------------------------
     void SkeletonInstance::_initAnimationState(AnimationStateSet* animSet)
@@ -132,61 +137,56 @@ namespace Ogre {
         newBone->setScale(source->getScale());
 
         // Process children
-        Node::ChildNodeIterator it = source->getChildIterator();
-        while (it.hasMoreElements())
+        for (auto c : source->getChildren())
         {
-            cloneBoneAndChildren(static_cast<Bone*>(it.getNext()), newBone);
+            cloneBoneAndChildren(static_cast<Bone*>(c), newBone);
         }
     }
     //-------------------------------------------------------------------------
-    void SkeletonInstance::loadImpl(void)
+    void SkeletonInstance::prepareImpl(void)
     {
-        mNextAutoHandle = mSkeleton->mNextAutoHandle;
-        mNextTagPointAutoHandle = 0;
         // construct self from master
         mBlendState = mSkeleton->mBlendState;
         // Copy bones
-        BoneIterator i = mSkeleton->getRootBoneIterator();
-        while (i.hasMoreElements())
+        BoneList::const_iterator i;
+        for (i = mSkeleton->getRootBones().begin(); i != mSkeleton->getRootBones().end(); ++i)
         {
-            Bone* b = i.getNext();
+            Bone* b = *i;
             cloneBoneAndChildren(b, 0);
             b->_update(true, false);
         }
         setBindingPose();
     }
     //-------------------------------------------------------------------------
-    void SkeletonInstance::unloadImpl(void)
+    void SkeletonInstance::unprepareImpl(void)
     {
-        Skeleton::unloadImpl();
+        Skeleton::unprepareImpl();
 
         // destroy TagPoints
-        for (TagPointList::const_iterator it = mActiveTagPoints.begin(); it != mActiveTagPoints.end(); ++it)
+        for (auto& t : mActiveTagPoints)
         {
-            TagPoint* tagPoint = *it;
             // Woohoo! The child object all the same attaching this skeleton instance, but is ok we can just
             // ignore it:
             //   1. The parent node of the tagPoint already deleted by Skeleton::unload(), nothing need to do now
             //   2. And the child object relationship already detached by Entity::~Entity()
-            OGRE_DELETE tagPoint;
+            OGRE_DELETE t;
         }
         mActiveTagPoints.clear();
-        for (TagPointList::const_iterator it2 = mFreeTagPoints.begin(); it2 != mFreeTagPoints.end(); ++it2)
+        for (auto& t : mFreeTagPoints)
         {
-            TagPoint* tagPoint = *it2;
-            OGRE_DELETE tagPoint;
+            OGRE_DELETE t;
         }
         mFreeTagPoints.clear();
     }
 
     //-------------------------------------------------------------------------
     TagPoint* SkeletonInstance::createTagPointOnBone(Bone* bone,
-        const Quaternion &offsetOrientation, 
+        const Quaternion &offsetOrientation,
         const Vector3 &offsetPosition)
     {
         TagPoint* ret;
         if (mFreeTagPoints.empty()) {
-            ret = OGRE_NEW TagPoint(mNextTagPointAutoHandle++, this);
+            ret = OGRE_NEW TagPoint(uint16(-1), this);
             mActiveTagPoints.push_back(ret);
         } else {
             ret = mFreeTagPoints.front();
@@ -222,24 +222,6 @@ namespace Ogre {
 
             mFreeTagPoints.splice(mFreeTagPoints.end(), mActiveTagPoints, it);
         }
-    }
-    //-------------------------------------------------------------------------
-    const String& SkeletonInstance::getName(void) const
-    {
-        // delegate
-        return mSkeleton->getName();
-    }
-    //-------------------------------------------------------------------------
-    ResourceHandle SkeletonInstance::getHandle(void) const
-    {
-        // delegate
-        return mSkeleton->getHandle();
-    }
-    //-------------------------------------------------------------------------
-    const String& SkeletonInstance::getGroup(void) const
-    {
-        // delegate
-        return mSkeleton->getGroup();
     }
 
 }

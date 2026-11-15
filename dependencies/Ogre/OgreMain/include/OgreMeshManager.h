@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,10 +32,12 @@ THE SOFTWARE.
 
 #include "OgreResourceManager.h"
 #include "OgreSingleton.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 #include "OgreHardwareBuffer.h"
+#include "OgreHardwareVertexBuffer.h"
 #include "OgrePatchSurface.h"
 #include "OgreHeaderPrefix.h"
+#include "OgrePlane.h"
 
 namespace Ogre {
 
@@ -48,14 +50,19 @@ namespace Ogre {
     *  @{
     */
     /** Handles the management of mesh resources.
-        @remarks
-            This class deals with the runtime management of
-            mesh data; like other resource managers it handles
-            the creation of resources (in this case mesh data),
-            working within a fixed memory budget.
+
+        This class deals with the runtime management of
+        mesh data; like other resource managers it handles
+        the creation of resources (in this case mesh data),
+        working within a fixed memory budget.
+
+        Ogre loads model files from it's own proprietary
+        format called .mesh. This is because having a single file
+        format is better for runtime performance, and we also have
+        control over pre-processed data (such as
+        collision boxes, LOD reductions etc).
     */
-    class _OgreExport MeshManager: public ResourceManager, public Singleton<MeshManager>, 
-        public ManualResourceLoader
+    class _OgreExport MeshManager: public ResourceManager, public Singleton<MeshManager>
     {
     public:
         MeshManager();
@@ -64,19 +71,20 @@ namespace Ogre {
         /** Initialises the manager, only to be called by OGRE internally. */
         void _initialise(void);
 
-        /// Get a resource by name
-        /// @see ResourceManager::getResourceByName
-        MeshPtr getByName(const String& name, const String& groupName = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME);
-
+        /// @copydoc ResourceManager::getResourceByName
+        MeshPtr getByName(const String& name, const String& groupName OGRE_RESOURCE_GROUP_INIT) const;
 
         /// Create a new mesh
-        /// @see ResourceManager::createResource
+        /// @copydetails ResourceManager::createResource
         MeshPtr create (const String& name, const String& group,
                             bool isManual = false, ManualResourceLoader* loader = 0,
                             const NameValuePairList* createParams = 0);
 
+        using ResourceManager::createOrRetrieve;
+
         /** Create a new mesh, or retrieve an existing one with the same
             name if it already exists.
+            @copydetails ResourceManager::createResource
             @param vertexBufferUsage The usage flags with which the vertex buffer(s)
                 will be created
             @param indexBufferUsage The usage flags with which the index buffer(s) created for 
@@ -85,27 +93,20 @@ namespace Ogre {
                 copies for faster read access
             @param indexBufferShadowed If true, the index buffers will be shadowed by system memory 
                 copies for faster read access
-        @see ResourceManager::createOrRetrieve
         */
         ResourceCreateOrRetrieveResult createOrRetrieve(
             const String& name,
             const String& group,
-            bool isManual=false, ManualResourceLoader* loader=0,
-            const NameValuePairList* params=0,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            bool vertexBufferShadowed = true, bool indexBufferShadowed = true);
+            bool isManual, ManualResourceLoader* loader,
+            const NameValuePairList* createParams,
+            HardwareBuffer::Usage vertexBufferUsage,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexBufferShadowed = false, bool indexBufferShadowed = false);
 
         /** Prepares a mesh for loading from a file.  This does the IO in advance of the call to load().
             @note
                 If the model has already been created (prepared or loaded), the existing instance
                 will be returned.
-            @remarks
-                Ogre loads model files from it's own proprietary
-                format called .mesh. This is because having a single file
-                format is better for runtime performance, and we also have
-                control over pre-processed data (such as
-                collision boxes, LOD reductions etc).
             @param filename The name of the .mesh file
             @param groupName The name of the resource group to assign the mesh to 
             @param vertexBufferUsage The usage flags with which the vertex buffer(s)
@@ -118,43 +119,25 @@ namespace Ogre {
                 copies for faster read access
         */
         MeshPtr prepare( const String& filename, const String& groupName,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            bool vertexBufferShadowed = true, bool indexBufferShadowed = true);
+            HardwareBuffer::Usage vertexBufferUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexBufferShadowed = false, bool indexBufferShadowed = false);
 
         /** Loads a mesh from a file, making it immediately available for use.
-            @note
-                If the model has already been created (prepared or loaded), the existing instance
-                will be returned.
-            @remarks
-                Ogre loads model files from it's own proprietary
-                format called .mesh. This is because having a single file
-                format is better for runtime performance, and we also have
-                control over pre-processed data (such as
-                collision boxes, LOD reductions etc).
-            @param filename The name of the .mesh file
-            @param groupName The name of the resource group to assign the mesh to 
-            @param vertexBufferUsage The usage flags with which the vertex buffer(s)
-                will be created
-            @param indexBufferUsage The usage flags with which the index buffer(s) created for 
-                this mesh will be created with.
-            @param vertexBufferShadowed If true, the vertex buffers will be shadowed by system memory 
-                copies for faster read access
-            @param indexBufferShadowed If true, the index buffers will be shadowed by system memory 
-                copies for faster read access
+            @copydetails MeshManager::prepare
         */
         MeshPtr load( const String& filename, const String& groupName,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            bool vertexBufferShadowed = true, bool indexBufferShadowed = true);
+            HardwareBuffer::Usage vertexBufferUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexBufferShadowed = false, bool indexBufferShadowed = false);
 
 
         /** Creates a new Mesh specifically for manual definition rather
             than loading from an object file. 
-        @remarks
-            Note that once you've defined your mesh, you must call Mesh::_setBounds and
-            Mesh::_setBoundingRadius in order to define the bounds of your mesh. In previous
-            versions of OGRE you could call Mesh::_updateBounds, but OGRE's support of 
+
+            Note that once you've defined your mesh, you must call Mesh::_setBounds
+            in order to define the bounds of your mesh. In previous
+            versions of OGRE could auto-compute that, but OGRE's support of 
             write-only vertex buffers makes this no longer appropriate.
         @param name The name to give the new mesh
         @param groupName The name of the resource group to assign the mesh to 
@@ -210,9 +193,9 @@ namespace Ogre {
             int xsegments = 1, int ysegments = 1,
             bool normals = true, unsigned short numTexCoordSets = 1,
             Real uTile = 1.0f, Real vTile = 1.0f, const Vector3& upVector = Vector3::UNIT_Y,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY,
-            bool vertexShadowBuffer = true, bool indexShadowBuffer = true);
+            HardwareBuffer::Usage vertexBufferUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexShadowBuffer = false, bool indexShadowBuffer = false);
 
         
         /** Creates a plane, which because of it's texture coordinates looks like a curved
@@ -272,9 +255,9 @@ namespace Ogre {
             bool normals = true, unsigned short numTexCoordSets = 1,
             Real uTile = 1.0f, Real vTile = 1.0f, const Vector3& upVector = Vector3::UNIT_Y,
             const Quaternion& orientation = Quaternion::IDENTITY,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY,
-            bool vertexShadowBuffer = true, bool indexShadowBuffer = true, 
+            HardwareBuffer::Usage vertexBufferUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexShadowBuffer = false, bool indexShadowBuffer = false, 
             int ySegmentsToKeep = -1);
 
         /** Creates a genuinely curved plane, by default majoring on the x/y axes facing positive Z.
@@ -324,9 +307,9 @@ namespace Ogre {
             int xsegments = 1, int ysegments = 1,
             bool normals = false, unsigned short numTexCoordSets = 1, 
             Real uTile = 1.0f, Real vTile = 1.0f, const Vector3& upVector = Vector3::UNIT_Y,
-            HardwareBuffer::Usage vertexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY,
-            bool vertexShadowBuffer = true, bool indexShadowBuffer = true);
+            HardwareBuffer::Usage vertexBufferUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage indexBufferUsage = HBU_GPU_ONLY,
+            bool vertexShadowBuffer = false, bool indexShadowBuffer = false);
 
         /** Creates a Bezier patch based on an array of control vertices.
             @param name
@@ -370,8 +353,8 @@ namespace Ogre {
             size_t uMaxSubdivisionLevel = PatchSurface::AUTO_LEVEL, 
             size_t vMaxSubdivisionLevel = PatchSurface::AUTO_LEVEL,
             PatchSurface::VisibleSide visibleSide = PatchSurface::VS_FRONT,
-            HardwareBuffer::Usage vbUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY, 
-            HardwareBuffer::Usage ibUsage = HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY,
+            HardwareBuffer::Usage vbUsage = HBU_GPU_ONLY,
+            HardwareBuffer::Usage ibUsage = HBU_CPU_TO_GPU,
             bool vbUseShadow = true, bool ibUseShadow = true);
         
         /** Tells the mesh manager that all future meshes should prepare themselves for
@@ -381,38 +364,35 @@ namespace Ogre {
         /** Retrieves whether all Meshes should prepare themselves for shadow volumes. */
         bool getPrepareAllMeshesForShadowVolumes(void);
 
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static MeshManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static MeshManager* getSingletonPtr(void);
+
+        /** Gets the base element type used for blend weights in vertex buffers.
+
+        See the remarks below for SetBlendWeightsBaseElementType().
+        */
+        VertexElementType getBlendWeightsBaseElementType() const;
+
+        /** sets the base element type used for blend weights in vertex buffers.
+
+        This takes effect when meshes are loaded.  Default is VET_FLOAT1.
+        Valid values are:
+        VET_UBYTE4_NORM:   8-bit blend weights.  Lowest memory cost but may have precision issues.  Requires SM2.0+ vertex shader.  No software skinning.
+        VET_USHORT2_NORM:  16-bit blend weights.  Requires SM2.0+ vertex shader.  No software skinning.
+        VET_FLOAT1:        32-bit blend weights.  Highest memory cost.  Supports hardware and software skinning.
+        */
+        void setBlendWeightsBaseElementType( VertexElementType vet );
+
+        /** Set whether to keep the bone matrices in object space or transform them to world space.
+         *
+         * Transforming to world space happens on the CPU and is the legacy behavior. Using object space bones
+         * is more efficient as it allows to do the transformation in the vertex shader.
+         */
+        static void setBonesUseObjectSpace(bool enable) { mBonesUseObjectSpace = enable; }
+        /// whether the bone matrices are in object space or world space
+        static bool getBonesUseObjectSpace() { return mBonesUseObjectSpace; }
 
         /** Gets the factor by which the bounding box of an entity is padded.
             Default is 0.01
@@ -431,73 +411,29 @@ namespace Ogre {
         */
         MeshSerializerListener *getListener();
 
-        /** @see ManualResourceLoader::loadResource */
-        void loadResource(Resource* res);
+    private:
 
-    protected:
         /// @copydoc ResourceManager::createImpl
         Resource* createImpl(const String& name, ResourceHandle handle, 
             const String& group, bool isManual, ManualResourceLoader* loader, 
-            const NameValuePairList* createParams);
-        
-        /** Utility method for tessellating 2D meshes.
-        */
-        void tesselate2DMesh(SubMesh* pSub, unsigned short meshWidth, unsigned short meshHeight, 
-            bool doubleSided = false, 
-            HardwareBuffer::Usage indexBufferUsage = HardwareBuffer::HBU_STATIC_WRITE_ONLY,
-            bool indexSysMem = false);
-
-        void createPrefabPlane(void);
-        void createPrefabCube(void);
-        void createPrefabSphere(void);
+            const NameValuePairList* createParams) override;
     
-        /** Enum identifying the types of manual mesh built by this manager */
-        enum MeshBuildType
-        {
-            MBT_PLANE,
-            MBT_CURVED_ILLUSION_PLANE,
-            MBT_CURVED_PLANE
-        };
-        /** Saved parameters used to (re)build a manual mesh built by this class */
-        struct MeshBuildParams
-        {
-            MeshBuildType type;
-            Plane plane;
-            Real width;
-            Real height;
-            Real curvature;
-            int xsegments;
-            int ysegments;
-            bool normals;
-            unsigned short numTexCoordSets;
-            Real xTile;
-            Real yTile;
-            Vector3 upVector;
-            Quaternion orientation;
-            HardwareBuffer::Usage vertexBufferUsage;
-            HardwareBuffer::Usage indexBufferUsage;
-            bool vertexShadowBuffer;
-            bool indexShadowBuffer;
-            int ySegmentsToKeep;
-        };
-        /** Map from resource pointer to parameter set */
-        typedef map<Resource*, MeshBuildParams>::type MeshBuildParamsMap;
-        MeshBuildParamsMap mMeshBuildParams;
+        std::unique_ptr<ManualResourceLoader> mPrefabLoader;
 
-        /** Utility method for manual loading a plane */
-        void loadManualPlane(Mesh* pMesh, MeshBuildParams& params);
-        /** Utility method for manual loading a curved plane */
-        void loadManualCurvedPlane(Mesh* pMesh, MeshBuildParams& params);
-        /** Utility method for manual loading a curved illusion plane */
-        void loadManualCurvedIllusionPlane(Mesh* pMesh, MeshBuildParams& params);
+        // element type for blend weights in vertex buffer (VET_UBYTE4, VET_USHORT1, or VET_FLOAT1)
+        VertexElementType mBlendWeightsBaseElementType;
 
         bool mPrepAllMeshesForShadowVolumes;
+        static bool mBonesUseObjectSpace;
     
         //the factor by which the bounding box of an entity is padded   
         Real mBoundsPaddingFactor;
 
         // The listener to pass to serializers
         MeshSerializerListener *mListener;
+
+    private:
+        std::unique_ptr<Codec> mMeshCodec;
     };
 
     /** @} */

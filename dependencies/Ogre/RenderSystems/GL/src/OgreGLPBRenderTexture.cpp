@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,26 +32,17 @@ THE SOFTWARE.
 #include "OgreStringConverter.h"
 #include "OgreRoot.h"
 #include "OgreGLHardwarePixelBuffer.h"
+#include "OgreGLNativeSupport.h"
 
 namespace Ogre {
 //-----------------------------------------------------------------------------  
-    GLPBuffer::GLPBuffer(PixelComponentType format, uint32 width, uint32 height):
-        mFormat(format),
-        mWidth(width),
-        mHeight(height)
-    {
-    }
-    GLPBuffer::~GLPBuffer()
-    {
-    }
-
-//-----------------------------------------------------------------------------  
     GLPBRenderTexture::GLPBRenderTexture(GLPBRTTManager *manager, const String &name, 
-        const GLSurfaceDesc &target, bool writeGamma, uint fsaa):
-        GLRenderTexture(name, target, writeGamma, fsaa),
+        const GLSurfaceDesc &target, bool writeGamma):
+        GLRenderTexture(name, target, writeGamma),
         mManager(manager)
     {
         mPBFormat = PixelUtil::getComponentType(target.buffer->getFormat());
+        mDepthBufferPoolId = RBP_NONE; // not poolable
         
         mManager->requestPBuffer(mPBFormat, mWidth, mHeight);
     }
@@ -65,36 +56,42 @@ namespace Ogre {
         if( name == GLRenderTexture::CustomAttributeString_TARGET )
         {
             GLSurfaceDesc &target = *static_cast<GLSurfaceDesc*>(pData);
-            target.buffer = static_cast<GLHardwarePixelBuffer*>(mBuffer);
+            target.buffer = static_cast<GLHardwarePixelBufferCommon*>(mBuffer);
             target.zoffset = mZOffset;
         }
         else if (name == GLRenderTexture::CustomAttributeString_GLCONTEXT )
         {
             // Get PBuffer for our internal format
-            *static_cast<GLContext**>(pData) = mManager->getContextFor(mPBFormat, mWidth, mHeight);
+            *static_cast<GLContext**>(pData) = getContext();
         }
     }
+
+    GLContext* GLPBRenderTexture::getContext() const
+    {
+        return mManager->getContextFor(mPBFormat, mWidth, mHeight);
+    }
+
 //-----------------------------------------------------------------------------  
-    GLPBRTTManager::GLPBRTTManager(GLSupport *support, RenderTarget *mainwindow):
+    GLPBRTTManager::GLPBRTTManager(GLNativeSupport *support, RenderTarget *mainwindow):
         mSupport(support),
         mMainWindow(mainwindow),
         mMainContext(0)
     {
-        mMainWindow->getCustomAttribute(GLRenderTexture::CustomAttributeString_GLCONTEXT, &mMainContext);
+        mMainContext = dynamic_cast<GLRenderTarget*>(mMainWindow)->getContext();
     }  
     GLPBRTTManager::~GLPBRTTManager()
     {
         // Delete remaining PBuffers
-        for(size_t x=0; x<PCT_COUNT; ++x)
+        for(auto & mPBuffer : mPBuffers)
         {
-            delete mPBuffers[x].pb;
+            delete mPBuffer.pb;
         }
     }
 
     RenderTexture *GLPBRTTManager::createRenderTexture(const String &name, 
-        const GLSurfaceDesc &target, bool writeGamma, uint fsaa)
+        const GLSurfaceDesc &target, bool writeGamma)
     {
-        return new GLPBRenderTexture(this, name, target, writeGamma, fsaa);
+        return new GLPBRenderTexture(this, name, target, writeGamma);
     }
     
     bool GLPBRTTManager::checkFormat(PixelFormat format) 

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,18 +31,16 @@ THE SOFTWARE.
 
 #include "OgrePagingPrerequisites.h"
 #include "OgrePageStrategy.h"
-#include "OgreVector2.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 namespace Ogre
 {
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Paging
     *  Some details on paging component
-    */
-    /** @{ */
+    * @{ */
 
 
     /// The 2D grid mode
@@ -56,7 +54,7 @@ namespace Ogre
         G2D_Y_Z = 2
     };
     /** Specialisation of PageStrategyData for Grid2DPageStrategy.
-    @remarks
+
         Structurally this data defines with a grid of pages, with the logical 
         origin in the middle of the entire grid.
         The grid cells are indexed from 0 as a 'centre' slot, supporting both 
@@ -118,7 +116,6 @@ namespace Ogre
     */
     class _OgrePagingExport Grid2DPageStrategyData : public PageStrategyData
     {
-    protected:
         /// Orientation of the grid
         Grid2DMode mMode;
         /// Origin (world space)
@@ -194,9 +191,9 @@ namespace Ogre
         virtual int32 getCellRangeMaxY() const { return mMaxCellY; }
 
         /// Load this data from a stream (returns true if successful)
-        bool load(StreamSerialiser& stream);
+        bool load(StreamSerialiser& stream) override;
         /// Save this data to a stream
-        void save(StreamSerialiser& stream);
+        void save(StreamSerialiser& stream) override;
 
         /// Convert a world point to grid space (not relative to origin)
         virtual void convertWorldToGridSpace(const Vector3& world, Vector2& grid);
@@ -207,7 +204,7 @@ namespace Ogre
         /// Get the (grid space) bottom-left of a cell
         virtual void getBottomLeftGridSpace(int32 x, int32 y, Vector2& bl);
         /** Get the (grid space) corners of a cell.
-        @remarks
+
             Populates pFourPoints in anticlockwise order from the bottom left point.
         */
         virtual void getCornersGridSpace(int32 x, int32 y, Vector2* pFourPoints);
@@ -222,7 +219,7 @@ namespace Ogre
 
 
     /** Page strategy which loads new pages based on a regular 2D grid.
-    @remarks
+
         The grid can be up to 65536 x 65536 cells in size. PageIDs are generated
         like this: (row * 65536) + col. The grid is centred around the grid origin, such 
         that the boundaries of the cell around that origin are [-CellSize/2, CellSize/2)
@@ -235,11 +232,11 @@ namespace Ogre
         ~Grid2DPageStrategy();
 
         // Overridden members
-        void notifyCamera(Camera* cam, PagedWorldSection* section);
-        PageStrategyData* createData();
-        void destroyData(PageStrategyData* d);
-        void updateDebugDisplay(Page* p, SceneNode* sn);
-        PageID getPageID(const Vector3& worldPos, PagedWorldSection* section);
+        void notifyCamera(Camera* cam, PagedWorldSection* section) override;
+        PageStrategyData* createData() override;
+        void destroyData(PageStrategyData* d) override;
+        void updateDebugDisplay(Page* p, SceneNode* sn) override;
+        PageID getPageID(const Vector3& worldPos, PagedWorldSection* section) override;
     };
 
     /** @} */

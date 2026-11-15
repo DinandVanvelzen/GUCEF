@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -139,7 +139,7 @@ namespace Ogre
         // Page Strategy Data
         bool strategyDataOk = mStrategyData->load(ser);
         if (!strategyDataOk)
-            LogManager::getSingleton().stream() << "Error: PageStrategyData for section '"
+            LogManager::getSingleton().stream(LML_CRITICAL) << "Error: PageStrategyData for section '"
             << mName << "' was not loaded correctly, check file contents";
 
         /// Load any data specific to a subtype of this class
@@ -173,9 +173,9 @@ namespace Ogre
         ser.writeChunkEnd(CHUNK_ID);
 
         // save all pages (in separate files)
-        for (PageMap::iterator i = mPages.begin(); i != mPages.end(); ++i)
+        for (auto & p : mPages)
         {
-            i->second->save();
+            p.second->save();
         }
 
 
@@ -205,8 +205,7 @@ namespace Ogre
         {
             Page* page = OGRE_NEW Page(pageID, this);
             // try to insert
-            std::pair<PageMap::iterator, bool> ret = mPages.insert(
-                PageMap::value_type(page->getID(), page));
+            std::pair<PageMap::iterator, bool> ret = mPages.emplace(page->getID(), page);
 
             if (!ret.second)
             {
@@ -312,9 +311,9 @@ namespace Ogre
         if (!mParent->getManager()->getPagingOperationsEnabled())
             return;
 
-        for (PageMap::iterator i= mPages.begin(); i != mPages.end(); ++i)
+        for (auto & p : mPages)
         {
-            OGRE_DELETE i->second;
+            OGRE_DELETE p.second;
         }
         mPages.clear();
 
@@ -324,8 +323,8 @@ namespace Ogre
     {
         mStrategy->frameStart(timeSinceLastFrame, this);
 
-        for (PageMap::iterator i = mPages.begin(); i != mPages.end(); ++i)
-            i->second->frameStart(timeSinceLastFrame);
+        for (auto & p : mPages)
+            p.second->frameStart(timeSinceLastFrame);
     }
     //---------------------------------------------------------------------
     void PagedWorldSection::frameEnd(Real timeElapsed)
@@ -350,8 +349,8 @@ namespace Ogre
     {
         mStrategy->notifyCamera(cam, this);
 
-        for (PageMap::iterator i = mPages.begin(); i != mPages.end(); ++i)
-            i->second->notifyCamera(cam);
+        for (auto & p : mPages)
+            p.second->notifyCamera(cam);
     }
     //---------------------------------------------------------------------
     StreamSerialiser* PagedWorldSection::_readPageStream(PageID pageID)

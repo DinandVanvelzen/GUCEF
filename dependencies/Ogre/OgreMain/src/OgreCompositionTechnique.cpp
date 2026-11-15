@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +26,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreCompositionTechnique.h"
 #include "OgreCompositionTargetPass.h"
-#include "OgreTextureManager.h"
-#include "OgreRoot.h"
 
 namespace Ogre {
 
@@ -48,6 +45,9 @@ CompositionTechnique::~CompositionTechnique()
 //-----------------------------------------------------------------------
 CompositionTechnique::TextureDefinition *CompositionTechnique::createTextureDefinition(const String &name)
 {
+    if(getTextureDefinition(name))
+        OGRE_EXCEPT(Exception::ERR_DUPLICATE_ITEM, "Texture '"+name+"' already exists");
+
     TextureDefinition *t = OGRE_NEW TextureDefinition();
     t->name = name;
     mTextureDefinitions.push_back(t);
@@ -62,41 +62,23 @@ void CompositionTechnique::removeTextureDefinition(size_t index)
     OGRE_DELETE (*i);
     mTextureDefinitions.erase(i);
 }
-//-----------------------------------------------------------------------
-
-CompositionTechnique::TextureDefinition *CompositionTechnique::getTextureDefinition(size_t index)
-{
-    assert (index < mTextureDefinitions.size() && "Index out of bounds.");
-    return mTextureDefinitions[index];
-}
 //---------------------------------------------------------------------
-CompositionTechnique::TextureDefinition *CompositionTechnique::getTextureDefinition(const String& name)
+CompositionTechnique::TextureDefinition *CompositionTechnique::getTextureDefinition(const String& name) const
 {
-    TextureDefinitions::iterator i, iend;
-    iend = mTextureDefinitions.end();
-    for (i = mTextureDefinitions.begin(); i != iend; ++i)
+    for (auto *t : mTextureDefinitions)
     {
-        if ((*i)->name == name)
-            return *i;
+        if (t->name == name)
+            return t;
     }
-
     return 0;
 
 }
 //-----------------------------------------------------------------------
-
-size_t CompositionTechnique::getNumTextureDefinitions()
-{
-    return mTextureDefinitions.size();
-}
-//-----------------------------------------------------------------------
 void CompositionTechnique::removeAllTextureDefinitions()
 {
-    TextureDefinitions::iterator i, iend;
-    iend = mTextureDefinitions.end();
-    for (i = mTextureDefinitions.begin(); i != iend; ++i)
+    for (auto *t : mTextureDefinitions)
     {
-        OGRE_DELETE (*i);
+        OGRE_DELETE t;
     }
     mTextureDefinitions.clear();
 }
@@ -123,26 +105,11 @@ void CompositionTechnique::removeTargetPass(size_t index)
     mTargetPasses.erase(i);
 }
 //-----------------------------------------------------------------------
-
-CompositionTargetPass *CompositionTechnique::getTargetPass(size_t index)
-{
-    assert (index < mTargetPasses.size() && "Index out of bounds.");
-    return mTargetPasses[index];
-}
-//-----------------------------------------------------------------------
-
-size_t CompositionTechnique::getNumTargetPasses()
-{
-    return mTargetPasses.size();
-}
-//-----------------------------------------------------------------------
 void CompositionTechnique::removeAllTargetPasses()
 {
-    TargetPasses::iterator i, iend;
-    iend = mTargetPasses.end();
-    for (i = mTargetPasses.begin(); i != iend; ++i)
+    for (auto *t : mTargetPasses)
     {
-        OGRE_DELETE (*i);
+        OGRE_DELETE t;
     }
     mTargetPasses.clear();
 }
@@ -150,11 +117,6 @@ void CompositionTechnique::removeAllTargetPasses()
 CompositionTechnique::TargetPassIterator CompositionTechnique::getTargetPassIterator(void)
 {
     return TargetPassIterator(mTargetPasses.begin(), mTargetPasses.end());
-}
-//-----------------------------------------------------------------------
-CompositionTargetPass *CompositionTechnique::getOutputTargetPass()
-{
-    return mOutputTarget;
 }
 //-----------------------------------------------------------------------
 bool CompositionTechnique::isSupported(bool acceptTextureDegradation)
@@ -173,24 +135,17 @@ bool CompositionTechnique::isSupported(bool acceptTextureDegradation)
     }
 
     // Check all target passes is supported
-    TargetPasses::iterator pi, piend;
-    piend = mTargetPasses.end();
-    for (pi = mTargetPasses.begin(); pi != piend; ++pi)
+    for (auto *p : mTargetPasses)
     {
-        CompositionTargetPass* targetPass = *pi;
-        if (!targetPass->_isSupported())
+        if (!p->_isSupported())
         {
             return false;
         }
     }
 
-    TextureDefinitions::iterator i, iend;
-    iend = mTextureDefinitions.end();
     TextureManager& texMgr = TextureManager::getSingleton();
-    for (i = mTextureDefinitions.begin(); i != iend; ++i)
+    for (auto *td : mTextureDefinitions)
     {
-        TextureDefinition* td = *i;
-
         // Firstly check MRTs
         if (td->formatList.size() > 
             Root::getSingleton().getRenderSystem()->getCapabilities()->getNumMultiRenderTargets())
@@ -199,39 +154,32 @@ bool CompositionTechnique::isSupported(bool acceptTextureDegradation)
         }
 
 
-        for (PixelFormatList::iterator pfi = td->formatList.begin(); pfi != td->formatList.end(); ++pfi)
+        for (auto& pfi : td->formatList)
         {
-
             // Check whether equivalent supported
-            if(acceptTextureDegradation)
+            // Need a format which is the same number of bits to pass
+            bool accepted = texMgr.isEquivalentFormatSupported(td->type, pfi, TU_RENDERTARGET);
+            if(!accepted && acceptTextureDegradation)
             {
                 // Don't care about exact format so long as something is supported
-                if(texMgr.getNativeFormat(TEX_TYPE_2D, *pfi, TU_RENDERTARGET) == PF_UNKNOWN)
-                {
-                    return false;
-                }
+                accepted = texMgr.getNativeFormat(td->type, pfi, TU_RENDERTARGET) != PF_UNKNOWN;
             }
-            else
-            {
-                // Need a format which is the same number of bits to pass
-                if (!texMgr.isEquivalentFormatSupported(TEX_TYPE_2D, *pfi, TU_RENDERTARGET))
-                {
-                    return false;
-                }
-            }
+
+            if(!accepted)
+                return false;
         }
 
         //Check all render targets have same number of bits
-        if( !Root::getSingleton().getRenderSystem()->getCapabilities()->
-            hasCapability( RSC_MRT_DIFFERENT_BIT_DEPTHS ) && !td->formatList.empty() )
+        if( Root::getSingleton().getRenderSystem()->getCapabilities()->
+            hasCapability( RSC_MRT_SAME_BIT_DEPTHS ) && !td->formatList.empty() )
         {
-            PixelFormat nativeFormat = texMgr.getNativeFormat( TEX_TYPE_2D, td->formatList.front(),
+            PixelFormat nativeFormat = texMgr.getNativeFormat( td->type, td->formatList.front(),
                                                                 TU_RENDERTARGET );
             size_t nativeBits = PixelUtil::getNumElemBits( nativeFormat );
             for( PixelFormatList::iterator pfi = td->formatList.begin()+1;
                     pfi != td->formatList.end(); ++pfi )
             {
-                PixelFormat nativeTmp = texMgr.getNativeFormat( TEX_TYPE_2D, *pfi, TU_RENDERTARGET );
+                PixelFormat nativeTmp = texMgr.getNativeFormat( td->type, *pfi, TU_RENDERTARGET );
                 if( PixelUtil::getNumElemBits( nativeTmp ) != nativeBits )
                 {
                     return false;

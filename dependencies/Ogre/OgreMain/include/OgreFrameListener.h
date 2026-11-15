@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,15 +46,15 @@ namespace Ogre {
         /** Elapsed time in seconds since the last event.
             This gives you time between frame start & frame end,
             and between frame end and next frame start.
-            @remarks
-                This may not be the elapsed time but the average
+
+            @note This may not be the elapsed time but the average
                 elapsed time between recently fired events.
         */
         Real timeSinceLastEvent;
         /** Elapsed time in seconds since the last event of the same type,
             i.e. time for a complete frame.
-            @remarks
-                This may not be the elapsed time but the average
+
+            @note  This may not be the elapsed time but the average
                 elapsed time between recently fired events of the same type.
         */
         Real timeSinceLastFrame;
@@ -63,18 +63,18 @@ namespace Ogre {
 
     /** A interface class defining a listener which can be used to receive
         notifications of frame events.
-        @remarks
-            A 'listener' is an interface designed to be called back when
-            particular events are called. This class defines the
-            interface relating to frame events. In order to receive
-            notifications of frame events, you should create a subclass of
-            FrameListener and override the methods for which you would like
-            to customise the resulting processing. You should then call
-            Root::addFrameListener passing an instance of this class.
-            There is no limit to the number of frame listeners you can register,
-            allowing you to register multiple listeners for different purposes.
-            Note that a frame event occurs once for all rendering targets,
-            not once per target.
+
+        A 'listener' is an interface designed to be called back when
+        particular events are called. This class defines the
+        interface relating to frame events. In order to receive
+        notifications of frame events, you should create a subclass of
+        FrameListener and override the methods for which you would like
+        to customise the resulting processing. You should then call
+        Root::addFrameListener passing an instance of this class.
+        There is no limit to the number of frame listeners you can register,
+        allowing you to register multiple listeners for different purposes.
+        Note that a frame event occurs once for all rendering targets,
+        not once per target.
     */
     class _OgreExport FrameListener
     {
@@ -88,7 +88,7 @@ namespace Ogre {
         */
     public:
         /** Called when a frame is about to begin rendering.
-        @remarks
+
             This event happens before any render targets have begun updating. 
             @return
                 True to go ahead, false to abort rendering and drop
@@ -100,7 +100,7 @@ namespace Ogre {
         /** Called after all render targets have had their rendering commands 
             issued, but before render windows have been asked to flip their 
             buffers over.
-        @remarks
+
             The usefulness of this event comes from the fact that rendering 
             commands are queued for the GPU to process. These can take a little
             while to finish, and so while that is happening the CPU can be doing
@@ -117,7 +117,7 @@ namespace Ogre {
                 { (void)evt; return true; }
 
         /** Called just after a frame has been rendered.
-        @remarks
+
             This event happens after all render targets have been fully updated
             and the buffers switched.
             @return

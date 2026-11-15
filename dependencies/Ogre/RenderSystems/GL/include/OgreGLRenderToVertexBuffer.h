@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,20 +28,11 @@ THE SOFTWARE.
 #ifndef __GLRenderToVertexBuffer_H__
 #define __GLRenderToVertexBuffer_H__
 
-#include "OgreRenderToVertexBuffer.h"
+#include "OgreGLRenderToVertexBufferCommon.h"
 #include "OgreGLPrerequisites.h"
 
 namespace Ogre {
-    /**
-        An object which renders geometry to a vertex.
-    @remarks
-        This is especially useful together with geometry shaders, as you can
-        render procedural geometry which will get saved to a vertex buffer for
-        reuse later, without regenerating it again. You can also create shaders
-        that run on previous results of those shaders, creating stateful 
-        shaders.
-    */
-    class _OgreGLExport GLRenderToVertexBuffer : public RenderToVertexBuffer
+    class GLRenderToVertexBuffer : public GLRenderToVertexBufferCommon
     {    
     public:
         /** C'tor */
@@ -50,21 +41,12 @@ namespace Ogre {
         virtual ~GLRenderToVertexBuffer();
 
         /**
-            Get the render operation for this buffer 
-        */
-        virtual void getRenderOperation(RenderOperation& op);
-
-        /**
             Update the contents of this vertex buffer by rendering
         */
-        virtual void update(SceneManager* sceneMgr);
+        void update(SceneManager* sceneMgr) override;
     protected:
-        void reallocateBuffer(size_t index);
         void bindVerticesOutput(Pass* pass);
         GLint getGLSemanticType(VertexElementSemantic semantic);
-        String getSemanticVaryingName(VertexElementSemantic semantic, unsigned short index);
-        HardwareVertexBufferSharedPtr mVertexBuffers[2];
-        size_t mFrontBufferIndex;
         GLuint mPrimitivesDrawnQuery;
     };
 }

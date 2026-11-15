@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -30,7 +30,7 @@ THE SOFTWARE.
 #define __Polygon_H__
 
 #include "OgrePrerequisites.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 #include "OgreHeaderPrefix.h"
 
 
@@ -45,7 +45,7 @@ namespace Ogre
     *  @{
     */
     /** The class represents a polygon in 3D space.
-    @remarks
+
         It is made up of 3 or more vertices in a single plane, listed in 
         counter-clockwise order.
     */
@@ -53,12 +53,12 @@ namespace Ogre
     {
 
     public:
-        typedef vector<Vector3>::type               VertexList;
+        typedef std::vector<Vector3>               VertexList;
 
-        typedef multimap<Vector3, Vector3>::type        EdgeMap;
+        typedef std::multimap<Vector3, Vector3>        EdgeMap;
         typedef std::pair< Vector3, Vector3>        Edge;
 
-    protected:
+    private:
         VertexList      mVertexList;
         mutable Vector3 mNormal;
         mutable bool    mIsNormalSet;
@@ -107,7 +107,7 @@ namespace Ogre
         void deleteVertex(size_t vertex);
 
         /** Determines if a point is inside the polygon.
-        @remarks
+
             A point is inside a polygon if it is both on the polygon's plane, 
             and within the polygon's bounds. Polygons are assumed to be convex
             and planar.
@@ -132,6 +132,8 @@ namespace Ogre
         */
         bool operator != (const Polygon& rhs) const
         { return !( *this == rhs ); }
+
+        Polygon& operator=(const Ogre::Polygon&) ;
 
         /** Prints out the polygon data.
         */

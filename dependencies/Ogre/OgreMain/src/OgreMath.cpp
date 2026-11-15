@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,35 +27,24 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreMath.h"
-#include "asm_math.h"
-#include "OgreVector2.h"
-#include "OgreVector3.h"
-#include "OgreVector4.h"
-#include "OgreRay.h"
-#include "OgreSphere.h"
-#include "OgreAxisAlignedBox.h"
-#include "OgrePlane.h"
-
-
 namespace Ogre
 {
 
-    const Real Math::POS_INFINITY = std::numeric_limits<Real>::infinity();
-    const Real Math::NEG_INFINITY = -std::numeric_limits<Real>::infinity();
-    const Real Math::PI = Real( 4.0 * atan( 1.0 ) );
-    const Real Math::TWO_PI = Real( 2.0 * PI );
-    const Real Math::HALF_PI = Real( 0.5 * PI );
-    const Real Math::fDeg2Rad = PI / Real(180.0);
-    const Real Math::fRad2Deg = Real(180.0) / PI;
-    const Real Math::LOG2 = log(Real(2.0));
+    constexpr Real Math::POS_INFINITY;
+    constexpr Real Math::NEG_INFINITY;
+    constexpr Real Math::PI;
+    constexpr Real Math::TWO_PI;
+    constexpr Real Math::HALF_PI;
+    constexpr float Math::fDeg2Rad;
+    constexpr float Math::fRad2Deg;
+    constexpr Real Math::LOG2;
 
     int Math::mTrigTableSize;
    Math::AngleUnit Math::msAngleUnit;
 
-    Real  Math::mTrigTableFactor;
-    Real *Math::mSinTable = NULL;
-    Real *Math::mTanTable = NULL;
+    float  Math::mTrigTableFactor;
+    float *Math::mSinTable = NULL;
+    float *Math::mTanTable = NULL;
 
     Math::RandomValueProvider* Math::mRandProvider = NULL;
 
@@ -66,8 +55,8 @@ namespace Ogre
         mTrigTableSize = trigTableSize;
         mTrigTableFactor = mTrigTableSize / Math::TWO_PI;
 
-        mSinTable = OGRE_ALLOC_T(Real, mTrigTableSize, MEMCATEGORY_GENERAL);
-        mTanTable = OGRE_ALLOC_T(Real, mTrigTableSize, MEMCATEGORY_GENERAL);
+        mSinTable = OGRE_ALLOC_T(float, mTrigTableSize, MEMCATEGORY_GENERAL);
+        mTanTable = OGRE_ALLOC_T(float, mTrigTableSize, MEMCATEGORY_GENERAL);
 
         buildTrigTables();
     }
@@ -86,16 +75,16 @@ namespace Ogre
         // Could get away with building only PI sized Sin table but simpler this 
         // way. Who cares, it'll ony use an extra 8k of memory anyway and I like 
         // simplicity.
-        Real angle;
+        float angle;
         for (int i = 0; i < mTrigTableSize; ++i)
         {
-            angle = Math::TWO_PI * i / mTrigTableSize;
-            mSinTable[i] = sin(angle);
-            mTanTable[i] = tan(angle);
+            angle = Math::TWO_PI * i / Real(mTrigTableSize);
+            mSinTable[i] = std::sin(angle);
+            mTanTable[i] = std::tan(angle);
         }
     }
     //-----------------------------------------------------------------------   
-    Real Math::SinTable (Real fValue)
+    float Math::SinTable (float fValue)
     {
         // Convert range to index values, wrap if required
         int idx;
@@ -111,16 +100,11 @@ namespace Ogre
         return mSinTable[idx];
     }
     //-----------------------------------------------------------------------
-    Real Math::TanTable (Real fValue)
+    float Math::TanTable (float fValue)
     {
         // Convert range to index values, wrap if required
-        int idx = int(fValue *= mTrigTableFactor) % mTrigTableSize;
+        int idx = int(fValue * mTrigTableFactor) % mTrigTableSize;
         return mTanTable[idx];
-    }
-    //-----------------------------------------------------------------------
-    int Math::ISign (int iValue)
-    {
-        return ( iValue > 0 ? +1 : ( iValue < 0 ? -1 : 0 ) );
     }
     //-----------------------------------------------------------------------
     Radian Math::ACos (Real fValue)
@@ -128,7 +112,7 @@ namespace Ogre
         if ( -1.0 < fValue )
         {
             if ( fValue < 1.0 )
-                return Radian(acos(fValue));
+                return Radian(std::acos(fValue));
             else
                 return Radian(0.0);
         }
@@ -143,7 +127,7 @@ namespace Ogre
         if ( -1.0 < fValue )
         {
             if ( fValue < 1.0 )
-                return Radian(asin(fValue));
+                return Radian(std::asin(fValue));
             else
                 return Radian(HALF_PI);
         }
@@ -152,48 +136,12 @@ namespace Ogre
             return Radian(-HALF_PI);
         }
     }
-    //-----------------------------------------------------------------------
-    Real Math::Sign (Real fValue)
-    {
-        if ( fValue > 0.0 )
-            return 1.0;
-
-        if ( fValue < 0.0 )
-            return -1.0;
-
-        return 0.0;
-    }
-    //-----------------------------------------------------------------------
-    Real Math::InvSqrt(Real fValue)
-    {
-        return Real(asm_rsq(fValue));
-    }
-    //-----------------------------------------------------------------------
-    Real Math::UnitRandom ()
-    {
-        if (mRandProvider)
-            return mRandProvider->getRandomUnit();
-        else return asm_rand() / asm_rand_max();
-    }
     
-    //-----------------------------------------------------------------------
-    Real Math::RangeRandom (Real fLow, Real fHigh)
-    {
-        return (fHigh-fLow)*UnitRandom() + fLow;
-    }
-
-    //-----------------------------------------------------------------------
-    Real Math::SymmetricRandom ()
-    {
-        return 2.0f * UnitRandom() - 1.0f;
-    }
-
     //-----------------------------------------------------------------------
     void Math::SetRandomValueProvider(RandomValueProvider* provider)
     {
         mRandProvider = provider;
     }
-
 
    //-----------------------------------------------------------------------
     void Math::setAngleUnit(Math::AngleUnit unit)
@@ -206,7 +154,7 @@ namespace Ogre
        return msAngleUnit;
    }
     //-----------------------------------------------------------------------
-    Real Math::AngleUnitsToRadians(Real angleunits)
+    float Math::AngleUnitsToRadians(float angleunits)
     {
        if (msAngleUnit == AU_DEGREE)
            return angleunits * fDeg2Rad;
@@ -215,7 +163,7 @@ namespace Ogre
     }
 
     //-----------------------------------------------------------------------
-    Real Math::RadiansToAngleUnits(Real radians)
+    float Math::RadiansToAngleUnits(float radians)
     {
        if (msAngleUnit == AU_DEGREE)
            return radians * fRad2Deg;
@@ -224,7 +172,7 @@ namespace Ogre
     }
 
     //-----------------------------------------------------------------------
-    Real Math::AngleUnitsToDegrees(Real angleunits)
+    float Math::AngleUnitsToDegrees(float angleunits)
     {
        if (msAngleUnit == AU_RADIAN)
            return angleunits * fRad2Deg;
@@ -233,7 +181,7 @@ namespace Ogre
     }
 
     //-----------------------------------------------------------------------
-    Real Math::DegreesToAngleUnits(Real degrees)
+    float Math::DegreesToAngleUnits(float degrees)
     {
        if (msAngleUnit == AU_RADIAN)
            return degrees * fDeg2Rad;
@@ -338,49 +286,9 @@ namespace Ogre
         return true;
     }
     //-----------------------------------------------------------------------
-    bool Math::RealEqual( Real a, Real b, Real tolerance )
-    {
-        if (fabs(b-a) <= tolerance)
-            return true;
-        else
-            return false;
-    }
-
-    //-----------------------------------------------------------------------
-    std::pair<bool, Real> Math::intersects(const Ray& ray, const Plane& plane)
-    {
-
-        Real denom = plane.normal.dotProduct(ray.getDirection());
-        if (Math::Abs(denom) < std::numeric_limits<Real>::epsilon())
-        {
-            // Parallel
-            return std::pair<bool, Real>(false, (Real)0);
-        }
-        else
-        {
-            Real nom = plane.normal.dotProduct(ray.getOrigin()) + plane.d;
-            Real t = -(nom/denom);
-            return std::pair<bool, Real>(t >= 0, (Real)t);
-        }
-        
-    }
-    //-----------------------------------------------------------------------
     std::pair<bool, Real> Math::intersects(const Ray& ray, 
-        const vector<Plane>::type& planes, bool normalIsOutside)
+        const std::vector<Plane>& planes, bool normalIsOutside)
     {
-        list<Plane>::type planesList;
-        for (vector<Plane>::type::const_iterator i = planes.begin(); i != planes.end(); ++i)
-        {
-            planesList.push_back(*i);
-        }
-        return intersects(ray, planesList, normalIsOutside);
-    }
-    //-----------------------------------------------------------------------
-    std::pair<bool, Real> Math::intersects(const Ray& ray, 
-        const list<Plane>::type& planes, bool normalIsOutside)
-    {
-        list<Plane>::type::const_iterator planeit, planeitend;
-        planeitend = planes.end();
         bool allInside = true;
         std::pair<bool, Real> ret;
         std::pair<bool, Real> end;
@@ -389,15 +297,12 @@ namespace Ogre
         end.first = false;
         end.second = 0;
 
-
         // derive side
         // NB we don't pass directly since that would require Plane::Side in 
         // interface, which results in recursive includes since Math is so fundamental
         Plane::Side outside = normalIsOutside ? Plane::POSITIVE_SIDE : Plane::NEGATIVE_SIDE;
-
-        for (planeit = planes.begin(); planeit != planeitend; ++planeit)
+        for (auto& plane : planes)
         {
-            const Plane& plane = *planeit;
             // is origin outside?
             if (plane.getSide(ray.getOrigin()) == outside)
             {
@@ -459,48 +364,6 @@ namespace Ogre
         return ret;
     }
     //-----------------------------------------------------------------------
-    std::pair<bool, Real> Math::intersects(const Ray& ray, const Sphere& sphere, 
-        bool discardInside)
-    {
-        const Vector3& raydir = ray.getDirection();
-        // Adjust ray origin relative to sphere center
-        const Vector3& rayorig = ray.getOrigin() - sphere.getCenter();
-        Real radius = sphere.getRadius();
-
-        // Check origin inside first
-        if (rayorig.squaredLength() <= radius*radius && discardInside)
-        {
-            return std::pair<bool, Real>(true, (Real)0);
-        }
-
-        // Mmm, quadratics
-        // Build coeffs which can be used with std quadratic solver
-        // ie t = (-b +/- sqrt(b*b + 4ac)) / 2a
-        Real a = raydir.dotProduct(raydir);
-        Real b = 2 * rayorig.dotProduct(raydir);
-        Real c = rayorig.dotProduct(rayorig) - radius*radius;
-
-        // Calc determinant
-        Real d = (b*b) - (4 * a * c);
-        if (d < 0)
-        {
-            // No intersection
-            return std::pair<bool, Real>(false, (Real)0);
-        }
-        else
-        {
-            // BTW, if d=0 there is one intersection, if d > 0 there are 2
-            // But we only want the closest one, so that's ok, just use the 
-            // '-' version of the solver
-            Real t = ( -b - Math::Sqrt(d) ) / (2 * a);
-            if (t < 0)
-                t = ( -b + Math::Sqrt(d) ) / (2 * a);
-            return std::pair<bool, Real>(true, (Real)t);
-        }
-
-
-    }
-    //-----------------------------------------------------------------------
     std::pair<bool, Real> Math::intersects(const Ray& ray, const AxisAlignedBox& box)
     {
         if (box.isNull()) return std::pair<bool, Real>(false, (Real)0);
@@ -526,102 +389,90 @@ namespace Ogre
         if (rayorig.x <= min.x && raydir.x > 0)
         {
             t = (min.x - rayorig.x) / raydir.x;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.y >= min.y && hitpoint.y <= max.y &&
+                hitpoint.z >= min.z && hitpoint.z <= max.z &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.y >= min.y && hitpoint.y <= max.y &&
-                    hitpoint.z >= min.z && hitpoint.z <= max.z &&
-					(!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
         // Max x
         if (rayorig.x >= max.x && raydir.x < 0)
         {
             t = (max.x - rayorig.x) / raydir.x;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.y >= min.y && hitpoint.y <= max.y &&
+                hitpoint.z >= min.z && hitpoint.z <= max.z &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.y >= min.y && hitpoint.y <= max.y &&
-                    hitpoint.z >= min.z && hitpoint.z <= max.z &&
-                    (!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
         // Min y
         if (rayorig.y <= min.y && raydir.y > 0)
         {
             t = (min.y - rayorig.y) / raydir.y;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
+                hitpoint.z >= min.z && hitpoint.z <= max.z &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
-                    hitpoint.z >= min.z && hitpoint.z <= max.z &&
-                    (!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
         // Max y
         if (rayorig.y >= max.y && raydir.y < 0)
         {
             t = (max.y - rayorig.y) / raydir.y;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
+                hitpoint.z >= min.z && hitpoint.z <= max.z &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
-                    hitpoint.z >= min.z && hitpoint.z <= max.z &&
-                    (!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
         // Min z
         if (rayorig.z <= min.z && raydir.z > 0)
         {
             t = (min.z - rayorig.z) / raydir.z;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
+                hitpoint.y >= min.y && hitpoint.y <= max.y &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
-                    hitpoint.y >= min.y && hitpoint.y <= max.y &&
-                    (!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
         // Max z
         if (rayorig.z >= max.z && raydir.z < 0)
         {
             t = (max.z - rayorig.z) / raydir.z;
-            if (t >= 0)
+
+            // Substitute t back into ray and check bounds and dist
+            hitpoint = rayorig + raydir * t;
+            if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
+                hitpoint.y >= min.y && hitpoint.y <= max.y &&
+                (!hit || t < lowt))
             {
-                // Substitute t back into ray and check bounds and dist
-                hitpoint = rayorig + raydir * t;
-                if (hitpoint.x >= min.x && hitpoint.x <= max.x &&
-                    hitpoint.y >= min.y && hitpoint.y <= max.y &&
-                    (!hit || t < lowt))
-                {
-                    hit = true;
-                    lowt = t;
-                }
+                hit = true;
+                lowt = t;
             }
         }
 
@@ -717,105 +568,38 @@ namespace Ogre
         return true;
     }
     //-----------------------------------------------------------------------
-    std::pair<bool, Real> Math::intersects(const Ray& ray, const Vector3& a,
-        const Vector3& b, const Vector3& c, const Vector3& normal,
-        bool positiveSide, bool negativeSide)
+    std::pair<bool, Real> Math::intersects(const Ray& ray, const Vector3& a, const Vector3& b,
+                                           const Vector3& c, bool positiveSide, bool negativeSide)
     {
-        //
-        // Calculate intersection with plane.
-        //
-        Real t;
-        {
-            Real denom = normal.dotProduct(ray.getDirection());
+        const Real EPSILON = 1e-6f;
+        Vector3 E1 = b - a;
+        Vector3 E2 = c - a;
+        Vector3 P = ray.getDirection().crossProduct(E2);
+        Real det = E1.dotProduct(P);
 
-            // Check intersect side
-            if (denom > + std::numeric_limits<Real>::epsilon())
-            {
-                if (!negativeSide)
-                    return std::pair<bool, Real>(false, (Real)0);
-            }
-            else if (denom < - std::numeric_limits<Real>::epsilon())
-            {
-                if (!positiveSide)
-                    return std::pair<bool, Real>(false, (Real)0);
-            }
-            else
-            {
-                // Parallel or triangle area is close to zero when
-                // the plane normal not normalised.
-                return std::pair<bool, Real>(false, (Real)0);
-            }
+        // if determinant is near zero, ray lies in plane of triangle
+        if((!positiveSide || det <= EPSILON) && (!negativeSide || det >= -EPSILON))
+            return {false, (Real)0};
+        Real inv_det = 1.0f / det;
 
-            t = normal.dotProduct(a - ray.getOrigin()) / denom;
+        // calculate u parameter and test bounds
+        Vector3 T = ray.getOrigin() - a;
+        Real u = T.dotProduct(P) * inv_det;
+        if(u < 0.0f || u > 1.0f)
+            return {false, (Real)0};
 
-            if (t < 0)
-            {
-                // Intersection is behind origin
-                return std::pair<bool, Real>(false, (Real)0);
-            }
-        }
+        // calculate v parameter and test bounds
+        Vector3 Q = T.crossProduct(E1);
+        Real v = ray.getDirection().dotProduct(Q) * inv_det;
+        if (v < 0.0f || u + v > 1.0f)
+            return {false, (Real)0};
 
-        //
-        // Calculate the largest area projection plane in X, Y or Z.
-        //
-        size_t i0, i1;
-        {
-            Real n0 = Math::Abs(normal[0]);
-            Real n1 = Math::Abs(normal[1]);
-            Real n2 = Math::Abs(normal[2]);
+        // calculate t, ray intersects triangle
+        Real t = E2.dotProduct(Q) * inv_det;
+        if (t < 0.0f)
+            return {false, (Real)0};
 
-            i0 = 1; i1 = 2;
-            if (n1 > n2)
-            {
-                if (n1 > n0) i0 = 0;
-            }
-            else
-            {
-                if (n2 > n0) i1 = 0;
-            }
-        }
-
-        //
-        // Check the intersection point is inside the triangle.
-        //
-        {
-            Real u1 = b[i0] - a[i0];
-            Real v1 = b[i1] - a[i1];
-            Real u2 = c[i0] - a[i0];
-            Real v2 = c[i1] - a[i1];
-            Real u0 = t * ray.getDirection()[i0] + ray.getOrigin()[i0] - a[i0];
-            Real v0 = t * ray.getDirection()[i1] + ray.getOrigin()[i1] - a[i1];
-
-            Real alpha = u0 * v2 - u2 * v0;
-            Real beta  = u1 * v0 - u0 * v1;
-            Real area  = u1 * v2 - u2 * v1;
-
-            // epsilon to avoid float precision error
-            const Real EPSILON = 1e-6f;
-
-            Real tolerance = - EPSILON * area;
-
-            if (area > 0)
-            {
-                if (alpha < tolerance || beta < tolerance || alpha+beta > area-tolerance)
-                    return std::pair<bool, Real>(false, (Real)0);
-            }
-            else
-            {
-                if (alpha > tolerance || beta > tolerance || alpha+beta < area-tolerance)
-                    return std::pair<bool, Real>(false, (Real)0);
-            }
-        }
-
-        return std::pair<bool, Real>(true, (Real)t);
-    }
-    //-----------------------------------------------------------------------
-    std::pair<bool, Real> Math::intersects(const Ray& ray, const Vector3& a,
-        const Vector3& b, const Vector3& c,
-        bool positiveSide, bool negativeSide)
-    {
-        Vector3 normal = calculateBasicFaceNormalWithoutNormalize(a, b, c);
-        return intersects(ray, a, b, c, normal, positiveSide, negativeSide);
+        return {true, t};
     }
     //-----------------------------------------------------------------------
     bool Math::intersects(const Sphere& sphere, const AxisAlignedBox& box)
@@ -846,18 +630,6 @@ namespace Ogre
         }
         return d <= radius * radius;
 
-    }
-    //-----------------------------------------------------------------------
-    bool Math::intersects(const Plane& plane, const AxisAlignedBox& box)
-    {
-        return (plane.getSide(box) == Plane::BOTH_SIDE);
-    }
-    //-----------------------------------------------------------------------
-    bool Math::intersects(const Sphere& sphere, const Plane& plane)
-    {
-        return (
-            Math::Abs(plane.getDistance(sphere.getCenter()))
-            <= sphere.getRadius() );
     }
     //-----------------------------------------------------------------------
     Vector3 Math::calculateTangentSpaceVector(
@@ -898,40 +670,12 @@ namespace Ogre
 
     }
     //-----------------------------------------------------------------------
-    Matrix4 Math::buildReflectionMatrix(const Plane& p)
+    Affine3 Math::buildReflectionMatrix(const Plane& p)
     {
-        return Matrix4(
+        return Affine3(
             -2 * p.normal.x * p.normal.x + 1,   -2 * p.normal.x * p.normal.y,       -2 * p.normal.x * p.normal.z,       -2 * p.normal.x * p.d, 
             -2 * p.normal.y * p.normal.x,       -2 * p.normal.y * p.normal.y + 1,   -2 * p.normal.y * p.normal.z,       -2 * p.normal.y * p.d, 
-            -2 * p.normal.z * p.normal.x,       -2 * p.normal.z * p.normal.y,       -2 * p.normal.z * p.normal.z + 1,   -2 * p.normal.z * p.d, 
-            0,                                  0,                                  0,                                  1);
-    }
-    //-----------------------------------------------------------------------
-    Vector4 Math::calculateFaceNormal(const Vector3& v1, const Vector3& v2, const Vector3& v3)
-    {
-        Vector3 normal = calculateBasicFaceNormal(v1, v2, v3);
-        // Now set up the w (distance of tri from origin
-        return Vector4(normal.x, normal.y, normal.z, -(normal.dotProduct(v1)));
-    }
-    //-----------------------------------------------------------------------
-    Vector3 Math::calculateBasicFaceNormal(const Vector3& v1, const Vector3& v2, const Vector3& v3)
-    {
-        Vector3 normal = (v2 - v1).crossProduct(v3 - v1);
-        normal.normalise();
-        return normal;
-    }
-    //-----------------------------------------------------------------------
-    Vector4 Math::calculateFaceNormalWithoutNormalize(const Vector3& v1, const Vector3& v2, const Vector3& v3)
-    {
-        Vector3 normal = calculateBasicFaceNormalWithoutNormalize(v1, v2, v3);
-        // Now set up the w (distance of tri from origin)
-        return Vector4(normal.x, normal.y, normal.z, -(normal.dotProduct(v1)));
-    }
-    //-----------------------------------------------------------------------
-    Vector3 Math::calculateBasicFaceNormalWithoutNormalize(const Vector3& v1, const Vector3& v2, const Vector3& v3)
-    {
-        Vector3 normal = (v2 - v1).crossProduct(v3 - v1);
-        return normal;
+            -2 * p.normal.z * p.normal.x,       -2 * p.normal.z * p.normal.y,       -2 * p.normal.z * p.normal.z + 1,   -2 * p.normal.z * p.d);
     }
     //-----------------------------------------------------------------------
     Real Math::gaussianDistribution(Real x, Real offset, Real scale)
@@ -944,20 +688,9 @@ namespace Ogre
 
     }
     //---------------------------------------------------------------------
-    Matrix4 Math::makeViewMatrix(const Vector3& position, const Quaternion& orientation, 
-        const Matrix4* reflectMatrix)
+    Affine3 Math::makeViewMatrix(const Vector3& position, const Quaternion& orientation,
+        const Affine3* reflectMatrix)
     {
-        Matrix4 viewMatrix;
-
-        // View matrix is:
-        //
-        //  [ Lx  Uy  Dz  Tx  ]
-        //  [ Lx  Uy  Dz  Ty  ]
-        //  [ Lx  Uy  Dz  Tz  ]
-        //  [ 0   0   0   1   ]
-        //
-        // Where T = -(Transposed(Rot) * Pos)
-
         // This is most efficiently done using 3x3 Matrices
         Matrix3 rot;
         orientation.ToRotationMatrix(rot);
@@ -967,7 +700,7 @@ namespace Ogre
         Vector3 trans = -rotT * position;
 
         // Make final matrix
-        viewMatrix = Matrix4::IDENTITY;
+        Affine3 viewMatrix = Affine3::IDENTITY;
         viewMatrix = rotT; // fills upper 3x3
         viewMatrix[0][3] = trans.x;
         viewMatrix[1][3] = trans.y;
@@ -982,11 +715,53 @@ namespace Ogre
         return viewMatrix;
 
     }
+
+    Matrix4 Math::makePerspectiveMatrix(Real left, Real right, Real bottom, Real top, Real zNear, Real zFar)
+    {
+        // The code below will dealing with general projection
+        // parameters, similar glFrustum.
+        // Doesn't optimise manually except division operator, so the
+        // code more self-explaining.
+
+        Real inv_w = 1 / (right - left);
+        Real inv_h = 1 / (top - bottom);
+        Real inv_d = 1 / (zFar - zNear);
+
+        // Calc matrix elements
+        Real A = 2 * zNear * inv_w;
+        Real B = 2 * zNear * inv_h;
+        Real C = (right + left) * inv_w;
+        Real D = (top + bottom) * inv_h;
+        Real q, qn;
+
+        if (zFar == 0)
+        {
+            // Infinite far plane
+            q = Frustum::INFINITE_FAR_PLANE_ADJUST - 1;
+            qn = zNear * (Frustum::INFINITE_FAR_PLANE_ADJUST - 2);
+        }
+        else
+        {
+            q = - (zFar + zNear) * inv_d;
+            qn = -2 * (zFar * zNear) * inv_d;
+        }
+
+        Matrix4 ret = Matrix4::ZERO;
+        ret[0][0] = A;
+        ret[0][2] = C;
+        ret[1][1] = B;
+        ret[1][2] = D;
+        ret[2][2] = q;
+        ret[2][3] = qn;
+        ret[3][2] = -1;
+
+        return ret;
+    }
     //---------------------------------------------------------------------
     Real Math::boundingRadiusFromAABB(const AxisAlignedBox& aabb)
     {
-        Vector3 max = aabb.getMaximum();
-        Vector3 min = aabb.getMinimum();
+        const Vector3& max = aabb.getMaximum();
+        const Vector3& min = aabb.getMinimum();
 
         Vector3 magnitude = max;
         magnitude.makeCeil(-max);
@@ -996,4 +771,14 @@ namespace Ogre
         return magnitude.length();
     }
 
+    Real Math::boundingRadiusFromAABBCentered(const AxisAlignedBox& aabb)
+    {
+        const Vector3& max = aabb.getMaximum();
+        const Vector3& min = aabb.getMinimum();
+
+        return ((min - max) * 0.5f).length();
+    }
+
+    std::ostream& operator<<(std::ostream& o, const Radian& v) { return o << "Radian(" << v.valueRadians() << ")"; }
+    std::ostream& operator<<(std::ostream& o, const Degree& v) { return o << "Degree(" << v.valueDegrees() << ")"; }
 }

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,14 +34,14 @@ THE SOFTWARE.
 
 namespace Ogre {
 
-    /** \addtogroup Core
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Overlays
     *  @{
     */
     /** OverlayElement representing a flat, single-material (or transparent) panel which can contain other elements.
-    @remarks
+
         This class subclasses OverlayContainer because it can contain other elements. Like other
         containers, if hidden it's contents are also hidden, if moved it's contents also move etc. 
         The panel itself is a 2D rectangle which is either completely transparent, or is rendered 
@@ -63,12 +63,12 @@ namespace Ogre {
         virtual ~PanelOverlayElement();
 
         /** Initialise */
-        virtual void initialise(void);
+        void initialise(void) override;
 
-        /** @copydoc OverlayElement::_releaseManualHardwareResources. */
-        virtual void _releaseManualHardwareResources();
-        /** @copydoc OverlayElement::_restoreManualHardwareResources. */
-        virtual void _restoreManualHardwareResources();
+        /** @copydoc OverlayElement::_releaseManualHardwareResources */
+        void _releaseManualHardwareResources() override;
+        /** @copydoc OverlayElement::_restoreManualHardwareResources */
+        void _restoreManualHardwareResources() override;
 
         /** Sets the number of times textures should repeat. 
         @param x The number of times the texture should repeat horizontally
@@ -99,37 +99,11 @@ namespace Ogre {
         /** Returns whether this panel is transparent. */
         bool isTransparent(void) const;
 
-        /** See OverlayElement. */
-        virtual const String& getTypeName(void) const;
-        /** See Renderable. */
-        void getRenderOperation(RenderOperation& op);
-        /** Overridden from OverlayElement */
-        void setMaterialName(const String& matName);
+        const String& getTypeName(void) const override;
+        void getRenderOperation(RenderOperation& op) override;
         /** Overridden from OverlayContainer */
-        void _updateRenderQueue(RenderQueue* queue);
+        void _updateRenderQueue(RenderQueue* queue) override;
 
-
-        /** Command object for specifying tiling (see ParamCommand).*/
-        class _OgrePrivate CmdTiling : public ParamCommand
-        {
-        public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
-        };
-        /** Command object for specifying transparency (see ParamCommand).*/
-        class _OgrePrivate CmdTransparent : public ParamCommand
-        {
-        public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
-        };
-        /** Command object for specifying UV coordinates (see ParamCommand).*/
-        class _OgrePrivate CmdUVCoords : public ParamCommand
-        {
-        public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
-        };
     protected:
         /// Flag indicating if this panel should be visual or just group things
         bool mTransparent;
@@ -142,21 +116,15 @@ namespace Ogre {
         RenderOperation mRenderOp;
 
         /// Internal method for setting up geometry, called by OverlayElement::update
-        virtual void updatePositionGeometry(void);
+        void updatePositionGeometry(void) override;
 
         /// Called to update the texture coords when layers change
-        virtual void updateTextureGeometry(void);
+        void updateTextureGeometry(void) override;
 
         /// Method for setting up base parameters for this class
-        void addBaseParameters(void);
+        void addBaseParameters(void) override;
 
         static String msTypeName;
-
-        // Command objects
-        static CmdTiling msCmdTiling;
-        static CmdTransparent msCmdTransparent;
-        static CmdUVCoords msCmdUVCoords;
-
     };
     /** @} */
     /** @} */

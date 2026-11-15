@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,6 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-    const uint16 TerrainLodManager::WORKQUEUE_LOAD_LOD_DATA_REQUEST = 1;
     const uint32 TerrainLodManager::TERRAINLODDATA_CHUNK_ID = StreamSerialiser::makeIdentifier("TLDA");
     const uint16 TerrainLodManager::TERRAINLODDATA_CHUNK_VERSION = 1;
 
@@ -43,16 +42,30 @@ namespace Ogre
     {
         init();
         mDataStream = stream;
-        mStreamOffset = mDataStream.isNull() ? 0 : mDataStream->tell();
+        mStreamOffset = !mDataStream ? 0 : mDataStream->tell();
     }
 
     TerrainLodManager::TerrainLodManager(Terrain* t, const String& filename)
         : mTerrain(t), mStreamOffset(0)
     {
         init();
+        open(filename);
+    }
 
-        if(!filename.empty() && filename.length() > 0)
+    void TerrainLodManager::open(const String& filename)
+    {
+        if(!filename.empty())
             mDataStream = Root::getSingleton().openFileStream(filename, mTerrain->_getDerivedResourceGroup());
+    }
+
+    void TerrainLodManager::close()
+    {
+        mDataStream.reset();
+    }
+
+    bool TerrainLodManager::isOpen() const
+    {
+        return mDataStream.get() != 0;
     }
 
     void TerrainLodManager::init()
@@ -63,36 +76,14 @@ namespace Ogre
         mIncreaseLodLevelInProgress = false;
         mLastRequestSynchronous = false;
         mLodInfoTable = 0;
-
-        WorkQueue* wq = Root::getSingleton().getWorkQueue();
-        mWorkQueueChannel = wq->getChannel("Ogre/TerrainLodManager");
-        wq->addRequestHandler(mWorkQueueChannel, this);
-        wq->addResponseHandler(mWorkQueueChannel, this);
     }
 
     TerrainLodManager::~TerrainLodManager()
     {
         waitForDerivedProcesses();
-        WorkQueue* wq = Root::getSingleton().getWorkQueue();
-        wq->removeRequestHandler(mWorkQueueChannel, this);
-        wq->removeResponseHandler(mWorkQueueChannel, this);
 
         if(mLodInfoTable)
             OGRE_FREE(mLodInfoTable,MEMCATEGORY_GENERAL);
-    }
-
-    bool TerrainLodManager::canHandleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ)
-    {
-        LoadLodRequest lreq = any_cast<LoadLodRequest>(req->getData());
-        if (lreq.requestee != this)
-            return false;
-        return RequestHandler::canHandleRequest(req, srcQ);
-    }
-    //---------------------------------------------------------------------
-    bool TerrainLodManager::canHandleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ)
-    {
-        LoadLodRequest lreq = any_cast<LoadLodRequest>(res->getRequest()->getData());
-        return (lreq.requestee == this);
     }
 
     WorkQueue::Response* TerrainLodManager::handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ)
@@ -267,9 +258,24 @@ namespace Ogre
             {
                 mIncreaseLodLevelInProgress = true;
                 LoadLodRequest req(this,mHighestLodPrepared,mHighestLodLoaded,mTargetLodLevel);
-                Root::getSingleton().getWorkQueue()->addRequest(
-                    mWorkQueueChannel, WORKQUEUE_LOAD_LOD_DATA_REQUEST,
-                    Any(req), 0, synchronous);
+
+                auto r = new WorkQueue::Request(0, 0, req, 0, 0);
+                if(synchronous)
+                {
+                    auto res = handleRequest(r, NULL);
+                    handleResponse(res, NULL);
+                    delete res;
+                }
+                else
+                {
+                    Root::getSingleton().getWorkQueue()->addTask([this, r]() {
+                        auto res = handleRequest(r, NULL);
+                        Root::getSingleton().getWorkQueue()->addMainThreadTask([this, res]() {
+                            handleResponse(res, NULL);
+                            delete res;
+                        });
+                    });
+                }
             }
             else if(synchronous)
                 waitForDerivedProcesses();
@@ -310,7 +316,7 @@ namespace Ogre
 
     void TerrainLodManager::readLodData(uint16 lowerLodBound, uint16 higherLodBound)
     {
-        if(mDataStream.isNull()) // No file to read from
+        if(!mDataStream) // No file to read from
             return;
 
         uint16 numLodLevels = mTerrain->getNumLodLevels();
@@ -389,7 +395,7 @@ namespace Ogre
         {
             // we need to wait for this to finish
             OGRE_THREAD_SLEEP(50);
-            Root::getSingleton().getWorkQueue()->processResponses();
+            Root::getSingleton().getWorkQueue()->processMainThreadTasks();
         }
     }
 }

@@ -1,0 +1,113 @@
+#ifndef __Custom_Config_H_
+#define __Custom_Config_H_
+
+// CMake auto-generated configuration options
+
+// Define ogre version
+#define OGRE_VERSION_MAJOR @OGRE_VERSION_MAJOR@
+#define OGRE_VERSION_MINOR @OGRE_VERSION_MINOR@
+#define OGRE_VERSION_PATCH @OGRE_VERSION_PATCH@
+#define OGRE_VERSION_SUFFIX "@OGRE_VERSION_SUFFIX@"
+#define OGRE_VERSION_NAME "@OGRE_VERSION_NAME@"
+
+#cmakedefine OGRE_STATIC_LIB
+#cmakedefine01 OGRE_DEBUG_MODE
+
+/** There are three modes for resource lookup
+0 - LEGACY - search in all groups twice - for case sensitive and insensitive lookup
+1 - PEDANTIC - require an explicit resource group. Case sensitive lookup.
+2 - STRICT - search in default group if not specified otherwise. Case sensitive lookup.
+*/
+#define OGRE_RESOURCEMANAGER_STRICT @OGRE_RESOURCEMANAGER_STRICT@
+
+#cmakedefine OGRE_NODELESS_POSITIONING
+
+#cmakedefine OGRE_CONFIG_LITTLE_ENDIAN
+#cmakedefine OGRE_CONFIG_BIG_ENDIAN
+
+/** If set to 1, Real is typedef'ed to double. Otherwise, Real is typedef'ed
+    to float. Setting this allows you to perform mathematical operations in the
+    CPU (Quaternion, Vector3 etc) with more precision, but bear in mind that the
+    GPU still operates in single-precision mode.
+*/
+#cmakedefine01 OGRE_DOUBLE_PRECISION
+
+#cmakedefine01 OGRE_NODE_INHERIT_TRANSFORM
+
+/** There are three modes for handling asserts in OGRE:
+0 - STANDARD - Standard asserts in debug builds, nothing in release builds
+1 - RELEASE_EXCEPTIONS - Standard asserts in debug builds, exceptions in release builds
+2 - EXCEPTIONS - Exceptions in debug builds, exceptions in release builds
+*/
+#define OGRE_ASSERT_MODE @OGRE_SET_ASSERT_MODE@
+
+/** Support for multithreading, there are 3 options
+
+OGRE_THREAD_SUPPORT = 0
+    No support for threading.       
+OGRE_THREAD_SUPPORT = 1
+    Thread support for background loading, by both loading and constructing resources
+    in a background thread. Resource management and SharedPtr handling becomes
+    thread-safe, and resources may be completely loaded in the background. 
+    The places where threading is available are clearly
+    marked, you should assume state is NOT thread safe unless otherwise
+    stated in relation to this flag.
+OGRE_THREAD_SUPPORT = 2
+    Thread support for background resource preparation. This means that resource
+    data can streamed into memory in the background, but the final resource
+    construction (including RenderSystem dependencies) is still done in the primary
+    thread. Has a lower synchronisation primitive overhead than full threading
+    while still allowing the major blocking aspects of resource management (I/O)
+    to be done in the background.
+OGRE_THREAD_SUPPORT = 3
+    No synchronisation primitive overhead. WorkQueue is threaded.
+*/
+#define OGRE_THREAD_SUPPORT @OGRE_SET_THREADS@
+
+/** Provider for threading functionality, there are 4 options.
+
+OGRE_THREAD_PROVIDER = 0
+    No support for threading.
+OGRE_THREAD_PROVIDER = 1
+    Boost libraries provide threading functionality.
+OGRE_THREAD_PROVIDER = 2
+    Poco libraries provide threading functionality.
+OGRE_THREAD_PROVIDER = 4
+    Standard library provides threading functionality. (requires compiler support)
+*/
+#define OGRE_THREAD_PROVIDER @OGRE_SET_THREAD_PROVIDER@
+
+#cmakedefine01 OGRE_NO_MESHLOD
+
+/** Disables use of the internal image codec for loading DDS files. */
+#cmakedefine01 OGRE_NO_DDS_CODEC
+
+/** Disables use of the internal image codec for loading PVRTC files. */
+#cmakedefine01 OGRE_NO_PVRTC_CODEC
+
+/** Disables use of the internal image codec for loading ETC files. */
+#cmakedefine01 OGRE_NO_ETC_CODEC
+
+#cmakedefine01 OGRE_NO_ASTC_CODEC
+
+/** Disables use of the ZIP archive support.
+WARNING: Disabling this will make the samples unusable.
+*/
+#cmakedefine01 OGRE_NO_ZIP_ARCHIVE
+
+#cmakedefine01 OGRE_NO_TBB_SCHEDULER
+
+/** If set to 1, profiling code will be included in the application. When you
+    are deploying your application you will probably want to set this to 0 */
+#cmakedefine01 OGRE_PROFILING
+
+#cmakedefine01 OGRE_NO_QUAD_BUFFER_STEREO
+
+#cmakedefine01 OGRE_NO_LOCALE_STRCONVERT
+
+/** If set to 1, all file system paths are expected to be UTF-8 encoded and
+    the wide character (wchar_t) file system routines are used on Windows.
+*/
+#cmakedefine01 OGRE_CONFIG_FILESYSTEM_UNICODE
+
+#endif

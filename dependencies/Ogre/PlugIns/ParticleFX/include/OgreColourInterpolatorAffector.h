@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ THE SOFTWARE.
 namespace Ogre {
 
 
-    class _OgreParticleFXExport ColourInterpolatorAffector : public ParticleAffector
+    class ColourInterpolatorAffector : public ParticleAffector
     {
     public:
         // this is something of a hack.. 
@@ -52,8 +52,8 @@ namespace Ogre {
             size_t      mIndex;
 
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for red adjust (see ParamCommand).*/
@@ -63,15 +63,14 @@ namespace Ogre {
             size_t      mIndex;
 
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Default constructor. */
         ColourInterpolatorAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
         void setColourAdjust(size_t index, ColourValue colour);
         ColourValue getColourAdjust(size_t index) const;
@@ -83,13 +82,13 @@ namespace Ogre {
         static CmdColourAdjust  msColourCmd[MAX_STAGES];
         static CmdTimeAdjust    msTimeCmd[MAX_STAGES];
 
+        void _initParticle(Particle* pParticle) override;
+
     protected:
         ColourValue             mColourAdj[MAX_STAGES];
         Real                    mTimeAdj[MAX_STAGES];
 
     };
-
-
 }
 
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 
 #include "OgreDynLibManager.h"
-
 #include "OgreDynLib.h"
 
 namespace Ogre
@@ -79,10 +78,10 @@ namespace Ogre
     DynLibManager::~DynLibManager()
     {
         // Unload & delete resources in turn
-        for( DynLibList::iterator it = mLibList.begin(); it != mLibList.end(); ++it )
+        for(auto & it : mLibList)
         {
-            it->second->unload();
-            OGRE_DELETE it->second;
+            it.second->unload();
+            OGRE_DELETE it.second;
         }
 
         // Empty the list

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ THE SOFTWARE.
 #ifndef __GLPBRENDERTEXTURE_H__
 #define __GLPBRENDERTEXTURE_H__
 
-#include "OgreGLRenderTexture.h"
+#include "OgreGLCopyingRenderTexture.h"
 #include "OgreGLPBuffer.h"
 namespace Ogre {
     
@@ -39,10 +39,12 @@ namespace Ogre {
     class _OgreGLExport GLPBRenderTexture: public GLRenderTexture
     {
     public:
-        GLPBRenderTexture(GLPBRTTManager *manager, const String &name, const GLSurfaceDesc &target, bool writeGamma, uint fsaa);
+        GLPBRenderTexture(GLPBRTTManager *manager, const String &name, const GLSurfaceDesc &target, bool writeGamma);
         virtual ~GLPBRenderTexture();
         
-        virtual void getCustomAttribute(const String& name, void* pData);
+        void getCustomAttribute(const String& name, void* pData) override;
+
+        GLContext* getContext() const override;
     protected:
         GLPBRTTManager *mManager;
         PixelComponentType mPBFormat;
@@ -53,13 +55,11 @@ namespace Ogre {
     class _OgreGLExport GLPBRTTManager: public GLRTTManager
     {
     public:
-        GLPBRTTManager(GLSupport *support, RenderTarget *mainwindow);
+        GLPBRTTManager(GLNativeSupport *support, RenderTarget *mainwindow);
         virtual ~GLPBRTTManager();
-        
-        /** @copydoc GLRTTManager::createRenderTexture
-        */
-        virtual RenderTexture *createRenderTexture(const String &name, 
-            const GLSurfaceDesc &target, bool writeGamma, uint fsaa);
+
+        RenderTexture *createRenderTexture(const String &name,
+            const GLSurfaceDesc &target, bool writeGamma) override;
         
          /** @copydoc GLRTTManager::checkFormat
         */
@@ -67,11 +67,11 @@ namespace Ogre {
         
         /** @copydoc GLRTTManager::bind
         */
-        virtual void bind(RenderTarget *target);
+        void bind(RenderTarget *target) override;
         
         /** @copydoc GLRTTManager::unbind
         */
-        virtual void unbind(RenderTarget *target);
+        void unbind(RenderTarget *target) override;
         
         /** Create PBuffer for a certain pixel format and size
         */
@@ -86,7 +86,7 @@ namespace Ogre {
         GLContext *getContextFor(PixelComponentType ctype, uint32 width, uint32 height);
     protected:
         /** GLSupport reference, used to create PBuffers */
-        GLSupport *mSupport;
+        GLNativeSupport *mSupport;
         /** Primary window reference */
         RenderTarget *mMainWindow;
         /** Primary window context */

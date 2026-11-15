@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,11 +40,11 @@ namespace Ogre {
     /** \addtogroup Core
     *  @{
     */
-    /** \addtogroup LOD
+    /** \defgroup LOD Level of Detail
     *  @{
     */
     /** Strategy for determining level of detail.
-    @remarks
+
         Generally, to create a new LOD strategy, all of the following will
         need to be implemented: getValueImpl, getBaseValue, transformBias,
         getIndex, sort, and isSorted.
@@ -52,7 +52,7 @@ namespace Ogre {
     */
     class _OgreExport LodStrategy : public LodAlloc
     {
-    protected:
+    private:
         /** Name of this strategy. */
         String mName;
 
@@ -73,9 +73,9 @@ namespace Ogre {
         virtual Real transformBias(Real factor) const = 0;
 
         /** Transform user supplied value to internal value.
-        @remarks
+
             By default, performs no transformation.
-        @remarks
+
             Do not throw exceptions for invalid values here, as the LOD strategy
             may be changed such that the values become valid.
         */

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,25 +27,74 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreCommon.h"
 #include "OgreStreamSerialiser.h"
-#include "OgreBitwise.h"
-#include "OgreException.h"
-#include "OgreLogManager.h"
-#include "OgreVector2.h"
-#include "OgreVector3.h"
-#include "OgreVector4.h"
-#include "OgreMatrix3.h"
-#include "OgreMatrix4.h"
-#include "OgreQuaternion.h"
-#include "OgreAxisAlignedBox.h"
-#include "OgreNode.h"
-#include "OgreRay.h"
-#include "OgreSphere.h"
 #include "OgreDeflate.h"
 
 namespace Ogre
 {
+    /** General hash function, derived from here
+    http://www.azillionmonkeys.com/qed/hash.html
+    Original by Paul Hsieh
+    */
+    static uint32 SuperFastHash (const char * data, int len, uint32 hashSoFar)
+    {
+#if OGRE_ENDIAN == OGRE_ENDIAN_LITTLE
+#  define OGRE_GET16BITS(d) (*((const uint16 *) (d)))
+#else
+    // Cast to uint16 in little endian means first byte is least significant
+    // replicate that here
+#  define OGRE_GET16BITS(d) (*((const uint8 *) (d)) + (*((const uint8 *) (d+1))<<8))
+#endif
+        uint32 hash;
+        int rem;
+
+        if (hashSoFar)
+            hash = hashSoFar;
+        else
+            hash = len;
+
+        if (len <= 0 || data == NULL) return 0;
+
+        rem = len & 3;
+        len >>= 2;
+
+        /* Main loop */
+        for (;len > 0; len--) {
+            hash  += OGRE_GET16BITS (data);
+            uint32 tmp    = (OGRE_GET16BITS (data+2) << 11) ^ hash;
+            hash   = (hash << 16) ^ tmp;
+            data  += 2*sizeof (uint16);
+            hash  += hash >> 11;
+        }
+
+        /* Handle end cases */
+        switch (rem) {
+        case 3: hash += OGRE_GET16BITS (data);
+            hash ^= hash << 16;
+            hash ^= data[sizeof (uint16)] << 18;
+            hash += hash >> 11;
+            break;
+        case 2: hash += OGRE_GET16BITS (data);
+            hash ^= hash << 11;
+            hash += hash >> 17;
+            break;
+        case 1: hash += *data;
+            hash ^= hash << 10;
+            hash += hash >> 1;
+        }
+
+        /* Force "avalanching" of final 127 bits */
+        hash ^= hash << 3;
+        hash += hash >> 5;
+        hash ^= hash << 4;
+        hash += hash >> 17;
+        hash ^= hash << 25;
+        hash += hash >> 6;
+
+        return hash;
+#undef OGRE_GET16BITS
+    }
+
     //---------------------------------------------------------------------
     uint32 StreamSerialiser::HEADER_ID = 0x00000001;
     uint32 StreamSerialiser::REVERSE_HEADER_ID = 0x10000000;
@@ -75,8 +124,7 @@ namespace Ogre
 
         }
 
-        checkStream();
-
+        OgreAssert(mStream, "Stream is null");
     }
     //---------------------------------------------------------------------
     StreamSerialiser::~StreamSerialiser()
@@ -84,24 +132,22 @@ namespace Ogre
         // really this should be empty if read/write was complete, but be tidy
         if (!mChunkStack.empty())
         {
-            LogManager::getSingleton().stream() <<
+            LogManager::getSingleton().stream(LML_WARNING) <<
                 "Warning: stream " << mStream->getName() << " was not fully read / written; " <<
                 mChunkStack.size() << " chunks remain unterminated.";
         }
-        for (ChunkStack::iterator i = mChunkStack.begin(); i != mChunkStack.end(); ++i)
-            delete *i;
+        for (auto & i : mChunkStack)
+            delete i;
         mChunkStack.clear();
 
     }
     //---------------------------------------------------------------------
-    uint32 StreamSerialiser::makeIdentifier(const String& code)
+    uint32 StreamSerialiser::makeIdentifier(const char (&code)[5])
     {
-        assert(code.length() <= 4 && "Characters after the 4th are being ignored");
         uint32 ret = 0;
-        size_t c = std::min((size_t)4, code.length());
-        for (size_t i = 0; i < c; ++i)
+        for (size_t i = 0; i < 4; ++i)
         {
-            ret += (code.at(i) << (i * 8));
+            ret += (code[i] << (i * 8));
         }
         return ret;
 
@@ -121,11 +167,9 @@ namespace Ogre
         if (mReadWriteHeader)
             readHeader();
 
-        if (mEndian == ENDIAN_AUTO)
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Endian mode has not been determined, did you disable header without setting?", 
-            "StreamSerialiser::readChunkBegin");
-        
+        OgreAssert(mEndian != ENDIAN_AUTO,
+                   "Endian mode has not been determined, did you disable header without setting?");
+
         Chunk* chunk = readChunkImpl();
         mChunkStack.push_back(chunk);
 
@@ -145,7 +189,7 @@ namespace Ogre
         }
         else if (c->version > maxVersion)
         {
-            LogManager::getSingleton().stream() << "Error: " << msg 
+            LogManager::getSingleton().stream(LML_CRITICAL) << "Error: " << msg
                 << " : Data version is " << c->version << " but this software can only read "
                 << "up to version " << maxVersion;
             // skip
@@ -161,7 +205,7 @@ namespace Ogre
     {
         Chunk* c = popChunk(id);
 
-        checkStream();
+        OgreAssert(mStream, "Stream is null");
 
         mStream->seek(c->offset);
 
@@ -171,7 +215,7 @@ namespace Ogre
     //---------------------------------------------------------------------
     uint32 StreamSerialiser::peekNextChunkID()
     {
-        checkStream();
+        OgreAssert(mStream, "Stream is null");
 
         if (eof())
             return 0;
@@ -180,10 +224,8 @@ namespace Ogre
         if (mReadWriteHeader)
             readHeader();
 
-        if (mEndian == ENDIAN_AUTO)
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Endian mode has not been determined, did you disable header without setting?", 
-            "StreamSerialiser::peekNextChunkID");
+        OgreAssert(mEndian != ENDIAN_AUTO,
+                   "Endian mode has not been determined, did you disable header without setting?");
 
         size_t homePos = mStream->tell();
         uint32 ret;
@@ -197,7 +239,7 @@ namespace Ogre
     {
         Chunk* c = popChunk(id);
 
-        checkStream();
+        OgreAssert(mStream, "Stream is null");
 
         // skip to the end of the chunk if we were not there already
         // this lets us quite reading a chunk anywhere and have the read marker
@@ -217,7 +259,7 @@ namespace Ogre
     //---------------------------------------------------------------------
     void StreamSerialiser::readHeader()
     {
-        uint32 headerid;
+        uint32 headerid = 0;
         size_t actually_read = mStream->read(&headerid, sizeof(uint32));
         // skip back
         mStream->skip(0 - (long)actually_read);
@@ -279,28 +321,23 @@ namespace Ogre
     }
     //---------------------------------------------------------------------
     bool StreamSerialiser::eof() const
-    { 
-        checkStream();
+    {
+        OgreAssert(mStream, "Stream is null");
         return mStream->eof(); 
     }
     //---------------------------------------------------------------------
     void StreamSerialiser::checkStream(bool failOnEof, bool validateReadable, bool validateWriteable) const
     {
-        if (mStream.isNull())
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Invalid operation, stream is null", "StreamSerialiser::checkStream");
+        OgreAssert(mStream, "Stream is null");
 
         if (failOnEof && mStream->eof())
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Invalid operation, end of file on stream", "StreamSerialiser::checkStream");
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Invalid operation, end of file on stream");
 
         if (validateReadable && !mStream->isReadable())
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Invalid operation, file is not readable", "StreamSerialiser::checkStream");
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Invalid operation, file is not readable");
 
         if (validateWriteable && !mStream->isWriteable())
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Invalid operation, file is not writeable", "StreamSerialiser::checkStream");
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Invalid operation, file is not writeable");
     }
     //---------------------------------------------------------------------
     void StreamSerialiser::writeHeader()
@@ -327,10 +364,8 @@ namespace Ogre
         if (mReadWriteHeader)
             writeHeader();
 
-        if (mEndian == ENDIAN_AUTO)
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-                "Endian mode has not been determined, did you disable header without setting?", 
-                "StreamSerialiser::writeChunkBegin");
+        OgreAssert(mEndian != ENDIAN_AUTO,
+                   "Endian mode has not been determined, did you disable header without setting?");
 
         writeChunkImpl(id, version);
 
@@ -363,7 +398,7 @@ namespace Ogre
     //---------------------------------------------------------------------
     size_t StreamSerialiser::getOffsetFromChunkStart() const
     {
-        checkStream(false, false, false);
+        OgreAssert(mStream, "Stream is null");
 
         if (mChunkStack.empty())
         {
@@ -384,29 +419,29 @@ namespace Ogre
     //---------------------------------------------------------------------
     StreamSerialiser::Chunk* StreamSerialiser::readChunkImpl()
     {
-        Chunk *chunk = OGRE_NEW Chunk();
+        auto chunk = std::make_unique<Chunk>();
         chunk->offset = static_cast<uint32>(mStream->tell());
         read(&chunk->id);
         read(&chunk->version);
         read(&chunk->length);
-        
+
+        if (chunk->length > mStream->size() - mStream->tell())
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Chunk length field exceeds remaining stream data");
+
         uint32 checksum;
         read(&checksum);
         
-        if (checksum != calculateChecksum(chunk))
+        if (checksum != calculateChecksum(chunk.get()))
         {
             // no good, this is an invalid chunk
             uint32 off = chunk->offset;
-            OGRE_DELETE chunk;
             OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
                 "Corrupt chunk detected in stream " + mStream->getName() + " at byte "
                 + StringConverter::toString(off), 
                 "StreamSerialiser::readChunkImpl");
         }
-        else
-        {
-            return chunk;
-        }
+
+        return chunk.release();
 
 
     }
@@ -643,6 +678,12 @@ namespace Ogre
         // String is stored as a uint32 character count, then string
         uint32 len;
         read(&len);
+
+        // Guard against OOM from corrupt/malicious input: cap len to remaining chunk bytes
+        OgreAssertDbg(mChunkStack.size(), "Not currently in a chunk, cannot read string length");
+        if (len > mChunkStack.back()->length)
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "String length field exceeds remaining chunk data");
+
         string->resize(len);
         if (len)
             read(&(*string->begin()), len);
@@ -786,23 +827,21 @@ namespace Ogre
 		Bitwise::bswapBuffer(&version, sizeof(uint16));
 		Bitwise::bswapBuffer(&length, sizeof(uint32));
 #endif
-        uint32 hashVal = FastHash((const char*)&id, sizeof(uint32));
-        hashVal = FastHash((const char*)&version, sizeof(uint16), hashVal);
-        hashVal = FastHash((const char*)&length, sizeof(uint32), hashVal);
+
+		// we cannot switch to murmur3 like everywhere else to allow loading legacy files
+        uint32 hashVal = SuperFastHash((const char*)&id, sizeof(uint32), 0);
+        hashVal = SuperFastHash((const char*)&version, sizeof(uint16), hashVal);
+        hashVal = SuperFastHash((const char*)&length, sizeof(uint32), hashVal);
 
         return hashVal;
     }
     //---------------------------------------------------------------------
     StreamSerialiser::Chunk* StreamSerialiser::popChunk(uint id)
     {
-        if (mChunkStack.empty())
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "No active chunk!", "StreamSerialiser::popChunk");
+        OgreAssert(!mChunkStack.empty(), "No active chunk!");
 
         const Chunk* chunk = mChunkStack.back();
-        if (chunk->id != id)
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-            "Incorrect chunk id!", "StreamSerialiser::popChunk");
+        OgreAssert(chunk->id == id, "Incorrect chunk id!");
 
         Chunk* c = mChunkStack.back();
         mChunkStack.pop_back();
@@ -812,7 +851,7 @@ namespace Ogre
     void StreamSerialiser::startDeflate(size_t avail_in)
     {
 #if OGRE_NO_ZIP_ARCHIVE == 0
-        assert( mOriginalStream.isNull() && "Don't start (un)compressing twice!" );
+        OgreAssert( !mOriginalStream , "Don't start (un)compressing twice!" );
         DataStreamPtr deflateStream(OGRE_NEW DeflateStream(mStream,"",avail_in));
         mOriginalStream = mStream;
         mStream = deflateStream;
@@ -824,9 +863,9 @@ namespace Ogre
     void StreamSerialiser::stopDeflate()
     {
 #if OGRE_NO_ZIP_ARCHIVE == 0
-        assert( !mOriginalStream.isNull() && "Must start (un)compressing first!" );
+        OgreAssert( mOriginalStream , "Must start (un)compressing first!" );
         mStream = mOriginalStream;
-        mOriginalStream.setNull();
+        mOriginalStream.reset();
 #else
         OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
                     "Ogre was not built with Zip file support!", "StreamSerialiser::stopDeflate");

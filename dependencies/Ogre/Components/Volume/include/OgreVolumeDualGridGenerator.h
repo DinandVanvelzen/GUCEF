@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,12 @@ THE SOFTWARE.
 
 namespace Ogre {
 namespace Volume {
-
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     /** To store the generated dual cells in a vector.
     */
     typedef struct _OgreVolumeExport DualCell
@@ -58,7 +63,7 @@ namespace Volume {
     
     /** To hold dual cells.
     */
-    typedef vector<DualCell>::type VecDualCell;
+    typedef std::vector<DualCell> VecDualCell;
 
     /** Class for the generation of the DualGrid.
     */
@@ -345,6 +350,8 @@ namespace Volume {
             return mDualCells[i];
         }
     };
+    /** @} */
+    /** @} */
 }
 }
 

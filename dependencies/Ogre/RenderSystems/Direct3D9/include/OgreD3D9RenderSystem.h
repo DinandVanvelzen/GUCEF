@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,13 @@ THE SOFTWARE.
 
 namespace Ogre 
 {
-#define MAX_LIGHTS 8
+    /** \addtogroup RenderSystems RenderSystems
+    *  @{
+    */
+    /** \defgroup Direct3D9 Direct3D9
+    * Implementation of DirectX9 as a rendering system.
+    *  @{
+    */
 
     class D3D9DriverList;
     class D3D9Driver;
@@ -61,15 +67,7 @@ namespace Ogre
         
     private:
         /// Direct3D
-        IDirect3D9*  mD3D;      
-        // Stored options
-        ConfigOptionMap mOptions;
-        // TODO: remove following fields, use values directly from mOptions map as other render systems does
-        size_t mFSAASamples;
-        String mFSAAHint;
-        bool mVSync; 
-        unsigned int mVSyncInterval;
-        unsigned int mBackBufferCount; // -1 means 2 for vsync and 1 for no vsync
+        IDirect3D9*  mD3D;
 
         /// instance
         HINSTANCE mhInstance;
@@ -91,6 +89,10 @@ namespace Ogre
         /// Read more in http://msdn.microsoft.com/en-us/library/windows/desktop/ee890072(v=vs.85).aspx
         bool mIsDirectX9Ex;
 
+        bool mEnableFixedPipeline;
+
+        bool mAutoHardwareBufferManagement;
+
         /// structure holding texture unit settings for every stage
         struct sD3DTextureStageDesc
         {
@@ -104,18 +106,16 @@ namespace Ogre
             const Frustum *frustum;
             /// texture 
             IDirect3DBaseTexture9 *pTex;
-            /// vertex texture 
-            IDirect3DBaseTexture9 *pVertexTex;
         } mTexStageDesc[OGRE_MAX_TEXTURE_LAYERS];
 
-        // Array of up to 8 lights, indexed as per API
-        // Note that a null value indicates a free slot
-        Light* mLights[MAX_LIGHTS];     
+        /// Saved manual colour blends
+        ColourValue mManualBlendColours[OGRE_MAX_TEXTURE_LAYERS][2];
+
         D3D9DriverList* getDirect3DDrivers();
         void refreshD3DSettings();
         void refreshFSAAOptions();
         
-        void setD3D9Light( size_t index, Light* light );
+        void setD3D9Light( size_t index, bool enabled);
         
         // state management methods, very primitive !!!
         HRESULT __SetRenderState(D3DRENDERSTATETYPE state, DWORD value);
@@ -151,27 +151,27 @@ namespace Ogre
         RenderSystemCapabilities* updateRenderSystemCapabilities(D3D9RenderWindow* renderWindow);
 
         /** See RenderSystem definition */
-        virtual void initialiseFromRenderSystemCapabilities(RenderSystemCapabilities* caps, RenderTarget* primary);
+        virtual void initialiseFromRenderSystemCapabilities(RenderSystemCapabilities* caps, RenderTarget* = NULL);
 
 
-        void convertVertexShaderCaps(RenderSystemCapabilities* rsc) const;
+        void convertVertexShaderCaps(RenderSystemCapabilities* rsc);
         void convertPixelShaderCaps(RenderSystemCapabilities* rsc) const;
         bool checkVertexTextureFormats(D3D9RenderWindow* renderWindow) const;
         void detachRenderTargetImpl(const String& name);
         
-        OGRE_HashMap<IDirect3DDevice9*, unsigned short> mCurrentLights;
+        std::unordered_map<IDirect3DDevice9*, unsigned short> mCurrentLights;
         /// Saved last view matrix
         Matrix4 mViewMatrix;
 
-        D3DXMATRIX mDxViewMat, mDxProjMat, mDxWorldMat;
+        D3DMATRIX mDxViewMat, mDxProjMat, mDxWorldMat;
     
-        typedef vector<D3D9RenderWindow*>::type D3D9RenderWindowList;
+        typedef std::vector<D3D9RenderWindow*> D3D9RenderWindowList;
         // List of additional windows after the first (swap chains)
         D3D9RenderWindowList mRenderWindows;
         
         /** Mapping of texture format -> DepthStencil. Used as cache by _getDepthStencilFormatFor
         */
-        typedef OGRE_HashMap<unsigned int, D3DFORMAT> DepthStencilHash;
+        typedef std::unordered_map<unsigned int, D3DFORMAT> DepthStencilHash;
         DepthStencilHash mDepthStencilHash;
 
         MultiheadUseType mMultiheadUse;
@@ -181,7 +181,10 @@ namespace Ogre
 #endif
 
     protected:
-        void setClipPlanesImpl(const PlaneList& clipPlanes);        
+        void setClipPlanesImpl(const PlaneList& clipPlanes);
+        void setWorldMatrix( const Matrix4 &m );
+        void setViewMatrix( const Matrix4 &m );
+        void setProjectionMatrix( const Matrix4 &m );
     public:
         // constructor
         D3D9RenderSystem( HINSTANCE hInstance );
@@ -190,18 +193,16 @@ namespace Ogre
 
         virtual void initConfigOptions();
 
+        const GpuProgramParametersPtr& getFixedFunctionParams(TrackVertexColourType tracking, FogMode fog);
+        void applyFixedFunctionParams(const GpuProgramParametersPtr& params, uint16 variabilityMask);
+
         // Overridden RenderSystem functions
-        ConfigOptionMap& getConfigOptions();
         String validateConfigOptions();
-        RenderWindow* _initialise( bool autoCreateWindow, const String& windowTitle = "OGRE Render Window"  );
+        void _initialise() override;
         /// @copydoc RenderSystem::_createRenderWindow
         RenderWindow* _createRenderWindow(const String &name, unsigned int width, unsigned int height, 
             bool fullScreen, const NameValuePairList *miscParams = 0);
         
-        /// @copydoc RenderSystem::_createRenderWindows
-        bool _createRenderWindows(const RenderWindowDescriptionList& renderWindowDescriptions, 
-            RenderWindowList& createdWindows);
-
         /// @copydoc RenderSystem::_createDepthBufferFor
         DepthBuffer* _createDepthBufferFor( RenderTarget *renderTarget );
 
@@ -212,16 +213,15 @@ namespace Ogre
          */
         DepthBuffer* _addManualDepthBuffer( IDirect3DDevice9* depthSurfaceDevice, IDirect3DSurface9 *surf );
 
+        using RenderSystem::_cleanupDepthBuffers;
         /**
          * This function does NOT override RenderSystem::_cleanupDepthBuffers(bool) functionality.
          * On multi monitor setups, when a device becomes "inactive" (it has no RenderWindows; like
          * when the window was moved from one monitor to another); the Device will be destroyed,
          * meaning all it's depth buffers (auto & manual) should be removed from the pool,
          * but only selectively removing those created by that D3D9Device.
-         * @param:
-         *      Creator device to compare against. Shouldn't be null
+         * @param creator device to compare against. Shouldn't be null
          */
-        using RenderSystem::_cleanupDepthBuffers;
         void _cleanupDepthBuffers( IDirect3DDevice9 *creator );
 
         /**
@@ -247,102 +247,69 @@ namespace Ogre
         String getErrorDescription( long errorNumber ) const;
         const String& getName() const;
 
-		const String& getFriendlyName() const;
-
         // Low-level overridden members
+        /**
+         Specific options:
+
+        | Key |  Default | Description |
+        |-----|---------------|---------|
+        | Allow DirectX9Ex | No | Use Direct3D 9Ex if possible |
+        | Multi device memory hint | Auto hardware buffers management | Automatically restore hardware buffers on device lost |
+        | Resource Creation Policy | - | See @ref D3D9ResourceCreationPolicy |
+        | Fixed Pipeline Enabled | true | Use fixed function units where possible. Disable to test migration to shader-only pipeline |
+        | Rendering Device | (default) |  |
+        */
         void setConfigOption( const String &name, const String &value );
-        void reinitialise();
         void shutdown();
         void setAmbientLight( float r, float g, float b );
         void setShadingType( ShadeOptions so );
         void setLightingEnabled( bool enabled );
         void destroyRenderTarget(const String& name);
-        VertexElementType getColourVertexElementType() const;
-        void setStencilCheckEnabled(bool enabled);
-        void setStencilBufferParams(CompareFunction func = CMPF_ALWAYS_PASS, 
-            uint32 refValue = 0, uint32 compareMask = 0xFFFFFFFF, uint32 writeMask = 0xFFFFFFFF,
-            StencilOperation stencilFailOp = SOP_KEEP, 
-            StencilOperation depthFailOp = SOP_KEEP,
-            StencilOperation passOp = SOP_KEEP, 
-            bool twoSidedOperation = false,
-            bool readBackAsTexture = false);
+        void setStencilState(const StencilState& state) override;
         void setNormaliseNormals(bool normalise);
 
         // Low-level overridden members, mainly for internal use
-        void _useLights(const LightList& lights, unsigned short limit);
-        void _setWorldMatrix( const Matrix4 &m );
-        void _setViewMatrix( const Matrix4 &m );
-        void _setProjectionMatrix( const Matrix4 &m );
-        void _setSurfaceParams( const ColourValue &ambient, const ColourValue &diffuse, const ColourValue &specular, const ColourValue &emissive, Real shininess, TrackVertexColourType tracking );
+        void _useLights(unsigned short limit);
+        void _setSurfaceTracking( TrackVertexColourType tracking );
         void _setPointSpritesEnabled(bool enabled);
-        void _setPointParameters(Real size, bool attenuationEnabled, 
-            Real constant, Real linear, Real quadratic, Real minSize, Real maxSize);
-        void _setTexture(size_t unit, bool enabled, const TexturePtr &texPtr);
-        void _setVertexTexture(size_t unit, const TexturePtr& tex);
-        void _disableTextureUnit(size_t texUnit);
+        void _setPointParameters(bool attenuationEnabled, Real minSize, Real maxSize);
+        void _setTexture(size_t unit, bool enabled, const TexturePtr& texPtr);
+        void _setSampler(size_t unit, Sampler& sampler);
         void _setTextureCoordSet( size_t unit, size_t index );
         void _setTextureCoordCalculation(size_t unit, TexCoordCalcMethod m, 
             const Frustum* frustum = 0);
         void _setTextureBlendMode( size_t unit, const LayerBlendModeEx& bm );
-        void _setTextureAddressingMode(size_t stage, const TextureUnitState::UVWAddressingMode& uvw);
-        void _setTextureBorderColour(size_t stage, const ColourValue& colour);
-        void _setTextureMipmapBias(size_t unit, float bias);
         void _setTextureMatrix( size_t unit, const Matrix4 &xform );
-        void _setSceneBlending( SceneBlendFactor sourceFactor, SceneBlendFactor destFactor, SceneBlendOperation op );
-        void _setSeparateSceneBlending( SceneBlendFactor sourceFactor, SceneBlendFactor destFactor, SceneBlendFactor sourceFactorAlpha, SceneBlendFactor destFactorAlpha, SceneBlendOperation op, SceneBlendOperation alphaOp );
         void _setAlphaRejectSettings( CompareFunction func, unsigned char value, bool alphaToCoverage );
         void _setViewport( Viewport *vp );      
         void _beginFrame();
-        virtual RenderSystemContext* _pauseFrame(void);
-        virtual void _resumeFrame(RenderSystemContext* context);
         void _endFrame();       
         void _setCullingMode( CullingMode mode );
         void _setDepthBufferParams( bool depthTest = true, bool depthWrite = true, CompareFunction depthFunction = CMPF_LESS_EQUAL );
         void _setDepthBufferCheckEnabled( bool enabled = true );
-        void _setColourBufferWriteEnabled(bool red, bool green, bool blue, bool alpha);
+        void setColourBlendState(const ColourBlendState& state);
         void _setDepthBufferWriteEnabled(bool enabled = true);
         void _setDepthBufferFunction( CompareFunction func = CMPF_LESS_EQUAL );
         void _setDepthBias(float constantBias, float slopeScaleBias);
-        void _setFog( FogMode mode = FOG_NONE, const ColourValue& colour = ColourValue::White, Real expDensity = 1.0, Real linearStart = 0.0, Real linearEnd = 1.0 );
+        void _setFog( FogMode mode);
         void _convertProjectionMatrix(const Matrix4& matrix,
             Matrix4& dest, bool forGpuProgram = false);
-        void _makeProjectionMatrix(const Radian& fovy, Real aspect, Real nearPlane, Real farPlane, 
-            Matrix4& dest, bool forGpuProgram = false);
-        void _makeProjectionMatrix(Real left, Real right, Real bottom, Real top, Real nearPlane, 
-            Real farPlane, Matrix4& dest, bool forGpuProgram = false);
-        void _makeOrthoMatrix(const Radian& fovy, Real aspect, Real nearPlane, Real farPlane, 
-            Matrix4& dest, bool forGpuProgram = false);
-        void _applyObliqueDepthProjection(Matrix4& matrix, const Plane& plane, 
-            bool forGpuProgram);
         void _setPolygonMode(PolygonMode level);
-        void _setTextureUnitFiltering(size_t unit, FilterType ftype, FilterOptions filter);
-        void _setTextureUnitCompareFunction(size_t unit, CompareFunction function);
-        void _setTextureUnitCompareEnabled(size_t unit, bool compare);
-        void _setTextureLayerAnisotropy(size_t unit, unsigned int maxAnisotropy);
         void setVertexDeclaration(VertexDeclaration* decl);
-        void setVertexDeclaration(VertexDeclaration* decl, bool useGlobalInstancingVertexBufferIsAvailable);
-        void setVertexBufferBinding(VertexBufferBinding* binding);
-        void setVertexBufferBinding(VertexBufferBinding* binding, size_t numberOfInstances, bool useGlobalInstancingVertexBufferIsAvailable, bool indexesUsed);
+        void setVertexBufferBinding(VertexBufferBinding* binding, int numberOfInstances, bool indexesUsed);
         void _render(const RenderOperation& op);
-        /** See
-          RenderSystem
-         */
-        void bindGpuProgram(GpuProgram* prg);
-        /** See
-          RenderSystem
-         */
-        void unbindGpuProgram(GpuProgramType gptype);
-        /** See
-          RenderSystem
-         */
-        void bindGpuProgramParameters(GpuProgramType gptype, 
-            GpuProgramParametersSharedPtr params, uint16 variabilityMask);
-        void bindGpuProgramPassIterationParameters(GpuProgramType gptype);
 
-        void setScissorTest(bool enabled, size_t left = 0, size_t top = 0, size_t right = 800, size_t bottom = 600);
+        void bindGpuProgram(GpuProgram* prg);
+
+        void unbindGpuProgram(GpuProgramType gptype);
+
+        void bindGpuProgramParameters(GpuProgramType gptype, 
+            const GpuProgramParametersPtr& params, uint16 variabilityMask);
+
+        void setScissorTest(bool enabled, const Rect& rect = Rect());
         void clearFrameBuffer(unsigned int buffers, 
             const ColourValue& colour = ColourValue::Black, 
-            Real depth = 1.0f, unsigned short stencil = 0);
+            float depth = 1.0f, unsigned short stencil = 0);
         void setClipPlane (ushort index, Real A, Real B, Real C, Real D);
         void enableClipPlane (ushort index, bool enable);
         HardwareOcclusionQuery* createHardwareOcclusionQuery();
@@ -350,15 +317,6 @@ namespace Ogre
         Real getVerticalTexelOffset();
         Real getMinimumDepthInputValue();
         Real getMaximumDepthInputValue();
-        void registerThread();
-        void unregisterThread();
-        void preExtraThreadsStarted();
-        void postExtraThreadsStarted();     
-                
-        /*
-        Returns whether under the current render system buffers marked as TU_STATIC can be locked for update
-        */
-        virtual bool isStaticBufferLockable() const { return !mIsDirectX9Ex; }
 
 		bool IsActiveDeviceLost();
 
@@ -374,6 +332,8 @@ namespace Ogre
         static IDirect3DDevice9* getActiveD3D9Device();
         static IDirect3DDevice9* getActiveD3D9DeviceIfExists();
 
+        uint32 getAdapterNumber();
+
         /** Check which depthStencil formats can be used with a certain pixel format,
             and return the best suited.
         */
@@ -387,11 +347,6 @@ namespace Ogre
         /// Take in some requested FSAA settings and output supported D3D settings
         void determineFSAASettings(IDirect3DDevice9* d3d9Device, size_t fsaa, const String& fsaaHint, D3DFORMAT d3dPixelFormat, 
             bool fullScreen, D3DMULTISAMPLE_TYPE *outMultisampleType, DWORD *outMultisampleQuality);
-
-        /// @copydoc RenderSystem::getDisplayMonitorCount
-        unsigned int getDisplayMonitorCount() const;
-        /// @copydoc RenderSystem::hasAnisotropicMipMapFilter
-        virtual bool hasAnisotropicMipMapFilter() const { return false; }   
 
         /// @copydoc RenderSystem::beginProfileEvent
         virtual void beginProfileEvent( const String &eventName );
@@ -416,10 +371,7 @@ namespace Ogre
         void createStereoDriver(const NameValuePairList* miscParams);
 #endif
 
-    protected:  
-        /// Returns the sampler id for a given unit texture number
-        DWORD getSamplerId(size_t unit);
-
+    protected:
         /// Notify when a device has been lost.
         void notifyOnDeviceLost(D3D9Device* device);
 
@@ -430,5 +382,7 @@ namespace Ogre
         friend class D3D9Device;
         friend class D3D9DeviceManager;     
     };
+    /** @} */
+    /** @} */
 }
 #endif

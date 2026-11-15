@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,22 +46,23 @@ namespace Ogre
 
     /** InstanceBatch forms part of the new Instancing system
         This is an abstract class that must be derived to implement different instancing techniques
-        (@see InstanceManager::InstancingTechnique)
+        (@ref InstanceManager::InstancingTechnique)
         OGRE wasn't truly thought for instancing. OGRE assumes that either:
-            a. One MovableObject -> No Renderable
-            b. One MovableObject -> One Renderable
-            c. One MovableObject -> Many Renderable.
+            1. One MovableObject -> No Renderable
+            2. One MovableObject -> One Renderable
+            3. One MovableObject -> Many Renderable.
+
         However, instances work on reverse: Many MovableObject have the same Renderable.
         <b>Instancing is already difficult to cull by a CPU</b>, but the main drawback from this assumption
         is that it makes it even harder to take advantage from OGRE's culling capabilities
-        (i.e. @see OctreeSceneManager)
+        (i.e. @ref OctreeSceneManager)
     @par
         To workaround this problem, InstanceBatch updates on almost every frame,
         growing the bounding box to fit all instances that are not being culled individually.
         This helps by avoiding a huge bbox that may cover the whole scene, which decreases shadow
         quality considerably (as it is seen as large shadow receiver)
         Furthermore, if no individual instance is visible, the InstanceBatch switches it's visibility
-        (@see MovableObject::setVisible) to avoid sending this Renderable to the GPU. This happens because
+        (@ref MovableObject::setVisible) to avoid sending this Renderable to the GPU. This happens because
         even when no individual instance is visible, their merged bounding box may cause OGRE to think
         the batch is visible (i.e. the camera is looking between object A & B, but A & B aren't visible)
     @par
@@ -69,28 +70,25 @@ namespace Ogre
         the same textures and materials</b>
     @par
         Each InstanceBatch preallocates a fixed amount of mInstancesPerBatch instances once it's been
-        built (@see build, @see buildFrom).
-        @see createInstancedEntity and @see removeInstancedEntity on how to retrieve those instances
+        built (@ref build, @ref buildFrom).
+        @ref createInstancedEntity and @ref removeInstancedEntity on how to retrieve those instances
         remove them from scene.
         Note that, on GPU side, removing an instance from scene doesn't save GPU cycles on what
         respects vertex shaders, but saves a little fillrate and pixel shaders; unless all instances
         are removed, which saves GPU.
-        For more information, @see InstancedEntity
-        For information on how Ogre manages multiple Instance batches, @see InstanceManager
+        For more information, @ref InstancedEntity
+        For information on how Ogre manages multiple Instance batches, @ref InstanceManager
 
-    @remarks
-        Design discussion webpage
     @author
         Matias N. Goldberg ("dark_sylinc")
-    @version
-        1.0
     */
     class _OgreExport InstanceBatch : public Renderable, public MovableObject
     {
     public:
-        typedef vector<InstancedEntity*>::type  InstancedEntityVec;
-        typedef vector<Vector4>::type           CustomParamsVec;
+        typedef std::vector<InstancedEntity*>  InstancedEntityVec;
+        typedef std::vector<Vector4f>           CustomParamsVec;
     protected:
+        typedef TransformBase<3, float>        Matrix3x4f;
         RenderOperation     mRenderOperation;
         size_t              mInstancesPerBatch;
 
@@ -120,13 +118,13 @@ namespace Ogre
         bool                mBoundsUpdated; //Set to false by derived classes that need it
         Camera              *mCurrentCamera;
 
-        unsigned short      mMaterialLodIndex;
-
         bool                mDirtyAnimation; //Set to false at start of each _updateRenderQueue
 
         /// False if a technique doesn't support skeletal animation
         bool                mTechnSupportsSkeletal;
 
+        /// Last update camera distance frame number
+        mutable unsigned long mCameraDistLastUpdateFrameNumber;
         /// Cached distance to last camera for getSquaredViewDepth
         mutable Real mCachedCameraDist;
         /// The camera for which the cached distance is valid
@@ -143,7 +141,7 @@ namespace Ogre
         virtual void setupVertices( const SubMesh* baseSubMesh ) = 0;
         virtual void setupIndices( const SubMesh* baseSubMesh ) = 0;
         virtual void createAllInstancedEntities(void);
-        virtual void deleteAllInstancedEntities(void);
+        void deleteAllInstancedEntities(void);
         virtual void deleteUnusedInstancedEntities(void);
         /// Creates a new InstancedEntity instance
         virtual InstancedEntity* generateInstancedEntity(size_t num);
@@ -152,7 +150,7 @@ namespace Ogre
             takes number of floats in the array, not number of matrices. Assumes mCachedCamera
             contains the camera which is about to be rendered to.
         */
-        void makeMatrixCameraRelative3x4( float *mat3x4, size_t numFloats );
+        void makeMatrixCameraRelative3x4( Matrix3x4f *mat3x4, size_t count );
 
         /// Returns false on errors that would prevent building this batch from the given submesh
         virtual bool checkSubMeshCompatibility( const SubMesh* baseSubMesh );
@@ -184,7 +182,7 @@ namespace Ogre
         const Mesh::IndexMap* _getIndexToBoneMap() const { return mIndexToBoneMap; }
 
         /** Returns true if this technique supports skeletal animation
-        @remarks
+
             A virtual function could have been used, but using a simple variable overridden
             by the derived class is faster than virtual call overhead. And both are clean
             ways of implementing it.
@@ -199,7 +197,7 @@ namespace Ogre
         @par
             Note this is a helper function, as such it takes a submesh base to compute
             the parameters, instead of using the object's own. This allows
-            querying for a technique without requiering to actually build it.
+            querying for a technique without requiring to actually build it.
         @param baseSubMesh The base submesh that will be using to build it.
         @param flags Flags to pass to the InstanceManager. @see InstanceManagerFlags
         @return The max instances limit
@@ -209,14 +207,14 @@ namespace Ogre
         /** Constructs all the data needed to use this batch, as well as the
             InstanceEntities. Placed here because in the constructor virtual
             tables may not have been yet filled.
-        @param baseSubMesh A sub mesh which the instances will be based upon from.
-        @remarks
-            Call this only ONCE. This is done automatically by Ogre::InstanceManager
-            Caller is responsable for freeing buffers in this RenderOperation
+
+            @note Call this only ONCE. This is done automatically by Ogre::InstanceManager
+            Caller is responsible for freeing buffers in this RenderOperation
             Buffers inside the RenderOp may be null if the built failed.
+        @param baseSubMesh A sub mesh which the instances will be based upon from
         @return
             A render operation which is very useful to pass to other InstanceBatches
-            (@see buildFrom) so that they share the same vertex buffers and indices,
+            (see buildFrom()) so that they share the same vertex buffers and indices,
             when possible
         */
         virtual RenderOperation build( const SubMesh* baseSubMesh );
@@ -228,9 +226,10 @@ namespace Ogre
             reference from Render Op.
             For example, Hardware based instancing uses it's own vertex buffer for the
             last source binding, but shares the other sources.
+        @param baseSubMesh A sub mesh which the instances will be based upon from
         @param renderOperation The RenderOp to reference.
-        @remarks
-            Caller is responsable for freeing buffers passed as input arguments
+
+        @note Caller is responsible for freeing buffers passed as input arguments
             This function replaces the need to call build()
         */
         virtual void buildFrom( const SubMesh *baseSubMesh, const RenderOperation &renderOperation );
@@ -284,13 +283,12 @@ namespace Ogre
             This option makes the batch behave pretty much like Static Geometry, but with the GPU RAM
             memory advantages (less VRAM, less bandwidth) and not LOD support. Very useful for
             billboards of trees, repeating vegetation, etc.
-            @remarks
-                This function moves a lot of processing time from the CPU to the GPU. If the GPU
-                is already a bottleneck, you may see a decrease in performance instead!
-                Call this function again (with bStatic=true) if you've made a change to an
-                InstancedEntity and wish this change to take effect.
-                Be sure to call this after you've set all your instances
-                @see InstanceBatchHW::setStaticAndUpdate
+
+            @note This function moves a lot of processing time from the CPU to the GPU. If the GPU
+            is already a bottleneck, you may see a decrease in performance instead!
+            Call this function again (with bStatic=true) if you've made a change to an
+            InstancedEntity and wish this change to take effect.
+            Be sure to call this after you've set all your instances
         */
         virtual void setStaticAndUpdate( bool bStatic )     {}
 
@@ -301,15 +299,15 @@ namespace Ogre
         /** Returns a pointer to a new InstancedEntity ready to use
             Note it's actually preallocated, so no memory allocation happens at
             this point.
-            @remarks
-                Returns NULL if all instances are being used
+
+            @note Returns NULL if all instances are being used
         */
         InstancedEntity* createInstancedEntity();
 
         /** Removes an InstancedEntity from the scene retrieved with
             getNewInstancedEntity, putting back into a queue
-            @remarks
-                Throws an exception if the instanced entity wasn't created by this batch
+
+            @note Throws an exception if the instanced entity wasn't created by this batch
                 Removed instanced entities save little CPU time, but _not_ GPU
         */
         void removeInstancedEntity( InstancedEntity *instancedEntity );
@@ -323,35 +321,33 @@ namespace Ogre
         void _markTransformSharingDirty() { mTransformSharingDirty = true; }
 
         /** @see InstancedEntity::setCustomParam */
-        void _setCustomParam( InstancedEntity *instancedEntity, unsigned char idx, const Vector4 &newParam );
+        void _setCustomParam( InstancedEntity *instancedEntity, unsigned char idx, const Vector4f &newParam );
 
         /** @see InstancedEntity::getCustomParam */
-        const Vector4& _getCustomParam( InstancedEntity *instancedEntity, unsigned char idx );
+        const Vector4f& _getCustomParam( InstancedEntity *instancedEntity, unsigned char idx );
 
         //Renderable overloads
-        /** @copydoc Renderable::getMaterial. */
-        const MaterialPtr& getMaterial(void) const      { return mMaterial; }
-        /** @copydoc Renderable::getRenderOperation. */
-        void getRenderOperation( RenderOperation& op )  { op = mRenderOperation; }
+        /** @copydoc Renderable::getMaterial */
+        const MaterialPtr& getMaterial(void) const override      { return mMaterial; }
+        /** @copydoc Renderable::getRenderOperation */
+        void getRenderOperation( RenderOperation& op ) override  { op = mRenderOperation; }
 
-        /** @copydoc Renderable::getSquaredViewDepth. */
-        Real getSquaredViewDepth( const Camera* cam ) const;
-        /** @copydoc Renderable::getLights. */
-        const LightList& getLights( void ) const;
-        /** @copydoc Renderable::getTechnique. */
-        Technique* getTechnique(void) const;
+        /** @copydoc Renderable::getSquaredViewDepth */
+        Real getSquaredViewDepth( const Camera* cam ) const override;
+        /** @copydoc Renderable::getLights */
+        const LightList& getLights( void ) const override;
 
-        /** @copydoc MovableObject::getMovableType. */
-        const String& getMovableType(void) const;
-        /** @copydoc MovableObject::_notifyCurrentCamera. */
-        void _notifyCurrentCamera( Camera* cam );
-        /** @copydoc MovableObject::getBoundingBox. */
-        const AxisAlignedBox& getBoundingBox(void) const;
-        /** @copydoc MovableObject::getBoundingRadius. */
-        Real getBoundingRadius(void) const;
+        /** @copydoc MovableObject::getMovableType */
+        const String& getMovableType(void) const override;
+        /** @copydoc MovableObject::_notifyCurrentCamera */
+        void _notifyCurrentCamera( Camera* cam ) override;
+        /** @copydoc MovableObject::getBoundingBox */
+        const AxisAlignedBox& getBoundingBox(void) const override;
+        /** @copydoc MovableObject::getBoundingRadius */
+        Real getBoundingRadius(void) const override;
 
-        virtual void _updateRenderQueue(RenderQueue* queue);
-        void visitRenderables( Renderable::Visitor* visitor, bool debugRenderables = false );
+        void _updateRenderQueue(RenderQueue* queue) override;
+        void visitRenderables( Renderable::Visitor* visitor, bool debugRenderables = false ) override;
 
         // resolve ambiguity of get/setUserAny due to inheriting from Renderable and MovableObject
         using Renderable::getUserAny;

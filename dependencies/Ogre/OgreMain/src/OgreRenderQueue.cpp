@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,15 +29,10 @@ THE SOFTWARE.
 
 #include "OgreRenderQueue.h"
 
+#include <memory>
 #include "OgreMaterial.h"
 #include "OgreRenderQueueSortingGrouping.h"
-#include "OgrePass.h"
-#include "OgreMaterialManager.h"
-#include "OgreSceneManager.h"
-#include "OgreMovableObject.h"
 #include "OgreSceneManagerEnumerator.h"
-#include "OgreTechnique.h"
-
 
 namespace Ogre {
 
@@ -49,19 +44,12 @@ namespace Ogre {
         , mRenderableListener(0)
     {
         // Create the 'main' queue up-front since we'll always need that
-        mGroups.insert(
-            RenderQueueGroupMap::value_type(
-                RENDER_QUEUE_MAIN, 
-                OGRE_NEW RenderQueueGroup(this,
-                    mSplitPassesByLightingType,
-                    mSplitNoShadowPasses,
-                    mShadowCastersCannotBeReceivers)
-                )
-            );
+        mGroups[RENDER_QUEUE_MAIN] = std::make_unique<RenderQueueGroup>(
+            mSplitPassesByLightingType, mSplitNoShadowPasses, mShadowCastersCannotBeReceivers);
 
         // set default queue
         mDefaultQueueGroup = RENDER_QUEUE_MAIN;
-        mDefaultRenderablePriority = OGRE_RENDERABLE_DEFAULT_PRIORITY;
+        mDefaultRenderablePriority = Renderable::DEFAULT_PRIORITY;
 
     }
     //---------------------------------------------------------------------
@@ -70,40 +58,43 @@ namespace Ogre {
         
         // trigger the pending pass updates, otherwise we could leak
         Pass::processPendingPassUpdates();
-        
-        // Destroy the queues for good
-        RenderQueueGroupMap::iterator i, iend;
-        i = mGroups.begin();
-        iend = mGroups.end();
-        for (; i != iend; ++i)
-        {
-            OGRE_DELETE i->second;
-        }
-        mGroups.clear();
     }
+
+    static bool onTransparentQueue(Technique* pTech)
+    {
+        // Transparent and depth/colour settings mean depth sorting is required?
+        // Note: colour write disabled with depth check/write enabled means
+        //       setup depth buffer for other passes use.
+        if (pTech->isTransparentSortingForced() ||
+            (pTech->isTransparent() &&
+             (!pTech->isDepthWriteEnabled() || !pTech->isDepthCheckEnabled() || pTech->hasColourWriteDisabled())))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     //-----------------------------------------------------------------------
     void RenderQueue::addRenderable(Renderable* pRend, uint8 groupID, ushort priority)
     {
-        // Find group
-        RenderQueueGroup* pGroup = getQueueGroup(groupID);
-
         Technique* pTech;
 
-        // tell material it's been used
-        if (!pRend->getMaterial().isNull())
-            pRend->getMaterial()->touch();
+        // make sure supported techniques are populated
+        if (auto mat = pRend->getMaterial())
+            mat->prepare();
 
         // Check material & technique supplied (the former since the default implementation
         // of getTechnique is based on it for backwards compatibility
-        if(pRend->getMaterial().isNull() || !pRend->getTechnique())
+        if(!pRend->getMaterial() || !pRend->getTechnique())
         {
             // Use default base white, with lighting only if vertices has normals
             RenderOperation op;
             pRend->getRenderOperation(op);
             bool useLighting = (NULL != op.vertexData->vertexDeclaration->findElementBySemantic(VES_NORMAL));
-            MaterialPtr baseWhite = MaterialManager::getSingleton().getByName(useLighting ? "BaseWhite" : "BaseWhiteNoLighting");
-            baseWhite->load();
-            pTech = baseWhite->getBestTechnique();
+            MaterialPtr defaultMat = MaterialManager::getSingleton().getDefaultMaterial(useLighting);
+            defaultMat->prepare();
+            pTech = defaultMat->getBestTechnique();
         }
         else
             pTech = pRend->getTechnique();
@@ -111,38 +102,35 @@ namespace Ogre {
         if (mRenderableListener)
         {
             // Allow listener to override technique and to abort
-            if (!mRenderableListener->renderableQueued(pRend, groupID, priority, 
-                &pTech, this))
+            if (!mRenderableListener->renderableQueued(pRend, groupID, priority, &pTech, this))
                 return; // rejected
-
-            // tell material it's been used (incase changed)
-            pTech->getParent()->touch();
         }
-        
+
+        // tell material it's been used
+        pTech->getParent()->touch();
+
+        if(groupID == mDefaultQueueGroup && onTransparentQueue(pTech))
+            groupID = RENDER_QUEUE_TRANSPARENTS;
+
+        // Find group
+        RenderQueueGroup* pGroup = getQueueGroup(groupID);
         pGroup->addRenderable(pRend, pTech, priority);
 
     }
     //-----------------------------------------------------------------------
     void RenderQueue::clear(bool destroyPassMaps)
     {
-        // Clear the queues
-        SceneManagerEnumerator::SceneManagerIterator scnIt =
-            SceneManagerEnumerator::getSingleton().getSceneManagerIterator();
-
         // Note: We clear dirty passes from all RenderQueues in all 
         // SceneManagers, because the following recalculation of pass hashes
         // also considers all RenderQueues and could become inconsistent, otherwise.
-        while (scnIt.hasMoreElements())
+        for (auto p : SceneManagerEnumerator::getSingleton().getSceneManagers())
         {
-            SceneManager* sceneMgr = scnIt.getNext();
-            RenderQueue* queue = sceneMgr->getRenderQueue();
+            RenderQueue* queue = p.second->getRenderQueue();
 
-            RenderQueueGroupMap::iterator i, iend;
-            i = queue->mGroups.begin();
-            iend = queue->mGroups.end();
-            for (; i != iend; ++i)
+            for (auto & g : queue->mGroups)
             {
-                i->second->clear(destroyPassMaps);
+                if(g)
+                    g->clear(destroyPassMaps);
             }
         }
 
@@ -153,16 +141,6 @@ namespace Ogre {
         // We're assuming that frame-by-frame, the same groups are likely to 
         //  be used, so no point destroying the vectors and incurring the overhead
         //  that would cause, let them be destroyed in the destructor.
-    }
-    //-----------------------------------------------------------------------
-    RenderQueue::QueueGroupIterator RenderQueue::_getQueueGroupIterator(void)
-    {
-        return QueueGroupIterator(mGroups.begin(), mGroups.end());
-    }
-    //-----------------------------------------------------------------------
-    RenderQueue::ConstQueueGroupIterator RenderQueue::_getQueueGroupIterator(void) const
-    {
-        return ConstQueueGroupIterator(mGroups.begin(), mGroups.end());
     }
     //-----------------------------------------------------------------------
     void RenderQueue::addRenderable(Renderable* pRend, uint8 groupID)
@@ -199,26 +177,14 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     RenderQueueGroup* RenderQueue::getQueueGroup(uint8 groupID)
     {
-        // Find group
-        RenderQueueGroupMap::iterator groupIt;
-        RenderQueueGroup* pGroup;
-
-        groupIt = mGroups.find(groupID);
-        if (groupIt == mGroups.end())
+        if (!mGroups[groupID])
         {
             // Insert new
-            pGroup = OGRE_NEW RenderQueueGroup(this,
-                mSplitPassesByLightingType,
-                mSplitNoShadowPasses,
-                mShadowCastersCannotBeReceivers);
-            mGroups.insert(RenderQueueGroupMap::value_type(groupID, pGroup));
-        }
-        else
-        {
-            pGroup = groupIt->second;
+            mGroups[groupID] = std::make_unique<RenderQueueGroup>(mSplitPassesByLightingType, mSplitNoShadowPasses,
+                                                        mShadowCastersCannotBeReceivers);
         }
 
-        return pGroup;
+        return mGroups[groupID].get();
 
     }
     //-----------------------------------------------------------------------
@@ -226,12 +192,10 @@ namespace Ogre {
     {
         mSplitPassesByLightingType = split;
 
-        RenderQueueGroupMap::iterator i, iend;
-        i = mGroups.begin();
-        iend = mGroups.end();
-        for (; i != iend; ++i)
+        for (auto & g : mGroups)
         {
-            i->second->setSplitPassesByLightingType(split);
+            if(g)
+                g->setSplitPassesByLightingType(split);
         }
     }
     //-----------------------------------------------------------------------
@@ -244,12 +208,10 @@ namespace Ogre {
     {
         mSplitNoShadowPasses = split;
 
-        RenderQueueGroupMap::iterator i, iend;
-        i = mGroups.begin();
-        iend = mGroups.end();
-        for (; i != iend; ++i)
+        for (auto & g : mGroups)
         {
-            i->second->setSplitNoShadowPasses(split);
+            if(g)
+                g->setSplitNoShadowPasses(split);
         }
     }
     //-----------------------------------------------------------------------
@@ -262,12 +224,10 @@ namespace Ogre {
     {
         mShadowCastersCannotBeReceivers = ind;
 
-        RenderQueueGroupMap::iterator i, iend;
-        i = mGroups.begin();
-        iend = mGroups.end();
-        for (; i != iend; ++i)
+        for (auto & g : mGroups)
         {
-            i->second->setShadowCastersCannotBeReceivers(ind);
+            if(g)
+                g->setShadowCastersCannotBeReceivers(ind);
         }
     }
     //-----------------------------------------------------------------------
@@ -278,15 +238,13 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void RenderQueue::merge( const RenderQueue* rhs )
     {
-        ConstQueueGroupIterator it = rhs->_getQueueGroupIterator( );
-
-        while( it.hasMoreElements() )
+        for (size_t i = 0; i < RENDER_QUEUE_COUNT; ++i)
         {
-            uint8 groupID = it.peekNextKey();
-            RenderQueueGroup* pSrcGroup = it.getNext();
-            RenderQueueGroup* pDstGroup = getQueueGroup( groupID );
+            if(!rhs->mGroups[i])
+                continue;
 
-            pDstGroup->merge( pSrcGroup );
+            RenderQueueGroup* pDstGroup = getQueueGroup( i );
+            pDstGroup->merge( rhs->mGroups[i].get() );
         }
     }
 
@@ -296,31 +254,32 @@ namespace Ogre {
         bool onlyShadowCasters, 
         VisibleObjectsBoundsInfo* visibleBounds)
     {
-        mo->_notifyCurrentCamera(cam);
-        if (mo->isVisible())
-        {
-            bool receiveShadows = getQueueGroup(mo->getRenderQueueGroup())->getShadowsEnabled()
-                && mo->getReceivesShadows();
+        // receiveShadows is a material property, so we can query it before LOD
+        bool receiveShadows = getQueueGroup(mo->getRenderQueueGroup())->getShadowsEnabled() && mo->getReceivesShadows();
 
-            if (!onlyShadowCasters || mo->getCastShadows())
+        if(onlyShadowCasters && !mo->getCastShadows() && !receiveShadows)
+            return;
+
+        mo->_notifyCurrentCamera(cam);
+        if (!mo->isVisible())
+            return;
+
+        const auto& bbox = mo->getWorldBoundingBox(true);
+        const auto& bsphere = mo->getWorldBoundingSphere(true);
+
+        if (!onlyShadowCasters || mo->getCastShadows())
+        {
+            mo->_updateRenderQueue(this);
+            if (visibleBounds)
             {
-                mo -> _updateRenderQueue( this );
-                if (visibleBounds)
-                {
-                    visibleBounds->merge(mo->getWorldBoundingBox(true), 
-                        mo->getWorldBoundingSphere(true), cam, 
-                        receiveShadows);
-                }
-            }
-            // not shadow caster, receiver only?
-            else if (onlyShadowCasters && !mo->getCastShadows() && 
-                receiveShadows)
-            {
-                visibleBounds->mergeNonRenderedButInFrustum(mo->getWorldBoundingBox(true), 
-                    mo->getWorldBoundingSphere(true), cam);
+                visibleBounds->merge(bbox, bsphere, cam, receiveShadows);
             }
         }
-
+        // not shadow caster, receiver only?
+        else if (receiveShadows)
+        {
+            visibleBounds->mergeNonRenderedButInFrustum(bbox, bsphere, cam);
+        }
     }
 
 }

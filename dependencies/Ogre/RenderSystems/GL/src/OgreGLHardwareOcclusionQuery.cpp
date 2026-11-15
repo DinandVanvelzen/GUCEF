@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,22 +48,7 @@ namespace Ogre {
   */
 GLHardwareOcclusionQuery::GLHardwareOcclusionQuery() 
 { 
-    // Check for hardware occlusion support
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
-    {
-        glGenQueriesARB(1, &mQueryID ); 
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glGenOcclusionQueriesNV(1, &mQueryID);
-    }
-    else
-    {
-        OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, 
-                    "Cannot allocate a Hardware query. This video card doesn't support it, sorry.", 
-                    "GLHardwareOcclusionQuery::GLHardwareOcclusionQuery" );
-    }
-    
+    glGenQueriesARB(1, &mQueryID );
 }
 //------------------------------------------------------------------
 /**
@@ -71,71 +56,47 @@ GLHardwareOcclusionQuery::GLHardwareOcclusionQuery()
   */
 GLHardwareOcclusionQuery::~GLHardwareOcclusionQuery() 
 { 
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
-    {
-        glDeleteQueriesARB(1, &mQueryID);  
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glDeleteOcclusionQueriesNV(1, &mQueryID);  
-    }
+    glDeleteQueriesARB(1, &mQueryID);
 }
 //------------------------------------------------------------------
 void GLHardwareOcclusionQuery::beginOcclusionQuery() 
 { 
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
-    {
-        glBeginQueryARB(GL_SAMPLES_PASSED_ARB, mQueryID);
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glBeginOcclusionQueryNV(mQueryID);
-    }
+    glBeginQueryARB(GL_SAMPLES_PASSED_ARB, mQueryID);
+    mIsQueryResultStillOutstanding = true;
 }
 //------------------------------------------------------------------
 void GLHardwareOcclusionQuery::endOcclusionQuery() 
 { 
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
-    {
-        glEndQueryARB(GL_SAMPLES_PASSED_ARB);
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glEndOcclusionQueryNV();
-    }
-    
+    glEndQueryARB(GL_SAMPLES_PASSED_ARB);
 }
 //------------------------------------------------------------------
 bool GLHardwareOcclusionQuery::pullOcclusionQuery( unsigned int* NumOfFragments ) 
 {
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
+    if (!mIsQueryResultStillOutstanding)
     {
-        glGetQueryObjectuivARB(mQueryID, GL_QUERY_RESULT_ARB, (GLuint*)NumOfFragments);
-        mPixelCount = *NumOfFragments;
-        return true;
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glGetOcclusionQueryuivNV(mQueryID, GL_PIXEL_COUNT_NV, (GLuint*)NumOfFragments);
-        mPixelCount = *NumOfFragments;
+        *NumOfFragments = mPixelCount;
         return true;
     }
 
-    return false;
+    glGetQueryObjectuivARB(mQueryID, GL_QUERY_RESULT_ARB, (GLuint*)NumOfFragments);
+    mPixelCount = *NumOfFragments;
+
+    mIsQueryResultStillOutstanding = false;
+
+    return true;
 }
 //------------------------------------------------------------------
 bool GLHardwareOcclusionQuery::isStillOutstanding(void)
 {    
+    if (!mIsQueryResultStillOutstanding)
+        return false;
+
     GLuint available = GL_FALSE;
 
-    if(GLEW_VERSION_1_5 || GLEW_ARB_occlusion_query)
-    {
-        glGetQueryObjectuivARB(mQueryID, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
-    }
-    else if (GLEW_NV_occlusion_query)
-    {
-        glGetOcclusionQueryuivNV(mQueryID, GL_PIXEL_COUNT_AVAILABLE_NV, &available);
-    }
+    glGetQueryObjectuivARB(mQueryID, GL_QUERY_RESULT_AVAILABLE_ARB, &available);
+
+    if(available == GL_TRUE)
+        pullOcclusionQuery(&mPixelCount);
 
     // GL_TRUE means a wait would occur
     return !(available == GL_TRUE);  

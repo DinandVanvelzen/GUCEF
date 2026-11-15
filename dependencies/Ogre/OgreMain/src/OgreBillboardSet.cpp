@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,37 +28,21 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 
 #include "OgreBillboardSet.h"
-
 #include "OgreBillboard.h"
-#include "OgreMaterialManager.h"
-#include "OgreHardwareBufferManager.h"
-#include "OgreCamera.h"
-#include "OgreMath.h"
-#include "OgreSphere.h"
-#include "OgreRoot.h"
-#include "OgreRenderSystem.h"
-#include "OgreException.h"
-#include "OgreSceneNode.h"
-#include "OgreLogManager.h"
+
 #include <algorithm>
+#include <memory>
 
 namespace Ogre {
-    // Init statics
-    RadixSort<BillboardSet::ActiveBillboardList, Billboard*, float> BillboardSet::mRadixSorter;
-
     //-----------------------------------------------------------------------
     BillboardSet::BillboardSet() :
         mBoundingRadius(0.0f), 
         mOriginType( BBO_CENTER ),
         mRotationType( BBR_TEXCOORD ),
-        mAllDefaultSize( true ),
         mAutoExtendPool( true ),
         mSortingEnabled(false),
         mAccurateFacing(false),
-        mAllDefaultRotation(true),
         mWorldSpace(false),
-        mVertexData(0),
-        mIndexData(0),
         mCullIndividual( false ),
         mBillboardType(BBT_POINT),
         mCommonDirection(Ogre::Vector3::UNIT_Z),
@@ -71,7 +55,8 @@ namespace Ogre {
         mBillboardDataChanged(true)
     {
         setDefaultDimensions( 100, 100 );
-        setMaterialName( "BaseWhite" );
+        mMaterial = MaterialManager::getSingleton().getDefaultMaterial();
+        mMaterial->load();
         mCastShadows = false;
         setTextureStacksAndSlices( 1, 1 );
     }
@@ -85,14 +70,11 @@ namespace Ogre {
         mBoundingRadius(0.0f), 
         mOriginType( BBO_CENTER ),
         mRotationType( BBR_TEXCOORD ),
-        mAllDefaultSize( true ),
         mAutoExtendPool( true ),
         mSortingEnabled(false),
         mAccurateFacing(false),
-        mAllDefaultRotation(true),
         mWorldSpace(false),
-        mVertexData(0),
-        mIndexData(0),
+        mActiveBillboards(0),
         mCullIndividual( false ),
         mBillboardType(BBT_POINT),
         mCommonDirection(Ogre::Vector3::UNIT_Z),
@@ -105,7 +87,8 @@ namespace Ogre {
         mBillboardDataChanged(true)
     {
         setDefaultDimensions( 100, 100 );
-        setMaterialName( "BaseWhite" );
+        mMaterial = MaterialManager::getSingleton().getDefaultMaterial();
+        mMaterial->load();
         setPoolSize( poolSize );
         mCastShadows = false;
         setTextureStacksAndSlices( 1, 1 );
@@ -114,10 +97,9 @@ namespace Ogre {
     BillboardSet::~BillboardSet()
     {
         // Free pool items
-        BillboardPool::iterator i;
-        for (i = mBillboardPool.begin(); i != mBillboardPool.end(); ++i)
+        for (auto *b : mBillboardPool)
         {
-            OGRE_DELETE *i;
+            OGRE_DELETE b;
         }
 
         // Delete shared buffers
@@ -128,7 +110,7 @@ namespace Ogre {
         const Vector3& position,
         const ColourValue& colour )
     {
-        if( mFreeBillboards.empty() )
+        if( mActiveBillboards == mBillboardPool.size() )
         {
             if( mAutoExtendPool )
             {
@@ -141,16 +123,13 @@ namespace Ogre {
         }
 
         // Get a new billboard
-        Billboard* newBill = mFreeBillboards.front();
-        mActiveBillboards.splice(
-            mActiveBillboards.end(), mFreeBillboards, mFreeBillboards.begin());
+        Billboard* newBill = mBillboardPool[mActiveBillboards++];
         newBill->setPosition(position);
         newBill->setColour(colour);
         newBill->mDirection = Vector3::ZERO;
         newBill->setRotation(Radian(0));
         newBill->setTexcoordIndex(0);
         newBill->resetDimensions();
-        newBill->_notifyOwner(this);
 
         // Merge into bounds
         Real adjust = std::max(mDefaultWidth, mDefaultHeight);
@@ -167,146 +146,37 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    Billboard* BillboardSet::createBillboard(
-        Real x, Real y, Real z,
-        const ColourValue& colour )
-    {
-        return createBillboard( Vector3( x, y, z ), colour );
-    }
-
-    //-----------------------------------------------------------------------
-    int BillboardSet::getNumBillboards(void) const
-    {
-        return static_cast< int >( mActiveBillboards.size() );
-    }
-
-    //-----------------------------------------------------------------------
     void BillboardSet::clear()
     {
-        // Move actives to free list
-        mFreeBillboards.splice(mFreeBillboards.end(), mActiveBillboards);
+        mActiveBillboards = 0;
     }
 
     //-----------------------------------------------------------------------
     Billboard* BillboardSet::getBillboard( unsigned int index ) const
     {
-        assert(
-            index < mActiveBillboards.size() &&
-            "Billboard index out of bounds." );
-
-        /* We can't access it directly, so we check whether it's in the first
-           or the second half, then we start either from the beginning or the
-           end of the list
-        */
-        ActiveBillboardList::const_iterator it;
-        if( index >= ( mActiveBillboards.size() >> 1 ) )
-        {
-            index = static_cast<unsigned int>(mActiveBillboards.size()) - index;
-            for( it = mActiveBillboards.end(); index; --index, --it );
-        }
-        else
-        {
-            for( it = mActiveBillboards.begin(); index; --index, ++it );
-        }
-
-        return *it;
+        assert(index < mActiveBillboards && "Billboard index out of bounds.");
+        return mBillboardPool[index];
     }
 
     //-----------------------------------------------------------------------
     void BillboardSet::removeBillboard(unsigned int index)
     {
-        assert(
-            index < mActiveBillboards.size() &&
-            "Billboard index out of bounds." );
-
-        /* We can't access it directly, so we check whether it's in the first
-           or the second half, then we start either from the beginning or the
-           end of the list.
-           We then remove the billboard form the 'used' list and add it to
-           the 'free' list.
-        */
-        ActiveBillboardList::iterator it;
-        if( index >= ( mActiveBillboards.size() >> 1 ) )
-        {
-            index = static_cast<unsigned int>(mActiveBillboards.size()) - index;
-            for( it = mActiveBillboards.end(); index; --index, --it );
-        }
-        else
-        {
-            for( it = mActiveBillboards.begin(); index; --index, ++it );
-        }
-
-        mFreeBillboards.splice(mFreeBillboards.end(), mActiveBillboards, it);
+        assert(index < mActiveBillboards && "Billboard isn't in the active list.");
+        std::swap(mBillboardPool[index], mBillboardPool[--mActiveBillboards]);
     }
 
     //-----------------------------------------------------------------------
     void BillboardSet::removeBillboard( Billboard* pBill )
     {
-        ActiveBillboardList::iterator it =
-            std::find(mActiveBillboards.begin(), mActiveBillboards.end(), pBill);
-        assert(
-            it != mActiveBillboards.end() &&
-            "Billboard isn't in the active list." );
-
-        mFreeBillboards.splice(mFreeBillboards.end(), mActiveBillboards, it);
-    }
-
-    //-----------------------------------------------------------------------
-    void BillboardSet::setBillboardOrigin( BillboardOrigin origin )
-    {
-        mOriginType = origin;
-    }
-
-    //-----------------------------------------------------------------------
-    BillboardOrigin BillboardSet::getBillboardOrigin(void) const
-    {
-        return mOriginType;
-    }
-
-    //-----------------------------------------------------------------------
-    void BillboardSet::setBillboardRotationType(BillboardRotationType rotationType)
-    {
-        mRotationType = rotationType;
-    }
-    //-----------------------------------------------------------------------
-    BillboardRotationType BillboardSet::getBillboardRotationType(void) const
-    {
-        return mRotationType;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setDefaultDimensions( Real width, Real height )
-    {
-        mDefaultWidth = width;
-        mDefaultHeight = height;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setDefaultWidth(Real width)
-    {
-        mDefaultWidth = width;
-    }
-    //-----------------------------------------------------------------------
-    Real BillboardSet::getDefaultWidth(void) const
-    {
-        return mDefaultWidth;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setDefaultHeight(Real height)
-    {
-        mDefaultHeight = height;
-    }
-    //-----------------------------------------------------------------------
-    Real BillboardSet::getDefaultHeight(void) const
-    {
-        return mDefaultHeight;
+        auto it = std::find(mBillboardPool.begin(), mBillboardPool.begin() + mActiveBillboards, pBill);
+        removeBillboard(std::distance(mBillboardPool.begin(), it));
     }
     //-----------------------------------------------------------------------
     void BillboardSet::setMaterialName( const String& name , const String& groupName /* = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME */ )
     {
-        mMaterialName = name;
-
         mMaterial = MaterialManager::getSingleton().getByName(name, groupName);
 
-        if (mMaterial.isNull())
+        if (!mMaterial)
             OGRE_EXCEPT( Exception::ERR_ITEM_NOT_FOUND, "Could not find material " + name,
                 "BillboardSet::setMaterialName" );
 
@@ -317,21 +187,19 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    const String& BillboardSet::getMaterialName(void) const
-    {
-        return mMaterialName;
-    }
-
-    //-----------------------------------------------------------------------
     void BillboardSet::_sortBillboards( Camera* cam)
     {
+        static RadixSort<BillboardPool, Billboard*, float> mRadixSorter;
+
         switch (_getSortMode())
         {
         case SM_DIRECTION:
-            mRadixSorter.sort(mActiveBillboards, SortByDirectionFunctor(-mCamDir));
+            mRadixSorter.sort(mBillboardPool.begin(), mBillboardPool.begin() + mActiveBillboards,
+                              SortByDirectionFunctor(-mCamDir));
             break;
         case SM_DISTANCE:
-            mRadixSorter.sort(mActiveBillboards, SortByDistanceFunctor(mCamPos));
+            mRadixSorter.sort(mBillboardPool.begin(), mBillboardPool.begin() + mActiveBillboards,
+                              SortByDistanceFunctor(mCamPos));
             break;
         }
     }
@@ -465,14 +333,12 @@ namespace Ogre {
             mLockPtr = static_cast<float*>(
                 mMainBuf->lock(0, numBillboards * billboardSize, 
                 mMainBuf->getUsage() & HardwareBuffer::HBU_DYNAMIC ?
-                HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NORMAL,
-                mAutoUpdate ? Root::getSingleton().getFreqUpdatedBuffersUploadOption() : HardwareBuffer::HBU_DEFAULT) );
+                HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NORMAL) );
         }
         else // lock the entire thing
             mLockPtr = static_cast<float*>(
             mMainBuf->lock(mMainBuf->getUsage() & HardwareBuffer::HBU_DYNAMIC ?
-            HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NORMAL,
-            mAutoUpdate ? Root::getSingleton().getFreqUpdatedBuffersUploadOption() : HardwareBuffer::HBU_DEFAULT) );
+            HardwareBuffer::HBL_DISCARD : HardwareBuffer::HBL_NORMAL) );
 
     }
     //-----------------------------------------------------------------------
@@ -484,55 +350,38 @@ namespace Ogre {
         // Skip if not visible (NB always true if not bounds checking individual billboards)
         if (!billboardVisible(mCurrentCamera, bb)) return;
 
-        if (!mPointRendering &&
-            (mBillboardType == BBT_ORIENTED_SELF ||
-            mBillboardType == BBT_PERPENDICULAR_SELF ||
-            (mAccurateFacing && mBillboardType != BBT_PERPENDICULAR_COMMON)))
+        // Increment visibles
+        mNumVisibleBillboards++;
+
+        if(mPointRendering)
+        {
+            genPointVertices(bb);
+            return;
+        }
+
+        if ((mBillboardType == BBT_ORIENTED_SELF || mBillboardType == BBT_PERPENDICULAR_SELF ||
+             (mAccurateFacing && mBillboardType != BBT_PERPENDICULAR_COMMON)))
         {
             // Have to generate axes & offsets per billboard
             genBillboardAxes(&mCamX, &mCamY, &bb);
         }
 
-        // If they're all the same size or we're point rendering
-        if( mAllDefaultSize || mPointRendering)
+        if ((mBillboardType == BBT_ORIENTED_SELF || mBillboardType == BBT_PERPENDICULAR_SELF ||
+             bb.mOwnDimensions || (mAccurateFacing && mBillboardType != BBT_PERPENDICULAR_COMMON)))
         {
-            /* No per-billboard checking, just blast through.
-            Saves us an if clause every billboard which may
-            make a difference.
-            */
-
-            if (!mPointRendering &&
-                (mBillboardType == BBT_ORIENTED_SELF ||
-                mBillboardType == BBT_PERPENDICULAR_SELF ||
-                (mAccurateFacing && mBillboardType != BBT_PERPENDICULAR_COMMON)))
-            {
-                genVertOffsets(mLeftOff, mRightOff, mTopOff, mBottomOff,
-                    mDefaultWidth, mDefaultHeight, mCamX, mCamY, mVOffset);
-            }
-            genVertices(mVOffset, bb);
-        }
-        else // not all default size and not point rendering
-        {
-            Vector3 vOwnOffset[4];
             // If it has own dimensions, or self-oriented, gen offsets
-            if (mBillboardType == BBT_ORIENTED_SELF ||
-                mBillboardType == BBT_PERPENDICULAR_SELF ||
-                bb.mOwnDimensions ||
-                (mAccurateFacing && mBillboardType != BBT_PERPENDICULAR_COMMON))
-            {
-                // Generate using own dimensions
-                genVertOffsets(mLeftOff, mRightOff, mTopOff, mBottomOff,
-                    bb.mWidth, bb.mHeight, mCamX, mCamY, vOwnOffset);
-                // Create vertex data
-                genVertices(vOwnOffset, bb);
-            }
-            else // Use default dimension, already computed before the loop, for faster creation
-            {
-                genVertices(mVOffset, bb);
-            }
+            Vector3 vOwnOffset[4];
+            Real width = bb.mOwnDimensions ? bb.mWidth : mDefaultWidth;
+            Real height = bb.mOwnDimensions ? bb.mHeight : mDefaultHeight;
+            genVertOffsets(mLeftOff, mRightOff, mTopOff, mBottomOff,
+                width, height, mCamX, mCamY, vOwnOffset);
+            genQuadVertices(vOwnOffset, bb);
         }
-        // Increment visibles
-        mNumVisibleBillboards++;
+        else
+        {
+            // Use default dimension, already computed before the loop, for faster creation
+            genQuadVertices(mVOffset, bb);
+        }
     }
     //-----------------------------------------------------------------------
     void BillboardSet::endBillboards(void)
@@ -548,7 +397,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void BillboardSet::_updateBounds(void)
     {
-        if (mActiveBillboards.empty())
+        if (mActiveBillboards == 0)
         {
             // No billboards, null bbox
             mAABB.setNull();
@@ -556,47 +405,33 @@ namespace Ogre {
         }
         else
         {
-            Real maxSqLen = -1.0f;
-
-            Vector3 min(Math::POS_INFINITY, Math::POS_INFINITY, Math::POS_INFINITY);
-            Vector3 max(Math::NEG_INFINITY, Math::NEG_INFINITY, Math::NEG_INFINITY);
-            ActiveBillboardList::iterator i, iend;
-
-            iend = mActiveBillboards.end();
-            Matrix4 invWorld;
-            if (mWorldSpace && getParentSceneNode())
+            mAABB.setNull();
+            auto iend = mBillboardPool.begin() + mActiveBillboards;
+            Affine3 invWorld;
+            bool invert = mWorldSpace && getParentSceneNode();
+            if (invert)
                 invWorld = getParentSceneNode()->_getFullTransform().inverse();
 
-            for (i = mActiveBillboards.begin(); i != iend; ++i)
+            for (auto i = mBillboardPool.begin(); i != iend; ++i)
             {
                 Vector3 pos = (*i)->getPosition();
                 // transform from world space to local space
-                if (mWorldSpace && getParentSceneNode())
+                if (invert)
                     pos = invWorld * pos;
-                min.makeFloor(pos);
-                max.makeCeil(pos);
 
-                maxSqLen = std::max(maxSqLen, pos.squaredLength());
+                mAABB.merge(pos);
             }
             // Adjust for billboard size
             Real adjust = std::max(mDefaultWidth, mDefaultHeight);
             Vector3 vecAdjust(adjust, adjust, adjust);
-            min -= vecAdjust;
-            max += vecAdjust;
 
-            mAABB.setExtents(min, max);
-            mBoundingRadius = Math::Sqrt(maxSqLen);
-
+            mAABB.setExtents(mAABB.getMinimum() - vecAdjust, mAABB.getMaximum() + vecAdjust);
+            mBoundingRadius = Math::boundingRadiusFromAABB(mAABB);
         }
 
         if (mParentNode)
             mParentNode->needUpdate();
 
-    }
-    //-----------------------------------------------------------------------
-    const AxisAlignedBox& BillboardSet::getBoundingBox(void) const
-    {
-        return mAABB;
     }
 
     //-----------------------------------------------------------------------
@@ -610,11 +445,9 @@ namespace Ogre {
                 _sortBillboards(mCurrentCamera);
             }
 
-            beginBillboards(mActiveBillboards.size());
-            ActiveBillboardList::iterator it;
-            for(it = mActiveBillboards.begin();
-                it != mActiveBillboards.end();
-                ++it )
+            beginBillboards(mActiveBillboards);
+            auto iend = mBillboardPool.begin() + mActiveBillboards;
+            for (auto it = mBillboardPool.begin(); it != iend; ++it)
             {
                 injectBillboard(*(*it));
             }
@@ -637,36 +470,11 @@ namespace Ogre {
 
     }
 
-    //-----------------------------------------------------------------------
-    const MaterialPtr& BillboardSet::getMaterial(void) const
-    {
-        return mMaterial;
-    }
-
     void BillboardSet::setMaterial( const MaterialPtr& material )
     {
+        OgreAssert(material, "material is NULL");
         mMaterial = material;
-        
-        if (mMaterial.isNull())
-        {
-            LogManager::getSingleton().logMessage("Can't assign material "  
-                                                  " to BillboardSet of " + getName() + " because this "
-                                                  "Material does not exist. Have you forgotten to define it in a "
-                                                  ".material script?", LML_CRITICAL);
-            
-            mMaterial = MaterialManager::getSingleton().getByName("BaseWhite");
-            
-            if (mMaterial.isNull())
-            {
-                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Can't assign default material "
-                            "to BillboardSet " + getName() + ". Did "
-                            "you forget to call MaterialManager::initialise()?",
-                            "BillboardSet::setMaterial");
-            }
-        }
-        
-        mMaterialName = mMaterial->getName();
-        
+
         // Ensure new material loaded (will not load again if already loaded)
         mMaterial->load();
     }
@@ -674,14 +482,13 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void BillboardSet::getRenderOperation(RenderOperation& op)
     {
-        op.vertexData = mVertexData;
+        op.vertexData = mVertexData.get();
         op.vertexData->vertexStart = 0;
 
         if (mPointRendering)
         {
             op.operationType = RenderOperation::OT_POINT_LIST;
             op.useIndexes = false;
-            op.useGlobalInstancingVertexBufferIsAvailable = false;
             op.indexData = 0;
             op.vertexData->vertexCount = mNumVisibleBillboards;
         }
@@ -692,7 +499,7 @@ namespace Ogre {
 
             op.vertexData->vertexCount = mNumVisibleBillboards * 4;
 
-            op.indexData = mIndexData;
+            op.indexData = mIndexData.get();
             op.indexData->indexCount = mNumVisibleBillboards * 6;
             op.indexData->indexStart = 0;
         }
@@ -712,30 +519,6 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    void BillboardSet::setAutoextend( bool autoextend )
-    {
-        mAutoExtendPool = autoextend;
-    }
-
-    //-----------------------------------------------------------------------
-    bool BillboardSet::getAutoextend(void) const
-    {
-        return mAutoExtendPool;
-    }
-
-    //-----------------------------------------------------------------------
-    void BillboardSet::setSortingEnabled( bool sortenable )
-    {
-        mSortingEnabled = sortenable;
-    }
-
-    //-----------------------------------------------------------------------
-    bool BillboardSet::getSortingEnabled(void) const
-    {
-        return mSortingEnabled;
-    }
-
-    //-----------------------------------------------------------------------
     void BillboardSet::setPoolSize( size_t size )
     {
         // If we're driving this from our own data, allocate billboards
@@ -747,12 +530,6 @@ namespace Ogre {
                 return;
 
             this->increasePool(size);
-
-            for( size_t i = currSize; i < size; ++i )
-            {
-                // Add new items to the queue
-                mFreeBillboards.push_back( mBillboardPool[i] );
-            }
         }
 
         mPoolSize = size;
@@ -779,13 +556,13 @@ namespace Ogre {
         if (mPointRendering && mBillboardType != BBT_POINT)
         {
 
-            LogManager::getSingleton().logMessage("Warning: BillboardSet " +
+            LogManager::getSingleton().logWarning("BillboardSet " +
                 mName + " has point rendering enabled but is using a type "
                 "other than BBT_POINT, this may not give you the results you "
-                "expect.", LML_CRITICAL);
+                "expect.");
         }
 
-        mVertexData = OGRE_NEW VertexData();
+        mVertexData = std::make_unique<VertexData>();
         if (mPointRendering)
             mVertexData->vertexCount = mPoolSize;
         else
@@ -798,10 +575,8 @@ namespace Ogre {
         VertexBufferBinding* binding = mVertexData->vertexBufferBinding;
 
         size_t offset = 0;
-        decl->addElement(0, offset, VET_FLOAT3, VES_POSITION);
-        offset += VertexElement::getTypeSize(VET_FLOAT3);
-        decl->addElement(0, offset, VET_COLOUR, VES_DIFFUSE);
-        offset += VertexElement::getTypeSize(VET_COLOUR);
+        offset += decl->addElement(0, offset, VET_FLOAT3, VES_POSITION).getSize();
+        offset += decl->addElement(0, offset, VET_UBYTE4_NORM, VES_DIFFUSE).getSize();
         // Texture coords irrelevant when enabled point rendering (generated
         // in point sprite mode, and unused in standard point mode)
         if (!mPointRendering)
@@ -820,7 +595,7 @@ namespace Ogre {
 
         if (!mPointRendering)
         {
-            mIndexData  = OGRE_NEW IndexData();
+            mIndexData = std::make_unique<IndexData>();
             mIndexData->indexStart = 0;
             mIndexData->indexCount = mPoolSize * 6;
 
@@ -841,10 +616,8 @@ namespace Ogre {
                 2-----3
             */
 
-            ushort* pIdx = static_cast<ushort*>(
-                mIndexData->indexBuffer->lock(0,
-                  mIndexData->indexBuffer->getSizeInBytes(),
-                  HardwareBuffer::HBL_DISCARD) );
+            HardwareBufferLockGuard indexLock(mIndexData->indexBuffer, HardwareBuffer::HBL_DISCARD);
+            ushort* pIdx = static_cast<ushort*>(indexLock.pData);
 
             for(
                 size_t idx, idxOff, bboard = 0;
@@ -863,46 +636,17 @@ namespace Ogre {
                 pIdx[idx+5] = static_cast<unsigned short>(idxOff + 3);
 
             }
-
-            mIndexData->indexBuffer->unlock();
         }
         mBuffersCreated = true;
     }
     //-----------------------------------------------------------------------
     void BillboardSet::_destroyBuffers(void)
     {
-        if (mVertexData)
-        {
-            OGRE_DELETE mVertexData;
-            mVertexData = 0;
-        }
-        if (mIndexData)
-        {
-            OGRE_DELETE mIndexData;
-            mIndexData = 0;
-        }
-
-        mMainBuf.setNull();
+        mVertexData.reset();
+        mIndexData.reset();
+        mMainBuf.reset();
 
         mBuffersCreated = false;
-
-    }
-    //-----------------------------------------------------------------------
-    unsigned int BillboardSet::getPoolSize(void) const
-    {
-        return static_cast< unsigned int >( mBillboardPool.size() );
-    }
-
-    //-----------------------------------------------------------------------
-    void BillboardSet::_notifyBillboardResized(void)
-    {
-        mAllDefaultSize = false;
-    }
-
-    //-----------------------------------------------------------------------
-    void BillboardSet::_notifyBillboardRotated(void)
-    {
-        mAllDefaultRotation = false;
     }
 
     //-----------------------------------------------------------------------
@@ -976,16 +720,6 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    bool BillboardSet::getCullIndividually(void) const
-    {
-        return mCullIndividual;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setCullIndividually(bool cullIndividual)
-    {
-        mCullIndividual = cullIndividual;
-    }
-    //-----------------------------------------------------------------------
     bool BillboardSet::billboardVisible(Camera* cam, const Billboard& bill)
     {
         // Return always visible if not culling individually
@@ -997,7 +731,7 @@ namespace Ogre {
 
         getWorldTransforms(&xworld);
 
-        sph.setCenter(xworld.transformAffine(bill.mPosition));
+        sph.setCenter(xworld * bill.mPosition);
 
         if (bill.mOwnDimensions)
         {
@@ -1017,7 +751,6 @@ namespace Ogre {
         size_t oldSize = mBillboardPool.size();
 
         // Increase size
-        mBillboardPool.reserve(size);
         mBillboardPool.resize(size);
 
         // Create new billboards
@@ -1095,280 +828,91 @@ namespace Ogre {
 
     }
     //-----------------------------------------------------------------------
-    void BillboardSet::setBillboardType(BillboardType bbt)
-    {
-        mBillboardType = bbt;
-    }
-    //-----------------------------------------------------------------------
-    BillboardType BillboardSet::getBillboardType(void) const
-    {
-        return mBillboardType;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setCommonDirection(const Vector3& vec)
-    {
-        mCommonDirection = vec;
-    }
-    //-----------------------------------------------------------------------
-    const Vector3& BillboardSet::getCommonDirection(void) const
-    {
-        return mCommonDirection;
-    }
-    //-----------------------------------------------------------------------
-    void BillboardSet::setCommonUpVector(const Vector3& vec)
-    {
-        mCommonUpVector = vec;
-    }
-    //-----------------------------------------------------------------------
-    const Vector3& BillboardSet::getCommonUpVector(void) const
-    {
-        return mCommonUpVector;
-    }
-    //-----------------------------------------------------------------------
     uint32 BillboardSet::getTypeFlags(void) const
     {
         return SceneManager::FX_TYPE_MASK;
     }
     //-----------------------------------------------------------------------
-    void BillboardSet::genVertices(
-        const Vector3* const offsets, const Billboard& bb)
+    void BillboardSet::genPointVertices(const Billboard& bb)
     {
-        RGBA colour;
-        Root::getSingleton().convertColourValue(bb.mColour, &colour);
-        RGBA* pCol;
+        RGBA colour = bb.mColour;
+        // Single vertex per billboard, ignore offsets
+        // position
+        *mLockPtr++ = bb.mPosition.x;
+        *mLockPtr++ = bb.mPosition.y;
+        *mLockPtr++ = bb.mPosition.z;
+        // Colour
+        memcpy(mLockPtr++, &colour, sizeof(RGBA));
+        // No texture coords in point rendering
+    }
+    void BillboardSet::genQuadVertices(const Vector3* const offsets, const Billboard& bb)
+    {
+        RGBA colour = bb.mColour;
 
         // Texcoords
-        assert( bb.mUseTexcoordRect || bb.mTexcoordIndex < mTextureCoords.size() );
-        const Ogre::FloatRect & r =
+        assert(bb.mUseTexcoordRect || bb.mTexcoordIndex < mTextureCoords.size());
+        const Ogre::FloatRect& r =
             bb.mUseTexcoordRect ? bb.mTexcoordRect : mTextureCoords[bb.mTexcoordIndex];
 
-        if (mPointRendering)
+        // Left-top, right-top, left-bottom, right-bottom
+        const Vector3* corners = offsets;
+        Vector3 rotatedCorners[4];
+        float u[4] = {r.left, r.right, r.left, r.right};
+        float v[4] = {r.top, r.top, r.bottom, r.bottom};
+
+        if (bb.mRotation != Radian(0))
         {
-            // Single vertex per billboard, ignore offsets
-            // position
-            *mLockPtr++ = bb.mPosition.x;
-            *mLockPtr++ = bb.mPosition.y;
-            *mLockPtr++ = bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // No texture coords in point rendering
-        }
-        else if (mAllDefaultRotation || bb.mRotation == Radian(0))
-        {
-            // Left-top
-            // Positions
-            *mLockPtr++ = offsets[0].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[0].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[0].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.left;
-            *mLockPtr++ = r.top;
+            if (mRotationType == BBR_VERTEX)
+            {
+                // TODO: Cache axis when billboard type is BBT_POINT or BBT_PERPENDICULAR_COMMON
+                Vector3 axis = (offsets[3] - offsets[0]).crossProduct(offsets[2] - offsets[1]).normalisedCopy();
 
-            // Right-top
-            // Positions
-            *mLockPtr++ = offsets[1].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[1].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[1].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.right;
-            *mLockPtr++ = r.top;
+                Matrix3 rotation;
+                rotation.FromAngleAxis(axis, bb.mRotation);
 
-            // Left-bottom
-            // Positions
-            *mLockPtr++ = offsets[2].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[2].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[2].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.left;
-            *mLockPtr++ = r.bottom;
+                for (int i = 0; i < 4; i++)
+                    rotatedCorners[i] = rotation * offsets[i];
+                corners = rotatedCorners;
+            }
+            else
+            {
+                const Real      cos_rot  ( Math::Cos(bb.mRotation)   );
+                const Real      sin_rot  ( Math::Sin(bb.mRotation)   );
 
-            // Right-bottom
-            // Positions
-            *mLockPtr++ = offsets[3].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[3].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[3].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.right;
-            *mLockPtr++ = r.bottom;
-        }
-        else if (mRotationType == BBR_VERTEX)
-        {
-            // TODO: Cache axis when billboard type is BBT_POINT or BBT_PERPENDICULAR_COMMON
-            Vector3 axis = (offsets[3] - offsets[0]).crossProduct(offsets[2] - offsets[1]).normalisedCopy();
+                float width = (r.right-r.left)/2;
+                float height = (r.bottom-r.top)/2;
+                float mid_u = r.left+width;
+                float mid_v = r.top+height;
 
-            Matrix3 rotation;
-            rotation.FromAngleAxis(axis, bb.mRotation);
+                float cos_rot_w = cos_rot * width;
+                float cos_rot_h = cos_rot * height;
+                float sin_rot_w = sin_rot * width;
+                float sin_rot_h = sin_rot * height;
 
-            Vector3 pt;
-
-            // Left-top
-            // Positions
-            pt = rotation * offsets[0];
-            *mLockPtr++ = pt.x + bb.mPosition.x;
-            *mLockPtr++ = pt.y + bb.mPosition.y;
-            *mLockPtr++ = pt.z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.left;
-            *mLockPtr++ = r.top;
-
-            // Right-top
-            // Positions
-            pt = rotation * offsets[1];
-            *mLockPtr++ = pt.x + bb.mPosition.x;
-            *mLockPtr++ = pt.y + bb.mPosition.y;
-            *mLockPtr++ = pt.z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.right;
-            *mLockPtr++ = r.top;
-
-            // Left-bottom
-            // Positions
-            pt = rotation * offsets[2];
-            *mLockPtr++ = pt.x + bb.mPosition.x;
-            *mLockPtr++ = pt.y + bb.mPosition.y;
-            *mLockPtr++ = pt.z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.left;
-            *mLockPtr++ = r.bottom;
-
-            // Right-bottom
-            // Positions
-            pt = rotation * offsets[3];
-            *mLockPtr++ = pt.x + bb.mPosition.x;
-            *mLockPtr++ = pt.y + bb.mPosition.y;
-            *mLockPtr++ = pt.z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = r.right;
-            *mLockPtr++ = r.bottom;
-        }
-        else
-        {
-            const Real      cos_rot  ( Math::Cos(bb.mRotation)   );
-            const Real      sin_rot  ( Math::Sin(bb.mRotation)   );
-
-            float width = (r.right-r.left)/2;
-            float height = (r.bottom-r.top)/2;
-            float mid_u = r.left+width;
-            float mid_v = r.top+height;
-
-            float cos_rot_w = cos_rot * width;
-            float cos_rot_h = cos_rot * height;
-            float sin_rot_w = sin_rot * width;
-            float sin_rot_h = sin_rot * height;
-
-            // Left-top
-            // Positions
-            *mLockPtr++ = offsets[0].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[0].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[0].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = mid_u - cos_rot_w + sin_rot_h;
-            *mLockPtr++ = mid_v - sin_rot_w - cos_rot_h;
-
-            // Right-top
-            // Positions
-            *mLockPtr++ = offsets[1].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[1].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[1].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = mid_u + cos_rot_w + sin_rot_h;
-            *mLockPtr++ = mid_v + sin_rot_w - cos_rot_h;
-
-            // Left-bottom
-            // Positions
-            *mLockPtr++ = offsets[2].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[2].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[2].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = mid_u - cos_rot_w - sin_rot_h;
-            *mLockPtr++ = mid_v - sin_rot_w + cos_rot_h;
-
-            // Right-bottom
-            // Positions
-            *mLockPtr++ = offsets[3].x + bb.mPosition.x;
-            *mLockPtr++ = offsets[3].y + bb.mPosition.y;
-            *mLockPtr++ = offsets[3].z + bb.mPosition.z;
-            // Colour
-            // Convert float* to RGBA*
-            pCol = static_cast<RGBA*>(static_cast<void*>(mLockPtr));
-            *pCol++ = colour;
-            // Update lock pointer
-            mLockPtr = static_cast<float*>(static_cast<void*>(pCol));
-            // Texture coords
-            *mLockPtr++ = mid_u + cos_rot_w - sin_rot_h;
-            *mLockPtr++ = mid_v + sin_rot_w + cos_rot_h;
+                u[0] = mid_u - cos_rot_w + sin_rot_h;
+                v[0] = mid_v - sin_rot_w - cos_rot_h;
+                u[1] = mid_u + cos_rot_w + sin_rot_h;
+                v[1] = mid_v + sin_rot_w - cos_rot_h;
+                u[2] = mid_u - cos_rot_w - sin_rot_h;
+                v[2] = mid_v - sin_rot_w + cos_rot_h;
+                u[3] = mid_u + cos_rot_w - sin_rot_h;
+                v[3] = mid_v + sin_rot_w + cos_rot_h;
+            }
         }
 
+        // Use locals, so the compiler does not reload the members after every write
+        float* pVert = mLockPtr;
+        const float x = bb.mPosition.x, y = bb.mPosition.y, z = bb.mPosition.z;
+        for (int i = 0; i < 4; i++)
+        {
+            *pVert++ = corners[i].x + x;
+            *pVert++ = corners[i].y + y;
+            *pVert++ = corners[i].z + z;
+            memcpy(pVert++, &colour, sizeof(RGBA));
+            *pVert++ = u[i];
+            *pVert++ = v[i];
+        }
+        mLockPtr = pVert;
     }
     //-----------------------------------------------------------------------
     void BillboardSet::genVertOffsets(Real inleft, Real inright, Real intop, Real inbottom,
@@ -1395,18 +939,13 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     const String& BillboardSet::getMovableType(void) const
     {
-        return BillboardSetFactory::FACTORY_TYPE_NAME;
+        return MOT_BILLBOARD_SET;
     }
     //-----------------------------------------------------------------------
     Real BillboardSet::getSquaredViewDepth(const Camera* const cam) const
     {
         assert(mParentNode);
         return mParentNode->getSquaredViewDepth(cam);
-    }
-    //-----------------------------------------------------------------------
-    Real BillboardSet::getBoundingRadius(void) const
-    {
-        return mBoundingRadius;
     }
     //-----------------------------------------------------------------------
     const LightList& BillboardSet::getLights(void) const
@@ -1424,52 +963,40 @@ namespace Ogre {
     }
 
 
-    void BillboardSet::setTextureCoords( Ogre::FloatRect const * coords, uint16 numCoords )
+    void BillboardSet::setTextureCoords(const std::vector<FloatRect>& coords)
     {
-      if( !numCoords || !coords ) {
-        setTextureStacksAndSlices( 1, 1 );
-        return;
-      }
-      //  clear out any previous allocation (as vectors may not shrink)
-      TextureCoordSets().swap( mTextureCoords );
-      //  make room
-      mTextureCoords.resize( numCoords );
-      //  copy in data
-      std::copy( coords, coords+numCoords, &mTextureCoords.front() );
+        if(coords.empty()) {
+            setTextureStacksAndSlices(1, 1);
+            return;
+        }
+        mTextureCoords = coords;
     }
 
     void BillboardSet::setTextureStacksAndSlices( uchar stacks, uchar slices )
-    {
-      if( stacks == 0 ) stacks = 1;
-      if( slices == 0 ) slices = 1;
-      //  clear out any previous allocation (as vectors may not shrink)
-      TextureCoordSets().swap( mTextureCoords );
-      //  make room
-      mTextureCoords.resize( (size_t)stacks * slices );
-      unsigned int coordIndex = 0;
-      //  spread the U and V coordinates across the rects
-      for( uint v = 0; v < stacks; ++v ) {
-        //  (float)X / X is guaranteed to be == 1.0f for X up to 8 million, so
-        //  our range of 1..256 is quite enough to guarantee perfect coverage.
-        float top = (float)v / (float)stacks;
-        float bottom = ((float)v + 1) / (float)stacks;
-        for( uint u = 0; u < slices; ++u ) {
-          Ogre::FloatRect & r = mTextureCoords[coordIndex];
-          r.left = (float)u / (float)slices;
-          r.bottom = bottom;
-          r.right = ((float)u + 1) / (float)slices;
-          r.top = top;
-          ++coordIndex;
+{
+        if(stacks == 0) stacks = 1;
+        if(slices == 0) slices = 1;
+        //  clear out any previous allocation (as vectors may not shrink)
+        TextureCoordSets().swap(mTextureCoords);
+        //  make room
+        mTextureCoords.resize((size_t)stacks * slices);
+        unsigned int coordIndex = 0;
+        //  spread the U and V coordinates across the rects
+        for(uint v = 0; v < stacks; ++v) {
+            //  (float)X / X is guaranteed to be == 1.0f for X up to 8 million, so
+            //  our range of 1..256 is quite enough to guarantee perfect coverage.
+            float top = (float)v / (float)stacks;
+            float bottom = ((float)v + 1) / (float)stacks;
+            for(uint u = 0; u < slices; ++u) {
+                Ogre::FloatRect & r = mTextureCoords[coordIndex];
+                r.left = (float)u / (float)slices;
+                r.bottom = bottom;
+                r.right = ((float)u + 1) / (float)slices;
+                r.top = top;
+                ++coordIndex;
+            }
         }
-      }
-      assert( coordIndex == (size_t)stacks * slices );
-    }
-    //-----------------------------------------------------------------------
-    Ogre::FloatRect const * BillboardSet::getTextureCoords( uint16 * oNumCoords )
-    {
-      *oNumCoords = (uint16)mTextureCoords.size();
-      //  std::vector<> is guaranteed to be contiguous
-      return &mTextureCoords.front();
+        assert( coordIndex == (size_t)stacks * slices );
     }
     //-----------------------------------------------------------------------
     void BillboardSet::setPointRenderingEnabled(bool enabled)
@@ -1502,11 +1029,11 @@ namespace Ogre {
 
     //-----------------------------------------------------------------------
     //-----------------------------------------------------------------------
-    String BillboardSetFactory::FACTORY_TYPE_NAME = "BillboardSet";
+    const String MOT_BILLBOARD_SET = "BillboardSet";
     //-----------------------------------------------------------------------
     const String& BillboardSetFactory::getType(void) const
     {
-        return FACTORY_TYPE_NAME;
+        return MOT_BILLBOARD_SET;
     }
     //-----------------------------------------------------------------------
     MovableObject* BillboardSetFactory::createInstanceImpl( const String& name,
@@ -1528,7 +1055,6 @@ namespace Ogre {
             {
                 externalData = StringConverter::parseBool(ni->second);
             }
-
         }
 
         if (poolSize > 0)
@@ -1539,13 +1065,5 @@ namespace Ogre {
         {
             return OGRE_NEW BillboardSet(name);
         }
-
     }
-    //-----------------------------------------------------------------------
-    void BillboardSetFactory::destroyInstance( MovableObject* obj)
-    {
-        OGRE_DELETE obj;
-    }
-
-
 }

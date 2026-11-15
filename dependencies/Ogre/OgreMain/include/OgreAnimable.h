@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,7 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreCommon.h"
-#include "OgreVector2.h"
-#include "OgreVector4.h"
+#include "OgreVector.h"
 #include "OgreColourValue.h"
 #include "OgreStringVector.h"
 #include "OgreException.h"
@@ -50,7 +49,7 @@ namespace Ogre {
     */
 
     /** Defines an object property which is animable, i.e. may be keyframed.
-    @remarks
+
         Animable properties are those which can be altered over time by a 
         predefined keyframe sequence. They may be set directly, or they may
         be modified from their existing state (common if multiple animations
@@ -82,8 +81,7 @@ namespace Ogre {
             VECTOR4,
             QUATERNION,
             COLOUR,
-            RADIAN,
-            DEGREE
+            RADIAN
         };
     protected:
         /// Value type
@@ -110,7 +108,7 @@ namespace Ogre {
         virtual void setAsBaseValue(const Vector4& val) 
         { memcpy(mBaseValueReal, val.ptr(), sizeof(Real)*4); }
         /// Internal method to set a value as base
-        virtual void setAsBaseValue(const Quaternion& val) 
+        virtual void setAsBaseValue(const Quaternion& val)
         { memcpy(mBaseValueReal, val.ptr(), sizeof(Real)*4); }
         /// Internal method to set a value as base
         virtual void setAsBaseValue(const Any& val);
@@ -176,10 +174,8 @@ namespace Ogre {
         virtual void setValue(const Radian&) {
             OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
         }
-        /// Set value 
-        virtual void setValue(const Degree&) {
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
-        }
+        /// Set value
+        void setValue(const Degree& val) { setValue(Radian(val)); }
         /// Set value 
         virtual void setValue(const Any& val);
 
@@ -214,10 +210,8 @@ namespace Ogre {
         virtual void applyDeltaValue(const ColourValue&) {
             OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
         }
-        /// Apply delta value 
-        virtual void applyDeltaValue(const Degree&) {
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
-        }
+        /// Apply delta value
+        void applyDeltaValue(const Degree& val) { applyDeltaValue(Radian(val)); }
         /// Apply delta value 
         virtual void applyDeltaValue(const Radian&) {
             OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "", "");
@@ -233,91 +227,25 @@ namespace Ogre {
     */
     class _OgreExport AnimableObject
     {
-    protected:
-        typedef map<String, StringVector>::type AnimableDictionaryMap;
-        /// Static map of class name to list of animable value names
-        static AnimableDictionaryMap msAnimableDictionary;
-        /** Get the name of the animable dictionary for this class.
-        @remarks
-            Subclasses must override this if they want to support animation of
-            their values.
-        */
-        virtual const String& getAnimableDictionaryName(void) const 
-        { return BLANKSTRING; }
-        /** Internal method for creating a dictionary of animable value names 
-            for the class, if it does not already exist.
-        */
-        void createAnimableDictionary(void) const
-        {
-            if (msAnimableDictionary.find(getAnimableDictionaryName()) 
-                == msAnimableDictionary.end())
-            {
-                StringVector vec;
-                initialiseAnimableDictionary(vec);
-                msAnimableDictionary[getAnimableDictionaryName()] = vec;
-            }
-
-        }
-    
-        /// Get an updateable reference to animable value list
-        StringVector& _getAnimableValueNames(void)
-        {
-            AnimableDictionaryMap::iterator i = 
-                msAnimableDictionary.find(getAnimableDictionaryName());
-            if (i != msAnimableDictionary.end())
-            {
-                return i->second;
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                    "Animable value list not found for " + getAnimableDictionaryName(), 
-                    "AnimableObject::getAnimableValueNames");
-            }
-
-        }
-
-        /** Internal method for initialising dictionary; should be implemented by 
-            subclasses wanting to expose animable parameters.
-        */
-        virtual void initialiseAnimableDictionary(StringVector&) const {}
-
-
     public:
         AnimableObject() {}
         virtual ~AnimableObject() {}
 
         /** Gets a list of animable value names for this object. */
-        const StringVector& getAnimableValueNames(void) const
+        virtual const StringVector& getAnimableValueNames(void) const
         {
-            createAnimableDictionary();
-
-            AnimableDictionaryMap::iterator i = 
-                msAnimableDictionary.find(getAnimableDictionaryName());
-            if (i != msAnimableDictionary.end())
-            {
-                return i->second;
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                    "Animable value list not found for " + getAnimableDictionaryName(), 
-                    "AnimableObject::getAnimableValueNames");
-            }
-
+            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Animable value list not implemented");
         }
 
         /** Create a reference-counted AnimableValuePtr for the named value.
-        @remarks
+
             You can use the returned object to animate a value on this object,
             using AnimationTrack. Subclasses must override this if they wish 
             to support animation of their values.
         */
         virtual AnimableValuePtr createAnimableValue(const String& valueName)
         {
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                "No animable value named '" + valueName + "' present.", 
-                "AnimableObject::createAnimableValue");
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "No animable value named '" + valueName + "' present");
         }
 
 

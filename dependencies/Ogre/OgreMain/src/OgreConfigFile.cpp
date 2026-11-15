@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,6 @@ THE SOFTWARE.
 #include "OgreConfigFile.h"
 #include "OgreResourceGroupManager.h"
 
-#include "OgreException.h"
-
 #include <iostream>
 
 namespace Ogre {
@@ -40,24 +38,10 @@ namespace Ogre {
     {
     }
     //-----------------------------------------------------------------------
-    ConfigFile::~ConfigFile()
-    {
-        SettingsBySection::iterator seci, secend;
-        secend = mSettings.end();
-        for (seci = mSettings.begin(); seci != secend; ++seci)
-        {
-            OGRE_DELETE_T(seci->second, SettingsMultiMap, MEMCATEGORY_GENERAL);
-        }
-    }
-    //-----------------------------------------------------------------------
     void ConfigFile::clear(void)
     {
-        for (SettingsBySection::iterator seci = mSettings.begin(); 
-            seci != mSettings.end(); ++seci)
-        {
-             OGRE_DELETE_T(seci->second, SettingsMultiMap, MEMCATEGORY_GENERAL);
-        }
         mSettings.clear();
+        mSettingsPtr.clear();
     }
     //-----------------------------------------------------------------------
     void ConfigFile::load(const String& filename, const String& separators, bool trimWhitespace)
@@ -74,24 +58,7 @@ namespace Ogre {
     void ConfigFile::loadDirect(const String& filename, const String& separators, 
         bool trimWhitespace)
     {
-#if OGRE_PLATFORM == OGRE_PLATFORM_NACL
-        OGRE_EXCEPT(Exception::ERR_CANNOT_WRITE_TO_FILE, "loadDirect is not supported on NaCl - tried to open: " + filename,
-            "ConfigFile::loadDirect");
-#endif
-
-        /* Open the configuration file */
-        std::ifstream fp;
-        // Always open in binary mode
-        fp.open(filename.c_str(), std::ios::in | std::ios::binary);
-        if(!fp)
-            OGRE_EXCEPT(
-            Exception::ERR_FILE_NOT_FOUND, "'" + filename + "' file not found!", "ConfigFile::load" );
-
-        // Wrap as a stream
-        DataStreamPtr stream(OGRE_NEW FileStreamDataStream(filename, &fp, false));
-
-        load(stream, separators, trimWhitespace);
-
+        load(_openFileStream(filename, std::ios::in | std::ios::binary), separators, trimWhitespace);
     }
     //-----------------------------------------------------------------------
     void ConfigFile::loadFromResourceSystem(const String& filename, 
@@ -109,8 +76,8 @@ namespace Ogre {
         clear();
 
         String currentSection = BLANKSTRING;
-        SettingsMultiMap* currentSettings = OGRE_NEW_T(SettingsMultiMap, MEMCATEGORY_GENERAL)();
-        mSettings[currentSection] = currentSettings;
+        SettingsMultiMap* currentSettings = &mSettings[currentSection];
+        mSettingsPtr[currentSection] = currentSettings;
 
 
         /* Process the file line for line */
@@ -125,16 +92,8 @@ namespace Ogre {
                 {
                     // Section
                     currentSection = line.substr(1, line.length() - 2);
-                    SettingsBySection::const_iterator seci = mSettings.find(currentSection);
-                    if (seci == mSettings.end())
-                    {
-                        currentSettings = OGRE_NEW_T(SettingsMultiMap, MEMCATEGORY_GENERAL)();
-                        mSettings[currentSection] = currentSettings;
-                    }
-                    else
-                    {
-                        currentSettings = seci->second;
-                    } 
+                    currentSettings = &mSettings[currentSection];
+                    mSettingsPtr[currentSection] = currentSettings;
                 }
                 else
                 {
@@ -153,7 +112,7 @@ namespace Ogre {
                             StringUtil::trim(optVal);
                             StringUtil::trim(optName);
                         }
-                        currentSettings->insert(SettingsMultiMap::value_type(optName, optVal));
+                        currentSettings->emplace(optName, optVal);
                     }
                 }
             }
@@ -163,15 +122,15 @@ namespace Ogre {
     String ConfigFile::getSetting(const String& key, const String& section, const String& defaultValue) const
     {
         
-        SettingsBySection::const_iterator seci = mSettings.find(section);
+        SettingsBySection_::const_iterator seci = mSettings.find(section);
         if (seci == mSettings.end())
         {
             return defaultValue;
         }
         else
         {
-            SettingsMultiMap::const_iterator i = seci->second->find(key);
-            if (i == seci->second->end())
+            SettingsMultiMap::const_iterator i = seci->second.lower_bound(key);
+            if (i == seci->second.end())
             {
                 return defaultValue;
             }
@@ -181,48 +140,52 @@ namespace Ogre {
             }
         }
     }
+
     //-----------------------------------------------------------------------
     StringVector ConfigFile::getMultiSetting(const String& key, const String& section) const
     {
         StringVector ret;
 
+        SettingsBySection_::const_iterator seci = mSettings.find(section);
+        if (seci == mSettings.end())
+            return ret;
 
-        SettingsBySection::const_iterator seci = mSettings.find(section);
-        if (seci != mSettings.end())
-        {
-            SettingsMultiMap::const_iterator i;
+        auto range = seci->second.equal_range(key);
+        for (auto i = range.first; i != range.second; ++i)
+            ret.push_back(i->second);
 
-            i = seci->second->find(key);
-            // Iterate over matches
-            while (i != seci->second->end() && i->first == key)
-            {
-                ret.push_back(i->second);
-                ++i;
-            }
-        }
         return ret;
-
-
     }
     //-----------------------------------------------------------------------
     ConfigFile::SettingsIterator ConfigFile::getSettingsIterator(const String& section)
     {
-        SettingsBySection::const_iterator seci = mSettings.find(section);
+        SettingsBySection_::iterator seci = mSettings.find(section);
         if (seci == mSettings.end())
         {
             OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
                 "Cannot find section " + section, 
                 "ConfigFile::getSettingsIterator");
         }
-        else
+
+        return SettingsIterator(seci->second.begin(), seci->second.end());
+    }
+    //-----------------------------------------------------------------------
+    const ConfigFile::SettingsMultiMap& ConfigFile::getSettings(const String& section) const
+    {
+        SettingsBySection_::const_iterator seci = mSettings.find(section);
+        if (seci == mSettings.end())
         {
-            return SettingsIterator(seci->second->begin(), seci->second->end());
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
+                "Cannot find section " + section, 
+                "ConfigFile::getSettings");
         }
+
+        return seci->second;
     }
     //-----------------------------------------------------------------------
     ConfigFile::SectionIterator ConfigFile::getSectionIterator(void)
     {
-        return SectionIterator(mSettings.begin(), mSettings.end());
+        return SectionIterator(mSettingsPtr.begin(), mSettingsPtr.end());
     }
 
 }

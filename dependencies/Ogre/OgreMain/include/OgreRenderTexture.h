@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,8 +51,9 @@ namespace Ogre
         RenderTexture(HardwarePixelBuffer *buffer, uint32 zoffset);
         virtual ~RenderTexture();
 
-        virtual void copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer);
-        PixelFormat suggestPixelFormat() const;
+        using RenderTarget::copyContentsToMemory;
+        void copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer = FB_AUTO) override;
+        PixelFormat suggestPixelFormat() const override;
 
     protected:
         HardwarePixelBuffer *mBuffer;
@@ -79,23 +80,10 @@ namespace Ogre
             - Not all bound surfaces have the same size
             - Not all bound surfaces have the same internal format 
         */
-
-        virtual void bindSurface(size_t attachment, RenderTexture *target)
-        {
-            for (size_t i = mBoundSurfaces.size(); i <= attachment; ++i)
-            {
-                mBoundSurfaces.push_back(0);
-            }
-            mBoundSurfaces[attachment] = target;
-
-            bindSurfaceImpl(attachment, target);
-        }
-
-
+        void bindSurface(size_t attachment, RenderTexture *target);
 
         /** Unbind attachment.
         */
-
         virtual void unbindSurface(size_t attachment)
         {
             if (attachment < mBoundSurfaces.size())
@@ -103,25 +91,22 @@ namespace Ogre
             unbindSurfaceImpl(attachment);
         }
 
+        using RenderTarget::copyContentsToMemory;
+
         /** Error throwing implementation, it's not possible to write a MultiRenderTarget
             to disk. 
         */
-        virtual void copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer);
+        void copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer = FB_AUTO) override;
 
         /// Irrelevant implementation since cannot copy
-        PixelFormat suggestPixelFormat() const { return PF_UNKNOWN; }
+        PixelFormat suggestPixelFormat() const override { return PF_UNKNOWN; }
 
-        typedef vector<RenderTexture*>::type BoundSufaceList;
+        typedef std::vector<RenderTexture*> BoundSufaceList;
         /// Get a list of the surfaces which have been bound
         const BoundSufaceList& getBoundSurfaceList() const { return mBoundSurfaces; }
 
         /** Get a pointer to a bound surface */
-        RenderTexture* getBoundSurface(size_t index)
-        {
-            assert (index < mBoundSurfaces.size());
-            return mBoundSurfaces[index];
-        }
-
+        RenderTexture* getBoundSurface(size_t index) { return mBoundSurfaces.at(index); }
 
     protected:
         BoundSufaceList mBoundSurfaces;

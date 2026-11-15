@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,11 +28,6 @@ THE SOFTWARE.
 // Ogre includes
 #include "OgreStableHeaders.h"
 
-#include "OgreResource.h"
-#include "OgreResourceManager.h"
-#include "OgreLogManager.h"
-#include "OgreException.h"
-
 namespace Ogre 
 {
     //-----------------------------------------------------------------------
@@ -40,12 +35,27 @@ namespace Ogre
         const String& group, bool isManual, ManualResourceLoader* loader)
         : mCreator(creator), mName(name), mGroup(group), mHandle(handle), 
         mLoadingState(LOADSTATE_UNLOADED), mIsBackgroundLoaded(false),
-        mSize(0), mIsManual(isManual), mLoader(loader), mStateCount(0)
+        mIsManual(isManual), mSize(0),  mLoader(loader), mStateCount(0)
     {
     }
     //-----------------------------------------------------------------------
     Resource::~Resource() 
     { 
+    }
+    Resource& Resource::operator=(const Resource& rhs)
+    {
+        mName = rhs.mName;
+        mGroup = rhs.mGroup;
+        mCreator = rhs.mCreator;
+        mIsManual = rhs.mIsManual;
+        mLoader = rhs.mLoader;
+        mHandle = rhs.mHandle;
+        mSize = rhs.mSize;
+
+        mLoadingState.store(rhs.mLoadingState.load());
+        mIsBackgroundLoaded = rhs.mIsBackgroundLoaded;
+
+        return *this;
     }
     //-----------------------------------------------------------------------
     void Resource::escalateLoading()
@@ -53,25 +63,26 @@ namespace Ogre
         // Just call load as if this is the background thread, locking on
         // load status will prevent race conditions
         load(true);
-        _fireLoadingComplete(true);
+        _fireLoadingComplete();
     }
     //-----------------------------------------------------------------------
     void Resource::prepare(bool background)
     {
         // quick check that avoids any synchronisation
-        LoadingState old = mLoadingState.get();
+        LoadingState old = mLoadingState.load();
         if (old != LOADSTATE_UNLOADED && old != LOADSTATE_PREPARING) return;
 
         // atomically do slower check to make absolutely sure,
         // and set the load state to PREPARING
-        if (!mLoadingState.cas(LOADSTATE_UNLOADED,LOADSTATE_PREPARING))
+        old = LOADSTATE_UNLOADED;
+        if (!mLoadingState.compare_exchange_strong(old,LOADSTATE_PREPARING))
         {
-            while( mLoadingState.get() == LOADSTATE_PREPARING )
+            while( mLoadingState.load() == LOADSTATE_PREPARING )
             {
                             OGRE_LOCK_AUTO_MUTEX;
             }
 
-            LoadingState state = mLoadingState.get();
+            LoadingState state = mLoadingState.load();
             if( state != LOADSTATE_PREPARED && state != LOADSTATE_LOADING && state != LOADSTATE_LOADED )
             {
                 OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Another thread failed in resource operation",
@@ -96,7 +107,7 @@ namespace Ogre
                 {
                     // Warn that this resource is not reloadable
                     LogManager::getSingleton().stream(LML_TRIVIAL) 
-                        << "WARNING: " << mCreator->getResourceType()  
+                        << "Note: " << mCreator->getResourceType()
                         << " instance '" << mName << "' was defined as manually "
                         << "loaded, but no manual loader was provided. This Resource "
                         << "will be lost if it has to be reloaded.";
@@ -116,7 +127,7 @@ namespace Ogre
         }
         catch (...)
         {
-            mLoadingState.set(LOADSTATE_UNLOADED);
+            mLoadingState.store(LOADSTATE_UNLOADED);
 
             OGRE_LOCK_AUTO_MUTEX;
             unloadImpl();
@@ -124,7 +135,7 @@ namespace Ogre
             throw;
         }
 
-        mLoadingState.set(LOADSTATE_PREPARED);
+        mLoadingState.store(LOADSTATE_PREPARED);
 
         // Since we don't distinguish between GPU and CPU RAM, this
         // seems pointless
@@ -133,7 +144,7 @@ namespace Ogre
 
         // Fire events (if not background)
         if (!background)
-            _firePreparingComplete(false);
+            _firePreparingComplete();
 
 
     }
@@ -156,29 +167,29 @@ namespace Ogre
         while (keepChecking)
         {
             // quick check that avoids any synchronisation
-            old = mLoadingState.get();
+            old = mLoadingState.load();
 
             if ( old == LOADSTATE_PREPARING )
             {
-                while( mLoadingState.get() == LOADSTATE_PREPARING )
+                while( mLoadingState.load() == LOADSTATE_PREPARING )
                 {
                                     OGRE_LOCK_AUTO_MUTEX;
                 }
-                old = mLoadingState.get();
+                old = mLoadingState.load();
             }
 
             if (old!=LOADSTATE_UNLOADED && old!=LOADSTATE_PREPARED && old!=LOADSTATE_LOADING) return;
 
             // atomically do slower check to make absolutely sure,
             // and set the load state to LOADING
-            if (old==LOADSTATE_LOADING || !mLoadingState.cas(old,LOADSTATE_LOADING))
+            if (old==LOADSTATE_LOADING || !mLoadingState.compare_exchange_strong(old,LOADSTATE_LOADING))
             {
-                while( mLoadingState.get() == LOADSTATE_LOADING )
+                while( mLoadingState.load() == LOADSTATE_LOADING )
                 {
                                     OGRE_LOCK_AUTO_MUTEX;
                 }
 
-                LoadingState state = mLoadingState.get();
+                LoadingState state = mLoadingState.load();
                 if( state == LOADSTATE_PREPARED || state == LOADSTATE_PREPARING )
                 {
                     // another thread is preparing, loop around
@@ -204,7 +215,16 @@ namespace Ogre
 
             if (mIsManual)
             {
+                if (old==LOADSTATE_UNLOADED && mLoader)
+                {
+                    mLoader->prepareResource(this);
+
+                    if (!background)
+                        _firePreparingComplete();
+                }
+
                 preLoadImpl();
+
                 // Load from manual loader
                 if (mLoader)
                 {
@@ -214,7 +234,7 @@ namespace Ogre
                 {
                     // Warn that this resource is not reloadable
                     LogManager::getSingleton().stream(LML_TRIVIAL) 
-                        << "WARNING: " << mCreator->getResourceType()  
+                        << "Note: " << mCreator->getResourceType()
                         << " instance '" << mName << "' was defined as manually "
                         << "loaded, but no manual loader was provided. This Resource "
                         << "will be lost if it has to be reloaded.";
@@ -225,7 +245,12 @@ namespace Ogre
             {
 
                 if (old==LOADSTATE_UNLOADED)
+                {
                     prepareImpl();
+
+                    if (!background)
+                        _firePreparingComplete();
+                }
 
                 preLoadImpl();
 
@@ -252,7 +277,7 @@ namespace Ogre
             // We reset it to UNLOADED because the only other case is when
             // old == PREPARED in which case the loadImpl should wipe out
             // any prepared data since it might be invalid.
-            mLoadingState.set(LOADSTATE_UNLOADED);
+            mLoadingState.store(LOADSTATE_UNLOADED);
 
             OGRE_LOCK_AUTO_MUTEX;
             unloadImpl();
@@ -261,7 +286,7 @@ namespace Ogre
             throw;
         }
 
-        mLoadingState.set(LOADSTATE_LOADED);
+        mLoadingState.store(LOADSTATE_LOADED);
         _dirtyState();
 
         // Notify manager
@@ -270,24 +295,18 @@ namespace Ogre
 
         // Fire events, if not background
         if (!background)
-            _fireLoadingComplete(false);
+            _fireLoadingComplete();
 
 
     }
     //---------------------------------------------------------------------
     size_t Resource::calculateSize(void) const
     {
-        size_t memSize = 0;
-        memSize += sizeof(ResourceManager);
-        memSize += sizeof(ManualResourceLoader);
-        memSize += sizeof(ResourceHandle);
+        size_t memSize = 0; // sizeof(*this) should be called by deriving classes
         memSize += mName.size() * sizeof(char);
         memSize += mGroup.size() * sizeof(char);
         memSize += mOrigin.size() * sizeof(char);
-        memSize += sizeof(size_t) * 2;
-        memSize += sizeof(bool) * 2;
-        memSize += sizeof(Listener) * mListenerList.size();
-        memSize += sizeof(AtomicScalar<LoadingState>);
+        memSize += sizeof(void*) * mListenerList.size();
 
         return memSize;
     }
@@ -313,11 +332,11 @@ namespace Ogre
     void Resource::unload(void) 
     { 
         // Early-out without lock (mitigate perf cost of ensuring unloaded)
-        LoadingState old = mLoadingState.get();
+        LoadingState old = mLoadingState.load();
         if (old!=LOADSTATE_LOADED && old!=LOADSTATE_PREPARED) return;
 
 
-        if (!mLoadingState.cas(old,LOADSTATE_UNLOADING)) return;
+        if (!mLoadingState.compare_exchange_strong(old,LOADSTATE_UNLOADING)) return;
 
         // Scope lock for actual unload
         {
@@ -331,7 +350,7 @@ namespace Ogre
             }
         }
 
-        mLoadingState.set(LOADSTATE_UNLOADED);
+        mLoadingState.store(LOADSTATE_UNLOADED);
 
         // Notify manager
         // Note if we have gone from PREPARED to UNLOADED, then we haven't actually
@@ -347,7 +366,7 @@ namespace Ogre
     void Resource::reload(LoadingFlags flags)
     { 
             OGRE_LOCK_AUTO_MUTEX;
-        if (mLoadingState.get() == LOADSTATE_LOADED)
+        if (mLoadingState.load() == LOADSTATE_LOADED)
         {
             unload();
             load();
@@ -376,48 +395,46 @@ namespace Ogre
         mListenerList.erase(lis);
     }
     //-----------------------------------------------------------------------
-    void Resource::_fireLoadingComplete(bool wasBackgroundLoaded)
+    void Resource::_fireLoadingComplete(bool unused)
     {
-        // Lock the listener list
-            OGRE_LOCK_MUTEX(mListenerListMutex);
-        for (ListenerList::iterator i = mListenerList.begin();
-            i != mListenerList.end(); ++i)
+        ListenerList listenerList;
         {
-            // deprecated call
-            if (wasBackgroundLoaded)
-                (*i)->backgroundLoadingComplete(this);
-
-            (*i)->loadingComplete(this);
+            // Lock the listener list and make a copy of it
+            OGRE_LOCK_MUTEX(mListenerListMutex);
+            listenerList = mListenerList;
+        }
+        for (auto& l : listenerList)
+        {
+            l->loadingComplete(this);
         }
     }
     //-----------------------------------------------------------------------
-    void Resource::_firePreparingComplete(bool wasBackgroundLoaded)
+    void Resource::_firePreparingComplete(bool unused)
     {
-        // Lock the listener list
-            OGRE_LOCK_MUTEX(mListenerListMutex);
-        for (ListenerList::iterator i = mListenerList.begin();
-            i != mListenerList.end(); ++i)
+        ListenerList listenerList;
         {
-            // deprecated call
-            if (wasBackgroundLoaded)
-                (*i)->backgroundPreparingComplete(this);
-
-            (*i)->preparingComplete(this);
-
+            // Lock the listener list and make a copy of it
+            OGRE_LOCK_MUTEX(mListenerListMutex);
+            listenerList = mListenerList;
+        }
+        for (auto& l : listenerList)
+        {
+            l->preparingComplete(this);
         }
     }
     //-----------------------------------------------------------------------
     void Resource::_fireUnloadingComplete(void)
     {
-        // Lock the listener list
+        ListenerList listenerList;
+        {
+            // Lock the listener list and make a copy of it
             OGRE_LOCK_MUTEX(mListenerListMutex);
-            for (ListenerList::iterator i = mListenerList.begin();
-                i != mListenerList.end(); ++i)
-            {
-
-                (*i)->unloadingComplete(this);
-
-            }
+            listenerList = mListenerList;
+        }
+        for (auto& l : listenerList)
+        {
+            l->unloadingComplete(this);
+        }
     }
 
 }

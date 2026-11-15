@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,8 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreInstanceBatchShader.h"
-#include "OgreSubMesh.h"
 #include "OgreRenderOperation.h"
-#include "OgreHardwareBufferManager.h"
 #include "OgreInstancedEntity.h"
-#include "OgreTechnique.h"
-#include "OgreLogManager.h"
 
 namespace Ogre
 {
@@ -42,10 +38,6 @@ namespace Ogre
                 InstanceBatch( creator, meshReference, material, instancesPerBatch,
                                 indexToBoneMap, batchName ),
                 mNumWorldMatrices( instancesPerBatch )
-    {
-    }
-
-    InstanceBatchShader::~InstanceBatchShader()
     {
     }
 
@@ -59,10 +51,9 @@ namespace Ogre
         if( technique )
         {
             GpuProgramParametersSharedPtr vertexParam = technique->getPass(0)->getVertexProgramParameters();
-            GpuConstantDefinitionIterator itor = vertexParam->getConstantDefinitionIterator();
-            while( itor.hasMoreElements() )
+            for(auto& it : vertexParam->getConstantDefinitions().map)
             {
-                const GpuConstantDefinition &constDef = itor.getNext();
+                const GpuConstantDefinition &constDef = it.second;
                 if(((constDef.constType == GCT_MATRIX_3X4 ||
                     constDef.constType == GCT_MATRIX_4X3 ||             //OGL GLSL bitches without this
                     constDef.constType == GCT_MATRIX_2X4 ||
@@ -100,12 +91,11 @@ namespace Ogre
                         if((retVal < 3 && entry->paramType == GpuProgramParameters::ACT_WORLD_MATRIX_ARRAY_3x4) ||
                             (retVal < 2 && entry->paramType == GpuProgramParameters::ACT_WORLD_DUALQUATERNION_ARRAY_2x4))
                         {
-                            LogManager::getSingleton().logMessage( "InstanceBatchShader: Mesh " +
-                                        mMeshReference->getName() + " using material " +
-                                        mMaterial->getName() + " contains many bones. The amount of "
+                            LogManager::getSingleton().logWarning( "InstanceBatchShader: Mesh '" +
+                                        mMeshReference->getName() + "' using material '" +
+                                        mMaterial->getName() + "'. The amount of possible "
                                         "instances per batch is very low. Performance benefits will "
-                                        "be minimal, if any. It might be even slower!",
-                                        LML_NORMAL );
+                                        "be minimal, if any. It might be even slower!");
                         }
 
                         return retVal;
@@ -113,10 +103,8 @@ namespace Ogre
                 }
             }
 
-            //Reaching here means material is supported, but malformed
-            OGRE_EXCEPT( Exception::ERR_INVALIDPARAMS, 
-            "Material '" + mMaterial->getName() + "' is malformed for this instancing technique",
-            "InstanceBatchShader::calculateMaxNumInstances");
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
+                        "Material '" + mMaterial->getName() + "' does not support hardware skinning");
         }
 
         //Reaching here the material is just unsupported.
@@ -126,7 +114,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     void InstanceBatchShader::buildFrom( const SubMesh *baseSubMesh, const RenderOperation &renderOperation )
     {
-        if( mMeshReference->hasSkeleton() && !mMeshReference->getSkeleton().isNull() )
+        if( mMeshReference->hasSkeleton() && mMeshReference->getSkeleton() )
             mNumWorldMatrices = mInstancesPerBatch * baseSubMesh->blendIndexToBoneIndexMap.size();
         InstanceBatch::buildFrom( baseSubMesh, renderOperation );
     }
@@ -145,7 +133,7 @@ namespace Ogre
         HardwareBufferManager::getSingleton().destroyVertexDeclaration( thisVertexData->vertexDeclaration );
         thisVertexData->vertexDeclaration = baseVertexData->vertexDeclaration->clone();
 
-        if( mMeshReference->hasSkeleton() && !mMeshReference->getSkeleton().isNull() )
+        if( mMeshReference->hasSkeleton() && mMeshReference->getSkeleton() )
         {
             //Building hw skinned batches follow a different path
             setupHardwareSkinned( baseSubMesh, thisVertexData, baseVertexData );
@@ -172,8 +160,10 @@ namespace Ogre
             HardwareVertexBufferSharedPtr baseVertexBuffer =
                                                     baseVertexData->vertexBufferBinding->getBuffer(i);
 
-            char* thisBuf = static_cast<char*>(vertexBuffer->lock(HardwareBuffer::HBL_DISCARD));
-            char* baseBuf = static_cast<char*>(baseVertexBuffer->lock(HardwareBuffer::HBL_READ_ONLY));
+            HardwareBufferLockGuard thisLock(vertexBuffer, HardwareBuffer::HBL_DISCARD);
+            HardwareBufferLockGuard baseLock(baseVertexBuffer, HardwareBuffer::HBL_READ_ONLY);
+            char* thisBuf = static_cast<char*>(thisLock.pData);
+            char* baseBuf = static_cast<char*>(baseLock.pData);
 
             //Copy and repeat
             for( size_t j=0; j<mInstancesPerBatch; ++j )
@@ -182,9 +172,6 @@ namespace Ogre
                                             baseVertexData->vertexDeclaration->getVertexSize(i);
                 memcpy( thisBuf + j * sizeOfBuffer, baseBuf, sizeOfBuffer );
             }
-
-            baseVertexBuffer->unlock();
-            vertexBuffer->unlock();
         }
 
         {
@@ -197,8 +184,9 @@ namespace Ogre
                                             HardwareBuffer::HBU_STATIC_WRITE_ONLY );
             thisVertexData->vertexBufferBinding->setBinding( lastSource, vertexBuffer );
 
-            char* thisBuf = static_cast<char*>(vertexBuffer->lock(HardwareBuffer::HBL_DISCARD));
-            for( size_t j=0; j<mInstancesPerBatch; ++j )
+            HardwareBufferLockGuard thisLock(vertexBuffer, HardwareBuffer::HBL_DISCARD);
+            char* thisBuf = static_cast<char*>(thisLock.pData);
+            for( uint8 j=0; j<uint8(mInstancesPerBatch); ++j )
             {
                 for( size_t k=0; k<baseVertexData->vertexCount; ++k )
                 {
@@ -209,7 +197,6 @@ namespace Ogre
                 }
             }
 
-            vertexBuffer->unlock();
         }
     }
     //-----------------------------------------------------------------------
@@ -229,45 +216,37 @@ namespace Ogre
         if( mRenderOperation.vertexData->vertexCount > 65535 )
             indexType = HardwareIndexBuffer::IT_32BIT;
         thisIndexData->indexBuffer = HardwareBufferManager::getSingleton().createIndexBuffer(
-                                                    indexType, thisIndexData->indexCount,
-                                                    HardwareBuffer::HBU_STATIC_WRITE_ONLY );
+            indexType, thisIndexData->indexCount, HardwareBuffer::HBU_STATIC_WRITE_ONLY );
 
-        void *buf           = thisIndexData->indexBuffer->lock( HardwareBuffer::HBL_DISCARD );
-        void const *baseBuf = baseIndexData->indexBuffer->lock( HardwareBuffer::HBL_READ_ONLY );
-
-        uint16 *thisBuf16 = static_cast<uint16*>(buf);
-        uint32 *thisBuf32 = static_cast<uint32*>(buf);
+        HardwareBufferLockGuard thisLock(thisIndexData->indexBuffer, HardwareBuffer::HBL_DISCARD);
+        HardwareBufferLockGuard baseLock(baseIndexData->indexBuffer, HardwareBuffer::HBL_READ_ONLY);
+        uint16 *thisBuf16 = static_cast<uint16*>(thisLock.pData);
+        uint32 *thisBuf32 = static_cast<uint32*>(thisLock.pData);
+        bool baseIndex16bit = baseIndexData->indexBuffer->getType() == HardwareIndexBuffer::IT_16BIT;
 
         for( size_t i=0; i<mInstancesPerBatch; ++i )
         {
             const size_t vertexOffset = i * mRenderOperation.vertexData->vertexCount / mInstancesPerBatch;
 
-            uint16 const *initBuf16 = static_cast<uint16 const *>(baseBuf);
-            uint32 const *initBuf32 = static_cast<uint32 const *>(baseBuf);
+            const uint16 *initBuf16 = static_cast<const uint16 *>(baseLock.pData);
+            const uint32 *initBuf32 = static_cast<const uint32 *>(baseLock.pData);
 
             for( size_t j=0; j<baseIndexData->indexCount; ++j )
             {
-                uint32 originalVal;
-                if( baseSubMesh->indexData->indexBuffer->getType() == HardwareIndexBuffer::IT_16BIT )
-                    originalVal = *initBuf16++;
-                else
-                    originalVal = *initBuf32++;
+                uint32 originalVal = baseIndex16bit ? *initBuf16++ : *initBuf32++;
 
                 if( indexType == HardwareIndexBuffer::IT_16BIT )
-                    *thisBuf16++ = static_cast<uint16>(originalVal) + vertexOffset;
+                    *thisBuf16++ = static_cast<uint16>(originalVal + vertexOffset);
                 else
                     *thisBuf32++ = static_cast<uint32>(originalVal + vertexOffset);
             }
         }
-
-        baseIndexData->indexBuffer->unlock();
-        thisIndexData->indexBuffer->unlock();
     }
     //-----------------------------------------------------------------------
     void InstanceBatchShader::setupHardwareSkinned( const SubMesh* baseSubMesh, VertexData *thisVertexData,
                                                     VertexData *baseVertexData )
     {
-        const size_t numBones = baseSubMesh->blendIndexToBoneIndexMap.size();
+        const uint8 numBones = uint8(baseSubMesh->blendIndexToBoneIndexMap.size());
         mNumWorldMatrices = mInstancesPerBatch * numBones;
 
         for( uint16 i=0; i<=thisVertexData->vertexDeclaration->getMaxSource(); ++i )
@@ -287,61 +266,58 @@ namespace Ogre
             HardwareVertexBufferSharedPtr baseVertexBuffer =
                                                     baseVertexData->vertexBufferBinding->getBuffer(i);
 
-            char* thisBuf = static_cast<char*>(vertexBuffer->lock(HardwareBuffer::HBL_DISCARD));
-            char* baseBuf = static_cast<char*>(baseVertexBuffer->lock(HardwareBuffer::HBL_READ_ONLY));
+            HardwareBufferLockGuard thisVertexLock(vertexBuffer, HardwareBuffer::HBL_DISCARD);
+            HardwareBufferLockGuard baseVertexLock(baseVertexBuffer, HardwareBuffer::HBL_READ_ONLY);
+            char* thisBuf = static_cast<char*>(thisVertexLock.pData);
+            char* baseBuf = static_cast<char*>(baseVertexLock.pData);
             char *startBuf = baseBuf;
 
             //Copy and repeat
-            for( size_t j=0; j<mInstancesPerBatch; ++j )
+            for (uint8 j = 0; j < uint8(mInstancesPerBatch); ++j)
             {
                 //Repeat source
                 baseBuf = startBuf;
 
-                for( size_t k=0; k<baseVertexData->vertexCount; ++k )
+                for (size_t k = 0; k < baseVertexData->vertexCount; ++k)
                 {
-                    VertexDeclaration::VertexElementList::const_iterator it = veList.begin();
-                    VertexDeclaration::VertexElementList::const_iterator en = veList.end();
-
-                    while( it != en )
+                    for (auto& vl : veList)
                     {
-                        switch( it->getSemantic() )
+                        switch (vl.getSemantic())
                         {
                         case VES_BLEND_INDICES:
-                        *(thisBuf + it->getOffset() + 0) = *(baseBuf + it->getOffset() + 0) + j * numBones;
-                        *(thisBuf + it->getOffset() + 1) = *(baseBuf + it->getOffset() + 1) + j * numBones;
-                        *(thisBuf + it->getOffset() + 2) = *(baseBuf + it->getOffset() + 2) + j * numBones;
-                        *(thisBuf + it->getOffset() + 3) = *(baseBuf + it->getOffset() + 3) + j * numBones;
+                        *(thisBuf + vl.getOffset() + 0) = *(baseBuf + vl.getOffset() + 0) + j * numBones;
+                        *(thisBuf + vl.getOffset() + 1) = *(baseBuf + vl.getOffset() + 1) + j * numBones;
+                        *(thisBuf + vl.getOffset() + 2) = *(baseBuf + vl.getOffset() + 2) + j * numBones;
+                        *(thisBuf + vl.getOffset() + 3) = *(baseBuf + vl.getOffset() + 3) + j * numBones;
                             break;
                         default:
-                            memcpy( thisBuf + it->getOffset(), baseBuf + it->getOffset(), it->getSize() );
+                            memcpy( thisBuf + vl.getOffset(), baseBuf + vl.getOffset(), vl.getSize() );
                             break;
                         }
-                        ++it;
                     }
                     thisBuf += baseVertexData->vertexDeclaration->getVertexSize(i);
                     baseBuf += baseVertexData->vertexDeclaration->getVertexSize(i);
                 }
             }
-
-            baseVertexBuffer->unlock();
-            vertexBuffer->unlock();
         }
     }
     //-----------------------------------------------------------------------
     void InstanceBatchShader::getWorldTransforms( Matrix4* xform ) const
     {
-        InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
-        InstancedEntityVec::const_iterator end  = mInstancedEntities.end();
-
-        while( itor != end )
+        if (MeshManager::getBonesUseObjectSpace())
         {
-            xform += (*itor)->getTransforms( xform );
-            ++itor;
+            *xform = Affine3::IDENTITY;
+            xform++;
+        }
+
+        for (auto *e : mInstancedEntities)
+        {
+            xform += e->getTransforms(xform);
         }
     }
     //-----------------------------------------------------------------------
     unsigned short InstanceBatchShader::getNumWorldTransforms(void) const
     {
-        return mNumWorldMatrices;
+        return uint16(mNumWorldMatrices) + uint16(MeshManager::getBonesUseObjectSpace());
     }
 }

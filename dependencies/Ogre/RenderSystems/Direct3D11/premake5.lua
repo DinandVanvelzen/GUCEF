@@ -46,44 +46,42 @@ kind( "SharedLib" )
   
 configuration( { WIN32 } )
 links( { "Ogre" } )
-  links( { "Ogre", "d3d11", "d3dcompiler", "d3dx11" } )
+  links( { "Ogre", "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" } )
   
 
 configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
   
 configuration( { WIN64 } )
 links( { "Ogre" } )
-  links( { "Ogre", "d3d11", "d3dcompiler", "d3dx11" } )
+  links( { "Ogre", "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" } )
   
 
 configuration( { WIN64 } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
 
 
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/OgreComPtr.h",
       "include/OgreD3D11DepthBuffer.h",
       "include/OgreD3D11Device.h",
       "include/OgreD3D11DeviceResource.h",
       "include/OgreD3D11Driver.h",
       "include/OgreD3D11DriverList.h",
-      "include/OgreD3D11GpuProgramManager.h",
       "include/OgreD3D11HLSLProgram.h",
       "include/OgreD3D11HLSLProgramFactory.h",
       "include/OgreD3D11HardwareBuffer.h",
       "include/OgreD3D11HardwareBufferManager.h",
-      "include/OgreD3D11HardwareIndexBuffer.h",
       "include/OgreD3D11HardwareOcclusionQuery.h",
       "include/OgreD3D11HardwarePixelBuffer.h",
-      "include/OgreD3D11HardwareUniformBuffer.h",
-      "include/OgreD3D11HardwareVertexBuffer.h",
       "include/OgreD3D11Mappings.h",
       "include/OgreD3D11MultiRenderTarget.h",
       "include/OgreD3D11Plugin.h",
       "include/OgreD3D11Prerequisites.h",
       "include/OgreD3D11RenderSystem.h",
+      "include/OgreD3D11RenderTarget.h",
       "include/OgreD3D11RenderToVertexBuffer.h",
       "include/OgreD3D11RenderWindow.h",
       "include/OgreD3D11StereoDriverAMD.h",
@@ -107,16 +105,12 @@ configuration( { "WIN32" } )
       "src/OgreD3D11Driver.cpp",
       "src/OgreD3D11DriverList.cpp",
       "src/OgreD3D11EngineDll.cpp",
-      "src/OgreD3D11GpuProgramManager.cpp",
       "src/OgreD3D11HLSLProgram.cpp",
       "src/OgreD3D11HLSLProgramFactory.cpp",
       "src/OgreD3D11HardwareBuffer.cpp",
       "src/OgreD3D11HardwareBufferManager.cpp",
-      "src/OgreD3D11HardwareIndexBuffer.cpp",
       "src/OgreD3D11HardwareOcclusionQuery.cpp",
       "src/OgreD3D11HardwarePixelBuffer.cpp",
-      "src/OgreD3D11HardwareUniformBuffer.cpp",
-      "src/OgreD3D11HardwareVertexBuffer.cpp",
       "src/OgreD3D11Mappings.cpp",
       "src/OgreD3D11MultiRenderTarget.cpp",
       "src/OgreD3D11Plugin.cpp",
@@ -140,26 +134,24 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/OgreComPtr.h",
       "include/OgreD3D11DepthBuffer.h",
       "include/OgreD3D11Device.h",
       "include/OgreD3D11DeviceResource.h",
       "include/OgreD3D11Driver.h",
       "include/OgreD3D11DriverList.h",
-      "include/OgreD3D11GpuProgramManager.h",
       "include/OgreD3D11HLSLProgram.h",
       "include/OgreD3D11HLSLProgramFactory.h",
       "include/OgreD3D11HardwareBuffer.h",
       "include/OgreD3D11HardwareBufferManager.h",
-      "include/OgreD3D11HardwareIndexBuffer.h",
       "include/OgreD3D11HardwareOcclusionQuery.h",
       "include/OgreD3D11HardwarePixelBuffer.h",
-      "include/OgreD3D11HardwareUniformBuffer.h",
-      "include/OgreD3D11HardwareVertexBuffer.h",
       "include/OgreD3D11Mappings.h",
       "include/OgreD3D11MultiRenderTarget.h",
       "include/OgreD3D11Plugin.h",
       "include/OgreD3D11Prerequisites.h",
       "include/OgreD3D11RenderSystem.h",
+      "include/OgreD3D11RenderTarget.h",
       "include/OgreD3D11RenderToVertexBuffer.h",
       "include/OgreD3D11RenderWindow.h",
       "include/OgreD3D11StereoDriverAMD.h",
@@ -183,16 +175,12 @@ configuration( { "WIN64" } )
       "src/OgreD3D11Driver.cpp",
       "src/OgreD3D11DriverList.cpp",
       "src/OgreD3D11EngineDll.cpp",
-      "src/OgreD3D11GpuProgramManager.cpp",
       "src/OgreD3D11HLSLProgram.cpp",
       "src/OgreD3D11HLSLProgramFactory.cpp",
       "src/OgreD3D11HardwareBuffer.cpp",
       "src/OgreD3D11HardwareBufferManager.cpp",
-      "src/OgreD3D11HardwareIndexBuffer.cpp",
       "src/OgreD3D11HardwareOcclusionQuery.cpp",
       "src/OgreD3D11HardwarePixelBuffer.cpp",
-      "src/OgreD3D11HardwareUniformBuffer.cpp",
-      "src/OgreD3D11HardwareVertexBuffer.cpp",
       "src/OgreD3D11Mappings.cpp",
       "src/OgreD3D11MultiRenderTarget.cpp",
       "src/OgreD3D11Plugin.cpp",
@@ -213,10 +201,10 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include" } )
+includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include" } )
+includedirs( { "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "include" } )
+includedirs( { "include" } )

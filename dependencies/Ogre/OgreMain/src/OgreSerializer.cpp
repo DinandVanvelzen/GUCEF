@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,14 +27,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreSerializer.h"
-#include "OgreBitwise.h"
-#include "OgreLogManager.h"
-#include "OgreException.h"
-#include "OgreVector3.h"
-#include "OgreQuaternion.h"
-
-
 namespace Ogre {
 
     const uint16 HEADER_STREAM_ID = 0x1000;
@@ -42,10 +34,8 @@ namespace Ogre {
     //---------------------------------------------------------------------
     Serializer::Serializer() :
         mVersion("[Serializer_v1.00]"), // Version number
-        mFlipEndian(false)
-#if OGRE_SERIALIZER_VALIDATE_CHUNKSIZE
-        , mReportChunkErrors(true)
-#endif
+        mFlipEndian(false),
+        mReportChunkErrors(true)
     {
     }
 
@@ -54,7 +44,7 @@ namespace Ogre {
     {
     }
     //---------------------------------------------------------------------
-    void Serializer::determineEndianness(DataStreamPtr& stream)
+    void Serializer::determineEndianness(const DataStreamPtr& stream)
     {
         if (stream->tell() != 0)
         {
@@ -219,22 +209,9 @@ namespace Ogre {
     //---------------------------------------------------------------------
     void Serializer::writeBools(const bool* const pBool, size_t count = 1)
     {
-    //no endian flipping for 1-byte bools
-    //XXX Nasty Hack to convert to 1-byte bools
-#   if OGRE_PLATFORM == OGRE_PLATFORM_APPLE || OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
-        char * pCharToWrite = (char *)malloc(sizeof(char) * count);
-        for(unsigned int i = 0; i < count; i++)
-        {
-            *(char *)(pCharToWrite + i) = *(bool *)(pBool + i);
-        }
-        
-        writeData(pCharToWrite, sizeof(char), count);
-        
-        free(pCharToWrite);
-#   else
+        //no endian flipping for 1-byte bools
+        static_assert(sizeof(bool) == 1, "add conversion to char for your platform");
         writeData(pBool, sizeof(bool), count);
-#   endif
-
     }
     
     //---------------------------------------------------------------------
@@ -252,7 +229,7 @@ namespace Ogre {
         mStream->write(&terminator, 1);
     }
     //---------------------------------------------------------------------
-    void Serializer::readFileHeader(DataStreamPtr& stream)
+    void Serializer::readFileHeader(const DataStreamPtr& stream)
     {
         unsigned short headerID;
         
@@ -279,15 +256,34 @@ namespace Ogre {
 
     }
     //---------------------------------------------------------------------
-    unsigned short Serializer::readChunk(DataStreamPtr& stream)
+    unsigned short Serializer::readChunk(const DataStreamPtr& stream)
     {
-#if OGRE_SERIALIZER_VALIDATE_CHUNKSIZE
         size_t pos = stream->tell();
-#endif
         unsigned short id;
         readShorts(stream, &id, 1);
         
         readInts(stream, &mCurrentstreamLen, 1);
+
+        if (!stream->eof())
+        {
+            // chunk size cant be smaller than the header size, and must fit within the stream
+            if (mCurrentstreamLen < calcChunkHeaderSize())
+                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Corrupt chunk length");
+
+            if (pos + mCurrentstreamLen > stream->size())
+            {
+                if (mReportChunkErrors)
+                    OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "Corrupt chunk length");
+
+                // legacy exporters wrote chunk sizes that do not match the data they wrote.
+                // all reads are still bounded by the stream, so just clamp the chunk end.
+                LogManager::getSingleton().stream(LML_WARNING)
+                    << "Chunk " << id << " in '" << stream->getName()
+                    << "' extends past the end of the stream, clamping to stream size";
+                mCurrentstreamLen = static_cast<uint32>(stream->size() - pos);
+            }
+        }
+
 #if OGRE_SERIALIZER_VALIDATE_CHUNKSIZE
         if (!mChunkSizeStack.empty() && !stream->eof()){
             if (pos != static_cast<size_t>(mChunkSizeStack.back()) && mReportChunkErrors){
@@ -299,29 +295,27 @@ namespace Ogre {
         return id;
     }
     //---------------------------------------------------------------------
-    void Serializer::readBools(DataStreamPtr& stream, bool* pDest, size_t count)
+    void Serializer::readBools(const DataStreamPtr& stream, bool* pDest, size_t count)
     {
-        //XXX Nasty Hack to convert 1 byte bools to 4 byte bools
-#   if OGRE_PLATFORM == OGRE_PLATFORM_APPLE || OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
-        char * pTemp = (char *)malloc(1*count); // to hold 1-byte bools
-        stream->read(pTemp, 1 * count);
-        for(unsigned int i = 0; i < count; i++)
-            *(bool *)(pDest + i) = *(char *)(pTemp + i);
-            
-        free (pTemp);
-#   else
+        static_assert(sizeof(bool) == 1, "add conversion to char for your platform");
         stream->read(pDest, sizeof(bool) * count);
-#   endif
-        //no flipping on 1-byte datatypes
+        // Normalize raw bytes to canonical bool values (0 or 1).
+        // A non-zero byte that is not exactly 1 can cause miscompile bugs later
+        for (size_t i = 0; i < count; ++i)
+        {
+            uint8_t raw;
+            memcpy(&raw, &pDest[i], 1);
+            pDest[i] = (raw != 0);
+        }
     }
     //---------------------------------------------------------------------
-    void Serializer::readFloats(DataStreamPtr& stream, float* pDest, size_t count)
+    void Serializer::readFloats(const DataStreamPtr& stream, float* pDest, size_t count)
     {
         stream->read(pDest, sizeof(float) * count);
         flipFromLittleEndian(pDest, sizeof(float), count);
     }
     //---------------------------------------------------------------------
-    void Serializer::readFloats(DataStreamPtr& stream, double* pDest, size_t count)
+    void Serializer::readFloats(const DataStreamPtr& stream, double* pDest, size_t count)
     {
         // Read from float, convert to double
         float* tmp = OGRE_ALLOC_T(float, count, MEMCATEGORY_GENERAL);
@@ -336,28 +330,19 @@ namespace Ogre {
         OGRE_FREE(tmp, MEMCATEGORY_GENERAL);
     }
     //---------------------------------------------------------------------
-    void Serializer::readShorts(DataStreamPtr& stream, unsigned short* pDest, size_t count)
+    void Serializer::readShorts(const DataStreamPtr& stream, unsigned short* pDest, size_t count)
     {
         stream->read(pDest, sizeof(unsigned short) * count);
         flipFromLittleEndian(pDest, sizeof(unsigned short), count);
     }
     //---------------------------------------------------------------------
-    void Serializer::readInts(DataStreamPtr& stream, uint32* pDest, size_t count)
+    void Serializer::readInts(const DataStreamPtr& stream, uint32* pDest, size_t count)
     {
         stream->read(pDest, sizeof(uint32) * count);
         flipFromLittleEndian(pDest, sizeof(uint32), count);
     }
     //---------------------------------------------------------------------
-    String Serializer::readString(DataStreamPtr& stream, size_t numChars)
-    {
-        assert (numChars <= 255);
-        char str[255];
-        stream->read(str, numChars);
-        str[numChars] = '\0';
-        return str;
-    }
-    //---------------------------------------------------------------------
-    String Serializer::readString(DataStreamPtr& stream)
+    String Serializer::readString(const DataStreamPtr& stream)
     {
         return stream->getLine(false);
     }
@@ -378,12 +363,12 @@ namespace Ogre {
         writeFloats(tmp, 4);
     }
     //---------------------------------------------------------------------
-    void Serializer::readObject(DataStreamPtr& stream, Vector3& pDest)
+    void Serializer::readObject(const DataStreamPtr& stream, Vector3& pDest)
     {
         readFloats(stream, pDest.ptr(), 3);
     }
     //---------------------------------------------------------------------
-    void Serializer::readObject(DataStreamPtr& stream, Quaternion& pDest)
+    void Serializer::readObject(const DataStreamPtr& stream, Quaternion& pDest)
     {
         float tmp[4];
         readFloats(stream, tmp, 4);
@@ -410,17 +395,6 @@ namespace Ogre {
 	        Bitwise::bswapChunks(pData, size, count);
         }
     }
-    
-    size_t Serializer::calcChunkHeaderSize()
-    {
-        return sizeof(uint16) + sizeof(uint32);
-    }
-
-    size_t Serializer::calcStringSize( const String& string )
-    {
-        // string + terminating \n character
-        return string.length() + 1;
-    }
 
     void Serializer::pushInnerChunk(const DataStreamPtr& stream)
     {
@@ -428,7 +402,7 @@ namespace Ogre {
         mChunkSizeStack.push_back(stream->tell());
 #endif
     }
-    void Serializer::backpedalChunkHeader(DataStreamPtr& stream)
+    void Serializer::backpedalChunkHeader(const DataStreamPtr& stream)
     {
         if (!stream->eof()){
             stream->skip(-(int)calcChunkHeaderSize());

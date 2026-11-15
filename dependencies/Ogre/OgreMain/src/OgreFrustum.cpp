@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,27 +26,16 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreFrustum.h"
-
-#include "OgreMath.h"
-#include "OgreMatrix3.h"
-#include "OgreSphere.h"
-#include "OgreException.h"
-#include "OgreRoot.h"
-#include "OgreCamera.h"
-#include "OgreHardwareBufferManager.h"
 #include "OgreHardwareVertexBuffer.h"
-#include "OgreMaterialManager.h"
-#include "OgreRenderSystem.h"
 #include "OgreMovablePlane.h"
 
 namespace Ogre {
 
-    String Frustum::msMovableType = "Frustum";
+    const String MOT_FRUSTUM = "Frustum";
+    const String MOT_FRUSTRUM = MOT_FRUSTUM;
     const Real Frustum::INFINITE_FAR_PLANE_ADJUST = 0.00001;
     //-----------------------------------------------------------------------
     Frustum::Frustum(const String& name) : 
-        mProjType(PT_PERSPECTIVE), 
         mFOVy(Radian(Math::PI/4.0f)), 
         mFarDist(100000.0f), 
         mNearDist(100.0f), 
@@ -60,19 +49,15 @@ namespace Ogre {
         mRecalcView(true), 
         mRecalcFrustumPlanes(true),
         mRecalcWorldSpaceCorners(true),
-        mRecalcVertexData(true),
         mCustomViewMatrix(false),
         mCustomProjMatrix(false),
         mFrustumExtentsManuallySet(false),
-        mOrientationMode(OR_DEGREE_0),
-        mReflect(false), 
+        mProjType(PT_PERSPECTIVE),
         mLinkedReflectPlane(0),
-        mObliqueDepthProjection(false), 
-        mLinkedObliqueProjPlane(0)
+        mLinkedObliqueProjPlane(0),
+        mReflect(false),
+        mObliqueDepthProjection(false)
     {
-        // Initialise material
-        mMaterial = MaterialManager::getSingleton().getByName("BaseWhiteNoLighting");
-        
         // Alter superclass members
         mVisible = false;
         mParentNode = 0;
@@ -106,32 +91,28 @@ namespace Ogre {
 
 
     //-----------------------------------------------------------------------
-    void Frustum::setFarClipDistance(Real farPlane)
+    void Frustum::setFarClipDistance(float farPlane)
     {
         mFarDist = farPlane;
         invalidateFrustum();
     }
 
     //-----------------------------------------------------------------------
-    Real Frustum::getFarClipDistance(void) const
+    void Frustum::setNearClipDistance(float nearPlane)
     {
-        return mFarDist;
-    }
+        OgreAssert(nearPlane > 0, "Invalid clip distance");
 
-    //-----------------------------------------------------------------------
-    void Frustum::setNearClipDistance(Real nearPlane)
-    {
-        if (nearPlane <= 0)
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Near clip distance must be greater than zero.",
-                "Frustum::setNearClipDistance");
+        if(mFrustumExtentsManuallySet && mNearDist != nearPlane)
+        {
+            auto ratio = nearPlane / mNearDist;
+            mExtents.left *= ratio;
+            mExtents.right *= ratio;
+            mExtents.top *= ratio;
+            mExtents.bottom *= ratio;
+        }
+
         mNearDist = nearPlane;
         invalidateFrustum();
-    }
-
-    //-----------------------------------------------------------------------
-    Real Frustum::getNearClipDistance(void) const
-    {
-        return mNearDist;
     }
 
     //---------------------------------------------------------------------
@@ -153,13 +134,7 @@ namespace Ogre {
     //---------------------------------------------------------------------
     void Frustum::setFocalLength(Real focalLength)
     {
-        if (focalLength <= 0)
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-                "Focal length must be greater than zero.",
-                "Frustum::setFocalLength");
-        }
-
+        OgreAssert(focalLength > 0, "Invalid focal length");
         mFocalLength = focalLength;
         invalidateFrustum();
     }
@@ -185,15 +160,7 @@ namespace Ogre {
         return mProjMatrixRSDepth;
     }
     //-----------------------------------------------------------------------
-    const Matrix4& Frustum::getProjectionMatrixRS(void) const
-    {
-
-        updateFrustum();
-
-        return mProjMatrixRS;
-    }
-    //-----------------------------------------------------------------------
-    const Matrix4& Frustum::getViewMatrix(void) const
+    const Affine3& Frustum::getViewMatrix(void) const
     {
         updateView();
 
@@ -319,32 +286,28 @@ namespace Ogre {
         return SceneManager::FRUSTUM_TYPE_MASK;
     }
     //-----------------------------------------------------------------------
-    void Frustum::calcProjectionParameters(Real& left, Real& right, Real& bottom, Real& top) const
+    RealRect Frustum::calcProjectionParameters() const
     { 
         if (mCustomProjMatrix)
         {
             // Convert clipspace corners to camera space
             Matrix4 invProj = mProjMatrix.inverse();
-            Vector3 topLeft(-0.5f, 0.5f, 0.0f);
-            Vector3 bottomRight(0.5f, -0.5f, 0.0f);
+            Vector4 topLeft(-1.0f, 1.0f, -1.0f, 1.0f);
+            Vector4 bottomRight(1.0f, -1.0f, -1.0f, 1.0f);
 
             topLeft = invProj * topLeft;
             bottomRight = invProj * bottomRight;
 
-            left = topLeft.x;
-            top = topLeft.y;
-            right = bottomRight.x;
-            bottom = bottomRight.y;
+            topLeft /= topLeft.w;
+            bottomRight /= bottomRight.w;
 
+            mExtents = RealRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
         }
         else
         {
             if (mFrustumExtentsManuallySet)
             {
-                left = mLeft;
-                right = mRight;
-                top = mTop;
-                bottom = mBottom;
+                return mExtents;
             }
             // Calculate general projection parameters
             else if (mProjType == PT_PERSPECTIVE)
@@ -359,15 +322,8 @@ namespace Ogre {
                 Real half_w = tanThetaX * mNearDist;
                 Real half_h = tanThetaY * mNearDist;
 
-                left   = - half_w + nearOffsetX;
-                right  = + half_w + nearOffsetX;
-                bottom = - half_h + nearOffsetY;
-                top    = + half_h + nearOffsetY;
-
-                mLeft = left;
-                mRight = right;
-                mTop = top;
-                mBottom = bottom;
+                mExtents = RealRect(-half_w + nearOffsetX, +half_h + nearOffsetY,
+                                    +half_w + nearOffsetX, -half_h + nearOffsetY);
             }
             else
             {
@@ -375,88 +331,25 @@ namespace Ogre {
                 Real half_w = getOrthoWindowWidth() * 0.5f;
                 Real half_h = getOrthoWindowHeight() * 0.5f;
 
-                left   = - half_w;
-                right  = + half_w;
-                bottom = - half_h;
-                top    = + half_h;
-
-                mLeft = left;
-                mRight = right;
-                mTop = top;
-                mBottom = bottom;
+                mExtents = RealRect(-half_w, +half_h, +half_w, -half_h);
             }
-
         }
+
+        return mExtents;
     }
     //-----------------------------------------------------------------------
     void Frustum::updateFrustumImpl(void) const
     {
         // Common calcs
-        Real left, right, bottom, top;
-
-#if OGRE_NO_VIEWPORT_ORIENTATIONMODE == 0
-        if (mOrientationMode != OR_PORTRAIT)
-            calcProjectionParameters(bottom, top, left, right);
-        else
-#endif
-            calcProjectionParameters(left, right, bottom, top);
+        RealRect rect = calcProjectionParameters();
+        Real left = rect.left, right = rect.right, top = rect.top, bottom = rect.bottom;
 
         if (!mCustomProjMatrix)
         {
-
-            // The code below will dealing with general projection 
-            // parameters, similar glFrustum and glOrtho.
-            // Doesn't optimise manually except division operator, so the 
-            // code more self-explaining.
-
-            Real inv_w = 1 / (right - left);
-            Real inv_h = 1 / (top - bottom);
-            Real inv_d = 1 / (mFarDist - mNearDist);
-
             // Recalc if frustum params changed
             if (mProjType == PT_PERSPECTIVE)
             {
-                // Calc matrix elements
-                Real A = 2 * mNearDist * inv_w;
-                Real B = 2 * mNearDist * inv_h;
-                Real C = (right + left) * inv_w;
-                Real D = (top + bottom) * inv_h;
-                Real q, qn;
-                if (mFarDist == 0)
-                {
-                    // Infinite far plane
-                    q = Frustum::INFINITE_FAR_PLANE_ADJUST - 1;
-                    qn = mNearDist * (Frustum::INFINITE_FAR_PLANE_ADJUST - 2);
-                }
-                else
-                {
-                    q = - (mFarDist + mNearDist) * inv_d;
-                    qn = -2 * (mFarDist * mNearDist) * inv_d;
-                }
-
-                // NB: This creates 'uniform' perspective projection matrix,
-                // which depth range [-1,1], right-handed rules
-                //
-                // [ A   0   C   0  ]
-                // [ 0   B   D   0  ]
-                // [ 0   0   q   qn ]
-                // [ 0   0   -1  0  ]
-                //
-                // A = 2 * near / (right - left)
-                // B = 2 * near / (top - bottom)
-                // C = (right + left) / (right - left)
-                // D = (top + bottom) / (top - bottom)
-                // q = - (far + near) / (far - near)
-                // qn = - 2 * (far * near) / (far - near)
-
-                mProjMatrix = Matrix4::ZERO;
-                mProjMatrix[0][0] = A;
-                mProjMatrix[0][2] = C;
-                mProjMatrix[1][1] = B;
-                mProjMatrix[1][2] = D;
-                mProjMatrix[2][2] = q;
-                mProjMatrix[2][3] = qn;
-                mProjMatrix[3][2] = -1;
+                mProjMatrix = Math::makePerspectiveMatrix(left, right, bottom, top, mNearDist, mFarDist);
 
                 if (mObliqueDepthProjection)
                 {
@@ -500,6 +393,15 @@ namespace Ogre {
             } // perspective
             else if (mProjType == PT_ORTHOGRAPHIC)
             {
+                // The code below will dealing with general projection
+                // parameters, similar glOrtho.
+                // Doesn't optimise manually except division operator, so the
+                // code more self-explaining.
+
+                Real inv_w = 1 / (right - left);
+                Real inv_h = 1 / (top - bottom);
+                Real inv_d = 1 / (mFarDist - mNearDist);
+
                 Real A = 2 * inv_w;
                 Real B = 2 * inv_h;
                 Real C = - (right + left) * inv_w;
@@ -543,17 +445,17 @@ namespace Ogre {
             } // ortho            
         } // !mCustomProjMatrix
 
-#if OGRE_NO_VIEWPORT_ORIENTATIONMODE == 0
-        // Deal with orientation mode
-        mProjMatrix = mProjMatrix * Quaternion(Degree(mOrientationMode * 90.f), Vector3::UNIT_Z);
-#endif
-
         RenderSystem* renderSystem = Root::getSingleton().getRenderSystem();
-        // API specific
-        renderSystem->_convertProjectionMatrix(mProjMatrix, mProjMatrixRS);
-        // API specific for Gpu Programs
-        renderSystem->_convertProjectionMatrix(mProjMatrix, mProjMatrixRSDepth, true);
 
+        if(renderSystem)
+        {
+            // API specific
+            renderSystem->_convertProjectionMatrix(mProjMatrix, mProjMatrixRSDepth, true);
+        }
+        else
+        {
+            mProjMatrixRSDepth = mProjMatrix;
+        }
 
         // Calculate bounding box (local)
         // Box is from 0, down -Z, max dimensions as determined from far plane
@@ -594,108 +496,6 @@ namespace Ogre {
             updateFrustumImpl();
         }
     }
-
-    //-----------------------------------------------------------------------
-    void Frustum::updateVertexData(void) const
-    {
-        if (mRecalcVertexData)
-        {
-            if (mVertexData.vertexBufferBinding->getBufferCount() <= 0)
-            {
-                // Initialise vertex & index data
-                mVertexData.vertexDeclaration->addElement(0, 0, VET_FLOAT3, VES_POSITION);
-                mVertexData.vertexCount = 32;
-                mVertexData.vertexStart = 0;
-                mVertexData.vertexBufferBinding->setBinding( 0,
-                    HardwareBufferManager::getSingleton().createVertexBuffer(
-                        sizeof(float)*3, 32, HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY) );
-            }
-
-            // Note: Even though we can dealing with general projection matrix here,
-            //       but because it's incompatibly with infinite far plane, thus, we
-            //       still need to working with projection parameters.
-
-            // Calc near plane corners
-            Real vpLeft, vpRight, vpBottom, vpTop;
-            calcProjectionParameters(vpLeft, vpRight, vpBottom, vpTop);
-
-            // Treat infinite fardist as some arbitrary far value
-            Real farDist = (mFarDist == 0) ? 100000 : mFarDist;
-
-            // Calc far plane corners
-            Real radio = mProjType == PT_PERSPECTIVE ? farDist / mNearDist : 1;
-            Real farLeft = vpLeft * radio;
-            Real farRight = vpRight * radio;
-            Real farBottom = vpBottom * radio;
-            Real farTop = vpTop * radio;
-
-            // Calculate vertex positions (local)
-            // 0 is the origin
-            // 1, 2, 3, 4 are the points on the near plane, top left first, clockwise
-            // 5, 6, 7, 8 are the points on the far plane, top left first, clockwise
-            HardwareVertexBufferSharedPtr vbuf = mVertexData.vertexBufferBinding->getBuffer(0);
-            float* pFloat = static_cast<float*>(vbuf->lock(HardwareBuffer::HBL_DISCARD));
-
-            // near plane (remember frustum is going in -Z direction)
-            *pFloat++ = vpLeft;  *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-            *pFloat++ = vpRight; *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-
-            *pFloat++ = vpRight; *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-            *pFloat++ = vpRight; *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-
-            *pFloat++ = vpRight; *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-            *pFloat++ = vpLeft;  *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-
-            *pFloat++ = vpLeft;  *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-            *pFloat++ = vpLeft;  *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-
-            // far plane (remember frustum is going in -Z direction)
-            *pFloat++ = farLeft;  *pFloat++ = farTop;    *pFloat++ = -farDist;
-            *pFloat++ = farRight; *pFloat++ = farTop;    *pFloat++ = -farDist;
-
-            *pFloat++ = farRight; *pFloat++ = farTop;    *pFloat++ = -farDist;
-            *pFloat++ = farRight; *pFloat++ = farBottom; *pFloat++ = -farDist;
-
-            *pFloat++ = farRight; *pFloat++ = farBottom; *pFloat++ = -farDist;
-            *pFloat++ = farLeft;  *pFloat++ = farBottom; *pFloat++ = -farDist;
-
-            *pFloat++ = farLeft;  *pFloat++ = farBottom; *pFloat++ = -farDist;
-            *pFloat++ = farLeft;  *pFloat++ = farTop;    *pFloat++ = -farDist;
-
-            // Sides of the pyramid
-            *pFloat++ = 0.0f;    *pFloat++ = 0.0f;   *pFloat++ = 0.0f;
-            *pFloat++ = vpLeft;  *pFloat++ = vpTop;  *pFloat++ = -mNearDist;
-
-            *pFloat++ = 0.0f;    *pFloat++ = 0.0f;   *pFloat++ = 0.0f;
-            *pFloat++ = vpRight; *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-
-            *pFloat++ = 0.0f;    *pFloat++ = 0.0f;   *pFloat++ = 0.0f;
-            *pFloat++ = vpRight; *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-
-            *pFloat++ = 0.0f;    *pFloat++ = 0.0f;   *pFloat++ = 0.0f;
-            *pFloat++ = vpLeft;  *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-
-            // Sides of the box
-
-            *pFloat++ = vpLeft;  *pFloat++ = vpTop;  *pFloat++ = -mNearDist;
-            *pFloat++ = farLeft;  *pFloat++ = farTop;  *pFloat++ = -farDist;
-
-            *pFloat++ = vpRight; *pFloat++ = vpTop;    *pFloat++ = -mNearDist;
-            *pFloat++ = farRight; *pFloat++ = farTop;    *pFloat++ = -farDist;
-
-            *pFloat++ = vpRight; *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-            *pFloat++ = farRight; *pFloat++ = farBottom; *pFloat++ = -farDist;
-
-            *pFloat++ = vpLeft;  *pFloat++ = vpBottom; *pFloat++ = -mNearDist;
-            *pFloat++ = farLeft;  *pFloat++ = farBottom; *pFloat++ = -farDist;
-
-
-            vbuf->unlock();
-
-            mRecalcVertexData = false;
-        }
-    }
-
     //-----------------------------------------------------------------------
     bool Frustum::isViewOutOfDate(void) const
     {
@@ -783,7 +583,7 @@ namespace Ogre {
     //---------------------------------------------------------------------
     void Frustum::calcViewMatrixRelative(const Vector3& relPos, Matrix4& matToUpdate) const
     {
-        Matrix4 matTrans = Matrix4::IDENTITY;
+        Affine3 matTrans = Affine3::IDENTITY;
         matTrans.setTrans(relPos);
         matToUpdate = getViewMatrix() * matTrans;
 
@@ -836,10 +636,10 @@ namespace Ogre {
         mFrustumPlanes[FRUSTUM_PLANE_FAR].d = combo[3][3] - combo[2][3];
 
         // Renormalise any normals which were not unit length
-        for(int i=0; i<6; i++ ) 
+        for(auto & p : mFrustumPlanes)
         {
-            Real length = mFrustumPlanes[i].normal.normalise();
-            mFrustumPlanes[i].d /= length;
+            Real length = p.normal.normalise();
+            p.d /= length;
         }
 
         mRecalcFrustumPlanes = false;
@@ -858,15 +658,15 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Frustum::updateWorldSpaceCornersImpl(void) const
     {
-        Matrix4 eyeToWorld = mViewMatrix.inverseAffine();
+        Affine3 eyeToWorld = mViewMatrix.inverse();
 
         // Note: Even though we can dealing with general projection matrix here,
         //       but because it's incompatibly with infinite far plane, thus, we
         //       still need to working with projection parameters.
 
         // Calc near plane corners
-        Real nearLeft, nearRight, nearBottom, nearTop;
-        calcProjectionParameters(nearLeft, nearRight, nearBottom, nearTop);
+        RealRect vp = calcProjectionParameters();
+        Real nearLeft = vp.left, nearRight = vp.right, nearBottom = vp.bottom, nearTop = vp.top;
 
         // Treat infinite fardist as some arbitrary far value
         Real farDist = (mFarDist == 0) ? 100000 : mFarDist;
@@ -879,16 +679,15 @@ namespace Ogre {
         Real farTop = nearTop * radio;
 
         // near
-        mWorldSpaceCorners[0] = eyeToWorld.transformAffine(Vector3(nearRight, nearTop,    -mNearDist));
-        mWorldSpaceCorners[1] = eyeToWorld.transformAffine(Vector3(nearLeft,  nearTop,    -mNearDist));
-        mWorldSpaceCorners[2] = eyeToWorld.transformAffine(Vector3(nearLeft,  nearBottom, -mNearDist));
-        mWorldSpaceCorners[3] = eyeToWorld.transformAffine(Vector3(nearRight, nearBottom, -mNearDist));
+        mWorldSpaceCorners[0] = eyeToWorld * Vector3(nearRight, nearTop, -mNearDist);
+        mWorldSpaceCorners[1] = eyeToWorld * Vector3(nearLeft, nearTop, -mNearDist);
+        mWorldSpaceCorners[2] = eyeToWorld * Vector3(nearLeft, nearBottom, -mNearDist);
+        mWorldSpaceCorners[3] = eyeToWorld * Vector3(nearRight, nearBottom, -mNearDist);
         // far
-        mWorldSpaceCorners[4] = eyeToWorld.transformAffine(Vector3(farRight,  farTop,     -farDist));
-        mWorldSpaceCorners[5] = eyeToWorld.transformAffine(Vector3(farLeft,   farTop,     -farDist));
-        mWorldSpaceCorners[6] = eyeToWorld.transformAffine(Vector3(farLeft,   farBottom,  -farDist));
-        mWorldSpaceCorners[7] = eyeToWorld.transformAffine(Vector3(farRight,  farBottom,  -farDist));
-
+        mWorldSpaceCorners[4] = eyeToWorld * Vector3(farRight, farTop, -farDist);
+        mWorldSpaceCorners[5] = eyeToWorld * Vector3(farLeft, farTop, -farDist);
+        mWorldSpaceCorners[6] = eyeToWorld * Vector3(farLeft, farBottom, -farDist);
+        mWorldSpaceCorners[7] = eyeToWorld * Vector3(farRight, farBottom, -farDist);
 
         mRecalcWorldSpaceCorners = false;
     }
@@ -925,61 +724,21 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Frustum::_updateRenderQueue(RenderQueue* queue)
     {
-        if (mDebugDisplay)
+        if (mDebugDisplay && mManager && mManager->getDebugDrawer())
         {
-            // Add self 
-            queue->addRenderable(this);
+            // Add self
+            mManager->getDebugDrawer()->drawFrustum(this);
         }
     }
     //-----------------------------------------------------------------------
     const String& Frustum::getMovableType(void) const
     {
-        return msMovableType;
+        return MOT_FRUSTUM;
     }
     //-----------------------------------------------------------------------
     Real Frustum::getBoundingRadius(void) const
     {
         return (mFarDist == 0)? 100000 : mFarDist;
-    }
-    //-----------------------------------------------------------------------
-    const MaterialPtr& Frustum::getMaterial(void) const
-    {
-        return mMaterial;
-    }
-    //-----------------------------------------------------------------------
-    void Frustum::getRenderOperation(RenderOperation& op) 
-    {
-        updateVertexData();
-        op.operationType = RenderOperation::OT_LINE_LIST;
-        op.useIndexes = false;
-        op.useGlobalInstancingVertexBufferIsAvailable = false;
-        op.vertexData = &mVertexData;
-    }
-    //-----------------------------------------------------------------------
-    void Frustum::getWorldTransforms(Matrix4* xform) const 
-    {
-        if (mParentNode)
-            *xform = mParentNode->_getFullTransform();
-        else
-            *xform = Matrix4::IDENTITY;
-    }
-    //-----------------------------------------------------------------------
-    Real Frustum::getSquaredViewDepth(const Camera* cam) const 
-    {
-        // Calc from centre
-        if (mParentNode)
-            return (cam->getDerivedPosition() 
-                - mParentNode->_getDerivedPosition()).squaredLength();
-        else
-            return 0;
-    }
-    //-----------------------------------------------------------------------
-    const LightList& Frustum::getLights(void) const 
-    {
-        // N/A
-        OGRE_DEFINE_STATIC_LOCAL(LightList, ll, ());
-//        static LightList ll;
-        return ll;
     }
     //-----------------------------------------------------------------------
     void Frustum::_notifyCurrentCamera(Camera* cam)
@@ -996,7 +755,6 @@ namespace Ogre {
         mRecalcFrustum = true;
         mRecalcFrustumPlanes = true;
         mRecalcWorldSpaceCorners = true;
-        mRecalcVertexData = true;
     }
     // -------------------------------------------------------------------
     void Frustum::invalidateView() const
@@ -1006,7 +764,7 @@ namespace Ogre {
         mRecalcWorldSpaceCorners = true;
     }
     // -------------------------------------------------------------------
-    const Vector3* Frustum::getWorldSpaceCorners(void) const
+    const Frustum::Corners& Frustum::getWorldSpaceCorners(void) const
     {
         updateWorldSpaceCorners();
 
@@ -1070,7 +828,7 @@ namespace Ogre {
         // Transform light position into camera space
 
         updateView();
-        Vector3 eyeSpacePos = mViewMatrix.transformAffine(sphere.getCenter());
+        Vector3 eyeSpacePos = mViewMatrix * sphere.getCenter();
 
         // initialise
         *left = *bottom = -1.0f;
@@ -1254,12 +1012,11 @@ namespace Ogre {
         invalidateFrustum();
     }
     //---------------------------------------------------------------------
-    void Frustum::setCustomViewMatrix(bool enable, const Matrix4& viewMatrix)
+    void Frustum::setCustomViewMatrix(bool enable, const Affine3& viewMatrix)
     {
         mCustomViewMatrix = enable;
         if (enable)
         {
-            assert(viewMatrix.isAffine());
             mViewMatrix = viewMatrix;
         }
         invalidateView();
@@ -1310,7 +1067,7 @@ namespace Ogre {
         // Only displayed in debug
         if (debugRenderables)
         {
-            visitor->visit(this, 0, true);
+            //visitor->visit(this, 0, true);
         }
 
     }
@@ -1318,10 +1075,7 @@ namespace Ogre {
     void Frustum::setFrustumExtents(Real left, Real right, Real top, Real bottom)
     {
         mFrustumExtentsManuallySet = true;
-        mLeft = left;
-        mRight = right;
-        mTop = top;
-        mBottom = bottom;
+        mExtents = RealRect(left, top, right, bottom);
 
         invalidateFrustum();
     }
@@ -1332,13 +1086,10 @@ namespace Ogre {
         invalidateFrustum();
     }
     //---------------------------------------------------------------------
-    void Frustum::getFrustumExtents(Real& outleft, Real& outright, Real& outtop, Real& outbottom) const
+    RealRect Frustum::getFrustumExtents() const
     {
         updateFrustum();
-        outleft = mLeft;
-        outright = mRight;
-        outtop = mTop;
-        outbottom = mBottom;
+        return mExtents;
     }
     //---------------------------------------------------------------------
     PlaneBoundedVolume Frustum::getPlaneBoundedVolume()
@@ -1353,27 +1104,6 @@ namespace Ogre {
         volume.planes.push_back(mFrustumPlanes[FRUSTUM_PLANE_LEFT]);
         volume.planes.push_back(mFrustumPlanes[FRUSTUM_PLANE_RIGHT]);
         return volume;
-    }
-    //---------------------------------------------------------------------
-    void Frustum::setOrientationMode(OrientationMode orientationMode)
-    {
-#if OGRE_NO_VIEWPORT_ORIENTATIONMODE != 0
-        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-                    "Setting Frustrum orientation mode is not supported",
-                    __FUNCTION__);
-#endif
-        mOrientationMode = orientationMode;
-        invalidateFrustum();
-    }
-    //---------------------------------------------------------------------
-    OrientationMode Frustum::getOrientationMode() const
-    {
-#if OGRE_NO_VIEWPORT_ORIENTATIONMODE != 0
-        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-                    "Getting Frustrum orientation mode is not supported",
-                    __FUNCTION__);
-#endif
-        return mOrientationMode;
     }
 
 

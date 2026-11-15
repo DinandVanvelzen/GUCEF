@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,8 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreHardwareIndexBuffer.h"
-#include "OgreHardwareBufferManager.h"
+
+#include <memory>
 #include "OgreDefaultHardwareBufferManager.h"
 
 
@@ -35,49 +36,41 @@ namespace Ogre {
 
     //-----------------------------------------------------------------------------
     HardwareIndexBuffer::HardwareIndexBuffer(HardwareBufferManagerBase* mgr, IndexType idxType, 
-        size_t numIndexes, HardwareBuffer::Usage usage, 
-        bool useSystemMemory, bool useShadowBuffer) 
-        : HardwareBuffer(usage, useSystemMemory, useShadowBuffer)
-        , mMgr(mgr)
+        size_t numIndexes, HardwareBuffer::Usage usage, bool useShadowBuffer)
+        : HardwareBuffer(usage, useShadowBuffer)
         , mIndexType(idxType)
+        , mMgr(mgr)
         , mNumIndexes(numIndexes)
     {
         // Calculate the size of the indexes
-        switch (mIndexType)
-        {
-        case IT_16BIT:
-            mIndexSize = sizeof(unsigned short);
-            break;
-        case IT_32BIT:
-            mIndexSize = sizeof(unsigned int);
-            break;
-        }
+        mIndexSize = indexSize(idxType);
         mSizeInBytes = mIndexSize * mNumIndexes;
 
-        // Create a shadow buffer if required
-        if (mUseShadowBuffer)
+        if (idxType == IT_32BIT && Root::getSingletonPtr() && Root::getSingleton().getRenderSystem())
         {
-            mShadowBuffer = OGRE_NEW DefaultHardwareIndexBuffer(mIndexType, 
-                mNumIndexes, HardwareBuffer::HBU_DYNAMIC);
+            if (!Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_32BIT_INDEX))
+            {
+                OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, "32 bit index buffers are not supported");
+            }
         }
 
-
+        // Create a shadow buffer if required
+        if (useShadowBuffer)
+        {
+            mShadowBuffer = std::make_unique<DefaultHardwareBuffer>(mSizeInBytes);
+        }
     }
+
+    HardwareIndexBuffer::HardwareIndexBuffer(HardwareBufferManagerBase* mgr, IndexType idxType,
+                                             size_t numIndexes, HardwareBuffer* delegate)
+        : HardwareIndexBuffer(mgr, idxType, numIndexes, delegate->getUsage(), false)
+    {
+        mDelegate.reset(delegate);
+    }
+
     //-----------------------------------------------------------------------------
     HardwareIndexBuffer::~HardwareIndexBuffer()
     {
-        if (mMgr)
-        {
-            mMgr->_notifyIndexBufferDestroyed(this);
-        }
-
-        OGRE_DELETE mShadowBuffer;
-    }
-    //-----------------------------------------------------------------------------
-    HardwareIndexBufferSharedPtr::HardwareIndexBufferSharedPtr(HardwareIndexBuffer* buf)
-        : SharedPtr<HardwareIndexBuffer>(buf)
-    {
-
     }
 
 }

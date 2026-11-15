@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,25 +24,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-OgreSegment.h  -  3D Line Segment class for intersection testing in Ogre3D
-Some algorithms based off code from the Wild Magic library by Dave Eberly
------------------------------------------------------------------------------
-begin                : Mon Apr 02 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    : Apr 5, 2007
------------------------------------------------------------------------------
 */
 
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 namespace Ogre
 {
     class Capsule;
 
+    /** 3D Line Segment class for intersection testing in Ogre3D
+
+        Some algorithms based off code from the Wild Magic library by Dave Eberly
+     */
     class Segment
     {
     public:

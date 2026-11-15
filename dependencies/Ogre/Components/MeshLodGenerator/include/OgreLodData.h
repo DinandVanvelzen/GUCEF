@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,10 @@
 #include "OgreLodPrerequisites.h"
 #include "OgreVectorSet.h"
 #include "OgreVectorSetImpl.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
+#include "OgreHeaderPrefix.h"
+
+#include <unordered_set>
 
 #ifndef MESHLOD_QUALITY
 /// MESHLOD_QUALITY=1 is fastest processing time.
@@ -43,7 +46,12 @@
 
 namespace Ogre
 {
-
+/** \addtogroup Optional
+*  @{
+*/
+/** \addtogroup MeshLodGenerator
+*  @{
+*/
 struct _OgreLodExport LodData {
 
     static const Real NEVER_COLLAPSE_COST /*= std::numeric_limits<Real>::max()*/;
@@ -51,19 +59,22 @@ struct _OgreLodExport LodData {
 
     struct Edge;
     struct Vertex;
+    struct Line;
     struct Triangle;
     struct VertexHash;
     struct VertexEqual;
 
-    typedef vector<Vertex>::type VertexList;
-    typedef vector<Triangle>::type TriangleList;
-    typedef OGRE_HashSet<Vertex*, VertexHash, VertexEqual> UniqueVertexSet;
-    typedef multimap<Real, Vertex*>::type CollapseCostHeap;
+    typedef std::vector<Vertex> VertexList;
+    typedef std::vector<Line> LineList;
+    typedef std::vector<Triangle> TriangleList;
+    typedef std::unordered_set<Vertex*, VertexHash, VertexEqual> UniqueVertexSet;
+    typedef std::multimap<Real, Vertex*> CollapseCostHeap;
 
     typedef VectorSet<Edge, 8> VEdges;
+    typedef VectorSet<Line*, 7> VLines;
     typedef VectorSet<Triangle*, 7> VTriangles;
 
-    // Hash function for UniqueVertexSet.
+    /// Hash function for UniqueVertexSet.
     struct VertexHash {
         LodData* mGen;
 
@@ -72,7 +83,7 @@ struct _OgreLodExport LodData {
         size_t operator() (const Vertex* v) const;
     };
 
-    // Equality function for UniqueVertexSet.
+    /// Equality function for UniqueVertexSet.
     struct VertexEqual {
         bool operator() (const Vertex* lhs, const Vertex* rhs) const;
     };
@@ -92,16 +103,32 @@ struct _OgreLodExport LodData {
 
     struct Vertex {
         Vector3 position;
+        Vector3 normal;
         VEdges edges;
+        VLines lines;
         VTriangles triangles;
         
-        Vector3 normal;
         Vertex* collapseTo;
         bool seam;
         CollapseCostHeap::iterator costHeapPosition; /// Iterator pointing to the position in the mCollapseCostSet, which allows fast remove.
 
         void addEdge(const Edge& edge);
         void removeEdge(const Edge& edge);
+    };
+
+    struct Line {
+        Vertex* vertex[2];
+        bool isRemoved;
+        unsigned short submeshID; /// ID of the submesh. Usable with mMesh.getSubMesh() function.
+        unsigned int vertexID[2]; /// Vertex ID in the buffer associated with the submeshID.
+
+        bool hasVertex(const Vertex* v) const
+        {
+            return (v == vertex[0] || v == vertex[1]);
+        }
+
+        unsigned int getVertexID(const Vertex* v) const;
+        bool isMalformed();
     };
     
     struct Triangle {
@@ -111,8 +138,16 @@ struct _OgreLodExport LodData {
         unsigned short submeshID; /// ID of the submesh. Usable with mMesh.getSubMesh() function.
         unsigned int vertexID[3]; /// Vertex ID in the buffer associated with the submeshID.
 
-        void computeNormal();
-        bool hasVertex(const Vertex* v) const;
+        void computeNormal()
+        {
+            normal = Math::calculateBasicFaceNormal(vertex[0]->position, vertex[1]->position,
+                                                    vertex[2]->position);
+        }
+        bool hasVertex(const Vertex* v) const
+        {
+            return (v == vertex[0] || v == vertex[1] || v == vertex[2]);
+        }
+
         unsigned int getVertexID(const Vertex* v) const;
         bool isMalformed();
     };
@@ -125,17 +160,18 @@ struct _OgreLodExport LodData {
     struct IndexBufferInfo {
         size_t indexSize;
         size_t indexCount;
-        IndexBufferPointer buf; // Used by output providers only!
-        size_t prevOnlyIndexCount; // Used by output providers only!
-        size_t prevIndexCount; // Used by output providers only!
+        IndexBufferPointer buf; /// Used by output providers only!
+        size_t prevOnlyIndexCount; /// Used by output providers only!
+        size_t prevIndexCount; /// Used by output providers only!
     };
 
-    typedef vector<IndexBufferInfo>::type IndexBufferInfoList;
+    typedef std::vector<IndexBufferInfo> IndexBufferInfoList;
 
     /// Provides position based vertex lookup. Position is the real identifier of a vertex.
     UniqueVertexSet mUniqueVertexSet;
 
     VertexList mVertexList;
+    LineList mLineList;
     TriangleList mTriangleList;
 
     /// Makes possible to get the vertices with the smallest collapse cost.
@@ -155,17 +191,29 @@ struct _OgreLodExport LodData {
     template<typename T, typename A>
     static size_t getVectorIDFromPointer(const std::vector<T, A>& vec, const T* pointer) {
         size_t id = pointer - &vec.at(0);
-        OgreAssert(id < vec.size() && (&vec[id] == pointer), "Invalid pointer");
+        OgreAssertDbg(id < vec.size() && (&vec[id] == pointer), "Invalid pointer");
         return id;
     }
 
+#if OGRE_COMPILER == OGRE_COMPILER_MSVC
+    // We know it's safe to pass this pointer to VertexHash because it's not used there yet.
+#   pragma warning ( push )
+#   pragma warning ( disable: 4355 )
+#endif
     LodData() :
         mUniqueVertexSet((UniqueVertexSet::size_type) 0,
         (const UniqueVertexSet::hasher&) VertexHash(this)),
         mMeshBoundingSphereRadius(0.0f),
         mUseVertexNormals(true)
     {}
+#if OGRE_COMPILER == OGRE_COMPILER_MSVC
+#   pragma warning ( pop )
+#endif
 };
-
+/** @} */
+/** @} */
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif

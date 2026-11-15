@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -36,21 +36,14 @@ THE SOFTWARE.
 namespace Ogre {
 namespace RTShader {
 
-/** \addtogroup Core
+class FunctionAtom;
+
+/** \addtogroup Optional
 *  @{
 */
 /** \addtogroup RTShader
 *  @{
 */
-
-// Uniform comparer
-struct CompareUniformByName : std::binary_function<UniformParameterPtr, String, bool>
-{
-    bool operator()( const UniformParameterPtr& uniform, const String& name ) const
-    {
-        return uniform->getName() == name;
-    }
-};
 
 /** Base class interface for shader program writers.
 The main usage of this class is to generate a shader source code from the given CPU program.
@@ -61,9 +54,9 @@ class _OgreRTSSExport ProgramWriter : public RTShaderSystemAlloc
 {
 // Interface.
 public:
-
+    ProgramWriter();
     /** Class destructor */
-    virtual ~ProgramWriter  () {}
+    virtual ~ProgramWriter();
 
 
     /** Write the program shader source code.
@@ -80,11 +73,32 @@ protected:
     /** Write the program title. */
     void                writeProgramTitle           (std::ostream& os, Program* program);
 
-    /** Write the uniform parameters title. */
-    void                writeUniformParametersTitle (std::ostream& os, Program* program);
-
     /** Write a function title. */
     void                writeFunctionTitle          (std::ostream& os, Function* function);
+
+    /** Write a uniform parameter. */
+    void writeSamplerParameter(std::ostream& os, const UniformParameterPtr& parameter);
+
+    /** Write a undecorated/ local parameter. */
+    void writeParameter(std::ostream& os, const ParameterPtr& parameter);
+
+    /** Write a function parameter. */
+    void writeParameterSemantic(std::ostream& os, const ParameterPtr& parameter);
+
+    void redirectGlobalWrites(std::ostream& os, FunctionAtom* func, const ShaderParameterList& inputs,
+                              const UniformParameterList& uniform);
+
+    /** Write the program dependencies. */
+    void writeProgramDependencies(std::ostream& os, Program* program);
+
+    typedef std::map<GpuConstantType, const char*> GpuConstTypeToStringMap;
+    typedef std::map<Parameter::Semantic, const char*> ParamSemanticToStringMap;
+    // Map between GPU constant type to string value.
+    GpuConstTypeToStringMap mGpuConstTypeMap;
+    // Map between parameter semantic to string value.
+    ParamSemanticToStringMap mParamSemanticMap;
+
+    std::set<String> mLocalRenames;
 };
 
 /** @} */

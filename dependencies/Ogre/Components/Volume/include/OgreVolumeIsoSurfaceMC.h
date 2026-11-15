@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,17 @@ THE SOFTWARE.
 #define __Ogre_Volume_IsoSurfaceMC_H__
 
 #include "OgreVolumeIsoSurface.h"
-#include "OgreVector3.h"
-#include "OgreVector4.h"
+#include "OgreVector.h"
 #include <float.h>
 
 namespace Ogre {
 namespace Volume {
-
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     class Source;
     class MeshBuilder;
 
@@ -85,13 +89,13 @@ namespace Volume {
                 normal.z = val0.z;
                 return v0;
             }
-            Real mu = (ISO_LEVEL - val0.w) / (val1.w - val0.w);
-            Vector4 normal4 = val0 + mu * (val1 - val0);
+            Real mu = Math::inverseLerp(val0.w, val1.w, ISO_LEVEL);
+            Vector4 normal4 = Math::lerp(val0, val1, mu);
             normal.x = normal4.x;
             normal.y = normal4.y;
             normal.z = normal4.z;
             normal.normalise();
-            return v0 + mu * (v1 - v0);
+            return Math::lerp(v0, v1, mu);
         }
 
     public:
@@ -104,12 +108,14 @@ namespace Volume {
         
         /** Overridden from IsoSurface.
         */
-        virtual void addMarchingCubesTriangles(const Vector3 *corners, const Vector4 *volumeValues, MeshBuilder *mb) const;
+        void addMarchingCubesTriangles(const Vector3 *corners, const Vector4 *volumeValues, MeshBuilder *mb) const override;
         
         /** Overridden from IsoSurface.
         */
-        virtual void addMarchingSquaresTriangles(const Vector3 *corners, const Vector4 *volumeValues, const size_t *indices, const Real maxDistance, MeshBuilder *mb) const;
+        void addMarchingSquaresTriangles(const Vector3 *corners, const Vector4 *volumeValues, const size_t *indices, const Real maxDistance, MeshBuilder *mb) const override;
     };
+    /** @} */
+    /** @} */
 }
 }
 

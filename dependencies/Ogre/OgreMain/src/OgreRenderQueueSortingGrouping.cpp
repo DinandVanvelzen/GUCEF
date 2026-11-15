@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,17 +27,68 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreRenderQueueSortingGrouping.h"
-#include "OgreException.h"
-#include "OgreTechnique.h"
+#include <algorithm>
+#include <unordered_map>
 
 namespace Ogre {
-    // Init statics
-    RadixSort<QueuedRenderableCollection::RenderablePassList,
-        RenderablePass, uint32> QueuedRenderableCollection::msRadixSorter1;
-    RadixSort<QueuedRenderableCollection::RenderablePassList,
-        RenderablePass, float> QueuedRenderableCollection::msRadixSorter2;
+namespace {
+    /// Comparator to order objects by descending camera distance
+    struct DistanceSortDescendingLess
+    {
+        const Camera* camera;
 
+        DistanceSortDescendingLess(const Camera* cam)
+            : camera(cam)
+        {
+        }
 
+        bool operator()(const RenderablePass& a, const RenderablePass& b) const
+        {
+            const Real adist = a.renderable->getSquaredViewDepth(camera);
+            const Real bdist = b.renderable->getSquaredViewDepth(camera);
+
+            // Primary key: distance, DESCENDING (far objects first).
+            // Exact compare (no tolerance) so the ordering stays transitive.
+            if (adist != bdist)
+                return adist > bdist;
+
+            // Equal distance: tie-break by pass hash. The hash is content-based
+            // and therefore stable across runs.
+            // If the hashes are also equal we return false here (and so does the
+            // mirrored call comp(b, a)) -> the elements are reported as
+            // *equivalent*, and std::stable_sort preserves their original,
+            // deterministic input order.
+            return a.pass->getHash() < b.pass->getHash();
+        }
+    };
+
+    /// Functor for accessing sort value 1 for radix sort (Pass)
+    struct RadixSortFunctorPass
+    {
+        uint32 operator()(const RenderablePass& p) const
+        {
+            return p.pass->getHash();
+        }
+    };
+
+    /// Functor for descending sort value 2 for radix sort (distance)
+    struct RadixSortFunctorDistance
+    {
+        const Camera* camera;
+
+        RadixSortFunctorDistance(const Camera* cam)
+            : camera(cam)
+        {
+        }
+
+        float operator()(const RenderablePass& p) const
+        {
+            // Sort DESCENDING by depth (ie far objects first), use negative distance
+            // here because radix sorter always dealing with accessing sort
+            return static_cast<float>(- p.renderable->getSquaredViewDepth(camera));
+        }
+    };
+}
     //-----------------------------------------------------------------------
     RenderPriorityGroup::RenderPriorityGroup(RenderQueueGroup* parent, 
             bool splitPassesByLightingType,
@@ -82,6 +133,14 @@ namespace Ogre {
         addOrganisationMode(QueuedRenderableCollection::OM_PASS_GROUP);
     }
     //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    static void addPassesTo(QueuedRenderableCollection& collection, Technique* pTech, Renderable* rend)
+    {
+        for (auto* p : pTech->getPasses())
+        {
+            collection.addRenderable(p, rend);
+        }
+    }
     void RenderPriorityGroup::addRenderable(Renderable* rend, Technique* pTech)
     {
         // Transparent and depth/colour settings mean depth sorting is required?
@@ -94,9 +153,9 @@ namespace Ogre {
              pTech->hasColourWriteDisabled())))
         {
             if (pTech->isTransparentSortingEnabled())
-                addTransparentRenderable(pTech, rend);
+                addPassesTo(mTransparents, pTech, rend);
             else
-                addUnsortedTransparentRenderable(pTech, rend);
+                addPassesTo(mTransparentsUnsorted, pTech, rend);
         }
         else
         {
@@ -106,7 +165,7 @@ namespace Ogre {
                  (rend->getCastsShadows() && mShadowCastersNotReceivers)))
             {
                 // Add solid renderable and add passes to no-shadow group
-                addSolidRenderable(pTech, rend, true);
+                addPassesTo(mSolidsNoShadowReceive, pTech, rend);
             }
             else
             {
@@ -116,48 +175,22 @@ namespace Ogre {
                 }
                 else
                 {
-                    addSolidRenderable(pTech, rend, false);
+                    addPassesTo(mSolidsBasic, pTech, rend);
                 }
             }
         }
 
     }
     //-----------------------------------------------------------------------
-    void RenderPriorityGroup::addSolidRenderable(Technique* pTech, 
-        Renderable* rend, bool addToNoShadow)
-    {
-        Technique::PassIterator pi = pTech->getPassIterator();
-
-        QueuedRenderableCollection* collection;
-        if (addToNoShadow)
-        {
-            collection = &mSolidsNoShadowReceive;
-        }
-        else
-        {
-            collection = &mSolidsBasic;
-        }
-
-
-        while (pi.hasMoreElements())
-        {
-            // Insert into solid list
-            Pass* p = pi.getNext();
-            collection->addRenderable(p, rend);
-        }
-    }
-    //-----------------------------------------------------------------------
     void RenderPriorityGroup::addSolidRenderableSplitByLightType(Technique* pTech,
         Renderable* rend)
     {
         // Divide the passes into the 3 categories
-        Technique::IlluminationPassIterator pi = 
-            pTech->getIlluminationPassIterator();
+        const IlluminationPassList& passes = pTech->getIlluminationPasses();
 
-        while (pi.hasMoreElements())
+        for(auto p : passes)
         {
             // Insert into solid list
-            IlluminationPass* p = pi.getNext();
             QueuedRenderableCollection* collection = NULL;
             switch(p->stage)
             {
@@ -175,28 +208,6 @@ namespace Ogre {
             };
 
             collection->addRenderable(p->pass, rend);
-        }
-    }
-    //-----------------------------------------------------------------------
-    void RenderPriorityGroup::addUnsortedTransparentRenderable(Technique* pTech, Renderable* rend)
-    {
-        Technique::PassIterator pi = pTech->getPassIterator();
-
-        while (pi.hasMoreElements())
-        {
-            // Insert into transparent list
-            mTransparentsUnsorted.addRenderable(pi.getNext(), rend);
-        }
-    }
-    //-----------------------------------------------------------------------
-    void RenderPriorityGroup::addTransparentRenderable(Technique* pTech, Renderable* rend)
-    {
-        Technique::PassIterator pi = pTech->getPassIterator();
-
-        while (pi.hasMoreElements())
-        {
-            // Insert into transparent list
-            mTransparents.addRenderable(pi.getNext(), rend);
         }
     }
     //-----------------------------------------------------------------------
@@ -219,11 +230,9 @@ namespace Ogre {
             // Hmm, a bit hacky but least obtrusive for now
                     OGRE_LOCK_MUTEX(Pass::msPassGraveyardMutex);
             const Pass::PassSet& graveyardList = Pass::getPassGraveyard();
-            Pass::PassSet::const_iterator gi, giend;
-            giend = graveyardList.end();
-            for (gi = graveyardList.begin(); gi != giend; ++gi)
+            for (auto* p : graveyardList)
             {
-                removePassEntry(*gi);
+                removePassEntry(p);
             }
         }
 
@@ -234,11 +243,9 @@ namespace Ogre {
             // Hmm, a bit hacky but least obtrusive for now
                     OGRE_LOCK_MUTEX(Pass::msDirtyHashListMutex);
             const Pass::PassSet& dirtyList = Pass::getDirtyHashList();
-            Pass::PassSet::const_iterator di, diend;
-            diend = dirtyList.end();
-            for (di = dirtyList.begin(); di != diend; ++di)
+            for (auto* p : dirtyList)
             {
-                removePassEntry(*di);
+                removePassEntry(p);
             }
         }
         // NB we do NOT clear the graveyard or the dirty list here, because 
@@ -282,28 +289,14 @@ namespace Ogre {
         :mOrganisationMode(0)
     {
     }
-    //-----------------------------------------------------------------------
-    QueuedRenderableCollection::~QueuedRenderableCollection(void)
-    {
-        // destroy all the pass map entries (rather than clearing)
-        PassGroupRenderableMap::iterator i, iend;
-        iend = mGrouped.end();
-        for (i = mGrouped.begin(); i != iend; ++i)
-        {
-            // Free the list associated with this pass
-            OGRE_DELETE_T(i->second, RenderableList, MEMCATEGORY_SCENE_CONTROL);
-        }
-        
-    }
+
     //-----------------------------------------------------------------------
     void QueuedRenderableCollection::clear(void)
     {
-        PassGroupRenderableMap::iterator i, iend;
-        iend = mGrouped.end();
-        for (i = mGrouped.begin(); i != iend; ++i)
+        for (auto& i : mGrouped)
         {
             // Clear the list associated with this pass, but leave the pass entry
-            i->second->clear();
+            i.second.clear();
         }
 
         // Clear sorted list
@@ -317,8 +310,6 @@ namespace Ogre {
         i = mGrouped.find(p);
         if (i != mGrouped.end())
         {
-            // free memory
-            OGRE_DELETE_T(i->second, RenderableList, MEMCATEGORY_SCENE_CONTROL);
             // erase from map
             mGrouped.erase(i);
         }
@@ -326,6 +317,11 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void QueuedRenderableCollection::sort(const Camera* cam)
     {
+        /// Radix sorter for accessing sort value 1 (Pass)
+        static RadixSort<RenderablePassList, RenderablePass, uint32> msRadixSorter1;
+        /// Radix sorter for sort value 2 (distance)
+        static RadixSort<RenderablePassList, RenderablePass, float> msRadixSorter2;
+
         // ascending and descending sort both set bit 1
         // We always sort descending, because the only difference is in the
         // acceptVisitor method, where we iterate in reverse in ascending mode
@@ -354,13 +350,34 @@ namespace Ogre {
             {
                 std::stable_sort(
                     mSortedDescending.begin(), mSortedDescending.end(), 
-                    DepthSortDescendingLess(cam));
+                    DistanceSortDescendingLess(cam));
             }
         }
+        else if (mOrganisationMode & OM_PASS_GROUP)
+        {
+            // cluster by submesh
+            for(auto& it : mGrouped)
+            {
+                auto instanced = it.first->hasVertexProgram() && it.first->getVertexProgram()->isInstancingIncluded();
+                if (!instanced)
+                    continue;
 
-        // Nothing needs to be done for pass groups, they auto-organise
-
+                std::unordered_map<SubMesh*, RenderableList> bySubMesh;
+                for (auto* rend : it.second)
+                {
+                    auto subEntity = dynamic_cast<SubEntity*>(rend);
+                    SubMesh* subMesh = subEntity ? subEntity->getSubMesh() : 0;
+                    bySubMesh[subMesh].push_back(rend);
+                }
+                it.second.clear();
+                for (auto& it2 : bySubMesh)
+                {
+                    it.second.insert(it.second.end(), it2.second.begin(), it2.second.end());
+                }
+            }
+        }
     }
+
     //-----------------------------------------------------------------------
     void QueuedRenderableCollection::addRenderable(Pass* pass, Renderable* rend)
     {
@@ -372,23 +389,14 @@ namespace Ogre {
 
         if (mOrganisationMode & OM_PASS_GROUP)
         {
-            PassGroupRenderableMap::iterator i = mGrouped.find(pass);
-            if (i == mGrouped.end())
-            {
-                std::pair<PassGroupRenderableMap::iterator, bool> retPair;
-                // Create new pass entry, build a new list
-                // Note that this pass and list are never destroyed until the 
-                // engine shuts down, or a pass is destroyed or has it's hash
-                // recalculated, although the lists will be cleared
-                retPair = mGrouped.insert(
-                    PassGroupRenderableMap::value_type(
-                        pass, OGRE_NEW_T(RenderableList, MEMCATEGORY_SCENE_CONTROL)() ));
-                assert(retPair.second && 
-                    "Error inserting new pass entry into PassGroupRenderableMap");
-                i = retPair.first;
-            }
+            // Optionally create new pass entry, build a new list
+            // Note that this pass and list are never destroyed until the
+            // engine shuts down, or a pass is destroyed or has it's hash
+            // recalculated, although the lists will be cleared
+            PassGroupRenderableMap::iterator i = mGrouped.emplace(pass, RenderableList()).first;
+
             // Insert renderable
-            i->second->push_back(rend);
+            i->second.push_back(rend);
             
         }
         
@@ -431,25 +439,12 @@ namespace Ogre {
     void QueuedRenderableCollection::acceptVisitorGrouped(
         QueuedRenderableVisitor* visitor) const
     {
-        PassGroupRenderableMap::const_iterator ipass, ipassend;
-        ipassend = mGrouped.end();
-        for (ipass = mGrouped.begin(); ipass != ipassend; ++ipass)
+        for (auto& ipass : mGrouped)
         {
             // Fast bypass if this group is now empty
-            if (ipass->second->empty()) continue;
+            if (ipass.second.empty()) continue;
 
-            // Visit Pass - allow skip
-            if (!visitor->visit(ipass->first))
-                continue;
-
-            RenderableList* rendList = ipass->second;
-            RenderableList::const_iterator irend, irendend;
-            irendend = rendList->end();
-            for (irend = rendList->begin(); irend != irendend; ++irend)
-            {
-                // Visit Renderable
-                visitor->visit(const_cast<Renderable*>(*irend));
-            }
+            visitor->visit(ipass.first, const_cast<RenderableList&>(ipass.second));
         } 
 
     }
@@ -458,12 +453,9 @@ namespace Ogre {
         QueuedRenderableVisitor* visitor) const
     {
         // List is already in descending order, so iterate forward
-        RenderablePassList::const_iterator i, iend;
-
-        iend = mSortedDescending.end();
-        for (i = mSortedDescending.begin(); i != iend; ++i)
+        for (const auto& i : mSortedDescending)
         {
-            visitor->visit(const_cast<RenderablePass*>(&(*i)));
+            visitor->visit(const_cast<RenderablePass*>(&i));
         }
     }
     //-----------------------------------------------------------------------
@@ -485,30 +477,17 @@ namespace Ogre {
     {
         mSortedDescending.insert( mSortedDescending.end(), rhs.mSortedDescending.begin(), rhs.mSortedDescending.end() );
 
-        PassGroupRenderableMap::const_iterator srcGroup;
-        for( srcGroup = rhs.mGrouped.begin(); srcGroup != rhs.mGrouped.end(); ++srcGroup )
+        for (const auto& srcGroup : rhs.mGrouped)
         {
-            PassGroupRenderableMap::iterator dstGroup = mGrouped.find( srcGroup->first );
-            if (dstGroup == mGrouped.end())
-            {
-                std::pair<PassGroupRenderableMap::iterator, bool> retPair;
-                // Create new pass entry, build a new list
-                // Note that this pass and list are never destroyed until the 
-                // engine shuts down, or a pass is destroyed or has it's hash
-                // recalculated, although the lists will be cleared
-                retPair = mGrouped.insert(
-                    PassGroupRenderableMap::value_type(
-                        srcGroup->first, OGRE_NEW_T(RenderableList, MEMCATEGORY_SCENE_CONTROL)() ));
-                assert(retPair.second && 
-                    "Error inserting new pass entry into PassGroupRenderableMap");
-                dstGroup = retPair.first;
-            }
+            // Optionally create new pass entry, build a new list
+            // Note that this pass and list are never destroyed until the
+            // engine shuts down, or a pass is destroyed or has it's hash
+            // recalculated, although the lists will be cleared
+            PassGroupRenderableMap::iterator dstGroup = mGrouped.emplace(srcGroup.first, RenderableList()).first;
 
             // Insert renderable
-            dstGroup->second->insert( dstGroup->second->end(), srcGroup->second->begin(), srcGroup->second->end() );
+            dstGroup->second.insert(dstGroup->second.end(), srcGroup.second.begin(), srcGroup.second.end() );
         }
     }
-
-
 }
 

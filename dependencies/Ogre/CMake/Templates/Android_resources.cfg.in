@@ -1,0 +1,41 @@
+# Ogre Core Resources
+[OgreInternal]
+APKFileSystem=/Main
+APKFileSystem=/RTShaderLib
+APKFileSystem=/Terrain
+
+# Resources required by the sample browser and most samples.
+[Essential]
+APKZip=/packs/SdkTrays.zip
+APKFileSystem=/thumbnails
+
+# Common sample resources needed by many of the samples.
+# Rarely used resources should be separately loaded by the
+# samples which require them.
+[General]
+APKFileSystem=/materials/programs/GLSL
+APKFileSystem=/materials/programs/GLSLES
+APKFileSystem=/materials/scripts
+APKFileSystem=/materials/textures
+APKFileSystem=/materials/textures/glTF2_IBL
+APKFileSystem=/materials/textures/terrain
+APKFileSystem=/models
+APKFileSystem=/particle
+APKFileSystem=/materials/scripts/SSAO
+APKFileSystem=/materials/textures/SSAO
+APKZip=/packs/cubemap.zip
+APKZip=/packs/cubemapsJS.zip
+APKZip=/packs/dragon.zip
+APKZip=/packs/fresneldemo.zip
+APKZip=/packs/ogretestmap.zip
+APKZip=/packs/ogredance.zip
+APKZip=/packs/Sinbad.zip
+APKZip=/packs/skybox.zip
+APKZip=/packs/DamagedHelmet.zip
+
+APKFileSystem=/PBR
+APKFileSystem=/DeferredShadingMedia
+APKFileSystem=/DeferredShadingMedia/DeferredShading/post
+
+[BSPWorld]
+APKZip=/packs/oa_rpg3dm2.pk3

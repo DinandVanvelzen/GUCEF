@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -31,30 +31,19 @@ THE SOFTWARE.
 #include "OgreShaderProgramWriter.h"
 #include "OgreShaderGenerator.h"
 #include "OgreShaderRenderState.h"
-#include "OgreShaderFFPTransform.h"
-#include "OgreShaderFFPColour.h"
-#include "OgreShaderFFPLighting.h"
-#include "OgreShaderFFPTexturing.h"
-#include "OgreShaderFFPFog.h"
-#include "OgreShaderExPerPixelLighting.h"
-#include "OgreShaderExNormalMapLighting.h"
-#include "OgreShaderExIntegratedPSSM3.h"
+#include "OgreShaderFunction.h"
 #include "OgreShaderExLayeredBlending.h"
 #include "OgreShaderExHardwareSkinning.h"
-#include "OgreShaderMaterialSerializerListener.h"
 
-/** \addtogroup Core
+/** \addtogroup Optional
 *  @{
 */
-/** \addtogroup RTShader
-*  @{
-*/
-
-/**
-* The RT Shader System enables GPU program generation during the runtime of a process.
+/** \defgroup RTShader RTShaderSystem
+* Real Time Shader System: enables GPU program generation during the runtime of a process
+*
 * The main interface to do that is the ShaderGenerator singleton.
 * A typical usage of this system would be to create shader based technique from an existing technique and
-* associate it with a destination scheme name. @see ShaderGenerator::createShaderBasedTechnique.
+* associate it with a destination scheme name (see ShaderGenerator::createShaderBasedTechnique).
 * The source technique must include only fixed function based passes, otherwise the method will fail.
 * Once this task accomplished, one may switch the scheme of the current viewport(s) he uses, to 
 * the scheme he associate previously, and then a technique based on the original one will be used but this
@@ -69,8 +58,6 @@ THE SOFTWARE.
 *   of being spread around many different materials and programs. 
 * 
 */
-
-/** @} */
 /** @} */
 
 #endif

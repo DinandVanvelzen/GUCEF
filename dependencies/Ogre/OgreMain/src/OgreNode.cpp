@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,89 +26,38 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreNode.h"
-
-#include "OgreException.h"
-#include "OgreMath.h"
-
-// Dependencies on render-related types due to ability to render node
-#include "OgreMaterialManager.h"
-#include "OgreMeshManager.h"
-#include "OgreSubMesh.h"
-#include "OgreCamera.h"
-#include "OgreTechnique.h"
-#include "OgreManualObject.h"
-#include "OgreNameGenerator.h"
-#include "OgreMesh.h"
 
 namespace Ogre {
 
-    NameGenerator Node::msNameGenerator("Unnamed_");
     Node::QueuedUpdates Node::msQueuedUpdates;
     //-----------------------------------------------------------------------
-    Node::Node()
-        :mParent(0),
-        mNeedParentUpdate(false),
-        mNeedChildUpdate(false),
-        mParentNotified(false),
-        mQueuedForUpdate(false),
-        mOrientation(Quaternion::IDENTITY),
-        mPosition(Vector3::ZERO),
-        mScale(Vector3::UNIT_SCALE),
-        mInheritOrientation(true),
-        mInheritScale(true),
-        mDerivedOrientation(Quaternion::IDENTITY),
-        mDerivedPosition(Vector3::ZERO),
-        mDerivedScale(Vector3::UNIT_SCALE),
-        mInitialPosition(Vector3::ZERO),
-        mInitialOrientation(Quaternion::IDENTITY),
-        mInitialScale(Vector3::UNIT_SCALE),
-        mCachedTransformOutOfDate(true),
-        mListener(0), 
-        mDebug(0)
-    {
-        // Generate a name
-        mName = msNameGenerator.generate();
-
-        needUpdate();
-
-    }
-    //-----------------------------------------------------------------------
     Node::Node(const String& name)
-        :
-        mParent(0),
+        :mParent(0),
+        mName(name),
         mNeedParentUpdate(false),
         mNeedChildUpdate(false),
         mParentNotified(false),
         mQueuedForUpdate(false),
-        mName(name),
+        mInheritOrientation(true),
+        mInheritScale(true),
+        mCachedTransformOutOfDate(true),
         mOrientation(Quaternion::IDENTITY),
         mPosition(Vector3::ZERO),
         mScale(Vector3::UNIT_SCALE),
-        mInheritOrientation(true),
-        mInheritScale(true),
         mDerivedOrientation(Quaternion::IDENTITY),
         mDerivedPosition(Vector3::ZERO),
         mDerivedScale(Vector3::UNIT_SCALE),
         mInitialPosition(Vector3::ZERO),
         mInitialOrientation(Quaternion::IDENTITY),
         mInitialScale(Vector3::UNIT_SCALE),
-        mCachedTransformOutOfDate(true),
-        mListener(0), 
-        mDebug(0)
-
+        mListener(0)
     {
-
         needUpdate();
-
     }
 
     //-----------------------------------------------------------------------
     Node::~Node()
     {
-        OGRE_DELETE mDebug;
-        mDebug = 0;
-
         // Call listener (note, only called if there's something to do)
         if (mListener)
         {
@@ -134,11 +83,6 @@ namespace Ogre {
         }
 
     }
-    //-----------------------------------------------------------------------
-    Node* Node::getParent(void) const
-    {
-        return mParent;
-    }
 
     //-----------------------------------------------------------------------
     void Node::setParent(Node* parent)
@@ -162,12 +106,12 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    const Matrix4& Node::_getFullTransform(void) const
+    const Affine3& Node::_getFullTransform(void) const
     {
         if (mCachedTransformOutOfDate)
         {
 #if OGRE_NODE_INHERIT_TRANSFORM
-            Ogre::Matrix4 tr;
+            Affine3 tr;
             tr.makeTransform(mPosition, mScale, mOrientation);
 
             if(mParent == NULL)
@@ -185,14 +129,14 @@ namespace Ogre {
             }
             else // shear is inherited together with orientation, controlled by mInheritOrientation
             {
-                const Ogre::Matrix4& parentTr = mParent->_getFullTransform();
-                Ogre::Vector3 parentScale(
-                    parentTr.transformDirectionAffine(Vector3::UNIT_X).length(),
-                    parentTr.transformDirectionAffine(Vector3::UNIT_Y).length(),
-                    parentTr.transformDirectionAffine(Vector3::UNIT_Z).length());
+                const Affine3& parentTr = mParent->_getFullTransform();
+                Vector3 parentScale(
+                    parentTr.transformDirection(Vector3::UNIT_X).length(),
+                    parentTr.transformDirection(Vector3::UNIT_Y).length(),
+                    parentTr.transformDirection(Vector3::UNIT_Z).length());
 
                 assert(mInheritOrientation ^ mInheritScale);
-                mCachedTransform = (mInheritOrientation ? Matrix4::getScale(1.0f / parentScale)  * parentTr : Matrix4::getScale(parentScale)) * tr;
+                mCachedTransform = (mInheritOrientation ? Affine3::getScale(1.0f / parentScale)  * parentTr : Affine3::getScale(parentScale)) * tr;
             }
 #else
             // Use derived values
@@ -226,20 +170,16 @@ namespace Ogre {
                 itend = mChildren.end();
                 for (it = mChildren.begin(); it != itend; ++it)
                 {
-                    Node* child = it->second;
+                    Node* child = *it;
                     child->_update(true, true);
                 }
             }
             else
             {
                 // Just update selected children
-                ChildUpdateSet::iterator it, itend;
-                itend = mChildrenToUpdate.end();
-                for(it = mChildrenToUpdate.begin(); it != itend; ++it)
-                {
-                    Node* child = *it;
-                    child->_update(true, false);
-                }
+                // index-based: a re-entrant requestUpdate() may push_back and reallocate
+                for (size_t i = 0; i < mChildrenToUpdate.size(); ++i)
+                    mChildrenToUpdate[i]->_update(true, false);
 
             }
 
@@ -318,8 +258,8 @@ namespace Ogre {
     Node* Node::createChild(const Vector3& inTranslate, const Quaternion& inRotate)
     {
         Node* newNode = createChildImpl();
-        newNode->translate(inTranslate);
-        newNode->rotate(inRotate);
+        newNode->setPosition(inTranslate);
+        newNode->setOrientation(inRotate);
         this->addChild(newNode);
 
         return newNode;
@@ -327,9 +267,10 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     Node* Node::createChild(const String& name, const Vector3& inTranslate, const Quaternion& inRotate)
     {
+        OgreAssert(!name.empty(), "");
         Node* newNode = createChildImpl(name);
-        newNode->translate(inTranslate);
-        newNode->rotate(inRotate);
+        newNode->setPosition(inTranslate);
+        newNode->setOrientation(inRotate);
         this->addChild(newNode);
 
         return newNode;
@@ -340,28 +281,19 @@ namespace Ogre {
         if (child->mParent)
         {
             OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-                "Node '" + child->getName() + "' already was a child of '" +
-                child->mParent->getName() + "'.",
-                "Node::addChild");
+                        "Node '" + child->getName() + "' already is a child of '" + child->mParent->getName() + "'");
         }
 
-        mChildren.insert(ChildNodeMap::value_type(child->getName(), child));
+        mChildren.push_back(child);
         child->setParent(this);
 
-    }
-    //-----------------------------------------------------------------------
-    unsigned short Node::numChildren(void) const
-    {
-        return static_cast< unsigned short >( mChildren.size() );
     }
     //-----------------------------------------------------------------------
     Node* Node::getChild(unsigned short index) const
     {
         if( index < mChildren.size() )
         {
-            ChildNodeMap::const_iterator i = mChildren.begin();
-            while (index--) ++i;
-            return i->second;
+            return mChildren[index];
         }
         else
             return NULL;
@@ -369,55 +301,45 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     Node* Node::removeChild(unsigned short index)
     {
-        if (index < mChildren.size())
-        {
-            ChildNodeMap::iterator i = mChildren.begin();
-            while (index--) ++i;
-            Node* ret = i->second;
-            // cancel any pending update
-            cancelUpdate(ret);
+        OgreAssert(index < mChildren.size(), "");
 
-            mChildren.erase(i);
-            ret->setParent(NULL);
-            return ret;
-        }
-        else
-        {
-            OGRE_EXCEPT(
-                Exception::ERR_INVALIDPARAMS,
-                "Child index out of bounds.",
-                "Node::getChild" );
-        }
-        return 0;
+        ChildNodeMap::iterator i = mChildren.begin();
+        i += index;
+        Node* ret = *i;
+
+        // cancel any pending update
+        cancelUpdate(ret);
+
+        std::swap(*i, mChildren.back());
+        mChildren.pop_back();
+        ret->setParent(NULL);
+        return ret;
     }
     //-----------------------------------------------------------------------
     Node* Node::removeChild(Node* child)
     {
         if (child)
         {
-            ChildNodeMap::iterator i = mChildren.find(child->getName());
-            // ensure it's our child
-            if (i != mChildren.end() && i->second == child)
+            ChildNodeMap::iterator i = std::find(mChildren.begin(), mChildren.end(), child);
+            if(i != mChildren.end() && *i == child)
             {
                 // cancel any pending update
                 cancelUpdate(child);
 
-                mChildren.erase(i);
+                std::swap(*i, mChildren.back());
+                mChildren.pop_back();
                 child->setParent(NULL);
             }
         }
         return child;
     }
-    //-----------------------------------------------------------------------
-    const Quaternion& Node::getOrientation() const
-    {
-        return mOrientation;
-    }
 
     //-----------------------------------------------------------------------
     void Node::setOrientation( const Quaternion & q )
     {
-        assert(!q.isNaN() && "Invalid orientation supplied as parameter");
+#ifndef OGRE_FAST_MATH
+        OgreAssertDbg(!q.isNaN(), "Invalid orientation supplied as parameter");
+#endif
         mOrientation = q;
         mOrientation.normalise();
         needUpdate();
@@ -437,38 +359,19 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Node::setPosition(const Vector3& pos)
     {
+#ifndef OGRE_FAST_MATH
         assert(!pos.isNaN() && "Invalid vector supplied as parameter");
+#endif
         mPosition = pos;
         needUpdate();
     }
 
-
-    //-----------------------------------------------------------------------
-    void Node::setPosition(Real x, Real y, Real z)
-    {
-        Vector3 v(x,y,z);
-        setPosition(v);
-    }
-
-    //-----------------------------------------------------------------------
-    const Vector3 & Node::getPosition(void) const
-    {
-        return mPosition;
-    }
     //-----------------------------------------------------------------------
     Matrix3 Node::getLocalAxes(void) const
     {
-        Vector3 axisX = Vector3::UNIT_X;
-        Vector3 axisY = Vector3::UNIT_Y;
-        Vector3 axisZ = Vector3::UNIT_Z;
-
-        axisX = mOrientation * axisX;
-        axisY = mOrientation * axisY;
-        axisZ = mOrientation * axisZ;
-
-        return Matrix3(axisX.x, axisY.x, axisZ.x,
-                       axisX.y, axisY.y, axisZ.y,
-                       axisX.z, axisY.z, axisZ.z);
+        Matrix3 ret;
+        mOrientation.ToRotationMatrix(ret);
+        return ret;
     }
 
     //-----------------------------------------------------------------------
@@ -498,48 +401,6 @@ namespace Ogre {
         needUpdate();
 
     }
-    //-----------------------------------------------------------------------
-    void Node::translate(Real x, Real y, Real z, TransformSpace relativeTo)
-    {
-        Vector3 v(x,y,z);
-        translate(v, relativeTo);
-    }
-    //-----------------------------------------------------------------------
-    void Node::translate(const Matrix3& axes, const Vector3& move, TransformSpace relativeTo)
-    {
-        Vector3 derived = axes * move;
-        translate(derived, relativeTo);
-    }
-    //-----------------------------------------------------------------------
-    void Node::translate(const Matrix3& axes, Real x, Real y, Real z, TransformSpace relativeTo)
-    {
-        Vector3 d(x,y,z);
-        translate(axes,d,relativeTo);
-    }
-    //-----------------------------------------------------------------------
-    void Node::roll(const Radian& angle, TransformSpace relativeTo)
-    {
-        rotate(Vector3::UNIT_Z, angle, relativeTo);
-    }
-    //-----------------------------------------------------------------------
-    void Node::pitch(const Radian& angle, TransformSpace relativeTo)
-    {
-        rotate(Vector3::UNIT_X, angle, relativeTo);
-    }
-    //-----------------------------------------------------------------------
-    void Node::yaw(const Radian& angle, TransformSpace relativeTo)
-    {
-        rotate(Vector3::UNIT_Y, angle, relativeTo);
-
-    }
-    //-----------------------------------------------------------------------
-    void Node::rotate(const Vector3& axis, const Radian& angle, TransformSpace relativeTo)
-    {
-        Quaternion q;
-        q.FromAngleAxis(angle,axis);
-        rotate(q, relativeTo);
-    }
-
     //-----------------------------------------------------------------------
     void Node::rotate(const Quaternion& q, TransformSpace relativeTo)
     {
@@ -573,6 +434,8 @@ namespace Ogre {
         //find where the node would end up in parent's local space
         if(mParent)
             setPosition( mParent->convertWorldToLocalPosition( pos ) );
+        else
+            setPosition( pos );
     }
     //-----------------------------------------------------------------------
     void Node::_setDerivedOrientation( const Quaternion& q )
@@ -580,6 +443,8 @@ namespace Ogre {
         //find where the node would end up in parent's local space
         if(mParent)
             setOrientation( mParent->convertWorldToLocalOrientation( q ) );
+        else
+            setOrientation( q );
     }
 
     //-----------------------------------------------------------------------
@@ -610,29 +475,29 @@ namespace Ogre {
         return mDerivedScale;
     }
     //-----------------------------------------------------------------------
-    Vector3 Node::convertWorldToLocalPosition( const Vector3 &worldPos )
+    Vector3 Node::convertWorldToLocalPosition( const Vector3 &worldPos ) const
     {
         if (mNeedParentUpdate)
         {
             _updateFromParent();
         }
 #if OGRE_NODE_INHERIT_TRANSFORM
-        return _getFullTransform().inverseAffine().transformAffine(worldPos);
+        return _getFullTransform().inverse() * worldPos;
 #else
         return mDerivedOrientation.Inverse() * (worldPos - mDerivedPosition) / mDerivedScale;
 #endif
     }
     //-----------------------------------------------------------------------
-    Vector3 Node::convertLocalToWorldPosition( const Vector3 &localPos )
+    Vector3 Node::convertLocalToWorldPosition( const Vector3 &localPos ) const
     {
         if (mNeedParentUpdate)
         {
             _updateFromParent();
         }
-        return _getFullTransform().transformAffine(localPos);
+        return _getFullTransform() * localPos;
     }
     //-----------------------------------------------------------------------
-    Vector3 Node::convertWorldToLocalDirection( const Vector3 &worldDir, bool useScale )
+    Vector3 Node::convertWorldToLocalDirection( const Vector3 &worldDir, bool useScale ) const
     {
         if (mNeedParentUpdate)
         {
@@ -649,18 +514,16 @@ namespace Ogre {
 #endif
     }
     //-----------------------------------------------------------------------
-    Vector3 Node::convertLocalToWorldDirection( const Vector3 &localDir, bool useScale )
+    Vector3 Node::convertLocalToWorldDirection( const Vector3 &localDir, bool useScale ) const
     {
         if (mNeedParentUpdate)
         {
             _updateFromParent();
         }
-        return useScale ? 
-            _getFullTransform().transformDirectionAffine(localDir) :
-            mDerivedOrientation * localDir;
+        return useScale ? _getFullTransform().linear() * localDir : mDerivedOrientation * localDir;
     }
     //-----------------------------------------------------------------------
-    Quaternion Node::convertWorldToLocalOrientation( const Quaternion &worldOrientation )
+    Quaternion Node::convertWorldToLocalOrientation( const Quaternion &worldOrientation ) const
     {
         if (mNeedParentUpdate)
         {
@@ -669,7 +532,7 @@ namespace Ogre {
         return mDerivedOrientation.Inverse() * worldOrientation;
     }
     //-----------------------------------------------------------------------
-    Quaternion Node::convertLocalToWorldOrientation( const Quaternion &localOrientation )
+    Quaternion Node::convertLocalToWorldOrientation( const Quaternion &localOrientation ) const
     {
         if (mNeedParentUpdate)
         {
@@ -681,31 +544,28 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Node::removeAllChildren(void)
     {
-        ChildNodeMap::iterator i, iend;
-        iend = mChildren.end();
-        for (i = mChildren.begin(); i != iend; ++i)
+        for (auto *c : mChildren)
         {
-            i->second->setParent(0);
+            c->setParent(0);
         }
         mChildren.clear();
         mChildrenToUpdate.clear();
     }
     //-----------------------------------------------------------------------
+    void Node::removeFromParent(void)
+    {
+        if (getParent()) {
+            getParent()->removeChild(this);
+        }
+    }
+    //-----------------------------------------------------------------------
     void Node::setScale(const Vector3& inScale)
     {
+#ifndef OGRE_FAST_MATH
         assert(!inScale.isNaN() && "Invalid vector supplied as parameter");
+#endif
         mScale = inScale;
         needUpdate();
-    }
-    //-----------------------------------------------------------------------
-    void Node::setScale(Real x, Real y, Real z)
-    {
-        setScale(Vector3(x, y, z));
-    }
-    //-----------------------------------------------------------------------
-    const Vector3 & Node::getScale(void) const
-    {
-        return mScale;
     }
     //-----------------------------------------------------------------------
     void Node::setInheritOrientation(bool inherit)
@@ -714,20 +574,10 @@ namespace Ogre {
         needUpdate();
     }
     //-----------------------------------------------------------------------
-    bool Node::getInheritOrientation(void) const
-    {
-        return mInheritOrientation;
-    }
-    //-----------------------------------------------------------------------
     void Node::setInheritScale(bool inherit)
     {
         mInheritScale = inherit;
         needUpdate();
-    }
-    //-----------------------------------------------------------------------
-    bool Node::getInheritScale(void) const
-    {
-        return mInheritScale;
     }
     //-----------------------------------------------------------------------
     void Node::scale(const Vector3& inScale)
@@ -746,11 +596,6 @@ namespace Ogre {
 
     }
     //-----------------------------------------------------------------------
-    const String& Node::getName(void) const
-    {
-        return mName;
-    }
-    //-----------------------------------------------------------------------
     void Node::setInitialState(void)
     {
         mInitialPosition = mPosition;
@@ -767,38 +612,31 @@ namespace Ogre {
         needUpdate();
     }
     //-----------------------------------------------------------------------
-    const Vector3& Node::getInitialPosition(void) const
-    {
-        return mInitialPosition;
-    }
-    //-----------------------------------------------------------------------
-    const Quaternion& Node::getInitialOrientation(void) const
-    {
-        return mInitialOrientation;
-
-    }
-    //-----------------------------------------------------------------------
-    const Vector3& Node::getInitialScale(void) const
-    {
-        return mInitialScale;
-    }
-    //-----------------------------------------------------------------------
+    struct NodeNameExists {
+        const String& name;
+        bool operator()(const Node* mo) {
+            return mo->getName() == name;
+        }
+    };
     Node* Node::getChild(const String& name) const
     {
-        ChildNodeMap::const_iterator i = mChildren.find(name);
+        NodeNameExists pred = {name};
+        ChildNodeMap::const_iterator i = std::find_if(mChildren.begin(), mChildren.end(), pred);
 
         if (i == mChildren.end())
         {
             OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Child node named " + name +
                 " does not exist.", "Node::getChild");
         }
-        return i->second;
 
+        return *i;
     }
     //-----------------------------------------------------------------------
     Node* Node::removeChild(const String& name)
     {
-        ChildNodeMap::iterator i = mChildren.find(name);
+        OgreAssert(!name.empty(), "");
+        NodeNameExists pred = {name};
+        ChildNodeMap::iterator i = std::find_if(mChildren.begin(), mChildren.end(), pred);
 
         if (i == mChildren.end())
         {
@@ -806,11 +644,12 @@ namespace Ogre {
                 " does not exist.", "Node::removeChild");
         }
 
-        Node* ret = i->second;
+        Node* ret = *i;
+
         // Cancel any pending update
         cancelUpdate(ret);
-
-        mChildren.erase(i);
+        std::swap(*i, mChildren.back());
+        mChildren.pop_back();
         ret->setParent(NULL);
 
         return ret;
@@ -831,9 +670,10 @@ namespace Ogre {
     Real Node::getSquaredViewDepth(const Camera* cam) const
     {
         Vector3 diff = _getDerivedPosition() - cam->getDerivedPosition();
+        Vector3 zAxis = cam->getDerivedDirection();
 
-        // NB use squared length rather than real depth to avoid square root
-        return diff.squaredLength();
+        // NB use squared length to avoid square root
+        return cam->getSortMode() == SM_DISTANCE ? diff.squaredLength() : Math::Sqr(zAxis.dotProduct(diff));
     }
     //-----------------------------------------------------------------------
     void Node::needUpdate(bool forceParentUpdate)
@@ -862,7 +702,7 @@ namespace Ogre {
             return;
         }
 
-        mChildrenToUpdate.insert(child);
+        mChildrenToUpdate.push_back(child);
         // Request selective update of me, if we didn't do it before
         if (mParent && (!mParentNotified || forceParentUpdate))
         {
@@ -874,7 +714,8 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Node::cancelUpdate(Node* child)
     {
-        mChildrenToUpdate.erase(child);
+        mChildrenToUpdate.erase(std::remove(mChildrenToUpdate.begin(), mChildrenToUpdate.end(), child),
+                                mChildrenToUpdate.end());
 
         // Propagate this up if we're done
         if (mChildrenToUpdate.empty() && mParent && !mNeedChildUpdate)
@@ -896,160 +737,14 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void Node::processQueuedUpdates(void)
     {
-        for (QueuedUpdates::iterator i = msQueuedUpdates.begin();
-            i != msQueuedUpdates.end(); ++i)
+        for (auto *n : msQueuedUpdates)
         {
             // Update, and force parent update since chances are we've ended
             // up with some mixed state in there due to re-entrancy
-            Node* n = *i;
             n->mQueuedForUpdate = false;
             n->needUpdate(true);
         }
         msQueuedUpdates.clear();
     }
-    //---------------------------------------------------------------------
-    Node::DebugRenderable* Node::getDebugRenderable(Real scaling)
-    {
-        if (!mDebug)
-        {
-            mDebug = OGRE_NEW DebugRenderable(this);
-        }
-        mDebug->setScaling(scaling);
-        return mDebug;
-    }
-    //---------------------------------------------------------------------
-    //-----------------------------------------------------------------------
-    Node::DebugRenderable::DebugRenderable(Node* parent)
-        : mParent(parent)
-    {
-        String matName = "Ogre/Debug/AxesMat";
-        mMat = MaterialManager::getSingleton().getByName(matName);
-        if (mMat.isNull())
-        {
-            mMat = MaterialManager::getSingleton().create(matName, ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME);
-            Pass* p = mMat->getTechnique(0)->getPass(0);
-            p->setLightingEnabled(false);
-            p->setPolygonModeOverrideable(false);
-            p->setVertexColourTracking(TVC_AMBIENT);
-            p->setSceneBlending(SBT_TRANSPARENT_ALPHA);
-            p->setCullingMode(CULL_NONE);
-            p->setDepthWriteEnabled(false);
-        }
-
-        String meshName = "Ogre/Debug/AxesMesh";
-        mMeshPtr = MeshManager::getSingleton().getByName(meshName);
-        if (mMeshPtr.isNull())
-        {
-            ManualObject mo("tmp");
-            mo.begin(mMat->getName());
-            /* 3 axes, each made up of 2 of these (base plane = XY)
-             *   .------------|\
-             *   '------------|/
-             */
-            mo.estimateVertexCount(7 * 2 * 3);
-            mo.estimateIndexCount(3 * 2 * 3);
-            Quaternion quat[6];
-            ColourValue col[3];
-
-            // x-axis
-            quat[0] = Quaternion::IDENTITY;
-            quat[1].FromAxes(Vector3::UNIT_X, Vector3::NEGATIVE_UNIT_Z, Vector3::UNIT_Y);
-            col[0] = ColourValue::Red;
-            col[0].a = 0.8;
-            // y-axis
-            quat[2].FromAxes(Vector3::UNIT_Y, Vector3::NEGATIVE_UNIT_X, Vector3::UNIT_Z);
-            quat[3].FromAxes(Vector3::UNIT_Y, Vector3::UNIT_Z, Vector3::UNIT_X);
-            col[1] = ColourValue::Green;
-            col[1].a = 0.8;
-            // z-axis
-            quat[4].FromAxes(Vector3::UNIT_Z, Vector3::UNIT_Y, Vector3::NEGATIVE_UNIT_X);
-            quat[5].FromAxes(Vector3::UNIT_Z, Vector3::UNIT_X, Vector3::UNIT_Y);
-            col[2] = ColourValue::Blue;
-            col[2].a = 0.8;
-
-            Vector3 basepos[7] = 
-            {
-                // stalk
-                Vector3(0, 0.05, 0), 
-                Vector3(0, -0.05, 0),
-                Vector3(0.7, -0.05, 0),
-                Vector3(0.7, 0.05, 0),
-                // head
-                Vector3(0.7, -0.15, 0),
-                Vector3(1, 0, 0),
-                Vector3(0.7, 0.15, 0)
-            };
-
-
-            // vertices
-            // 6 arrows
-            for (size_t i = 0; i < 6; ++i)
-            {
-                // 7 points
-                for (size_t p = 0; p < 7; ++p)
-                {
-                    Vector3 pos = quat[i] * basepos[p];
-                    mo.position(pos);
-                    mo.colour(col[i / 2]);
-                }
-            }
-
-            // indices
-            // 6 arrows
-            for (uint32 i = 0; i < 6; ++i)
-            {
-                uint32 base = i * 7;
-                mo.triangle(base + 0, base + 1, base + 2);
-                mo.triangle(base + 0, base + 2, base + 3);
-                mo.triangle(base + 4, base + 5, base + 6);
-            }
-
-            mo.end();
-
-            mMeshPtr = mo.convertToMesh(meshName, ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME);
-
-        }
-
-    }
-    //---------------------------------------------------------------------
-    Node::DebugRenderable::~DebugRenderable()
-    {
-    }
-    //-----------------------------------------------------------------------
-    const MaterialPtr& Node::DebugRenderable::getMaterial(void) const
-    {
-        return mMat;
-    }
-    //---------------------------------------------------------------------
-    void Node::DebugRenderable::getRenderOperation(RenderOperation& op)
-    {
-        return mMeshPtr->getSubMesh(0)->_getRenderOperation(op);
-    }
-    //-----------------------------------------------------------------------
-    void Node::DebugRenderable::getWorldTransforms(Matrix4* xform) const
-    {
-        // Assumes up to date
-        *xform = mParent->_getFullTransform();
-        if (!Math::RealEqual(mScaling, 1.0))
-        {
-            Matrix4 m = Matrix4::IDENTITY;
-            Vector3 s(mScaling, mScaling, mScaling);
-            m.setScale(s);
-            *xform = (*xform) * m;
-        }
-    }
-    //-----------------------------------------------------------------------
-    Real Node::DebugRenderable::getSquaredViewDepth(const Camera* cam) const
-    {
-        return mParent->getSquaredViewDepth(cam);
-    }
-    //-----------------------------------------------------------------------
-    const LightList& Node::DebugRenderable::getLights(void) const
-    {
-        // Nodes should not be lit by the scene, this will not get called
-        static LightList ll;
-        return ll;
-    }
-
 }
 

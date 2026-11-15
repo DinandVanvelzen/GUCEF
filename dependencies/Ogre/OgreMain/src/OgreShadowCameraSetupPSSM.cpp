@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,7 +29,6 @@ THE SOFTWARE.
 
 #include "OgreStableHeaders.h"
 #include "OgreShadowCameraSetupPSSM.h"
-#include "OgreCamera.h"
 
 namespace Ogre
 {
@@ -121,15 +120,17 @@ namespace Ogre
         Camera* _cam = const_cast<Camera*>(cam);
         Real oldNear = _cam->getNearClipDistance();
         Real oldFar = _cam->getFarClipDistance();
+        Frustum* oldCull = _cam->getCullingFrustum();
         _cam->setNearClipDistance(nearDist);
         _cam->setFarClipDistance(farDist);
+        _cam->setCullingFrustum(NULL);
 
         LiSPSMShadowCameraSetup::getShadowCamera(sm, cam, vp, light, texCam, iteration);
 
         // restore near/far
         _cam->setNearClipDistance(oldNear);
         _cam->setFarClipDistance(oldFar);
-
+        _cam->setCullingFrustum(oldCull);
 
     }
 }

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,17 +37,17 @@ namespace Ogre {
     /** \addtogroup Core
     *  @{
     */
-    /** \addtogroup General
+    /** \addtogroup Animation
     *  @{
     */
     
     
     /** Subclasses of this class are responsible for performing a function on an input value for a Controller.
-        @remarks
-            This abstract class provides the interface that needs to be supported for a custom function which
-            can be 'plugged in' to a Controller instance, which controls some object value based on an input value.
-            For example, the WaveControllerFunction class provided by Ogre allows you to use various waveforms to
-            translate an input value to an output value.
+
+        This abstract class provides the interface that needs to be supported for a custom function which
+        can be 'plugged in' to a Controller instance, which controls some object value based on an input value.
+        For example, the WaveControllerFunction class provided by Ogre allows you to use various waveforms to
+        translate an input value to an output value.
         @par
             You are free to create your own subclasses in order to define any function you wish.
     */
@@ -65,13 +65,8 @@ namespace Ogre {
         {
             if (mDeltaInput)
             {
-                mDeltaCount += input;
                 // Wrap
-                while (mDeltaCount >= 1.0)
-                    mDeltaCount -= 1.0;
-                while (mDeltaCount < 0.0)
-                    mDeltaCount += 1.0;
-
+                mDeltaCount = std::fmod(mDeltaCount + input, 1.0f);
                 return mDeltaCount;
             }
             else
@@ -83,8 +78,7 @@ namespace Ogre {
     public:
         /** Constructor.
             @param
-                deltaInput If true, signifies that the input will be a delta value such that the function should
-                add it to an internal counter before calculating the output.
+                deltaInput If true, function will add input values together and wrap at 1.0 before evaluating
         */
         ControllerFunction(bool deltaInput)
         {
@@ -112,12 +106,12 @@ namespace Ogre {
     };
 
     /** Instances of this class 'control' the value of another object in the system.
-        @remarks
-            Controller classes are used to manage the values of object automatically based
-            on the value of some input. For example, a Controller could animate a texture
-            by controlling the current frame of the texture based on time, or a different Controller
-            could change the colour of a material used for a spaceship shield mesh based on the remaining
-            shield power level of the ship.
+
+        Controller classes are used to manage the values of object automatically based
+        on the value of some input. For example, a Controller could animate a texture
+        by controlling the current frame of the texture based on time, or a different Controller
+        could change the colour of a material used for a spaceship shield mesh based on the remaining
+        shield power level of the ship.
         @par
             The Controller is an intentionally abstract concept - it can generate values
             based on input and a function, which can either be one of the standard ones
@@ -148,9 +142,9 @@ namespace Ogre {
     public:
 
         /** Usual constructor.
-            @remarks
-                Requires source and destination values, and a function object. None of these are destroyed
-                with the Controller when it is deleted (they can be shared) so you must delete these as appropriate.
+
+            Requires source and destination values, and a function object. None of these are destroyed
+            with the Controller when it is deleted (they can be shared) so you must delete these as appropriate.
         */
         Controller(const SharedPtr< ControllerValue<T> >& src, 
             const SharedPtr< ControllerValue<T> >& dest, const SharedPtr< ControllerFunction<T> >& func)
@@ -214,7 +208,7 @@ namespace Ogre {
 
         /** Tells this controller to map it's input controller value
             to it's output controller value, via the controller function. 
-        @remarks
+
             This method is called automatically every frame by ControllerManager.
         */
         void update(void)

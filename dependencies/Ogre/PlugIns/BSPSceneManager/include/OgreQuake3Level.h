@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,12 @@ THE SOFTWARE.
 
 
 namespace Ogre {
-
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup BSPSceneManager
+    *  @{
+    */
     /** Support for loading and extracting data from a Quake3 level file.
     This class implements the required methods for opening Quake3 level files
     and extracting the pertinent data within. Ogre supports BSP based levels
@@ -65,7 +70,7 @@ namespace Ogre {
         Quake3Level();
 
         /** Load just the header information from a Quake3 file. 
-        @remarks
+
             This method loads just the header information from the 
             Quake3 file, in order to estimate the loading time.
         */
@@ -82,7 +87,7 @@ namespace Ogre {
 
             @param inStream Stream containing Quake3 data
         */
-        void loadFromStream(DataStreamPtr& inStream);
+        void loadFromStream(const DataStreamPtr& inStream);
 
         /* Extracts the embedded lightmap texture data and loads them as textures.
            Calling this method makes the lightmap texture data embedded in
@@ -161,6 +166,8 @@ namespace Ogre {
 
 
     };
+    /** @} */
+    /** @} */
 }
 
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1152,7 +1152,7 @@ namespace Ogre
             }
             else
             {
-                LogManager::getSingleton().logMessage("D3D9 : WARNING - Depth buffer could not be acquired.");
+                LogManager::getSingleton().logWarning("D3D9: Depth buffer could not be acquired.");
             }
         }
 
@@ -1274,19 +1274,16 @@ namespace Ogre
     }
     //---------------------------------------------------------------------
     void D3D9Device::copyContentsToMemory(D3D9RenderWindow* renderWindow, 
-        const PixelBox &dst, RenderTarget::FrameBuffer buffer)
+        const Box& src, const PixelBox &dst, RenderTarget::FrameBuffer buffer)
     {
         RenderWindowToResourcesIterator it = getRenderWindowIterator(renderWindow);
         RenderWindowResources* resources = it->second;
         bool swapChain = isSwapChainWindow(renderWindow);
 
-        if (dst.getWidth() > renderWindow->getWidth() ||
-            dst.getHeight() > renderWindow->getHeight() ||
-            dst.front != 0 || dst.back != 1)
+        if(src.right > renderWindow->getWidth() || src.bottom > renderWindow->getHeight() || src.front != 0 || src.back != 1
+        || dst.getWidth() != src.getWidth() || dst.getHeight() != src.getHeight() || dst.getDepth() != 1)
         {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-                "Invalid box.",
-                "D3D9Device::copyContentsToMemory" );
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Invalid box.", "D3D9Device::copyContentsToMemory");
         }
 
         HRESULT hr;
@@ -1309,7 +1306,7 @@ namespace Ogre
             if (FAILED(hr = mDevice->GetDisplayMode(0, &dm)))
             {
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't get display mode: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't get display mode: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
@@ -1323,7 +1320,7 @@ namespace Ogre
                 0)))
             {
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't create offscreen buffer: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't create offscreen buffer: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
@@ -1332,13 +1329,13 @@ namespace Ogre
             {
                 SAFE_RELEASE(pTempSurf);
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't get front buffer: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't get front buffer: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
             if(renderWindow->isFullScreen())
             {
-                if ((dst.left == 0) && (dst.right == renderWindow->getWidth()) && (dst.top == 0) && (dst.bottom == renderWindow->getHeight()))
+                if ((src.left == 0) && (src.right == renderWindow->getWidth()) && (src.top == 0) && (src.bottom == renderWindow->getHeight()))
                 {
                     hr = pTempSurf->LockRect(&lockedRect, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK);
                 }
@@ -1346,10 +1343,10 @@ namespace Ogre
                 {
                     RECT rect;
 
-                    rect.left = static_cast<LONG>(dst.left);
-                    rect.right = static_cast<LONG>(dst.right);
-                    rect.top = static_cast<LONG>(dst.top);
-                    rect.bottom = static_cast<LONG>(dst.bottom);
+                    rect.left = static_cast<LONG>(src.left);
+                    rect.right = static_cast<LONG>(src.right);
+                    rect.top = static_cast<LONG>(src.top);
+                    rect.bottom = static_cast<LONG>(src.bottom);
 
                     hr = pTempSurf->LockRect(&lockedRect, &rect, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK);
                 }
@@ -1357,7 +1354,7 @@ namespace Ogre
                 {
                     SAFE_RELEASE(pTempSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't lock rect: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't lock rect: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 } 
             }
@@ -1365,10 +1362,10 @@ namespace Ogre
             {
                 RECT srcRect;
                 //GetClientRect(mHWnd, &srcRect);
-                srcRect.left = static_cast<LONG>(dst.left);
-                srcRect.top = static_cast<LONG>(dst.top);
-                srcRect.right = static_cast<LONG>(dst.right);
-                srcRect.bottom = static_cast<LONG>(dst.bottom);
+                srcRect.left = static_cast<LONG>(src.left);
+                srcRect.top = static_cast<LONG>(src.top);
+                srcRect.right = static_cast<LONG>(src.right);
+                srcRect.bottom = static_cast<LONG>(src.bottom);
                 POINT point;
                 point.x = srcRect.left;
                 point.y = srcRect.top;
@@ -1385,7 +1382,7 @@ namespace Ogre
                 {
                     SAFE_RELEASE(pTempSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't lock rect: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't lock rect: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 } 
             }
@@ -1397,14 +1394,14 @@ namespace Ogre
                 mDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurf)))
             {
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't get back buffer: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't get back buffer: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
             if(FAILED(hr = pSurf->GetDesc(&desc)))
             {
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't get description: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't get description: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
@@ -1415,7 +1412,7 @@ namespace Ogre
                 0)))
             {
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't create offscreen surface: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't create offscreen surface: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
 
@@ -1425,7 +1422,7 @@ namespace Ogre
                 {
                     SAFE_RELEASE(pTempSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't get render target data: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't get render target data: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 }
             }
@@ -1443,7 +1440,7 @@ namespace Ogre
                 {
                     SAFE_RELEASE(pTempSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't create render target: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't create render target: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 }
 
@@ -1452,7 +1449,7 @@ namespace Ogre
                     SAFE_RELEASE(pTempSurf);
                     SAFE_RELEASE(pStretchSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't stretch rect: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't stretch rect: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 }
                 if (FAILED(hr = mDevice->GetRenderTargetData(pStretchSurf, pTempSurf)))
@@ -1460,13 +1457,13 @@ namespace Ogre
                     SAFE_RELEASE(pTempSurf);
                     SAFE_RELEASE(pStretchSurf);
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                        "Can't get render target data: " + Root::getSingleton().getErrorDescription(hr),
+                        "Can't get render target data: " + DXGetErrorDescription(hr),
                         "D3D9Device::copyContentsToMemory");
                 }
                 SAFE_RELEASE(pStretchSurf);
             }
 
-            if ((dst.left == 0) && (dst.right == renderWindow->getWidth()) && (dst.top == 0) && (dst.bottom == renderWindow->getHeight()))
+            if ((src.left == 0) && (src.right == renderWindow->getWidth()) && (src.top == 0) && (src.bottom == renderWindow->getHeight()))
             {
                 hr = pTempSurf->LockRect(&lockedRect, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK);
             }
@@ -1474,10 +1471,10 @@ namespace Ogre
             {
                 RECT rect;
 
-                rect.left = static_cast<LONG>(dst.left);
-                rect.right = static_cast<LONG>(dst.right);
-                rect.top = static_cast<LONG>(dst.top);
-                rect.bottom = static_cast<LONG>(dst.bottom);
+                rect.left = static_cast<LONG>(src.left);
+                rect.right = static_cast<LONG>(src.right);
+                rect.top = static_cast<LONG>(src.top);
+                rect.bottom = static_cast<LONG>(src.bottom);
 
                 hr = pTempSurf->LockRect(&lockedRect, &rect, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK);
             }
@@ -1485,7 +1482,7 @@ namespace Ogre
             {
                 SAFE_RELEASE(pTempSurf);
                 OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR,
-                    "Can't lock rect: " + Root::getSingleton().getErrorDescription(hr),
+                    "Can't lock rect: " + DXGetErrorDescription(hr),
                     "D3D9Device::copyContentsToMemory");
             }
         }
@@ -1499,11 +1496,11 @@ namespace Ogre
                 "Unsupported format", "D3D9Device::copyContentsToMemory");
         }
 
-        PixelBox src(dst.getWidth(), dst.getHeight(), 1, format, lockedRect.pBits);
-        src.rowPitch = lockedRect.Pitch / PixelUtil::getNumElemBytes(format);
-        src.slicePitch = desc.Height * src.rowPitch;
+        PixelBox srcBox(src.getWidth(), src.getHeight(), 1, format, lockedRect.pBits);
+        srcBox.rowPitch = lockedRect.Pitch / PixelUtil::getNumElemBytes(format);
+        srcBox.slicePitch = desc.Height * srcBox.rowPitch;
 
-        PixelUtil::bulkPixelConversion(src, dst);
+        PixelUtil::bulkPixelConversion(srcBox, dst);
 
         SAFE_RELEASE(pTempSurf);
         SAFE_RELEASE(pSurf);

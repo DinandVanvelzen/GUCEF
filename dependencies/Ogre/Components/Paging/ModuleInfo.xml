@@ -1,0 +1,26 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Paging component</DescriptionHeadline>
+        <DescriptionDetails>Paging of the world in pages for large scenes, for OGRE 14.6.3. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgrePaging" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="OGRE_PAGING_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

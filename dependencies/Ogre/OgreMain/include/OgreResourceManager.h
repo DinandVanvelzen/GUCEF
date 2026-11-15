@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ namespace Ogre {
     class Pool
     {
     protected:
-        typedef typename list<T>::type ItemList;
+        typedef typename std::list<T> ItemList;
         ItemList mItems;
         OGRE_AUTO_MUTEX;
     public:
@@ -94,26 +94,7 @@ namespace Ogre {
     *  @{
     */
     /** Defines a generic resource handler.
-    @remarks
-        A resource manager is responsible for managing a pool of
-        resources of a particular type. It must index them, look
-        them up, load and destroy them. It may also need to stay within
-        a defined memory budget, and temporarily unload some resources
-        if it needs to to stay within this budget.
-    @par
-        Resource managers use a priority system to determine what can
-        be unloaded, and a Least Recently Used (LRU) policy within
-        resources of the same priority.
-    @par
-        Resources can be loaded using the generalised load interface,
-        and they can be unloaded and removed. In addition, each 
-        subclass of ResourceManager will likely define custom 'load' methods
-        which take explicit parameters depending on the kind of resource
-        being created.
-    @note
-        Resources can be loaded and unloaded through the Resource class, 
-        but they can only be removed (and thus eventually destroyed) using
-        their parent ResourceManager.
+    @see @ref Resource-Management
     @note
         If OGRE_THREAD_SUPPORT is 1, this class is thread-safe.
     */
@@ -125,11 +106,7 @@ namespace Ogre {
         virtual ~ResourceManager();
 
         /** Creates a new blank resource, but does not immediately load it.
-        @remarks
-            Resource managers handle disparate types of resources, so if you want
-            to get at the detailed interface of this resource, you'll have to 
-            cast the result to the subclass you know you're creating. 
-        @param name The unique name of the resource
+        @param name The unique name of the %Resource
         @param group The name of the resource group to attach this new resource to
         @param isManual Is this resource manually loaded? If so, you should really
             populate the loader parameter in order that the load process
@@ -143,63 +120,62 @@ namespace Ogre {
         @param createParams If any parameters are required to create an instance,
             they should be supplied here as name / value pairs
         */
-        virtual ResourcePtr createResource(const String& name, const String& group,
+        ResourcePtr createResource(const String& name, const String& group,
             bool isManual = false, ManualResourceLoader* loader = 0, 
             const NameValuePairList* createParams = 0);
 
         typedef std::pair<ResourcePtr, bool> ResourceCreateOrRetrieveResult;
         /** Create a new resource, or retrieve an existing one with the same
             name if it already exists.
-        @remarks
+
             This method performs the same task as calling getByName() followed
             by create() if that returns null. The advantage is that it does it
             in one call so there are no race conditions if using multiple
             threads that could cause getByName() to return null, but create() to
             fail because another thread created a resource in between.
-        @see ResourceManager::createResource
-        @see ResourceManager::getResourceByName
+        @copydetails ResourceManager::createResource
         @return A pair, the first element being the pointer, and the second being 
             an indicator specifying whether the resource was newly created.
         */
-        virtual ResourceCreateOrRetrieveResult createOrRetrieve(const String& name, 
+        ResourceCreateOrRetrieveResult createOrRetrieve(const String& name,
             const String& group, bool isManual = false, 
             ManualResourceLoader* loader = 0, 
             const NameValuePairList* createParams = 0);
         
         /** Set a limit on the amount of memory this resource handler may use.
-            @remarks
-                If, when asked to load a new resource, the manager believes it will exceed this memory
-                budget, it will temporarily unload a resource to make room for the new one. This unloading
-                is not permanent and the Resource is not destroyed; it simply needs to be reloaded when
-                next used.
+
+            If, when asked to load a new resource, the manager believes it will exceed this memory
+            budget, it will temporarily unload a resource to make room for the new one. This unloading
+            is not permanent and the Resource is not destroyed; it simply needs to be reloaded when
+            next used.
         */
-        virtual void setMemoryBudget(size_t bytes);
+        void setMemoryBudget(size_t bytes);
 
         /** Get the limit on the amount of memory this resource handler may use.
         */
-        virtual size_t getMemoryBudget(void) const;
+        size_t getMemoryBudget(void) const;
 
         /** Gets the current memory usage, in bytes. */
-        virtual size_t getMemoryUsage(void) const { return mMemoryUsage.get(); }
+        size_t getMemoryUsage(void) const { return mMemoryUsage.load(); }
 
         /** Unloads a single resource by name.
-        @remarks
+
             Unloaded resources are not removed, they simply free up their memory
             as much as they can and wait to be reloaded.
             @see ResourceGroupManager for unloading of resource groups.
         */
-        virtual void unload(const String& name);
+        void  unload(const String& name, const String& group OGRE_RESOURCE_GROUP_INIT);
         
         /** Unloads a single resource by handle.
-        @remarks
+
             Unloaded resources are not removed, they simply free up their memory
             as much as they can and wait to be reloaded.
             @see ResourceGroupManager for unloading of resource groups.
         */
-        virtual void unload(ResourceHandle handle);
+        void unload(ResourceHandle handle);
 
         /** Unloads all resources.
-        @remarks
+
             Unloaded resources are not removed, they simply free up their memory
             as much as they can and wait to be reloaded.
             @see ResourceGroupManager for unloading of resource groups.
@@ -214,7 +190,7 @@ namespace Ogre {
             { unloadAll(reloadableOnly ? Resource::LF_DEFAULT : Resource::LF_INCLUDE_NON_RELOADABLE); }
 
         /** Caused all currently loaded resources to be reloaded.
-        @remarks
+
             All resources currently being held in this manager which are also
             marked as currently loaded will be unloaded, then loaded again.
         @param reloadableOnly If true (the default), only reload the resource that
@@ -228,7 +204,7 @@ namespace Ogre {
             { reloadAll(reloadableOnly ? Resource::LF_DEFAULT : Resource::LF_INCLUDE_NON_RELOADABLE); }
 
         /** Unload all resources which are not referenced by any other object.
-        @remarks
+
             This method behaves like unloadAll, except that it only unloads resources
             which are not in use, ie not referenced by other objects. This allows you
             to free up some memory selectively whilst still keeping the group around
@@ -246,7 +222,7 @@ namespace Ogre {
 
         /** Caused all currently loaded but not referenced by any other object
             resources to be reloaded.
-        @remarks
+
             This method behaves like reloadAll, except that it only reloads resources
             which are not in use, i.e. not referenced by other objects.
         @par
@@ -261,7 +237,7 @@ namespace Ogre {
             { reloadAll(reloadableOnly ? Resource::LF_ONLY_UNREFERENCED : Resource::LF_ONLY_UNREFERENCED_INCLUDE_NON_RELOADABLE); }
 
         /** Unloads all resources.
-        @remarks
+
             Unloaded resources are not removed, they simply free up their memory
             as much as they can and wait to be reloaded.
             @see ResourceGroupManager for unloading of resource groups.
@@ -272,7 +248,7 @@ namespace Ogre {
         virtual void unloadAll(Resource::LoadingFlags flags);
 
         /** Caused all currently loaded resources to be reloaded.
-        @remarks
+
             All resources currently being held in this manager which are also
             marked as currently loaded will be unloaded, then loaded again.
         @param flags Allow to restrict processing to only reloadable and/or
@@ -283,26 +259,7 @@ namespace Ogre {
         virtual void reloadAll(Resource::LoadingFlags flags);
 
         /** Remove a single resource.
-        @remarks
-            Removes a single resource, meaning it will be removed from the list
-            of valid resources in this manager, also causing it to be unloaded. 
-        @note
-            The word 'Destroy' is not used here, since
-            if any other pointers are referring to this resource, it will persist
-            until they have finished with it; however to all intents and purposes
-            it no longer exists and will likely get destroyed imminently.
-        @note
-            If you do have shared pointers to resources hanging around after the 
-            ResourceManager is destroyed, you may get problems on destruction of
-            these resources if they were relying on the manager (especially if
-            it is a plugin). If you find you get problems on shutdown in the
-            destruction of resources, try making sure you release all your
-            shared pointers before you shutdown OGRE.
-        */
-        virtual void remove(ResourcePtr& r);
 
-        /** Remove a single resource by name.
-        @remarks
             Removes a single resource, meaning it will be removed from the list
             of valid resources in this manager, also causing it to be unloaded. 
         @note
@@ -318,26 +275,13 @@ namespace Ogre {
             destruction of resources, try making sure you release all your
             shared pointers before you shutdown OGRE.
         */
-        virtual void remove(const String& name);
+        void remove(const ResourcePtr& r);
+
+        /// @overload
+        void remove(const String& name, const String& group OGRE_RESOURCE_GROUP_INIT);
         
-        /** Remove a single resource by handle.
-        @remarks
-            Removes a single resource, meaning it will be removed from the list
-            of valid resources in this manager, also causing it to be unloaded. 
-        @note
-            The word 'Destroy' is not used here, since
-            if any other pointers are referring to this resource, it will persist
-            until they have finished with it; however to all intents and purposes
-            it no longer exists and will likely get destroyed imminently.
-        @note
-            If you do have shared pointers to resources hanging around after the 
-            ResourceManager is destroyed, you may get problems on destruction of
-            these resources if they were relying on the manager (especially if
-            it is a plugin). If you find you get problems on shutdown in the
-            destruction of resources, try making sure you release all your
-            shared pointers before you shutdown OGRE.
-        */
-        virtual void remove(ResourceHandle handle);
+        /// @overload
+        void remove(ResourceHandle handle);
         /** Removes all resources.
         @note
             The word 'Destroy' is not used here, since
@@ -355,7 +299,7 @@ namespace Ogre {
         virtual void removeAll(void);
 
         /** Remove all resources which are not referenced by any other object.
-        @remarks
+
             This method behaves like removeAll, except that it only removes resources
             which are not in use, ie not referenced by other objects. This allows you
             to free up some memory selectively whilst still keeping the group around
@@ -372,20 +316,21 @@ namespace Ogre {
 
         /** Retrieves a pointer to a resource by name, or null if the resource does not exist.
         */
-        virtual ResourcePtr getResourceByName(const String& name, const String& groupName = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME);
+        virtual ResourcePtr getResourceByName(const String& name, const String& groupName OGRE_RESOURCE_GROUP_INIT) const;
+
         /** Retrieves a pointer to a resource by handle, or null if the resource does not exist.
         */
-        virtual ResourcePtr getByHandle(ResourceHandle handle);
+        virtual ResourcePtr getByHandle(ResourceHandle handle) const;
         
         /// Returns whether the named resource exists in this manager
-        virtual bool resourceExists(const String& name)
+        bool resourceExists(const String& name, const String& group OGRE_RESOURCE_GROUP_INIT) const
         {
-            return !getResourceByName(name).isNull();
+            return getResourceByName(name, group).get() != 0;
         }
         /// Returns whether a resource with the given handle exists in this manager
-        virtual bool resourceExists(ResourceHandle handle)
+        bool resourceExists(ResourceHandle handle) const
         {
-            return !getByHandle(handle).isNull();
+            return getByHandle(handle).get() != 0;
         }
 
         /** Notify this manager that a resource which it manages has been 
@@ -406,7 +351,7 @@ namespace Ogre {
         /** Generic prepare method, used to create a Resource specific to this 
             ResourceManager without using one of the specialised 'prepare' methods
             (containing per-Resource-type parameters).
-        @param name The name of the Resource
+        @param name The name of the %Resource
         @param group The resource group to which this resource will belong
         @param isManual Is the resource to be manually loaded? If so, you should
             provide a value for the loader parameter
@@ -418,7 +363,7 @@ namespace Ogre {
         @param backgroundThread Optional boolean which lets the load routine know if it
             is being run on the background resource loading thread
         */
-        virtual ResourcePtr prepare(const String& name, 
+        ResourcePtr prepare(const String& name,
             const String& group, bool isManual = false, 
             ManualResourceLoader* loader = 0, const NameValuePairList* loadParams = 0,
             bool backgroundThread = false);
@@ -426,89 +371,41 @@ namespace Ogre {
         /** Generic load method, used to create a Resource specific to this 
             ResourceManager without using one of the specialised 'load' methods
             (containing per-Resource-type parameters).
-        @param name The name of the Resource
-        @param group The resource group to which this resource will belong
-        @param isManual Is the resource to be manually loaded? If so, you should
-            provide a value for the loader parameter
-        @param loader The manual loader which is to perform the required actions
-            when this resource is loaded; only applicable when you specify true
-            for the previous parameter
-        @param loadParams Optional pointer to a list of name/value pairs 
-            containing loading parameters for this type of resource.
-        @param backgroundThread Optional boolean which lets the load routine know if it
-            is being run on the background resource loading thread
+        @copydetails ResourceManager::prepare()
         */
-        virtual ResourcePtr load(const String& name, 
+        ResourcePtr load(const String& name,
             const String& group, bool isManual = false, 
             ManualResourceLoader* loader = 0, const NameValuePairList* loadParams = 0,
             bool backgroundThread = false);
 
-        /** Gets the file patterns which should be used to find scripts for this
-            ResourceManager.
-        @remarks
-            Some resource managers can read script files in order to define
-            resources ahead of time. These resources are added to the available
-            list inside the manager, but none are loaded initially. This allows
-            you to load the items that are used on demand, or to load them all 
-            as a group if you wish (through ResourceGroupManager).
-        @par
-            This method lets you determine the file pattern which will be used
-            to identify scripts intended for this manager.
-        @return
-            A list of file patterns, in the order they should be searched in.
-        @see isScriptingSupported, parseScript
-        */
-        virtual const StringVector& getScriptPatterns(void) const { return mScriptPatterns; }
-
-        /** Parse the definition of a set of resources from a script file.
-        @remarks
-            Some resource managers can read script files in order to define
-            resources ahead of time. These resources are added to the available
-            list inside the manager, but none are loaded initially. This allows
-            you to load the items that are used on demand, or to load them all 
-            as a group if you wish (through ResourceGroupManager).
-        @param stream Weak reference to a data stream which is the source of the script
-        @param groupName The name of the resource group that resources which are
-            parsed are to become a member of. If this group is loaded or unloaded, 
-            then the resources discovered in this script will be loaded / unloaded
-            with it.
-        */
-        virtual void parseScript(DataStreamPtr& stream, const String& groupName)
-                { (void)stream; (void)groupName; }
-
-        /** Gets the relative loading order of resources of this type.
-        @remarks
-            There are dependencies between some kinds of resource in terms of loading
-            order, and this value enumerates that. Higher values load later during
-            bulk loading tasks.
-        */
-        virtual Real getLoadingOrder(void) const { return mLoadOrder; }
+        const StringVector& getScriptPatterns(void) const override { return mScriptPatterns; }
+        void parseScript(DataStreamPtr& stream, const String& groupName) override;
+        Real getLoadingOrder(void) const override { return mLoadOrder; }
 
         /** Gets a string identifying the type of resource this manager handles. */
         const String& getResourceType(void) const { return mResourceType; }
 
         /** Sets whether this manager and its resources habitually produce log output */
-        virtual void setVerbose(bool v) { mVerbose = v; }
+        void setVerbose(bool v) { mVerbose = v; }
 
         /** Gets whether this manager and its resources habitually produce log output */
-        virtual bool getVerbose(void) { return mVerbose; }
+        bool getVerbose(void) { return mVerbose; }
 
         /** Definition of a pool of resources, which users can use to reuse similar
             resources many times without destroying and recreating them.
-        @remarks
+
             This is a simple utility class which allows the reuse of resources
             between code which has a changing need for them. For example, 
         */
         class _OgreExport ResourcePool : public Pool<ResourcePtr>, public ResourceAlloc
         {
-        protected:
             String mName;
         public:
             ResourcePool(const String& name);
             ~ResourcePool();
             /// Get the name of the pool
             const String& getName() const;
-            void clear();
+            void clear() override;
         };
         
         /// Create a resource pool, or reuse one that already exists
@@ -530,9 +427,10 @@ namespace Ogre {
 
         /** Create a new resource instance compatible with this manager (no custom 
             parameters are populated at this point). 
-        @remarks
+
             Subclasses must override this method and create a subclass of Resource.
         @param name The unique name of the resource
+        @param handle The unique handle of the resource
         @param group The name of the resource group to attach this new resource to
         @param isManual Is this resource manually loaded? If so, you should really
             populate the loader parameter in order that the load process
@@ -555,23 +453,23 @@ namespace Ogre {
         /** Add a newly created resource to the manager (note weak reference) */
         virtual void addImpl( ResourcePtr& res );
         /** Remove a resource from this manager; remove it from the lists. */
-        virtual void removeImpl( ResourcePtr& res );
+        virtual void removeImpl(const ResourcePtr& res );
         /** Checks memory usage and pages out if required. This is automatically done after a new resource is loaded.
         */
-        virtual void checkUsage(void);
+        void checkUsage(void);
 
 
     public:
-        typedef OGRE_HashMap< String, ResourcePtr > ResourceMap;
-        typedef OGRE_HashMap< String, ResourceMap > ResourceWithGroupMap;
-        typedef map<ResourceHandle, ResourcePtr>::type ResourceHandleMap;
+        typedef std::unordered_map< String, ResourcePtr > ResourceMap;
+        typedef std::unordered_map< String, ResourceMap > ResourceWithGroupMap;
+        typedef std::map<ResourceHandle, ResourcePtr> ResourceHandleMap;
     protected:
         ResourceHandleMap mResourcesByHandle;
         ResourceMap mResources;
         ResourceWithGroupMap mResourcesWithGroup;
         size_t mMemoryBudget; /// In bytes
-        AtomicScalar<ResourceHandle> mNextHandle;
-        AtomicScalar<size_t> mMemoryUsage; /// In bytes
+        std::atomic<ResourceHandle> mNextHandle;
+        std::atomic<size_t> mMemoryUsage; /// In bytes
 
         bool mVerbose;
 
@@ -596,7 +494,7 @@ namespace Ogre {
         }
 
     protected:
-        typedef map<String, ResourcePool*>::type ResourcePoolMap;
+        typedef std::map<String, ResourcePool*> ResourcePoolMap;
         ResourcePoolMap mResourcePoolMap;
     };
 

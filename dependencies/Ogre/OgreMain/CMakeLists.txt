@@ -22,7 +22,6 @@ set( HEADER_FILES
   include/OgreArchive.h
   include/OgreArchiveFactory.h
   include/OgreArchiveManager.h
-  include/OgreAtomicObject.h
   include/OgreAtomicScalar.h
   include/OgreAutoParamDataSource.h
   include/OgreAxisAlignedBox.h
@@ -53,19 +52,19 @@ set( HEADER_FILES
   include/OgreControllerManager.h
   include/OgreConvexBody.h
   include/OgreCustomCompositionPass.h
-  include/OgreDDSCodec.h
   include/OgreDataStream.h
+  include/OgreDefaultDebugDrawer.h
   include/OgreDefaultHardwareBufferManager.h
+  include/OgreDefaultWorkQueue.h
   include/OgreDeflate.h
+  include/OgreDeprecated.h
   include/OgreDepthBuffer.h
   include/OgreDistanceLodStrategy.h
   include/OgreDualQuaternion.h
   include/OgreDynLib.h
   include/OgreDynLibManager.h
-  include/OgreETCCodec.h
   include/OgreEdgeListBuilder.h
   include/OgreEntity.h
-  include/OgreErrorDialog.h
   include/OgreException.h
   include/OgreExternalTextureSource.h
   include/OgreExternalTextureSourceManager.h
@@ -73,7 +72,6 @@ set( HEADER_FILES
   include/OgreFileSystem.h
   include/OgreFileSystemLayer.h
   include/OgreFrameListener.h
-  include/OgreFreeImageCodec.h
   include/OgreFrustum.h
   include/OgreGpuProgram.h
   include/OgreGpuProgramManager.h
@@ -91,8 +89,6 @@ set( HEADER_FILES
   include/OgreHeaderSuffix.h
   include/OgreHighLevelGpuProgram.h
   include/OgreHighLevelGpuProgramManager.h
-  include/OgreId.h
-  include/OgreIdString.h
   include/OgreImage.h
   include/OgreImageCodec.h
   include/OgreInstanceBatch.h
@@ -102,8 +98,6 @@ set( HEADER_FILES
   include/OgreInstanceBatchVTF.h
   include/OgreInstanceManager.h
   include/OgreInstancedEntity.h
-  include/OgreInstancedGeometry.h
-  include/OgreIteratorRange.h
   include/OgreIteratorWrapper.h
   include/OgreIteratorWrappers.h
   include/OgreKeyFrame.h
@@ -120,33 +114,21 @@ set( HEADER_FILES
   include/OgreMath.h
   include/OgreMatrix3.h
   include/OgreMatrix4.h
-  include/OgreMemoryAllocatedObject.h
   include/OgreMemoryAllocatorConfig.h
-  include/OgreMemoryNedAlloc.h
-  include/OgreMemoryNedPooling.h
-  include/OgreMemorySTLAllocator.h
-  include/OgreMemoryStdAlloc.h
-  include/OgreMemoryTracker.h
   include/OgreMesh.h
-  include/OgreMeshFileFormat.h
   include/OgreMeshManager.h
   include/OgreMeshSerializer.h
-  include/OgreMeshSerializerImpl.h
   include/OgreMovableObject.h
   include/OgreMovablePlane.h
+  include/OgreMurmurHash3.h
   include/OgreNameGenerator.h
   include/OgreNode.h
-  include/OgreNumerics.h
   include/OgreOptimisedUtil.h
-  include/OgrePOSIXTimerImp.h
-  include/OgrePVRTCCodec.h
   include/OgreParticle.h
   include/OgreParticleAffector.h
   include/OgreParticleAffectorFactory.h
   include/OgreParticleEmitter.h
-  include/OgreParticleEmitterCommands.h
   include/OgreParticleEmitterFactory.h
-  include/OgreParticleIterator.h
   include/OgreParticleSystem.h
   include/OgreParticleSystemManager.h
   include/OgreParticleSystemRenderer.h
@@ -155,7 +137,6 @@ set( HEADER_FILES
   include/OgrePatchSurface.h
   include/OgrePixelCountLodStrategy.h
   include/OgrePixelFormat.h
-  include/OgrePixelFormatDescriptions.h
   include/OgrePlane.h
   include/OgrePlaneBoundedVolume.h
   include/OgrePlatform.h
@@ -164,17 +145,14 @@ set( HEADER_FILES
   include/OgrePolygon.h
   include/OgrePose.h
   include/OgrePredefinedControllers.h
-  include/OgrePrefabFactory.h
   include/OgrePrerequisites.h
   include/OgreProfiler.h
   include/OgreQuaternion.h
-  include/OgreRadixSort.h
   include/OgreRay.h
   include/OgreRectangle2D.h
   include/OgreRenderObjectListener.h
   include/OgreRenderOperation.h
   include/OgreRenderQueue.h
-  include/OgreRenderQueueInvocation.h
   include/OgreRenderQueueListener.h
   include/OgreRenderQueueSortingGrouping.h
   include/OgreRenderSystem.h
@@ -194,17 +172,12 @@ set( HEADER_FILES
   include/OgreRibbonTrail.h
   include/OgreRoot.h
   include/OgreRotationalSpline.h
-  include/OgreSTBICodec.h
   include/OgreSceneManager.h
-  include/OgreSceneManagerEnumerator.h
   include/OgreSceneNode.h
   include/OgreSceneQuery.h
   include/OgreScriptCompiler.h
-  include/OgreScriptLexer.h
   include/OgreScriptLoader.h
-  include/OgreScriptParser.h
   include/OgreScriptTranslator.h
-  include/OgreSearchOps.h
   include/OgreSerializer.h
   include/OgreShadowCameraSetup.h
   include/OgreShadowCameraSetupFocused.h
@@ -212,8 +185,6 @@ set( HEADER_FILES
   include/OgreShadowCameraSetupPSSM.h
   include/OgreShadowCameraSetupPlaneOptimal.h
   include/OgreShadowCaster.h
-  include/OgreShadowTextureManager.h
-  include/OgreShadowVolumeExtrudeProgram.h
   include/OgreSharedPtr.h
   include/OgreSimpleRenderable.h
   include/OgreSimpleSpline.h
@@ -224,9 +195,6 @@ set( HEADER_FILES
   include/OgreSkeletonManager.h
   include/OgreSkeletonSerializer.h
   include/OgreSphere.h
-  include/OgreSpotShadowFadePng.h
-  include/OgreStableHeaders.h
-  include/OgreStaticFaceGroup.h
   include/OgreStaticGeometry.h
   include/OgreStdHeaders.h
   include/OgreStreamSerialiser.h
@@ -243,46 +211,57 @@ set( HEADER_FILES
   include/OgreTextureManager.h
   include/OgreTextureUnitState.h
   include/OgreTimer.h
-  include/OgreUTFString.h
-  include/OgreUnifiedHighLevelGpuProgram.h
   include/OgreUserObjectBindings.h
+  include/OgreVector.h
   include/OgreVector2.h
   include/OgreVector3.h
   include/OgreVector4.h
   include/OgreVertexBoneAssignment.h
   include/OgreVertexIndexData.h
   include/OgreViewport.h
-  include/OgreWindowEventUtilities.h
   include/OgreWireBoundingBox.h
   include/OgreWorkQueue.h
   include/OgreZip.h
-  include/asm_math.h
-  include/Hash/MurmurHash3.h
-  include/Threading/OgreBarrier.h
-  include/Threading/OgreDefaultWorkQueue.h
-  include/Threading/OgreDefaultWorkQueueStandard.h
-  include/Threading/OgreDefaultWorkQueueTBB.h
-  include/Threading/OgreLightweightMutex.h
   include/Threading/OgreThreadDefines.h
   include/Threading/OgreThreadDefinesBoost.h
   include/Threading/OgreThreadDefinesNone.h
   include/Threading/OgreThreadDefinesPoco.h
-  include/Threading/OgreThreadDefinesTBB.h
+  include/Threading/OgreThreadDefinesSTD.h
   include/Threading/OgreThreadHeaders.h
   include/Threading/OgreThreadHeadersBoost.h
   include/Threading/OgreThreadHeadersPoco.h
-  include/Threading/OgreThreadHeadersTBB.h
-  include/Threading/OgreThreads.h
+  include/Threading/OgreThreadHeadersSTD.h
+  src/OgreASTCCodec.h
+  src/OgreBuiltinMovableFactories.h
+  src/OgreBuiltinScriptTranslators.h
+  src/OgreDDSCodec.h
+  src/OgreETCCodec.h
+  src/OgreFileSystemUtil.h
+  src/OgreFroxelizer.h
   src/OgreImageResampler.h
+  src/OgreMeshFileFormat.h
+  src/OgreMeshSerializerImpl.h
+  src/OgreNumerics.h
+  src/OgreParticleEmitterCommands.h
   src/OgrePixelConversions.h
+  src/OgrePixelFormatDescriptions.h
+  src/OgrePrefabFactory.h
+  src/OgreRadixSort.h
   src/OgreSIMDHelper.h
-  src/nedmalloc/malloc.c.h
-  src/nedmalloc/nedmalloc.h
-  src/stbi/stb_image.h
-  src/stbi/stb_image_write.h
+  src/OgreSceneManagerEnumerator.h
+  src/OgreScriptLexer.h
+  src/OgreScriptParser.h
+  src/OgreShadowTextureManager.h
+  src/OgreShadowVolumeExtrudeProgram.h
+  src/OgreStableHeaders.h
+  src/OgreUnifiedHighLevelGpuProgram.h
+  src/SSE2NEON.h
+  src/zip/miniz.h
+  src/zip/zip.h
 )
 
 set( SOURCE_FILES 
+  src/OgreASTCCodec.cpp
   src/OgreAlignedAllocator.cpp
   src/OgreAnimable.cpp
   src/OgreAnimation.cpp
@@ -290,7 +269,6 @@ set( SOURCE_FILES
   src/OgreAnimationTrack.cpp
   src/OgreArchive.cpp
   src/OgreArchiveManager.cpp
-  src/OgreAtomicScalar.cpp
   src/OgreAutoParamDataSource.cpp
   src/OgreAxisAlignedBox.cpp
   src/OgreBillboard.cpp
@@ -309,14 +287,15 @@ set( SOURCE_FILES
   src/OgreCompositorChain.cpp
   src/OgreCompositorInstance.cpp
   src/OgreCompositorManager.cpp
-  src/OgreConfigDialogNoOp.cpp
   src/OgreConfigFile.cpp
   src/OgreControllerManager.cpp
   src/OgreConvexBody.cpp
   src/OgreDDSCodec.cpp
   src/OgreDataStream.cpp
+  src/OgreDefaultDebugDrawer.cpp
   src/OgreDefaultHardwareBufferManager.cpp
   src/OgreDefaultSceneQueries.cpp
+  src/OgreDefaultWorkQueueStandard.cpp
   src/OgreDeflate.cpp
   src/OgreDepthBuffer.cpp
   src/OgreDistanceLodStrategy.cpp
@@ -326,25 +305,22 @@ set( SOURCE_FILES
   src/OgreETCCodec.cpp
   src/OgreEdgeListBuilder.cpp
   src/OgreEntity.cpp
-  src/OgreErrorDialogNoOp.cpp
   src/OgreException.cpp
   src/OgreExternalTextureSource.cpp
   src/OgreExternalTextureSourceManager.cpp
   src/OgreFileSystem.cpp
+  src/OgreFroxelizer.cpp
   src/OgreFrustum.cpp
   src/OgreGpuProgram.cpp
   src/OgreGpuProgramManager.cpp
   src/OgreGpuProgramParams.cpp
   src/OgreGpuProgramUsage.cpp
   src/OgreHardwareBufferManager.cpp
-  src/OgreHardwareCounterBuffer.cpp
   src/OgreHardwareIndexBuffer.cpp
   src/OgreHardwareOcclusionQuery.cpp
   src/OgreHardwarePixelBuffer.cpp
-  src/OgreHardwareUniformBuffer.cpp
   src/OgreHardwareVertexBuffer.cpp
   src/OgreHighLevelGpuProgram.cpp
-  src/OgreHighLevelGpuProgramManager.cpp
   src/OgreImage.cpp
   src/OgreInstanceBatch.cpp
   src/OgreInstanceBatchHW.cpp
@@ -353,7 +329,6 @@ set( SOURCE_FILES
   src/OgreInstanceBatchVTF.cpp
   src/OgreInstanceManager.cpp
   src/OgreInstancedEntity.cpp
-  src/OgreInstancedGeometry.cpp
   src/OgreKeyFrame.cpp
   src/OgreLight.cpp
   src/OgreLodStrategy.cpp
@@ -367,26 +342,20 @@ set( SOURCE_FILES
   src/OgreMath.cpp
   src/OgreMatrix3.cpp
   src/OgreMatrix4.cpp
-  src/OgreMemoryAllocatedObject.cpp
-  src/OgreMemoryNedAlloc.cpp
-  src/OgreMemoryNedPooling.cpp
-  src/OgreMemoryTracker.cpp
   src/OgreMesh.cpp
   src/OgreMeshManager.cpp
   src/OgreMeshSerializer.cpp
   src/OgreMeshSerializerImpl.cpp
   src/OgreMovableObject.cpp
   src/OgreMovablePlane.cpp
+  src/OgreMurmurHash3.cpp
   src/OgreNode.cpp
   src/OgreNumerics.cpp
   src/OgreOptimisedUtil.cpp
   src/OgreOptimisedUtilGeneral.cpp
   src/OgreOptimisedUtilSSE.cpp
-  src/OgrePVRTCCodec.cpp
-  src/OgreParticle.cpp
   src/OgreParticleEmitter.cpp
   src/OgreParticleEmitterCommands.cpp
-  src/OgreParticleIterator.cpp
   src/OgreParticleSystem.cpp
   src/OgreParticleSystemManager.cpp
   src/OgrePass.cpp
@@ -394,18 +363,15 @@ set( SOURCE_FILES
   src/OgrePatchSurface.cpp
   src/OgrePixelCountLodStrategy.cpp
   src/OgrePixelFormat.cpp
-  src/OgrePlane.cpp
   src/OgrePlatformInformation.cpp
   src/OgrePolygon.cpp
   src/OgrePose.cpp
-  src/OgrePrecompiledHeaders.cpp
   src/OgrePredefinedControllers.cpp
   src/OgrePrefabFactory.cpp
   src/OgreProfiler.cpp
   src/OgreQuaternion.cpp
   src/OgreRectangle2D.cpp
   src/OgreRenderQueue.cpp
-  src/OgreRenderQueueInvocation.cpp
   src/OgreRenderQueueSortingGrouping.cpp
   src/OgreRenderSystem.cpp
   src/OgreRenderSystemCapabilities.cpp
@@ -415,6 +381,7 @@ set( SOURCE_FILES
   src/OgreRenderTexture.cpp
   src/OgreRenderToVertexBuffer.cpp
   src/OgreRenderWindow.cpp
+  src/OgreRenderable.cpp
   src/OgreResource.cpp
   src/OgreResourceBackgroundQueue.cpp
   src/OgreResourceGroupManager.cpp
@@ -422,7 +389,6 @@ set( SOURCE_FILES
   src/OgreRibbonTrail.cpp
   src/OgreRoot.cpp
   src/OgreRotationSpline.cpp
-  src/OgreSTBICodec.cpp
   src/OgreSceneManager.cpp
   src/OgreSceneManagerEnumerator.cpp
   src/OgreSceneNode.cpp
@@ -446,7 +412,9 @@ set( SOURCE_FILES
   src/OgreSkeletonInstance.cpp
   src/OgreSkeletonManager.cpp
   src/OgreSkeletonSerializer.cpp
+  src/OgreSkyRenderer.cpp
   src/OgreStaticGeometry.cpp
+  src/OgreStencilShadowRenderer.cpp
   src/OgreStreamSerialiser.cpp
   src/OgreString.cpp
   src/OgreStringConverter.cpp
@@ -458,228 +426,96 @@ set( SOURCE_FILES
   src/OgreTechnique.cpp
   src/OgreTexture.cpp
   src/OgreTextureManager.cpp
+  src/OgreTextureShadowRenderer.cpp
   src/OgreTextureUnitState.cpp
-  src/OgreUTFString.cpp
+  src/OgreTimer.cpp
   src/OgreUnifiedHighLevelGpuProgram.cpp
   src/OgreUserObjectBindings.cpp
-  src/OgreVector2.cpp
-  src/OgreVector3.cpp
-  src/OgreVector4.cpp
+  src/OgreVector.cpp
   src/OgreVertexIndexData.cpp
   src/OgreViewport.cpp
-  src/OgreWindowEventUtilities.cpp
   src/OgreWireBoundingBox.cpp
   src/OgreWorkQueue.cpp
   src/OgreZip.cpp
-  src/Hash/MurmurHash3.cpp
-  src/nedmalloc/nedmalloc.c
+  src/zip/zip.c
 )
 
 
 
-if (ANDROID32)
+if (ANDROID)
   set( PLATFORM_HEADER_FILES 
-    include/Android/OgreAPKFileSystemArchive.h
-    include/Android/OgreAPKZipArchive.h
-    include/Android/OgreAndroidLogListener.h
+    src/OgreSearchOps.h
+    src/Android/OgreAndroidLogListener.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/OgreSearchOps.cpp
     src/Android/OgreAPKFileSystemArchive.cpp
     src/Android/OgreAPKZipArchive.cpp
     src/Android/OgreAndroidLogListener.cpp
     src/Android/OgreFileSystemLayer.cpp
-    src/Android/JNI/OgreActivityJNI.cpp
-    src/Threading/OgreBarrierPThreads.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreLightweightMutexPThreads.cpp
-    src/Threading/OgreThreadsPThreads.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (ANDROID64)
+elseif (EMSCRIPTEN)
   set( PLATFORM_HEADER_FILES 
-    include/Android/OgreAPKFileSystemArchive.h
-    include/Android/OgreAPKZipArchive.h
-    include/Android/OgreAndroidLogListener.h
+    src/OgreSearchOps.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/Android/OgreAPKFileSystemArchive.cpp
-    src/Android/OgreAPKZipArchive.cpp
-    src/Android/OgreAndroidLogListener.cpp
-    src/Android/OgreFileSystemLayer.cpp
-    src/Android/JNI/OgreActivityJNI.cpp
-    src/Threading/OgreBarrierPThreads.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreLightweightMutexPThreads.cpp
-    src/Threading/OgreThreadsPThreads.cpp
+    src/OgreFileSystemLayerNoOp.cpp
+    src/OgreSearchOps.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (EMSCRIPTEN32)
-  set( PLATFORM_HEADER_FILES 
-    include/Emscripten/OgreTimerImp.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/Emscripten/OgreTimer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (EMSCRIPTEN64)
-  set( PLATFORM_HEADER_FILES 
-    include/Emscripten/OgreTimerImp.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/Emscripten/OgreTimer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (GLX)
-  set( PLATFORM_HEADER_FILES 
-    src/GLX/GLX_backdrop.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "GLX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/GLX/OgreConfigDialog.cpp
-    src/GLX/OgreFileSystemLayer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "GLX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (GTK)
-  set( PLATFORM_HEADER_FILES 
-    include/gtk/OgreConfigDialogImp.h
-    src/gtk/GLX_backdrop.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "GTK" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/gtk/OgreConfigDialog.cpp
-    src/gtk/OgreErrorDialog.cpp
-    src/gtk/OgreFileSystemLayer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "GTK" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (IOS)
-  set( PLATFORM_HEADER_FILES 
-    include/iOS/OgreOSXCocoaTouchView.h
-    include/iOS/macUtils.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "IOS" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
 elseif (LINUX32)
+  set( PLATFORM_HEADER_FILES 
+    src/OgreSearchOps.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
-    src/Threading/OgreBarrierPThreads.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreLightweightMutexPThreads.cpp
-    src/Threading/OgreThreadsPThreads.cpp
+    src/OgreSearchOps.cpp
+    src/GLX/OgreFileSystemLayer.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX32" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX64)
+  set( PLATFORM_HEADER_FILES 
+    src/OgreSearchOps.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
-    src/Threading/OgreBarrierPThreads.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreLightweightMutexPThreads.cpp
-    src/Threading/OgreThreadsPThreads.cpp
+    src/OgreSearchOps.cpp
+    src/GLX/OgreFileSystemLayer.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (NACL)
-  set( PLATFORM_SOURCE_FILES 
-    src/NaCl/OgreFileSystemLayer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "NACL" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (OSX)
-  set( PLATFORM_HEADER_FILES 
-    include/OSX/OgreConfigDialogImp.h
-    include/OSX/macUtils.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "OSX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/OSX/OgreFileSystemLayer.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "OSX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
 elseif (WIN32)
-  set( PLATFORM_HEADER_FILES 
-    include/WIN32/OgreComPtr.h
-    include/WIN32/OgreConfigDialogImp.h
-    include/WIN32/OgreErrorDialogImp.h
-    include/WIN32/OgreMinGWSupport.h
-    include/WIN32/OgreTimerImp.h
-    src/WIN32/resource.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "WIN32" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
   set( PLATFORM_SOURCE_FILES 
-    src/Threading/OgreBarrierWin.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreThreadsWin.cpp
     src/WIN32/OgreFileSystemLayer.cpp
-    src/WIN32/OgreMinGWSupport.cpp
-    src/WIN32/OgreOptimisedUtilDirectXMath.cpp
-    src/WIN32/OgreTimer.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (WIN64)
-  set( PLATFORM_SOURCE_FILES 
-    src/Threading/OgreBarrierWin.cpp
-    src/Threading/OgreDefaultWorkQueueStandard.cpp
-    src/Threading/OgreThreadsWin.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "WIN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
@@ -688,66 +524,53 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "Ogre" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} freetype )
-target_link_libraries( ${MODULE_NAME} PUBLIC freetype )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=Ogre;MODULE_NAME=Ogre;OGRE_NONCLIENT_BUILD;OGRE_NO_CONFIG_DIALOG" )
+if( EMSCRIPTEN )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MINIZ_NO_STDIO;MODULE_CONSENSUS_NAME=Ogre;MODULE_NAME=Ogre;MODULE_SEMVER=14_6_3_0;OgreMain_EXPORTS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj;/fp:contract )
+endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 14.6.3.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 14.6.3.0 )
 
-if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
-endif( ANDROID32 )
-
-if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
-endif( ANDROID64 )
+if ( ANDROID )
+  target_link_libraries( ${MODULE_NAME} PRIVATE android atomic dl log )
+endif( ANDROID )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_GNU_SOURCE" )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl pthread )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_GNU_SOURCE" )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl pthread )
 endif( LINUX64 )
 
-include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../include include include/Hash include/Threading src src/nedmalloc src/stbi )
+include_directories( ../include include include/Threading src src/zip )
 
-if ( ANDROID32 )
-  include_directories( include/Android )
-endif( ANDROID32 )
+if ( ANDROID )
+  include_directories( src src/Android )
+endif( ANDROID )
 
-if ( ANDROID64 )
-  include_directories( include/Android )
-endif( ANDROID64 )
+if ( EMSCRIPTEN )
+  include_directories( src )
+endif( EMSCRIPTEN )
 
-if ( EMSCRIPTEN32 )
-  include_directories( include/Emscripten )
-endif( EMSCRIPTEN32 )
+if ( LINUX32 )
+  include_directories( src )
+endif( LINUX32 )
 
-if ( EMSCRIPTEN64 )
-  include_directories( include/Emscripten )
-endif( EMSCRIPTEN64 )
-
-if ( GLX )
-  include_directories( src/GLX )
-endif( GLX )
-
-if ( GTK )
-  include_directories( include/gtk src/gtk )
-endif( GTK )
-
-if ( IOS )
-  include_directories( include/iOS )
-endif( IOS )
-
-if ( OSX )
-  include_directories( include/OSX )
-endif( OSX )
-
-if ( WIN32 )
-  include_directories( include/WIN32 src/WIN32 )
-endif( WIN32 )
+if ( LINUX64 )
+  include_directories( src )
+endif( LINUX64 )
 
 
 

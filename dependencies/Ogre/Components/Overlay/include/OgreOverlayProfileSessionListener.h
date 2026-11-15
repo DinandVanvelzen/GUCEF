@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,11 @@ THE SOFTWARE.
 #include "OgreProfiler.h"
 
 namespace Ogre  {
+    class Overlay;
+    class OverlayContainer;
+    class OverlayElement;
 
-    /** \addtogroup Core
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Overlays
@@ -47,20 +50,28 @@ namespace Ogre  {
     class _OgreOverlayExport OverlayProfileSessionListener : public ProfileSessionListener
     {
     public:
+        enum DisplayMode
+        {
+            /// Display % frame usage on the overlay
+            DISPLAY_PERCENTAGE,
+            /// Display milliseconds on the overlay
+            DISPLAY_MILLISECONDS
+        };
+
         OverlayProfileSessionListener();
         virtual ~OverlayProfileSessionListener();
 
         /// @see ProfileSessionListener::initializeSession
-        virtual void initializeSession();
+        void initializeSession() override;
 
         /// @see ProfileSessionListener::finializeSession
-        virtual void finializeSession();
+        void finializeSession() override;
 
         /// @see ProfileSessionListener::displayResults
-        virtual void displayResults(const ProfileInstance& instance, ulong maxTotalFrameTime);
+        void displayResults(const ProfileInstance& instance, ulong maxTotalFrameTime) override;
 
         /// @see ProfileSessionListener::changeEnableState
-        virtual void changeEnableState(bool enabled);
+        void changeEnableState(bool enabled) override;
 
         /** Set the size of the profiler overlay, in pixels. */
         void setOverlayDimensions(Real width, Real height);
@@ -73,8 +84,14 @@ namespace Ogre  {
         Real getOverlayLeft() const;
         Real getOverlayTop() const;
 
+        /// Set the display mode for the overlay.
+        void setDisplayMode(DisplayMode d) { mDisplayMode = d; }
+
+        /// Get the display mode for the overlay.
+        DisplayMode getDisplayMode() const { return mDisplayMode; }
+
     private:
-        typedef list<OverlayElement*>::type ProfileBarList;
+        typedef std::list<OverlayElement*> ProfileBarList;
 
         /** Prints the profiling results of each frame 
         @remarks Recursive, for all the little children. */
@@ -129,6 +146,9 @@ namespace Ogre  {
 
         /// The max number of profiles we can display
         uint mMaxDisplayProfiles;
+
+        /// How to display the overlay
+        DisplayMode mDisplayMode;
     };
 }
 #endif

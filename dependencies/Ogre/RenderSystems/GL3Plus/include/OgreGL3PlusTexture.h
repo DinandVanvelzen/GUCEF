@@ -30,77 +30,39 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 #define __GL3PlusTexture_H__
 
 #include "OgreGL3PlusPrerequisites.h"
-#include "OgreGL3PlusSupport.h"
 #include "OgrePlatform.h"
 #include "OgreRenderTexture.h"
-#include "OgreTexture.h"
+#include "OgreGLTextureCommon.h"
 #include "OgreHardwarePixelBuffer.h"
 
 namespace Ogre {
-    class _OgreGL3PlusExport GL3PlusTexture : public Texture
+    class _OgreGL3PlusExport GL3PlusTexture : public GLTextureCommon
     {
     public:
         // Constructor
         GL3PlusTexture(ResourceManager* creator, const String& name, ResourceHandle handle,
                        const String& group, bool isManual, ManualResourceLoader* loader,
-                       GL3PlusSupport& support);
+                       GL3PlusRenderSystem* renderSystem);
 
         virtual ~GL3PlusTexture();
-
-        void createRenderTexture();
-        /// @copydoc Texture::getBuffer
-        HardwarePixelBufferSharedPtr getBuffer(size_t face, size_t mipmap);
 
         // Takes the OGRE texture type (1d/2d/3d/cube) and returns the appropriate GL one
         GLenum getGL3PlusTextureTarget(void) const;
 
-        GLuint getGLID() const
-        {
-            return mTextureID;
-        }
-
-        void getCustomAttribute(const String& name, void* pData);
-
         void createShaderAccessPoint(uint bindPoint, TextureAccess access = TA_READ_WRITE,
                                      int mipmapLevel = 0, int textureArrayIndex = 0,
-                                     PixelFormat* format = NULL);
-
+                                     PixelFormat format = PF_UNKNOWN) override;
     protected:
         /// @copydoc Texture::createInternalResourcesImpl
-        void createInternalResourcesImpl(void);
-        /// @copydoc Resource::prepareImpl
-        void prepareImpl(void);
-        /// @copydoc Resource::unprepareImpl
-        void unprepareImpl(void);
-        /// @copydoc Resource::loadImpl
-        void loadImpl(void);
+        void createInternalResourcesImpl(void) override;
         /// @copydoc Resource::freeInternalResourcesImpl
-        void freeInternalResourcesImpl(void);
+        void freeInternalResourcesImpl(void) override;
 
-        /** internal method, create GL3PlusHardwarePixelBuffers for every face and
-            mipmap level. This method must be called after the GL texture object was created,
-            the number of mipmaps was set (GL_TEXTURE_MAX_LEVEL) and glTexImageXD was called to
-            actually allocate the buffer
-        */
-        void _createSurfaceList();
-
-        /// Used to hold images between calls to prepare and load.
-        typedef SharedPtr<vector<Image>::type > LoadedImages;
-
-        /** Vector of images that were pulled from disk by
-            prepareLoad but have yet to be pushed into texture memory
-            by loadImpl.  Images should be deleted by loadImpl and unprepareImpl.
-        */
-        LoadedImages mLoadedImages;
-
+        HardwarePixelBufferPtr createSurface(uint32 face, uint32 mip, uint32 width, uint32 height,
+                                             uint32 depth) override;
 
     private:
-        GLuint mTextureID;
-        GL3PlusSupport& mGLSupport;
-
-        /// Vector of pointers to subsurfaces
-        typedef vector<HardwarePixelBufferSharedPtr>::type SurfaceList;
-        SurfaceList mSurfaceList;
+        GL3PlusRenderSystem* mRenderSystem;
     };
 }
 

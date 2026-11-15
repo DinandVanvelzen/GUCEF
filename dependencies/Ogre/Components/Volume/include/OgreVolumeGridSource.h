@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,19 @@ THE SOFTWARE.
 #ifndef __Ogre_Volume_GridSource_H__
 #define __Ogre_Volume_GridSource_H__
 
-#include "OgreVector4.h"
+#include "OgreVector.h"
 
 #include "OgreVolumePrerequisites.h"
 #include "OgreVolumeSource.h"
 
 namespace Ogre {
 namespace Volume {
-
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     class CSGOperationSource;
 
     /** A volume source from a discrete 3d grid.
@@ -76,11 +81,11 @@ namespace Volume {
         
         /** Overridden from VolumeSource.
         */
-        virtual Vector3 getIntersectionStart(const Ray &ray, Real maxDistance) const;
+        Vector3 getIntersectionStart(const Ray &ray, Real maxDistance) const override;
         
         /** Overridden from VolumeSource.
         */
-        virtual Vector3 getIntersectionEnd(const Ray &ray, Real maxDistance) const;
+        Vector3 getIntersectionEnd(const Ray &ray, Real maxDistance) const override;
 
         /** Gets the volume value of a position.
         @param x
@@ -147,11 +152,11 @@ namespace Volume {
 
         /** Overridden from VolumeSource.
         */
-        virtual Vector4 getValueAndGradient(const Vector3 &position) const;
+        Vector4 getValueAndGradient(const Vector3 &position) const override;
         
         /** Overridden from VolumeSource.
         */
-        virtual Real getValue(const Vector3 &position) const;
+        Real getValue(const Vector3 &position) const override;
 
         /** Gets the width of the texture.
         @return
@@ -193,7 +198,8 @@ namespace Volume {
         Real getVolumeSpaceToWorldSpaceFactor(void) const;
 
     };
-
+    /** @} */
+    /** @} */
 }
 }
 

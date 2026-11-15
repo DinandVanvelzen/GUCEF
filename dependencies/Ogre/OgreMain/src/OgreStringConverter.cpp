@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,116 +26,66 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreStringConverter.h"
-#include "OgreException.h"
-#include "OgrePlatform.h"
+
+// A quick define to overcome different names for the same function
+#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
+#   define strtod_l _strtod_l
+#   define strtoul_l _strtoul_l
+#   define strtol_l _strtol_l
+#   define strtoull_l _strtoull_l
+#   define strtoll_l _strtoll_l
+#endif
+
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN || \
+	(OGRE_PLATFORM == OGRE_PLATFORM_LINUX && OGRE_NO_LOCALE_STRCONVERT == 1)
+#   define strtod_l(ptr, end, l) strtod(ptr, end)
+#   define strtoul_l(ptr, end, base, l) strtoul(ptr, end, base)
+#   define strtol_l(ptr, end, base, l) strtol(ptr, end, base)
+#   define strtoull_l(ptr, end, base, l) strtoull(ptr, end, base)
+#   define strtoll_l(ptr, end, base, l) strtoll(ptr, end, base)
+#endif
+
+#if (OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT) && !defined(__MINGW32__)
+#   define LC_NUMERIC_MASK LC_NUMERIC
+#   define newlocale(cat, loc, base) _create_locale(cat, loc)
+#endif
+
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN || defined(__MINGW32__)
+#   define newlocale(cat, loc, base) 0
+#endif
+
+#ifdef __MINGW32__
+#define _strtoull_l _strtoul_l
+#define _strtoll_l _strtol_l
+#endif
 
 namespace Ogre {
+    locale_t StringConverter::_numLocale = newlocale(LC_NUMERIC_MASK, OGRE_DEFAULT_LOCALE, NULL);
 
-    String StringConverter::msDefaultStringLocale = OGRE_DEFAULT_LOCALE;
-    std::locale StringConverter::msLocale = std::locale(msDefaultStringLocale.c_str());
-    bool StringConverter::msUseLocale = false;
-
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(Real val, unsigned short precision, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
+    template<typename T>
+    String StringConverter::_toString(T val, uint16 width, char fill, std::ios::fmtflags flags)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.precision(precision);
         stream.width(width);
         stream.fill(fill);
-        if (flags)
+        if (flags & std::ios::basefield) {
+            stream.setf(flags, std::ios::basefield);
+            stream.setf((flags & ~std::ios::basefield) | std::ios::showbase);
+        }
+        else if (flags)
             stream.setf(flags);
+
         stream << val;
 
         return stream.str();
     }
-#if OGRE_DOUBLE_PRECISION == 1
+
     //-----------------------------------------------------------------------
     String StringConverter::toString(float val, unsigned short precision,
                                      unsigned short width, char fill, std::ios::fmtflags flags)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream.precision(precision);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
-    }
-#else
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(double val, unsigned short precision,
-                                     unsigned short width, char fill, std::ios::fmtflags flags)
-    {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.precision(precision);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
-    }
-#endif
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(int val, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
-    {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
-    }
-    //-----------------------------------------------------------------------
-#if OGRE_PLATFORM != OGRE_PLATFORM_NACL &&  ( OGRE_ARCH_TYPE == OGRE_ARCHITECTURE_64 || OGRE_PLATFORM == OGRE_PLATFORM_APPLE || OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS )
-    String StringConverter::toString(unsigned int val, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
-    {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
-    }
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(size_t val, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
-    {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
-    }
-#if OGRE_COMPILER == OGRE_COMPILER_MSVC || defined(__MINGW32__)
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(unsigned long val, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
-    {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream.width(width);
         stream.fill(fill);
         if (flags)
@@ -144,15 +94,12 @@ namespace Ogre {
         return stream.str();
     }
 
-#endif
     //-----------------------------------------------------------------------
-#else
-    String StringConverter::toString(size_t val, 
-        unsigned short width, char fill, std::ios::fmtflags flags)
+    String StringConverter::toString(double val, unsigned short precision,
+                                     unsigned short width, char fill, std::ios::fmtflags flags)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
+        stream.precision(precision);
         stream.width(width);
         stream.fill(fill);
         if (flags)
@@ -160,41 +107,41 @@ namespace Ogre {
         stream << val;
         return stream.str();
     }
+
     //-----------------------------------------------------------------------
-    String StringConverter::toString(unsigned long val, 
+    String StringConverter::toString(int32 val,
         unsigned short width, char fill, std::ios::fmtflags flags)
     {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
+        return _toString(val, width, fill, flags);
     }
     //-----------------------------------------------------------------------
-#endif
-    String StringConverter::toString(long val, 
+    String StringConverter::toString(uint32 val,
         unsigned short width, char fill, std::ios::fmtflags flags)
     {
-        StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
-        stream.width(width);
-        stream.fill(fill);
-        if (flags)
-            stream.setf(flags);
-        stream << val;
-        return stream.str();
+        return _toString(val, width, fill, flags);
+    }
+    //-----------------------------------------------------------------------
+    String StringConverter::toString(unsigned long val,
+        unsigned short width, char fill, std::ios::fmtflags flags)
+    {
+        return _toString(val, width, fill, flags);
+    }
+    //-----------------------------------------------------------------------
+    String StringConverter::toString(unsigned long long val,
+        unsigned short width, char fill, std::ios::fmtflags flags)
+    {
+        return _toString(val, width, fill, flags);
+    }
+    //-----------------------------------------------------------------------
+    String StringConverter::toString(long val,
+        unsigned short width, char fill, std::ios::fmtflags flags)
+    {
+        return _toString(val, width, fill, flags);
     }
     //-----------------------------------------------------------------------
     String StringConverter::toString(const Vector2& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream << val.x << " " << val.y;
         return stream.str();
     }
@@ -202,8 +149,6 @@ namespace Ogre {
     String StringConverter::toString(const Vector3& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream << val.x << " " << val.y << " " << val.z;
         return stream.str();
     }
@@ -211,8 +156,6 @@ namespace Ogre {
     String StringConverter::toString(const Vector4& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream << val.x << " " << val.y << " " << val.z << " " << val.w;
         return stream.str();
     }
@@ -220,7 +163,6 @@ namespace Ogre {
     String StringConverter::toString(const Matrix3& val)
     {
         StringStream stream;
-        stream.imbue(msLocale);
         stream << val[0][0] << " "
             << val[0][1] << " "             
             << val[0][2] << " "             
@@ -260,7 +202,6 @@ namespace Ogre {
     String StringConverter::toString(const Matrix4& val)
     {
         StringStream stream;
-        stream.imbue(msLocale);
         stream << val[0][0] << " "
             << val[0][1] << " "             
             << val[0][2] << " "             
@@ -283,8 +224,6 @@ namespace Ogre {
     String StringConverter::toString(const Quaternion& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream  << val.w << " " << val.x << " " << val.y << " " << val.z;
         return stream.str();
     }
@@ -292,8 +231,6 @@ namespace Ogre {
     String StringConverter::toString(const ColourValue& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         stream << val.r << " " << val.g << " " << val.b << " " << val.a;
         return stream.str();
     }
@@ -301,8 +238,6 @@ namespace Ogre {
     String StringConverter::toString(const StringVector& val)
     {
         StringStream stream;
-        if (msUseLocale)
-            stream.imbue(msLocale);
         StringVector::const_iterator i, iend, ibegin;
         ibegin = val.begin();
         iend = val.end();
@@ -315,339 +250,149 @@ namespace Ogre {
         }
         return stream.str();
     }
-    //-----------------------------------------------------------------------
-    Real StringConverter::parseReal(const String& val, Real defaultValue)
-    {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        Real ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
 
-        return ret;
+    //-----------------------------------------------------------------------
+    template <typename T> static bool assignValid(bool valid, const T& val, T& ret)
+    {
+        if (valid)
+            ret = val;
+        return valid;
+    }
+
+    bool StringConverter::parse(const String& val, float& ret)
+    {
+        char* end;
+        auto tmp = (float)strtod_l(val.c_str(), &end, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
+    }
+    bool StringConverter::parse(const String& val, double& ret)
+    {
+        char* end;
+        auto tmp = strtod_l(val.c_str(), &end, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
     }
     //-----------------------------------------------------------------------
-    int StringConverter::parseInt(const String& val, int defaultValue)
+    bool StringConverter::parse(const String& val, int32& ret)
     {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        int ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
-
-        return ret;
+        char* end;
+        auto tmp = (int32)strtol_l(val.c_str(), &end, 0, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
     }
     //-----------------------------------------------------------------------
-    unsigned int StringConverter::parseUnsignedInt(const String& val, unsigned int defaultValue)
+    bool StringConverter::parse(const String& val, int64& ret)
     {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        unsigned int ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
-
-        return ret;
+        char* end;
+        int64 tmp = strtoll_l(val.c_str(), &end, 0, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
     }
     //-----------------------------------------------------------------------
-    long StringConverter::parseLong(const String& val, long defaultValue)
+    bool StringConverter::parse(const String& val, unsigned long& ret)
     {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        long ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
-
-        return ret;
+        char* end;
+        unsigned long tmp = strtoull_l(val.c_str(), &end, 0, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
+    }
+    bool StringConverter::parse(const String& val, unsigned long long& ret)
+    {
+        char* end;
+        unsigned long long tmp = strtoull_l(val.c_str(), &end, 0, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
     }
     //-----------------------------------------------------------------------
-    unsigned long StringConverter::parseUnsignedLong(const String& val, unsigned long defaultValue)
+    bool StringConverter::parse(const String& val, uint32& ret)
     {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        unsigned long ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
-
-        return ret;
+        char* end;
+        auto tmp = (uint32)strtoul_l(val.c_str(), &end, 0, _numLocale);
+        return assignValid(val.c_str() != end, tmp, ret);
     }
-    //-----------------------------------------------------------------------
-    size_t StringConverter::parseSizeT(const String& val, size_t defaultValue)
-    {
-        // Use iStringStream for direct correspondence with toString
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        size_t ret = defaultValue;
-        if( !(str >> ret) )
-            return defaultValue;
-
-        return ret;
-    }
-    //-----------------------------------------------------------------------
-    bool StringConverter::parseBool(const String& val, bool defaultValue)
+    bool StringConverter::parse(const String& val, bool& ret)
     {
         //FIXME Returns both parsed value and error in same value - ambiguous.
         // Suggested alternatives: implement exception handling or make either
         // error or parsed value a parameter.
         if ((StringUtil::startsWith(val, "true") || StringUtil::startsWith(val, "yes")
              || StringUtil::startsWith(val, "1") ||  StringUtil::startsWith(val, "on")))
-            return true;
+            ret = true;
         else if ((StringUtil::startsWith(val, "false") || StringUtil::startsWith(val, "no")
                   || StringUtil::startsWith(val, "0") ||  StringUtil::startsWith(val, "off")))
+            ret = false;
+        else
             return false;
-        else
-            return defaultValue;
+
+        return true;
     }
-    //-----------------------------------------------------------------------
-    Vector2 StringConverter::parseVector2(const String& val, const Vector2& defaultValue)
+
+    static bool parseReals(const String& val, Real* dst, size_t n)
     {
         // Split on space
-        vector<String>::type vec = StringUtil::split(val);
+        std::vector<String> vec = StringUtil::split(val);
+        if(vec.size() != n)
+            return false;
 
-        if (vec.size() != 2)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Vector2(parseReal(vec[0], defaultValue[0]), parseReal(vec[1], defaultValue[1]));
-        }
+        bool ret = true;
+        for(size_t i = 0; i < n; i++)
+            ret &= StringConverter::parse(vec[i], dst[i]);
+        return ret;
+    }
+
+    //-----------------------------------------------------------------------
+    bool StringConverter::parse(const String& val, Vector2& ret)
+    {
+        return parseReals(val, ret.ptr(), 2);
     }
     //-----------------------------------------------------------------------
-    Vector3 StringConverter::parseVector3(const String& val, const Vector3& defaultValue)
+    bool StringConverter::parse(const String& val, Vector3& ret)
     {
-        // Split on space
-        vector<String>::type vec = StringUtil::split(val);
-
-        if (vec.size() != 3)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Vector3(parseReal(vec[0], defaultValue[0]),
-                           parseReal(vec[1], defaultValue[1]),
-                           parseReal(vec[2], defaultValue[2]));
-        }
+        return parseReals(val, ret.ptr(), 3);
     }
     //-----------------------------------------------------------------------
-    Vector4 StringConverter::parseVector4(const String& val, const Vector4& defaultValue)
+    bool StringConverter::parse(const String& val, Vector4& ret)
     {
-        // Split on space
-        vector<String>::type vec = StringUtil::split(val);
-
-        if (vec.size() != 4)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Vector4(parseReal(vec[0], defaultValue[0]),
-                           parseReal(vec[1], defaultValue[1]),
-                           parseReal(vec[2], defaultValue[2]),
-                           parseReal(vec[3], defaultValue[3]));
-        }
+        return parseReals(val, ret.ptr(), 4);
     }
     //-----------------------------------------------------------------------
-    Matrix3 StringConverter::parseMatrix3(const String& val, const Matrix3& defaultValue)
+    bool StringConverter::parse(const String& val, Matrix3& ret)
     {
-        // Split on space
-        vector<String>::type vec = StringUtil::split(val);
-
-        if (vec.size() != 9)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Matrix3(parseReal(vec[0], defaultValue[0][0]),
-                           parseReal(vec[1], defaultValue[0][1]),
-                           parseReal(vec[2], defaultValue[0][2]),
-
-                           parseReal(vec[3], defaultValue[1][0]),
-                           parseReal(vec[4], defaultValue[1][1]),
-                           parseReal(vec[5], defaultValue[1][2]),
-
-                           parseReal(vec[6], defaultValue[2][0]),
-                           parseReal(vec[7], defaultValue[2][1]),
-                           parseReal(vec[8], defaultValue[2][2]));
-        }
+        return parseReals(val, &ret[0][0], 9);
     }
     //-----------------------------------------------------------------------
-    Matrix4 StringConverter::parseMatrix4(const String& val, const Matrix4& defaultValue)
+    bool StringConverter::parse(const String& val, Matrix4& ret)
     {
-        // Split on space
-        vector<String>::type vec = StringUtil::split(val);
-
-        if (vec.size() != 16)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Matrix4(parseReal(vec[0], defaultValue[0][0]),
-                           parseReal(vec[1], defaultValue[0][1]),
-                           parseReal(vec[2], defaultValue[0][2]),
-                           parseReal(vec[3], defaultValue[0][3]),
-                           
-                           parseReal(vec[4], defaultValue[1][0]),
-                           parseReal(vec[5], defaultValue[1][1]),
-                           parseReal(vec[6], defaultValue[1][2]),
-                           parseReal(vec[7], defaultValue[1][3]),
-                           
-                           parseReal(vec[8], defaultValue[2][0]),
-                           parseReal(vec[9], defaultValue[2][1]),
-                           parseReal(vec[10], defaultValue[2][2]),
-                           parseReal(vec[11], defaultValue[2][3]),
-                           
-                           parseReal(vec[12], defaultValue[3][0]),
-                           parseReal(vec[13], defaultValue[3][1]),
-                           parseReal(vec[14], defaultValue[3][2]),
-                           parseReal(vec[15], defaultValue[3][3]));
-        }
+        return parseReals(val, &ret[0][0], 16);
     }
     //-----------------------------------------------------------------------
-    Quaternion StringConverter::parseQuaternion(const String& val, const Quaternion& defaultValue)
+    bool StringConverter::parse(const String& val, Quaternion& ret)
     {
-        // Split on space
-        vector<String>::type vec = StringUtil::split(val);
-
-        if (vec.size() != 4)
-        {
-            return defaultValue;
-        }
-        else
-        {
-            return Quaternion(parseReal(vec[0], defaultValue[0]),
-                              parseReal(vec[1], defaultValue[1]),
-                              parseReal(vec[2], defaultValue[2]),
-                              parseReal(vec[3], defaultValue[3]));
-        }
+        return parseReals(val, ret.ptr(), 4);
     }
     //-----------------------------------------------------------------------
-    ColourValue StringConverter::parseColourValue(const String& val, const ColourValue& defaultValue)
+    bool StringConverter::parse(const String& val, ColourValue& ret)
     {
         // Split on space
-        vector<String>::type vec = StringUtil::split(val);
+        std::vector<String> vec = StringUtil::split(val);
 
         if (vec.size() == 4)
         {
-            return ColourValue(parseReal(vec[0], defaultValue[0]),
-                               parseReal(vec[1], defaultValue[1]),
-                               parseReal(vec[2], defaultValue[2]),
-                               parseReal(vec[3], defaultValue[3]));
+            return parse(vec[0], ret.r) && parse(vec[1], ret.g) && parse(vec[2], ret.b) &&
+                   parse(vec[3], ret.a);
         }
         else if (vec.size() == 3)
         {
-            return ColourValue(parseReal(vec[0], defaultValue[0]),
-                               parseReal(vec[1], defaultValue[1]),
-                               parseReal(vec[2], defaultValue[2]),
-                               1.0f);
+            ret.a = 1.0f;
+            return parse(vec[0], ret.r) && parse(vec[1], ret.g) && parse(vec[2], ret.b);
         }
         else
         {
-            return defaultValue;
+            return false;
         }
-    }
-    //-----------------------------------------------------------------------
-    StringVector StringConverter::parseStringVector(const String& val)
-    {
-        return StringUtil::split(val);
     }
     //-----------------------------------------------------------------------
     bool StringConverter::isNumber(const String& val)
     {
-        StringStream str(val);
-        if (msUseLocale)
-            str.imbue(msLocale);
-        float tst;
-        str >> tst;
-        return !str.fail() && str.eof();
+        char* end;
+        strtod(val.c_str(), &end);
+        return end == (val.c_str() + val.size());
     }
-	//-----------------------------------------------------------------------
-    String StringConverter::toString(ColourBufferType val)
-    {
-		StringStream stream;
-		switch (val)
-		{
-		case CBT_BACK:
-		  stream << "Back";
-		  break;
-		case CBT_BACK_LEFT:
-		  stream << "Back Left";
-		  break;
-		case CBT_BACK_RIGHT:
-		  stream << "Back Right";
-		  break;
-		default:
-		  OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Unsupported colour buffer value", "StringConverter::toString(const ColourBufferType& val)");
-		}
-
-		return stream.str();
-    }
-    //-----------------------------------------------------------------------
-    ColourBufferType StringConverter::parseColourBuffer(const String& val, ColourBufferType defaultValue)
-    {
-		ColourBufferType result = defaultValue;
-		if (val.compare("Back") == 0)
-		{
-			result = CBT_BACK;
-		}
-		else if (val.compare("Back Left") == 0)
-		{
-			result = CBT_BACK_LEFT;
-		}
-		else if (val.compare("Back Right") == 0)
-		{
-			result = CBT_BACK_RIGHT;
-		}		
-		
-		return result;
-    }
-    //-----------------------------------------------------------------------
-    String StringConverter::toString(StereoModeType val)
-    {
-		StringStream stream;
-		switch (val)
-		{
-		case SMT_NONE:
-		  stream << "None";
-		  break;
-		case SMT_FRAME_SEQUENTIAL:
-		  stream << "Frame Sequential";
-		  break;
-		default:
-		  OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Unsupported stereo mode value", "StringConverter::toString(const StereoModeType& val)");
-		}
-
-		return stream.str();
-    }
-    //-----------------------------------------------------------------------
-    StereoModeType StringConverter::parseStereoMode(const String& val, StereoModeType defaultValue)
-    {
-		StereoModeType result = defaultValue;
-		if (val.compare("None") == 0)
-		{
-			result = SMT_NONE;
-		}
-		else if (val.compare("Frame Sequential") == 0)
-		{
-			result = SMT_FRAME_SEQUENTIAL;
-		}
-		
-		return result;
-    }
-	//-----------------------------------------------------------------------
 }
 
 

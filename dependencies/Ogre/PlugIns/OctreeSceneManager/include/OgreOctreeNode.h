@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,13 @@ email                : janders@users.sf.net
 
 namespace Ogre
 {
-
+/** \addtogroup Plugins Plugins
+*  @{
+*/
+/** \addtogroup Octree OctreeSceneManager
+* Octree datastructure for managing scene nodes.
+*  @{
+*/
 /** Specialized SceneNode that is customized for working within an Octree. Each node
 * maintains its own bounding box, rather than merging it with all the children.
 *
@@ -61,16 +67,16 @@ public:
     ~OctreeNode();
 
     /** Overridden from Node to remove any reference to octants */
-    Node * removeChild( unsigned short index );
+    Node * removeChild( unsigned short index ) override;
     
     /** Overridden from Node to remove any reference to octants */
-    Node * removeChild( const String & name );
+    Node * removeChild( const String & name ) override;
 
     /** Overridden from Node to remove any reference to octants */
-    Node * removeChild( Node* child);
+    Node * removeChild( Node* child) override;
 
     /** Overridden from Node to remove any reference to octants */
-    void removeAllChildren(void);
+    void removeAllChildren(void) override;
 
     /** Returns the Octree in which this OctreeNode resides
     */
@@ -96,13 +102,13 @@ public:
         VisibleObjectsBoundsInfo* visibleBounds);
 
     /** Sets up the LegacyRenderOperation for rendering this scene node as geometry.
-    @remarks
+
     This will render the scenenode as a bounding box.
     */
     virtual void getRenderOperation( RenderOperation& op );
 
     /** Returns the local bounding box of this OctreeNode.
-    @remarks
+
     This is used to render the bounding box, rather then the global.
     */
     AxisAlignedBox & _getLocalAABB()
@@ -116,12 +122,12 @@ public:
 protected:
 
     /** Internal method for updating the bounds for this OctreeNode.
-    @remarks
+
     This method determines the bounds solely from the attached objects, not
     any children. If the node has changed its bounds, it is removed from its
     current octree, and reinserted into the tree.
     */
-    void _updateBounds( void );
+    void _updateBounds( void ) override;
 
     void _removeNodeAndChildren( );
 
@@ -140,7 +146,8 @@ protected:
 
 
 };
-
+/** @} */
+/** @} */
 }
 
 

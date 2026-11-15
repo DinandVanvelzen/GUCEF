@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,61 @@ THE SOFTWARE.
 
 namespace Ogre {
     //---------------------------------------------------------------------
+    /** Factory for creating PanelOverlayElement instances. */
+    class PanelOverlayElementFactory: public OverlayElementFactory
+    {
+    public:
+        OverlayElement* createOverlayElement(const String& instanceName) override
+        {
+            return OGRE_NEW PanelOverlayElement(instanceName);
+        }
+        const String& getTypeName(void) const override
+        {
+            static String name = "Panel";
+            return name;
+        }
+    };
+
+    /** Factory for creating BorderPanelOverlayElement instances. */
+    class BorderPanelOverlayElementFactory: public OverlayElementFactory
+    {
+    public:
+        OverlayElement* createOverlayElement(const String& instanceName) override
+        {
+            return OGRE_NEW BorderPanelOverlayElement(instanceName);
+        }
+        const String& getTypeName(void) const override
+        {
+            static String name = "BorderPanel";
+            return name;
+        }
+    };
+
+    /** Factory for creating TextAreaOverlayElement instances. */
+    class TextAreaOverlayElementFactory: public OverlayElementFactory
+    {
+    public:
+        OverlayElement* createOverlayElement(const String& instanceName) override
+        {
+            return OGRE_NEW TextAreaOverlayElement(instanceName);
+        }
+        const String& getTypeName(void) const override
+        {
+            static String name = "TextArea";
+            return name;
+        }
+    };
+
+    template<> OverlaySystem *Singleton<OverlaySystem>::msSingleton = 0;
+    OverlaySystem* OverlaySystem::getSingletonPtr()
+    {
+        return msSingleton;
+    }
+    OverlaySystem& OverlaySystem::getSingleton()
+    {
+        assert( msSingleton );  return ( *msSingleton );
+    }
+    //---------------------------------------------------------------------
     OverlaySystem::OverlaySystem()
     {
         RenderSystem::setSharedListener(this);
@@ -48,14 +103,11 @@ namespace Ogre {
         mOverlayManager->addOverlayElementFactory(OGRE_NEW Ogre::TextAreaOverlayElementFactory());
 
         mFontManager = OGRE_NEW FontManager();
-#if OGRE_PROFILING
-        mProfileListener = new Ogre::OverlayProfileSessionListener();
-        Ogre::Profiler* prof = Ogre::Profiler::getSingletonPtr();
-        if (prof)
+        if (auto prof = Profiler::getSingletonPtr())
         {
+            mProfileListener = new Ogre::OverlayProfileSessionListener();
             prof->addListener(mProfileListener);
         }
-#endif
     }
     //---------------------------------------------------------------------
     OverlaySystem::~OverlaySystem()
@@ -63,31 +115,26 @@ namespace Ogre {
         if(RenderSystem::getSharedListener() == this)
             RenderSystem::setSharedListener(0);
 
-#if OGRE_PROFILING
-        Ogre::Profiler* prof = Ogre::Profiler::getSingletonPtr();
-        if (prof)
+        if (auto prof = Profiler::getSingletonPtr())
         {
             prof->removeListener(mProfileListener);
+            delete mProfileListener;
         }
-        delete mProfileListener;
-#endif
+
         OGRE_DELETE mOverlayManager;
         OGRE_DELETE mFontManager;
     }
     //---------------------------------------------------------------------
-    void OverlaySystem::renderQueueStarted(uint8 queueGroupId, const String& invocation, 
-            bool& skipThisInvocation)
+    void OverlaySystem::preRenderQueues()
     {
-        if(queueGroupId == Ogre::RENDER_QUEUE_OVERLAY)
+        // this should really have been "postFindVisibleObjects", but changing it now will break too much existing code..
+        Ogre::Viewport* vp = Ogre::Root::getSingletonPtr()->getRenderSystem()->_getViewport();
+        if(vp != NULL)
         {
-            Ogre::Viewport* vp = Ogre::Root::getSingletonPtr()->getRenderSystem()->_getViewport();
-            if(vp != NULL)
+            Ogre::SceneManager* sceneMgr = vp->getCamera()->getSceneManager();
+            if (vp->getOverlaysEnabled() && sceneMgr->_getCurrentRenderStage() != Ogre::SceneManager::IRS_RENDER_TO_TEXTURE)
             {
-                Ogre::SceneManager* sceneMgr = vp->getCamera()->getSceneManager();
-                if (vp->getOverlaysEnabled() && sceneMgr->_getCurrentRenderStage() != Ogre::SceneManager::IRS_RENDER_TO_TEXTURE)
-                {
-                    OverlayManager::getSingleton()._queueOverlaysForRendering(vp->getCamera(), sceneMgr->getRenderQueue(), vp);
-                }
+                OverlayManager::getSingleton()._queueOverlaysForRendering(vp->getCamera(), sceneMgr->getRenderQueue(), vp);
             }
         }
     }

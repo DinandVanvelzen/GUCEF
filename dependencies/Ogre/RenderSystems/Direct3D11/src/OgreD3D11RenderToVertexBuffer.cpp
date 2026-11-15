@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,10 @@ THE SOFTWARE.
 #include "OgreD3D11HardwareBufferManager.h"
 #include "OgreD3D11RenderToVertexBuffer.h"
 #include "OgreHardwareBufferManager.h"
-#include "OgreD3D11HardwareVertexBuffer.h"
+#include "OgreD3D11HardwareBuffer.h"
 #include "OgreRenderable.h"
-#include "OgreSceneManager.h"
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
-#include "OgreTechnique.h"
-#include "OgreStringConverter.h"
 #include "OgreD3D11RenderSystem.h"
 #include "OgreD3D11HLSLProgram.h"
 
@@ -44,45 +41,27 @@ namespace Ogre {
     D3D11RenderToVertexBuffer::D3D11RenderToVertexBuffer(D3D11Device & device, 
                                                          D3D11HardwareBufferManagerBase * bufManager) 
         : mDevice(device)
-        ,  mFrontBufferIndex(-1)
         , mBufManager(bufManager)
         , mpGeometryShader(0)
     {
-        mVertexBuffers[0].setNull();
-        mVertexBuffers[1].setNull();
+        mVertexBuffers[0].reset();
+        mVertexBuffers[1].reset();
     }
 
     D3D11RenderToVertexBuffer::~D3D11RenderToVertexBuffer(void)
     {
     }
 
-    void D3D11RenderToVertexBuffer::getRenderOperation(RenderOperation& op)
-    {
-        op.operationType = mOperationType;
-        op.useIndexes = false;
-        op.useGlobalInstancingVertexBufferIsAvailable = false;
-        op.vertexData = mVertexData;
-    }
-
     void D3D11RenderToVertexBuffer::setupGeometryShaderLinkageToStreamOut(Pass* pass)
     {
         static bool done =  false;
 
-        if (done)
+        if (done || !pass->hasGeometryProgram())
             return;
 
-        assert(pass->hasGeometryProgram());
         const GpuProgramPtr& program = pass->getGeometryProgram();
 
-        D3D11HLSLProgram* dx11Program = 0;
-        if (program->getSyntaxCode()=="unified")
-        {
-            dx11Program = static_cast<D3D11HLSLProgram*>(program->_getBindingDelegate());
-        }
-        else
-        {
-            dx11Program = static_cast<D3D11HLSLProgram*>(program.getPointer());
-        }
+        D3D11HLSLProgram* dx11Program = static_cast<D3D11HLSLProgram*>(program->_getBindingDelegate());
         dx11Program->reinterpretGSForStreamOut();
 
         done = true;
@@ -90,39 +69,30 @@ namespace Ogre {
     }
     void D3D11RenderToVertexBuffer::update(SceneManager* sceneMgr)
     {
-        //Single pass only for now
-        Ogre::Pass* r2vbPass = mMaterial->getBestTechnique()->getPass(0);
+        Ogre::Pass* r2vbPass = derivePass(sceneMgr);
 
         setupGeometryShaderLinkageToStreamOut(r2vbPass);
 
         size_t bufSize = mVertexData->vertexDeclaration->getVertexSize(0) * mMaxVertexCount;
-        if (mVertexBuffers[0].isNull() || mVertexBuffers[0]->getSizeInBytes() != bufSize)
+        if (!mVertexBuffers[0] || mVertexBuffers[0]->getSizeInBytes() != bufSize)
         {
             //Buffers don't match. Need to reallocate.
             mResetRequested = true;
         }
 
-        //Set pass before binding buffers to activate the GPU programs
-        sceneMgr->_setPass(r2vbPass);
-
         RenderOperation renderOp;
-        size_t targetBufferIndex;
+        auto targetBufferIndex = mTargetBufferIndex;
         if (mResetRequested || mResetsEveryUpdate)
         {
             //Use source data to render to first buffer
             mSourceRenderable->getRenderOperation(renderOp);
-            targetBufferIndex = 0;
         }
         else
         {
-            //Use current front buffer to render to back buffer
-            renderOp.operationType = mOperationType;
-            renderOp.useIndexes = false;
-            renderOp.vertexData = mVertexData;
-            targetBufferIndex = 1 - mFrontBufferIndex;
+            getRenderOperation(renderOp);
         }
 
-        if (mVertexBuffers[targetBufferIndex].isNull() || 
+        if (!mVertexBuffers[targetBufferIndex] || 
             mVertexBuffers[targetBufferIndex]->getSizeInBytes() != bufSize)
         {
             reallocateBuffer(targetBufferIndex);
@@ -131,40 +101,21 @@ namespace Ogre {
         RenderSystem* targetRenderSystem = Root::getSingleton().getRenderSystem();
 
         //Draw the object
-        targetRenderSystem->_setWorldMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setViewMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setProjectionMatrix(Matrix4::IDENTITY);
-
-        D3D11HardwareVertexBuffer* vertexBuffer = static_cast<D3D11HardwareVertexBuffer*>(mVertexBuffers[targetBufferIndex].getPointer());
+        auto vertexBuffer = mVertexBuffers[targetBufferIndex]->_getImpl<D3D11HardwareBuffer>();
     
         UINT offset[1] = { 0 };
         ID3D11Buffer* iBuffer[1];
-        iBuffer[0] = vertexBuffer->getD3DVertexBuffer();
+        iBuffer[0] = vertexBuffer->getD3DBuffer();
         mDevice.GetImmediateContext()->SOSetTargets( 1, iBuffer, offset );
-
-        if (r2vbPass->hasVertexProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM, 
-                r2vbPass->getVertexProgramParameters(), GPV_ALL);
-        }
-        if (r2vbPass->hasGeometryProgram())
-        {
-            targetRenderSystem->bindGpuProgramParameters(GPT_GEOMETRY_PROGRAM,
-                r2vbPass->getGeometryProgramParameters(), GPV_ALL);
-        }
-
         // Remove fragment program
         mDevice.GetImmediateContext()->PSSetShader(NULL, NULL, 0);
 
         targetRenderSystem->_render(renderOp);  
 
-        //Switch the vertex binding if necessary
-        if (targetBufferIndex != mFrontBufferIndex)
-        {
-            mVertexData->vertexBufferBinding->unsetAllBindings();
-            mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
-            mFrontBufferIndex = targetBufferIndex;
-        }
+        //Switch the vertex binding
+        mVertexData->vertexBufferBinding->unsetAllBindings();
+        mVertexData->vertexBufferBinding->setBinding(0, mVertexBuffers[targetBufferIndex]);
+        mTargetBufferIndex = mTargetBufferIndex == 0 ? 1 : 0;
 
         // Remove stream output buffer 
         iBuffer[0]=NULL;
@@ -179,9 +130,9 @@ namespace Ogre {
     void D3D11RenderToVertexBuffer::reallocateBuffer(size_t index)
     {
         assert(index == 0 || index == 1);
-        if (!mVertexBuffers[index].isNull())
+        if (mVertexBuffers[index])
         {
-            mVertexBuffers[index].setNull();
+            mVertexBuffers[index].reset();
         }
 
         mVertexBuffers[index] = mBufManager->createStreamOutputVertexBuffer(

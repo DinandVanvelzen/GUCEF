@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,8 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreInstanceBatchHW_VTF.h"
-#include "OgreSubMesh.h"
-#include "OgreHardwareBufferManager.h"
 #include "OgreHardwarePixelBuffer.h"
 #include "OgreInstancedEntity.h"
-#include "OgreCamera.h"
-#include "OgreRoot.h"
 
 namespace Ogre
 {
@@ -65,21 +61,15 @@ namespace Ogre
         thisVertexData->vertexCount = baseVertexData->vertexCount;
         mRenderOperation.numberOfInstances = mInstancesPerBatch;
 
-        HardwareBufferManager::getSingleton().destroyVertexDeclaration(
-                                                                    thisVertexData->vertexDeclaration );
+        HardwareBufferManager::getSingleton().destroyVertexDeclaration(thisVertexData->vertexDeclaration );
         thisVertexData->vertexDeclaration = baseVertexData->vertexDeclaration->clone();
 
         //Reuse all vertex buffers
-        VertexBufferBinding::VertexBufferBindingMap::const_iterator itor = baseVertexData->
-                                                            vertexBufferBinding->getBindings().begin();
-        VertexBufferBinding::VertexBufferBindingMap::const_iterator end  = baseVertexData->
-                                                            vertexBufferBinding->getBindings().end();
-        while( itor != end )
+        for (auto& v : baseVertexData->vertexBufferBinding->getBindings())
         {
-            const unsigned short bufferIdx = itor->first;
-            const HardwareVertexBufferSharedPtr vBuf = itor->second;
+            const unsigned short bufferIdx = v.first;
+            const HardwareVertexBufferSharedPtr vBuf = v.second;
             thisVertexData->vertexBufferBinding->setBinding( bufferIdx, vBuf );
-            ++itor;
         }
 
         //Remove the blend weights & indices
@@ -87,8 +77,7 @@ namespace Ogre
         HWBoneWgtVec hwBoneWgt;
 
         //Blend weights may not be present because HW_VTF does not require to be skeletally animated
-        const VertexElement *veWeights = baseVertexData->vertexDeclaration->
-                                                        findElementBySemantic( VES_BLEND_WEIGHTS ); 
+        const VertexElement *veWeights = baseVertexData->vertexDeclaration->findElementBySemantic( VES_BLEND_WEIGHTS );
         if( veWeights )
             mWeightCount = forceOneWeight() ? 1 : veWeights->getSize() / sizeof(float);
         else
@@ -96,7 +85,7 @@ namespace Ogre
 
         hwBoneIdx.resize( baseVertexData->vertexCount * mWeightCount, 0 );
 
-        if( mMeshReference->hasSkeleton() && !mMeshReference->getSkeleton().isNull() )
+        if( mMeshReference->hasSkeleton() && mMeshReference->getSkeleton() )
         {
             if(mWeightCount > 1)
             {
@@ -174,7 +163,8 @@ namespace Ogre
             HardwareBuffer::HBU_STATIC_WRITE_ONLY );
         thisVertexData->vertexBufferBinding->setBinding( newSource, vertexBuffer );
 
-        float *thisFloat = static_cast<float*>(vertexBuffer->lock(HardwareBuffer::HBL_DISCARD));
+        HardwareBufferLockGuard vertexLock(vertexBuffer, HardwareBuffer::HBL_DISCARD);
+        float *thisFloat = static_cast<float*>(vertexLock.pData);
 
         //Create the UVs to sample from the right bone/matrix
         for( size_t j=0; j < baseVertexData->vertexCount * mWeightCount; j += mWeightCount)
@@ -225,12 +215,11 @@ namespace Ogre
             }
         }
 
-        vertexBuffer->unlock();
+        vertexLock.unlock();
 
         //Now create the instance buffer that will be incremented per instance, contains UV offsets
         newSource = thisVertexData->vertexDeclaration->getMaxSource() + 1;
-        offset = thisVertexData->vertexDeclaration->addElement( newSource, 0, VET_FLOAT2, VES_TEXTURE_COORDINATES,
-                                    thisVertexData->vertexDeclaration->getNextFreeTextureCoordinate() ).getSize();
+        offset = thisVertexData->vertexDeclaration->addElement( newSource, 0, VET_FLOAT2, VES_TEXTURE_COORDINATES,thisVertexData->vertexDeclaration->getNextFreeTextureCoordinate() ).getSize();
         if (useBoneMatrixLookup())
         {
             //if using bone matrix lookup we will need to add 3 more float4 to contain the matrix. containing
@@ -280,7 +269,8 @@ namespace Ogre
             texelOffsets.x = /*renderSystem->getHorizontalTexelOffset()*/ -0.5f / texWidth;
             texelOffsets.y = /*renderSystem->getHorizontalTexelOffset()*/ -0.5f / texHeight;
 
-            float *thisVec = static_cast<float*>(mInstanceVertexBuffer->lock(HardwareBuffer::HBL_DISCARD));
+            HardwareBufferLockGuard instanceVertexLock(mInstanceVertexBuffer, HardwareBuffer::HBL_DISCARD);
+            float *thisVec = static_cast<float*>(instanceVertexLock.pData);
 
             const size_t maxPixelsPerLine = std::min( static_cast<size_t>(mMatrixTexture->getWidth()), mMaxFloatsPerLine >> 2 );
 
@@ -303,7 +293,7 @@ namespace Ogre
 
                     if (useMatrixLookup)
                     {
-                        const Matrix4& mat =  entity->_getParentNodeFullTransform();
+                        const Affine3& mat =  entity->_getParentNodeFullTransform();
                         *(thisVec)     = static_cast<float>( mat[0][0] );
                         *(thisVec + 1) = static_cast<float>( mat[0][1] );
                         *(thisVec + 2) = static_cast<float>( mat[0][2] );
@@ -328,8 +318,6 @@ namespace Ogre
                     ++visibleEntityCount;
                 }
             }
-
-            mInstanceVertexBuffer->unlock();
         }
         else
         {
@@ -369,11 +357,13 @@ namespace Ogre
 
         //VTF & HW Instancing must be supported
         if( capabilities->hasCapability( RSC_VERTEX_BUFFER_INSTANCE_DATA ) &&
-            capabilities->hasCapability( RSC_VERTEX_TEXTURE_FETCH ) )
+            capabilities->getNumVertexTextureUnits() )
         {
             //TODO: Check PF_FLOAT32_RGBA is supported (should be, since it was the 1st one)
             const size_t numBones = std::max<size_t>( 1, baseSubMesh->blendIndexToBoneIndexMap.size() );
 
+            // mRowLength can only be 2 or 3
+            static_assert(3 * OGRE_MAX_NUM_BONES < c_maxTexWidthHW, "Too many bones for VTF");
             const size_t maxUsableWidth = c_maxTexWidthHW - (c_maxTexWidthHW % (numBones * mRowLength));
 
             //See InstanceBatchHW::calculateMaxNumInstances for the 65535
@@ -419,14 +409,14 @@ namespace Ogre
         mDirtyAnimation = false;
 
         //Now lock the texture and copy the 4x3 matrices!
-        mMatrixTexture->getBuffer()->lock( HardwareBuffer::HBL_DISCARD );
+        HardwareBufferLockGuard matTexLock(mMatrixTexture->getBuffer(), HardwareBuffer::HBL_DISCARD);
         const PixelBox &pixelBox = mMatrixTexture->getBuffer()->getCurrentLock();
 
-        float *pSource = static_cast<float*>(pixelBox.data);
+        float *pSource = reinterpret_cast<float*>(pixelBox.data);
         
         InstancedEntityVec::const_iterator itor = mInstancedEntities.begin();
         
-        vector<bool>::type writtenPositions(getMaxLookupTableInstances(), false);
+        std::vector<bool> writtenPositions(getMaxLookupTableInstances(), false);
 
         size_t floatPerEntity = mMatricesPerInstance * mRowLength * 4;
         size_t entitiesPerPadding = (size_t)(mMaxFloatsPerLine / floatPerEntity);
@@ -434,11 +424,11 @@ namespace Ogre
         size_t instanceCount = mInstancedEntities.size();
         size_t updatedInstances = 0;
 
-        float* transforms = NULL;
+        Matrix3x4f* transforms = NULL;
         //If using dual quaternions, write 3x4 matrices to a temporary buffer, then convert to dual quaternions
         if(mUseBoneDualQuaternions)
         {
-            transforms = mTempTransformsArray3x4;
+            transforms = (Matrix3x4f*)mTempTransformsArray3x4;
         }
         
         for(size_t i = 0 ; i < instanceCount ; ++i)
@@ -461,7 +451,7 @@ namespace Ogre
 
                 if(!mUseBoneDualQuaternions)
                 {
-                    transforms = pDest;
+                    transforms = (Matrix3x4f*)pDest;
                 }
                 
                 if( mMeshReference->hasSkeleton() )
@@ -470,7 +460,7 @@ namespace Ogre
                 size_t floatsWritten = entity->getTransforms3x4( transforms );
 
                 if( !useMatrixLookup && mManager->getCameraRelativeRendering() )
-                    makeMatrixCameraRelative3x4( transforms, floatsWritten );
+                    makeMatrixCameraRelative3x4( transforms, floatsWritten / 12 );
 
                 if(mUseBoneDualQuaternions)
                 {
@@ -494,8 +484,6 @@ namespace Ogre
         {
             renderedInstances = updatedInstances;
         }
-
-        mMatrixTexture->getBuffer()->unlock();
 
         return renderedInstances;
     }
@@ -535,12 +523,9 @@ namespace Ogre
         }
         else
         {
-            if( mManager->getCameraRelativeRendering() )
-            {
-                OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Camera-relative rendering is incompatible"
-                    " with Instancing's static batches. Disable at least one of them",
-                    "InstanceBatch::_updateRenderQueue");
-            }
+            OgreAssert(!mManager->getCameraRelativeRendering(),
+                       "Camera-relative rendering is incompatible with Instancing's static batches. "
+                       "Disable at least one of them");
 
             //Don't update when we're static
             if( mRenderOperation.numberOfInstances )

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +27,8 @@ THE SOFTWARE.
 */
 
 #include "OgreStableHeaders.h"
-#include "OgreCommon.h"
-#include "OgreLight.h"
 #include "OgreShadowCameraSetupPlaneOptimal.h"
 #include "OgreNumerics.h"
-#include "OgreCamera.h"
 #include "OgreMovablePlane.h"
 
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC
@@ -47,8 +44,8 @@ namespace Ogre
     // --------------------------------------------------------------------
     Matrix4 PlaneOptimalShadowCameraSetup::computeConstrainedProjection(
         const Vector4& pinhole, 
-        const vector<Vector4>::type& fpoint, 
-        const vector<Vector2>::type& constraint) const
+        const std::vector<Vector4>& fpoint, 
+        const std::vector<Vector2>& constraint) const
     {
         // NOTE: will assume the z coordinates should be decided such that
         // the first 3 points (in fpoint) will have post projective
@@ -67,17 +64,17 @@ namespace Ogre
         }
 
         // allocate memory
-        PreciseReal **mat = NULL;
-        PreciseReal **backmat = NULL;
+        double **mat = NULL;
+        double **backmat = NULL;
         {
-            mat = OGRE_ALLOC_T(PreciseReal*, 11, MEMCATEGORY_SCENE_CONTROL);
+            mat = OGRE_ALLOC_T(double*, 11, MEMCATEGORY_SCENE_CONTROL);
             if(incrPrecision)
-                backmat = OGRE_ALLOC_T(PreciseReal*, 11, MEMCATEGORY_SCENE_CONTROL);
+                backmat = OGRE_ALLOC_T(double*, 11, MEMCATEGORY_SCENE_CONTROL);
             for(i=0; i<11; i++) 
             {
-                mat[i] = OGRE_ALLOC_T(PreciseReal, 11, MEMCATEGORY_SCENE_CONTROL);
+                mat[i] = OGRE_ALLOC_T(double, 11, MEMCATEGORY_SCENE_CONTROL);
                 if(incrPrecision)
-                    backmat[i] = OGRE_ALLOC_T(PreciseReal, 11, MEMCATEGORY_SCENE_CONTROL);
+                    backmat[i] = OGRE_ALLOC_T(double, 11, MEMCATEGORY_SCENE_CONTROL);
             }
         }
 
@@ -87,8 +84,8 @@ namespace Ogre
         // we choose a nonzero element of the last row to set to the arbitrary
         // constant 1.0.
         int nzind = 3;
-        PreciseReal col[11];
-        PreciseReal backcol[11];
+        double col[11];
+        double backcol[11];
 
         // fill in light position constraints
         mat[0][0] = pinhole.x;
@@ -107,7 +104,7 @@ namespace Ogre
         mat[1][7] = pinhole.w;
         col[1] = 0.0;
 
-        PreciseReal larr[4];
+        double larr[4];
         larr[0] = pinhole.x;
         larr[1] = pinhole.y;
         larr[2] = pinhole.z;
@@ -187,7 +184,7 @@ namespace Ogre
         {
             for (int k=0; k<3; k++)
             {
-                PreciseReal nvec[11];
+                double nvec[11];
                 for(i=0; i<11; i++)
                 {
                     int j;
@@ -209,7 +206,7 @@ namespace Ogre
             }
         }
 
-        PreciseReal row4[4];
+        double row4[4];
         ind = 8;
         for(i=0; i<4; i++)
         {
@@ -221,7 +218,7 @@ namespace Ogre
 
 
         // now solve for the 3rd row which affects depth precision
-        PreciseReal zrow[4];
+        double zrow[4];
 
         // we want the affine skew such that isoplanes of constant depth are parallel to
         // the world plane of interest
@@ -285,7 +282,7 @@ namespace Ogre
     // --------------------------------------------------------------------
 
     /// Construct object to consider a specified plane of interest
-    PlaneOptimalShadowCameraSetup::PlaneOptimalShadowCameraSetup(MovablePlane* plane)
+    PlaneOptimalShadowCameraSetup::PlaneOptimalShadowCameraSetup(const MovablePlane* plane)
     {
         mPlane = plane;
     }
@@ -306,7 +303,7 @@ namespace Ogre
         Matrix4 camProjection = cam->getProjectionMatrix() * cam->getViewMatrix();
 
         // get the world points to constrain
-        vector<Vector4>::type vhull;
+        std::vector<Vector4> vhull;
         cam->forwardIntersect(worldPlane, &vhull);
         if (vhull.size() < 4)
             return;
@@ -332,7 +329,7 @@ namespace Ogre
                                  0.0, 0.0, 0.0, 5.0,
                                  0.0, 0.0, 0.0, 5.0,
                                  0.0, 0.0, 0.0, 1.0);
-                texCam->setCustomViewMatrix(true, Matrix4::IDENTITY);
+                texCam->setCustomViewMatrix(true, Affine3::IDENTITY);
                 texCam->setCustomProjectionMatrix(true, crazyMat);  
                 return;
             }
@@ -342,7 +339,7 @@ namespace Ogre
         vhull.resize(4);
 
         // get the post-projective coordinate constraints
-        vector<Vector2>::type constraint;
+        std::vector<Vector2> constraint;
         for (int i=0; i<4; i++)
         {
             Vector4 postProjPt = camProjection * vhull[i];
@@ -365,7 +362,7 @@ namespace Ogre
             // It's point or spotlight
             Vector4 displacement = oldPt - pinhole;
             Vector3 displace3    = Vector3(displacement.x, displacement.y, displacement.z);
-            Real dotProd = fabs(displace3.dotProduct(worldPlane.normal));
+            Real dotProd = std::fabs(displace3.dotProduct(worldPlane.normal));
             static const Real NEAR_FACTOR = 0.05;
             newPt = pinhole + (displacement * (cam->getNearClipDistance() * NEAR_FACTOR / dotProd));
         }
@@ -379,7 +376,7 @@ namespace Ogre
             // TODO: factor into view and projection pieces.
             // Note: In fact, it's unnecessary to factor into view and projection pieces,
             // but if we do, we will more according with academic requirement :)
-            texCam->setCustomViewMatrix(true, Matrix4::IDENTITY);
+            texCam->setCustomViewMatrix(true, Affine3::IDENTITY);
             texCam->setCustomProjectionMatrix(true, customMatrix);
             return;
         }
@@ -387,14 +384,12 @@ namespace Ogre
         Vector3 tempPos = Vector3(pinhole.x, pinhole.y, pinhole.z);
 
         // factor into view and projection pieces
-        Matrix4    translation(1.0, 0.0, 0.0,  tempPos.x,
+        Affine3    translation(1.0, 0.0, 0.0,  tempPos.x,
             0.0, 1.0, 0.0,  tempPos.y,
-            0.0, 0.0, 1.0,  tempPos.z,
-            0.0, 0.0, 0.0,  1.0);
-        Matrix4 invTranslation(1.0, 0.0, 0.0, -tempPos.x,
+            0.0, 0.0, 1.0,  tempPos.z);
+        Affine3 invTranslation(1.0, 0.0, 0.0, -tempPos.x,
             0.0, 1.0, 0.0, -tempPos.y,
-            0.0, 0.0, 1.0, -tempPos.z,
-            0.0, 0.0, 0.0,  1.0);
+            0.0, 0.0, 1.0, -tempPos.z);
         Matrix4 tempMatrix = customMatrix * translation;
         Vector3 zRow(-tempMatrix[3][0], -tempMatrix[3][1], -tempMatrix[3][2]);
         zRow.normalise();
@@ -403,15 +398,11 @@ namespace Ogre
             up = Vector3(1,0,0);
         else
             up = Vector3(0,1,0);
-        Vector3 xDir = up.crossProduct(zRow);
-        xDir.normalise();
-        up = zRow.crossProduct(xDir);
-        Matrix4 rotation(xDir.x, up.x, zRow.x, 0.0,
-            xDir.y, up.y, zRow.y, 0.0,
-            xDir.z, up.z, zRow.z, 0.0,
-            0.0,  0.0,    0.0, 1.0 );
+
+        Affine3 rotation = Affine3::IDENTITY;
+        rotation = Math::lookRotation(zRow, up);
         Matrix4 customProj = tempMatrix * rotation;
-        Matrix4 customView = rotation.transpose() * invTranslation;
+        Affine3 customView(rotation.transpose() * invTranslation);
         // note: now customProj * (0,0,0,1)^t = (0, 0, k, 0)^t for k some constant
         // note: also customProj's 4th row is (0, 0, c, 0) for some negative c.
 

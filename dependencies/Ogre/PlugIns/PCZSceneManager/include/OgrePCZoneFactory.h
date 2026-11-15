@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,14 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-OgrePCZoneFactory.h  -  PCZone Factory & Factory Manager
-
------------------------------------------------------------------------------
-begin                : Mon Apr 16 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    :
------------------------------------------------------------------------------
 */
 
 #ifndef PCZONE_FACTORY_H
@@ -39,7 +31,7 @@ Code Style Update    :
 
 #include "OgrePCZPrerequisites.h"
 #include "OgreSingleton.h"
-#include "OgreIteratorWrappers.h"
+#include "OgreIteratorWrapper.h"
 
 namespace Ogre
 {
@@ -65,8 +57,8 @@ namespace Ogre
     public:
         DefaultZoneFactory();
         virtual ~DefaultZoneFactory();
-        bool supportsPCZoneType(const String& zoneType);
-        PCZone* createPCZone(PCZSceneManager * pczsm, const String& zoneName);
+        bool supportsPCZoneType(const String& zoneType) override;
+        PCZone* createPCZone(PCZSceneManager * pczsm, const String& zoneName) override;
     };
 
     // PCZoneFactory manager class
@@ -80,41 +72,13 @@ namespace Ogre
         PCZone* createPCZone(PCZSceneManager * pczsm,
                              const String& zoneType, 
                              const String& zoneName);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static PCZoneFactoryManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static PCZoneFactoryManager* getSingletonPtr(void);
         /* PCZoneFactory Iterator - for querying what types of PCZone
         factories are available */
-        typedef map<String, PCZoneFactory*>::type PCZoneFactoryMap;
+        typedef std::map<String, PCZoneFactory*> PCZoneFactoryMap;
         typedef MapIterator<PCZoneFactoryMap> PCZoneFactoryIterator;
         /** Return an iterator over the PCZone factories currently registered */
         PCZoneFactoryIterator getPCZoneFactoryIterator(void);

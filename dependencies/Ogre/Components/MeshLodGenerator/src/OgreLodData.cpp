@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
  * THE SOFTWARE.
  * -----------------------------------------------------------------------------
  */
-#include "OgreLodData.h"
+#include "OgreMeshLodPrecompiledHeaders.h"
 
 namespace Ogre
 {
@@ -70,19 +70,19 @@ size_t LodData::VertexHash::operator() (const LodData::Vertex* v) const
     return (size_t)hash;
 }
 
-void LodData::Triangle::computeNormal()
+unsigned int LodData::Line::getVertexID(const LodData::Vertex* v) const
 {
-    // Cross-product 2 edges
-    Vector3 e1 = vertex[1]->position - vertex[0]->position;
-    Vector3 e2 = vertex[2]->position - vertex[1]->position;
-
-    normal = e1.crossProduct(e2);
-    normal.normalise();
+    for (int i = 0; i < 2; i++) {
+        if (vertex[i] == v) {
+            return vertexID[i];
+        }
+    }
+    OgreAssert(0, "");
+    return 0;
 }
-
-bool LodData::Triangle::hasVertex(const LodData::Vertex* v) const
+bool LodData::Line::isMalformed()
 {
-    return (v == vertex[0] || v == vertex[1] || v == vertex[2]);
+    return vertex[0] == vertex[1];
 }
 
 unsigned int LodData::Triangle::getVertexID(const LodData::Vertex* v) const

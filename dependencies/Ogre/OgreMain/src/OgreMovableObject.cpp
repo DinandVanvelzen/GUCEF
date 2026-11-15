@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,16 +27,9 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreMovableObject.h"
-#include "OgreSceneNode.h"
 #include "OgreTagPoint.h"
-#include "OgreLight.h"
 #include "OgreEntity.h"
-#include "OgreRoot.h"
-#include "OgreSceneManager.h"
-#include "OgreCamera.h"
 #include "OgreLodListener.h"
-#include "OgreTechnique.h"
 
 namespace Ogre {
     //-----------------------------------------------------------------------
@@ -44,54 +37,29 @@ namespace Ogre {
     uint32 MovableObject::msDefaultQueryFlags = 0xFFFFFFFF;
     uint32 MovableObject::msDefaultVisibilityFlags = 0xFFFFFFFF;
     //-----------------------------------------------------------------------
-    MovableObject::MovableObject()
-        : mCreator(0)
-        , mManager(0)
-        , mParentNode(0)
-        , mParentIsTagPoint(false)
-        , mVisible(true)
-        , mDebugDisplay(false)
-        , mUpperDistance(0)
-        , mSquaredUpperDistance(0)
-        , mMinPixelSize(0)
-        , mBeyondFarDistance(false)
-        , mRenderQueueID(RENDER_QUEUE_MAIN)
-        , mRenderQueueIDSet(false)
-        , mRenderQueuePriority(100)
-        , mRenderQueuePrioritySet(false)
-        , mQueryFlags(msDefaultQueryFlags)
-        , mVisibilityFlags(msDefaultVisibilityFlags)
-        , mCastShadows(true)
-        , mRenderingDisabled(false)
-        , mListener(0)
-        , mLightListUpdated(0)
-        , mLightMask(0xFFFFFFFF)
-    {
-        if (Root::getSingletonPtr())
-            mMinPixelSize = Root::getSingleton().getDefaultMinPixelSize();
-    }
+    MovableObject::MovableObject() : MovableObject(BLANKSTRING) {}
     //-----------------------------------------------------------------------
     MovableObject::MovableObject(const String& name)
         : mName(name)
         , mCreator(0)
         , mManager(0)
         , mParentNode(0)
+        , mListener(0)
         , mParentIsTagPoint(false)
         , mVisible(true)
         , mDebugDisplay(false)
+        , mBeyondFarDistance(false)
+        , mCastShadows(true)
+        , mRenderQueueIDSet(false)
+        , mRenderQueuePrioritySet(false)
+        , mRenderingDisabled(false)
+        , mRenderQueueID(RENDER_QUEUE_MAIN)
+        , mRenderQueuePriority(100)
         , mUpperDistance(0)
         , mSquaredUpperDistance(0)
         , mMinPixelSize(0)
-        , mBeyondFarDistance(false)
-        , mRenderQueueID(RENDER_QUEUE_MAIN)
-        , mRenderQueueIDSet(false)
-        , mRenderQueuePriority(100)
-        , mRenderQueuePrioritySet(false)
         , mQueryFlags(msDefaultQueryFlags)
         , mVisibilityFlags(msDefaultVisibilityFlags)
-        , mCastShadows(true)
-        , mRenderingDisabled(false)
-        , mListener(0)
         , mLightListUpdated(0)
         , mLightMask(0xFFFFFFFF)
     {
@@ -107,22 +75,7 @@ namespace Ogre {
             mListener->objectDestroyed(this);
         }
 
-        if (mParentNode)
-        {
-            // detach from parent
-            if (mParentIsTagPoint)
-            {
-                // May be we are a LOD entity which not in the parent entity child object list,
-                // call this method could safely ignore this case.
-                static_cast<TagPoint*>(mParentNode)->getParentEntity()->detachObjectFromBone(this);
-            }
-            else
-            {
-                // May be we are a LOD entity which not in the parent node child object list,
-                // call this method could safely ignore this case.
-                static_cast<SceneNode*>(mParentNode)->detachObject(this);
-            }
-        }
+        detachFromParent(); // this should never throw, if it does terminating is the thing to do
     }
     //-----------------------------------------------------------------------
     void MovableObject::_notifyAttached(Node* parent, bool isTagPoint)
@@ -148,11 +101,6 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    Node* MovableObject::getParentNode(void) const
-    {
-        return mParentNode;
-    }
-    //-----------------------------------------------------------------------
     SceneNode* MovableObject::getParentSceneNode(void) const
     {
         if (mParentIsTagPoint)
@@ -164,12 +112,6 @@ namespace Ogre {
         {
             return static_cast<SceneNode*>(mParentNode);
         }
-    }
-    //-----------------------------------------------------------------------
-    bool MovableObject::isAttached(void) const
-    {
-        return (mParentNode != 0);
-
     }
     //---------------------------------------------------------------------
     void MovableObject::detachFromParent(void)
@@ -223,16 +165,6 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    void MovableObject::setVisible(bool visible)
-    {
-        mVisible = visible;
-    }
-    //-----------------------------------------------------------------------
-    bool MovableObject::getVisible(void) const
-    {
-        return mVisible;
-    }
-    //-----------------------------------------------------------------------
     bool MovableObject::isVisible(void) const
     {
         if (!mVisible || mBeyondFarDistance || mRenderingDisabled)
@@ -253,15 +185,12 @@ namespace Ogre {
 
             if (cam->getUseRenderingDistance() && mUpperDistance > 0)
             {
-                Real rad = getBoundingRadius();
-                Real squaredDepth = mParentNode->getSquaredViewDepth(cam->getLodCamera());
-
-                const Vector3& scl = mParentNode->_getDerivedScale();
-                Real factor = std::max(std::max(scl.x, scl.y), scl.z);
+                Real rad = getBoundingRadiusScaled();
+                Real squaredDist = mParentNode->getSquaredViewDepth(cam->getLodCamera());
 
                 // Max distance to still render
-                Real maxDist = mUpperDistance + rad * factor;
-                if (squaredDepth > Math::Sqr(maxDist))
+                Real maxDist = mUpperDistance + rad;
+                if (squaredDist > Math::Sqr(maxDist))
                 {
                     mBeyondFarDistance = true;
                 }
@@ -333,12 +262,7 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    uint8 MovableObject::getRenderQueueGroup(void) const
-    {
-        return mRenderQueueID;
-    }
-    //-----------------------------------------------------------------------
-    const Matrix4& MovableObject::_getParentNodeFullTransform(void) const
+    const Affine3& MovableObject::_getParentNodeFullTransform(void) const
     {
         
         if(mParentNode)
@@ -347,15 +271,23 @@ namespace Ogre {
             return mParentNode->_getFullTransform();
         }
         // fallback
-        return Matrix4::IDENTITY;
+        return Affine3::IDENTITY;
     }
+
+    Real MovableObject::getBoundingRadiusScaled() const
+    {
+        const Vector3& scl = mParentNode->_getDerivedScale();
+        Real factor = std::max(std::max(std::abs(scl.x), std::abs(scl.y)), std::abs(scl.z));
+        return getBoundingRadius() * factor;
+    }
+
     //-----------------------------------------------------------------------
     const AxisAlignedBox& MovableObject::getWorldBoundingBox(bool derive) const
     {
         if (derive)
         {
             mWorldAABB = this->getBoundingBox();
-            mWorldAABB.transformAffine(_getParentNodeFullTransform());
+            mWorldAABB.transform(_getParentNodeFullTransform());
         }
 
         return mWorldAABB;
@@ -366,9 +298,7 @@ namespace Ogre {
     {
         if (derive)
         {
-            const Vector3& scl = mParentNode->_getDerivedScale();
-            Real factor = std::max(std::max(scl.x, scl.y), scl.z);
-            mWorldBoundingSphere.setRadius(getBoundingRadius() * factor);
+            mWorldBoundingSphere.setRadius(getBoundingRadiusScaled());
             mWorldBoundingSphere.setCenter(mParentNode->_getDerivedPosition());
         }
         return mWorldBoundingSphere;
@@ -404,10 +334,7 @@ namespace Ogre {
             {
                 mLightListUpdated = frame;
 
-                const Vector3& scl = mParentNode->_getDerivedScale();
-                Real factor = std::max(std::max(scl.x, scl.y), scl.z);
-
-                sn->findLights(mLightList, this->getBoundingRadius() * factor, this->getLightMask());
+                sn->findLights(mLightList, getBoundingRadiusScaled(), this->getLightMask());
             }
         }
         else
@@ -418,36 +345,25 @@ namespace Ogre {
         return mLightList;
     }
     //-----------------------------------------------------------------------
-    ShadowCaster::ShadowRenderableListIterator MovableObject::getShadowVolumeRenderableIterator(
-        ShadowTechnique shadowTechnique, const Light* light, 
-        HardwareIndexBufferSharedPtr* indexBuffer, size_t* indexBufferUsedSize,
-        bool inExtrudeVertices, Real extrusionDist, unsigned long flags )
-    {
-        static ShadowRenderableList dummyList;
-        return ShadowRenderableListIterator(dummyList.begin(), dummyList.end());
-    }
-    //-----------------------------------------------------------------------
-    const AxisAlignedBox& MovableObject::getLightCapBounds(void) const
-    {
-        // Same as original bounds
-        return getWorldBoundingBox();
-    }
-    //-----------------------------------------------------------------------
-    const AxisAlignedBox& MovableObject::getDarkCapBounds(const Light& light, Real extrusionDist) const
-    {
-        // Extrude own light cap bounds
-        mWorldDarkCapBounds = getLightCapBounds();
-        this->extrudeBounds(mWorldDarkCapBounds, light.getAs4DVector(), 
-            extrusionDist);
-        return mWorldDarkCapBounds;
-
-    }
-    //-----------------------------------------------------------------------
     Real MovableObject::getPointExtrusionDistance(const Light* l) const
     {
         if (mParentNode)
         {
-            return getExtrusionDistance(mParentNode->_getDerivedPosition(), l);
+            // exclude distance from the light to the shadow caster from the extrusion
+            Real extrusionDistance = l->getAttenuationRange() - getWorldBoundingBox().distance(l->getDerivedPosition());
+            if(extrusionDistance < 0)
+                extrusionDistance = 0;
+            
+            // Take into account that extrusion would be done in object-space,
+            // and non-uniformly scaled objects would cast non-uniformly scaled shadows.
+            Matrix3 m3 = _getParentNodeFullTransform().linear();
+            Real c0 = m3.GetColumn(0).squaredLength(), c1 = m3.GetColumn(1).squaredLength(), c2 = m3.GetColumn(2).squaredLength();
+            Real minScale = Math::Sqrt(std::min(std::min(c0, c1), c2));
+            Real maxScale = Math::Sqrt(std::max(std::max(c0, c1), c2));
+            if(minScale > 0.0)
+                extrusionDistance *= (maxScale / minScale);
+            
+            return extrusionDistance;
         }
         else
         {
@@ -482,13 +398,11 @@ namespace Ogre {
         {
 
         }
-        void visit(Renderable* rend, ushort lodIndex, bool isDebug, 
-            Any* pAny = 0)
+        void visit(Renderable* rend, ushort lodIndex, bool isDebug, Any* pAny = 0) override
         {
-            Technique* tech = rend->getTechnique();
-            bool techReceivesShadows = tech && tech->getParent()->getReceiveShadows();
-            anyReceiveShadows = anyReceiveShadows || 
-                techReceivesShadows || !tech;
+            const auto& mat = rend->getMaterial();
+            bool techReceivesShadows = !mat || mat->getReceiveShadows();
+            anyReceiveShadows = anyReceiveShadows || techReceivesShadows;
         }
     };
     //---------------------------------------------------------------------

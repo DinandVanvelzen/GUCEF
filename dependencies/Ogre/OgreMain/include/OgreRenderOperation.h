@@ -4,7 +4,7 @@
   (Object-oriented Graphics Rendering Engine)
   For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -42,10 +42,10 @@ namespace Ogre {
      *  @{
      */
     /** 'New' rendering operation using vertex buffers. */
-    class _OgrePrivate RenderOperation {
+    class _OgreExport RenderOperation {
     public:
         /// The rendering operation type to perform
-        enum OperationType {
+        enum OperationType : uint8 {
             /// A list of points, 1 vertex per point
             OT_POINT_LIST = 1,
             /// A list of lines, 2 vertices per line
@@ -90,11 +90,31 @@ namespace Ogre {
             OT_PATCH_29_CONTROL_POINT   = 35,
             OT_PATCH_30_CONTROL_POINT   = 36,
             OT_PATCH_31_CONTROL_POINT   = 37,
-            OT_PATCH_32_CONTROL_POINT   = 38
+            OT_PATCH_32_CONTROL_POINT   = 38,
+            // max valid base OT_ = (1 << 6) - 1
+            /// Mark that the index buffer contains adjacency information
+            OT_DETAIL_ADJACENCY_BIT     = 1 << 6,
+            /// like OT_POINT_LIST but with adjacency information for the geometry shader
+            OT_LINE_LIST_ADJ            = OT_LINE_LIST | OT_DETAIL_ADJACENCY_BIT,
+            /// like OT_LINE_STRIP but with adjacency information for the geometry shader
+            OT_LINE_STRIP_ADJ           = OT_LINE_STRIP | OT_DETAIL_ADJACENCY_BIT,
+            /// like OT_TRIANGLE_LIST but with adjacency information for the geometry shader
+            OT_TRIANGLE_LIST_ADJ        = OT_TRIANGLE_LIST | OT_DETAIL_ADJACENCY_BIT,
+            /// like OT_TRIANGLE_STRIP but with adjacency information for the geometry shader
+            OT_TRIANGLE_STRIP_ADJ       = OT_TRIANGLE_STRIP | OT_DETAIL_ADJACENCY_BIT,
         };
 
         /// Vertex source data
         VertexData *vertexData;
+
+        /// Index data - only valid if useIndexes is true
+        IndexData *indexData;
+        /// Debug pointer back to renderable which created this
+        const Renderable* srcRenderable;
+
+        /// The number of instances for the render operation - this option is supported
+        /// in only a part of the render systems.
+        uint32 numberOfInstances;
 
         /// The type of operation to perform
         OperationType operationType;
@@ -105,30 +125,16 @@ namespace Ogre {
             If true, then the indexBuffer, indexStart and numIndexes properties must be valid. */
         bool useIndexes;
 
-        /// Index data - only valid if useIndexes is true
-        IndexData *indexData;
-        /// Debug pointer back to renderable which created this
-        const Renderable* srcRenderable;
-
-        /// The number of instances for the render operation - this option is supported
-        /// in only a part of the render systems.
-        size_t numberOfInstances;
-
-        /// Specifies whether rendering to the vertex buffer.
-        bool renderToVertexBuffer;
-
         /** A flag to indicate that it is possible for this operation to use a global
             vertex instance buffer if available.*/
-        bool useGlobalInstancingVertexBufferIsAvailable;
+        bool useGlobalInstancing;
 
-    RenderOperation() :
-        vertexData(0), operationType(OT_TRIANGLE_LIST), useIndexes(true),
-            indexData(0), srcRenderable(0), numberOfInstances(1),
-            renderToVertexBuffer(false),
-            useGlobalInstancingVertexBufferIsAvailable(true)
-            {}
-
-
+        RenderOperation()
+            : vertexData(0), indexData(0), srcRenderable(0), numberOfInstances(1),
+              operationType(OT_TRIANGLE_LIST), useIndexes(true),
+              useGlobalInstancing(true)
+        {
+        }
     };
     /** @} */
     /** @} */

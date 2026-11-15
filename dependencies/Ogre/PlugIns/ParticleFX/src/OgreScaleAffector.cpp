@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +36,13 @@ namespace Ogre {
     // init statics
     ScaleAffector::CmdScaleAdjust ScaleAffector::msScaleCmd;
 
+    static SimpleParamCommand<ScaleAffector, const Vector2&, &ScaleAffector::getScaleRange,
+                              &ScaleAffector::setScaleRange>
+        msScaleRangeCmd;
+
     //-----------------------------------------------------------------------
     ScaleAffector::ScaleAffector(ParticleSystem* psys)
-        :ParticleAffector(psys)
+        :ParticleAffector(psys), mScaleRange(Vector2::UNIT_SCALE)
     {
         mScaleAdj = 0;
         mType = "Scaler";
@@ -48,41 +52,30 @@ namespace Ogre {
         {
             ParamDictionary* dict = getParamDictionary();
 
-            dict->addParameter(ParameterDef("rate", 
-                "The amount by which to adjust the x and y scale components of particles per second.",
-                PT_REAL), &msScaleCmd);
+            dict->addParameter("rate", &msScaleCmd);
+            dict->addParameter("scale_range", &msScaleRangeCmd);
         }
+    }
+    //-----------------------------------------------------------------------
+    void ScaleAffector::_initParticle(Particle* p)
+    {
+        float w = p->getOwnWidth();
+        float h = p->getOwnHeight();
+        float s = Math::RangeRandom(mScaleRange[0], mScaleRange[1]);
+        p->setDimensions(s * w, s * h);
     }
     //-----------------------------------------------------------------------
     void ScaleAffector::_affectParticles(ParticleSystem* pSystem, Real timeElapsed)
     {
-        ParticleIterator pi = pSystem->_getIterator();
-        Particle *p;
-        Real ds;
-
         // Scale adjustments by time
-        ds = mScaleAdj * timeElapsed;
+        float ds = mScaleAdj * timeElapsed;
 
-        Real NewWide, NewHigh;
-
-        while (!pi.end())
+        for (auto p : pSystem->_getActiveParticles())
         {
-            p = pi.getNext();
-
-            if( p->hasOwnDimensions() == false )
-            {
-                NewWide = pSystem->getDefaultWidth() + ds;
-                NewHigh = pSystem->getDefaultHeight() + ds;
-
-            }
-            else
-            {
-                NewWide = p->getOwnWidth()  + ds;
-                NewHigh = p->getOwnHeight() + ds;
-            }
-            p->setDimensions( NewWide, NewHigh ); 
+            float w = std::max(0.0f, p->getOwnWidth() + ds);
+            float h = std::max(0.0f, p->getOwnHeight() + ds);
+            p->setDimensions(w, h);
         }
-
     }
     //-----------------------------------------------------------------------
     void ScaleAffector::setAdjust( Real rate )

@@ -12,7 +12,17 @@
 -- Configuration for module: OgreRenderSystem_GL3Plus
 
 
-project( "OgreRenderSystem_GL3Plus" )
+configuration( { "LINUX32" } )
+  project( "OgreRenderSystem_GL3Plus" )
+
+configuration( { "LINUX64" } )
+  project( "OgreRenderSystem_GL3Plus" )
+
+configuration( { "WIN32" } )
+  project( "OgreRenderSystem_GL3Plus" )
+
+configuration( { "WIN64" } )
+  project( "OgreRenderSystem_GL3Plus" )
 
 configuration( {} )
   location( os.getenv( "PM5OUTPUTDIR" ) )
@@ -21,180 +31,186 @@ configuration( {} )
   targetdir( os.getenv( "PM5TARGETDIR" ) )
 
 configuration( {} )
+language( "C" )
+
+configuration( { "LINUX32" } )
 language( "C++" )
 
+configuration( { "LINUX64" } )
+language( "C++" )
+
+configuration( { "WIN32" } )
+language( "C++" )
+
+configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "LINUX32" } )
 
 
-configuration( {} )
+configuration( { LINUX32 } )
 kind( "SharedLib" )
-
-configuration( {} )
-links( { "Ogre" } )
-links( { "Ogre" } )
+configuration( { "LINUX64" } )
 
 
-configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus", "MODULE_NAME=OgreRenderSystem_GL3Plus", "RenderSystem_GL3Plus_EXPORTS" } )
-  links( { "GL" } )
-  links( { "GL" } )
-  links( { "opengl32" } )
-  links( { "opengl32" } )
+configuration( { LINUX64 } )
+kind( "SharedLib" )
+configuration( { "WIN32" } )
 
 
-configuration( {} )
-vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-files( {
-  "include/OgreGL3PlusContext.h",
-  "include/OgreGL3PlusDefaultHardwareBufferManager.h",
-  "include/OgreGL3PlusDepthBuffer.h",
-  "include/OgreGL3PlusFBOMultiRenderTarget.h",
-  "include/OgreGL3PlusFBORenderTexture.h",
-  "include/OgreGL3PlusFrameBufferObject.h",
-  "include/OgreGL3PlusHardwareBufferManager.h",
-  "include/OgreGL3PlusHardwareCounterBuffer.h",
-  "include/OgreGL3PlusHardwareIndexBuffer.h",
-  "include/OgreGL3PlusHardwareOcclusionQuery.h",
-  "include/OgreGL3PlusHardwarePixelBuffer.h",
-  "include/OgreGL3PlusHardwareShaderStorageBuffer.h",
-  "include/OgreGL3PlusHardwareUniformBuffer.h",
-  "include/OgreGL3PlusHardwareVertexBuffer.h",
-  "include/OgreGL3PlusPixelFormat.h",
-  "include/OgreGL3PlusPlugin.h",
-  "include/OgreGL3PlusPrerequisites.h",
-  "include/OgreGL3PlusRenderSystem.h",
-  "include/OgreGL3PlusRenderTexture.h",
-  "include/OgreGL3PlusRenderToVertexBuffer.h",
-  "include/OgreGL3PlusSupport.h",
-  "include/OgreGL3PlusTexture.h",
-  "include/OgreGL3PlusTextureBuffer.h",
-  "include/OgreGL3PlusTextureManager.h",
-  "include/OgreGL3PlusVertexArrayObject.h",
-  "include/GL/gl3w.h",
-  "include/GL/glcorearb.h",
-  "include/GL/glext.h",
-  "include/GL/glxext.h",
-  "include/GL/glxtokens-backup.h",
-  "include/GL/wglext.h",
-  "include/GLSL/OgreGLSLExtSupport.h",
-  "include/GLSL/OgreGLSLMonolithicProgram.h",
-  "include/GLSL/OgreGLSLMonolithicProgramManager.h",
-  "include/GLSL/OgreGLSLPreprocessor.h",
-  "include/GLSL/OgreGLSLProgram.h",
-  "include/GLSL/OgreGLSLProgramManager.h",
-  "include/GLSL/OgreGLSLSeparableProgram.h",
-  "include/GLSL/OgreGLSLSeparableProgramManager.h",
-  "include/GLSL/OgreGLSLShader.h",
-  "include/GLSL/OgreGLSLShaderFactory.h",
-  "include/GLSL/OgreGLSLShaderManager.h"
- } )
+configuration( { WIN32 } )
+kind( "SharedLib" )
+configuration( { "WIN64" } )
 
 
+configuration( { WIN64 } )
+kind( "SharedLib" )
+  
+configuration( { LINUX32 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport", "dl" } )
+  
 
-configuration( {} )
-vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-files( {
-  "src/OgreGL3PlusContext.cpp",
-  "src/OgreGL3PlusDefaultHardwareBufferManager.cpp",
-  "src/OgreGL3PlusDepthBuffer.cpp",
-  "src/OgreGL3PlusEngineDll.cpp",
-  "src/OgreGL3PlusFBOMultiRenderTarget.cpp",
-  "src/OgreGL3PlusFBORenderTexture.cpp",
-  "src/OgreGL3PlusFrameBufferObject.cpp",
-  "src/OgreGL3PlusHardwareBufferManager.cpp",
-  "src/OgreGL3PlusHardwareCounterBuffer.cpp",
-  "src/OgreGL3PlusHardwareIndexBuffer.cpp",
-  "src/OgreGL3PlusHardwareOcclusionQuery.cpp",
-  "src/OgreGL3PlusHardwarePixelBuffer.cpp",
-  "src/OgreGL3PlusHardwareShaderStorageBuffer.cpp",
-  "src/OgreGL3PlusHardwareUniformBuffer.cpp",
-  "src/OgreGL3PlusHardwareVertexBuffer.cpp",
-  "src/OgreGL3PlusPixelFormat.cpp",
-  "src/OgreGL3PlusPlugin.cpp",
-  "src/OgreGL3PlusRenderSystem.cpp",
-  "src/OgreGL3PlusRenderTexture.cpp",
-  "src/OgreGL3PlusRenderToVertexBuffer.cpp",
-  "src/OgreGL3PlusSupport.cpp",
-  "src/OgreGL3PlusTexture.cpp",
-  "src/OgreGL3PlusTextureBuffer.cpp",
-  "src/OgreGL3PlusTextureManager.cpp",
-  "src/OgreGL3PlusVertexArrayObject.cpp",
-  "src/gl3w.cpp",
-  "src/GLSL/OgreGLSLExtSupport.cpp",
-  "src/GLSL/OgreGLSLMonolithicProgram.cpp",
-  "src/GLSL/OgreGLSLMonolithicProgramManager.cpp",
-  "src/GLSL/OgreGLSLPreprocessor.cpp",
-  "src/GLSL/OgreGLSLProgram.cpp",
-  "src/GLSL/OgreGLSLProgramManager.cpp",
-  "src/GLSL/OgreGLSLSeparableProgram.cpp",
-  "src/GLSL/OgreGLSLSeparableProgramManager.cpp",
-  "src/GLSL/OgreGLSLShader.cpp",
-  "src/GLSL/OgreGLSLShaderFactory.cpp",
-  "src/GLSL/OgreGLSLShaderManager.cpp"
- } )
+configuration( { LINUX32 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL3Plus", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GL3Plus_EXPORTS" } )
+  
+configuration( { LINUX64 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport", "dl" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL3Plus", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GL3Plus_EXPORTS" } )
+  
+configuration( { WIN32 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport" } )
+  
+
+configuration( { WIN32 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL3Plus", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GL3Plus_EXPORTS" } )
+  
+configuration( { WIN64 } )
+links( { "Ogre", "OgreGLSupport" } )
+  links( { "Ogre", "OgreGLSupport" } )
+  
+
+configuration( { WIN64 } )
+defines( { "MODULE_NAME=OgreRenderSystem_GL3Plus", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GL3Plus_EXPORTS" } )
 
 
-
-configuration( { "GLX" } )
+configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/windowing/GLX/OgreGLXContext.h",
-      "include/windowing/GLX/OgreGLXGLSupport.h",
-      "include/windowing/GLX/OgreGLXUtils.h",
-      "include/windowing/GLX/OgreGLXWindow.h",
-      "src/windowing/GLX/OgreGL3PlusUtil.h"
+      "include/OgreGL3PlusFBORenderTexture.h",
+      "include/OgreGL3PlusFrameBufferObject.h",
+      "include/OgreGL3PlusHardwareBuffer.h",
+      "include/OgreGL3PlusHardwareBufferManager.h",
+      "include/OgreGL3PlusHardwareOcclusionQuery.h",
+      "include/OgreGL3PlusHardwarePixelBuffer.h",
+      "include/OgreGL3PlusPixelFormat.h",
+      "include/OgreGL3PlusPlugin.h",
+      "include/OgreGL3PlusPrerequisites.h",
+      "include/OgreGL3PlusRenderSystem.h",
+      "include/OgreGL3PlusRenderToVertexBuffer.h",
+      "include/OgreGL3PlusStateCacheManager.h",
+      "include/OgreGL3PlusTexture.h",
+      "include/OgreGL3PlusTextureBuffer.h",
+      "include/OgreGL3PlusTextureManager.h",
+      "include/OgreSPIRVShaderFactory.h",
+      "include/GL/gl3w.h",
+      "include/GL/glcorearb.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLMonolithicProgram.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramManager.h",
+      "src/GLSL/include/OgreGLSLSeparableProgram.h",
+      "src/GLSL/include/OgreGLSLShader.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/windowing/GLX/OgreGLXContext.cpp",
-      "src/windowing/GLX/OgreGLXGLSupport.cpp",
-      "src/windowing/GLX/OgreGLXWindow.cpp"
+      "src/OgreGL3PlusEngineDll.cpp",
+      "src/OgreGL3PlusFBORenderTexture.cpp",
+      "src/OgreGL3PlusFrameBufferObject.cpp",
+      "src/OgreGL3PlusHardwareBuffer.cpp",
+      "src/OgreGL3PlusHardwareBufferManager.cpp",
+      "src/OgreGL3PlusHardwareOcclusionQuery.cpp",
+      "src/OgreGL3PlusHardwarePixelBuffer.cpp",
+      "src/OgreGL3PlusPixelFormat.cpp",
+      "src/OgreGL3PlusPlugin.cpp",
+      "src/OgreGL3PlusRenderSystem.cpp",
+      "src/OgreGL3PlusRenderToVertexBuffer.cpp",
+      "src/OgreGL3PlusStateCacheManager.cpp",
+      "src/OgreGL3PlusTexture.cpp",
+      "src/OgreGL3PlusTextureBuffer.cpp",
+      "src/OgreGL3PlusTextureManager.cpp",
+      "src/OgreSPIRVShaderFactory.cpp",
+      "src/gl3w.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLMonolithicProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLSeparableProgram.cpp",
+      "src/GLSL/src/OgreGLSLShader.cpp"
     } )
 
 
 
-configuration( { "GTK" } )
+configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/windowing/gtk/OgreGTKGLSupport.h",
-      "include/windowing/gtk/OgreGTKWindow.h",
-      "src/windowing/gtk/OgreGL3PlusUtil.h"
+      "include/OgreGL3PlusFBORenderTexture.h",
+      "include/OgreGL3PlusFrameBufferObject.h",
+      "include/OgreGL3PlusHardwareBuffer.h",
+      "include/OgreGL3PlusHardwareBufferManager.h",
+      "include/OgreGL3PlusHardwareOcclusionQuery.h",
+      "include/OgreGL3PlusHardwarePixelBuffer.h",
+      "include/OgreGL3PlusPixelFormat.h",
+      "include/OgreGL3PlusPlugin.h",
+      "include/OgreGL3PlusPrerequisites.h",
+      "include/OgreGL3PlusRenderSystem.h",
+      "include/OgreGL3PlusRenderToVertexBuffer.h",
+      "include/OgreGL3PlusStateCacheManager.h",
+      "include/OgreGL3PlusTexture.h",
+      "include/OgreGL3PlusTextureBuffer.h",
+      "include/OgreGL3PlusTextureManager.h",
+      "include/OgreSPIRVShaderFactory.h",
+      "include/GL/gl3w.h",
+      "include/GL/glcorearb.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLMonolithicProgram.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramManager.h",
+      "src/GLSL/include/OgreGLSLSeparableProgram.h",
+      "src/GLSL/include/OgreGLSLShader.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/windowing/gtk/OgreGTKGLSupport.cpp",
-      "src/windowing/gtk/OgreGTKWindow.cpp"
-    } )
-
-
-
-configuration( { "OSX" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/windowing/OSX/OgreOSXCocoaContext.h",
-      "include/windowing/OSX/OgreOSXCocoaView.h",
-      "include/windowing/OSX/OgreOSXCocoaWindow.h",
-      "include/windowing/OSX/OgreOSXCocoaWindowDelegate.h",
-      "include/windowing/OSX/OgreOSXGL3PlusSupport.h",
-      "src/windowing/OSX/OgreGL3PlusUtil.h"
-    } )
-
-
-
-configuration( { "SDL" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/windowing/SDL/OgreSDLGLSupport.h",
-      "include/windowing/SDL/OgreSDLPrerequisites.h",
-      "include/windowing/SDL/OgreSDLWindow.h",
-      "src/windowing/SDL/OgreGL3PlusUtil.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/windowing/SDL/OgreSDLGLSupport.cpp",
-      "src/windowing/SDL/OgreSDLWindow.cpp"
+      "src/OgreGL3PlusEngineDll.cpp",
+      "src/OgreGL3PlusFBORenderTexture.cpp",
+      "src/OgreGL3PlusFrameBufferObject.cpp",
+      "src/OgreGL3PlusHardwareBuffer.cpp",
+      "src/OgreGL3PlusHardwareBufferManager.cpp",
+      "src/OgreGL3PlusHardwareOcclusionQuery.cpp",
+      "src/OgreGL3PlusHardwarePixelBuffer.cpp",
+      "src/OgreGL3PlusPixelFormat.cpp",
+      "src/OgreGL3PlusPlugin.cpp",
+      "src/OgreGL3PlusRenderSystem.cpp",
+      "src/OgreGL3PlusRenderToVertexBuffer.cpp",
+      "src/OgreGL3PlusStateCacheManager.cpp",
+      "src/OgreGL3PlusTexture.cpp",
+      "src/OgreGL3PlusTextureBuffer.cpp",
+      "src/OgreGL3PlusTextureManager.cpp",
+      "src/OgreSPIRVShaderFactory.cpp",
+      "src/gl3w.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLMonolithicProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLSeparableProgram.cpp",
+      "src/GLSL/src/OgreGLSLShader.cpp"
     } )
 
 
@@ -202,50 +218,129 @@ configuration( { "SDL" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/windowing/win32/OgreWin32Context.h",
-      "include/windowing/win32/OgreWin32GLSupport.h",
-      "include/windowing/win32/OgreWin32Prerequisites.h",
-      "include/windowing/win32/OgreWin32Window.h",
-      "src/windowing/win32/OgreGL3PlusUtil.h"
+      "include/OgreGL3PlusFBORenderTexture.h",
+      "include/OgreGL3PlusFrameBufferObject.h",
+      "include/OgreGL3PlusHardwareBuffer.h",
+      "include/OgreGL3PlusHardwareBufferManager.h",
+      "include/OgreGL3PlusHardwareOcclusionQuery.h",
+      "include/OgreGL3PlusHardwarePixelBuffer.h",
+      "include/OgreGL3PlusPixelFormat.h",
+      "include/OgreGL3PlusPlugin.h",
+      "include/OgreGL3PlusPrerequisites.h",
+      "include/OgreGL3PlusRenderSystem.h",
+      "include/OgreGL3PlusRenderToVertexBuffer.h",
+      "include/OgreGL3PlusStateCacheManager.h",
+      "include/OgreGL3PlusTexture.h",
+      "include/OgreGL3PlusTextureBuffer.h",
+      "include/OgreGL3PlusTextureManager.h",
+      "include/OgreSPIRVShaderFactory.h",
+      "include/GL/gl3w.h",
+      "include/GL/glcorearb.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLMonolithicProgram.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramManager.h",
+      "src/GLSL/include/OgreGLSLSeparableProgram.h",
+      "src/GLSL/include/OgreGLSLShader.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/windowing/win32/OgreWin32Context.cpp",
-      "src/windowing/win32/OgreWin32GLSupport.cpp",
-      "src/windowing/win32/OgreWin32Window.cpp"
+      "src/OgreGL3PlusEngineDll.cpp",
+      "src/OgreGL3PlusFBORenderTexture.cpp",
+      "src/OgreGL3PlusFrameBufferObject.cpp",
+      "src/OgreGL3PlusHardwareBuffer.cpp",
+      "src/OgreGL3PlusHardwareBufferManager.cpp",
+      "src/OgreGL3PlusHardwareOcclusionQuery.cpp",
+      "src/OgreGL3PlusHardwarePixelBuffer.cpp",
+      "src/OgreGL3PlusPixelFormat.cpp",
+      "src/OgreGL3PlusPlugin.cpp",
+      "src/OgreGL3PlusRenderSystem.cpp",
+      "src/OgreGL3PlusRenderToVertexBuffer.cpp",
+      "src/OgreGL3PlusStateCacheManager.cpp",
+      "src/OgreGL3PlusTexture.cpp",
+      "src/OgreGL3PlusTextureBuffer.cpp",
+      "src/OgreGL3PlusTextureManager.cpp",
+      "src/OgreSPIRVShaderFactory.cpp",
+      "src/gl3w.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLMonolithicProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLSeparableProgram.cpp",
+      "src/GLSL/src/OgreGLSLShader.cpp"
+    } )
+
+
+
+configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGL3PlusFBORenderTexture.h",
+      "include/OgreGL3PlusFrameBufferObject.h",
+      "include/OgreGL3PlusHardwareBuffer.h",
+      "include/OgreGL3PlusHardwareBufferManager.h",
+      "include/OgreGL3PlusHardwareOcclusionQuery.h",
+      "include/OgreGL3PlusHardwarePixelBuffer.h",
+      "include/OgreGL3PlusPixelFormat.h",
+      "include/OgreGL3PlusPlugin.h",
+      "include/OgreGL3PlusPrerequisites.h",
+      "include/OgreGL3PlusRenderSystem.h",
+      "include/OgreGL3PlusRenderToVertexBuffer.h",
+      "include/OgreGL3PlusStateCacheManager.h",
+      "include/OgreGL3PlusTexture.h",
+      "include/OgreGL3PlusTextureBuffer.h",
+      "include/OgreGL3PlusTextureManager.h",
+      "include/OgreSPIRVShaderFactory.h",
+      "include/GL/gl3w.h",
+      "include/GL/glcorearb.h",
+      "src/GLSL/include/OgreGLSLExtSupport.h",
+      "src/GLSL/include/OgreGLSLMonolithicProgram.h",
+      "src/GLSL/include/OgreGLSLProgram.h",
+      "src/GLSL/include/OgreGLSLProgramManager.h",
+      "src/GLSL/include/OgreGLSLSeparableProgram.h",
+      "src/GLSL/include/OgreGLSLShader.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGL3PlusEngineDll.cpp",
+      "src/OgreGL3PlusFBORenderTexture.cpp",
+      "src/OgreGL3PlusFrameBufferObject.cpp",
+      "src/OgreGL3PlusHardwareBuffer.cpp",
+      "src/OgreGL3PlusHardwareBufferManager.cpp",
+      "src/OgreGL3PlusHardwareOcclusionQuery.cpp",
+      "src/OgreGL3PlusHardwarePixelBuffer.cpp",
+      "src/OgreGL3PlusPixelFormat.cpp",
+      "src/OgreGL3PlusPlugin.cpp",
+      "src/OgreGL3PlusRenderSystem.cpp",
+      "src/OgreGL3PlusRenderToVertexBuffer.cpp",
+      "src/OgreGL3PlusStateCacheManager.cpp",
+      "src/OgreGL3PlusTexture.cpp",
+      "src/OgreGL3PlusTextureBuffer.cpp",
+      "src/OgreGL3PlusTextureManager.cpp",
+      "src/OgreSPIRVShaderFactory.cpp",
+      "src/gl3w.c",
+      "src/GLSL/src/OgreGLSLExtSupport.cpp",
+      "src/GLSL/src/OgreGLSLMonolithicProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgram.cpp",
+      "src/GLSL/src/OgreGLSLProgramManager.cpp",
+      "src/GLSL/src/OgreGLSLSeparableProgram.cpp",
+      "src/GLSL/src/OgreGLSLShader.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include", "include", "include/GL", "include/GLSL" } )
+includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID32" } )
-includedirs( { "../../OgreMain/include/Android" } )
+configuration( { "LINUX32" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/X11/", "../GLSupport/include/GLSL", "../GLSupport/src/X11", "include", "include/GL", "src/GLSL/include" } )
 
-configuration( { "ANDROID64" } )
-includedirs( { "../../OgreMain/include/Android" } )
-
-configuration( { "EMSCRIPTEN32" } )
-includedirs( { "../../OgreMain/include/Emscripten" } )
-
-configuration( { "EMSCRIPTEN64" } )
-includedirs( { "../../OgreMain/include/Emscripten" } )
-
-configuration( { "GLX" } )
-includedirs( { "include/windowing", "src", "src/windowing", "include/windowing/GLX", "src/windowing/GLX" } )
-
-configuration( { "GTK" } )
-includedirs( { "include/windowing", "src", "src/windowing", "include/windowing/gtk", "src/windowing/gtk" } )
-
-configuration( { "IOS" } )
-includedirs( { "../../OgreMain/include/iOS" } )
-
-configuration( { "OSX" } )
-includedirs( { "../../OgreMain/include/OSX", "include/windowing", "src", "src/windowing", "include/windowing/OSX", "src/windowing/OSX" } )
-
-configuration( { "SDL" } )
-includedirs( { "include/windowing", "src", "src/windowing", "include/windowing/SDL", "src/windowing/SDL" } )
+configuration( { "LINUX64" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/X11/", "../GLSupport/include/GLSL", "../GLSupport/src/X11", "include", "include/GL", "src/GLSL/include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include/windowing", "src", "src/windowing", "include/windowing/win32", "src/windowing/win32" } )
+includedirs( { "../GLSupport/include", "../GLSupport/include/GLSL", "../GLSupport/include/win32", "../GLSupport/include/win32/GL", "include", "include/GL", "src/GLSL/include" } )
+
+configuration( { "WIN64" } )
+includedirs( { "../GLSupport/include", "../GLSupport/include/GLSL", "include", "include/GL", "src/GLSL/include" } )

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -50,38 +50,31 @@ namespace Ogre {
     */
     /** A 'canvas' which can receive the results of a rendering
         operation.
-        @remarks
-            This abstract class defines a common root to all targets of rendering operations. A
-            render target could be a window on a screen, or another
-            offscreen surface like a texture or bump map etc.
+
+        This abstract class defines a common root to all targets of rendering operations. A
+        render target could be a window on a screen, or another
+        offscreen surface like a texture or bump map etc.
         @author
             Steven Streeting
-        @version
-            1.0
      */
     class _OgreExport RenderTarget : public RenderSysAlloc
     {
     public:
-        enum StatFlags
-        {
-            SF_NONE           = 0,
-            SF_FPS            = 1,
-            SF_AVG_FPS        = 2,
-            SF_BEST_FPS       = 4,
-            SF_WORST_FPS      = 8,
-            SF_TRIANGLE_COUNT = 16,
-            SF_ALL            = 0xFFFF
-        };
-
         struct FrameStats
         {
+            /// frames per second (FPS) based on the frames rendered in the last second
             float lastFPS;
+            /// average frames per second (FPS) since call to Root::startRendering
             float avgFPS;
+            /// best frames per second (FPS) since call to Root::startRendering
             float bestFPS;
+            /// worst frames per second (FPS) since call to Root::startRendering
             float worstFPS;
             unsigned long bestFrameTime;
             unsigned long worstFrameTime;
+            /// number of triangles rendered in the last update() call.
             size_t triangleCount;
+            /// number of batches rendered in the last update() call.
             size_t batchCount;
             int vBlankMissCount; // -1 means that the value is not applicable
         };
@@ -97,81 +90,77 @@ namespace Ogre {
         virtual ~RenderTarget();
 
         /// Retrieve target's name.
-        virtual const String& getName(void) const;
+        const String& getName(void) const { return mName; }
 
         /// Retrieve information about the render target.
-        virtual void getMetrics(unsigned int& width, unsigned int& height, unsigned int& colourDepth);
+        void getMetrics(unsigned int& width, unsigned int& height);
 
-        virtual uint32 getWidth(void) const;
-        virtual uint32 getHeight(void) const;
-        virtual uint32 getColourDepth(void) const;
+        uint32 getWidth(void) const { return mWidth; }
+        uint32 getHeight(void) const { return mHeight; }
 
         /**
          * Sets the pool ID this RenderTarget should query from. Default value is POOL_DEFAULT.
          * Set to POOL_NO_DEPTH to avoid using a DepthBuffer (or manually controlling it) @see DepthBuffer
-         *  @remarks
          *      Changing the pool Id will cause the current depth buffer to be detached unless the old
          *      id and the new one are the same
          */
         void setDepthBufferPool( uint16 poolId );
 
         //Returns the pool ID this RenderTarget should query from. @see DepthBuffer
-        uint16 getDepthBufferPool() const;
+        uint16 getDepthBufferPool() const { return mDepthBufferPoolId; }
 
-        DepthBuffer* getDepthBuffer() const;
+        DepthBuffer* getDepthBuffer() const { return mDepthBuffer; }
 
         //Returns false if couldn't attach
         virtual bool attachDepthBuffer( DepthBuffer *depthBuffer );
 
-        virtual void detachDepthBuffer();
+        void detachDepthBuffer();
 
         /** Detaches DepthBuffer without notifying it from the detach.
             Useful when called from the DepthBuffer while it iterates through attached
             RenderTargets (@see DepthBuffer::_setPoolId())
         */
-        virtual void _detachDepthBuffer();
+        virtual void _detachDepthBuffer() { mDepthBuffer = 0; }
 
         /** Tells the target to update it's contents.
-            @remarks
-                If OGRE is not running in an automatic rendering loop
-                (started using Root::startRendering),
-                the user of the library is responsible for asking each render
-                target to refresh. This is the method used to do this. It automatically
-                re-renders the contents of the target using whatever cameras have been
-                pointed at it (using Camera::setRenderTarget).
-            @par
-                This allows OGRE to be used in multi-windowed utilities
-                and for contents to be refreshed only when required, rather than
-                constantly as with the automatic rendering loop.
-            @param swapBuffers For targets that support double-buffering, if set 
-                to true, the target will immediately
-                swap it's buffers after update. Otherwise, the buffers are
-                not swapped, and you have to call swapBuffers yourself sometime
-                later. You might want to do this on some rendersystems which 
-                pause for queued rendering commands to complete before accepting
-                swap buffers calls - so you could do other CPU tasks whilst the 
-                queued commands complete. Or, you might do this if you want custom
-                control over your windows, such as for externally created windows.
+
+            If OGRE is not running in an automatic rendering loop
+            (via @ref Root::startRendering),
+            the user of the library is responsible for asking each render
+            target to refresh. This is the method used to do this. It automatically
+            re-renders the contents of the target using whatever cameras have been
+            pointed at it (using @ref addViewport).
+
+            This allows OGRE to be used in multi-windowed utilities
+            and for contents to be refreshed only when required, rather than
+            constantly as with the automatic rendering loop.
+            @param swapBuffers If set to true, the target will immediately call
+            @ref swapBuffers() after the update. See @ref swapBuffers() for why you
+            might want to set this to false.
         */
-        virtual void update(bool swapBuffers = true);
-        /** Swaps the frame buffers to display the next frame.
-            @remarks
-                For targets that are double-buffered so that no
-                'in-progress' versions of the scene are displayed
-                during rendering. Once rendering has completed (to
-                an off-screen version of the window) the buffers
-                are swapped to display the new frame.
+        void update(bool swapBuffers = true);
+        /** Finalizes the frame by performing buffer swaps and MSAA resolves
+
+            This method handles the end-of-frame operations required to display the
+            rendered content. Depending on the target configuration, this includes:
+            - Swapping the front and back buffers (if double-buffering is enabled).
+            - Resolving the MSAA (Multisample Anti-Aliasing) surface to the
+            displayable surface (if MSAA is enabled).
+
+            @attention After this method returns, the contents of the multisample buffers
+            are invalidated/discarded. You cannot rely on their contents for
+            subsequent operations without re-rendering.
         */
         virtual void swapBuffers() {}
 
         /** Adds a viewport to the rendering target.
-            @remarks
-                A viewport is the rectangle into which rendering output is sent. This method adds
-                a viewport to the render target, rendering from the supplied camera. The
-                rest of the parameters are only required if you wish to add more than one viewport
-                to a single rendering target. Note that size information passed to this method is
-                passed as a parametric, i.e. it is relative rather than absolute. This is to allow
-                viewports to automatically resize along with the target.
+
+            A viewport is the rectangle into which rendering output is sent. This method adds
+            a viewport to the render target, rendering from the supplied camera. The
+            rest of the parameters are only required if you wish to add more than one viewport
+            to a single rendering target. Note that size information passed to this method is
+            passed as a parametric, i.e. it is relative rather than absolute. This is to allow
+            viewports to automatically resize along with the target.
             @param
                 cam The camera from which the viewport contents will be rendered (mandatory)
             @param
@@ -179,139 +168,122 @@ namespace Ogre {
                 viewports i.e. picture-in-picture). Higher Z-orders are on top of lower ones. The actual number
                 is irrelevant, only the relative Z-order matters (you can leave gaps in the numbering)
             @param
-                left The relative position of the left of the viewport on the target, as a value between 0 and 1.
-            @param
-                top The relative position of the top of the viewport on the target, as a value between 0 and 1.
-            @param
-                width The relative width of the viewport on the target, as a value between 0 and 1.
-            @param
-                height The relative height of the viewport on the target, as a value between 0 and 1.
+                rect The relative position of the viewport on the target, as a value between 0 and 1.
         */
-        virtual Viewport* addViewport(Camera* cam, int ZOrder = 0, float left = 0.0f, float top = 0.0f ,
-            float width = 1.0f, float height = 1.0f);
+        Viewport* addViewport(Camera* cam, int ZOrder = 0, FloatRect rect = {0.0f, 0.0f, 1.0f, 1.0f});
+
+        /// @overload
+        Viewport* addViewport(Camera* cam, int ZOrder, float left, float top = 0.0f, float width = 1.0f,
+                              float height = 1.0f)
+        {
+            return addViewport(cam, ZOrder, {left, top, left + width, top + height});
+        }
 
         /** Returns the number of viewports attached to this target.*/
-        virtual unsigned short getNumViewports(void) const;
+        unsigned short getNumViewports(void) const { return static_cast<unsigned short>(mViewportList.size()); }
 
         /** Retrieves a pointer to the viewport with the given index. */
-        virtual Viewport* getViewport(unsigned short index);
+        Viewport* getViewport(unsigned short index);
 
         /** Retrieves a pointer to the viewport with the given Z-order. 
             @remarks throws if not found.
         */
-        virtual Viewport* getViewportByZOrder(int ZOrder);
+        Viewport* getViewportByZOrder(int ZOrder);
 
         /** Returns true if and only if a viewport exists at the given Z-order. */
-        virtual bool hasViewportWithZOrder(int ZOrder);
+        bool hasViewportWithZOrder(int ZOrder);
 
         /** Removes a viewport at a given Z-order.
         */
-        virtual void removeViewport(int ZOrder);
+        void removeViewport(int ZOrder);
 
         /** Removes all viewports on this target.
         */
-        virtual void removeAllViewports(void);
+        void removeAllViewports(void);
 
-        /** Retieves details of current rendering performance.
-            @remarks
-                If the user application wishes to do it's own performance
-                display, or use performance for some other means, this
-                method allows it to retrieve the statistics.
-                @param
-                    lastFPS Pointer to a float to receive the number of frames per second (FPS)
-                    based on the last frame rendered.
-                @param
-                    avgFPS Pointer to a float to receive the FPS rating based on an average of all
-                    the frames rendered since rendering began (the call to
-                    Root::startRendering).
-                @param
-                    bestFPS Pointer to a float to receive the best FPS rating that has been achieved
-                    since rendering began.
-                @param
-                    worstFPS Pointer to a float to receive the worst FPS rating seen so far.
-        */
-        virtual void getStatistics(float& lastFPS, float& avgFPS,
-            float& bestFPS, float& worstFPS) const;  // Access to stats
-
-        virtual const FrameStats& getStatistics(void) const;
-
-        /** Individual stats access - gets the number of frames per second (FPS) based on the last frame rendered.
-        */
-        virtual float getLastFPS() const;
-
-        /** Individual stats access - gets the average frames per second (FPS) since call to Root::startRendering.
-        */
-        virtual float getAverageFPS() const;
-
-        /** Individual stats access - gets the best frames per second (FPS) since call to Root::startRendering.
-        */
-        virtual float getBestFPS() const;
-
-        /** Individual stats access - gets the worst frames per second (FPS) since call to Root::startRendering.
-        */
-        virtual float getWorstFPS() const;
-
-        /** Individual stats access - gets the best frame time
-        */
-        virtual float getBestFrameTime() const;
-
-        /** Individual stats access - gets the worst frame time
-        */
-        virtual float getWorstFrameTime() const;
+        /** Retrieves details of current rendering performance. */
+        const FrameStats& getStatistics(void) const {
+            return mStats;
+        }
 
         /** Resets saved frame-rate statistices.
         */
-        virtual void resetStatistics(void);
+        void resetStatistics(void);
 
-        /** Gets a custom (maybe platform-specific) attribute.
-            @remarks
-                This is a nasty way of satisfying any API's need to see platform-specific details.
-                It horrid, but D3D needs this kind of info. At least it's abstracted.
-            @param
-                name The name of the attribute.
-            @param
-                pData Pointer to memory of the right kind of structure to receive the info.
+        /** Retrieve a platform or API-specific piece of information
+
+            This method of retrieving information should only be used if you know what you're doing.
+
+            | Name        | Description                        |
+            |-------------|------------------------------------|
+            | WINDOW      | The native window handle. (X11 Window XID/ HWND / NSWindow*) |
+            | HWND        | deprecated (same as WINDOW) |
+            | GL_FBOID | the id of the OpenGL framebuffer object |
+            | GL_MULTISAMPLEFBOID | the id of the OpenGL framebuffer object used for multisampling |
+            | GLFBO | id of the screen OpenGL framebuffer object on iOS |
+            | GLCONTEXT   | deprecated, do not use |
+            | FBO | deprecated, do not use |
+            | TARGET | deprecated, do not use |
+            | XDISPLAY     | The X Display connection behind that context. |
+            | ATOM        | The X Atom used in client delete events. |
+            | VIEW | Cocoa NSView* |
+            | NSOPENGLCONTEXT | Cocoa NSOpenGLContext* |
+            | NSOPENGLPIXELFORMAT | Cocoa NSOpenGLPixelFormat* |
+            
+            @param name The name of the attribute.
+            @param pData Pointer to memory of the right kind of structure to receive the info.
         */
         virtual void getCustomAttribute(const String& name, void* pData);
 
+        /** simplified API for bindings
+         * 
+         * @overload
+         */
+        uint getCustomAttribute(const String& name)
+        {
+            uint ret = 0;
+            getCustomAttribute(name, &ret);
+            return ret;
+        }
+
         /** Add a listener to this RenderTarget which will be called back before & after rendering.
-        @remarks
+
             If you want notifications before and after a target is updated by the system, use
             this method to register your own custom RenderTargetListener class. This is useful
             for potentially adding your own manual rendering commands before and after the
             'normal' system rendering.
         @par NB this should not be used for frame-based scene updates, use Root::addFrameListener for that.
         */
-        virtual void addListener(RenderTargetListener* listener);
+        void addListener(RenderTargetListener* listener);
         /** same as addListener, but force the position in the vector, so we can control the call order */
-        virtual void insertListener(RenderTargetListener* listener, const unsigned int pos = 0);
+        void insertListener(RenderTargetListener* listener, const unsigned int pos = 0);
         /** Removes a RenderTargetListener previously registered using addListener. */
-        virtual void removeListener(RenderTargetListener* listener);
+        void removeListener(RenderTargetListener* listener);
         /** Removes all listeners from this instance. */
-        virtual void removeAllListeners(void);
+        void removeAllListeners(void);
 
         /** Sets the priority of this render target in relation to the others. 
-        @remarks
+
             This can be used in order to schedule render target updates. Lower
             priorities will be rendered first. Note that the priority must be set
             at the time the render target is attached to the render system, changes
             afterwards will not affect the ordering.
         */
-        virtual void setPriority( uchar priority ) { mPriority = priority; }
+        void setPriority( uchar priority ) { mPriority = priority; }
         /** Gets the priority of a render target. */
-        virtual uchar getPriority() const { return mPriority; }
+        uchar getPriority() const { return mPriority; }
 
         /** Used to retrieve or set the active state of the render target.
         */
-        virtual bool isActive() const;
+        virtual bool isActive() const { return mActive; }
 
         /** Used to set the active state of the render target.
         */
-        virtual void setActive( bool state );
+        void setActive( bool state ) { mActive = state; }
 
         /** Sets whether this target should be automatically updated if Ogre's rendering
             loop or Root::_updateAllRenderTargets is being used.
-        @remarks
+
             By default, if you use Ogre's own rendering loop (Root::startRendering)
             or call Root::_updateAllRenderTargets, all render targets are updated 
             automatically. This method allows you to control that behaviour, if 
@@ -320,18 +292,27 @@ namespace Ogre {
             loop or when Root::_updateAllRenderTargets is called. If false, the 
             target is only updated when its update() method is called explicitly.
         */
-        virtual void setAutoUpdated(bool autoupdate);
+        void setAutoUpdated(bool autoupdate) { mAutoUpdate = autoupdate; }
         /** Gets whether this target is automatically updated if Ogre's rendering
             loop or Root::_updateAllRenderTargets is being used.
         */
-        virtual bool isAutoUpdated(void) const;
+        bool isAutoUpdated(void) const { return mAutoUpdate; }
 
         /** Copies the current contents of the render target to a pixelbox. 
         @remarks See suggestPixelFormat for a tip as to the best pixel format to
             extract into, although you can use whatever format you like and the 
             results will be converted.
         */
-        virtual void copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer = FB_AUTO) = 0;
+        virtual void copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer = FB_AUTO) = 0;
+
+        /** @overload
+        @deprecated This function is deprecated as behavior for dst.size < RenderTarget.size
+            was inconsistent in previous versions of Ogre. Sometimes the whole rect was used as a source,
+            sometimes the rect with the size equal to the size of destination rect but located
+            in the top left corner of the render target, sometimes the destination rect itself.
+            Use the overload with explicitly specified source and destination boxes instead.
+        */
+        OGRE_DEPRECATED void copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer = FB_AUTO) { copyContentsToMemory(Box(0, 0, mWidth, mHeight), dst, buffer); }
 
         /** Suggests a pixel format to use for extracting the data in this target, 
             when calling copyContentsToMemory.
@@ -343,18 +324,14 @@ namespace Ogre {
 
         /** Writes the current contents of the render target to the (PREFIX)(time-stamp)(SUFFIX) file.
             @return the name of the file used.*/
-        virtual String writeContentsToTimestampedFile(const String& filenamePrefix, const String& filenameSuffix);
+        String writeContentsToTimestampedFile(const String& filenamePrefix, const String& filenameSuffix);
 
         virtual bool requiresTextureFlipping() const = 0;
 
-        /** Gets the number of triangles rendered in the last update() call. */
-        virtual size_t getTriangleCount(void) const;
-        /** Gets the number of batches rendered in the last update() call. */
-        virtual size_t getBatchCount(void) const;
         /** Utility method to notify a render target that a camera has been removed,
-        incase it was referring to it as a viewer.
+        in case it was referring to it as a viewer.
         */
-        virtual void _notifyCameraRemoved(const Camera* cam);
+        void _notifyCameraRemoved(const Camera* cam);
 
         /** Indicates whether this target is the primary window. The
             primary window is special in that it is destroyed when
@@ -362,10 +339,10 @@ namespace Ogre {
             This is the case because it holds the context for vertex,
             index buffers and textures.
         */
-        virtual bool isPrimary(void) const;
+        virtual bool isPrimary(void) const { return false; }
 
 		/** Indicates whether stereo is currently enabled for this target. Default is false. */
-		virtual bool isStereoEnabled(void) const;
+		virtual bool isStereoEnabled(void) const { return mStereoEnabled; }
 		
         /** Indicates whether on rendering, linear colour space is converted to 
             sRGB gamma colour space. This is the exact opposite conversion of
@@ -374,42 +351,26 @@ namespace Ogre {
             enabled through the 'gamma' creation misc parameter. For textures, 
             it is enabled through the hwGamma parameter to the create call.
         */
-        virtual bool isHardwareGammaEnabled() const { return mHwGamma; }
+        bool isHardwareGammaEnabled() const { return mHwGamma; }
 
         /** Indicates whether multisampling is performed on rendering and at what level.
         */
-        virtual uint getFSAA() const { return mFSAA; }
+        uint getFSAA() const { return mFSAA; }
 
-        /** Gets the FSAA hint (@see Root::createRenderWindow)
-        */
-        virtual const String& getFSAAHint() const { return mFSAAHint; }
+        /// RenderSystem specific FSAA option. See @ref RenderSystem::_createRenderWindow for details.
+        const String& getFSAAHint() const { return mFSAAHint; }
 
         /** Set the level of multisample AA to be used if hardware support it.
             This option will be ignored if the hardware does not support it 
             or setting can not be changed on the fly on per-target level. 
             @param fsaa The number of samples
-            @param fsaaHint Any hinting text (@see Root::createRenderWindow)
+            @param fsaaHint @copybrief getFSAAHint
         */
         virtual void setFSAA(uint fsaa, const String& fsaaHint) { }
 
-        /** RenderSystem specific interface for a RenderTarget;
-            this should be subclassed by RenderSystems.
-        */
-        class Impl
-        {
-        protected:
-            ~Impl() { }
-        };
-        /** Get rendersystem specific interface for this RenderTarget.
-            This is used by the RenderSystem to (un)bind this target, 
-            and to get specific information like surfaces
-            and framebuffer objects.
-        */
-        virtual Impl *_getImpl();
-
         /** Method for manual management of rendering : fires 'preRenderTargetUpdate'
             and initialises statistics etc.
-        @remarks 
+
         <ul>
         <li>_beginUpdate resets statistics and fires 'preRenderTargetUpdate'.</li>
         <li>_updateViewport renders the given viewport (even if it is not autoupdated),
@@ -434,17 +395,20 @@ namespace Ogre {
 
         /** Method for manual management of rendering - renders the given 
         viewport (even if it is not autoupdated)
-        @remarks
+
         This also fires preViewportUpdate and postViewportUpdate, and manages statistics.
         You should call it between _beginUpdate() and _endUpdate().
         @see _beginUpdate for more details.
         @param zorder The zorder of the viewport to update.
         @param updateStatistics Whether you want to update statistics or not.
         */
-        virtual void _updateViewport(int zorder, bool updateStatistics = true);
+        void _updateViewport(int zorder, bool updateStatistics = true)
+        {
+            _updateViewport(getViewportByZOrder(zorder), updateStatistics);
+        }
 
         /** Method for manual management of rendering - renders the given viewport (even if it is not autoupdated)
-        @remarks
+
         This also fires preViewportUpdate and postViewportUpdate, and manages statistics
         if needed. You should call it between _beginUpdate() and _endUpdate().
         @see _beginUpdate for more details.
@@ -454,18 +418,18 @@ namespace Ogre {
         virtual void _updateViewport(Viewport* viewport, bool updateStatistics = true);
 
         /** Method for manual management of rendering - renders only viewports that are auto updated
-        @remarks
+
         This also fires preViewportUpdate and postViewportUpdate, and manages statistics.
         You should call it between _beginUpdate() and _endUpdate().
         See _beginUpdate for more details.
         @param updateStatistics Whether you want to update statistics or not.
         @see _beginUpdate()
         */
-        virtual void _updateAutoUpdatedViewports(bool updateStatistics = true);
+        void _updateAutoUpdatedViewports(bool updateStatistics = true);
         
         /** Method for manual management of rendering - finishes statistics calculation 
             and fires 'postRenderTargetUpdate'.
-        @remarks
+
         You should call it after a _beginUpdate
         @see _beginUpdate for more details.
         */
@@ -479,7 +443,6 @@ namespace Ogre {
 
         uint32 mWidth;
         uint32 mHeight;
-        uint32 mColourDepth;
         uint16       mDepthBufferPoolId;
         DepthBuffer *mDepthBuffer;
 
@@ -502,11 +465,11 @@ namespace Ogre {
 
         virtual void updateStats(void);
 
-        typedef map<int, Viewport*>::type ViewportList;
+        typedef std::map<int, Viewport*> ViewportList;
         /// List of viewports, map on Z-order
         ViewportList mViewportList;
 
-        typedef vector<RenderTargetListener*>::type RenderTargetListenerList;
+        typedef std::vector<RenderTargetListener*> RenderTargetListenerList;
         RenderTargetListenerList mListeners;
     
 
@@ -521,7 +484,7 @@ namespace Ogre {
         /// internal method for firing events
         virtual void fireViewportAdded(Viewport* vp);
         /// internal method for firing events
-        virtual void fireViewportRemoved(Viewport* vp);
+        void fireViewportRemoved(Viewport* vp);
         
         /// Internal implementation of update()
         virtual void updateImpl();

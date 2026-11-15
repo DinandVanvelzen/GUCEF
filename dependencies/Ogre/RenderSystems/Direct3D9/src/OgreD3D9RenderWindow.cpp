@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,12 @@ THE SOFTWARE.
 */
 #include "OgreD3D9RenderWindow.h"
 #include "OgreLogManager.h"
-#include "OgreViewport.h"
 #include "OgreException.h"
 #include "OgreD3D9RenderSystem.h"
 #include "OgreRenderSystem.h"
 #include "OgreBitwise.h"
-#include "OgreImageCodec.h"
 #include "OgreStringConverter.h"
 #include "OgreRoot.h"
-#include "OgreWindowEventUtilities.h"
 #include "OgreD3D9DeviceManager.h"
 #include "OgreDepthBuffer.h"
 
@@ -52,8 +49,7 @@ namespace Ogre
         mIsFullScreen = false;      
         mIsExternal = false;
         mHWnd = 0;
-        mActive = false;        
-        mClosed = false;
+        mActive = false;
         mHidden = false;
         mSwitchingFullscreen = false;
         mDisplayFrequency = 0;
@@ -75,7 +71,7 @@ namespace Ogre
     {
         HINSTANCE hInst = mInstance;
     
-        HWND parentHWnd = 0;
+        WNDPROC windowProc = DefWindowProc;
         HWND externalHandle = 0;
         mFSAAType = D3DMULTISAMPLE_NONE;
         mFSAAQuality = 0;
@@ -93,8 +89,9 @@ namespace Ogre
         size_t fsaaSamples = 0;
         String fsaaHint;
         bool enableDoubleClick = false;
-        int monitorIndex = -1;  //Default by detecting the adapter from left / top position
-        
+
+        D3D9RenderSystem* rsys = static_cast<D3D9RenderSystem*>(Root::getSingleton().getRenderSystem());
+        int monitorIndex = rsys->getAdapterNumber();  // default to whatever was set in "Rendering Device" config option
 
         if(miscParams)
         {
@@ -112,12 +109,13 @@ namespace Ogre
             opt = miscParams->find("title");
             if(opt != miscParams->end())
                 title = opt->second;
-            // parentWindowHandle       -> parentHWnd
-            opt = miscParams->find("parentWindowHandle");
-            if(opt != miscParams->end())
-                parentHWnd = (HWND)StringConverter::parseSizeT(opt->second);
+            opt = miscParams->find("windowProc");
+            if (opt != miscParams->end())
+                windowProc = reinterpret_cast<WNDPROC>(StringConverter::parseSizeT(opt->second));
             // externalWindowHandle     -> externalHandle
             opt = miscParams->find("externalWindowHandle");
+            if (opt == miscParams->end())
+                opt = miscParams->find("parentWindowHandle");
             if(opt != miscParams->end())
                 externalHandle = (HWND)StringConverter::parseSizeT(opt->second);
             // vsync    [parseBool]
@@ -242,20 +240,13 @@ namespace Ogre
                 mWindowedWinStyle |= WS_VISIBLE;
             }
 
-            if (parentHWnd)
-            {
-                mWindowedWinStyle |= WS_CHILD;
-            }
+            if (border == "none")
+                mWindowedWinStyle |= WS_POPUP;
+            else if (border == "fixed")
+                mWindowedWinStyle |= WS_OVERLAPPED | WS_BORDER | WS_CAPTION |
+                WS_SYSMENU | WS_MINIMIZEBOX;
             else
-            {
-                if (border == "none")
-                    mWindowedWinStyle |= WS_POPUP;
-                else if (border == "fixed")
-                    mWindowedWinStyle |= WS_OVERLAPPED | WS_BORDER | WS_CAPTION |
-                    WS_SYSMENU | WS_MINIMIZEBOX;
-                else
-                    mWindowedWinStyle |= WS_OVERLAPPEDWINDOW;
-            }
+                mWindowedWinStyle |= WS_OVERLAPPEDWINDOW;
                     
             unsigned int winWidth, winHeight;
             winWidth = width;
@@ -334,7 +325,7 @@ namespace Ogre
 
             // Register the window class
             // NB allow 4 bytes of window data for D3D9RenderWindow pointer
-            WNDCLASS wc = { classStyle, WindowEventUtilities::_WndProc, 0, 0, hInst,
+            WNDCLASS wc = { classStyle, windowProc, 0, 0, hInst,
                 LoadIcon(0, IDI_APPLICATION), LoadCursor(NULL, IDC_ARROW),
                 (HBRUSH)GetStockObject(BLACK_BRUSH), 0, "OgreD3D9Wnd" };
             RegisterClass(&wc);
@@ -343,9 +334,7 @@ namespace Ogre
             // Pass pointer to self
             mIsExternal = false;
             mHWnd = CreateWindowEx(dwStyleEx, "OgreD3D9Wnd", title.c_str(), getWindowStyle(fullScreen),
-                mLeft, mTop, winWidth, winHeight, parentHWnd, 0, hInst, this);
-
-            WindowEventUtilities::_addRenderWindow(this);
+                mLeft, mTop, winWidth, winHeight, 0, 0, hInst, this);
         }
         else
         {
@@ -443,10 +432,8 @@ namespace Ogre
             // NB don't use windowMovedOrResized since Win32 doesn't know
             // about the size change yet                
             mDevice->invalidate(this);
-            // Notify viewports of resize
-            ViewportList::iterator it = mViewportList.begin();
-            while( it != mViewportList.end() )
-                (*it++).second->_updateDimensions();    
+
+            RenderWindow::resize(mWidth, mHeight);
         }
     } 
 
@@ -584,8 +571,8 @@ namespace Ogre
             // low is < 200fps in this context
             if (!mIsFullScreen)
             {
-                LogManager::getSingleton().logMessage("D3D9 : WARNING - "
-                    "disabling VSync in windowed mode can cause timing issues at lower "
+                LogManager::getSingleton().logWarning(
+                    "D3D9: disabling VSync in windowed mode can cause timing issues at lower "
                     "frame rates, turn VSync on if you observe this problem.");
             }
             presentParams->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
@@ -665,7 +652,6 @@ namespace Ogre
         
         if (mHWnd && !mIsExternal)
         {
-            WindowEventUtilities::_removeRenderWindow(this);
             DestroyWindow(mHWnd);
         }
 
@@ -729,11 +715,6 @@ namespace Ogre
             setVSyncEnabled(true);
     }
 
-    unsigned int D3D9RenderWindow::getVSyncInterval() const
-    {
-        return mVSyncInterval;
-    }
-
     void D3D9RenderWindow::reposition(int top, int left)
     {
         if (mHWnd && !mIsFullScreen)
@@ -781,46 +762,38 @@ namespace Ogre
 
         if( name == "D3DDEVICE" )
         {
-            IDirect3DDevice9* *pDev = (IDirect3DDevice9**)pData;
-            *pDev = getD3D9Device();
-            return;
+            *(IDirect3DDevice9**)pData = getD3D9Device();
         }       
         else if( name == "WINDOW" )
         {
-            HWND *pHwnd = (HWND*)pData;
-            *pHwnd = getWindowHandle();
-            return;
+            *(HWND*)pData = getWindowHandle();
         }
         else if( name == "isTexture" )
         {
-            bool *b = reinterpret_cast< bool * >( pData );
-            *b = false;
-
-            return;
+            *(bool*)pData = false;
         }
         else if( name == "D3DZBUFFER" )
         {
-            IDirect3DSurface9* *pSurf = (IDirect3DSurface9**)pData;
-            *pSurf = mDevice->getDepthBuffer(this);
-            return;
+            *(IDirect3DSurface9**)pData = mDevice->getDepthBuffer(this);
         }
         else if( name == "DDBACKBUFFER" )
         {
-            IDirect3DSurface9* *pSurf = (IDirect3DSurface9**)pData;
-            *pSurf = mDevice->getBackBuffer(this);
-            return;
+            *(IDirect3DSurface9**)pData = mDevice->getBackBuffer(this);
         }
         else if( name == "DDFRONTBUFFER" )
         {
-            IDirect3DSurface9* *pSurf = (IDirect3DSurface9**)pData;
-            *pSurf = mDevice->getBackBuffer(this);
-            return;
+            *(IDirect3DSurface9**)pData = mDevice->getBackBuffer(this);
         }
     }
 
-    void D3D9RenderWindow::copyContentsToMemory(const PixelBox &dst, FrameBuffer buffer)
+    PixelFormat D3D9RenderWindow::suggestPixelFormat() const
     {
-        mDevice->copyContentsToMemory(this, dst, buffer);
+        return mColourDepth == 16 ? PF_R5G6B5 : PF_X8R8G8B8;
+    }
+
+    void D3D9RenderWindow::copyContentsToMemory(const Box& src, const PixelBox &dst, FrameBuffer buffer)
+    {
+        mDevice->copyContentsToMemory(this, src, dst, buffer);
     }
     //-----------------------------------------------------------------------------
     void D3D9RenderWindow::_beginUpdate()
@@ -941,18 +914,10 @@ namespace Ogre
         unsigned int width = rc.right - rc.left;
         unsigned int height = rc.bottom - rc.top;
 
-        // Case window resized.
         if (width != mWidth || height != mHeight)
         {
-            mWidth  = rc.right - rc.left;
-            mHeight = rc.bottom - rc.top;
-
-            // Notify viewports of resize
-            ViewportList::iterator it = mViewportList.begin();
-            while( it != mViewportList.end() )
-                (*it++).second->_updateDimensions();            
-        }   
-
+            RenderWindow::resize(rc.right - rc.left, rc.bottom - rc.top);
+        }
     }
     //-----------------------------------------------------------------------------
     void D3D9RenderWindow::updateStats( void )

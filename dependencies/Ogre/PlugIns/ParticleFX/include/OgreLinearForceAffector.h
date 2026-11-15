@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,14 +30,18 @@ THE SOFTWARE.
 
 #include "OgreParticleFXPrerequisites.h"
 #include "OgreParticleAffector.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 
 
 namespace Ogre {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** This affector applies a force vector to all particles to modify their trajectory. Can be used for gravity, wind, or any other linear force.
 
-    /** This class defines a ParticleAffector which applies a linear force to particles in a system.
-    @remarks
-        This affector (see ParticleAffector) applies a linear force, such as gravity, to a particle system.
         This force can be applied in 2 ways: by taking the average of the particle's current momentum and the 
         force vector, or by adding the force vector to the current particle's momentum. 
     @par
@@ -48,23 +52,23 @@ namespace Ogre {
         it is not self-stabilising and can lead to perpetually increasing particle velocities. 
         You choose the approach by calling the setForceApplication method.
     */
-    class _OgreParticleFXExport LinearForceAffector : public ParticleAffector
+    class LinearForceAffector : public ParticleAffector
     {
     public:
         /** Command object for force vector (see ParamCommand).*/
         class CmdForceVector : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Command object for force application (see ParamCommand).*/
         class CmdForceApp : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
         /// Choice of how to apply the force vector to particles
         enum ForceApplication
@@ -77,8 +81,7 @@ namespace Ogre {
         /// Default constructor
         LinearForceAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
 
         /** Sets the force vector to apply to the particles in a system. */
@@ -88,7 +91,7 @@ namespace Ogre {
         Vector3 getForceVector(void) const;
 
         /** Sets how the force vector is applied to a particle. 
-        @remarks
+
           The default is FA_ADD.
         @param fa A member of the ForceApplication enum.
         */
@@ -112,7 +115,8 @@ namespace Ogre {
 
     };
 
-
+    /** @} */
+    /** @} */
 }
 
 

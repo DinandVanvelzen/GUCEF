@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,11 +33,15 @@ THE SOFTWARE.
 
 #include "OgreCommon.h"
 #include "OgreController.h"
-#include "OgreIteratorWrappers.h"
+#include "OgreControllerManager.h"
 #include "Threading/OgreThreadHeaders.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
+
+    template <typename T> class MapIterator;
+    template <typename T> class ConstMapIterator;
+    template <typename T> class ConstVectorIterator;
 
     /** \addtogroup Core
     *  @{
@@ -47,7 +51,7 @@ namespace Ogre {
     */
 
     /** Represents the state of an animation and the weight of its influence. 
-    @remarks
+
         Other classes can hold instances of this class to store the state of any animations
         they are using.
     */
@@ -56,7 +60,7 @@ namespace Ogre {
     public:
 
         /// Typedef for an array of float values used as a bone blend mask
-        typedef vector<float>::type BoneBlendMask;
+        typedef std::vector<float> BoneBlendMask;
 
         /** Normal constructor with all params supplied
             @param
@@ -76,7 +80,6 @@ namespace Ogre {
             Real timePos, Real length, Real weight = 1.0, bool enabled = false);
         /// Constructor to copy from an existing state with new parent
         AnimationState(AnimationStateSet* parent, const AnimationState &rhs);
-        virtual ~AnimationState();
         
         /// Gets the name of the animation to which this state applies
         const String& getAnimationName() const;
@@ -94,8 +97,8 @@ namespace Ogre {
         void setWeight(Real weight);
         /** Modifies the time position, adjusting for animation length
         @param offset The amount of time, in seconds, to extend the animation.
-        @remarks
-            This method loops at the edges if animation looping is enabled.
+
+        This method loops at the edges if animation looping is enabled.
         */
         void addTime(Real offset);
 
@@ -141,14 +144,7 @@ namespace Ogre {
       void createBlendMask(size_t blendMaskSizeHint, float initialWeight = 1.0f);
       /// Destroy the currently set blend mask
       void destroyBlendMask();
-      /** @brief Set the blend mask data (might be dangerous)
-       *
-       * @par The size of the array should match the number of entries the
-       *      blend mask was created with.
-       *
-       * @par Stick to the setBlendMaskEntry method if you don't know exactly what you're doing.
-       */
-      void _setBlendMaskData(const float* blendMaskData);
+
       /** @brief Set the blend mask
        *
        * @par The size of the array should match the number of entries the
@@ -157,21 +153,29 @@ namespace Ogre {
        * @par Stick to the setBlendMaskEntry method if you don't know exactly what you're doing.
        */
       void _setBlendMask(const BoneBlendMask* blendMask);
-      /// Get the current blend mask (const version, may be 0) 
-      const BoneBlendMask* getBlendMask() const {return mBlendMask;}
+      /// Get the current blend mask
+      const BoneBlendMask* getBlendMask() const {return &mBlendMask;}
       /// Return whether there is currently a valid blend mask set
-      bool hasBlendMask() const {return mBlendMask != 0;}
+      bool hasBlendMask() const {return !mBlendMask.empty();}
       /// Set the weight for the bone identified by the given handle
       void setBlendMaskEntry(size_t boneHandle, float weight);
       /// Get the weight for the bone identified by the given handle
       inline float getBlendMaskEntry(size_t boneHandle) const
       {
-          assert(mBlendMask && mBlendMask->size() > boneHandle);
-          return (*mBlendMask)[boneHandle];
+          assert(mBlendMask.size() > boneHandle);
+          return mBlendMask[boneHandle];
       }
-    protected:
+    private:
+        /** @brief Set the blend mask data (might be dangerous)
+         *
+         * @par The size of the array should match the number of entries the
+         *      blend mask was created with.
+         *
+         * @par Stick to the setBlendMaskEntry method if you don't know exactly what you're doing.
+         */
+        void _setBlendMaskData(const float* blendMaskData);
         /// The blend mask (containing per bone weights)
-        BoneBlendMask* mBlendMask;
+        BoneBlendMask mBlendMask;
 
         String mAnimationName;
         AnimationStateSet* mParent;
@@ -184,11 +188,11 @@ namespace Ogre {
     };
 
     // A map of animation states
-    typedef map<String, AnimationState*>::type AnimationStateMap;
+    typedef std::map<String, AnimationState*> AnimationStateMap;
     typedef MapIterator<AnimationStateMap> AnimationStateIterator;
     typedef ConstMapIterator<AnimationStateMap> ConstAnimationStateIterator;
     // A list of enabled animation states
-    typedef list<AnimationState*>::type EnabledAnimationStateList;
+    typedef std::list<AnimationState*> EnabledAnimationStateList;
     typedef ConstVectorIterator<EnabledAnimationStateList> ConstEnabledAnimationStateIterator;
 
     /** Class encapsulating a set of AnimationState objects.
@@ -224,19 +228,24 @@ namespace Ogre {
         void removeAllAnimationStates(void);
 
         /** Get an iterator over all the animation states in this set.
-        @note
-            The iterator returned from this method is not threadsafe,
-            you will need to manually lock the public mutex on this
-            class to ensure thread safety if you need it.
+        @deprecated use getAnimationStates()
         */
         AnimationStateIterator getAnimationStateIterator(void);
         /** Get an iterator over all the animation states in this set.
+        @deprecated use getAnimationStates()
+        */
+        OGRE_DEPRECATED ConstAnimationStateIterator getAnimationStateIterator(void) const;
+
+        /** Get all the animation states in this set.
         @note
-            The iterator returned from this method is not threadsafe,
+            This method is not threadsafe,
             you will need to manually lock the public mutex on this
             class to ensure thread safety if you need it.
         */
-        ConstAnimationStateIterator getAnimationStateIterator(void) const;
+        const AnimationStateMap& getAnimationStates() const {
+            return mAnimationStates;
+        }
+
         /// Copy the state of any matching animation states from this to another
         void copyMatchingState(AnimationStateSet* target) const;
         /// Set the dirty flag and dirty frame number on this state set
@@ -249,14 +258,21 @@ namespace Ogre {
         /// Tests if exists enabled animation state in this set
         bool hasEnabledAnimationState(void) const { return !mEnabledAnimationStates.empty(); }
         /** Get an iterator over all the enabled animation states in this set
+        @deprecated use getEnabledAnimationStates()
+        */
+        OGRE_DEPRECATED ConstEnabledAnimationStateIterator getEnabledAnimationStateIterator(void) const;
+
+        /** Get an iterator over all the enabled animation states in this set
         @note
             The iterator returned from this method is not threadsafe,
             you will need to manually lock the public mutex on this
             class to ensure thread safety if you need it.
         */
-        ConstEnabledAnimationStateIterator getEnabledAnimationStateIterator(void) const;
+        const EnabledAnimationStateList& getEnabledAnimationStates() const {
+            return mEnabledAnimationStates;
+        }
 
-    protected:
+    private:
         unsigned long mDirtyFrameNumber;
         AnimationStateMap mAnimationStates;
         EnabledAnimationStateList mEnabledAnimationStates;
@@ -264,29 +280,44 @@ namespace Ogre {
     };
 
     /** ControllerValue wrapper class for AnimationState.
-    @remarks
+
         In Azathoth and earlier, AnimationState was a ControllerValue but this
         actually causes memory problems since Controllers delete their values
         automatically when there are no further references to them, but AnimationState
         is deleted explicitly elsewhere so this causes double-free problems.
         This wrapper acts as a bridge and it is this which is destroyed automatically.
     */
-    class _OgreExport AnimationStateControllerValue : public ControllerValue<Real>
+    class _OgreExport AnimationStateControllerValue : public ControllerValue<float>
     {
-    protected:
+    private:
         AnimationState* mTargetAnimationState;
+        bool mAddTime;
     public:
-        /** Constructor, pass in the target animation state. */
-        AnimationStateControllerValue(AnimationState* targetAnimationState)
-            : mTargetAnimationState(targetAnimationState) {}
-        /// Destructor (parent already virtual)
-        ~AnimationStateControllerValue() {}
-        /** ControllerValue implementation. */
-        Real getValue(void) const;
+        /// @deprecated use create instead
+        AnimationStateControllerValue(AnimationState* targetAnimationState, bool addTime = false)
+            : mTargetAnimationState(targetAnimationState), mAddTime(addTime) {}
+
+        /**
+         * create an instance of this class
+         * @param targetAnimationState
+         * @param addTime if true, increment time instead of setting to an absolute position
+         */
+        static ControllerValueRealPtr create(AnimationState* targetAnimationState, bool addTime = false);
 
         /** ControllerValue implementation. */
-        void setValue(Real value);
+        float getValue(void) const override
+        {
+            return mTargetAnimationState->getTimePosition() / mTargetAnimationState->getLength();
+        }
 
+        /** ControllerValue implementation. */
+        void setValue(float value) override
+        {
+            if(mAddTime)
+                mTargetAnimationState->addTime(value);
+            else
+                mTargetAnimationState->setTimePosition(value * mTargetAnimationState->getLength());
+        }
     };
 
     /** @} */   

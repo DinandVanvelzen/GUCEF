@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -104,10 +104,10 @@ namespace Ogre
         {
             // Get distance to this terrain node (to closest point of the box)
             // head towards centre of the box (note, box may not cover mLocalCentre because of height)
-            Vector3 dir(node->getAABB().getCenter() - localPos);
+            Vector3 dir(node->getBoundingBox().getCenter() - localPos);
             dir.normalise();
             Ray ray(localPos, dir);
-            std::pair<bool, Real> intersectRes = Math::intersects(ray, node->getAABB());
+            std::pair<bool, Real> intersectRes = Math::intersects(ray, node->getBoundingBox());
 
             // ray will always intersect, we just want the distance
             dist = intersectRes.second;

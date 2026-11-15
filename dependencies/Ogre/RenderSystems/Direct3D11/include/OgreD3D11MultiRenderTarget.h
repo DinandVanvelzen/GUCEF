@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,10 +29,12 @@ THE SOFTWARE.
 #define __D3D11MULTIRENDERTARGET_H__
 
 #include "OgreD3D11Prerequisites.h"
+#include "OgreD3D11RenderTarget.h"
 #include "OgreRenderTexture.h"
 
 namespace Ogre {
-    class D3D11MultiRenderTarget : public MultiRenderTarget
+    class _OgreD3D11Export D3D11MultiRenderTarget : public MultiRenderTarget,
+        public D3D11RenderTarget
     {
     public:
         D3D11MultiRenderTarget(const String &name);
@@ -40,11 +42,12 @@ namespace Ogre {
 
         virtual void update(void);
 
-        virtual void getCustomAttribute( const String& name, void *pData );
+        virtual uint getNumberOfViews() const;
+        virtual ID3D11Texture2D* getSurface(uint index = 0) const;
+        virtual ID3D11RenderTargetView* getRenderTargetView(uint index = 0) const;
 
         bool requiresTextureFlipping() const { return false; }
     private:
-        D3D11HardwarePixelBuffer *targets[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
         ID3D11RenderTargetView* mRenderTargetViews[OGRE_MAX_MULTIPLE_RENDER_TARGETS];   // Store views to accelerate bind
         uint mNumberOfViews;                                                            // Store number of views to accelerate bind
 

@@ -1,0 +1,27 @@
+<PROJECTGENERATOR>
+    <!-- The platform specific parts of the library. The directories of Windows and Android follow the platform names. The
+         directory GLX holds the file system layer of the Linux platform, the directories OSX and iOS those of the Apple platforms.
+         WebAssembly has no file system layer: it has the one which does nothing. The directory search operations are for the
+         platforms other than Windows. The DDS, ETC and ASTC codecs are part of the build. The PVRTC codec is only built for the
+         Apple mobile platforms, which are not built. -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="GLX" TYPE="DIR" />
+        <ITEM NAME="OSX" TYPE="DIR" />
+        <ITEM NAME="iOS" TYPE="DIR" />
+        <ITEM NAME="OgreFileSystemLayerNoOp.cpp" TYPE="FILE" />
+        <ITEM NAME="OgrePVRTCCodec.cpp" TYPE="FILE" />
+        <ITEM NAME="OgrePVRTCCodec.h" TYPE="FILE" />
+        <ITEM NAME="OgreSearchOps.cpp" TYPE="FILE" />
+        <ITEM NAME="OgreSearchOps.h" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="GLX" TYPE="DIR" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="emscripten">
+        <ITEM NAME="OgreFileSystemLayerNoOp.cpp" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="linux;android;emscripten">
+        <ITEM NAME="OgreSearchOps.cpp" TYPE="FILE" />
+        <ITEM NAME="OgreSearchOps.h" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

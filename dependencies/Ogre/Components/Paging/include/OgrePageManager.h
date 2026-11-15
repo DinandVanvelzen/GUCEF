@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Paging
@@ -61,21 +61,21 @@ namespace Ogre
         virtual ~PageProvider() {}
 
         /** Give a provider the opportunity to prepare page content procedurally. 
-        @remarks
+
         This call may well happen in a separate thread so it should not access 
         GPU resources, use loadProceduralPage for that
         @return true if the page was populated, false otherwise
         */
         virtual bool prepareProceduralPage(Page* page, PagedWorldSection* section) { return false; }
         /** Give a provider the opportunity to load page content procedurally. 
-        @remarks
+
         This call will happen in the main render thread so it can access GPU resources. 
         Use prepareProceduralPage for background preparation.
         @return true if the page was populated, false otherwise
         */
         virtual bool loadProceduralPage(Page* page, PagedWorldSection* section) { return false; }
         /** Give a provider the opportunity to unload page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call will happen in 
         the main render thread so it can access GPU resources. Use _unprepareProceduralPage
         for background preparation.
@@ -83,7 +83,7 @@ namespace Ogre
         */
         virtual bool unloadProceduralPage(Page* page, PagedWorldSection* section) { return false; }
         /** Give a provider the opportunity to unprepare page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call may well happen in 
         a separate thread so it should not access GPU resources, use _unloadProceduralPage
         for that
@@ -92,20 +92,20 @@ namespace Ogre
         virtual bool unprepareProceduralPage(Page* page, PagedWorldSection* section) { return false; }
 
         /** Get a serialiser set up to read PagedWorld data for the given world filename. 
-        @remarks
+
         The StreamSerialiser returned is the responsibility of the caller to
         delete. 
         */
         virtual StreamSerialiser* readWorldStream(const String& filename) { return 0; }
         /** Get a serialiser set up to write PagedWorld data for the given world filename. 
-        @remarks
+
         The StreamSerialiser returned is the responsibility of the caller to
         delete. 
         */
         virtual StreamSerialiser* writeWorldStream(const String& filename) { return 0; }
         /** Get a serialiser set up to read Page data for the given PageID, 
             or null if this provider cannot supply one. 
-        @remarks
+
             The StreamSerialiser returned is the responsibility of the caller to
             delete. 
         @param pageID The ID of the page being requested
@@ -115,7 +115,7 @@ namespace Ogre
 
         /** Get a serialiser set up to write Page data for the given PageID, 
         or null if this provider cannot supply one. 
-        @remarks
+
         The StreamSerialiser returned is the responsibility of the caller to
         delete. 
         @param pageID The ID of the page being requested
@@ -127,7 +127,7 @@ namespace Ogre
     /** The PageManager is the entry point through which you load all PagedWorld instances, 
         and the place where PageStrategy instances and factory classes are
         registered to customise the paging behaviour.
-    @remarks
+
         To get started, the minimum you need is a PagedWorld with at least one PagedWorldSection
         within it, and at least one Camera being tracked (see addCamera). 
     */
@@ -176,14 +176,14 @@ namespace Ogre
         @return The world, or null if the world doesn't exist.
         */
         PagedWorld* getWorld(const String& name);
-        typedef map<String, PagedWorld*>::type WorldMap;
+        typedef std::map<String, PagedWorld*> WorldMap;
         /** Get a reference to the worlds that are currently loaded. */
         const WorldMap& getWorlds() const { return mWorlds; }
 
 
-        typedef map<String, PageStrategy*>::type StrategyMap;
+        typedef std::map<String, PageStrategy*> StrategyMap;
         /** Add a new PageStrategy implementation. 
-        @remarks
+
             The caller remains resonsible for destruction of this instance. 
         */
         void addStrategy(PageStrategy* strategy);
@@ -203,9 +203,9 @@ namespace Ogre
         const StrategyMap& getStrategies() const;
 
 
-        typedef map<String, PageContentCollectionFactory*>::type ContentCollectionFactoryMap;
+        typedef std::map<String, PageContentCollectionFactory*> ContentCollectionFactoryMap;
         /** Add a new PageContentCollectionFactory implementation. 
-        @remarks
+
         The caller remains resonsible for destruction of this instance. 
         */
         void addContentCollectionFactory(PageContentCollectionFactory* f);
@@ -233,9 +233,9 @@ namespace Ogre
         */
         const ContentCollectionFactoryMap& getContentCollectionFactories() const;
 
-        typedef map<String, PageContentFactory*>::type ContentFactoryMap;
+        typedef std::map<String, PageContentFactory*> ContentFactoryMap;
         /** Add a new PageContentFactory implementation. 
-        @remarks
+
         The caller remains resonsible for destruction of this instance. 
         */
         void addContentFactory(PageContentFactory* f);
@@ -264,9 +264,9 @@ namespace Ogre
         void destroyContent(PageContent* c);
 
 
-        typedef map<String, PagedWorldSectionFactory*>::type WorldSectionFactoryMap;
+        typedef std::map<String, PagedWorldSectionFactory*> WorldSectionFactoryMap;
         /** Add a new PagedWorldSectionFactory implementation. 
-        @remarks
+
         The caller remains resonsible for destruction of this instance. 
         */
         void addWorldSectionFactory(PagedWorldSectionFactory* f);
@@ -300,7 +300,7 @@ namespace Ogre
 
 
         /** Set the PageProvider which can provide streams for any Page. 
-        @remarks
+
             This is the top-level way that you can direct how Page data is loaded. 
             When data for a Page is requested for a PagedWorldSection, the following
             sequence of classes will be checked to see if they have a provider willing
@@ -316,7 +316,7 @@ namespace Ogre
         PageProvider* getPageProvider() const { return mPageProvider; }
 
         /** Give a provider the opportunity to prepare page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call may well happen in 
         a separate thread so it should not access GPU resources, use _loadProceduralPage
         for that
@@ -324,7 +324,7 @@ namespace Ogre
         */
         virtual bool _prepareProceduralPage(Page* page, PagedWorldSection* section);
         /** Give a provider the opportunity to prepare page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call will happen in 
         the main render thread so it can access GPU resources. Use _prepareProceduralPage
         for background preparation.
@@ -332,7 +332,7 @@ namespace Ogre
         */
         virtual bool _loadProceduralPage(Page* page, PagedWorldSection* section);
         /** Give a manager  the opportunity to unload page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call will happen in 
         the main render thread so it can access GPU resources. Use _unprepareProceduralPage
         for background preparation.
@@ -340,7 +340,7 @@ namespace Ogre
         */
         virtual bool _unloadProceduralPage(Page* page, PagedWorldSection* section);
         /** Give a manager  the opportunity to unprepare page content procedurally. 
-        @remarks
+
         You should not call this method directly. This call may well happen in 
         a separate thread so it should not access GPU resources, use _unloadProceduralPage
         for that
@@ -350,29 +350,29 @@ namespace Ogre
         /** Get a serialiser set up to read Page data for the given PageID. 
         @param pageID The ID of the page being requested
         @param section The parent section to which this page will belong
-        @remarks
-            The StreamSerialiser returned is the responsibility of the caller to
-            delete. 
+
+        The StreamSerialiser returned is the responsibility of the caller to
+        delete.
         */
         StreamSerialiser* _readPageStream(PageID pageID, PagedWorldSection* section);
 
         /** Get a serialiser set up to write Page data for the given PageID. 
         @param pageID The ID of the page being requested
         @param section The parent section to which this page will belong
-        @remarks
+
         The StreamSerialiser returned is the responsibility of the caller to
         delete. 
         */
         StreamSerialiser* _writePageStream(PageID pageID, PagedWorldSection* section);
         /** Get a serialiser set up to read PagedWorld data for the given world name. 
-        @remarks
+
             The StreamSerialiser returned is the responsibility of the caller to
             delete. 
         */
         StreamSerialiser* _readWorldStream(const String& filename);
 
         /** Get a serialiser set up to write PagedWorld data. 
-        @remarks
+
         The StreamSerialiser returned is the responsibility of the caller to
         delete. 
         */
@@ -388,7 +388,7 @@ namespace Ogre
         void setPageResourceGroup(const String& g) { mPageResourceGroup = g; }
 
         /** Tells the paging system to start tracking a given camera. 
-        @remarks
+
             In order for the paging system to function it needs to know which
             Cameras to track. You may not want to have all your cameras affect
             the paging system, so just add the cameras you want it to keep track of
@@ -404,12 +404,12 @@ namespace Ogre
         */
         bool hasCamera(Camera* c) const;
 
-        typedef vector<Camera*>::type CameraList;
+        typedef std::vector<Camera*> CameraList;
         /** Returns a list of cameras being tracked. */
         const CameraList& getCameraList() const;
 
         /** Set the debug display level.
-        @remarks
+
             This setting controls how much debug information is displayed in the scene.
             The exact interpretation of this value depends on the PageStrategy you're
             using, and whether the PageContent decides to also display debug information.
@@ -422,7 +422,7 @@ namespace Ogre
         uint8 getDebugDisplayLevel() const { return mDebugDisplayLvl; }
 
         /** Pause or unpause all paging operations.
-        @remarks
+
             Using this method you can stop pages being loaded or unloaded for a
             period of time, 'freezing' the current page state as it is. 
         @param enabled True to proceed with normal paging operations, false to pause.
@@ -433,7 +433,7 @@ namespace Ogre
         bool getPagingOperationsEnabled() const { return mPagingEnabled; }
 
 
-    protected:
+    private:
 
         class EventRouter : public Camera::Listener, public FrameListener
         {
@@ -445,10 +445,10 @@ namespace Ogre
             EventRouter() : pManager(0), pWorldMap(0), pCameraList(0) {}
             ~EventRouter() {}
 
-            void cameraPreRenderScene(Camera* cam);
-            void cameraDestroyed(Camera* cam);
-            bool frameStarted(const FrameEvent& evt);
-            bool frameEnded(const FrameEvent& evt);
+            void cameraPreRenderScene(Camera* cam) override;
+            void cameraDestroyed(Camera* cam) override;
+            bool frameStarted(const FrameEvent& evt) override;
+            bool frameEnded(const FrameEvent& evt) override;
         };
 
         void createStandardStrategies();

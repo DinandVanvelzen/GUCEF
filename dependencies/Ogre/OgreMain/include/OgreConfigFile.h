@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,10 +32,10 @@ THE SOFTWARE.
 
 #include "OgreCommon.h"
 #include "OgreStringVector.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
+    template <typename T> class MapIterator;
 
     /** \addtogroup Core
     *  @{
@@ -44,9 +44,9 @@ namespace Ogre {
     *  @{
     */
     /** Class for quickly loading settings from a text file.
-        @remarks
-            This class is designed to quickly parse a simple file containing
-            key/value pairs, mainly for use in configuration settings.
+
+        This class is designed to quickly parse a simple file containing
+        key/value pairs, mainly for use in configuration settings.
         @par
             This is a very simplified approach, no multiple values per key
             are allowed, no grouping or context is being kept etc.
@@ -63,7 +63,6 @@ namespace Ogre {
     public:
 
         ConfigFile();
-        virtual ~ConfigFile();
         /// load from a filename (not using resource group locations)
         void load(const String& filename, const String& separators = "\t:=", bool trimWhitespace = true);
         /// load from a filename (using resource group locations)
@@ -84,22 +83,32 @@ namespace Ogre {
         /** Gets all settings from the file with the named key. */
         StringVector getMultiSetting(const String& key, const String& section = BLANKSTRING) const;
 
-        typedef multimap<String, String>::type SettingsMultiMap;
+        typedef std::multimap<String, String> SettingsMultiMap;
         typedef MapIterator<SettingsMultiMap> SettingsIterator;
         /** Gets an iterator for stepping through all the keys / values in the file. */
-        typedef map<String, SettingsMultiMap*>::type SettingsBySection;
+        typedef std::map<String, SettingsMultiMap*> SettingsBySection;
+        typedef std::map<String, SettingsMultiMap> SettingsBySection_;
         typedef MapIterator<SettingsBySection> SectionIterator;
-        /** Get an iterator over all the available sections in the config file */
-        SectionIterator getSectionIterator(void);
-        /** Get an iterator over all the available settings in a section */
-        SettingsIterator getSettingsIterator(const String& section = BLANKSTRING);
 
+        /// @deprecated use getSettingsBySection()
+        OGRE_DEPRECATED SectionIterator getSectionIterator(void);
 
+        /** Get all the available settings grouped by sections */
+        const SettingsBySection_& getSettingsBySection() const {
+            return mSettings;
+        }
+
+        /// @deprecated use getSettings()
+        OGRE_DEPRECATED SettingsIterator getSettingsIterator(const String& section = BLANKSTRING);
+
+        /** Get all the available settings in a section */
+        const SettingsMultiMap& getSettings(const String& section = BLANKSTRING) const;
         
         /** Clear the settings */
         void clear(void);
     protected:
-        SettingsBySection mSettings;
+        SettingsBySection_ mSettings;
+        SettingsBySection mSettingsPtr; // for backwards compatibility
     };
     /** @} */
     /** @} */

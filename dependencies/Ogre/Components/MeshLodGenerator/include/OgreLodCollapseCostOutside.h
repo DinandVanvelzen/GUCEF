@@ -5,7 +5,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #include "OgreLodCollapseCost.h"
 #include "OgreLodData.h"
 #include "OgreSharedPtr.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
@@ -44,9 +45,9 @@ class _OgreLodExport LodCollapseCostOutside :
 public:
     LodCollapseCostOutside(LodCollapseCostPtr costCalculator, Real outsideWeight, Real outsideWalkAngle);
     ~LodCollapseCostOutside();
-    virtual void initCollapseCosts(LodData* data);
-    virtual Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge);
-protected:
+    void initCollapseCosts(LodData* data) override;
+    Real computeEdgeCollapseCost(LodData* data, LodData::Vertex* src, LodData::Edge* dstEdge) override;
+private:
 
     Real mOutsideWeight;
     Real mOutsideWalkAngle;
@@ -57,6 +58,9 @@ protected:
 };
 
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif
 
 

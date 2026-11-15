@@ -24,11 +24,10 @@ if (WIN32)
     include/OgreD3D9GpuProgramManager.h
     include/OgreD3D9HLSLProgram.h
     include/OgreD3D9HLSLProgramFactory.h
+    include/OgreD3D9HardwareBuffer.h
     include/OgreD3D9HardwareBufferManager.h
-    include/OgreD3D9HardwareIndexBuffer.h
     include/OgreD3D9HardwareOcclusionQuery.h
     include/OgreD3D9HardwarePixelBuffer.h
-    include/OgreD3D9HardwareVertexBuffer.h
     include/OgreD3D9Mappings.h
     include/OgreD3D9MultiRenderTarget.h
     include/OgreD3D9Plugin.h
@@ -62,11 +61,10 @@ if (WIN32)
     src/OgreD3D9GpuProgramManager.cpp
     src/OgreD3D9HLSLProgram.cpp
     src/OgreD3D9HLSLProgramFactory.cpp
+    src/OgreD3D9HardwareBuffer.cpp
     src/OgreD3D9HardwareBufferManager.cpp
-    src/OgreD3D9HardwareIndexBuffer.cpp
     src/OgreD3D9HardwareOcclusionQuery.cpp
     src/OgreD3D9HardwarePixelBuffer.cpp
-    src/OgreD3D9HardwareVertexBuffer.cpp
     src/OgreD3D9Mappings.cpp
     src/OgreD3D9MultiRenderTarget.cpp
     src/OgreD3D9Plugin.cpp
@@ -99,11 +97,10 @@ elseif (WIN64)
     include/OgreD3D9GpuProgramManager.h
     include/OgreD3D9HLSLProgram.h
     include/OgreD3D9HLSLProgramFactory.h
+    include/OgreD3D9HardwareBuffer.h
     include/OgreD3D9HardwareBufferManager.h
-    include/OgreD3D9HardwareIndexBuffer.h
     include/OgreD3D9HardwareOcclusionQuery.h
     include/OgreD3D9HardwarePixelBuffer.h
-    include/OgreD3D9HardwareVertexBuffer.h
     include/OgreD3D9Mappings.h
     include/OgreD3D9MultiRenderTarget.h
     include/OgreD3D9Plugin.h
@@ -137,11 +134,10 @@ elseif (WIN64)
     src/OgreD3D9GpuProgramManager.cpp
     src/OgreD3D9HLSLProgram.cpp
     src/OgreD3D9HLSLProgramFactory.cpp
+    src/OgreD3D9HardwareBuffer.cpp
     src/OgreD3D9HardwareBufferManager.cpp
-    src/OgreD3D9HardwareIndexBuffer.cpp
     src/OgreD3D9HardwareOcclusionQuery.cpp
     src/OgreD3D9HardwarePixelBuffer.cpp
-    src/OgreD3D9HardwareVertexBuffer.cpp
     src/OgreD3D9Mappings.cpp
     src/OgreD3D9MultiRenderTarget.cpp
     src/OgreD3D9Plugin.cpp
@@ -168,14 +164,6 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-# Per CMake limitation, we must set any additional library search paths before defining the target
-if ( WIN32 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
-endif( WIN32 )
-if ( WIN64 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x64 )
-endif( WIN64 )
-
 
 if( WIN32 )
   set( MODULE_NAME "OgreRenderSystem_Direct3D9" )
@@ -191,23 +179,29 @@ endif()
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-target_link_libraries( ${MODULE_NAME} PRIVATE d3d9 d3dx9 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D9;OGRED3DENGINEDLL_EXPORTS_;_USRDLL_" )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d9.lib dxguid.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D9;MODULE_SEMVER=14_6_3_0;OGRED3DENGINEDLL_EXPORTS;_USRDLL" )
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-target_link_libraries( ${MODULE_NAME} PRIVATE d3d9 d3dx9 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D9;OGRED3DENGINEDLL_EXPORTS_;_USRDLL_" )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d9.lib dxguid.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreRenderSystem_Direct3D9;MODULE_SEMVER=14_6_3_0;OGRED3DENGINEDLL_EXPORTS;_USRDLL" )
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/include/WIN32 ../../OgreMain/src ../../OgreMain/src/WIN32 ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include )
 endif( WIN64 )
 
 

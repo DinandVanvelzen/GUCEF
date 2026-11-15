@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreWireBoundingBox.h"
-
-#include "OgreSimpleRenderable.h"
-#include "OgreHardwareBufferManager.h"
-#include "OgreCamera.h"
 
 namespace Ogre {
     #define POSITION_BINDING 0
@@ -55,8 +51,7 @@ namespace Ogre {
         mRenderOp.vertexData->vertexCount = 24; 
         mRenderOp.vertexData->vertexStart = 0; 
         mRenderOp.operationType = RenderOperation::OT_LINE_LIST; 
-        mRenderOp.useIndexes = false; 
-        mRenderOp.useGlobalInstancingVertexBufferIsAvailable = false;
+        mRenderOp.useIndexes = false;
 
         VertexDeclaration* decl = mRenderOp.vertexData->vertexDeclaration;
         VertexBufferBinding* bind = mRenderOp.vertexData->vertexBufferBinding;
@@ -74,10 +69,8 @@ namespace Ogre {
         bind->setBinding(POSITION_BINDING, vbuf);
 
         // set basic white material
-        this->setMaterial("BaseWhiteNoLighting");
-
-
-        
+        mMaterial = MaterialManager::getSingleton().getDefaultMaterial(false);
+        mMaterial->load();
     }
     
     WireBoundingBox::~WireBoundingBox() 
@@ -125,8 +118,8 @@ namespace Ogre {
         HardwareVertexBufferSharedPtr vbuf =
             mRenderOp.vertexData->vertexBufferBinding->getBuffer(POSITION_BINDING);     
 
-        float* pPos = static_cast<float*>(
-            vbuf->lock(HardwareBuffer::HBL_DISCARD));
+        HardwareBufferLockGuard vbufLock(vbuf, HardwareBuffer::HBL_DISCARD);
+        float* pPos = static_cast<float*>(vbufLock.pData);
 
         // line 0
         *pPos++ = minx;
@@ -212,20 +205,12 @@ namespace Ogre {
         *pPos++ = maxx;
         *pPos++ = miny;
         *pPos++ = maxz;
-        vbuf->unlock();
     }
 
     //-----------------------------------------------------------------------
     Real WireBoundingBox::getSquaredViewDepth(const Camera* cam) const
     {
-        Vector3 min, max, mid, dist;
-        min = mBox.getMinimum();
-        max = mBox.getMaximum();
-        mid = ((max - min) * 0.5) + min;
-        dist = cam->getDerivedPosition() - mid;
-
-
-        return dist.squaredLength();
+        return (cam->getDerivedPosition() - mBox.getCenter()).squaredLength();
     }
 
 

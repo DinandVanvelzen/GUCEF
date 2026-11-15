@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,22 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "OgreMeshLodGenerator.h"
-#include "OgrePixelCountLodStrategy.h"
-#include "OgreLodWorkQueueWorker.h"
-#include "OgreLodWorkQueueInjector.h"
-#include "OgreLodInputProvider.h"
-#include "OgreLodInputProviderMesh.h"
-#include "OgreLodInputProviderBuffer.h"
-#include "OgreLodOutputProvider.h"
-#include "OgreLodOutputProviderMesh.h"
-#include "OgreLodOutputProviderCompressedMesh.h"
-#include "OgreLodOutputProviderBuffer.h"
-#include "OgreLodOutputProviderCompressedBuffer.h"
-#include "OgreLodCollapseCost.h"
-#include "OgreLodCollapseCostCurvature.h"
-#include "OgreLodCollapseCostProfiler.h"
-#include "OgreLodCollapseCostOutside.h"
-#include "OgreLodData.h"
-#include "OgreLodCollapser.h"
+#include <memory>
 
+#include "OgreMeshLodPrecompiledHeaders.h"
 
 namespace Ogre
 {
+
+struct LodWorkQueueRequest {
+    LodConfig config;
+    LodDataPtr data;
+    LodInputProviderPtr input;
+    LodOutputProviderPtr output;
+    LodCollapseCostPtr cost;
+    LodCollapserPtr collapser;
+    bool isCancelled;
+};
 
 template<> MeshLodGenerator* Singleton<MeshLodGenerator>::msSingleton = 0;
 MeshLodGenerator* MeshLodGenerator::getSingletonPtr()
@@ -104,8 +98,8 @@ void MeshLodGenerator::_configureMeshLodUsage(const LodConfig& lodConfig)
     lodConfig.mesh->freeEdgeList();
     lodConfig.mesh->setLodStrategy(lodConfig.strategy);
     MeshLodUsage usage;
-    size_t n = 0;
-    lodConfig.mesh->_setLodInfo(lodConfig.levels.size() + 1); // add Lod levels
+    ushort n = 0;
+    lodConfig.mesh->_setLodInfo(Math::uint16Cast(lodConfig.levels.size() + 1)); // add Lod levels
     for(size_t i = 0; i < lodConfig.levels.size(); i++) {
         // Record usages. First Lod usage is the mesh itself.
 
@@ -115,7 +109,7 @@ void MeshLodGenerator::_configureMeshLodUsage(const LodConfig& lodConfig)
             usage.userValue = lodConfig.levels[i].distance;
             usage.value = lodConfig.mesh->getLodStrategy()->transformUserValue(usage.userValue);
             usage.edgeData = NULL;
-            usage.manualMesh.setNull();
+            usage.manualMesh.reset();
             usage.manualName = lodConfig.levels[i].manualMeshName;
             lodConfig.mesh->_setLodUsage(++n, usage);
         }
@@ -126,18 +120,9 @@ void MeshLodGenerator::_configureMeshLodUsage(const LodConfig& lodConfig)
         lodConfig.mesh->buildEdgeList();
 }
 
-MeshLodGenerator::MeshLodGenerator() :
-    mWQWorker(NULL),
-    mWQInjector(NULL)
-{
+MeshLodGenerator::MeshLodGenerator() : mInjectorListener(NULL) {}
+MeshLodGenerator::~MeshLodGenerator() {}
 
-}
-
-MeshLodGenerator::~MeshLodGenerator()
-{
-    delete mWQWorker;
-    delete mWQInjector;
-}
 void MeshLodGenerator::_resolveComponents(LodConfig& lodConfig,
                                           LodCollapseCostPtr& cost,
                                           LodDataPtr& data,
@@ -145,45 +130,43 @@ void MeshLodGenerator::_resolveComponents(LodConfig& lodConfig,
                                           LodOutputProviderPtr& output,
                                           LodCollapserPtr& collapser)
 {
-    if(cost.isNull()) {
+    if(!cost) {
         cost = LodCollapseCostPtr(new LodCollapseCostCurvature);
+        cost->setPreventPunchingHoles(lodConfig.advanced.preventPunchingHoles);
+        cost->setPreventBreakingLines(lodConfig.advanced.preventBreakingLines);
         if(lodConfig.advanced.outsideWeight != 0) {
             cost =
                 LodCollapseCostPtr(new LodCollapseCostOutside(cost, lodConfig.advanced.outsideWeight,
                                                               lodConfig.advanced.outsideWalkAngle));
+            cost->setPreventPunchingHoles(lodConfig.advanced.preventPunchingHoles);
+            cost->setPreventBreakingLines(lodConfig.advanced.preventBreakingLines);
         }
         if(!lodConfig.advanced.profile.empty()) {
             cost = LodCollapseCostPtr(new LodCollapseCostProfiler(lodConfig.advanced.profile, cost));
+            cost->setPreventPunchingHoles(lodConfig.advanced.preventPunchingHoles);
+            cost->setPreventBreakingLines(lodConfig.advanced.preventBreakingLines);
         }
 
     }
-    if(data.isNull()) {
-        data = LodDataPtr(new LodData());
+    if(!data) {
+        data = std::make_shared<LodData>();
     }
-    if(collapser.isNull()) {
-        collapser = LodCollapserPtr(new LodCollapser());
+    if(!collapser) {
+        collapser = std::make_shared<LodCollapser>();
     }
     if(lodConfig.advanced.useBackgroundQueue) {
-        if(input.isNull()) {
+        if(!input) {
             input = LodInputProviderPtr(new LodInputProviderBuffer(lodConfig.mesh));
         }
-        if(output.isNull()) {
-            if(lodConfig.advanced.useCompression) {
-                output = LodOutputProviderPtr(new LodOutputProviderCompressedBuffer(lodConfig.mesh));
-            } else {
-                output = LodOutputProviderPtr(new LodOutputProviderBuffer(lodConfig.mesh));
-            }
+        if(!output) {
+            output = LodOutputProviderPtr(new LodOutputProviderBuffer(lodConfig.mesh, lodConfig.advanced.useCompression));
         }
     } else {
-        if(input.isNull()) {
+        if(!input) {
             input = LodInputProviderPtr(new LodInputProviderMesh(lodConfig.mesh));
         }
-        if(output.isNull()) {
-            if(lodConfig.advanced.useCompression) {
-                output = LodOutputProviderPtr(new LodOutputProviderCompressedMesh(lodConfig.mesh));
-            } else {
-                output = LodOutputProviderPtr(new LodOutputProviderMesh(lodConfig.mesh));
-            }
+        if(!output) {
+            output = LodOutputProviderPtr(new LodOutputProviderMesh(lodConfig.mesh, lodConfig.advanced.useCompression));
         }
     }
 }
@@ -216,17 +199,16 @@ void MeshLodGenerator::generateLodLevels(LodConfig& lodConfig,
 {
     // If we don't have generated Lod levels, we can use _generateManualLodLevels.
     bool hasGeneratedLevels = false;
-    for(size_t i = 0; i < lodConfig.levels.size(); i++) {
-        if(lodConfig.levels[i].manualMeshName.empty()) {
+    for(auto & level : lodConfig.levels) {
+        if(level.manualMeshName.empty()) {
             hasGeneratedLevels = true;
             break;
         }
     }
-    if(hasGeneratedLevels || (LodWorkQueueInjector::getSingletonPtr() && LodWorkQueueInjector::getSingletonPtr()->getInjectorListener())) {
+    if(hasGeneratedLevels || mInjectorListener) {
         _resolveComponents(lodConfig, cost, data, input, output, collapser);
         if(lodConfig.advanced.useBackgroundQueue) {
-            _initWorkQueue();
-            LodWorkQueueWorker::getSingleton().addRequestToQueue(lodConfig, cost, data, input, output, collapser);
+            addRequestToQueue(lodConfig, cost, data, input, output, collapser);
         } else {
             _process(lodConfig, cost.get(), data.get(), input.get(), output.get(), collapser.get());
         }
@@ -319,15 +301,75 @@ void MeshLodGenerator::_generateManualLodLevels(LodConfig& lodConfig)
     _configureMeshLodUsage(lodConfig);
 }
 
-void MeshLodGenerator::_initWorkQueue()
+void MeshLodGenerator::addRequestToQueue( LodConfig& lodConfig, LodCollapseCostPtr& cost, LodDataPtr& data, LodInputProviderPtr& input, LodOutputProviderPtr& output, LodCollapserPtr& collapser )
 {
-    if (!LodWorkQueueWorker::getSingletonPtr()) {
-        mWQWorker = new LodWorkQueueWorker();
-    }
-    if (!LodWorkQueueInjector::getSingletonPtr()) {
-        mWQInjector = new LodWorkQueueInjector();
+    LodWorkQueueRequest* req = new LodWorkQueueRequest();
+    req->config = lodConfig;
+    req->cost = cost;
+    req->data = data;
+    req->input = input;
+    req->output = output;
+    req->collapser = collapser;
+    req->isCancelled = false;
+
+    {
+        OGRE_WQ_LOCK_MUTEX(mQueueMutex);
+        mPendingLodRequests.push_back(req);
+
+        Root::getSingleton().getWorkQueue()->addTask([this, req]()
+                                                     { handleRequest(new WorkQueue::Request(0, 0, req, 0, 0), NULL); });
     }
 }
 
+void MeshLodGenerator::clearPendingLodRequests()
+{
+    OGRE_WQ_LOCK_MUTEX(mQueueMutex);
+    for(auto r : mPendingLodRequests)
+        r->isCancelled = true;
+}
+
+WorkQueue::Response* MeshLodGenerator::handleRequest(const WorkQueue::Request* req, const WorkQueue* srcQ)
+{
+    // Called on worker thread by WorkQueue.
+    LodWorkQueueRequest* request = any_cast<LodWorkQueueRequest*>(req->getData());
+    {
+        OGRE_WQ_LOCK_MUTEX(mQueueMutex);
+        mPendingLodRequests.remove(request);
+        if(request->isCancelled)
+        {
+            delete request;
+            return NULL;
+        }
+    }
+
+    _process(request->config, request->cost.get(), request->data.get(), request->input.get(), request->output.get(), request->collapser.get());
+
+    Root::getSingleton().getWorkQueue()->addMainThreadTask(
+        [this, request]() {
+            WorkQueue::Response res(NULL, true, request);
+            handleResponse(&res, NULL);
+            delete request;
+        });
+    return NULL;
+}
+
+void MeshLodGenerator::handleResponse(const WorkQueue::Response* res, const WorkQueue* srcQ)
+{
+    LodWorkQueueRequest* request = any_cast<LodWorkQueueRequest*>(res->getData());
+
+    if(mInjectorListener){
+        if(!mInjectorListener->shouldInject(request)) {
+            return;
+        }
+    }
+
+    request->output->inject();
+    MeshLodGenerator::_configureMeshLodUsage(request->config);
+    //lodConfig.mesh->buildEdgeList();
+
+    if(mInjectorListener){
+        mInjectorListener->injectionCompleted(request);
+    }
+}
 
 }

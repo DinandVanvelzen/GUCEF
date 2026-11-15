@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,36 +51,41 @@ namespace Ogre {
     */
     class _OgreExport HardwarePixelBuffer : public HardwareBuffer
     {
-    protected: 
+    protected:
+        LockOptions mCurrentLockOptions;
         /// Extents
         uint32 mWidth, mHeight, mDepth;
-        /// Pitches (offsets between rows and slices)
-        size_t mRowPitch, mSlicePitch;
         /// Internal format
         PixelFormat mFormat;
+        /// Pitches (offsets between rows and slices)
+        size_t mRowPitch, mSlicePitch;
         /// Currently locked region (local coords)
         PixelBox mCurrentLock;
         /// The current locked box of this surface (entire surface coords)
-        Image::Box mLockedBox;
+        Box mLockedBox;
 
+        typedef std::vector<RenderTexture*> SliceTRT;
+        SliceTRT mSliceTRT;
         
         /// Internal implementation of lock(), must be overridden in subclasses
-        virtual PixelBox lockImpl(const Image::Box &lockBox,  LockOptions options) = 0;
+        virtual PixelBox lockImpl(const Box &lockBox,  LockOptions options) = 0;
 
         /** Internal implementation of lock(), do not OVERRIDE or CALL this
             for HardwarePixelBuffer implementations, but override the previous method */
-        virtual void* lockImpl(size_t offset, size_t length, LockOptions options);
+        void* lockImpl(size_t offset, size_t length, LockOptions options) override;
 
         /** Notify TextureBuffer of destruction of render target.
             Called by RenderTexture when destroyed.
         */
-        virtual void _clearSliceRTT(size_t zoffset);
+        void _clearSliceRTT(size_t zoffset);
         friend class RenderTexture;
+
+        String getNameForRenderTexture(const String& parentName, uint32 layer = 0) const;
     public:
         /// Should be called by HardwareBufferManager
         HardwarePixelBuffer(uint32 mWidth, uint32 mHeight, uint32 mDepth,
                 PixelFormat mFormat,
-                HardwareBuffer::Usage usage, bool useSystemMemory, bool useShadowBuffer);
+                HardwareBuffer::Usage usage, bool useShadowBuffer);
         ~HardwarePixelBuffer();
 
         /** Make every lock method from HardwareBuffer available.
@@ -94,33 +99,39 @@ namespace Ogre {
             @return PixelBox containing the locked region, the pitches and
                 the pixel format
         */
-        virtual const PixelBox& lock(const Image::Box& lockBox, LockOptions options);
-        /// @copydoc HardwareBuffer::lock
-        virtual void* lock(size_t offset, size_t length, LockOptions options, UploadOptions uploadOpt = HBU_DEFAULT);
+        const PixelBox& lock(const Box& lockBox, LockOptions options);
+        /** @copydoc HardwareBuffer::lock
+            @attention this method returns a pointer to the raw buffer storage, which is likely not what you
+           want. The RenderSystem is free to add padding, which you have to query from @ref getCurrentLock()
+           and apply during copying. Prefer @ref blitFromMemory, which correctly
+           handles copying in this case
+           @see @ref Updating-Pixel-Buffers
+         */
+        void* lock(size_t offset, size_t length, LockOptions options) override;
 
         /** Get the current locked region. This is the same value as returned
-            by lock(const Image::Box, LockOptions)
+            by lock(const Box, LockOptions)
             @return PixelBox containing the locked region
         */        
         const PixelBox& getCurrentLock();
         
         /// @copydoc HardwareBuffer::readData
-        virtual void readData(size_t offset, size_t length, void* pDest);
+        void readData(size_t offset, size_t length, void* pDest) override;
         /// @copydoc HardwareBuffer::writeData
-        virtual void writeData(size_t offset, size_t length, const void* pSource,
-                bool discardWholeBuffer = false);
+        void writeData(size_t offset, size_t length, const void* pSource,
+                bool discardWholeBuffer = false) override;
         
         /** Copies a box from another PixelBuffer to a region of the 
             this PixelBuffer. 
             @param src      Source pixel buffer
-            @param srcBox   Image::Box describing the source region in src
-            @param dstBox   Image::Box describing the destination region in this buffer
+            @param srcBox   Box describing the source region in src
+            @param dstBox   Box describing the destination region in this buffer
             @remarks The source and destination regions dimensions don't have to match, in which
             case scaling is done. This scaling is generally done using a bilinear filter in hardware,
             but it is faster to pass the source image in the right dimensions.
             @note Only call this function when both  buffers are unlocked. 
          */        
-        virtual void blit(const HardwarePixelBufferSharedPtr &src, const Image::Box &srcBox, const Image::Box &dstBox);
+        virtual void blit(const HardwarePixelBufferSharedPtr &src, const Box &srcBox, const Box &dstBox);
 
         /** Convenience function that blits the entire source pixel buffer to this buffer. 
             If source and destination dimensions don't match, scaling is done.
@@ -132,51 +143,44 @@ namespace Ogre {
         /** Copies a region from normal memory to a region of this pixelbuffer. The source
             image can be in any pixel format supported by OGRE, and in any size. 
             @param src      PixelBox containing the source pixels and format in memory
-            @param dstBox   Image::Box describing the destination region in this buffer
+            @param dstBox   Box describing the destination region in this buffer
             @remarks The source and destination regions dimensions don't have to match, in which
             case scaling is done. This scaling is generally done using a bilinear filter in hardware,
             but it is faster to pass the source image in the right dimensions.
             @note Only call this function when the buffer is unlocked. 
         */
-        virtual void blitFromMemory(const PixelBox &src, const Image::Box &dstBox) = 0;
+        virtual void blitFromMemory(const PixelBox &src, const Box &dstBox) = 0;
         
         /** Convenience function that blits a pixelbox from memory to the entire 
             buffer. The source image is scaled as needed.
             @param src      PixelBox containing the source pixels and format in memory
             @note Only call this function when the buffer is unlocked. 
         */
-        void blitFromMemory(const PixelBox &src)
-        {
-            blitFromMemory(src, Box(0,0,0,mWidth,mHeight,mDepth));
-        }
-        
+        void blitFromMemory(const PixelBox& src) { blitFromMemory(src, Box(getSize())); }
+
         /** Copies a region of this pixelbuffer to normal memory.
-            @param srcBox   Image::Box describing the source region of this buffer
+            @param srcBox   Box describing the source region of this buffer
             @param dst      PixelBox describing the destination pixels and format in memory
             @remarks The source and destination regions don't have to match, in which
             case scaling is done.
             @note Only call this function when the buffer is unlocked. 
          */
-        virtual void blitToMemory(const Image::Box &srcBox, const PixelBox &dst) = 0;
+        virtual void blitToMemory(const Box &srcBox, const PixelBox &dst) = 0;
 
         /** Convenience function that blits this entire buffer to a pixelbox.
             The image is scaled as needed.
             @param dst      PixelBox describing the destination pixels and format in memory
             @note Only call this function when the buffer is unlocked. 
         */
-        void blitToMemory(const PixelBox &dst)
-        {
-            blitToMemory(Box(0,0,0,mWidth,mHeight,mDepth), dst);
-        }
-        
+        void blitToMemory(const PixelBox& dst) { blitToMemory(Box(getSize()), dst); }
+
         /** Get a render target for this PixelBuffer, or a slice of it. The texture this
-            was acquired from must have TU_RENDERTARGET set, otherwise it is possible to
-            render to it and this method will throw an ERR_RENDERSYSTEM exception.
+            was acquired from must have TU_RENDERTARGET set
             @param slice    Which slice
             @return A pointer to the render target. This pointer has the lifespan of this
             PixelBuffer.
         */
-        virtual RenderTexture *getRenderTarget(size_t slice=0);
+        RenderTexture *getRenderTarget(size_t slice=0) const;
         
         /// Gets the width of this buffer
         uint32 getWidth() const { return mWidth; }
@@ -184,18 +188,10 @@ namespace Ogre {
         uint32 getHeight() const { return mHeight; }
         /// Gets the depth of this buffer
         uint32 getDepth() const { return mDepth; }
+        /// size (width, height, depth) of the pixel buffer
+        Vector3i getSize() const { return Vector3i(getWidth(), getHeight(), getDepth()); }
         /// Gets the native pixel format of this buffer
         PixelFormat getFormat() const { return mFormat; }
-    };
-
-    /** Shared pointer implementation used to share pixel buffers. */
-    class _OgreExport HardwarePixelBufferSharedPtr : public SharedPtr<HardwarePixelBuffer>
-    {
-    public:
-        HardwarePixelBufferSharedPtr() : SharedPtr<HardwarePixelBuffer>() {}
-        explicit HardwarePixelBufferSharedPtr(HardwarePixelBuffer* buf);
-
-
     };
 
     /** @} */

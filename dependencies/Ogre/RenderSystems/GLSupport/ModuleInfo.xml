@@ -1,0 +1,43 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE OpenGL support library: context and window creation shared by the OpenGL render systems</DescriptionHeadline>
+        <DescriptionDetails>Static library which the OpenGL, OpenGL 3+ and OpenGL ES 2 render systems of OGRE 14.6.3 link into themselves. The window system part is EGL with X11 on Linux, EGL on Android and WebAssembly and WGL on Windows.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreGLSupport" Type="StaticLibrary" Platform="linux;mswin;android" Tags="ogre">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+    <Module Platform="linux">
+        <Linker>
+            <Dependency Name="X11" />
+            <Dependency Name="Xrandr" />
+            <Dependency Name="EGL" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="android" />
+            <Dependency Name="EGL" />
+            <Dependency Name="GLESv2" />
+        </Linker>
+    </Module>
+    <Module Platform="mswin">
+        <Linker>
+            <Dependency Name="opengl32.lib" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

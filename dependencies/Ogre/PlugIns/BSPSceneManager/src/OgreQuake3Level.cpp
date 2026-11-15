@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreQuake3Level.h"
+
+#include <memory>
 #include "OgreLogManager.h"
 #include "OgreTextureManager.h"
 
@@ -40,21 +42,15 @@ namespace Ogre {
     void Quake3Level::loadHeaderFromStream(DataStreamPtr& inStream)
     {
         // Load just the header
-        bsp_header_t* pHeader =  OGRE_ALLOC_T(bsp_header_t, 1, MEMCATEGORY_RESOURCE);
-        inStream->read(pHeader, sizeof(bsp_header_t));
-        mChunk = MemoryDataStreamPtr(
-            OGRE_NEW MemoryDataStream(pHeader, sizeof(bsp_header_t), false));
+        mChunk = std::make_shared<MemoryDataStream>(sizeof(bsp_header_t));
+        inStream->read(mChunk->getPtr(), sizeof(bsp_header_t));
         // Grab all the counts, header only
         initialise(true);
-        // Delete manually since delete and delete[] (as used by MemoryDataStream)
-        // are not compatible
-        OGRE_FREE(pHeader, MEMCATEGORY_RESOURCE);
-
     }
     //-----------------------------------------------------------------------
-    void Quake3Level::loadFromStream(DataStreamPtr& stream)
+    void Quake3Level::loadFromStream(const DataStreamPtr& stream)
     {
-        mChunk = MemoryDataStreamPtr(OGRE_NEW MemoryDataStream(stream));
+        mChunk = std::make_shared<MemoryDataStream>(stream);
         initialise();
 
 #if OGRE_DEBUG_MODE
@@ -63,9 +59,11 @@ namespace Ogre {
 
 
     }
+
+#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
     //-----------------------------------------------------------------------
    // byte swapping functions
-   void SwapFourBytes(uint32* dw)
+   static void SwapFourBytes(uint32* dw)
    {
       uint32 tmp;
       tmp =  (*dw & 0x000000FF);
@@ -75,7 +73,7 @@ namespace Ogre {
       memcpy (dw, &tmp, sizeof(uint32));
    }
    //-----------------------------------------------------------------------
-   void SwapFourBytesGrup (uint32* src, int size)
+   static void SwapFourBytesGrup (uint32* src, int size)
    {
       uint32* ptr = (uint32*)src;
       int i;
@@ -83,6 +81,7 @@ namespace Ogre {
          SwapFourBytes (&ptr[i]);
       }
    }
+#endif
    //-----------------------------------------------------------------------
     void Quake3Level::initialise(bool headerOnly)
     {
@@ -248,7 +247,7 @@ namespace Ogre {
             // Load, no mipmaps, brighten by factor 2.5
             DataStreamPtr stream(OGRE_NEW MemoryDataStream(pLightmap, 128 * 128 * 3, false));
             Image img; 
-            img.loadRawData( stream, 128, 128, PF_BYTE_RGB );
+            img.loadRawData( stream, 128, 128, 1, PF_BYTE_RGB );
             TextureManager::getSingleton().loadImage( name.str(), 
                 ResourceGroupManager::getSingleton().getWorldResourceGroupName(), img, TEX_TYPE_2D, 0, 4.0f );
             pLightmap += BSP_LIGHTMAP_BANKSIZE;

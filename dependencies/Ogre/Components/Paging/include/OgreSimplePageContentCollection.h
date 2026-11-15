@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,13 +35,13 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Paging
     *  Some details on paging component
+    * @{
     */
-    /*@{*/
 
 
     /** Specialisation of PageContentCollection which just provides a simple list
@@ -66,10 +66,10 @@ namespace Ogre
     class _OgrePagingExport SimplePageContentCollection : public PageContentCollection
     {
     public:
-        typedef vector<PageContent*>::type ContentList;
+        typedef std::vector<PageContent*> ContentList;
         static const uint32 SUBCLASS_CHUNK_ID;
         static const uint16 SUBCLASS_CHUNK_VERSION;
-    protected:
+    private:
         ContentList mContentList;
     public:
         SimplePageContentCollection(PageContentCollectionFactory* creator);
@@ -90,14 +90,14 @@ namespace Ogre
         virtual const ContentList& getContentList() const { return mContentList; }
 
         // Overridden from PageContentCollection
-        virtual void save(StreamSerialiser& stream);
-        virtual void frameStart(Real timeSinceLastFrame);
-        virtual void frameEnd(Real timeElapsed);
-        virtual void notifyCamera(Camera* cam);
-        bool prepare(StreamSerialiser& stream);
-        void load();
-        void unload();
-        void unprepare();
+        void save(StreamSerialiser& stream) override;
+        void frameStart(Real timeSinceLastFrame) override;
+        void frameEnd(Real timeElapsed) override;
+        void notifyCamera(Camera* cam) override;
+        bool prepare(StreamSerialiser& stream) override;
+        void load() override;
+        void unload() override;
+        void unprepare() override;
 
     protected:
 
@@ -116,13 +116,13 @@ namespace Ogre
         SimplePageContentCollectionFactory() {}
         ~SimplePageContentCollectionFactory() {}
 
-        const String& getName() const { return FACTORY_NAME; }
+        const String& getName() const override { return FACTORY_NAME; }
 
-        PageContentCollection* createInstance() 
+        PageContentCollection* createInstance() override OGRE_NODISCARD
         {
             return OGRE_NEW SimplePageContentCollection(this); 
         }
-        void destroyInstance(PageContentCollection* c)
+        void destroyInstance(PageContentCollection* c) override
         {
             OGRE_DELETE c;
         }

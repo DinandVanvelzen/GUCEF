@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,29 +41,6 @@ namespace Ogre {
     public:
         D3D9VertexDeclaration();
         ~D3D9VertexDeclaration();
-        
-        /** See VertexDeclaration */
-        const VertexElement& addElement(unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        const VertexElement& insertElement(unsigned short atPosition,
-            unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        void removeElement(unsigned short elem_index);
-        
-        /** See VertexDeclaration */
-        void removeElement(VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        void removeAllElements(void);
-
-
-        /** See VertexDeclaration */
-        void modifyElement(unsigned short elem_index, unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
 
         // Called immediately after the Direct3D device has been created.
         virtual void notifyOnDeviceCreate(IDirect3DDevice9* d3d9Device);
@@ -72,19 +49,17 @@ namespace Ogre {
         virtual void notifyOnDeviceDestroy(IDirect3DDevice9* d3d9Device);
 
         /** Gets the D3D9-specific vertex declaration. */
-        IDirect3DVertexDeclaration9* getD3DVertexDeclaration(VertexDeclaration * globalDeclaration, bool useGlobalInstancingVertexBufferIsAvailable);
+        IDirect3DVertexDeclaration9* getD3DVertexDeclaration();
 
     protected:
         void    releaseDeclaration();
         void convertElement( const VertexElement & element, D3DVERTEXELEMENT9 & dxElement );
-
+        void notifyChanged();
     protected:        
-        typedef map<IDirect3DDevice9*, IDirect3DVertexDeclaration9*>::type  DeviceToDeclarationMap;
+        typedef std::map<IDirect3DDevice9*, IDirect3DVertexDeclaration9*>  DeviceToDeclarationMap;
         typedef DeviceToDeclarationMap::iterator                            DeviceToDeclarationIterator;
 
         DeviceToDeclarationMap      mMapDeviceToDeclaration;
-        VertexDeclaration *         mLastUsedGlobalDeclaration;
-        bool                        mUsedGlobalDeclaration;
     };
 
 }

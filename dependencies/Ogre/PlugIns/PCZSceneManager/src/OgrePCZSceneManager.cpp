@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,9 @@ namespace Ogre
     mShowPortals(false),
     mZoneFactoryManager(0),
     mActiveCameraZone(0)
-    { }
+    {
+        addShadowTextureListener(this);
+    }
 
     PCZSceneManager::~PCZSceneManager()
     {
@@ -63,20 +65,22 @@ namespace Ogre
         // base scene manager class does that.
 
         // delete ALL portals
-        Portal * p;
-        PortalList::iterator i = mPortals.begin();
-        for (i = mPortals.begin(); i != mPortals.end(); i++)
+        for (auto& p : mPortals)
         {
-            p = *i;
             OGRE_DELETE p;
         }
         mPortals.clear();
 
-        // delete all the zones
-        for (ZoneMap::iterator j = mZones.begin();
-            j != mZones.end(); ++j)
+        for (auto& p : mAntiPortals)
         {
-            OGRE_DELETE j->second;
+            OGRE_DELETE p;
+        }
+        mAntiPortals.clear();
+
+        // delete all the zones
+        for (auto& z : mZones)
+        {
+            OGRE_DELETE z.second;
         }
         mZones.clear();
         mDefaultZone = 0;
@@ -92,20 +96,24 @@ namespace Ogre
     {
 
         // delete ALL portals
-        Portal * p;
-        PortalList::iterator i = mPortals.begin();
-        for (i = mPortals.begin(); i != mPortals.end(); i++)
+        for (auto& p : mPortals)
         {
-            p = *i;
             OGRE_DELETE p;
         }
         mPortals.clear();
 
+        for (auto& p : mAntiPortals)
+        {
+            OGRE_DELETE p;
+        }
+        mAntiPortals.clear();
+
         // delete all the zones
         for (ZoneMap::iterator j = mZones.begin();
             j != mZones.end(); ++j)
+        for (auto& z : mZones)
         {
-            OGRE_DELETE j->second;
+            OGRE_DELETE z.second;
         }
         mZones.clear();
 
@@ -142,8 +150,8 @@ namespace Ogre
         PCZone * homeZone = p->getCurrentHomeZone();
         if (homeZone)
         {
-            // inform zone of portal change. Do here since PCZone is abstract 
-            homeZone->setPortalsUpdated(true);   
+            // inform zone of portal change. Do here since PCZone is abstract
+            homeZone->setPortalsUpdated(true);
             homeZone->_removePortal(p);
         }
 
@@ -188,8 +196,8 @@ namespace Ogre
             PCZone * homeZone = thePortal->getCurrentHomeZone();
             if (homeZone)
             {
-                // inform zone of portal change 
-                homeZone->setPortalsUpdated(true);   
+                // inform zone of portal change
+                homeZone->setPortalsUpdated(true);
                 homeZone->_removePortal(thePortal);
             }
 
@@ -215,7 +223,7 @@ namespace Ogre
         PCZone* homeZone = p->getCurrentHomeZone();
         if (homeZone)
         {
-            // inform zone of portal change. Do here since PCZone is abstract 
+            // inform zone of portal change. Do here since PCZone is abstract
             homeZone->setPortalsUpdated(true);
             homeZone->_removeAntiPortal(p);
         }
@@ -253,7 +261,7 @@ namespace Ogre
             PCZone* homeZone = thePortal->getCurrentHomeZone();
             if (homeZone)
             {
-                // inform zone of portal change 
+                // inform zone of portal change
                 homeZone->setPortalsUpdated(true);
                 homeZone->_removeAntiPortal(thePortal);
             }
@@ -285,7 +293,7 @@ namespace Ogre
             // set the zone geometry
             newZone->setZoneGeometry(filename, parentNode);
         }
-        
+
         return newZone;
     }
 
@@ -300,7 +308,7 @@ namespace Ogre
             zone = i->second;
             return zone;
         }
-        return 0; // couldn't find the zone  
+        return 0; // couldn't find the zone
     }
 
     void PCZSceneManager::setZoneGeometry(const String & zoneName,
@@ -321,40 +329,18 @@ namespace Ogre
 
     SceneNode* PCZSceneManager::createSceneNodeImpl(void)
     {
-        return OGRE_NEW PCZSceneNode(this);
+        auto ret = new PCZSceneNode(this);
+        // create any zone-specific data necessary
+        createZoneSpecificNodeData(ret);
+        return ret;
     }
 
     SceneNode* PCZSceneManager::createSceneNodeImpl(const String& name)
     {
-        return OGRE_NEW PCZSceneNode(this, name);
-    }
-
-    SceneNode * PCZSceneManager::createSceneNode( void )
-    {
-        SceneNode * on = createSceneNodeImpl();
-        mSceneNodes[ on->getName() ] = on;
+        auto ret = new PCZSceneNode(this, name);
         // create any zone-specific data necessary
-        createZoneSpecificNodeData((PCZSceneNode*)on);
-        // return pointer to the node
-        return on;
-    }
-
-    SceneNode * PCZSceneManager::createSceneNode( const String &name )
-    {
-        // Check name not used
-        if (mSceneNodes.find(name) != mSceneNodes.end())
-        {
-            OGRE_EXCEPT(
-                Exception::ERR_DUPLICATE_ITEM,
-                "A scene node with the name " + name + " already exists",
-                "PCZSceneManager::createSceneNode" );
-        }
-        SceneNode * on = createSceneNodeImpl( name );
-        mSceneNodes[ on->getName() ] = on;
-        // create any zone-specific data necessary
-        createZoneSpecificNodeData((PCZSceneNode*)on);
-        // return pointer to the node
-        return on;
+        createZoneSpecificNodeData(ret);
+        return ret;
     }
 
     // Create a camera for the scene
@@ -370,35 +356,22 @@ namespace Ogre
         }
 
         Camera * c = OGRE_NEW PCZCamera( name, this );
-        mCameras.insert( CameraList::value_type( name, c ) );
+        mCameras.emplace(name, c);
 
         // create visible bounds aab map entry
         mCamVisibleObjectsMap[c] = VisibleObjectsBoundsInfo();
-        
+
         // tell all the zones about the new camera
-        ZoneMap::iterator i;
-        PCZone * zone;
-        for (i = mZones.begin(); i != mZones.end(); i++)
+        PCZone *zone;
+        for (auto& z : mZones)
         {
-            zone = i->second;
-            zone->notifyCameraCreated( c );
+            zone = z.second;
+            zone->notifyCameraCreated(c);
         }
 
         return c;
     }
 
-    // Destroy a Scene Node by name.
-    void PCZSceneManager::destroySceneNode( const String &name )
-    {
-        SceneNode * on = ( getSceneNode( name ) );
-
-        if ( on != 0 )
-        {
-            // destroy the node
-            destroySceneNode( on );
-        }
-    }
-    
     // Destroy a scene node
     void PCZSceneManager::destroySceneNode(SceneNode* sn)
     {
@@ -406,50 +379,24 @@ namespace Ogre
         {
             // remove references to the node from zones
             removeSceneNode( sn );
-        
+
             // destroy the node
-            SceneManager::destroySceneNode( sn->getName() );
+            SceneManager::destroySceneNode( sn );
         }
     }
 
     //-----------------------------------------------------------------------
     void PCZSceneManager::clearScene(void)
     {
-        destroyAllStaticGeometry();
-        destroyAllMovableObjects();
-
-        // Clear root node of all children
-        getRootSceneNode()->removeAllChildren();
-        getRootSceneNode()->detachAllObjects();
-
-        // Delete all SceneNodes, except root that is
-        for (SceneNodeList::iterator i = mSceneNodes.begin();
-            i != mSceneNodes.end(); ++i)
-        {
-            OGRE_DELETE i->second;
-        }
-        mSceneNodes.clear();
-        mAutoTrackingSceneNodes.clear();
+        SceneManager::clearScene();
 
         // delete all the zones
-        for (ZoneMap::iterator j = mZones.begin();
-            j != mZones.end(); ++j)
+        for (auto& z : mZones)
         {
-            OGRE_DELETE j->second;
+            OGRE_DELETE z.second;
         }
         mZones.clear();
         mDefaultZone = 0;
-
-        // Clear animations
-        destroyAllAnimations();
-
-        // Remove sky nodes since they've been deleted
-        mSkyBoxNode = mSkyPlaneNode = mSkyDomeNode = 0;
-        mSkyBoxEnabled = mSkyPlaneEnabled = mSkyDomeEnabled = false; 
-
-        // Clear render queue, empty completely
-        if (mRenderQueue)
-            mRenderQueue->clear(true);
 
         // re-initialize
         init(mDefaultZoneTypeName, mDefaultZoneFileName);
@@ -459,12 +406,11 @@ namespace Ogre
     void PCZSceneManager::setWorldGeometryRenderQueue(uint8 qid)
     {
         // tell all the zones about the new WorldGeometryRenderQueue
-        ZoneMap::iterator i;
         PCZone * zone;
-        for (i = mZones.begin(); i != mZones.end(); i++)
+        for (auto& z : mZones)
         {
-            zone = i->second;
-            zone->notifyWorldGeometryRenderQueue( qid );
+            zone = z.second;
+            zone->notifyWorldGeometryRenderQueue(qid);
         }
         // call the regular scene manager version
         SceneManager::setWorldGeometryRenderQueue(qid);
@@ -474,33 +420,15 @@ namespace Ogre
     void PCZSceneManager::_renderScene(Camera* cam, Viewport *vp, bool includeOverlays)
     {
         // notify all the zones that a scene render is starting
-        ZoneMap::iterator i;
         PCZone * zone;
-        for (i = mZones.begin(); i != mZones.end(); i++)
+        for (auto& z : mZones)
         {
-            zone = i->second;
+            zone = z.second;
             zone->notifyBeginRenderScene();
         }
 
         // do the regular _renderScene
         SceneManager::_renderScene(cam, vp, includeOverlays);
-    }
-
-    /* enable/disable sky rendering */
-    void PCZSceneManager::enableSky(bool onoff)
-    {
-        if (mSkyBoxNode)
-        {
-            mSkyBoxEnabled = onoff;
-        }
-        else if (mSkyDomeNode)
-        {
-            mSkyDomeEnabled = onoff;
-        }
-        else if (mSkyPlaneNode)
-        {
-            mSkyPlaneEnabled = onoff;
-        }
     }
 
     /* Set the zone which contains the sky node */
@@ -511,25 +439,12 @@ namespace Ogre
             // if no zone specified, use default zone
             zone = mDefaultZone;
         }
-        if (mSkyBoxNode)
+        if (auto node = (PCZSceneNode*)getSkyNode())
         {
-            ((PCZSceneNode*)mSkyBoxNode)->setHomeZone(zone);
-            ((PCZSceneNode*)mSkyBoxNode)->anchorToHomeZone(zone);
+            node->setHomeZone(zone);
+            node->anchorToHomeZone(zone);
             zone->setHasSky(true);
         }
-        if (mSkyDomeNode)
-        {
-            ((PCZSceneNode*)mSkyDomeNode)->setHomeZone(zone);
-            ((PCZSceneNode*)mSkyDomeNode)->anchorToHomeZone(zone);
-            zone->setHasSky(true);
-        }
-        if (mSkyPlaneNode)
-        {
-            ((PCZSceneNode*)mSkyPlaneNode)->setHomeZone(zone);
-            ((PCZSceneNode*)mSkyPlaneNode)->anchorToHomeZone(zone);
-            zone->setHasSky(true);
-        }
-        
     }
 
     //-----------------------------------------------------------------------
@@ -552,9 +467,9 @@ namespace Ogre
         _updatePCZSceneNodes();
         // calculate zones affected by each light
         _calcZonesAffectedByLights(cam);
-        // clear update flags at end so user triggered updated are 
-        // not cleared prematurely 
-        _clearAllZonesPortalUpdateFlag(); 
+        // clear update flags at end so user triggered updated are
+        // not cleared prematurely
+        _clearAllZonesPortalUpdateFlag();
     }
 
     /** Update the zone data for every zone portal in the scene */
@@ -562,15 +477,11 @@ namespace Ogre
     void PCZSceneManager::_updatePortalZoneData(void)
     {
         PCZone * zone;
-        ZoneMap::iterator zit = mZones.begin();
-
-        while ( zit != mZones.end() )
+        for (auto& z : mZones)
         {
-            zone = zit->second;
+            zone = z.second;
             // this callchecks for portal zone changes & applies zone data changes as necessary
-            zone->updatePortalsZoneData(); 
-            // proceed to next zone in the list
-            ++zit;
+            zone->updatePortalsZoneData();
         }
     }
 
@@ -578,38 +489,31 @@ namespace Ogre
     void PCZSceneManager::_dirtyNodeByMovingPortals(void)
     {
         PCZone * zone;
-        ZoneMap::iterator zit = mZones.begin();
-
-        while ( zit != mZones.end() )
+        for (auto& z : mZones)
         {
-            zone = zit->second;
-            // this call mark nodes dirty base on moving portals 
-            zone->dirtyNodeByMovingPortals(); 
+            zone = z.second;
+            // this call mark nodes dirty base on moving portals
+            zone->dirtyNodeByMovingPortals();
             // proceed to next zone in the list
-            ++zit;
         }
     }
 
-    /* Update all PCZSceneNodes. 
+    /* Update all PCZSceneNodes.
     */
     void PCZSceneManager::_updatePCZSceneNodes(void)
     {
-        SceneNodeList::iterator it = mSceneNodes.begin();
         PCZSceneNode * pczsn;
-
-        while ( it != mSceneNodes.end() )
+        for (auto& n : mSceneNodes)
         {
-            pczsn = (PCZSceneNode*)(it->second);
+            pczsn = (PCZSceneNode*)n;
             if (pczsn->isMoved() && pczsn->isEnabled())
             {
-                // Update a single entry 
+                // Update a single entry
                 _updatePCZSceneNode(pczsn);
 
                 // reset moved state.
                 pczsn->setMoved(false);
             }
-            // proceed to next entry in the list
-            ++it;
         }
     }
 
@@ -620,20 +524,20 @@ namespace Ogre
         MovableObjectCollection* lights =
             getMovableObjectCollection(PCZLightFactory::FACTORY_TYPE_NAME);
         {
-                OGRE_LOCK_MUTEX(lights->mutex);
+            OGRE_LOCK_MUTEX(lights->mutex);
 
             MovableObjectIterator it(lights->map.begin(), lights->map.end());
 
             while(it.hasMoreElements())
             {
                 PCZLight* l = static_cast<PCZLight*>(it.getNext());
-                if(l->getNeedsUpdate()) 
+                if(l->getNeedsUpdate())
                 {
-                    // only update if necessary 
-                    l->updateZones(((PCZSceneNode*)(cam->getParentSceneNode()))->getHomeZone(), mFrameCount);   
+                    // only update if necessary
+                    l->updateZones(((PCZSceneNode*)(cam->getParentSceneNode()))->getHomeZone(), mFrameCount);
                 }
-                // clear update flag 
-                l->clearNeedsUpdate();   
+                // clear update flag
+                l->clearNeedsUpdate();
             }
         }
     }
@@ -641,7 +545,7 @@ namespace Ogre
     //-----------------------------------------------------------------------
     // Update all the zone info for a given node.  This function
     // makes sure the home zone of the node is correct, and references
-    // to any zones it is visiting are added and a reference to the 
+    // to any zones it is visiting are added and a reference to the
     // node is added to the visitor lists of any zone it is visiting.
     //
     void PCZSceneManager::_updatePCZSceneNode( PCZSceneNode * pczsn )
@@ -650,7 +554,7 @@ namespace Ogre
         if (!mDefaultZone)
             return;
 
-        // Skip if the node is the sceneroot node 
+        // Skip if the node is the sceneroot node
         if (pczsn == getRootSceneNode())
             return;
 
@@ -665,7 +569,7 @@ namespace Ogre
         *    then add the node to the connected zone as a visitor
         * 2) Recurse into visited zones in case the node spans several zones
         */
-        // (recursively) check each portal of home zone to see if the node is touching 
+        // (recursively) check each portal of home zone to see if the node is touching
         if (pczsn->getHomeZone() &&
             pczsn->allowedToVisit() == true)
         {
@@ -676,7 +580,7 @@ namespace Ogre
         pczsn->updateZoneData();
     }
 
-    /** Removes all references to the node from every zone in the scene.  
+    /** Removes all references to the node from every zone in the scene.
     */
     void PCZSceneManager::removeSceneNode( SceneNode * sn )
     {
@@ -748,19 +652,18 @@ namespace Ogre
             while(it.hasMoreElements())
             {
                 PCZLight* l = static_cast<PCZLight*>(it.getNext());
-                if(l) 
+                if(l)
                 {
                     // no need to check, this function does that anyway. if exists, is erased.
-                    l->removeZoneFromAffectedZonesList(zone);   
+                    l->removeZoneFromAffectedZonesList(zone);
                 }
             }
         }
         // if not destroying scene nodes, then make sure any nodes who have
         // this zone as homezone are set to have 0 for a homezone
-        for (SceneNodeList::iterator i = mSceneNodes.begin();
-            i != mSceneNodes.end(); ++i)
+        for (auto& n : mSceneNodes)
         {
-            PCZSceneNode * pczsn = (PCZSceneNode*)(i->second);
+            PCZSceneNode * pczsn = (PCZSceneNode*)n;
             if (!destroySceneNodes)
             {
                 if (pczsn->getHomeZone() == zone)
@@ -796,7 +699,7 @@ namespace Ogre
     *       the function will do its best to find the proper zone for the node using
     *       bounding box volume testing.  This CAN fail to find the correct zone in
     *       some scenarios, so it is best for the user to EXPLICITLY set the home
-    *       zone of the node when the node is added to the scene using 
+    *       zone of the node when the node is added to the scene using
     *       PCZSceneNode::setHomeZone()
     */
     void PCZSceneManager::_updateHomeZone( PCZSceneNode * pczsn, bool allowBackTouches )
@@ -831,7 +734,7 @@ namespace Ogre
         else
         {
             // the node hasn't had it's home zone set yet, so do our best to
-            // find the home zone using volume testing.  
+            // find the home zone using volume testing.
             Vector3 nodeCenter = pczsn->_getDerivedPosition();
             PCZone * bestZone = findZoneForPoint(nodeCenter);
             // set the best zone as the node's home zone
@@ -852,11 +755,9 @@ namespace Ogre
         PCZone * bestZone = mDefaultZone;
         Real bestVolume = Ogre::Math::POS_INFINITY;
 
-        ZoneMap::iterator zit = mZones.begin();
-
-        while ( zit != mZones.end() )
+        for (auto& z : mZones)
         {
-            zone = zit->second;
+            zone = z.second;
             AxisAlignedBox aabb;
             zone->getAABB(aabb);
             SceneNode * enclosureNode = zone->getEnclosureNode();
@@ -876,8 +777,6 @@ namespace Ogre
                     bestVolume = aabb.volume();
                 }
             }
-            // proceed to next zone in the list
-            ++zit;
         }
         return bestZone;
     }
@@ -885,32 +784,29 @@ namespace Ogre
     // create any zone-specific data necessary for all zones for the given node
     void PCZSceneManager::createZoneSpecificNodeData(PCZSceneNode * node)
     {
-        ZoneMap::iterator i;
         PCZone * zone;
-        for (i = mZones.begin(); i != mZones.end(); i++)
+        for (auto& z : mZones)
         {
-            zone = i->second;
+            zone = z.second;
             if (zone->requiresZoneSpecificNodeData())
             {
                 zone->createNodeZoneData(node);
             }
-        }       
+        }
     }
 
     // create any zone-specific data necessary for all nodes for the given zone
     void PCZSceneManager::createZoneSpecificNodeData(PCZone * zone)
     {
-        SceneNodeList::iterator it = mSceneNodes.begin();
         PCZSceneNode * pczsn;
         if (zone->requiresZoneSpecificNodeData())
         {
-            while ( it != mSceneNodes.end() )
+            for (auto& n : mSceneNodes)
             {
-                pczsn = (PCZSceneNode*)(it->second);
-                // create zone specific data for the node 
+                pczsn = (PCZSceneNode*)n;
+                // create zone specific data for the node
                 zone->createNodeZoneData(pczsn);
                 // proceed to next entry in the list
-                ++it;
             }
         }
     }
@@ -921,24 +817,6 @@ namespace Ogre
         // cast the Ogre::SceneNode to a PCZSceneNode
         PCZSceneNode * pczsn = (PCZSceneNode*)node;
         pczsn->setHomeZone(zone);
-    }
-
-    // (optional) post processing for any scene node found visible for the frame
-    void PCZSceneManager::_alertVisibleObjects( void )
-    {
-        OGRE_EXCEPT( Exception::ERR_NOT_IMPLEMENTED,
-            "Function doesn't do as advertised",
-            "PCZSceneManager::_alertVisibleObjects" );
-
-//        NodeList::iterator it = mVisible.begin();
-//
-//        while ( it != mVisible.end() )
-//        {
-//            SceneNode * node = *it;
-//            // this is where you would do whatever you wanted to the visible node
-//            // but right now, it does nothing.
-//            ++it;
-//        }
     }
 
     //-----------------------------------------------------------------------
@@ -1023,86 +901,22 @@ namespace Ogre
             }
         } // release lock on lights collection
 
-        // from here on down this function is same as Ogre::SceneManager
-
-        // Update lights affecting frustum if changed
-        if (mCachedLightInfos != mTestLightInfos)
-        {
-            mLightsAffectingFrustum.resize(mTestLightInfos.size());
-            LightInfoList::const_iterator i;
-            LightList::iterator j = mLightsAffectingFrustum.begin();
-            for (i = mTestLightInfos.begin(); i != mTestLightInfos.end(); ++i, ++j)
-            {
-                *j = i->light;
-                // add cam distance for sorting if texture shadows
-                if (isShadowTechniqueTextureBased())
-                {
-                    (*j)->_calcTempSquareDist(camera->getDerivedPosition());
-                }
-            }
-
-            // Sort the lights if using texture shadows, since the first 'n' will be
-            // used to generate shadow textures and we should pick the most appropriate
-            if (isShadowTechniqueTextureBased())
-            {
-                // Allow a ShadowListener to override light sorting
-                // Reverse iterate so last takes precedence
-                bool overridden = false;
-                for (ListenerList::reverse_iterator ri = mListeners.rbegin();
-                    ri != mListeners.rend(); ++ri)
-                {
-                    overridden = (*ri)->sortLightsAffectingFrustum(mLightsAffectingFrustum);
-                    if (overridden)
-                        break;
-                }
-                if (!overridden)
-                {
-                    // default sort (stable to preserve directional light ordering
-                    std::stable_sort(
-                        mLightsAffectingFrustum.begin(), mLightsAffectingFrustum.end(), 
-                        lightsForShadowTextureLess());
-                }
-                
-            }
-
-            // Use swap instead of copy operator for efficiently
-            mCachedLightInfos.swap(mTestLightInfos);
-
-            // notify light dirty, so all movable objects will re-populate
-            // their light list next time
-            _notifyLightsDirty();
-        }
-
+        updateCachedLightInfos(camera);
     }
     //---------------------------------------------------------------------
     void PCZSceneManager::ensureShadowTexturesCreated()
     {
-        bool shadowTextureConfigDirty = mShadowTextureConfigDirty;
         SceneManager::ensureShadowTexturesCreated();
-        if (!shadowTextureConfigDirty) return;
+        if (!isShadowTextureConfigDirty()) return;
 
-        size_t count = mShadowTextureCameras.size();
-        for (size_t i = 0; i < count; ++i)
+        for (auto cam : getShadowTextureCameras())
         {
-            PCZSceneNode* node = (PCZSceneNode*)mSceneRoot->createChildSceneNode(
-                mShadowTextureCameras[i]->getName());
-            node->attachObject(mShadowTextureCameras[i]);
+            auto node = (PCZSceneNode*)cam->getParentSceneNode();
             addPCZSceneNode(node, mDefaultZone);
         }
     }
     //---------------------------------------------------------------------
-    void PCZSceneManager::destroyShadowTextures(void)
-    {
-        size_t count = mShadowTextureCameras.size();
-        for (size_t i = 0; i < count; ++i)
-        {
-            SceneNode* node = mShadowTextureCameras[i]->getParentSceneNode();
-            mSceneRoot->removeAndDestroyChild(node->getName());
-        }
-        SceneManager::destroyShadowTextures();
-    }
-    //---------------------------------------------------------------------
-    void PCZSceneManager::fireShadowTexturesPreCaster(Light* light, Camera* camera, size_t iteration)
+    void PCZSceneManager::shadowTextureCasterPreViewProj(Light* light, Camera* camera, size_t iteration)
     {
         PCZSceneNode* camNode = (PCZSceneNode*)camera->getParentSceneNode();
 
@@ -1119,34 +933,28 @@ namespace Ogre
             if (camNode->getHomeZone() != lightZone)
                 addPCZSceneNode(camNode, lightZone);
         }
-
-        SceneManager::fireShadowTexturesPreCaster(light, camera, iteration);
     }
 
-    /* Attempt to automatically connect unconnected portals to proper target zones 
+    /* Attempt to automatically connect unconnected portals to proper target zones
         * by looking for matching portals in other zones which are at the same location
         */
     void PCZSceneManager::connectPortalsToTargetZonesByLocation(void)
     {
         // go through every zone to find portals
-        ZoneMap::iterator i, iend;
         PCZone* zone;
-        iend = mZones.end();
         bool foundMatch;
-        for (i = mZones.begin(); i != iend; i++)
+        for (auto& z : mZones)
         {
-            zone = i->second;
+            zone = z.second;
             // go through all the portals in the zone
             Portal* portal;
-            PortalList::iterator pi, piend;
-            piend = zone->mPortals.end();
-            for (pi = zone->mPortals.begin(); pi != piend; pi++)
+            for (auto& p : zone->mPortals)
             {
-                portal = *pi;
+                portal = p;
                 //portal->updateDerivedValues();
                 if (portal->getTargetZone() == 0)
                 {
-                    // this is a portal without a connected zone - look for 
+                    // this is a portal without a connected zone - look for
                     // a matching portal in another zone
                     PCZone* zone2;
                     ZoneMap::iterator j= mZones.begin();
@@ -1173,13 +981,13 @@ namespace Ogre
                     if (foundMatch == false)
                     {
                         // error, didn't find a matching portal!
-                        OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, 
-                            "Could not find matching portal for portal " + portal->getName(), 
+                        OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND,
+                            "Could not find matching portal for portal " + portal->getName(),
                             "PCZSceneManager::connectPortalsToTargetZonesByLocation");
 
                     }
                 }
-            }           
+            }
         }
     }
 
@@ -1215,7 +1023,7 @@ namespace Ogre
         // clear the list of visible nodes
         mVisible.clear();
 
-        // turn off sky 
+        // turn off sky
         enableSky(false);
 
         // remove all extra culling planes
@@ -1230,18 +1038,18 @@ namespace Ogre
         // walk the zones, starting from the camera home zone,
         // adding all visible scene nodes to the mVisibles list
         cameraHomeZone->setLastVisibleFrame(mFrameCount);
-        cameraHomeZone->findVisibleNodes((PCZCamera*)cam, 
-                                          mVisible, 
+        cameraHomeZone->findVisibleNodes((PCZCamera*)cam,
+                                          mVisible,
                                           getRenderQueue(),
-                                          visibleBounds, 
+                                          visibleBounds,
                                           onlyShadowCasters,
-                                          mDisplayNodes,
-                                          mShowBoundingBoxes);
+                                          getDisplaySceneNodes(),
+                                          getShowBoundingBoxes());
     }
 
-    void PCZSceneManager::findNodesIn( const AxisAlignedBox &box, 
-                                       PCZSceneNodeList &list, 
-                                       PCZone * startZone, 
+    void PCZSceneManager::findNodesIn( const AxisAlignedBox &box,
+                                       PCZSceneNodeList &list,
+                                       PCZone * startZone,
                                        PCZSceneNode *exclude )
     {
         PortalList visitedPortals;
@@ -1253,19 +1061,18 @@ namespace Ogre
         else
         {
             // no start zone specified, so check all zones
-            ZoneMap::iterator i;
             PCZone * zone;
-            for (i = mZones.begin(); i != mZones.end(); i++)
+            for (const auto& z : mZones)
             {
-                zone = i->second;
+                zone = z.second;
                 zone->_findNodes( box, list, visitedPortals, false, false, exclude );
             }
         }
     }
 
-    void PCZSceneManager::findNodesIn( const Sphere &sphere, 
-                                       PCZSceneNodeList &list, 
-                                       PCZone * startZone, 
+    void PCZSceneManager::findNodesIn( const Sphere &sphere,
+                                       PCZSceneNodeList &list,
+                                       PCZone * startZone,
                                        PCZSceneNode *exclude  )
     {
         PortalList visitedPortals;
@@ -1277,19 +1084,18 @@ namespace Ogre
         else
         {
             // no start zone specified, so check all zones
-            ZoneMap::iterator i;
             PCZone * zone;
-            for (i = mZones.begin(); i != mZones.end(); i++)
+            for (const auto& z : mZones)
             {
-                zone = i->second;
+                zone = z.second;
                 zone->_findNodes( sphere, list, visitedPortals, false, false, exclude );
             }
         }
     }
 
-    void PCZSceneManager::findNodesIn( const PlaneBoundedVolume &volume, 
-                                       PCZSceneNodeList &list, 
-                                       PCZone * startZone, 
+    void PCZSceneManager::findNodesIn( const PlaneBoundedVolume &volume,
+                                       PCZSceneNodeList &list,
+                                       PCZone * startZone,
                                        PCZSceneNode *exclude )
     {
         PortalList visitedPortals;
@@ -1301,19 +1107,18 @@ namespace Ogre
         else
         {
             // no start zone specified, so check all zones
-            ZoneMap::iterator i;
             PCZone * zone;
-            for (i = mZones.begin(); i != mZones.end(); i++)
+            for (const auto& z : mZones)
             {
-                zone = i->second;
+                zone = z.second;
                 zone->_findNodes( volume, list, visitedPortals, false, false, exclude );
             }
         }
     }
 
-    void PCZSceneManager::findNodesIn( const Ray &r, 
-                                       PCZSceneNodeList &list, 
-                                       PCZone * startZone, 
+    void PCZSceneManager::findNodesIn( const Ray &r,
+                                       PCZSceneNodeList &list,
+                                       PCZone * startZone,
                                        PCZSceneNode *exclude  )
     {
         PortalList visitedPortals;
@@ -1324,11 +1129,10 @@ namespace Ogre
         }
         else
         {
-            ZoneMap::iterator i;
             PCZone * zone;
-            for (i = mZones.begin(); i != mZones.end(); i++)
+            for (const auto& z : mZones)
             {
-                zone = i->second;
+                zone = z.second;
                 zone->_findNodes( r, list, visitedPortals, false, false, exclude );
             }
         }
@@ -1354,7 +1158,7 @@ namespace Ogre
     {
         if ( key == "ShowBoundingBoxes" )
         {
-            mShowBoundingBoxes = * static_cast < const bool * > ( val );
+            showBoundingBoxes(* static_cast < const bool * > ( val ));
             return true;
         }
 
@@ -1364,17 +1168,16 @@ namespace Ogre
             return true;
         }
         // send option to each zone
-        ZoneMap::iterator i;
         PCZone * zone;
-        for (i = mZones.begin(); i != mZones.end(); i++)
+        for (const auto& z : mZones)
         {
-            zone = i->second;
-             if (zone->setOption(key, val ) == true)
-             {
-                 return true;
-             }
+            zone = z.second;
+            if (zone->setOption(key, val ) == true)
+            {
+                return true;
+            }
         }
-        
+
         // try regular scenemanager option
         return SceneManager::setOption( key, val );
 
@@ -1386,7 +1189,7 @@ namespace Ogre
         if ( key == "ShowBoundingBoxes" )
         {
 
-            * static_cast < bool * > ( val ) = mShowBoundingBoxes;
+            * static_cast < bool * > ( val ) = getShowBoundingBoxes();
             return true;
         }
         if ( key == "ShowPortals" )
@@ -1450,43 +1253,26 @@ namespace Ogre
     // clear portal update flag from all zones
     void PCZSceneManager::_clearAllZonesPortalUpdateFlag(void)
     {
-        ZoneMap::iterator zoneIterator = mZones.begin();
-
-        while ( zoneIterator != mZones.end() )
+        for (const auto& z : mZones)
         {
-            (zoneIterator->second)->setPortalsUpdated(false);
-            zoneIterator++;
+            z.second->setPortalsUpdated(false);
         }
     }
     //---------------------------------------------------------------------
     /// See SceneManager::prepareShadowTextures.
-    void PCZSceneManager::prepareShadowTextures(Camera* cam, Viewport* vp, const LightList* lightList)
+    void PCZSceneManager::updateShadowTextures(Camera* cam, Viewport* vp, const LightList* lightList)
     {
         mActiveCameraZone = ((PCZSceneNode*)cam->getParentSceneNode())->getHomeZone();
-        SceneManager::prepareShadowTextures(cam, vp);
+        SceneManager::updateShadowTextures(cam, vp);
     }
 
     //-----------------------------------------------------------------------
     const String PCZSceneManagerFactory::FACTORY_TYPE_NAME = "PCZSceneManager";
-    //-----------------------------------------------------------------------
-    void PCZSceneManagerFactory::initMetaData(void) const
-    {
-        mMetaData.typeName = FACTORY_TYPE_NAME;
-        mMetaData.description = "Scene manager organising the scene using Portal Connected Zones.";
-        mMetaData.sceneTypeMask = 0xFFFF; // support all types
-        mMetaData.worldGeometrySupported = false;
-    }
     //-----------------------------------------------------------------------
     SceneManager* PCZSceneManagerFactory::createInstance(
         const String& instanceName)
     {
         return OGRE_NEW PCZSceneManager(instanceName);
     }
-    //-----------------------------------------------------------------------
-    void PCZSceneManagerFactory::destroyInstance(SceneManager* instance)
-    {
-        OGRE_DELETE instance;
-    }
-
 
 }

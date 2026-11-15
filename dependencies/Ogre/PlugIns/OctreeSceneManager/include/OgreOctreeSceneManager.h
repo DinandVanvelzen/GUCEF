@@ -12,7 +12,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,12 +48,18 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-
+/** \addtogroup Plugins Plugins
+*  @{
+*/
+/** \addtogroup Octree OctreeSceneManager
+* Octree datastructure for managing scene nodes.
+*  @{
+*/
 class OctreeNode;
 class OctreeCamera;
 
-typedef list< WireBoundingBox * >::type BoxList;
-typedef list< unsigned long >::type ColorList;
+typedef std::list< WireBoundingBox * > BoxList;
+typedef std::list< unsigned long > ColorList;
 
 /** Specialized SceneManager that divides the geometry into an octree in order to facilitate spatial queries.
 */
@@ -76,38 +82,32 @@ public:
     ~OctreeSceneManager();
 
     /// @copydoc SceneManager::getTypeName
-    const String& getTypeName(void) const;
+    const String& getTypeName(void) const override;
 
     /** Initializes the manager to the given box and depth.
     */
     void init( AxisAlignedBox &box, int d );
 
     /** Creates a specialized OctreeNode */
-    virtual SceneNode * createSceneNodeImpl ( void );
+    SceneNode * createSceneNodeImpl ( void ) override;
     /** Creates a specialized OctreeNode */
-    virtual SceneNode * createSceneNodeImpl ( const String &name );
+    SceneNode * createSceneNodeImpl ( const String &name ) override;
     /** Creates a specialized OctreeCamera */
-    virtual Camera * createCamera( const String &name );
+    Camera * createCamera( const String &name ) override;
 
     /** Deletes a scene node */
-    virtual void destroySceneNode( const String &name );
+    void destroySceneNode( SceneNode* sn) override;
 
 
 
     /** Does nothing more */
-    virtual void _updateSceneGraph( Camera * cam );
+    void _updateSceneGraph( Camera * cam ) override;
     /** Recurses through the octree determining which nodes are visible. */
-    virtual void _findVisibleObjects ( Camera * cam, 
-        VisibleObjectsBoundsInfo* visibleBounds, bool onlyShadowCasters );
-
-    /** Alerts each unculled object, notifying it that it will be drawn.
-     * Useful for doing calculations only on nodes that will be drawn, prior
-     * to drawing them...
-     */
-    virtual void _alertVisibleObjects( void );
+    void _findVisibleObjects ( Camera * cam,
+        VisibleObjectsBoundsInfo* visibleBounds, bool onlyShadowCasters ) override;
 
     /** Walks through the octree, adding any visible objects to the render queue.
-    @remarks
+
     If any octant in the octree if completely within the view frustum,
     all subchildren are automatically added with no visibility tests.
     */
@@ -128,22 +128,22 @@ public:
     /** Recurses the octree, adding any nodes intersecting with the box into the given list.
     It ignores the exclude scene node.
     */
-    void findNodesIn( const AxisAlignedBox &box, list< SceneNode * >::type &list, SceneNode *exclude = 0 );
+    void findNodesIn( const AxisAlignedBox &box, std::list< SceneNode * > &list, SceneNode *exclude = 0 );
 
     /** Recurses the octree, adding any nodes intersecting with the sphere into the given list.
     It ignores the exclude scene node.
     */
-    void findNodesIn( const Sphere &sphere, list< SceneNode * >::type &list, SceneNode *exclude = 0 );
+    void findNodesIn( const Sphere &sphere, std::list< SceneNode * > &list, SceneNode *exclude = 0 );
 
     /** Recurses the octree, adding any nodes intersecting with the volume into the given list.
       It ignores the exclude scene node.
       */
-    void findNodesIn( const PlaneBoundedVolume &volume, list< SceneNode * >::type &list, SceneNode *exclude=0 );
+    void findNodesIn( const PlaneBoundedVolume &volume, std::list< SceneNode * > &list, SceneNode *exclude=0 );
 
     /** Recurses the octree, adding any nodes intersecting with the ray into the given list.
       It ignores the exclude scene node.
       */
-    void findNodesIn( const Ray &ray, list< SceneNode * >::type &list, SceneNode *exclude=0 );
+    void findNodesIn( const Ray &ray, std::list< SceneNode * > &list, SceneNode *exclude=0 );
 
     /** Sets the box visibility flag */
     void setShowBoxes( bool b )
@@ -155,30 +155,30 @@ public:
     void resize( const AxisAlignedBox &box );
 
     /** Sets the given option for the SceneManager
-               @remarks
+
         Options are:
         "Size", AxisAlignedBox *;
         "Depth", int *;
         "ShowOctree", bool *;
     */
 
-    virtual bool setOption( const String &, const void * );
+    bool setOption( const String &, const void * ) override;
     /** Gets the given option for the Scene Manager.
-        @remarks
+
         See setOption
     */
-    virtual bool getOption( const String &, void * );
+    bool getOption( const String &, void * ) override;
 
-    bool getOptionValues( const String & key, StringVector &refValueList );
-    bool getOptionKeys( StringVector &refKeys );
+    bool getOptionValues( const String & key, StringVector &refValueList ) override;
+    bool getOptionKeys( StringVector &refKeys ) override;
     /** Overridden from SceneManager */
-    void clearScene(void);
+    void clearScene(void) override;
 
-    AxisAlignedBoxSceneQuery* createAABBQuery(const AxisAlignedBox& box, uint32 mask);
-    SphereSceneQuery* createSphereQuery(const Sphere& sphere, uint32 mask);
-    PlaneBoundedVolumeListSceneQuery* createPlaneBoundedVolumeQuery(const PlaneBoundedVolumeList& volumes, uint32 mask);
-    RaySceneQuery* createRayQuery(const Ray& ray, uint32 mask);
-    IntersectionSceneQuery* createIntersectionQuery(uint32 mask);
+    AxisAlignedBoxSceneQuery* createAABBQuery(const AxisAlignedBox& box, uint32 mask) override;
+    SphereSceneQuery* createSphereQuery(const Sphere& sphere, uint32 mask) override;
+    PlaneBoundedVolumeListSceneQuery* createPlaneBoundedVolumeQuery(const PlaneBoundedVolumeList& volumes, uint32 mask) override;
+    RaySceneQuery* createRayQuery(const Ray& ray, uint32 mask) override;
+    IntersectionSceneQuery* createIntersectionQuery(uint32 mask) override;
 
 protected:
 
@@ -213,19 +213,16 @@ protected:
 /// Factory for OctreeSceneManager
 class OctreeSceneManagerFactory : public SceneManagerFactory
 {
-protected:
-    void initMetaData(void) const;
 public:
-    OctreeSceneManagerFactory() {}
-    ~OctreeSceneManagerFactory() {}
     /// Factory type name
     static const String FACTORY_TYPE_NAME;
-    SceneManager* createInstance(const String& instanceName);
-    void destroyInstance(SceneManager* instance);
+    SceneManager* createInstance(const String& instanceName) override;
+    const String& getTypeName(void) const override { return FACTORY_TYPE_NAME; }
 };
 
 
-
+/** @} */
+/** @} */
 }
 
 #endif

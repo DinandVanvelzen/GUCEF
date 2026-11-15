@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,12 @@ THE SOFTWARE.
 
 
 namespace Ogre {
-
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup BSPSceneManager
+    *  @{
+    */
 
     /** Specialisation of the SceneManager class to deal with indoor scenes
         based on a BSP tree.
@@ -63,20 +68,41 @@ namespace Ogre {
     */
     class BspSceneManager : public SceneManager
     {
-    protected:
+        /** Comparator for material map, for sorting materials into render order (e.g. transparent last).
+        */
+        struct materialLess
+        {
+            bool operator()(const Material* x, const Material* y) const
+            {
+                // If x transparent and y not, x > y (since x has to overlap y)
+                if (x->isTransparent() && !y->isTransparent())
+                {
+                    return false;
+                }
+                // If y is transparent and x not, x < y
+                else if (!x->isTransparent() && y->isTransparent())
+                {
+                    return true;
+                }
+                else
+                {
+                    // Otherwise don't care (both transparent or both solid)
+                    // Just arbitrarily use pointer
+                    return x < y;
+                }
+            }
+        };
 
         /// World geometry
         BspLevelPtr mLevel;
 
         // State variables for rendering WIP
         // Set of face groups (by index) already included
-        typedef set<int>::type FaceGroupSet;
+        typedef std::set<int> FaceGroupSet;
         FaceGroupSet mFaceGroupSet;
         // Material -> face group hashmap
-        typedef map<Material*, vector<StaticFaceGroup*>::type, materialLess >::type MaterialFaceGroupMap;
+        typedef std::map<Material*, std::vector<StaticFaceGroup*>, materialLess > MaterialFaceGroupMap;
         MaterialFaceGroupMap mMatFaceGroupMap;
-
-        RenderOperation mRenderOp;
 
         // Debugging features
         bool mShowNodeAABs;
@@ -93,12 +119,6 @@ namespace Ogre {
         void processVisibleLeaf(BspNode* leaf, Camera* cam, 
             VisibleObjectsBoundsInfo* visibleBounds, bool onlyShadowCasters);
 
-        /** Caches a face group for imminent rendering. */
-        unsigned int cacheGeometry(unsigned int* pIndexes, const StaticFaceGroup* faceGroup);
-
-        /** Frees up allocated memory for geometry caches. */
-        void freeMemory(void);
-
         /** Adds a bounding box to draw if turned on. */
         void addBoundingBox(const AxisAlignedBox& aab, bool visible);
 
@@ -106,12 +126,12 @@ namespace Ogre {
         void renderStaticGeometry(void);
 
         /** @copydoc SceneManager::clearScene */
-        void clearScene(void);
+        void clearScene(void) override;
 
         // Overridden so we can manually render world geometry
-        bool fireRenderQueueEnded(uint8 id, const String& invocation);
+        bool fireRenderQueueEnded(uint8 id, const String& invocation) override;
 
-        typedef set<const MovableObject*>::type MovablesForRendering;
+        typedef std::set<const MovableObject*> MovablesForRendering;
         MovablesForRendering mMovablesForRendering;
 
     public:
@@ -120,21 +140,21 @@ namespace Ogre {
 
 
         /// @copydoc SceneManager::getTypeName
-        const String& getTypeName(void) const;
+        const String& getTypeName(void) const override;
 
         /** Specialised from SceneManager to support Quake3 bsp files. */
-        void setWorldGeometry(const String& filename);
+        void setWorldGeometry(const String& filename) override;
 
         /** Specialised from SceneManager to support Quake3 bsp files. */
-        size_t estimateWorldGeometry(const String& filename);
+        size_t estimateWorldGeometry(const String& filename) override;
         
         /** Specialised from SceneManager to support Quake3 bsp files. */
         void setWorldGeometry(DataStreamPtr& stream, 
-            const String& typeName = BLANKSTRING);
+            const String& typeName = BLANKSTRING) override;
 
         /** Specialised from SceneManager to support Quake3 bsp files. */
         size_t estimateWorldGeometry(DataStreamPtr& stream, 
-            const String& typeName = BLANKSTRING);
+            const String& typeName = BLANKSTRING) override;
 
         /** Tells the manager whether to draw the axis-aligned boxes that surround
             nodes in the Bsp tree. For debugging purposes.
@@ -142,18 +162,20 @@ namespace Ogre {
         void showNodeBoxes(bool show);
 
         /** Specialised to suggest viewpoints. */
-        ViewPoint getSuggestedViewpoint(bool random = false);
+        ViewPoint getSuggestedViewpoint(bool random = false) override;
 
         const BspLevelPtr& getLevel(void) {return mLevel; }
 
+        void setLevel(const BspLevelPtr& level);
+
         /** Overridden from SceneManager. */
         void _findVisibleObjects(Camera* cam, VisibleObjectsBoundsInfo* visibleBounds, 
-            bool onlyShadowCasters);
+            bool onlyShadowCasters) override;
 
         /** Creates a specialized BspSceneNode */
-        SceneNode * createSceneNodeImpl ( void );
+        SceneNode * createSceneNodeImpl ( void ) override;
         /** Creates a specialized BspSceneNode */
-        SceneNode * createSceneNodeImpl ( const String &name );
+        SceneNode * createSceneNodeImpl ( const String &name ) override;
 
         /** Internal method for tagging BspNodes with objects which intersect them. */
         void _notifyObjectMoved(const MovableObject* mov, const Vector3& pos);
@@ -161,7 +183,7 @@ namespace Ogre {
         void _notifyObjectDetached(const MovableObject* mov);
 
         /* Creates an AxisAlignedBoxSceneQuery for this scene manager. 
-        @remarks
+
             This method creates a new instance of a query object for this scene manager, 
             for an axis aligned box region. See SceneQuery and AxisAlignedBoxSceneQuery 
             for full details.
@@ -177,7 +199,7 @@ namespace Ogre {
             createAABBQuery(const AxisAlignedBox& box, uint32 mask = 0xFFFFFFFF);
         */
         /* Creates a SphereSceneQuery for this scene manager. 
-        @remarks
+
             This method creates a new instance of a query object for this scene manager, 
             for a spherical region. See SceneQuery and SphereSceneQuery 
             for full details.
@@ -193,7 +215,7 @@ namespace Ogre {
             createSphereQuery(const Sphere& sphere, uint32 mask = 0xFFFFFFFF);
         */
         /** Creates a RaySceneQuery for this scene manager. 
-        @remarks
+
             This method creates a new instance of a query object for this scene manager, 
             looking for objects which fall along a ray. See SceneQuery and RaySceneQuery 
             for full details.
@@ -204,10 +226,10 @@ namespace Ogre {
         @param mask The query mask to apply to this query; can be used to filter out
             certain objects; see SceneQuery for details.
         */
-        virtual RaySceneQuery* 
-            createRayQuery(const Ray& ray, uint32 mask = 0xFFFFFFFF);
+        RaySceneQuery*
+            createRayQuery(const Ray& ray, uint32 mask = 0xFFFFFFFF) override;
         /** Creates an IntersectionSceneQuery for this scene manager. 
-        @remarks
+
             This method creates a new instance of a query object for locating
             intersecting objects. See SceneQuery and IntersectionSceneQuery
             for full details.
@@ -217,36 +239,78 @@ namespace Ogre {
         @param mask The query mask to apply to this query; can be used to filter out
             certain objects; see SceneQuery for details.
         */
-        virtual IntersectionSceneQuery* 
-            createIntersectionQuery(uint32 mask = 0xFFFFFFFF);
+        IntersectionSceneQuery*
+            createIntersectionQuery(uint32 mask = 0xFFFFFFFF) override;
 
     };
 
     /** BSP specialisation of IntersectionSceneQuery */
     class BspIntersectionSceneQuery : public DefaultIntersectionSceneQuery
     {
+        std::set<WorldFragmentType> mSupportedWorldFragments;
+        WorldFragmentType mWorldFragmentType;
     public:
         BspIntersectionSceneQuery(SceneManager* creator);
 
         /** See IntersectionSceneQuery. */
-        void execute(IntersectionSceneQueryListener* listener);
+        void execute(IntersectionSceneQueryListener* listener) override;
 
+        /** Tells the query what kind of world geometry to return from queries;
+            often the full renderable geometry is not what is needed.
+
+            The application receiving the world geometry is expected to know
+            what to do with it; inevitably this means that the application must
+            have knowledge of at least some of the structures
+            used by the custom SceneManager.
+        @par
+            The default setting is WFT_NONE.
+        */
+        void setWorldFragmentType(enum WorldFragmentType wft)
+        {
+            // Check supported
+            OgreAssert(mSupportedWorldFragments.find(wft) != mSupportedWorldFragments.end(),
+                       "This world fragment type is not supported.");
+            mWorldFragmentType = wft;
+        }
+
+        /** Gets the current world fragment types to be returned from the query. */
+        WorldFragmentType getWorldFragmentType(void) const { return mWorldFragmentType; }
+
+        /** Returns the types of world fragments this query supports. */
+        const std::set<WorldFragmentType>* getSupportedWorldFragmentTypes() const { return &mSupportedWorldFragments; }
     };
 
     /** BSP specialisation of RaySceneQuery */
     class BspRaySceneQuery : public DefaultRaySceneQuery
     {
+        std::set<WorldFragmentType> mSupportedWorldFragments;
+        WorldFragmentType mWorldFragmentType;
     public:
         BspRaySceneQuery(SceneManager* creator);
         ~BspRaySceneQuery();
 
+        /// @copydoc BspIntersectionSceneQuery::setWorldFragmentType
+        void setWorldFragmentType(enum WorldFragmentType wft)
+        {
+            // Check supported
+            OgreAssert(mSupportedWorldFragments.find(wft) != mSupportedWorldFragments.end(),
+                       "This world fragment type is not supported.");
+            mWorldFragmentType = wft;
+        }
+
+        /// @copydoc BspIntersectionSceneQuery::getWorldFragmentType
+        WorldFragmentType getWorldFragmentType(void) const { return mWorldFragmentType; }
+
+        /// @copydoc BspIntersectionSceneQuery::getSupportedWorldFragmentTypes
+        const std::set<WorldFragmentType>* getSupportedWorldFragmentTypes() const { return &mSupportedWorldFragments; }
+
         /** See RaySceneQuery. */
-        void execute(RaySceneQueryListener* listener);
+        void execute(RaySceneQueryListener* listener) override;
     protected:
         /// Set for eliminating duplicates since objects can be in > 1 node
-        set<MovableObject*>::type mObjsThisQuery;
+        std::set<MovableObject*> mObjsThisQuery;
         /// list of the last single intersection world fragments (derived)
-        vector<SceneQuery::WorldFragment*>::type mSingleIntersections;
+        std::vector<SceneQuery::WorldFragment*> mSingleIntersections;
 
         void clearTemporaries(void);
         /** Internal processing of a single node.
@@ -265,16 +329,14 @@ namespace Ogre {
     /// Factory for BspSceneManager
     class BspSceneManagerFactory : public SceneManagerFactory
     {
-    protected:
-        void initMetaData(void) const;
     public:
-        BspSceneManagerFactory() {}
-        ~BspSceneManagerFactory() {}
         /// Factory type name
         static const String FACTORY_TYPE_NAME;
-        SceneManager* createInstance(const String& instanceName);
-        void destroyInstance(SceneManager* instance);
+        SceneManager* createInstance(const String& instanceName) override;
+        const String& getTypeName(void) const override { return FACTORY_TYPE_NAME; }
     };
+    /** @} */
+    /** @} */
 }
 
 #endif

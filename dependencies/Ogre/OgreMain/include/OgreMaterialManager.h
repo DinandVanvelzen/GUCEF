@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "OgreSingleton.h"
 #include "OgreResourceManager.h"
 #include "OgreHeaderPrefix.h"
+#include "OgreTextureUnitState.h"
 
 namespace Ogre {
 
@@ -45,20 +46,34 @@ namespace Ogre {
     /** \addtogroup Materials
     *  @{
     */
-    /** Class for managing Material settings for Ogre.
-        @remarks
-            Materials control the eventual surface rendering properties of geometry. This class
-            manages the library of materials, dealing with programmatic registrations and lookups,
-            as well as loading predefined Material settings from scripts.
-        @par
-            When loaded from a script, a Material is in an 'unloaded' state and only stores the settings
-            required. It does not at that stage load any textures. This is because the material settings may be
-            loaded 'en masse' from bulk material script files, but only a subset will actually be required.
-        @par
-            Because this is a subclass of ResourceManager, any files loaded will be searched for in any path or
-            archive added to the resource paths/archives. See ResourceManager for details.
-        @par
-            For a definition of the material script format, see the Tutorials/MaterialScript.html file.
+
+    /// Default material scheme name
+    _OgreExport extern const String MSN_DEFAULT;
+    /// Material scheme of the shader generator
+    _OgreExport extern const String MSN_SHADERGEN;
+    /// Material scheme for shadow casters
+    _OgreExport extern const String MSN_SHADOWCASTER;
+
+    /** Class for managing Material settings for %Ogre.
+
+        Materials control the eventual surface rendering properties of geometry. This class
+        manages the library of materials, dealing with programmatic registrations and lookups,
+        as well as loading predefined Material settings from scripts.
+
+        When loaded from a script, a Material is in an 'unloaded' state and only stores the settings
+        required. It does not at that stage load any textures. This is because the material settings may be
+        loaded 'en masse' from bulk material script files, but only a subset will actually be required.
+
+        Because this is a subclass of ResourceManager, any files loaded will be searched for in any path or
+        archive added to the resource paths/archives. See ResourceManager for details.
+
+        For a definition of the material script format, see @ref Material-Scripts.
+
+        Ogre comes configured with a set of defaults for newly created
+        materials. If you wish to have a different set of defaults,
+        simply call getDefaultSettings() and change the returned Material's
+        settings. All materials created from then on will be configured
+        with the new defaults you have specified.
     */
     class _OgreExport MaterialManager : public ResourceManager, public Singleton<MaterialManager>
     {
@@ -73,7 +88,7 @@ namespace Ogre {
             virtual ~Listener() { }
             /** Called if a technique for a given scheme is not found within a material,
                 allows the application to specify a Technique instance manually.
-            @remarks
+
                 Material schemes allow you to switch wholesale between families of 
                 techniques on a material. However they require you to define those
                 schemes on the materials up-front, which might not be possible or
@@ -117,34 +132,16 @@ namespace Ogre {
 			virtual bool beforeIlluminationPassesCleared(Technique* technique) { return false; }
         };
 
-    protected:
-
-        /// Default Texture filtering - minification
-        FilterOptions mDefaultMinFilter;
-        /// Default Texture filtering - magnification
-        FilterOptions mDefaultMagFilter;
-        /// Default Texture filtering - mipmapping
-        FilterOptions mDefaultMipFilter;
-        /// Default Texture filtering - comparison
-        FilterOptions mDefaultCompare;
-
-        bool            mDefaultCompareEnabled;
-        CompareFunction mDefaultCompareFunction;
-
-        /// Default Texture anisotropy
-        unsigned int mDefaultMaxAniso;
-        /// Serializer - Hold instance per thread if necessary
-        OGRE_THREAD_POINTER(MaterialSerializer, mSerializer);
+    private:
         /// Default settings
         MaterialPtr mDefaultSettings;
 
-        /// Overridden from ResourceManager
         Resource* createImpl(const String& name, ResourceHandle handle, 
             const String& group, bool isManual, ManualResourceLoader* loader,
-            const NameValuePairList* params);
+            const NameValuePairList* params) override;
 
         /// Scheme name -> index. Never shrinks! Should be pretty static anyway
-        typedef map<String, unsigned short>::type SchemeMap;
+        typedef std::map<String, unsigned short> SchemeMap;
         /// List of material schemes
         SchemeMap mSchemes;
         /// Current material scheme
@@ -153,12 +150,12 @@ namespace Ogre {
         unsigned short mActiveSchemeIndex;
 
         /// The list of per-scheme (and general) material listeners
-        typedef list<Listener*>::type ListenerList;
-        typedef map<String, ListenerList>::type ListenerMap;
+        typedef std::list<Listener*> ListenerList;
+        typedef std::map<String, ListenerList> ListenerMap;
         ListenerMap mListenerMap;
 
     public:
-        /// Default material scheme
+        /// same as @ref MSN_DEFAULT
         static String DEFAULT_SCHEME_NAME;
 
         /// Create a new material
@@ -167,9 +164,13 @@ namespace Ogre {
                             bool isManual = false, ManualResourceLoader* loader = 0,
                             const NameValuePairList* createParams = 0);
         
-        /// Get a resource by name
+        /// Get a material by name. For example, to get a MaterialPtr to a material defined in .material script.
         /// @see ResourceManager::getResourceByName
-        MaterialPtr getByName(const String& name, const String& groupName = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME);
+        MaterialPtr getByName(const String& name, const String& groupName = ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME) const;
+
+        /// Get a default material that is always available even when no resources were loaded
+        /// @param useLighting whether the material should be lit
+        MaterialPtr getDefaultMaterial(bool useLighting = true);
 
         /** Default constructor.
         */
@@ -182,11 +183,6 @@ namespace Ogre {
         /** Initialises the material manager, which also triggers it to 
          * parse all available .program and .material scripts. */
         void initialise(void);
-        
-        /** @see ScriptLoader::parseScript
-        */
-        void parseScript(DataStreamPtr& stream, const String& groupName);
-
 
         /** Sets the default texture filtering to be used for loaded textures, for when textures are
             loaded automatically (e.g. by Material class) or when 'load' is called with the default
@@ -220,34 +216,25 @@ namespace Ogre {
         unsigned int getDefaultAnisotropy() const;
 
         /** Returns a pointer to the default Material settings.
-            @remarks
-                Ogre comes configured with a set of defaults for newly created
-                materials. If you wish to have a different set of defaults,
-                simply call this method and change the returned Material's
-                settings. All materials created from then on will be configured
-                with the new defaults you have specified.
-            @par
-                The default settings begin as a single Technique with a single, non-programmable Pass:
-                <ul>
-                <li>ambient = ColourValue::White</li>
-                <li>diffuse = ColourValue::White</li>
-                <li>specular = ColourValue::Black</li>
-                <li>emmissive = ColourValue::Black</li>
-                <li>shininess = 0</li>
-                <li>No texture unit settings (& hence no textures)</li>
-                <li>SourceBlendFactor = SBF_ONE</li>
-                <li>DestBlendFactor = SBF_ZERO (no blend, replace with new
-                  colour)</li>
-                <li>Depth buffer checking on</li>
-                <li>Depth buffer writing on</li>
-                <li>Depth buffer comparison function = CMPF_LESS_EQUAL</li>
-                <li>Colour buffer writing on for all channels</li>
-                <li>Culling mode = CULL_CLOCKWISE</li>
-                <li>Ambient lighting = ColourValue(0.5, 0.5, 0.5) (mid-grey)</li>
-                <li>Dynamic lighting enabled</li>
-                <li>Gourad shading mode</li>
-                <li>Bilinear texture filtering</li>
-                </ul>
+
+            The default settings begin as a single Technique with a single, non-programmable Pass:
+
+            - ambient = ColourValue::White
+            - diffuse = ColourValue::White
+            - specular = ColourValue::Black
+            - emissive = ColourValue::Black
+            - shininess = 0 (not shiny)
+            - SourceBlendFactor = Ogre::SBF_ONE
+            - DestBlendFactor = Ogre::SBF_ZERO (no blend, replace with new colour)
+            - Depth buffer checking on
+            - Depth buffer writing on
+            - Depth buffer comparison function = Ogre::CMPF_LESS_EQUAL
+            - Colour buffer writing on for all channels
+            - Culling mode = Ogre::CULL_CLOCKWISE
+            - Ambient lighting = ColourValue(0.5, 0.5, 0.5) (mid-grey)
+            - Dynamic lighting enabled
+            - Gourad shading mode
+            - No texture unit settings (& hence no textures)
         */
         virtual MaterialPtr getDefaultSettings(void) const { return mDefaultSettings; }
 
@@ -262,12 +249,12 @@ namespace Ogre {
         /** Internal method - returns the active scheme index.
         @see Technique::setSchemeName
         */
-        virtual unsigned short _getActiveSchemeIndex(void) const;
+        unsigned short _getActiveSchemeIndex(void) const { return mActiveSchemeIndex; }
 
         /** Returns the name of the active material scheme. 
         @see Technique::setSchemeName
         */
-        virtual const String& getActiveScheme(void) const;
+        const String& getActiveScheme(void) const { return mActiveSchemeName; }
         
         /** Sets the name of the active material scheme. 
         @see Technique::setSchemeName
@@ -297,37 +284,9 @@ namespace Ogre {
 		virtual void _notifyBeforeIlluminationPassesCleared(Technique* mat);
 
 
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+		/// @copydoc Singleton::getSingleton()
         static MaterialManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static MaterialManager* getSingletonPtr(void);
 
     };

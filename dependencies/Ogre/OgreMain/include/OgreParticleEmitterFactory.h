@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ namespace Ogre {
     *  @{
     */
     /** Abstract class defining the interface to be implemented by creators of ParticleEmitter subclasses.
-    @remarks
+
         Plugins or 3rd party applications can add new types of particle emitters to Ogre by creating
         subclasses of the ParticleEmitter class. Because multiple instances of these emitters may be
         required, a factory class to manage the instances is also required. 
@@ -56,7 +56,7 @@ namespace Ogre {
     class _OgreExport ParticleEmitterFactory : public FXAlloc
     {
     protected:
-        vector<ParticleEmitter*>::type mEmitters;
+        std::vector<ParticleEmitter*> mEmitters; //!< @deprecated do not use
     public:
         ParticleEmitterFactory() {}
         virtual ~ParticleEmitterFactory();
@@ -65,7 +65,7 @@ namespace Ogre {
         virtual String getName() const = 0;
 
         /** Creates a new emitter instance.
-        @remarks
+
             The subclass MUST add a pointer to the created instance to mEmitters.
         */
         virtual ParticleEmitter* createEmitter(ParticleSystem* psys) = 0;

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ THE SOFTWARE.
 
 namespace Ogre
 {
-    /** \addtogroup Optional Components
+    /** \addtogroup Optional
     *  @{
     */
     /** \addtogroup Terrain
@@ -76,10 +76,10 @@ namespace Ogre
     class _OgreTerrainExport TerrainAutoUpdateLodByDistance : public TerrainAutoUpdateLod
     {
     public:
-        virtual void autoUpdateLod(Terrain *terrain, bool synchronous, const Any &data);
-        virtual uint32 getStrategyId() { return BY_DISTANCE; }
+        void autoUpdateLod(Terrain *terrain, bool synchronous, const Any &data) override;
+        uint32 getStrategyId() override { return BY_DISTANCE; }
 
-    protected:
+    private:
         /** Modifies Terrain's LOD level according to it's distance from camera.
             @param holdDistance How far ahead of terrain's LOD level change this LOD level should be loaded.
         */

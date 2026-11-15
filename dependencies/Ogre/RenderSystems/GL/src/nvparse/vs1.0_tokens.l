@@ -34,8 +34,8 @@
 #include "_vs1.0_parser.h"
 #define yylineno line_number
 #include "nvparse_externs.h"
+#define YY_NO_UNPUT
 
-#define yylineno line_number
 int line_incr;
 void LexError(const char *format, ...);
 void LexWarning(const char *format, ...);
@@ -2173,7 +2173,7 @@ bool ParseBuiltInMacroParms(MACROENTRY *parsedMacro, char *parmStr)
 	foundParm = strdup(parmStr);
 	if (foundParm == NULL)
 	{
-		LexError("Out of memory parsing bultin macro parameters.\n");
+		LexError("Out of memory parsing builtin macro parameters.\n");
 		return false;
 	}
 
@@ -2194,7 +2194,7 @@ bool ParseBuiltInMacroParms(MACROENTRY *parsedMacro, char *parmStr)
 		if (curMT == NULL)
 		{
 			free(parmStr);
-			LexError("Out of memory parsing bultin macro parameters.\n");
+			LexError("Out of memory parsing builtin macro parameters.\n");
 			return false;
 		} 
 		curMT->next = NULL;

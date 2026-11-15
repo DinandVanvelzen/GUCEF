@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,9 @@ THE SOFTWARE.
 #include "Threading/OgreThreadHeaders.h"
 #include "OgreHeaderPrefix.h"
 
+#include <deque>
+#include <functional>
+
 namespace Ogre
 {
     /** \addtogroup Core
@@ -44,42 +47,70 @@ namespace Ogre
     *  @{
     */
 
-    /** Interface to a general purpose request / response style background work queue.
-    @remarks
-        A work queue is a simple structure, where requests for work are placed
-        onto the queue, then removed by a worker for processing, then finally
-        a response is placed on the result queue for the originator to pick up
-        at their leisure. The typical use for this is in a threaded environment, 
-        although any kind of deferred processing could use this approach to 
-        decouple and distribute work over a period of time even 
+    /** Interface to a general purpose task-based background work queue.
+
+        A work queue is a simple structure, where tasks of work are placed
+        onto the queue, then removed by a worker for processing.
+        The typical use for this is in a threaded environment,
+        although any kind of deferred processing could use this approach to
+        decouple and distribute work over a period of time even
         if it was single threaded.
-    @par
+
         WorkQueues also incorporate thread pools. One or more background worker threads
-        can wait on the queue and be notified when a request is waiting to be
+        can wait on the queue and be notified when a task is waiting to be
         processed. For maximal thread usage, a WorkQueue instance should be shared
         among many sources of work, rather than many work queues being created.
-        This way, you can share a small number of hardware threads among a large 
+        This way, you can share a small number of hardware threads among a large
         number of background tasks. This doesn't mean you have to implement all the
-        request processing in one class, you can plug in many handlers in order to
-        process the requests.
-    @par
-        This is an abstract interface definition; users can subclass this and 
+        task processing in one class, you can submit as many independent tasks as
+        you like.
+
+        The WorkQueue distinguishes between two types of tasks:
+        1. Background tasks: Added via @ref addTask. These are processed by the worker threads.
+        2. Main thread tasks: Added via @ref addMainThreadTask. These are processed by the main thread
+           when @ref processMainThreadTasks is called. This is useful for tasks that need to access
+           resources that are not thread-safe or must be accessed from the main thread (e.g. GPU resources).
+
+        @ref processMainThreadTasks is automatically called by @ref Root::renderOneFrame (via @ref Root::_fireFrameEnded)
+        or can be called manually by the user in the main loop.
+
+        Both queues are FIFO and thread-safe; `addTask` and `addMainThreadTask` may be
+        called from any thread. There is no priority and no cancellation. With more than
+        one worker thread, background tasks may complete out of order.
+
+        Tasks are `std::function<void()>`, therefore their captures must be copyable.
+
+        @par Task lifetime
+        A task may run after the object that submitted it has been destroyed. Capture a
+        `std::shared_ptr` (or check a `std::weak_ptr`) if no other mechanism guarantees
+        that everything the task accesses is still alive. Keep resource references needed
+        by the task alive in its capture.
+
+        @par Exceptions
+        An exception thrown by a background task is not caught and will terminate the
+        process. Use a `std::packaged_task` to capture the exception in a `std::future`
+        instead. An exception thrown by a main-thread task propagates out of
+        @ref processMainThreadTasks.
+
+        @see @ref background-resource for a tutorial and usage examples.
+
+        This is an abstract interface definition; users can subclass this and
         provide their own implementation if required to centralise task management
         in their own subsystems. We also provide a default implementation in the
         form of DefaultWorkQueue.
     */
     class _OgreExport WorkQueue : public UtilityAlloc
     {
-    protected:
-        typedef map<String, uint16>::type ChannelMap;
-        ChannelMap mChannelMap;
-        uint16 mNextChannel;
-        OGRE_MUTEX(mChannelMapMutex);
     public:
-        /// Numeric identifier for a request
+        /// Legacy identifier type of the request/response API
         typedef unsigned long long int RequestID;
 
-        /** General purpose request structure. 
+        /** Legacy request structure.
+
+            The task-based API passes the work directly as a `std::function`, so
+            Request/Response are not needed and are not used by %Ogre internally.
+            They are kept for source compatibility with code written against the
+            old request/response API.
         */
         class _OgreExport Request : public UtilityAlloc
         {
@@ -102,8 +133,6 @@ namespace Ogre
             /// Constructor 
             Request(uint16 channel, uint16 rtype, const Any& rData, uint8 retry, RequestID rid);
             ~Request();
-            /// Set the abort flag
-            void abortRequest() const { mAborted = true; }
             /// Get the request channel (top level categorisation)
             uint16 getChannel() const { return mChannel; }
             /// Get the type of this request within the given channel
@@ -114,11 +143,14 @@ namespace Ogre
             uint8 getRetryCount() const { return mRetryCount; }
             /// Get the identifier of this request
             RequestID getID() const { return mID; }
-            /// Get the abort flag
-            bool getAborted() const { return mAborted; }
         };
 
-        /** General purpose response structure. 
+        /** Legacy response structure.
+
+            @warning A Response takes ownership of its Request: destroying the
+            response deletes the request as well. Do not delete both.
+            Like Request, this type is not used by %Ogre internally and is kept
+            for source compatibility with the old request/response API.
         */
         struct _OgreExport Response : public UtilityAlloc
         {
@@ -142,221 +174,143 @@ namespace Ogre
             const String& getMessages() const { return mMessages; }
             /// Return the response data (user defined, only valid on success)
             const Any& getData() const { return mData; }
-            /// Abort the request
-            void abortRequest() { mRequest->abortRequest(); mData.destroy(); }
         };
-
-        /** Interface definition for a handler of requests. 
-        @remarks
-        User classes are expected to implement this interface in order to
-        process requests on the queue. It's important to realise that
-        the calls to this class may be in a separate thread to the main
-        render context, and as such it may not be possible to make
-        rendersystem or other GPU-dependent calls in this handler. You can only
-        do so if the queue was created with 'workersCanAccessRenderSystem'
-        set to true, and OGRE_THREAD_SUPPORT=1, but this puts extra strain
-        on the thread safety of the render system and is not recommended.
-        It is best to perform CPU-side work in these handlers and let the
-        response handler transfer results to the GPU in the main render thread.
-        */
-        class _OgreExport RequestHandler
-        {
-        public:
-            RequestHandler() {}
-            virtual ~RequestHandler() {}
-
-            /** Return whether this handler can process a given request. 
-            @remarks
-            Defaults to true, but if you wish to add several handlers each of
-            which deal with different types of request, you can override
-            this method. 
-            */
-            virtual bool canHandleRequest(const Request* req, const WorkQueue* srcQ) 
-            { (void)srcQ; return !req->getAborted(); }
-
-            /** The handler method every subclass must implement. 
-            If a failure is encountered, return a Response with a failure
-            result rather than raise an exception.
-            @param req The Request structure, which is effectively owned by the
-            handler during this call. It must be attached to the returned
-            Response regardless of success or failure.
-            @param srcQ The work queue that this request originated from
-            @return Pointer to a Response object - the caller is responsible
-            for deleting the object.
-            */
-            virtual Response* handleRequest(const Request* req, const WorkQueue* srcQ) = 0;
-        };
-
-        /** Interface definition for a handler of responses. 
-        @remarks
-        User classes are expected to implement this interface in order to
-        process responses from the queue. All calls to this class will be 
-        in the main render thread and thus all GPU resources will be
-        available. 
-        */
-        class _OgreExport ResponseHandler
-        {
-        public:
-            ResponseHandler() {}
-            virtual ~ResponseHandler() {}
-
-            /** Return whether this handler can process a given response. 
-            @remarks
-            Defaults to true, but if you wish to add several handlers each of
-            which deal with different types of response, you can override
-            this method. 
-            */
-            virtual bool canHandleResponse(const Response* res, const WorkQueue* srcQ) 
-            { (void)srcQ; return !res->getRequest()->getAborted(); }
-
-            /** The handler method every subclass must implement. 
-            @param res The Response structure. The caller is responsible for
-            deleting this after the call is made, none of the data contained
-            (except pointers to structures in user Any data) will persist
-            after this call is returned.
-            @param srcQ The work queue that this request originated from
-            */
-            virtual void handleResponse(const Response* res, const WorkQueue* srcQ) = 0;
-        };
-
-        WorkQueue() : mNextChannel(0) {}
+        WorkQueue() {}
         virtual ~WorkQueue() {}
+
+        /** Get the number of worker threads that this queue will start when
+            startup() is called.
+
+            Implementations are free to ignore this setting; the default is 1.
+        */
+        virtual size_t getWorkerThreadCount() const { return 1; }
+
+        /** Set the number of worker threads that this queue will start
+            when startup() is called (default 1).
+            Calling this will have no effect unless the queue is shut down and
+            restarted.
+        */
+        virtual void setWorkerThreadCount(size_t c) {}
 
         /** Start up the queue with the options that have been set.
         @param forceRestart If the queue is already running, whether to shut it
             down and restart.
         */
         virtual void startup(bool forceRestart = true) = 0;
-        /** Add a request handler instance to the queue. 
-        @remarks
-            Every queue must have at least one request handler instance for each 
-            channel in which requests are raised. If you 
-            add more than one handler per channel, then you must implement canHandleRequest 
-            differently in each if you wish them to respond to different requests.
-        @param channel The channel for requests you want to handle
-        @param rh Your handler
-        */
-        virtual void addRequestHandler(uint16 channel, RequestHandler* rh) = 0;
-        /** Remove a request handler. */
-        virtual void removeRequestHandler(uint16 channel, RequestHandler* rh) = 0;
 
-        /** Add a response handler instance to the queue. 
-        @remarks
-            Every queue must have at least one response handler instance for each 
-            channel in which requests are raised. If you add more than one, then you 
-            must implement canHandleResponse differently in each if you wish them 
-            to respond to different responses.
-        @param channel The channel for responses you want to handle
-        @param rh Your handler
-        */
-        virtual void addResponseHandler(uint16 channel, ResponseHandler* rh) = 0;
-        /** Remove a Response handler. */
-        virtual void removeResponseHandler(uint16 channel, ResponseHandler* rh) = 0;
+        /** Add a new task to the background queue.
 
-        /** Add a new request to the queue.
-        @param channel The channel this request will go into = 0; the channel is the top-level
-            categorisation of the request
-        @param requestType An identifier that's unique within this queue which
-            identifies the type of the request (user decides the actual value)
-        @param rData The data required by the request process. 
-        @param retryCount The number of times the request should be retried
-            if it fails.
-        @param forceSynchronous Forces the request to be processed immediately
-            even if threading is enabled.
-        @param idleThread Request should be processed on the idle thread.
-            Idle requests will be processed on a single worker thread. You should use this in the following situations:
-            1. If a request handler can't process multiple requests in parallel.
-            2. If you add lot of requests, but you want to keep the game fast.
-            3. If you have lot of more important threads. (example: physics).
-        @return The ID of the request that has been added
-        */
-        virtual RequestID addRequest(uint16 channel, uint16 requestType, const Any& rData, uint8 retryCount = 0, 
-            bool forceSynchronous = false, bool idleThread = false) = 0;
+            May be called from any thread. Tasks are executed in submission order,
+            but with more than one worker thread the completion order is unspecified.
 
-        /** Abort a previously issued request.
-        If the request is still waiting to be processed, it will be 
-        removed from the queue.
-        @param id The ID of the previously issued request.
-        */
-        virtual void abortRequest(RequestID id) = 0;
+            The task is silently dropped if the queue is shutting down or if
+            @ref setRequestsAccepted has been called with `false`.
 
-        /** Abort all previously issued requests in a given channel.
-        Any requests still waiting to be processed of the given channel, will be 
-        removed from the queue.
-        Requests which are processed, but response handler is not called will also be removed.
-        @param channel The type of request to be aborted
-        */
-        virtual void abortRequestsByChannel(uint16 channel) = 0;
+            Tasks are `std::function<void()>`, so the captures must be copyable.
+            With `OGRE_THREAD_SUPPORT == 0` the task is executed inline on the
+            calling thread instead of being queued.
 
-        /** Abort all previously issued requests in a given channel.
-        Any requests still waiting to be processed of the given channel, will be 
-        removed from the queue.
-        It will not remove requests, where the request handler is already called.
-        @param channel The type of request to be aborted
+            @warning An exception escaping the task terminates the process.
+            Wrap potentially throwing work in a `std::packaged_task`.
         */
-        virtual void abortPendingRequestsByChannel(uint16 channel) = 0;
+        virtual void addTask(std::function<void()> task) = 0;
 
-        /** Abort all previously issued requests.
-        Any requests still waiting to be processed will be removed from the queue.
-        Any requests that are being processed will still complete.
-        */
-        virtual void abortAllRequests() = 0;
-        
-        /** Set whether to pause further processing of any requests. 
-        If true, any further requests will simply be queued and not processed until
-        setPaused(false) is called. Any requests which are in the process of being
-        worked on already will still continue. 
+        /** Set whether to pause further processing of tasks.
+
+            If true, further tasks will simply be queued and not processed until
+            setPaused(false) is called. Tasks which are already being worked on
+            will still continue.
+
+            @note Pausing is not currently implemented by DefaultWorkQueueBase;
+            this flag is retained for custom implementations. Use
+            @ref setRequestsAccepted to stop accepting new tasks.
         */
         virtual void setPaused(bool pause) = 0;
         /// Return whether the queue is paused ie not sending more work to workers
         virtual bool isPaused() const = 0;
 
-        /** Set whether to accept new requests or not. 
-        If true, requests are added to the queue as usual. If false, requests
-        are silently ignored until setRequestsAccepted(true) is called. 
+        /** Set whether to accept new tasks or not.
+
+            If true, tasks are added to the queues as usual. If false, both
+            @ref addTask and @ref addMainThreadTask silently ignore new tasks
+            until setRequestsAccepted(true) is called.
         */
         virtual void setRequestsAccepted(bool accept) = 0;
-        /// Returns whether requests are being accepted right now
+        /// Returns whether tasks are being accepted right now
         virtual bool getRequestsAccepted() const = 0;
 
-        /** Process the responses in the queue.
-        @remarks
-            This method is public, and must be called from the main render
-            thread to 'pump' responses through the system. The method will usually
-            try to clear all responses before returning = 0; however, you can specify
-            a time limit on the response processing to limit the impact of
-            spikes in demand by calling setResponseProcessingTimeLimit.
-        */
-        virtual void processResponses() = 0; 
+        /** Process the tasks in the main-thread queue.
 
-        /** Get the time limit imposed on the processing of responses in a
+            This method must be called from the main render
+            thread to 'pump' tasks through the system. The method will usually
+            try to clear all tasks before returning; however, you can specify
+            a time limit on the tasks processing to limit the impact of
+            spikes in demand by calling @ref setMainThreadProcessingTimeLimit.
+            Tasks added while the queue is being processed may be picked up in
+            the same call, subject to the time limit.
+
+            @note This is automatically called by @ref Root::renderOneFrame, after
+            the `frameEnded` listeners.
+        */
+        virtual void processMainThreadTasks();
+
+        /// @deprecated use @ref processMainThreadTasks
+        OGRE_DEPRECATED virtual void processResponses() { }
+
+        /** Get the time limit imposed on the processing of tasks in a
             single frame, in milliseconds (0 indicates no limit).
         */
+        uint64 getMainThreadProcessingTimeLimit() const { return getResponseProcessingTimeLimit(); }
+
+        /// @deprecated use @ref getMainThreadProcessingTimeLimit()
         virtual unsigned long getResponseProcessingTimeLimit() const = 0;
 
-        /** Set the time limit imposed on the processing of responses in a
+        /** Set the time limit imposed on the processing of tasks in a
             single frame, in milliseconds (0 indicates no limit).
-            This sets the maximum time that will be spent in processResponses() in 
-            a single frame. The default is 8ms.
+            This sets the maximum time that will be spent in @ref processMainThreadTasks() in
+            a single frame. The default is 10ms.
+
+            The limit is checked after each task completes, so a single long task
+            can overshoot it. Each call to @ref processMainThreadTasks gets its own
+            budget.
         */
+        void setMainThreadProcessingTimeLimit(uint64 ms) { setResponseProcessingTimeLimit(static_cast<unsigned long>(ms)); }
+
+        /// @deprecated use @ref setMainThreadProcessingTimeLimit
         virtual void setResponseProcessingTimeLimit(unsigned long ms) = 0;
 
+        /** Add a task that will be processed on the main render thread.
+
+            May be called from any thread. The task does not run immediately, even
+            when called from the main thread; it runs during the next
+            @ref processMainThreadTasks call.
+
+            The task is silently dropped if the queue is shutting down or if
+            @ref setRequestsAccepted has been called with `false`.
+
+            @warning An exception escaping the task propagates out of
+            @ref processMainThreadTasks.
+        */
+        virtual void addMainThreadTask(std::function<void()> task) = 0;
+
         /** Shut down the queue.
+
+            Stops the worker threads and waits for them to finish. Tasks that are
+            already running complete, but tasks still waiting in the queues are not
+            executed. The queues are not cleared, so starting the queue again may
+            still process them.
         */
         virtual void shutdown() = 0;
-
-        /** Get a channel ID for a given channel name. 
-        @remarks
-            Channels are assigned on a first-come, first-served basis and are
-            not persistent across application instances. This method allows 
-            applications to not worry about channel clashes through manually
-            assigned channel numbers.
-        */
-        virtual uint16 getChannel(const String& channelName);
-
     };
 
-    /** Base for a general purpose request / response style background work queue.
+    /** Base implementation of a general purpose task-based background work queue.
+
+        It provides the two FIFO queues, the accept/pause flags and the main-thread
+        processing loop. Concrete implementations only have to provide the thread
+        management via `_threadMain()` and `notifyWorkers()`, plus
+        @ref startup / @ref shutdown.
+
+        @see @ref background-resource
     */
     class _OgreExport DefaultWorkQueueBase : public WorkQueue
     {
@@ -370,17 +324,6 @@ namespace Ogre
         virtual ~DefaultWorkQueueBase();
         /// Get the name of the work queue
         const String& getName() const;
-        /** Get the number of worker threads that this queue will start when 
-            startup() is called. 
-        */
-        virtual size_t getWorkerThreadCount() const;
-
-        /** Set the number of worker threads that this queue will start
-            when startup() is called (default 1).
-            Calling this will have no effect unless the queue is shut down and
-            restarted.
-        */
-        virtual void setWorkerThreadCount(size_t c);
 
         /** Get whether worker threads will be allowed to access render system
             resources. 
@@ -407,12 +350,12 @@ namespace Ogre
         */
         virtual void setWorkersCanAccessRenderSystem(bool access);
 
-        /** Process the next request on the queue. 
-        @remarks
-            This method is public, but only intended for advanced users to call. 
-            The only reason you would call this, is if you were using your 
-            own thread to drive the worker processing. The thread calling this
-            method will be the thread used to call the RequestHandler.
+        /** Pop and execute the next task from the background queue.
+
+            This method is public, but only intended for advanced users. The only
+            reason you would call it is if you drive the worker processing with your
+            own thread. The task runs on the calling thread; an exception escaping it
+            is not caught here.
         */
         virtual void _processNextRequest();
 
@@ -422,40 +365,25 @@ namespace Ogre
         /** Returns whether the queue is trying to shut down. */
         virtual bool isShuttingDown() const { return mShuttingDown; }
 
-        /// @copydoc WorkQueue::addRequestHandler
-        virtual void addRequestHandler(uint16 channel, RequestHandler* rh);
-        /// @copydoc WorkQueue::removeRequestHandler
-        virtual void removeRequestHandler(uint16 channel, RequestHandler* rh);
-        /// @copydoc WorkQueue::addResponseHandler
-        virtual void addResponseHandler(uint16 channel, ResponseHandler* rh);
-        /// @copydoc WorkQueue::removeResponseHandler
-        virtual void removeResponseHandler(uint16 channel, ResponseHandler* rh);
-
-        /// @copydoc WorkQueue::addRequest
-        virtual RequestID addRequest(uint16 channel, uint16 requestType, const Any& rData, uint8 retryCount = 0, 
-            bool forceSynchronous = false, bool idleThread = false);
-        /// @copydoc WorkQueue::abortRequest
-        virtual void abortRequest(RequestID id);
-        /// @copydoc WorkQueue::abortRequestsByChannel
-        virtual void abortRequestsByChannel(uint16 channel);
-        /// @copydoc WorkQueue::abortPendingRequestsByChannel
-        virtual void abortPendingRequestsByChannel(uint16 channel);
-        /// @copydoc WorkQueue::abortAllRequests
-        virtual void abortAllRequests();
         /// @copydoc WorkQueue::setPaused
-        virtual void setPaused(bool pause);
+        void setPaused(bool pause) override;
         /// @copydoc WorkQueue::isPaused
-        virtual bool isPaused() const;
+        bool isPaused() const override;
         /// @copydoc WorkQueue::setRequestsAccepted
-        virtual void setRequestsAccepted(bool accept);
+        void setRequestsAccepted(bool accept) override;
         /// @copydoc WorkQueue::getRequestsAccepted
-        virtual bool getRequestsAccepted() const;
-        /// @copydoc WorkQueue::processResponses
-        virtual void processResponses(); 
+        virtual bool getRequestsAccepted() const override;
+        void processMainThreadTasks() override;
         /// @copydoc WorkQueue::getResponseProcessingTimeLimit
-        virtual unsigned long getResponseProcessingTimeLimit() const { return mResposeTimeLimitMS; }
+        unsigned long getResponseProcessingTimeLimit() const override { return mResposeTimeLimitMS; }
         /// @copydoc WorkQueue::setResponseProcessingTimeLimit
-        virtual void setResponseProcessingTimeLimit(unsigned long ms) { mResposeTimeLimitMS = ms; }
+        void setResponseProcessingTimeLimit(unsigned long ms) override { mResposeTimeLimitMS = ms; }
+        size_t getWorkerThreadCount() const override { return mWorkerThreadCount; }
+        void setWorkerThreadCount(size_t c) override { mWorkerThreadCount = c; }
+        /// @copydoc WorkQueue::addMainThreadTask
+        void addMainThreadTask(std::function<void()> task) override;
+        /// @copydoc WorkQueue::addTask
+        void addTask(std::function<void()> task) override;
     protected:
         String mName;
         size_t mWorkerThreadCount;
@@ -463,114 +391,18 @@ namespace Ogre
         bool mIsRunning;
         unsigned long mResposeTimeLimitMS;
 
-        typedef deque<Request*>::type RequestQueue;
-        typedef deque<Response*>::type ResponseQueue;
-        RequestQueue mRequestQueue; // Guarded by mRequestMutex
-        RequestQueue mProcessQueue; // Guarded by mProcessMutex
-        ResponseQueue mResponseQueue; // Guarded by mResponseMutex
+        std::deque<std::function<void()>> mTasks;
+        std::deque<std::function<void()>> mMainThreadTasks;
 
-        /// Thread function
-        struct _OgreExport WorkerFunc OGRE_THREAD_WORKER_INHERIT
-        {
-            DefaultWorkQueueBase* mQueue;
-
-            WorkerFunc(DefaultWorkQueueBase* q) 
-                : mQueue(q) {}
-
-            void operator()();
-            
-            void operator()() const;
-
-            void run();
-        };
-        WorkerFunc* mWorkerFunc;
-
-        /** Intermediate structure to hold a pointer to a request handler which 
-            provides insurance against the handler itself being disconnected
-            while the list remains unchanged.
-        */
-        class _OgreExport RequestHandlerHolder : public UtilityAlloc
-        {
-        protected:
-            OGRE_RW_MUTEX(mRWMutex);
-            RequestHandler* mHandler;
-        public:
-            RequestHandlerHolder(RequestHandler* handler)
-                : mHandler(handler) {}
-
-            // Disconnect the handler to allow it to be destroyed
-            void disconnectHandler()
-            {
-                // write lock - must wait for all requests to finish
-                OGRE_LOCK_RW_MUTEX_WRITE(mRWMutex);
-                mHandler = 0;
-            }
-
-            /** Get handler pointer - note, only use this for == comparison or similar,
-                do not attempt to call it as it is not thread safe. 
-            */
-            RequestHandler* getHandler() { return mHandler; }
-
-            /** Process a request if possible.
-            @return Valid response if processed, null otherwise
-            */
-            Response* handleRequest(const Request* req, const WorkQueue* srcQ)
-            {
-                // Read mutex so that multiple requests can be processed by the
-                // same handler in parallel if required
-                OGRE_LOCK_RW_MUTEX_READ(mRWMutex);
-                Response* response = 0;
-                if (mHandler)
-                {
-                    if (mHandler->canHandleRequest(req, srcQ))
-                    {
-                        response = mHandler->handleRequest(req, srcQ);
-                    }
-                }
-                return response;
-            }
-
-        };
-        // Hold these by shared pointer so they can be copied keeping same instance
-        typedef SharedPtr<RequestHandlerHolder> RequestHandlerHolderPtr;
-
-        typedef list<RequestHandlerHolderPtr>::type RequestHandlerList;
-        typedef list<ResponseHandler*>::type ResponseHandlerList;
-        typedef map<uint16, RequestHandlerList>::type RequestHandlerListByChannel;
-        typedef map<uint16, ResponseHandlerList>::type ResponseHandlerListByChannel;
-
-        RequestHandlerListByChannel mRequestHandlers;
-        ResponseHandlerListByChannel mResponseHandlers;
-        RequestID mRequestCount; // Guarded by mRequestMutex
         bool mPaused;
         bool mAcceptRequests;
         bool mShuttingDown;
 
-        //NOTE: If you lock multiple mutexes at the same time, the order is important!
-        // For example if threadA locks mIdleMutex first then tries to lock mProcessMutex,
-        // and threadB locks mProcessMutex first, then mIdleMutex. In this case you can get livelock and the system is dead!
-        //RULE: Lock mProcessMutex before other mutex, to prevent livelocks
-        OGRE_MUTEX(mIdleMutex);
-        OGRE_MUTEX(mRequestMutex);
-        OGRE_MUTEX(mProcessMutex);
-        OGRE_MUTEX(mResponseMutex);
-        OGRE_RW_MUTEX(mRequestHandlerMutex);
+        OGRE_WQ_MUTEX(mRequestMutex);
+        OGRE_WQ_MUTEX(mResponseMutex);
 
-
-        void processRequestResponse(Request* r, bool synchronous);
-        Response* processRequest(Request* r);
-        void processResponse(Response* r);
-        /// Notify workers about a new request. 
+        /// Notify workers about a new task.
         virtual void notifyWorkers() = 0;
-        /// Put a Request on the queue with a specific RequestID.
-        void addRequestWithRID(RequestID rid, uint16 channel, uint16 requestType, const Any& rData, uint8 retryCount);
-        
-        RequestQueue mIdleRequestQueue; // Guarded by mIdleMutex
-        bool mIdleThreadRunning; // Guarded by mIdleMutex
-        Request* mIdleProcessed; // Guarded by mProcessMutex
-        
-
-        bool processIdleRequests();
     };
 
 

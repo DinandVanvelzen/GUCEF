@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +26,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreTextureManager.h"
 #include "OgrePixelFormat.h"
-#include "OgreRoot.h"
-#include "OgreRenderSystem.h"
 
 namespace Ogre {
     //-----------------------------------------------------------------------
@@ -59,17 +56,38 @@ namespace Ogre {
         // subclasses should unregister with resource group manager
 
     }
-    //-----------------------------------------------------------------------
-    TexturePtr TextureManager::getByName(const String& name, const String& groupName)
+    SamplerPtr TextureManager::createSampler(const String& name)
     {
-        return getResourceByName(name, groupName).staticCast<Texture>();
+        SamplerPtr ret = _createSamplerImpl();
+        if(!name.empty())
+        {
+            if (mNamedSamplers.find(name) != mNamedSamplers.end())
+                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Sampler '" + name + "' already exists");
+            mNamedSamplers[name] = ret;
+        }
+        return ret;
+    }
+
+    /// retrieve an named sampler
+    const SamplerPtr& TextureManager::getSampler(const String& name) const
+    {
+        static SamplerPtr nullPtr;
+        auto it = mNamedSamplers.find(name);
+        if(it == mNamedSamplers.end())
+            return nullPtr;
+        return it->second;
+    }
+    //-----------------------------------------------------------------------
+    TexturePtr TextureManager::getByName(const String& name, const String& groupName) const
+    {
+        return static_pointer_cast<Texture>(getResourceByName(name, groupName));
     }
     //-----------------------------------------------------------------------
     TexturePtr TextureManager::create (const String& name, const String& group,
                                     bool isManual, ManualResourceLoader* loader,
                                     const NameValuePairList* createParams)
     {
-        return createResource(name,group,isManual,loader,createParams).staticCast<Texture>();
+        return static_pointer_cast<Texture>(createResource(name,group,isManual,loader,createParams));
     }
     //-----------------------------------------------------------------------
     TextureManager::ResourceCreateOrRetrieveResult TextureManager::createOrRetrieve(
@@ -82,12 +100,14 @@ namespace Ogre {
         // Was it created?
         if(res.second)
         {
-            TexturePtr tex = res.first.staticCast<Texture>();
+            TexturePtr tex = static_pointer_cast<Texture>(res.first);
             tex->setTextureType(texType);
             tex->setNumMipmaps((numMipmaps == MIP_DEFAULT)? mDefaultNumMipmaps :
-                static_cast<size_t>(numMipmaps));
+                static_cast<uint32>(numMipmaps));
             tex->setGamma(gamma);
+            OGRE_IGNORE_DEPRECATED_BEGIN
             tex->setTreatLuminanceAsAlpha(isAlpha);
+            OGRE_IGNORE_DEPRECATED_END
             tex->setFormat(desiredFormat);
             tex->setHardwareGammaEnabled(hwGamma);
         }
@@ -100,34 +120,44 @@ namespace Ogre {
     {
         ResourceCreateOrRetrieveResult res =
             createOrRetrieve(name,group,false,0,0,texType,numMipmaps,gamma,isAlpha,desiredFormat,hwGamma);
-        TexturePtr tex = res.first.staticCast<Texture>();
+        TexturePtr tex = static_pointer_cast<Texture>(res.first);
         tex->prepare();
         return tex;
     }
     //-----------------------------------------------------------------------
-    TexturePtr TextureManager::load(const String &name, const String& group, TextureType texType,
+    TexturePtr TextureManager::load(const String& name, const String& group, TextureType texType,
                                     int numMipmaps, Real gamma, bool isAlpha, PixelFormat desiredFormat,
                                     bool hwGamma)
     {
-        ResourceCreateOrRetrieveResult res =
-            createOrRetrieve(name,group,false,0,0,texType,numMipmaps,gamma,isAlpha,desiredFormat,hwGamma);
-        TexturePtr tex = res.first.staticCast<Texture>();
+        auto res = createOrRetrieve(name, group, false, 0, 0, texType, numMipmaps, gamma, isAlpha,
+                                    desiredFormat, hwGamma);
+        TexturePtr tex = static_pointer_cast<Texture>(res.first);
         tex->load();
         return tex;
     }
-
+    TexturePtr TextureManager::load(const String& name, const String& group, TextureType texType,
+                                    int numMipmaps, Real gamma, PixelFormat desiredFormat, bool hwGamma)
+    {
+        auto res = createOrRetrieve(name, group, false, 0, 0, texType, numMipmaps, gamma, false,
+                                    desiredFormat, hwGamma);
+        TexturePtr tex = static_pointer_cast<Texture>(res.first);
+        tex->load();
+        return tex;
+    }
     //-----------------------------------------------------------------------
     TexturePtr TextureManager::loadImage( const String &name, const String& group,
         const Image &img, TextureType texType, int numMipmaps, Real gamma, bool isAlpha, 
         PixelFormat desiredFormat, bool hwGamma)
     {
-        TexturePtr tex = createResource(name, group, true).staticCast<Texture>();
+        TexturePtr tex = create(name, group, true);
 
         tex->setTextureType(texType);
         tex->setNumMipmaps((numMipmaps == MIP_DEFAULT)? mDefaultNumMipmaps :
-            static_cast<size_t>(numMipmaps));
+            static_cast<uint32>(numMipmaps));
         tex->setGamma(gamma);
+        OGRE_IGNORE_DEPRECATED_BEGIN
         tex->setTreatLuminanceAsAlpha(isAlpha);
+        OGRE_IGNORE_DEPRECATED_END
         tex->setFormat(desiredFormat);
         tex->setHardwareGammaEnabled(hwGamma);
         tex->loadImage(img);
@@ -140,11 +170,11 @@ namespace Ogre {
         PixelFormat format, TextureType texType, 
         int numMipmaps, Real gamma, bool hwGamma)
     {
-        TexturePtr tex = createResource(name, group, true).staticCast<Texture>();
+        TexturePtr tex = create(name, group, true);
 
         tex->setTextureType(texType);
         tex->setNumMipmaps((numMipmaps == MIP_DEFAULT)? mDefaultNumMipmaps :
-            static_cast<size_t>(numMipmaps));
+            static_cast<uint32>(numMipmaps));
         tex->setGamma(gamma);
         tex->setHardwareGammaEnabled(hwGamma);
         tex->loadRawData(stream, uWidth, uHeight, format);
@@ -158,26 +188,26 @@ namespace Ogre {
         uint fsaa, const String& fsaaHint)
     {
         TexturePtr ret;
-        ret.setNull();
 
-        // Check for 3D texture support
-        const RenderSystemCapabilities* caps =
-            Root::getSingleton().getRenderSystem()->getCapabilities();
-        if (((texType == TEX_TYPE_3D) || (texType == TEX_TYPE_2D_ARRAY)) &&
-            !caps->hasCapability(RSC_TEXTURE_3D))
+        OgreAssert(width && height && depth, "total size of texture must not be zero");
+
+        // Check for texture support
+        const auto caps = Root::getSingleton().getRenderSystem()->getCapabilities();
+        if (((texType == TEX_TYPE_3D) && !caps->hasCapability(RSC_TEXTURE_3D)) ||
+            ((texType == TEX_TYPE_2D_ARRAY) && !caps->hasCapability(RSC_TEXTURE_2D_ARRAY)))
             return ret;
 
-        if (((usage & (int)TU_STATIC) != 0) && (!Root::getSingleton().getRenderSystem()->isStaticBufferLockable()))
-        {
-            usage = (usage & ~(int)TU_STATIC) | (int)TU_DYNAMIC;
-        }
-        ret = createResource(name, group, true, loader).staticCast<Texture>();
+        ret = create(name, group, true, loader);
+
+        if(!ret)
+            return ret;
+
         ret->setTextureType(texType);
         ret->setWidth(width);
         ret->setHeight(height);
         ret->setDepth(depth);
         ret->setNumMipmaps((numMipmaps == MIP_DEFAULT)? mDefaultNumMipmaps :
-            static_cast<size_t>(numMipmaps));
+            static_cast<uint32>(numMipmaps));
         ret->setFormat(format);
         ret->setUsage(usage);
         ret->setHardwareGammaEnabled(hwGamma);
@@ -193,9 +223,9 @@ namespace Ogre {
         if (reloadTextures)
         {
             // Iterate through all textures
-            for (ResourceMap::iterator it = mResources.begin(); it != mResources.end(); ++it)
+            for (auto & r : mResources)
             {
-                Texture* texture = static_cast<Texture*>(it->second.get());
+                Texture* texture = static_cast<Texture*>(r.second.get());
                 // Reload loaded and reloadable texture only
                 if (texture->isLoaded() && texture->isReloadable())
                 {
@@ -223,9 +253,9 @@ namespace Ogre {
         if (reloadTextures)
         {
             // Iterate through all textures
-            for (ResourceMap::iterator it = mResources.begin(); it != mResources.end(); ++it)
+            for (auto & r : mResources)
             {
-                Texture* texture = static_cast<Texture*>(it->second.get());
+                Texture* texture = static_cast<Texture*>(r.second.get());
                 // Reload loaded and reloadable texture only
                 if (texture->isLoaded() && texture->isReloadable())
                 {
@@ -254,9 +284,9 @@ namespace Ogre {
         if (reloadTextures)
         {
             // Iterate through all textures
-            for (ResourceMap::iterator it = mResources.begin(); it != mResources.end(); ++it)
+            for (auto & r : mResources)
             {
-                Texture* texture = static_cast<Texture*>(it->second.get());
+                Texture* texture = static_cast<Texture*>(r.second.get());
                 // Reload loaded and reloadable texture only
                 if (texture->isLoaded() && texture->isReloadable())
                 {
@@ -272,7 +302,7 @@ namespace Ogre {
         }
     }
     //-----------------------------------------------------------------------
-    void TextureManager::setDefaultNumMipmaps( size_t num )
+    void TextureManager::setDefaultNumMipmaps( uint32 num )
     {
         mDefaultNumMipmaps = num;
     }
@@ -289,5 +319,49 @@ namespace Ogre {
         // Assume that same or greater number of bits means quality not degraded
         return PixelUtil::getNumElemBits(supportedFormat) >= PixelUtil::getNumElemBits(format);
         
+    }
+
+    bool TextureManager::isHardwareFilteringSupported(TextureType ttype, PixelFormat format,
+                                                      int usage, bool preciseFormatOnly)
+    {
+        if (format == PF_UNKNOWN)
+            return false;
+
+        // Check native format
+        if (preciseFormatOnly && !isFormatSupported(ttype, format, usage))
+            return false;
+
+        return true;
+    }
+
+    const TexturePtr& TextureManager::_getWarningTexture()
+    {
+        if(mWarningTexture)
+            return mWarningTexture;
+
+        // Generate warning texture
+        Image pixels(PF_R5G6B5, 8, 8);
+
+        // Yellow/black stripes
+        const ColourValue black(0, 0, 0), yellow(1, 1, 0);
+        for (uint32 y = 0; y < pixels.getHeight(); ++y)
+        {
+            for (uint32 x = 0; x < pixels.getWidth(); ++x)
+            {
+                pixels.setColourAt((((x + y) % 8) < 4) ? black : yellow, x, y, 0);
+            }
+        }
+
+        mWarningTexture = loadImage("Warning", RGN_INTERNAL, pixels);
+
+        return mWarningTexture;
+    }
+
+    const SamplerPtr& TextureManager::getDefaultSampler()
+    {
+        if(!mDefaultSampler)
+            mDefaultSampler = createSampler();
+
+        return mDefaultSampler;
     }
 }

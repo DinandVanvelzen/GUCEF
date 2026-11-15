@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,32 +29,33 @@ THE SOFTWARE.
 #define __OctreePlugin_H__
 
 #include "OgrePlugin.h"
+#include "OgreOctreePrerequisites.h"
 
 namespace Ogre
 {
     class OctreeSceneManagerFactory;
 
     /** Plugin instance for Octree Manager */
-    class OctreePlugin : public Plugin
+    class _OgreOctreePluginExport OctreePlugin : public Plugin
     {
     public:
         OctreePlugin();
 
 
         /// @copydoc Plugin::getName
-        const String& getName() const;
+        const String& getName() const override;
 
         /// @copydoc Plugin::install
-        void install();
+        void install() override;
 
         /// @copydoc Plugin::initialise
-        void initialise();
+        void initialise() override;
 
         /// @copydoc Plugin::shutdown
-        void shutdown();
+        void shutdown() override;
 
         /// @copydoc Plugin::uninstall
-        void uninstall();
+        void uninstall() override;
     protected:
         OctreeSceneManagerFactory* mOctreeSMFactory;
 

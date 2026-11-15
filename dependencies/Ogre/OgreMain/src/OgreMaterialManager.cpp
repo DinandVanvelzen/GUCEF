@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +26,13 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreMaterialManager.h"
-
-#include "OgreMaterialSerializer.h"
-#include "OgreTechnique.h"
-#include "OgreScriptCompiler.h"
 #include "OgreLodStrategyManager.h"
 
 
 namespace Ogre {
+    const String MSN_DEFAULT = "Default";
+    const String MSN_SHADERGEN = "ShaderGeneratorDefaultScheme";
+    const String MSN_SHADOWCASTER = "ShadowCaster";
 
     //-----------------------------------------------------------------------
     template<> MaterialManager* Singleton<MaterialManager>::msSingleton = 0;
@@ -46,22 +44,10 @@ namespace Ogre {
     {
         assert( msSingleton );  return ( *msSingleton );
     }
-    String MaterialManager::DEFAULT_SCHEME_NAME = "Default";
+    String MaterialManager::DEFAULT_SCHEME_NAME = MSN_DEFAULT;
     //-----------------------------------------------------------------------
-    MaterialManager::MaterialManager() : OGRE_THREAD_POINTER_INIT(mSerializer)
+    MaterialManager::MaterialManager()
     {
-        mDefaultMinFilter = FO_LINEAR;
-        mDefaultMagFilter = FO_LINEAR;
-        mDefaultMipFilter = FO_POINT;
-        mDefaultCompareEnabled  = false;
-        mDefaultCompareFunction = CMPF_GREATER_EQUAL;
-
-        mDefaultMaxAniso = 1;
-
-        // Create primary thread copies of script compiler / serializer
-        // other copies for other threads may also be instantiated
-        OGRE_THREAD_POINTER_SET(mSerializer, OGRE_NEW MaterialSerializer());
-
         // Loading order
         mLoadOrder = 100.0f;
         // Scripting is supported by this manager
@@ -74,22 +60,21 @@ namespace Ogre {
 
         // Default scheme
         mActiveSchemeIndex = 0;
-        mActiveSchemeName = DEFAULT_SCHEME_NAME;
+        mActiveSchemeName = MSN_DEFAULT;
         mSchemes[mActiveSchemeName] = 0;
 
     }
     //-----------------------------------------------------------------------
     MaterialManager::~MaterialManager()
     {
-        mDefaultSettings.setNull();
+        mDefaultSettings.reset();
+
+        Pass::processPendingPassUpdates(); // make sure pass graveyard is cleaned
+
         // Resources cleared by superclass
         // Unregister with resource group manager
         ResourceGroupManager::getSingleton()._unregisterResourceManager(mResourceType);
         ResourceGroupManager::getSingleton()._unregisterScriptLoader(this);
-
-        // delete primary thread instances directly, other threads will delete
-        // theirs automatically when the threads end.
-        OGRE_THREAD_POINTER_DELETE(mSerializer);
     }
     //-----------------------------------------------------------------------
     Resource* MaterialManager::createImpl(const String& name, ResourceHandle handle,
@@ -103,13 +88,24 @@ namespace Ogre {
                                     bool isManual, ManualResourceLoader* loader,
                                     const NameValuePairList* createParams)
     {
-        return createResource(name,group,isManual,loader,createParams).staticCast<Material>();
+        return static_pointer_cast<Material>(createResource(name,group,isManual,loader,createParams));
     }
     //-----------------------------------------------------------------------
-    MaterialPtr MaterialManager::getByName(const String& name, const String& groupName)
+    MaterialPtr MaterialManager::getByName(const String& name, const String& groupName) const
     {
-        return getResourceByName(name, groupName).staticCast<Material>();
+        return static_pointer_cast<Material>(getResourceByName(name, groupName));
     }
+
+    MaterialPtr MaterialManager::getDefaultMaterial(bool useLighting) {
+        MaterialPtr ret = getByName(useLighting ? "BaseWhite" : "BaseWhiteNoLighting",
+                                    ResourceGroupManager::INTERNAL_RESOURCE_GROUP_NAME);
+
+        OgreAssert(ret,
+                   "Can't find default material Did you forget to call MaterialManager::initialise()?");
+
+        return ret;
+    }
+
     //-----------------------------------------------------------------------
     void MaterialManager::initialise(void)
     {
@@ -130,77 +126,35 @@ namespace Ogre {
 
     }
     //-----------------------------------------------------------------------
-    void MaterialManager::parseScript(DataStreamPtr& stream, const String& groupName)
-    {
-        ScriptCompilerManager::getSingleton().parseScript(stream, groupName);
-    }
-    //-----------------------------------------------------------------------
     void MaterialManager::setDefaultTextureFiltering(TextureFilterOptions fo)
     {
-        switch (fo)
-        {
-        case TFO_NONE:
-            setDefaultTextureFiltering(FO_POINT, FO_POINT, FO_NONE);
-            break;
-        case TFO_BILINEAR:
-            setDefaultTextureFiltering(FO_LINEAR, FO_LINEAR, FO_POINT);
-            break;
-        case TFO_TRILINEAR:
-            setDefaultTextureFiltering(FO_LINEAR, FO_LINEAR, FO_LINEAR);
-            break;
-        case TFO_ANISOTROPIC:
-            setDefaultTextureFiltering(FO_ANISOTROPIC, FO_ANISOTROPIC, FO_LINEAR);
-            break;
-        }
+        TextureManager::getSingleton().getDefaultSampler()->setFiltering(fo);
     }
     //-----------------------------------------------------------------------
     void MaterialManager::setDefaultAnisotropy(unsigned int maxAniso)
     {
-        mDefaultMaxAniso = maxAniso;
+        TextureManager::getSingleton().getDefaultSampler()->setAnisotropy(maxAniso);
     }
     //-----------------------------------------------------------------------
     unsigned int MaterialManager::getDefaultAnisotropy() const
     {
-        return mDefaultMaxAniso;
+        return TextureManager::getSingleton().getDefaultSampler()->getAnisotropy();
     }
     //-----------------------------------------------------------------------
     void MaterialManager::setDefaultTextureFiltering(FilterType ftype, FilterOptions opts)
     {
-        switch (ftype)
-        {
-        case FT_MIN:
-            mDefaultMinFilter = opts;
-            break;
-        case FT_MAG:
-            mDefaultMagFilter = opts;
-            break;
-        case FT_MIP:
-            mDefaultMipFilter = opts;
-            break;
-        }
+        TextureManager::getSingleton().getDefaultSampler()->setFiltering(ftype, opts);
     }
     //-----------------------------------------------------------------------
     void MaterialManager::setDefaultTextureFiltering(FilterOptions minFilter,
         FilterOptions magFilter, FilterOptions mipFilter)
     {
-        mDefaultMinFilter = minFilter;
-        mDefaultMagFilter = magFilter;
-        mDefaultMipFilter = mipFilter;
+        TextureManager::getSingleton().getDefaultSampler()->setFiltering(minFilter, magFilter, mipFilter);
     }
     //-----------------------------------------------------------------------
     FilterOptions MaterialManager::getDefaultTextureFiltering(FilterType ftype) const
     {
-        switch (ftype)
-        {
-        case FT_MIN:
-            return mDefaultMinFilter;
-        case FT_MAG:
-            return mDefaultMagFilter;
-        case FT_MIP:
-            return mDefaultMipFilter;
-        }
-        // to keep compiler happy
-        return mDefaultMinFilter;
+        return TextureManager::getSingleton().getDefaultSampler()->getFiltering(ftype);
     }
     //-----------------------------------------------------------------------
     unsigned short MaterialManager::_getSchemeIndex(const String& schemeName)
@@ -223,22 +177,12 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     const String& MaterialManager::_getSchemeName(unsigned short index)
     {
-        for (SchemeMap::iterator i = mSchemes.begin(); i != mSchemes.end(); ++i)
+        for (auto & scheme : mSchemes)
         {
-            if (i->second == index)
-                return i->first;
+            if (scheme.second == index)
+                return scheme.first;
         }
-        return DEFAULT_SCHEME_NAME;
-    }
-    //-----------------------------------------------------------------------
-    unsigned short MaterialManager::_getActiveSchemeIndex(void) const
-    {
-        return mActiveSchemeIndex;
-    }
-    //-----------------------------------------------------------------------
-    const String& MaterialManager::getActiveScheme(void) const
-    {
-        return mActiveSchemeName;
+        return MSN_DEFAULT;
     }
     //-----------------------------------------------------------------------
     void MaterialManager::setActiveScheme(const String& schemeName)
@@ -270,10 +214,9 @@ namespace Ogre {
         if (it != mListenerMap.end()) 
         {
             ListenerList& listenerList = it->second;
-            for (ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+            for (auto & i : listenerList)
             {
-                Technique* t = (*i)->handleSchemeNotFound(mActiveSchemeIndex, 
-                    mActiveSchemeName, mat, lodIndex, rend);
+                Technique* t = i->handleSchemeNotFound(mActiveSchemeIndex, mActiveSchemeName, mat, lodIndex, rend);
                 if (t)
                     return t;
             }
@@ -284,10 +227,9 @@ namespace Ogre {
         if (it != mListenerMap.end()) 
         {
             ListenerList& listenerList = it->second;
-            for (ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+            for (auto & i : listenerList)
             {
-                Technique* t = (*i)->handleSchemeNotFound(mActiveSchemeIndex, 
-                    mActiveSchemeName, mat, lodIndex, rend);
+                Technique* t = i->handleSchemeNotFound(mActiveSchemeIndex, mActiveSchemeName, mat, lodIndex, rend);
                 if (t)
                     return t;
             }
@@ -305,9 +247,9 @@ namespace Ogre {
 		if(it != mListenerMap.end())
 		{
 			ListenerList& listenerList = it->second;
-			for(ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+			for(auto & i : listenerList)
 			{
-				bool handled = (*i)->afterIlluminationPassesCreated(tech);
+				bool handled = i->afterIlluminationPassesCreated(tech);
 				if(handled)
 					return;
 			}
@@ -318,9 +260,9 @@ namespace Ogre {
 		if(it != mListenerMap.end())
 		{
 			ListenerList& listenerList = it->second;
-			for(ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+			for(auto & i : listenerList)
 			{
-				bool handled = (*i)->afterIlluminationPassesCreated(tech);
+				bool handled = i->afterIlluminationPassesCreated(tech);
 				if(handled)
 					return;
 			}
@@ -334,9 +276,9 @@ namespace Ogre {
 		if(it != mListenerMap.end())
 		{
 			ListenerList& listenerList = it->second;
-			for(ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+			for(auto & i : listenerList)
 			{
-				bool handled = (*i)->beforeIlluminationPassesCleared(tech);
+				bool handled = i->beforeIlluminationPassesCleared(tech);
 				if(handled)
 					return;
 			}
@@ -347,9 +289,9 @@ namespace Ogre {
 		if(it != mListenerMap.end())
 		{
 			ListenerList& listenerList = it->second;
-			for(ListenerList::iterator i = listenerList.begin(); i != listenerList.end(); ++i)
+			for(auto & i : listenerList)
 			{
-				bool handled = (*i)->beforeIlluminationPassesCleared(tech);
+				bool handled = i->beforeIlluminationPassesCleared(tech);
 				if(handled)
 					return;
 			}

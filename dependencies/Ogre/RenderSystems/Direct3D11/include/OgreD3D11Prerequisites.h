@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,25 @@ THE SOFTWARE.
 
 
 #include "OgrePrerequisites.h"
-#include "WIN32/OgreMinGWSupport.h" // extra defines for MinGW to deal with DX SDK
-#include "WIN32/OgreComPtr.h"       // too much resource leaks were caused without it by throwing constructors
+#include "OgreComPtr.h"       // too much resource leaks were caused without it by throwing constructors
 
+#include "OgreException.h"
+
+#ifdef OGRE_EXCEPT_EX
+#undef OGRE_EXCEPT_EX
+#endif
+
+#define OGRE_EXCEPT_EX(code, num, desc, src) throw Ogre::D3D11RenderingAPIException(num, desc, src, __FILE__, __LINE__)
+
+#define OGRE_CHECK_DX_ERROR(dxcall) \
+{ \
+    HRESULT hr = dxcall; \
+    if (FAILED(hr) || mDevice.isError()) \
+    { \
+        String desc = mDevice.getErrorDescription(hr); \
+        throw Ogre::D3D11RenderingAPIException(hr, desc, __FUNCTION__, __FILE__, __LINE__); \
+    } \
+}
 
 // some D3D commonly used macros
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
@@ -41,7 +57,7 @@ THE SOFTWARE.
 #define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
 
 #if defined(_WIN32_WINNT_WIN8) // Win8 SDK required to compile, will work on Windows 8 and Platform Update for Windows 7
-#define OGRE_D3D11_PROFILING OGRE_PROFILING
+#define OGRE_D3D11_PROFILING 1
 #endif
 
 #undef NOMINMAX
@@ -56,9 +72,10 @@ THE SOFTWARE.
 #   include <C:\Program Files (x86)\Windows Kits\8.0\Include\um\d3d11shader.h>
 #else
 #   include <d3d11shader.h>
-#   include <D3Dcompiler.h>
+#   include <d3dcompiler.h>
 #endif
  
+ #include <sstream>
 
 namespace Ogre
 {
@@ -93,7 +110,7 @@ namespace Ogre
     class D3D11DriverList;
     class D3D11VideoMode;
     class D3D11VideoModeList;
-    class D3D11GpuProgramManager;
+    class GpuProgramManager;
     class D3D11HardwareBufferManager;
     class D3D11HardwareIndexBuffer;
     class D3D11HLSLProgramFactory;
@@ -102,6 +119,7 @@ namespace Ogre
     class D3D11Device;
     class D3D11HardwareBuffer;
     class D3D11HardwarePixelBuffer;
+    class D3D11RenderTarget;
 
     typedef SharedPtr<D3D11HLSLProgram> D3D11HLSLProgramPtr;
     typedef SharedPtr<D3D11Texture>     D3D11TexturePtr;
@@ -122,5 +140,19 @@ namespace Ogre
 #else
 #   define _OgreD3D11Export
 #endif  // OGRE_WIN32
+
+    class _OgreD3D11Export D3D11RenderingAPIException : public RenderingAPIException
+    {
+        int hresult;
+    public:
+        D3D11RenderingAPIException(int hr, const String& inDescription, const String& inSource, const char* inFile, long inLine)
+            : RenderingAPIException(hr, inDescription, inSource, inFile, inLine), hresult(hr) {
+            StringStream ss;
+            ss << fullDesc << " HRESULT=0x" << std::hex << hresult;
+            fullDesc = ss.str();
+        }
+
+        int getHResult() const { return hresult; }
+    };
 }
 #endif

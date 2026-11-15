@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -25,11 +25,10 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-#include "OgreShaderExHardwareSkinningTechnique.h"
+#include "OgreShaderPrecompiledHeaders.h"
+#include "OgreMeshManager.h"
 
 #ifdef RTSHADER_SYSTEM_BUILD_EXT_SHADERS
-
-#define HS_DATA_BIND_NAME "HS_SRS_DATA"
 
 namespace Ogre {
 
@@ -43,7 +42,8 @@ HardwareSkinningTechnique::HardwareSkinningTechnique() :
     mWeightCount(0),
     mCorrectAntipodalityHandling(false),
     mScalingShearingSupport(false),
-    mDoBoneCalculations(false)
+    mDoBoneCalculations(false),
+    mObjSpaceBones(MeshManager::getBonesUseObjectSpace())
 {
 }
 
@@ -55,10 +55,38 @@ HardwareSkinningTechnique::~HardwareSkinningTechnique()
 //-----------------------------------------------------------------------
 void HardwareSkinningTechnique::setHardwareSkinningParam(ushort boneCount, ushort weightCount, bool correctAntipodalityHandling, bool scalingShearingSupport)
 {
-    mBoneCount = std::min<ushort>(boneCount, 256);
+    mBoneCount = std::min<ushort>(boneCount, OGRE_MAX_NUM_BONES);
     mWeightCount = std::min<ushort>(weightCount, 4);
     mCorrectAntipodalityHandling = correctAntipodalityHandling;
     mScalingShearingSupport = scalingShearingSupport;
+}
+
+bool HardwareSkinningTechnique::setParameter(const String& name, const String& value)
+{
+    if(name == "max_bone_count")
+    {
+        uint num = 0;
+        StringConverter::parse(value, num);
+        mBoneCount = std::min<ushort>(num, OGRE_MAX_NUM_BONES);
+        return num && num < OGRE_MAX_NUM_BONES;
+    }
+    else if(name == "weight_count")
+    {
+        uint num = 0;
+        StringConverter::parse(value, num);
+        mWeightCount = std::min<ushort>(num, 4);
+        return num && num < 5;
+    }
+    else if(name == "correct_antipodality")
+    {
+        return StringConverter::parse(value, mCorrectAntipodalityHandling);
+    }
+    else if(name == "scale_shearing")
+    {
+        return StringConverter::parse(value, mScalingShearingSupport);
+    }
+
+    return false;
 }
 
 //-----------------------------------------------------------------------
@@ -90,20 +118,104 @@ bool HardwareSkinningTechnique::hasScalingShearingSupport()
 {
     return mScalingShearingSupport;
 }
-
 //-----------------------------------------------------------------------
-Operand::OpMask HardwareSkinningTechnique::indexToMask(int index)
+bool HardwareSkinningTechnique::resolveDependencies(ProgramSet* programSet)
 {
-    switch(index)
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    vsProgram->addDependency(FFP_LIB_TRANSFORM);
+    if(mDoBoneCalculations)
     {
-    case 0: return Operand::OPM_X;
-    case 1: return Operand::OPM_Y;
-    case 2: return Operand::OPM_Z;
-    case 3: return Operand::OPM_W;
-    default: OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Illegal value", "HardwareSkinningTechnique::indexToMask");
+        vsProgram->addDependency("SGXLib_DualQuaternion");
+        vsProgram->addPreprocessorDefines(StringUtil::format("BONE_COUNT=%d", mBoneCount));
+        vsProgram->addPreprocessorDefines(StringUtil::format("WEIGHT_COUNT=%d", mWeightCount));
+        if(mCorrectAntipodalityHandling)
+            vsProgram->addPreprocessorDefines("CORRECT_ANTIPODALITY");
     }
-}
 
+    return true;
+}
+bool HardwareSkinningTechnique::resolveParameters(ProgramSet* programSet)
+{
+
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Function* vsMain = vsProgram->getEntryPointFunction();
+
+    //if needed mark this vertex program as hardware skinned
+    if (mDoBoneCalculations == true)
+    {
+        vsProgram->setSkeletalAnimationIncluded(true);
+    }
+
+    //
+    // get the parameters we need whether we are doing bone calculations or not
+    //
+    // Note: in order to be consistent we will always output position, normal,
+    // tangent and binormal in both object and world space. And output position
+    // in projective space to cover the responsibility of the transform stage
+
+    //input param
+    mParamInPosition = vsMain->resolveInputParameter(Parameter::SPC_POSITION_OBJECT_SPACE);
+
+    if(mDoLightCalculations)
+        mParamInNormal = vsMain->resolveInputParameter(Parameter::SPC_NORMAL_OBJECT_SPACE);
+    //mParamInBiNormal = vsMain->resolveInputParameter(Parameter::SPS_BINORMAL, 0, Parameter::SPC_BINORMAL_OBJECT_SPACE, GCT_FLOAT3);
+    //mParamInTangent = vsMain->resolveInputParameter(Parameter::SPS_TANGENT, 0, Parameter::SPC_TANGENT_OBJECT_SPACE, GCT_FLOAT3);
+
+    //output param
+    mParamOutPositionProj = vsMain->resolveOutputParameter(Parameter::SPC_POSITION_PROJECTIVE_SPACE);
+
+    if (mDoBoneCalculations == true)
+    {
+        if (ShaderGenerator::getSingleton().getTargetLanguage() == "hlsl")
+        {
+            //set hlsl shader to use row-major matrices instead of column-major.
+            //it enables the use of 3x4 matrices in hlsl shader instead of full 4x4 matrix.
+            vsProgram->setUseColumnMajorMatrices(false);
+        }
+
+        //input parameters
+        mParamInIndices = vsMain->resolveInputParameter(Parameter::SPC_BLEND_INDICES);
+        mParamInWeights = vsMain->resolveInputParameter(Parameter::SPC_BLEND_WEIGHTS);
+        if(!mObjSpaceBones)
+            mParamInInvWorldMatrix = vsProgram->resolveParameter(GpuProgramParameters::ACT_INVERSE_WORLD_MATRIX);
+
+        resolveParameters(vsProgram);
+    }
+
+    mParamInWorldViewProjMatrix = vsProgram->resolveParameter(GpuProgramParameters::ACT_WORLDVIEWPROJ_MATRIX);
+    return true;
+}
+//-----------------------------------------------------------------------
+bool HardwareSkinningTechnique::addFunctionInvocations(ProgramSet* programSet)
+{
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Function* vsMain = vsProgram->getEntryPointFunction();
+
+    auto stage = vsMain->getStage(FFP_VS_TRANSFORM);
+    //add functions to calculate position data object and projective space
+    if (mDoBoneCalculations)
+    {
+        addPositionCalculations(stage);
+        // update back the original position relative to the object
+        if (!mObjSpaceBones)
+            stage.callBuiltin("mul", mParamInInvWorldMatrix, mParamInPosition, mParamInPosition);
+    }
+
+    // update from object to projective space
+    stage.callBuiltin("mul", mParamInWorldViewProjMatrix, mParamInPosition, mParamOutPositionProj);
+
+    //add functions to calculate normal and normal related data in world and object space
+    if (mDoBoneCalculations && mDoLightCalculations)
+    {
+        addNormalRelatedCalculations(stage);
+        // update back the original position relative to the object
+        if (!mObjSpaceBones)
+            stage.callFunction(FFP_FUNC_TRANSFORM, mParamInInvWorldMatrix, mParamInNormal, mParamInNormal);
+    }
+    //addNormalRelatedCalculations(vsMain, mParamInTangent, mParamLocalTangentWorld, internalCounter);
+    //addNormalRelatedCalculations(vsMain, mParamInBiNormal, mParamLocalBinormalWorld, internalCounter);
+    return true;
+}
 //-----------------------------------------------------------------------
 void HardwareSkinningTechnique::copyFrom(const HardwareSkinningTechnique* hardSkin)
 {
@@ -112,6 +224,7 @@ void HardwareSkinningTechnique::copyFrom(const HardwareSkinningTechnique* hardSk
     mDoBoneCalculations = hardSkin->mDoBoneCalculations;
     mCorrectAntipodalityHandling = hardSkin->mCorrectAntipodalityHandling;
     mScalingShearingSupport = hardSkin->mScalingShearingSupport;
+    mObjSpaceBones = hardSkin->mObjSpaceBones;
 }
 
 }

@@ -1,0 +1,26 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 36
+    namespace '@PKG_NAME@'
+
+    defaultConfig {
+        applicationId "@PKG_NAME@"
+        minSdkVersion 21
+        targetSdkVersion 36
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.0.2'
+}

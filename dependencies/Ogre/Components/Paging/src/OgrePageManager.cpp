@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include "OgreStreamSerialiser.h"
 #include "OgreRoot.h"
 #include "OgrePageContent.h"
+#include <sstream>
 
 namespace Ogre
 {
@@ -67,7 +68,12 @@ namespace Ogre
     PageManager::~PageManager()
     {
         Root::getSingleton().removeFrameListener(&mEventRouter);
-
+        for (auto c : mCameraList)
+        {
+            c->removeListener(&mEventRouter);
+        }
+        mCameraList.clear();
+        
         OGRE_DELETE mGrid3DPageStrategy;
         OGRE_DELETE mGrid2DPageStrategy;
         OGRE_DELETE mSimpleCollectionFactory;
@@ -515,16 +521,16 @@ namespace Ogre
         if(pWorldMap->empty())
             return true;
 
-        for(WorldMap::iterator i = pWorldMap->begin(); i != pWorldMap->end(); ++i)
+        for(auto & i : *pWorldMap)
         {
-            i->second->frameStart(evt.timeSinceLastFrame);
+            i.second->frameStart(evt.timeSinceLastFrame);
             // Notify of all active cameras
             // Previously we did this in cameraPreRenderScene, but that had the effect
             // of causing unnecessary unloading of pages if a camera was rendered
             // intermittently, so we assume that all cameras we're told to watch are 'active'
-            for (CameraList::iterator c = pCameraList->begin(); c != pCameraList->end(); ++c)
+            for (auto & c : *pCameraList)
             {
-                i->second->notifyCamera(*c);
+                i.second->notifyCamera(c);
             }
         }
 
@@ -536,8 +542,8 @@ namespace Ogre
         if(pWorldMap->empty())
             return true;
 
-        for(WorldMap::iterator i = pWorldMap->begin(); i != pWorldMap->end(); ++i)
-            i->second->frameEnd(evt.timeSinceLastFrame);
+        for(auto & i : *pWorldMap)
+            i.second->frameEnd(evt.timeSinceLastFrame);
 
         return true;
     }

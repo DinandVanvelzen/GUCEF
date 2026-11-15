@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <dlfcn.h>
 
 namespace Ogre
 {
@@ -75,6 +76,17 @@ namespace Ogre
                 return "";
         }
     }
+
+    String FileSystemLayer::resolveBundlePath(String path)
+    {
+        // With Ubuntu snaps absolute paths are relative to the snap package.
+        char* env_SNAP = getenv("SNAP");
+        if (env_SNAP && !path.empty() && path[0] == '/' && // only adjust absolute dirs
+            !StringUtil::startsWith(path, "/snap")) // not a snap path already
+            path = env_SNAP + path;
+
+        return path;
+    }
     //---------------------------------------------------------------------
     void FileSystemLayer::getConfigPaths()
     {
@@ -97,52 +109,63 @@ namespace Ogre
             Ogre::String::size_type pos = appPath.rfind('/');
             if (pos != Ogre::String::npos)
                 appPath.erase(pos);
-        }
-        else
-        {
-            // couldn't find actual executable path, assume current working dir
-            appPath = ".";
+
+            // use application path as first config search path
+            mConfigPaths.push_back(appPath + '/');
         }
 
-        // use application path as first config search path
-        mConfigPaths.push_back(appPath + '/');
-        // then search inside ../share/OGRE
-        mConfigPaths.push_back(appPath + "/../share/OGRE/");
+        Dl_info info;
+        if (dladdr((const void*)resolveSymlink, &info))
+        {
+            String base(info.dli_fname);
+            // need to strip the module filename from the path
+            String::size_type pos = base.rfind('/');
+            if (pos != String::npos)
+                base.erase(pos);
+
+            String dirname = StringUtil::format("OGRE-%d.%d/", OGRE_VERSION_MAJOR, OGRE_VERSION_MINOR);
+            // search inside ../share/OGRE-X.Y
+            mConfigPaths.push_back(StringUtil::normalizeFilePath(base + "/../share/"+dirname, false));
+            // then look relative to PIP structure
+            mConfigPaths.push_back(StringUtil::normalizeFilePath(base+"/../../../../share/"+dirname));
+        }
+
         // then try system wide /etc
         mConfigPaths.push_back("/etc/OGRE/");
     }
     //---------------------------------------------------------------------
     void FileSystemLayer::prepareUserHome(const Ogre::String& subdir)
     {
-        struct passwd* pwd = getpwuid(getuid());
-        if (pwd)
-        {
-            mHomePath = pwd->pw_dir;
-        }
-        else
-        {
-            // try the $HOME environment variable
-            mHomePath = getenv("HOME");
+        char* xdg_cache = getenv("XDG_CACHE_HOME");
+
+        if(xdg_cache) {
+            mHomePath = xdg_cache;
+            mHomePath.append("/");
+        } else {
+            struct passwd* pwd = getpwuid(getuid());
+            if (pwd)
+            {
+                mHomePath = pwd->pw_dir;
+            }
+            else
+            {
+                // try the $HOME environment variable
+                mHomePath = getenv("HOME");
+            }
+
+            if(!mHomePath.empty()) {
+                mHomePath.append("/.cache/");
+            }
         }
 
         if (!mHomePath.empty())
         {
-            // create an .ogre subdir
-            mHomePath.append("/.ogre/");
+            // create the given subdir
+            mHomePath.append(subdir + '/');
             if (mkdir(mHomePath.c_str(), 0755) != 0 && errno != EEXIST)
             {
                 // can't create dir
                 mHomePath.clear();
-            }
-            else
-            {
-                // now create the given subdir
-                mHomePath.append(subdir + '/');
-                if (mkdir(mHomePath.c_str(), 0755) != 0 && errno != EEXIST)
-                {
-                    // can't create dir
-                    mHomePath.clear();
-                }
             }
         }
 

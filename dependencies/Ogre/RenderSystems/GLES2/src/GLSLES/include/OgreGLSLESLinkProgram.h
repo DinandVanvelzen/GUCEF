@@ -42,47 +42,31 @@ namespace Ogre {
 
     */
 
-    class _OgreGLES2Export GLSLESLinkProgram : public GLSLESProgramCommon MANAGED_RESOURCE
+    class _OgreGLES2Export GLSLESLinkProgram : public GLSLESProgramCommon
     {
     protected:
-        virtual void extractLayoutQualifiers(void) {}
-
         /// Compiles and links the vertex and fragment programs
-        virtual void compileAndLink(void);
-        /// Put a program in use
-        virtual void _useProgram(void);
+        void compileAndLink(void) override;
 
         void buildGLUniformReferences(void);
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
-        /** See AndroidResource. */
-        virtual void notifyOnContextLost();
-        
-        /** See AndroidResource. */
-        virtual void notifyOnContextReset();
+        void notifyOnContextLost() override;
 #endif
         
     public:
         /// Constructor should only be used by GLSLESLinkProgramManager
-        GLSLESLinkProgram(GLSLESGpuProgram* vertexProgram, GLSLESGpuProgram* fragmentProgram);
+        explicit GLSLESLinkProgram(const GLShaderList& shaders);
         virtual ~GLSLESLinkProgram(void);
 
         /** Makes a program object active by making sure it is linked and then putting it in use.
         */
-        void activate(void);
+        void activate(void) override;
 
         /** Updates program object uniforms using data from GpuProgramParameters.
         normally called by GLSLESGpuProgram::bindParameters() just before rendering occurs.
         */
-        virtual void updateUniforms(GpuProgramParametersSharedPtr params, uint16 mask, GpuProgramType fromProgType);
-        /** Updates program object uniform blocks using data from GpuProgramParameters.
-         normally called by GLSLGpuProgram::bindParameters() just before rendering occurs.
-         */
-        virtual void updateUniformBlocks(GpuProgramParametersSharedPtr params, uint16 mask, GpuProgramType fromProgType);
-        /** Updates program object uniforms using data from pass iteration GpuProgramParameters.
-        normally called by GLSLESGpuProgram::bindMultiPassParameters() just before multi pass rendering occurs.
-        */
-        virtual void updatePassIterationUniforms(GpuProgramParametersSharedPtr params);
+        void updateUniforms(GpuProgramParametersSharedPtr params, uint16 mask, GpuProgramType fromProgType) override;
     };
 
 }

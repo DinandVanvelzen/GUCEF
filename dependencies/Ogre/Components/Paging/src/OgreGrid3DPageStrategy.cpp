@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreGrid3DPageStrategy.h"
+
+#include <cmath>
 
 #include "OgreStreamSerialiser.h"
 #include "OgreCamera.h"
@@ -113,9 +115,9 @@ namespace Ogre
     {
         Vector3 relPos = pos - mOrigin + mCellSize * 0.5f;
 
-        *x = static_cast<int32>(floor(relPos.x / mCellSize.x));
-        *y = static_cast<int32>(floor(relPos.y / mCellSize.y));
-        *z = static_cast<int32>(floor(relPos.z / mCellSize.z));
+        *x = static_cast<int32>(std::floor(relPos.x / mCellSize.x));
+        *y = static_cast<int32>(std::floor(relPos.y / mCellSize.y));
+        *z = static_cast<int32>(std::floor(relPos.z / mCellSize.z));
     }
     //---------------------------------------------------------------------
     void Grid3DPageStrategyData::getBottomLeftGridSpace(int32 x, int32 y, int32 z, Vector3& bl)
@@ -363,7 +365,7 @@ namespace Ogre
             //--- Get a material
             String matName = "Ogre/G3D/Debug";
             MaterialPtr mat = MaterialManager::getSingleton().getByName(matName);
-            if (mat.isNull())
+            if (!mat)
             {
                 mat = MaterialManager::getSingleton().create(matName, ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
                 Pass* pass = mat->getTechnique(0)->getPass(0);

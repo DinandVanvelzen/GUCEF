@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -74,9 +74,7 @@ namespace Volume {
 #endif
         if (!ser.readChunkBegin(VOLUME_CHUNK_ID, VOLUME_CHUNK_VERSION))
         {
-            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, 
-                "Invalid volume file given!",
-                __FUNCTION__);
+            OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "Invalid volume file given!");
         }
         
         // Read header

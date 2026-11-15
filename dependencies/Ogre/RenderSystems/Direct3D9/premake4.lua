@@ -46,19 +46,19 @@ kind( "SharedLib" )
   
 configuration( { WIN32 } )
 links( { "Ogre" } )
-  links( { "Ogre", "d3d9", "d3dx9" } )
+  links( { "Ogre", "d3d9.lib", "dxguid.lib" } )
   
 
 configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
   
 configuration( { WIN64 } )
 links( { "Ogre" } )
-  links( { "Ogre", "d3d9", "d3dx9" } )
+  links( { "Ogre", "d3d9.lib", "dxguid.lib" } )
   
 
 configuration( { WIN64 } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
 
 
 configuration( { "WIN32" } )
@@ -73,11 +73,10 @@ configuration( { "WIN32" } )
       "include/OgreD3D9GpuProgramManager.h",
       "include/OgreD3D9HLSLProgram.h",
       "include/OgreD3D9HLSLProgramFactory.h",
+      "include/OgreD3D9HardwareBuffer.h",
       "include/OgreD3D9HardwareBufferManager.h",
-      "include/OgreD3D9HardwareIndexBuffer.h",
       "include/OgreD3D9HardwareOcclusionQuery.h",
       "include/OgreD3D9HardwarePixelBuffer.h",
-      "include/OgreD3D9HardwareVertexBuffer.h",
       "include/OgreD3D9Mappings.h",
       "include/OgreD3D9MultiRenderTarget.h",
       "include/OgreD3D9Plugin.h",
@@ -109,11 +108,10 @@ configuration( { "WIN32" } )
       "src/OgreD3D9GpuProgramManager.cpp",
       "src/OgreD3D9HLSLProgram.cpp",
       "src/OgreD3D9HLSLProgramFactory.cpp",
+      "src/OgreD3D9HardwareBuffer.cpp",
       "src/OgreD3D9HardwareBufferManager.cpp",
-      "src/OgreD3D9HardwareIndexBuffer.cpp",
       "src/OgreD3D9HardwareOcclusionQuery.cpp",
       "src/OgreD3D9HardwarePixelBuffer.cpp",
-      "src/OgreD3D9HardwareVertexBuffer.cpp",
       "src/OgreD3D9Mappings.cpp",
       "src/OgreD3D9MultiRenderTarget.cpp",
       "src/OgreD3D9Plugin.cpp",
@@ -146,11 +144,10 @@ configuration( { "WIN64" } )
       "include/OgreD3D9GpuProgramManager.h",
       "include/OgreD3D9HLSLProgram.h",
       "include/OgreD3D9HLSLProgramFactory.h",
+      "include/OgreD3D9HardwareBuffer.h",
       "include/OgreD3D9HardwareBufferManager.h",
-      "include/OgreD3D9HardwareIndexBuffer.h",
       "include/OgreD3D9HardwareOcclusionQuery.h",
       "include/OgreD3D9HardwarePixelBuffer.h",
-      "include/OgreD3D9HardwareVertexBuffer.h",
       "include/OgreD3D9Mappings.h",
       "include/OgreD3D9MultiRenderTarget.h",
       "include/OgreD3D9Plugin.h",
@@ -182,11 +179,10 @@ configuration( { "WIN64" } )
       "src/OgreD3D9GpuProgramManager.cpp",
       "src/OgreD3D9HLSLProgram.cpp",
       "src/OgreD3D9HLSLProgramFactory.cpp",
+      "src/OgreD3D9HardwareBuffer.cpp",
       "src/OgreD3D9HardwareBufferManager.cpp",
-      "src/OgreD3D9HardwareIndexBuffer.cpp",
       "src/OgreD3D9HardwareOcclusionQuery.cpp",
       "src/OgreD3D9HardwarePixelBuffer.cpp",
-      "src/OgreD3D9HardwareVertexBuffer.cpp",
       "src/OgreD3D9Mappings.cpp",
       "src/OgreD3D9MultiRenderTarget.cpp",
       "src/OgreD3D9Plugin.cpp",
@@ -207,10 +203,10 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include" } )
+includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include" } )
+includedirs( { "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "include" } )
+includedirs( { "include" } )

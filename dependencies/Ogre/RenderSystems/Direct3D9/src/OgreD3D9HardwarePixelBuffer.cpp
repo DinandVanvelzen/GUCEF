@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,12 @@ THE SOFTWARE.
 #include "OgreStringConverter.h"
 #include "OgreBitwise.h"
 #include "OgreRoot.h"
-#include "OgreRenderSystem.h"
+#include "OgreD3D9RenderSystem.h"
+#include "OgreD3D9DepthBuffer.h"
+
+#include <d3dx9.h>
+
+#define D3DFMT_NULL (D3DFORMAT)MAKEFOURCC('N', 'U', 'L', 'L')
 
 namespace Ogre {
 
@@ -42,9 +47,8 @@ namespace Ogre {
 
 D3D9HardwarePixelBuffer::D3D9HardwarePixelBuffer(HardwareBuffer::Usage usage, 
                                                  D3D9Texture* ownerTexture):
-    HardwarePixelBuffer(0, 0, 0, PF_UNKNOWN, usage, false, false),
-    mDoMipmapGen(false), mHWMipmaps(false), mOwnerTexture(ownerTexture), 
-    mRenderTexture(NULL)
+    HardwarePixelBuffer(0, 0, 0, PF_UNKNOWN, usage, false),
+    mDoMipmapGen(false), mHWMipmaps(false), mOwnerTexture(ownerTexture)
 {   
 }
 D3D9HardwarePixelBuffer::~D3D9HardwarePixelBuffer()
@@ -81,7 +85,7 @@ void D3D9HardwarePixelBuffer::bind(IDirect3DDevice9 *dev, IDirect3DSurface9 *sur
 
     if (bufferResources == NULL)
     {
-        bufferResources = createBufferResources();      
+        bufferResources = new BufferResources();
         mMapDeviceToBufferResources[dev] = bufferResources;
         isNewBuffer = true;
     }
@@ -106,7 +110,21 @@ void D3D9HardwarePixelBuffer::bind(IDirect3DDevice9 *dev, IDirect3DSurface9 *sur
     mSizeInBytes = PixelUtil::getMemorySize(mWidth, mHeight, mDepth, mFormat);  
     
     if(mUsage & TU_RENDERTARGET)
+    {
         updateRenderTexture(writeGamma, fsaa, srcName);
+        if (PixelUtil::isDepth(mFormat))
+        {
+            // create null colour surface
+            dev->CreateRenderTarget(desc.Width, desc.Height, D3DFMT_NULL, D3DMULTISAMPLE_NONE, 0, false,
+                                    &bufferResources->nullSurface, NULL);
+
+            auto rs = (D3D9RenderSystem *)Root::getSingleton().getRenderSystem();
+            auto rtt = static_cast<D3D9RenderTexture *>(mSliceTRT.front());
+            auto depthBuf = rs->_addManualDepthBuffer(dev, getSurface(dev));
+            rtt->_setDepthBuffer(depthBuf);
+            depthBuf->_notifyRenderTargetAttached(rtt);
+        }
+    }
 
     if (isNewBuffer && mOwnerTexture->isLoaded() && mOwnerTexture->isManuallyLoaded())
     {
@@ -122,7 +140,7 @@ void D3D9HardwarePixelBuffer::bind(IDirect3DDevice9 *dev, IDirect3DSurface9 *sur
                 Box fullBufferBox(0,0,0,mWidth,mHeight,mDepth);
                 PixelBox dstBox(fullBufferBox, mFormat);
 
-                dstBox.data = OGRE_MALLOC (getSizeInBytes(), MEMCATEGORY_RESOURCE);
+                dstBox.data = (uchar*)OGRE_MALLOC (getSizeInBytes(), MEMCATEGORY_RESOURCE);
                 blitToMemory(fullBufferBox, dstBox, it->second, it->first);
                 blitFromMemory(dstBox, fullBufferBox, bufferResources);
                 OGRE_FREE(dstBox.data, MEMCATEGORY_RESOURCE);
@@ -142,7 +160,7 @@ void D3D9HardwarePixelBuffer::bind(IDirect3DDevice9 *dev, IDirect3DVolume9 *volu
 
     if (bufferResources == NULL)
     {
-        bufferResources = createBufferResources();
+        bufferResources = new BufferResources();
         mMapDeviceToBufferResources[dev] = bufferResources;
         isNewBuffer = true;
     }
@@ -178,7 +196,7 @@ void D3D9HardwarePixelBuffer::bind(IDirect3DDevice9 *dev, IDirect3DVolume9 *volu
                 Box fullBufferBox(0,0,0,mWidth,mHeight,mDepth);
                 PixelBox dstBox(fullBufferBox, mFormat);
 
-                dstBox.data = OGRE_MALLOC(getSizeInBytes(), MEMCATEGORY_RESOURCE);
+                dstBox.data = (uchar*)OGRE_MALLOC(getSizeInBytes(), MEMCATEGORY_RESOURCE);
                 blitToMemory(fullBufferBox, dstBox, it->second, it->first);
                 blitFromMemory(dstBox, fullBufferBox, bufferResources);
                 OGRE_FREE(dstBox.data, MEMCATEGORY_RESOURCE);
@@ -199,17 +217,6 @@ D3D9HardwarePixelBuffer::BufferResources* D3D9HardwarePixelBuffer::getBufferReso
     
     return NULL;
 }
-
-//-----------------------------------------------------------------------------  
-D3D9HardwarePixelBuffer::BufferResources* D3D9HardwarePixelBuffer::createBufferResources()
-{
-    BufferResources* newResources = OGRE_ALLOC_T(BufferResources, 1, MEMCATEGORY_RENDERSYS);
-
-    memset(newResources, 0, sizeof(BufferResources));
-
-    return newResources;
-}
-
 //-----------------------------------------------------------------------------  
 void D3D9HardwarePixelBuffer::destroyBufferResources(IDirect3DDevice9* d3d9Device)
 {
@@ -220,6 +227,7 @@ void D3D9HardwarePixelBuffer::destroyBufferResources(IDirect3DDevice9* d3d9Devic
     if (it != mMapDeviceToBufferResources.end())
     {
         SAFE_RELEASE(it->second->surface);
+        SAFE_RELEASE(it->second->nullSurface);
         SAFE_RELEASE(it->second->volume);           
         if (it->second != NULL)
         {
@@ -264,7 +272,7 @@ void fromD3DLock(PixelBox &rval, const D3DLOCKED_RECT &lrect)
             "Invalid pixel format", "fromD3DLock");
     }
 
-    rval.data = lrect.pBits;
+    rval.data = (uchar*)lrect.pBits;
 }
 void fromD3DLock(PixelBox &rval, const D3DLOCKED_BOX &lbox)
 {
@@ -286,7 +294,7 @@ void fromD3DLock(PixelBox &rval, const D3DLOCKED_BOX &lbox)
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
             "Invalid pixel format", "fromD3DLock");
     }
-    rval.data = lbox.pBits;
+    rval.data = (uchar*)lbox.pBits;
 }
 // Convert Ogre integer Box to D3D rectangle
 RECT toD3DRECT(const Box &lockBox)
@@ -336,7 +344,7 @@ D3DBOX toD3DBOXExtent(const PixelBox &lockBox)
     return pbox;
 }
 //-----------------------------------------------------------------------------  
-PixelBox D3D9HardwarePixelBuffer::lockImpl(const Image::Box &lockBox,  LockOptions options)
+PixelBox D3D9HardwarePixelBuffer::lockImpl(const Box &lockBox,  LockOptions options)
 {   
     D3D9_DEVICE_ACCESS_CRITICAL_SECTION
 
@@ -366,9 +374,6 @@ PixelBox D3D9HardwarePixelBuffer::lockImpl(const Image::Box &lockBox,  LockOptio
         OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "There are no resources attached to this pixel buffer !!",
             "D3D9HardwarePixelBuffer::lockImpl");   
     }
-    
-    mLockedBox = lockBox;
-    mLockFlags = flags;
 
     BufferResources* bufferResources = mMapDeviceToBufferResources.begin()->second;
     
@@ -378,14 +383,21 @@ PixelBox D3D9HardwarePixelBuffer::lockImpl(const Image::Box &lockBox,  LockOptio
 
 //-----------------------------------------------------------------------------  
 Ogre::PixelBox D3D9HardwarePixelBuffer::lockBuffer(BufferResources* bufferResources, 
-                                                   const Image::Box &lockBox, 
+                                                   const Box &lockBox, 
                                                    DWORD flags)
 {
+    if((mUsage & TU_STATIC) && D3D9RenderSystem::isDirectX9Ex())
+    {
+        mStagingBuffer.create(mFormat, lockBox.getWidth(), lockBox.getHeight(), lockBox.getDepth());
+        if(mCurrentLockOptions == HBL_READ_ONLY || mCurrentLockOptions == HBL_NORMAL)
+            HardwarePixelBuffer::blitToMemory(mStagingBuffer.getPixelBox());
+        return mStagingBuffer.getPixelBox();
+    }
+
     // Set extents and format
     // Note that we do not carry over the left/top/front here, since the returned
     // PixelBox will be re-based from the locking point onwards
     PixelBox rval(lockBox.getWidth(), lockBox.getHeight(), lockBox.getDepth(), mFormat);
-
 
     if (bufferResources->surface != NULL) 
     {
@@ -454,7 +466,9 @@ void D3D9HardwarePixelBuffer::unlockImpl(void)
     it = mMapDeviceToBufferResources.begin();
     ++it;
     while (it != mMapDeviceToBufferResources.end())
-    {           
+    {
+        if(mCurrentLockOptions == HBL_READ_ONLY) break; // not needed
+
         BufferResources* bufferResources = it->second;
         
         // Update duplicated buffer from the from the locked buffer content.                    
@@ -466,7 +480,10 @@ void D3D9HardwarePixelBuffer::unlockImpl(void)
     it = mMapDeviceToBufferResources.begin();                           
     unlockBuffer( it->second);      
     if(mDoMipmapGen)
-        _genMipmaps(it->second->mipTex);    
+        _genMipmaps(it->second->mipTex);
+
+    // in case we used this
+    mStagingBuffer.freeMemory();
 }
 
 //-----------------------------------------------------------------------------  
@@ -486,12 +503,12 @@ void D3D9HardwarePixelBuffer::unlockBuffer(BufferResources* bufferResources)
 
 //-----------------------------------------------------------------------------  
 void D3D9HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &rsrc, 
-                                   const Image::Box &srcBox, 
-                                   const Image::Box &dstBox)
+                                   const Box &srcBox, 
+                                   const Box &dstBox)
 {
     D3D9_DEVICE_ACCESS_CRITICAL_SECTION
 
-    D3D9HardwarePixelBuffer *src = static_cast<D3D9HardwarePixelBuffer*>(rsrc.getPointer());
+    D3D9HardwarePixelBuffer *src = static_cast<D3D9HardwarePixelBuffer*>(rsrc.get());
     DeviceToBufferResourcesIterator it = mMapDeviceToBufferResources.begin();
 
     // Update all the buffer copies.
@@ -514,8 +531,8 @@ void D3D9HardwarePixelBuffer::blit(const HardwarePixelBufferSharedPtr &rsrc,
 //-----------------------------------------------------------------------------  
 void D3D9HardwarePixelBuffer::blit(IDirect3DDevice9* d3d9Device, 
                                    const HardwarePixelBufferSharedPtr &rsrc, 
-                                   const Image::Box &srcBox, 
-                                   const Image::Box &dstBox,
+                                   const Box &srcBox, 
+                                   const Box &dstBox,
                                    BufferResources* srcBufferResources, 
                                    BufferResources* dstBufferResources)
 {
@@ -615,7 +632,7 @@ void D3D9HardwarePixelBuffer::blit(IDirect3DDevice9* d3d9Device,
 }
 
 //-----------------------------------------------------------------------------  
-void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::Box &dstBox)
+void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Box &dstBox)
 {   
     D3D9_DEVICE_ACCESS_CRITICAL_SECTION
 
@@ -631,7 +648,7 @@ void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::B
 }
 
 //-----------------------------------------------------------------------------  
-void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::Box &dstBox, BufferResources* dstBufferResources)
+void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Box &dstBox, BufferResources* dstBufferResources)
 {
     // for scoped deletion of conversion buffer
     MemoryDataStreamPtr buf;
@@ -640,7 +657,7 @@ void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::B
     // convert to pixelbuffer's native format if necessary
     if (D3D9Mappings::_getPF(src.format) == D3DFMT_UNKNOWN)
     {
-        buf.bind(OGRE_NEW MemoryDataStream(
+        buf.reset(OGRE_NEW MemoryDataStream(
             PixelUtil::getMemorySize(src.getWidth(), src.getHeight(), src.getDepth(),
             mFormat)));
         converted = PixelBox(src.getWidth(), src.getHeight(), src.getDepth(), mFormat, buf->getPtr());
@@ -679,12 +696,6 @@ void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::B
         RECT destRect, srcRect;
         srcRect = toD3DRECT(converted);
         destRect = toD3DRECT(dstBox);
-
-        if(converted.getWidth() != dstBox.getWidth() || converted.getHeight() != dstBox.getHeight() )
-        {
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Source and dest size are different",
-                "D3D9HardwarePixelBuffer::blitFromMemory");
-        }
 
         if(D3DXLoadSurfaceFromMemory(dstBufferResources->surface, NULL, &destRect, 
             converted.data, D3D9Mappings::_getPF(converted.format),
@@ -737,7 +748,7 @@ void D3D9HardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Image::B
 }
 
 //-----------------------------------------------------------------------------  
-void D3D9HardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBox &dst)
+void D3D9HardwarePixelBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst)
 {
     D3D9_DEVICE_ACCESS_CRITICAL_SECTION
 
@@ -748,7 +759,7 @@ void D3D9HardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const Pixel
 }
 
 //-----------------------------------------------------------------------------  
-void D3D9HardwarePixelBuffer::blitToMemory(const Image::Box &srcBox, const PixelBox &dst, 
+void D3D9HardwarePixelBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst, 
                                            BufferResources* srcBufferResources,
                                            IDirect3DDevice9* d3d9Device)
 {
@@ -942,11 +953,6 @@ void D3D9HardwarePixelBuffer::_setMipmapping(bool doMipmapGen,
     mDoMipmapGen = doMipmapGen;
     mHWMipmaps = HWMipmaps; 
 }
-//-----------------------------------------------------------------------------   
-void D3D9HardwarePixelBuffer::_clearSliceRTT(size_t zoffset)
-{
-    mRenderTexture = NULL;
-}
 
 //-----------------------------------------------------------------------------  
 void D3D9HardwarePixelBuffer::releaseSurfaces(IDirect3DDevice9* d3d9Device)
@@ -956,11 +962,13 @@ void D3D9HardwarePixelBuffer::releaseSurfaces(IDirect3DDevice9* d3d9Device)
     if (bufferResources != NULL)
     {
         SAFE_RELEASE(bufferResources->surface);
+        SAFE_RELEASE(bufferResources->nullSurface);
         SAFE_RELEASE(bufferResources->volume);
     }
 }
-//-----------------------------------------------------------------------------   
-IDirect3DSurface9* D3D9HardwarePixelBuffer::getSurface(IDirect3DDevice9* d3d9Device)
+//-----------------------------------------------------------------------------
+D3D9HardwarePixelBuffer::BufferResources*
+D3D9HardwarePixelBuffer::createOrRetrieveResources(IDirect3DDevice9* d3d9Device)
 {
     BufferResources* bufferResources = getBufferResources(d3d9Device);
 
@@ -970,47 +978,26 @@ IDirect3DSurface9* D3D9HardwarePixelBuffer::getSurface(IDirect3DDevice9* d3d9Dev
         bufferResources = getBufferResources(d3d9Device);
     }
 
-    return bufferResources->surface;
-}
-//-----------------------------------------------------------------------------   
-IDirect3DSurface9* D3D9HardwarePixelBuffer::getFSAASurface(IDirect3DDevice9* d3d9Device)
-{
-    BufferResources* bufferResources = getBufferResources(d3d9Device);
-
-    if (bufferResources == NULL)
-    {
-        mOwnerTexture->createTextureResources(d3d9Device);
-        bufferResources = getBufferResources(d3d9Device);
-    }
-    
-    return bufferResources->fSAASurface;
-}
-//-----------------------------------------------------------------------------    
-RenderTexture *D3D9HardwarePixelBuffer::getRenderTarget(size_t zoffset)
-{
-    assert(mUsage & TU_RENDERTARGET);
-    assert(mRenderTexture != NULL);   
-    return mRenderTexture;
+    return bufferResources;
 }
 //-----------------------------------------------------------------------------    
 void D3D9HardwarePixelBuffer::updateRenderTexture(bool writeGamma, uint fsaa, const String& srcName)
 {
-    if (mRenderTexture == NULL)
+    if (mSliceTRT.empty())
     {
-        String name;
-        name = "rtt/" +Ogre::StringConverter::toString((size_t)this) + "/" + srcName;
+        String name = getNameForRenderTexture(srcName);
 
-        mRenderTexture = OGRE_NEW D3D9RenderTexture(name, this, writeGamma, fsaa);      
-        Root::getSingleton().getRenderSystem()->attachRenderTarget(*mRenderTexture);
+        mSliceTRT.push_back(OGRE_NEW D3D9RenderTexture(name, this, writeGamma, fsaa));
+        Root::getSingleton().getRenderSystem()->attachRenderTarget(*mSliceTRT[0]);
     }
 }
 //-----------------------------------------------------------------------------    
 void D3D9HardwarePixelBuffer::destroyRenderTexture()
 {
-    if (mRenderTexture != NULL)
+    if (!mSliceTRT.empty())
     {
-        Root::getSingleton().getRenderSystem()->destroyRenderTarget(mRenderTexture->getName());
-        mRenderTexture = NULL;
+        Root::getSingleton().getRenderSystem()->destroyRenderTarget(mSliceTRT[0]->getName());
+        mSliceTRT.clear();
     }
 }
 

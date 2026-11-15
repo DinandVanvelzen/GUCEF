@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -59,6 +59,7 @@ THE SOFTWARE.
 #include "OgreGpuProgram.h"
 #include "OgreGpuProgramManager.h"
 #include "OgreHardwareBufferManager.h"
+#include "OgreDefaultHardwareBufferManager.h"
 #include "OgreHardwareIndexBuffer.h"
 #include "OgreHardwarePixelBuffer.h"
 #include "OgreHardwareOcclusionQuery.h"
@@ -91,8 +92,7 @@ THE SOFTWARE.
 #include "OgrePatchMesh.h"
 #include "OgrePatchSurface.h"
 #include "OgreProfiler.h"
-#include "OgreRadixSort.h"
-#include "OgreRenderQueueInvocation.h"
+#include "OgreRectangle2D.h"
 #include "OgreRenderQueueListener.h"
 #include "OgreRenderObjectListener.h"
 #include "OgreRenderSystem.h"
@@ -104,7 +104,6 @@ THE SOFTWARE.
 #include "OgreRibbonTrail.h"
 #include "OgreRoot.h"
 #include "OgreSceneManager.h"
-#include "OgreSceneManagerEnumerator.h"
 #include "OgreSceneNode.h"
 #include "OgreShadowCameraSetup.h"
 #include "OgreShadowCameraSetupFocused.h"
@@ -122,13 +121,14 @@ THE SOFTWARE.
 #include "OgreStringVector.h"
 #include "OgreSubEntity.h"
 #include "OgreSubMesh.h"
+#include "OgreTagPoint.h"
 #include "OgreTechnique.h"
 #include "OgreTextureManager.h"
 #include "OgreTextureUnitState.h"
 #include "OgreTimer.h"
-#include "OgreVector2.h"
+#include "OgreVector.h"
 #include "OgreViewport.h"
-#include "OgreWindowEventUtilities.h"
+#include "OgreComponents.h"
 // .... more to come
 
 #endif

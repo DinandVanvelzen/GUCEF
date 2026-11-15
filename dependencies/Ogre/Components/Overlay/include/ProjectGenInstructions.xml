@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- The Dear ImGui integration needs the ImGui sources, which are not part of this code base -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="OgreImGuiOverlay.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

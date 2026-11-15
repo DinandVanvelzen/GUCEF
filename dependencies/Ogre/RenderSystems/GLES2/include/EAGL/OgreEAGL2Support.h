@@ -29,7 +29,7 @@ THE SOFTWARE.
 #ifndef __EAGL2Support_H__
 #define __EAGL2Support_H__
 
-#include "OgreGLES2Support.h"
+#include "OgreGLNativeSupport.h"
 
 #ifdef __OBJC__
 // Forward declarations
@@ -43,14 +43,7 @@ namespace Ogre {
     class EAGL2Window;
     class EAGLES2Context;
 
-    template<class C> void removeDuplicates(C& c)
-    {
-        std::sort(c.begin(), c.end());
-        typename C::iterator p = std::unique(c.begin(), c.end());
-        c.erase(p, c.end());
-    }
-
-    class _OgrePrivate EAGL2Support : public GLES2Support
+    class _OgrePrivate EAGL2Support : public GLNativeSupport
     {
         public:
             EAGL2Support();
@@ -58,16 +51,10 @@ namespace Ogre {
 
             void start(void);
             void stop(void);
-            void addConfig(void);
-            String validateConfig(void);
-            virtual String getDisplayName(void);
+            ConfigOptionMap getConfigOptions();
             CFDictionaryRef chooseGLConfig(const GLint *attribList, GLint *nElements);
             GLint getGLConfigAttrib(CFDictionaryRef fbConfig, GLint attribute, GLint *value);
-            float getCurrentOSVersion(void) { return mCurrentOSVersion; }
-            void * getProcAddress(const Ogre::String& name);
-            RenderWindow * createWindow(bool autoCreateWindow,
-                                           GLES2RenderSystem *renderSystem,
-                                           const String& windowTitle);
+            void * getProcAddress(const char* name) const;
 
             RenderWindow * newWindow(const String& name,
                                         unsigned int width, unsigned int height,
@@ -80,11 +67,8 @@ namespace Ogre {
 
             EAGLES2Context * createNewContext(CAEAGLLayer *drawable, EAGLSharegroup *group) const;
             CFDictionaryRef getGLConfigFromContext(EAGLES2Context context);
-            CFDictionaryRef getGLConfigFromDrawable(CAEAGLLayer *drawable, unsigned int *w, unsigned int *h);
 #endif
             CFDictionaryRef selectGLConfig(const int* minAttribs, const int *maxAttribs);
-        protected:
-            float mCurrentOSVersion;
     };
 }
 

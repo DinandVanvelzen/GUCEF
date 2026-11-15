@@ -7,12 +7,6 @@
 #include "nvparse_externs.h"
 #include <string.h>
 
-#if OGRE_PLATFORM == OGRE_PLATFORM_APPLE
-#   include <OpenGL/glu.h>
-#else
-#   include <GL/glu.h>
-#endif
-
 using namespace std;
 
 extern string vs10_transstring;
@@ -86,7 +80,7 @@ void VS10InstList::Validate()
 
 namespace
 {
-    void LoadProgram( GLenum target, GLuint id, char *instring );
+    void LoadProgram( GLenum target, GLuint id, const char *instring );
     GLint vpid;
 }
 
@@ -156,7 +150,7 @@ void vs10_load_program()
 {
     // Only load the program if no errors occurred.
     if ( errors.get_num_errors() == 0 )
-        LoadProgram( GL_VERTEX_PROGRAM_NV, vpid, (char *) vs10_transstring.c_str() );
+        LoadProgram( GL_VERTEX_PROGRAM_NV, vpid, vs10_transstring.c_str() );
 }
 
 
@@ -166,7 +160,7 @@ namespace
     //|   Function   : LoadProgram                                                 |
     //|   Description: Load a program into GL, and report any errors encountered.  |
     //.----------------------------------------------------------------------------.
-    void LoadProgram( GLenum target, GLuint id, char *instring )
+    void LoadProgram( GLenum target, GLuint id, const char *instring )
     {
         GLint  errPos;
         GLenum errCode;

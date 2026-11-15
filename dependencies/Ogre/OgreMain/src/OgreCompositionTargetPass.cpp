@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@ THE SOFTWARE.
 #include "OgreStableHeaders.h"
 #include "OgreCompositionTargetPass.h"
 #include "OgreCompositionPass.h"
-#include "OgreMaterialManager.h"
-#include "OgreRoot.h"
 
 namespace Ogre {
 
@@ -40,7 +38,8 @@ CompositionTargetPass::CompositionTargetPass(CompositionTechnique *parent):
     mVisibilityMask(0xFFFFFFFF),
     mLodBias(1.0f),
     mMaterialScheme(MaterialManager::DEFAULT_SCHEME_NAME), 
-    mShadowsEnabled(true)
+    mShadowsEnabled(true),
+    mOutputSlice(0)
 {
     if (Root::getSingleton().getRenderSystem())
     {
@@ -123,9 +122,10 @@ bool CompositionTargetPass::getShadowsEnabled(void) const
     return mShadowsEnabled;
 }
 //-----------------------------------------------------------------------
-CompositionPass *CompositionTargetPass::createPass()
+CompositionPass *CompositionTargetPass::createPass(CompositionPass::PassType type)
 {
     CompositionPass *t = OGRE_NEW CompositionPass(this);
+    t->setType(type);
     mPasses.push_back(t);
     return t;
 }
@@ -139,26 +139,11 @@ void CompositionTargetPass::removePass(size_t index)
     mPasses.erase(i);
 }
 //-----------------------------------------------------------------------
-
-CompositionPass *CompositionTargetPass::getPass(size_t index)
-{
-    assert (index < mPasses.size() && "Index out of bounds.");
-    return mPasses[index];
-}
-//-----------------------------------------------------------------------
-
-size_t CompositionTargetPass::getNumPasses()
-{
-    return mPasses.size();
-}
-//-----------------------------------------------------------------------
 void CompositionTargetPass::removeAllPasses()
 {
-    Passes::iterator i, iend;
-    iend = mPasses.end();
-    for (i = mPasses.begin(); i != iend; ++i)
+    for (auto p : mPasses)
     {
-        OGRE_DELETE (*i);
+        OGRE_DELETE (p);
     }
     mPasses.clear();
 }
@@ -178,17 +163,13 @@ CompositionTechnique *CompositionTargetPass::getParent()
 bool CompositionTargetPass::_isSupported(void)
 {
     // A target pass is supported if all passes are supported
-
-    PassIterator passi = getPassIterator();
-    while (passi.hasMoreElements())
+    for (auto *p : mPasses)
     {
-        CompositionPass* pass = passi.getNext();
-        if (!pass->_isSupported())
+        if (!p->_isSupported())
         {
             return false;
         }
     }
-
     return true;
 }
 

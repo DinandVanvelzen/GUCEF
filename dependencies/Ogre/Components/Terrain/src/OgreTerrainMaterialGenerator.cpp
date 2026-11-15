@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
+#include "OgreDepthBuffer.h"
 #include "OgreTerrainMaterialGeneratorA.h"
 #include "OgreRoot.h"
 #include "OgreHardwarePixelBuffer.h"
@@ -38,6 +39,7 @@ THE SOFTWARE.
 #include "OgreRenderTarget.h"
 #include "OgreRenderTexture.h"
 #include "OgreSceneNode.h"
+#include "OgreRectangle2D.h"
 
 #if OGRE_COMPILER == OGRE_COMPILER_MSVC
 // we do lots of conversions here, casting them all is tedious & cluttered, we know what we're doing
@@ -49,8 +51,7 @@ namespace Ogre
 {
     //---------------------------------------------------------------------
     TerrainMaterialGenerator::TerrainMaterialGenerator() 
-        : mActiveProfile(0)
-        , mChangeCounter(0)
+        : mChangeCounter(0)
         , mDebugLevel(0) 
         , mCompositeMapSM(0)
         , mCompositeMapCam(0)
@@ -63,9 +64,6 @@ namespace Ogre
     //---------------------------------------------------------------------
     TerrainMaterialGenerator::~TerrainMaterialGenerator()
     {
-        for (ProfileList::iterator i = mProfiles.begin(); i != mProfiles.end(); ++i)
-            OGRE_DELETE *i;
-
         if (mCompositeMapRTT && TextureManager::getSingletonPtr())
         {
             TextureManager::getSingleton().remove(mCompositeMapRTT->getHandle());
@@ -77,58 +75,49 @@ namespace Ogre
             Root::getSingleton().destroySceneManager(mCompositeMapSM);
             mCompositeMapSM = 0;
             mCompositeMapCam = 0;
-            mCompositeMapPlane = 0;
             mCompositeMapLight = 0;
+            mLightNode = 0;
         }
     }
     //---------------------------------------------------------------------
     void TerrainMaterialGenerator::_renderCompositeMap(size_t size, 
         const Rect& rect, const MaterialPtr& mat, const TexturePtr& destCompositeMap)
     {
+        RenderSystem* rSys = Root::getSingleton().getRenderSystem();
         if (!mCompositeMapSM)
         {
             // dedicated SceneManager
-            mCompositeMapSM = Root::getSingleton().createSceneManager(DefaultSceneManagerFactory::FACTORY_TYPE_NAME);
-            float camDist = 100;
-            float halfCamDist = camDist * 0.5f;
+            mCompositeMapSM = Root::getSingleton().createSceneManager();
             mCompositeMapCam = mCompositeMapSM->createCamera("cam");
-            mCompositeMapCam->setPosition(0, 0, camDist);
-            mCompositeMapCam->lookAt(Vector3::ZERO);
+            mCompositeMapSM->getRootSceneNode()->attachObject(mCompositeMapCam);
             mCompositeMapCam->setProjectionType(PT_ORTHOGRAPHIC);
-            mCompositeMapCam->setNearClipDistance(10);
-            mCompositeMapCam->setFarClipDistance(500);
-            mCompositeMapCam->setOrthoWindow(camDist, camDist);
+            mCompositeMapCam->setNearClipDistance(0.5);
+            mCompositeMapCam->setFarClipDistance(1.5);
+            mCompositeMapCam->setOrthoWindow(2, 2);
 
             // Just in case material relies on light auto params
             mCompositeMapLight = mCompositeMapSM->createLight();
             mCompositeMapLight->setType(Light::LT_DIRECTIONAL);
+            mLightNode = mCompositeMapSM->getRootSceneNode()->createChildSceneNode();
+            mLightNode->attachObject(mCompositeMapLight);
 
-            RenderSystem* rSys = Root::getSingleton().getRenderSystem();
             Real hOffset = rSys->getHorizontalTexelOffset() / (Real)size;
             Real vOffset = rSys->getVerticalTexelOffset() / (Real)size;
 
 
             // set up scene
-            mCompositeMapPlane = mCompositeMapSM->createManualObject();
-            mCompositeMapPlane->begin(mat->getName());
-            mCompositeMapPlane->position(-halfCamDist, halfCamDist, 0);
-            mCompositeMapPlane->textureCoord(0 - hOffset, 0 - vOffset);
-            mCompositeMapPlane->position(-halfCamDist, -halfCamDist, 0);
-            mCompositeMapPlane->textureCoord(0 - hOffset, 1 - vOffset);
-            mCompositeMapPlane->position(halfCamDist, -halfCamDist, 0);
-            mCompositeMapPlane->textureCoord(1 - hOffset, 1 - vOffset);
-            mCompositeMapPlane->position(halfCamDist, halfCamDist, 0);
-            mCompositeMapPlane->textureCoord(1 - hOffset, 0 - vOffset);
-            mCompositeMapPlane->quad(0, 1, 2, 3);
-            mCompositeMapPlane->end();
+            mCompositeMapPlane = mCompositeMapSM->createScreenSpaceRect(true);
+            mCompositeMapPlane->setUVs({0 - hOffset, 0 - vOffset}, {0 - hOffset, 1 - vOffset},
+                                       {1 - hOffset, 0 - vOffset}, {1 - hOffset, 1 - vOffset});
+
             mCompositeMapSM->getRootSceneNode()->attachObject(mCompositeMapPlane);
 
         }
 
         // update
-        mCompositeMapPlane->setMaterialName(0, mat->getName());
+        mCompositeMapPlane->setMaterial(mat);
         TerrainGlobalOptions& globalopts = TerrainGlobalOptions::getSingleton();
-        mCompositeMapLight->setDirection(globalopts.getLightMapDirection());
+        mLightNode->setDirection(globalopts.getLightMapDirection(), Node::TS_WORLD);
         mCompositeMapLight->setDiffuseColour(globalopts.getCompositeMapDiffuse());
         mCompositeMapSM->setAmbientLight(globalopts.getCompositeMapAmbient());
 
@@ -143,47 +132,43 @@ namespace Ogre
         if (!mCompositeMapRTT)
         {
             mCompositeMapRTT = TextureManager::getSingleton().createManual(
-                mCompositeMapSM->getName() + "/compRTT", 
-                ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, TEX_TYPE_2D, static_cast<uint>(size), static_cast<uint>(size), 0, PF_BYTE_RGBA,
-                TU_RENDERTARGET).get();
+                mCompositeMapSM->getName() + "/compRTT", mat->getGroup(),
+                TEX_TYPE_2D, static_cast<uint>(size), static_cast<uint>(size), 0,
+                PF_BYTE_RGBA, TU_RENDERTARGET).get();
             RenderTarget* rtt = mCompositeMapRTT->getBuffer()->getRenderTarget();
             // don't render all the time, only on demand
             rtt->setAutoUpdated(false);
+            // we dont need depth
+            rtt->setDepthBufferPool(RBP_NONE);
             Viewport* vp = rtt->addViewport(mCompositeMapCam);
             // don't render overlays
             vp->setOverlaysEnabled(false);
-
+            vp->setClearEveryFrame(false);
         }
 
-        // calculate the area we need to update
-        Real vpleft = (Real)rect.left / (Real)size;
-        Real vptop = (Real)rect.top / (Real)size;
-        Real vpright = (Real)rect.right / (Real)size;
-        Real vpbottom = (Real)rect.bottom / (Real)size;
-
         RenderTarget* rtt = mCompositeMapRTT->getBuffer()->getRenderTarget();
-        mCompositeMapCam->setWindow(vpleft, vptop, vpright, vpbottom);
-
+        rSys->_setRenderTarget(rtt);
+        rSys->setScissorTest(true, rect);
+        auto oldVP = rSys->_getViewport();
         rtt->update();
+        rSys->_setViewport(oldVP); // D3D9 requires restoring the old one
+        rSys->setScissorTest(false);
 
         // We have an RTT, we want to copy the results into a regular texture
         // That's because in non-update scenarios we don't want to keep an RTT
         // around. We use a single RTT to serve all terrain pages which is more
         // efficient.
-        Image::Box box(static_cast<uint32>(rect.left),
-                       static_cast<uint32>(rect.top),
-                       static_cast<uint32>(rect.right),
-                       static_cast<uint32>(rect.bottom));
+        Box box(rect);
         destCompositeMap->getBuffer()->blit(mCompositeMapRTT->getBuffer(), box, box);
 
         
     }
     //---------------------------------------------------------------------
     //---------------------------------------------------------------------
-    void TerrainMaterialGenerator::Profile::updateCompositeMap(const Terrain* terrain, const Rect& rect)
+    void TerrainMaterialGenerator::updateCompositeMap(const Terrain* terrain, const Rect& rect)
     {
         // convert point-space rect into image space
-        size_t compSize = terrain->getCompositeMap()->getWidth();
+        int32 compSize = terrain->getCompositeMap()->getWidth();
         Rect imgRect;
         Vector3 inVec, outVec;
         inVec.x = rect.left;
@@ -197,17 +182,9 @@ namespace Ogre
         imgRect.right = outVec.x * (Real)compSize + 1; 
         imgRect.bottom = (1.0 - outVec.y) * compSize + 1;
 
-        imgRect.left = std::max(0L, imgRect.left);
-        imgRect.top = std::max(0L, imgRect.top);
-        imgRect.right = std::min((long)compSize, imgRect.right);
-        imgRect.bottom = std::min((long)compSize, imgRect.bottom);
-        
+        imgRect = imgRect.intersect({0, 0, compSize, compSize});
 
-        mParent->_renderCompositeMap(
-            compSize, imgRect, 
-            terrain->getCompositeMapMaterial(), 
-            terrain->getCompositeMap());
-
+        _renderCompositeMap(compSize, imgRect, terrain->getCompositeMapMaterial(), terrain->getCompositeMap());
     }
 
 

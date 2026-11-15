@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -57,22 +57,22 @@ namespace Ogre {
 
     /** A interface class defining a listener which can be used to receive
         notifications of RenderTarget events.
-        @remarks
-            A 'listener' is an interface designed to be called back when
-            particular events are called. This class defines the
-            interface relating to RenderTarget events. In order to receive
-            notifications of RenderTarget events, you should create a subclass of
-            RenderTargetListener and override the methods for which you would like
-            to customise the resulting processing. You should then call
-            RenderTarget::addListener passing an instance of this class.
-            There is no limit to the number of RenderTarget listeners you can register,
-            allowing you to register multiple listeners for different purposes.
 
-            RenderTarget events occur before and after the target is updated as a whole,
-            and before and after each viewport on that target is updated. Each RenderTarget
-            holds it's own set of listeners, but you can register the same listener on
-            multiple render targets if you like since the event contains details of the
-            originating RenderTarget.
+        A 'listener' is an interface designed to be called back when
+        particular events are called. This class defines the
+        interface relating to RenderTarget events. In order to receive
+        notifications of RenderTarget events, you should create a subclass of
+        RenderTargetListener and override the methods for which you would like
+        to customise the resulting processing. You should then call
+        RenderTarget::addListener passing an instance of this class.
+        There is no limit to the number of RenderTarget listeners you can register,
+        allowing you to register multiple listeners for different purposes.
+
+        RenderTarget events occur before and after the target is updated as a whole,
+        and before and after each viewport on that target is updated. Each RenderTarget
+        holds it's own set of listeners, but you can register the same listener on
+        multiple render targets if you like since the event contains details of the
+        originating RenderTarget.
     */
     class _OgreExport RenderTargetListener
     {
@@ -87,7 +87,7 @@ namespace Ogre {
     public:
         virtual ~RenderTargetListener() {}
         /** Called just before a RenderTarget is about to be rendered into.
-        @remarks
+
             This event is raised just before any of the viewports on the target
             are rendered to. You can perform manual rendering operations here if
             you want, but please note that if the Viewport objects attached to this
@@ -101,7 +101,7 @@ namespace Ogre {
         { (void)evt; }
 
         /** Called just after a RenderTarget has been rendered to.
-        @remarks
+
             This event is called just after all the viewports attached to the target
             in question have been rendered to. You can perform your own manual rendering
             commands in this event handler if you like, these will be composited with
@@ -111,8 +111,8 @@ namespace Ogre {
         virtual void postRenderTargetUpdate(const RenderTargetEvent& evt)
         { (void)evt; }
 
-        /* Called just before a Viewport on a RenderTarget is to be updated.
-        @remarks
+        /** Called just before a Viewport on a RenderTarget is to be updated.
+
             This method is called before each viewport on the RenderTarget is
             rendered to. You can use this to perform per-viewport settings changes,
             such as showing / hiding particular overlays.
@@ -120,8 +120,8 @@ namespace Ogre {
         virtual void preViewportUpdate(const RenderTargetViewportEvent& evt)
         { (void)evt; }
 
-        /* Called just after a Viewport on a RenderTarget is to be updated.
-        @remarks
+        /** Called just after a Viewport on a RenderTarget is to be updated.
+
             This method is called after each viewport on the RenderTarget is
             rendered to. 
         */

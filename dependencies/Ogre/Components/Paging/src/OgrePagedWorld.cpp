@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -109,16 +109,16 @@ namespace Ogre
         // Name
         ser.write(&mName);
         // Sections
-        for (SectionMap::iterator i = mSections.begin(); i != mSections.end(); ++i)
+        for (auto & s : mSections)
         {
-            PagedWorldSection* sec = i->second;
+            PagedWorldSection* sec = s.second;
             // declaration
             ser.writeChunkBegin(CHUNK_SECTIONDECLARATION_ID);
             ser.write(&sec->getType());
             ser.write(&sec->getName());
             ser.writeChunkEnd(CHUNK_SECTIONDECLARATION_ID);
             // data
-            i->second->save(ser);
+            s.second->save(ser);
         }
 
         ser.writeChunkEnd(CHUNK_ID);
@@ -203,8 +203,8 @@ namespace Ogre
     //---------------------------------------------------------------------
     void PagedWorld::destroyAllSections()
     {
-        for (SectionMap::iterator i = mSections.begin(); i != mSections.end(); ++i)
-            OGRE_DELETE i->second;
+        for (auto & s : mSections)
+            OGRE_DELETE s.second;
         mSections.clear();
     }
     //---------------------------------------------------------------------
@@ -286,25 +286,25 @@ namespace Ogre
     //---------------------------------------------------------------------
     void PagedWorld::frameStart(Real t)
     {
-        for (SectionMap::iterator i = mSections.begin(); i != mSections.end(); ++i)
+        for (auto & s : mSections)
         {
-            i->second->frameStart(t);
+            s.second->frameStart(t);
         }
     }
     //---------------------------------------------------------------------
     void PagedWorld::frameEnd(Real t)
     {
-        for (SectionMap::iterator i = mSections.begin(); i != mSections.end(); ++i)
+        for (auto & s : mSections)
         {
-            i->second->frameEnd(t);
+            s.second->frameEnd(t);
         }
     }
     //---------------------------------------------------------------------
     void PagedWorld::notifyCamera(Camera* cam)
     {
-        for (SectionMap::iterator i = mSections.begin(); i != mSections.end(); ++i)
+        for (auto & s : mSections)
         {
-            i->second->notifyCamera(cam);
+            s.second->notifyCamera(cam);
         }
     }
     //---------------------------------------------------------------------

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,14 +42,14 @@ namespace Ogre
 		mIsNvapiInitialized = false;
 		mStereoMode = stereoMode;
 
-		if (SMT_FRAME_SEQUENTIAL != mStereoMode)
+		if (!mStereoMode)
 			return;
 
 		// Both initialize and set driver mode need to be called to determine whether NVIDIA stereo is available
 		NvAPI_Status nvStatus = NvAPI_Initialize();
 		if (NVAPI_OK == nvStatus)
 			nvStatus = NvAPI_Stereo_SetDriverMode(NVAPI_STEREO_DRIVER_MODE_DIRECT);
-			
+
 		if (NVAPI_OK == nvStatus)
 		{
 			NvAPI_ShortString nvapiStatusMessage;

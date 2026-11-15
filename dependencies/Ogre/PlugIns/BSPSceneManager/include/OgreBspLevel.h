@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,13 @@ THE SOFTWARE.
 
 
 namespace Ogre {
+    /** \addtogroup Plugins Plugins
+    *  @{
+    */
+    /** \defgroup BSPSceneManager BSPSceneManager
+    * Binary Space Parition (BSP) based indoor level scene manager
+    *  @{
+    */
 
     /** Holds all the data associated with a Binary Space Parition
         (BSP) based indoor level.
@@ -53,9 +60,11 @@ namespace Ogre {
         could also be used. The Quake3 level load process is in a different
         class called Quake3Level to keep the specifics separate.
     */
-    class BspLevel : public Resource
+    class BspLevel : public Resource, public Renderable
     {
         friend class BspSceneManager;
+
+        using Resource::load;
     public:
         /** Default constructor - used by BspResourceManager (do not call directly) */
         BspLevel(ResourceManager* creator, const String& name, ResourceHandle handle,
@@ -91,7 +100,7 @@ namespace Ogre {
         static size_t calculateLoadingStages(DataStreamPtr& stream);
 
         /** Load direct from stream */
-        void load(DataStreamPtr& stream);
+        void load(const DataStreamPtr& stream);
 
         /** Is sky enabled? */
         bool isSkyEnabled(void) const;
@@ -100,14 +109,46 @@ namespace Ogre {
         /** Get sky curvature */
         Real getSkyCurvature(void) const;
 
+        void getRenderOperation(RenderOperation &op) override
+        {
+            op = mRenderOp;
+        }
+
+        void getWorldTransforms(Matrix4* xform) const override
+        {
+            *xform = Matrix4::IDENTITY;
+        }
+
+        Real getSquaredViewDepth(const Camera *cam) const override
+        {
+            // always visible
+            return -1;
+        }
+
+        const LightList& getLights() const override
+        {
+            static LightList lights;
+            return lights;
+        }
+
+        const MaterialPtr& getMaterial(void) const override
+        {
+            static MaterialPtr nullPtr;
+            return nullPtr;
+        }
+
         /** Utility class just to enable queueing of patches */
     protected:
+        /** Caches a face group for imminent rendering. */
+        uint32 cacheGeometry(uint32* pIndexes, const StaticFaceGroup* faceGroup);
+        bool cacheGeometry(const std::vector<StaticFaceGroup*>& materialFaceGroup);
+
         /** @copydoc Resource::loadImpl. */
-        void loadImpl(void);
+        void loadImpl(void) override;
         /** @copydoc Resource::unloadImpl. */
-        void unloadImpl(void);
+        void unloadImpl(void) override;
         /** @copydoc Resource::calculateSize. */
-        size_t calculateSize(void) const;
+        size_t calculateSize(void) const override;
         /** Pointer to the root node of the BSP tree;
             This pointer actually has a dual purpose; to avoid allocating lots of small chunks of
             memory, the BspLevel actually allocates all nodes required through this pointer. So this
@@ -137,7 +178,7 @@ namespace Ogre {
         };
 
         /// Vertex data holding all the data for the level, but able to render parts of it
-        VertexData* mVertexData;
+        RenderOperation mRenderOp;
 
         /** Array of indexes into the mFaceGroups array. This buffer is organised
             by leaf node so leaves can just use contiguous chunks of it and
@@ -150,15 +191,13 @@ namespace Ogre {
         int mNumFaceGroups;
 
         /// Indexes for the whole level, will be copied to the real indexdata per frame
-        size_t mNumIndexes;
-        /// System-memory buffer
         HardwareIndexBufferSharedPtr mIndexes;
 
         /// Brushes as used for collision, main memory is here
         BspNode::Brush *mBrushes;
 
         /** Vector of player start points */
-        vector<ViewPoint>::type mPlayerStarts;
+        std::vector<ViewPoint> mPlayerStarts;
 
         /** Internal utility function for loading data from Quake3. */
         void loadQuake3Level(const Quake3Level& q3lvl);
@@ -190,14 +229,14 @@ namespace Ogre {
         /** Internal method for parsing chosen entities. */
         void loadEntities(const Quake3Level& q3lvl);
 
-        typedef map<const MovableObject*, list<BspNode*>::type >::type MovableToNodeMap;
+        typedef std::map<const MovableObject*, std::list<BspNode*> > MovableToNodeMap;
         /// Map for locating the nodes a movable is currently a member of
         MovableToNodeMap mMovableToNodeMap;
 
         void tagNodesWithMovable(BspNode* node, const MovableObject* mov, const Vector3& pos);
 
         /// Storage of patches
-        typedef map<int, PatchSurface*>::type PatchMap;
+        typedef std::map<int, PatchSurface*> PatchMap;
         PatchMap mPatches;
         /// Total number of vertices required for all patches
         size_t mPatchVertexCount;
@@ -219,6 +258,8 @@ namespace Ogre {
 
     };
     typedef SharedPtr<BspLevel> BspLevelPtr;
+    /** @} */
+    /** @} */
 }
 
 #endif

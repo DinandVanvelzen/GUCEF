@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,11 +29,48 @@ THE SOFTWARE.
 #include "OgreD3D11Texture.h"
 #include "OgreRoot.h"
 #include "OgreLogManager.h"
+#include "OgreHardwarePixelBuffer.h"
 #include "OgreD3D11RenderSystem.h"
 #include "OgreD3D11Device.h"
 
 namespace Ogre 
 {
+    ID3D11SamplerState* D3D11Sampler::getState()
+    {
+        if(!mDirty)
+            return mState.Get();
+
+        D3D11_SAMPLER_DESC  desc;
+
+        desc.Filter = D3D11Mappings::get(mMinFilter, mMagFilter, mMipFilter, mCompareEnabled);
+        desc.MaxAnisotropy = mMaxAniso;
+        desc.MipLODBias = mMipmapBias;
+        desc.MinLOD = 0;
+        desc.MaxLOD = mMipFilter == FO_NONE ? 0 : D3D11_FLOAT32_MAX;
+
+        bool reversedZ = Root::getSingleton().getRenderSystem()->isReverseDepthBufferEnabled();
+        auto cmpFunc = mCompareFunc;
+        if(reversedZ)
+            cmpFunc = D3D11RenderSystem::reverseCompareFunction(cmpFunc);
+        desc.ComparisonFunc = D3D11Mappings::get(cmpFunc);
+
+        desc.AddressU = D3D11Mappings::get(mAddressMode.u);
+        desc.AddressV = D3D11Mappings::get(mAddressMode.v);
+        desc.AddressW = D3D11Mappings::get(mAddressMode.w);
+
+        if (mAddressMode.u == TAM_BORDER || mAddressMode.v == TAM_BORDER || mAddressMode.w == TAM_BORDER)
+        {
+            auto borderColour =
+                (reversedZ && mCompareEnabled) ? ColourValue::White - mBorderColour : mBorderColour;
+            memcpy(desc.BorderColor, borderColour.ptr(), sizeof(float)*4);
+        }
+
+        OGRE_CHECK_DX_ERROR(mDevice->CreateSamplerState(&desc, mState.ReleaseAndGetAddressOf()));
+
+        mDirty = false;
+
+        return mState.Get();
+    }
     //---------------------------------------------------------------------
     D3D11TextureManager::D3D11TextureManager( D3D11Device & device ) : TextureManager(), mDevice (device)
     {
@@ -56,6 +93,10 @@ namespace Ogre
     {
         return new D3D11Texture(this, name, handle, group, isManual, loader, mDevice); 
     }
+    SamplerPtr D3D11TextureManager::_createSamplerImpl()
+    {
+        return std::make_shared<D3D11Sampler>(mDevice);
+    }
     //---------------------------------------------------------------------
     PixelFormat D3D11TextureManager::getNativeFormat(TextureType ttype, PixelFormat format, int usage)
     {
@@ -64,17 +105,4 @@ namespace Ogre
 
         return D3D11Mappings::_getPF(d3dPF);
     }
-    //---------------------------------------------------------------------
-    bool D3D11TextureManager::isHardwareFilteringSupported(TextureType ttype, PixelFormat format, int usage,
-        bool preciseFormatOnly)
-    {
-        if (!preciseFormatOnly)
-            format = getNativeFormat(ttype, format, usage);
-
-        D3D11RenderSystem* rs = static_cast<D3D11RenderSystem*>(
-            Root::getSingleton().getRenderSystem());
-
-        return rs->_checkTextureFilteringSupported(ttype, format, usage);
-    }
-    //---------------------------------------------------------------------
 }

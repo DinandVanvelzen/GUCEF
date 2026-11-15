@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 #include "OgrePrerequisites.h"
 #include "OgreCommon.h"
+#include "OgreColourValue.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
@@ -39,227 +40,269 @@ namespace Ogre {
     /** \addtogroup Image
     *  @{
     */
-    /** The pixel format used for images, textures, and render surfaces */
+    /** The pixel format used for images, textures, and render surfaces
+     *
+     * A pixel format described the storage format of pixel data. It defines the way pixels are encoded in memory.
+     * The components are specified in "packed" native byte order for native endian (16, 24 and 32 bit) integers.
+     * This means that a pixel with format Ogre::PF_A8R8G8B8 can be seen as a 32 bit integer, written as @c 0xAARRGGBB in hexadecimal
+     * on a little-endian (x86) machine or as @c 0xBBGGRRAA on a big-endian machine.
+     * The example above would be expressed with an array of bytes as `{0xBB, 0xGG, 0xRR, 0xAA}` on both machines.
+     * Therefore, one would use the Ogre::PF_BYTE_BGRA format when reading pixel data expressed in bytes.
+     * This format aliases to either Ogre::PF_A8R8G8B8 or Ogre::PF_B8G8R8A8
+     * depending on the machine endianness.
+     */
     enum PixelFormat
     {
         /// Unknown pixel format.
         PF_UNKNOWN = 0,
         /// 8-bit pixel format, all bits luminance.
-        PF_L8 = 1,
+        PF_L8,
         PF_BYTE_L = PF_L8,
         /// 16-bit pixel format, all bits luminance.
-        PF_L16 = 2,
+        PF_L16,
         PF_SHORT_L = PF_L16,
         /// 8-bit pixel format, all bits alpha.
-        PF_A8 = 3,
+        PF_A8,
         PF_BYTE_A = PF_A8,
-        /// 8-bit pixel format, 4 bits alpha, 4 bits luminance.
-        PF_A4L4 = 4,
         /// 2 byte pixel format, 1 byte luminance, 1 byte alpha
-        PF_BYTE_LA = 5,
+        PF_BYTE_LA,
         /// 16-bit pixel format, 5 bits red, 6 bits green, 5 bits blue.
-        PF_R5G6B5 = 6,
+        PF_R5G6B5,
         /// 16-bit pixel format, 5 bits red, 6 bits green, 5 bits blue.
-        PF_B5G6R5 = 7,
-        /// 8-bit pixel format, 2 bits blue, 3 bits green, 3 bits red.
-        PF_R3G3B2 = 31,
+        PF_B5G6R5,
         /// 16-bit pixel format, 4 bits for alpha, red, green and blue.
-        PF_A4R4G4B4 = 8,
+        PF_A4R4G4B4,
         /// 16-bit pixel format, 5 bits for blue, green, red and 1 for alpha.
-        PF_A1R5G5B5 = 9,
+        PF_A1R5G5B5,
         /// 24-bit pixel format, 8 bits for red, green and blue.
-        PF_R8G8B8 = 10,
+        PF_R8G8B8,
         /// 24-bit pixel format, 8 bits for blue, green and red.
-        PF_B8G8R8 = 11,
+        PF_B8G8R8,
         /// 32-bit pixel format, 8 bits for alpha, red, green and blue.
-        PF_A8R8G8B8 = 12,
+        PF_A8R8G8B8,
         /// 32-bit pixel format, 8 bits for blue, green, red and alpha.
-        PF_A8B8G8R8 = 13,
+        PF_A8B8G8R8,
         /// 32-bit pixel format, 8 bits for blue, green, red and alpha.
-        PF_B8G8R8A8 = 14,
-        /// 32-bit pixel format, 8 bits for red, green, blue and alpha.
-        PF_R8G8B8A8 = 28,
+        PF_B8G8R8A8,
+        /// 32-bit pixel format, 2 bits for alpha, 10 bits for red, green and blue.
+        PF_A2R10G10B10,
+        /// 32-bit pixel format, 10 bits for blue, green and red, 2 bits for alpha.
+        PF_A2B10G10R10,
+        /// DDS (DirectDraw Surface) DXT1 format
+        PF_DXT1,
+        /// DDS (DirectDraw Surface) DXT2 format
+        PF_DXT2,
+        /// DDS (DirectDraw Surface) DXT3 format
+        PF_DXT3,
+        /// DDS (DirectDraw Surface) DXT4 format
+        PF_DXT4,
+        /// DDS (DirectDraw Surface) DXT5 format
+        PF_DXT5,
+        /// 48-bit pixel format, 16 bits (float) for red, 16 bits (float) for green, 16 bits (float) for blue
+        PF_FLOAT16_RGB,
+        /// 64-bit pixel format, 16 bits (float) for red, 16 bits (float) for green, 16 bits (float) for blue, 16 bits (float) for alpha
+        PF_FLOAT16_RGBA,
+        /// 96-bit pixel format, 32 bits (float) for red, 32 bits (float) for green, 32 bits (float) for blue
+        PF_FLOAT32_RGB,
+        /// 128-bit pixel format, 32 bits (float) for red, 32 bits (float) for green, 32 bits (float) for blue, 32 bits (float) for alpha
+        PF_FLOAT32_RGBA,
         /// 32-bit pixel format, 8 bits for red, 8 bits for green, 8 bits for blue
-        /// like PF_A8R8G8B8, but alpha will get discarded
-        PF_X8R8G8B8 = 26,
+        /// like Ogre::PF_A8R8G8B8, but alpha will get discarded
+        PF_X8R8G8B8,
         /// 32-bit pixel format, 8 bits for blue, 8 bits for green, 8 bits for red
-        /// like PF_A8B8G8R8, but alpha will get discarded
-        PF_X8B8G8R8 = 27,
+        /// like Ogre::PF_A8B8G8R8, but alpha will get discarded
+        PF_X8B8G8R8,
+        /// 32-bit pixel format, 8 bits for red, green, blue and alpha.
+        PF_R8G8B8A8,
+        /// Depth texture format, with 16-bit unsigned integer
+        PF_DEPTH16,
+        PF_DEPTH = PF_DEPTH16,
+        /// 64-bit pixel format, 16 bits for red, green, blue and alpha
+        PF_SHORT_RGBA,
+        /// 8-bit pixel format, 2 bits blue, 3 bits green, 3 bits red.
+        PF_R3G3B2,
+        /// 16-bit pixel format, 16 bits (float) for red
+        PF_FLOAT16_R,
+        /// 32-bit pixel format, 32 bits (float) for red
+        PF_FLOAT32_R,
+        /// 32-bit pixel format, 16-bit green, 16-bit red
+        PF_SHORT_GR,
+        /// 32-bit, 2-channel s10e5 floating point pixel format, 16-bit green, 16-bit red
+        PF_FLOAT16_GR,
+        /// 64-bit, 2-channel floating point pixel format, 32-bit green, 32-bit red
+        PF_FLOAT32_GR,
+        /// 48-bit pixel format, 16 bits for red, green and blue
+        PF_SHORT_RGB,
+        /// PVRTC (PowerVR) RGB 2 bpp
+        PF_PVRTC_RGB2,
+        /// PVRTC (PowerVR) RGBA 2 bpp
+        PF_PVRTC_RGBA2,
+        /// PVRTC (PowerVR) RGB 4 bpp
+        PF_PVRTC_RGB4,
+        /// PVRTC (PowerVR) RGBA 4 bpp
+        PF_PVRTC_RGBA4,
+        /// PVRTC (PowerVR) Version 2, 2 bpp
+        PF_PVRTC2_2BPP,
+        /// PVRTC (PowerVR) Version 2, 4 bpp
+        PF_PVRTC2_4BPP,
+        /// 32-bit pixel format, 11 bits (float) for red, 11 bits (float) for green, 10 bits (float) for blue
+        PF_R11G11B10_FLOAT,
+        /// 8-bit pixel format, 8 bits red (unsigned int).
+        PF_R8_UINT,
+        /// 16-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int).
+        PF_R8G8_UINT,
+        /// 24-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int), 8 bits green (unsigned int).
+        PF_R8G8B8_UINT,
+        /// 32-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int), 8 bits green (unsigned int), 8 bits alpha (unsigned int).
+        PF_R8G8B8A8_UINT,
+        /// 16-bit pixel format, 16 bits red (unsigned int).
+        PF_R16_UINT,
+        /// 32-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int).
+        PF_R16G16_UINT,
+        /// 48-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int), 16 bits green (unsigned int).
+        PF_R16G16B16_UINT,
+        /// 64-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int), 16 bits green (unsigned int), 16 bits alpha (unsigned int).
+        PF_R16G16B16A16_UINT,
+        /// 32-bit pixel format, 32 bits red (unsigned int).
+        PF_R32_UINT,
+        /// 64-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int).
+        PF_R32G32_UINT,
+        /// 96-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int), 32 bits green (unsigned int).
+        PF_R32G32B32_UINT,
+        /// 128-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int), 32 bits green (unsigned int), 32 bits alpha (unsigned int).
+        PF_R32G32B32A32_UINT,
+        /// 8-bit pixel format, 8 bits red (signed int).
+        PF_R8_SINT,
+        /// 16-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int).
+        PF_R8G8_SINT,
+        /// 24-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int), 8 bits green (signed int).
+        PF_R8G8B8_SINT,
+        /// 32-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int), 8 bits green (signed int), 8 bits alpha (signed int).
+        PF_R8G8B8A8_SINT,
+        /// 16-bit pixel format, 16 bits red (signed int).
+        PF_R16_SINT,
+        /// 32-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int).
+        PF_R16G16_SINT,
+        /// 48-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int), 16 bits green (signed int).
+        PF_R16G16B16_SINT,
+        /// 64-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int), 16 bits green (signed int), 16 bits alpha (signed int).
+        PF_R16G16B16A16_SINT,
+        /// 32-bit pixel format, 32 bits red (signed int).
+        PF_R32_SINT,
+        /// 64-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int).
+        PF_R32G32_SINT,
+        /// 96-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int), 32 bits green (signed int).
+        PF_R32G32B32_SINT,
+        /// 128-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int), 32 bits green (signed int), 32 bits alpha (signed int).
+        PF_R32G32B32A32_SINT,
+        /// 32-bit pixel format, 9 bits for blue, green, red plus a 5 bit exponent.
+        PF_R9G9B9E5_SHAREDEXP,
+        /// DDS (DirectDraw Surface) BC4 format (unsigned normalised)
+        PF_BC4_UNORM,
+        /// DDS (DirectDraw Surface) BC4 format (signed normalised)
+        PF_BC4_SNORM,
+        /// DDS (DirectDraw Surface) BC5 format (unsigned normalised)
+        PF_BC5_UNORM,
+        /// DDS (DirectDraw Surface) BC5 format (signed normalised)
+        PF_BC5_SNORM,
+        /// DDS (DirectDraw Surface) BC6H format (unsigned 16 bit float)
+        PF_BC6H_UF16,
+        /// DDS (DirectDraw Surface) BC6H format (signed 16 bit float)
+        PF_BC6H_SF16,
+        /// DDS (DirectDraw Surface) BC7 format (unsigned normalised)
+        PF_BC7_UNORM,
+        /// 8-bit pixel format, all bits red.
+        PF_R8,
+        /// 16-bit pixel format, 8 bits red, 8 bits green.
+        PF_R8G8,
+        PF_RG8 = PF_R8G8,
+        /// 8-bit pixel format, 8 bits red (signed normalised int).
+        PF_R8_SNORM,
+        /// 16-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int).
+        PF_R8G8_SNORM,
+        /// 24-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int), 8 bits green (signed normalised int).
+        PF_R8G8B8_SNORM,
+        /// 32-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int), 8 bits green (signed normalised int), 8 bits alpha (signed normalised int).
+        PF_R8G8B8A8_SNORM,
+        /// 16-bit pixel format, 16 bits red (signed normalised int).
+        PF_R16_SNORM,
+        /// 32-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int).
+        PF_R16G16_SNORM,
+        /// 48-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int), 16 bits green (signed normalised int).
+        PF_R16G16B16_SNORM,
+        /// 64-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int), 16 bits green (signed normalised int), 16 bits alpha (signed normalised int).
+        PF_R16G16B16A16_SNORM,
+        /// ETC1 (Ericsson Texture Compression)
+        PF_ETC1_RGB8,
+        /// ETC2 (Ericsson Texture Compression)
+        PF_ETC2_RGB8,
+        /// ETC2 (Ericsson Texture Compression)
+        PF_ETC2_RGBA8,
+        /// ETC2 (Ericsson Texture Compression)
+        PF_ETC2_RGB8A1,
+        /// ATC (AMD_compressed_ATC_texture)
+        PF_ATC_RGB,
+        /// ATC (AMD_compressed_ATC_texture)
+        PF_ATC_RGBA_EXPLICIT_ALPHA,
+        /// ATC (AMD_compressed_ATC_texture)
+        PF_ATC_RGBA_INTERPOLATED_ALPHA,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 4x4)
+        PF_ASTC_RGBA_4X4_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 5x4)
+        PF_ASTC_RGBA_5X4_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 5x5)
+        PF_ASTC_RGBA_5X5_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 6x5)
+        PF_ASTC_RGBA_6X5_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 6x6)
+        PF_ASTC_RGBA_6X6_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 8x5)
+        PF_ASTC_RGBA_8X5_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 8x6)
+        PF_ASTC_RGBA_8X6_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 8x8)
+        PF_ASTC_RGBA_8X8_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 10x5)
+        PF_ASTC_RGBA_10X5_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 10x6)
+        PF_ASTC_RGBA_10X6_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 10x8)
+        PF_ASTC_RGBA_10X8_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 10x10)
+        PF_ASTC_RGBA_10X10_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 12x10)
+        PF_ASTC_RGBA_12X10_LDR,
+        /// ASTC (ARM Adaptive Scalable Texture Compression RGBA, block size 12x12)
+        PF_ASTC_RGBA_12X12_LDR,
+        PF_DEPTH32,
+        /// Depth texture format with 32-bit floating point
+        PF_DEPTH32F,
+        /// Depth texture format with 24-bit unsigned integer and 8-bit stencil
+        PF_DEPTH24_STENCIL8,
+        /// Number of pixel formats currently defined
+        PF_COUNT,
+        // endianness aware aliases
 #if OGRE_ENDIAN == OGRE_ENDIAN_BIG
-        /// 3 byte pixel format, 1 byte for red, 1 byte for green, 1 byte for blue
+        /// @copydoc PF_R8G8B8
         PF_BYTE_RGB = PF_R8G8B8,
-        /// 3 byte pixel format, 1 byte for blue, 1 byte for green, 1 byte for red
+        /// @copydoc PF_B8G8R8
         PF_BYTE_BGR = PF_B8G8R8,
-        /// 4 byte pixel format, 1 byte for blue, 1 byte for green, 1 byte for red and one byte for alpha
+        /// @copydoc PF_B8G8R8A8
         PF_BYTE_BGRA = PF_B8G8R8A8,
-        /// 4 byte pixel format, 1 byte for red, 1 byte for green, 1 byte for blue, and one byte for alpha
+        /// @copydoc PF_R8G8B8A8
         PF_BYTE_RGBA = PF_R8G8B8A8,
 #else
-        /// 3 byte pixel format, 1 byte for red, 1 byte for green, 1 byte for blue
+        /// @copydoc PF_B8G8R8
         PF_BYTE_RGB = PF_B8G8R8,
-        /// 3 byte pixel format, 1 byte for blue, 1 byte for green, 1 byte for red
+        /// @copydoc PF_R8G8B8
         PF_BYTE_BGR = PF_R8G8B8,
-        /// 4 byte pixel format, 1 byte for blue, 1 byte for green, 1 byte for red and one byte for alpha
+        /// @copydoc PF_A8R8G8B8
         PF_BYTE_BGRA = PF_A8R8G8B8,
-        /// 4 byte pixel format, 1 byte for red, 1 byte for green, 1 byte for blue, and one byte for alpha
+        /// @copydoc PF_A8B8G8R8
         PF_BYTE_RGBA = PF_A8B8G8R8,
-#endif        
-        /// 32-bit pixel format, 2 bits for alpha, 10 bits for red, green and blue.
-        PF_A2R10G10B10 = 15,
-        /// 32-bit pixel format, 10 bits for blue, green and red, 2 bits for alpha.
-        PF_A2B10G10R10 = 16,
-        /// DDS (DirectDraw Surface) DXT1 format
-        PF_DXT1 = 17,
-        /// DDS (DirectDraw Surface) DXT2 format
-        PF_DXT2 = 18,
-        /// DDS (DirectDraw Surface) DXT3 format
-        PF_DXT3 = 19,
-        /// DDS (DirectDraw Surface) DXT4 format
-        PF_DXT4 = 20,
-        /// DDS (DirectDraw Surface) DXT5 format
-        PF_DXT5 = 21,
-        /// 16-bit pixel format, 16 bits (float) for red
-        PF_FLOAT16_R = 32,
-        /// 48-bit pixel format, 16 bits (float) for red, 16 bits (float) for green, 16 bits (float) for blue
-        PF_FLOAT16_RGB = 22,
-        /// 64-bit pixel format, 16 bits (float) for red, 16 bits (float) for green, 16 bits (float) for blue, 16 bits (float) for alpha
-        PF_FLOAT16_RGBA = 23,
-        // 32-bit pixel format, 32 bits (float) for red
-        PF_FLOAT32_R = 33,
-        /// 96-bit pixel format, 32 bits (float) for red, 32 bits (float) for green, 32 bits (float) for blue
-        PF_FLOAT32_RGB = 24,
-        /// 128-bit pixel format, 32 bits (float) for red, 32 bits (float) for green, 32 bits (float) for blue, 32 bits (float) for alpha
-        PF_FLOAT32_RGBA = 25,
-        /// 32-bit, 2-channel s10e5 floating point pixel format, 16-bit green, 16-bit red
-        PF_FLOAT16_GR = 35,
-        /// 64-bit, 2-channel floating point pixel format, 32-bit green, 32-bit red
-        PF_FLOAT32_GR = 36,
-        /// Depth texture format
-        PF_DEPTH = 29,
-        /// 64-bit pixel format, 16 bits for red, green, blue and alpha
-        PF_SHORT_RGBA = 30,
-        /// 32-bit pixel format, 16-bit green, 16-bit red
-        PF_SHORT_GR = 34,
-        /// 48-bit pixel format, 16 bits for red, green and blue
-        PF_SHORT_RGB = 37,
-        /// PVRTC (PowerVR) RGB 2 bpp
-        PF_PVRTC_RGB2 = 38,
-        /// PVRTC (PowerVR) RGBA 2 bpp
-        PF_PVRTC_RGBA2 = 39,
-        /// PVRTC (PowerVR) RGB 4 bpp
-        PF_PVRTC_RGB4 = 40,
-        /// PVRTC (PowerVR) RGBA 4 bpp
-        PF_PVRTC_RGBA4 = 41,
-        /// PVRTC (PowerVR) Version 2, 2 bpp
-        PF_PVRTC2_2BPP = 42,
-        /// PVRTC (PowerVR) Version 2, 4 bpp
-        PF_PVRTC2_4BPP = 43,
-        /// 32-bit pixel format, 11 bits (float) for red, 11 bits (float) for green, 10 bits (float) for blue
-        PF_R11G11B10_FLOAT = 44,
-        /// 8-bit pixel format, 8 bits red (unsigned int).
-        PF_R8_UINT = 45,
-        /// 16-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int).
-        PF_R8G8_UINT = 46,
-        /// 24-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int), 8 bits green (unsigned int).
-        PF_R8G8B8_UINT = 47,
-        /// 32-bit pixel format, 8 bits red (unsigned int), 8 bits blue (unsigned int), 8 bits green (unsigned int), 8 bits alpha (unsigned int).
-        PF_R8G8B8A8_UINT = 48,
-        /// 16-bit pixel format, 16 bits red (unsigned int).
-        PF_R16_UINT = 49,
-        /// 32-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int).
-        PF_R16G16_UINT = 50,
-        /// 48-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int), 16 bits green (unsigned int).
-        PF_R16G16B16_UINT = 51,
-        /// 64-bit pixel format, 16 bits red (unsigned int), 16 bits blue (unsigned int), 16 bits green (unsigned int), 16 bits alpha (unsigned int).
-        PF_R16G16B16A16_UINT = 52,
-        /// 32-bit pixel format, 32 bits red (unsigned int).
-        PF_R32_UINT = 53,
-        /// 64-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int).
-        PF_R32G32_UINT = 54,
-        /// 96-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int), 32 bits green (unsigned int).
-        PF_R32G32B32_UINT = 55,
-        /// 128-bit pixel format, 32 bits red (unsigned int), 32 bits blue (unsigned int), 32 bits green (unsigned int), 32 bits alpha (unsigned int).
-        PF_R32G32B32A32_UINT = 56,
-        /// 8-bit pixel format, 8 bits red (signed int).
-        PF_R8_SINT = 57,
-        /// 16-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int).
-        PF_R8G8_SINT = 58,
-        /// 24-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int), 8 bits green (signed int).
-        PF_R8G8B8_SINT = 59,
-        /// 32-bit pixel format, 8 bits red (signed int), 8 bits blue (signed int), 8 bits green (signed int), 8 bits alpha (signed int).
-        PF_R8G8B8A8_SINT = 60,
-        /// 16-bit pixel format, 16 bits red (signed int).
-        PF_R16_SINT = 61,
-        /// 32-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int).
-        PF_R16G16_SINT = 62,
-        /// 48-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int), 16 bits green (signed int).
-        PF_R16G16B16_SINT = 63,
-        /// 64-bit pixel format, 16 bits red (signed int), 16 bits blue (signed int), 16 bits green (signed int), 16 bits alpha (signed int).
-        PF_R16G16B16A16_SINT = 64,
-        /// 32-bit pixel format, 32 bits red (signed int).
-        PF_R32_SINT = 65,
-        /// 64-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int).
-        PF_R32G32_SINT = 66,
-        /// 96-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int), 32 bits green (signed int).
-        PF_R32G32B32_SINT = 67,
-        /// 128-bit pixel format, 32 bits red (signed int), 32 bits blue (signed int), 32 bits green (signed int), 32 bits alpha (signed int).
-        PF_R32G32B32A32_SINT = 68,
-        /// 32-bit pixel format, 9 bits for blue, green, red plus a 5 bit exponent.
-        PF_R9G9B9E5_SHAREDEXP = 69,
-        /// DDS (DirectDraw Surface) BC4 format (unsigned normalised)
-        PF_BC4_UNORM = 70,
-        /// DDS (DirectDraw Surface) BC4 format (signed normalised)
-        PF_BC4_SNORM = 71,
-        /// DDS (DirectDraw Surface) BC5 format (unsigned normalised)
-        PF_BC5_UNORM = 72,
-        /// DDS (DirectDraw Surface) BC5 format (signed normalised)
-        PF_BC5_SNORM = 73,
-        /// DDS (DirectDraw Surface) BC6H format (unsigned 16 bit float)
-        PF_BC6H_UF16 = 74,
-        /// DDS (DirectDraw Surface) BC6H format (signed 16 bit float)
-        PF_BC6H_SF16 = 75,
-        /// DDS (DirectDraw Surface) BC7 format (unsigned normalised)
-        PF_BC7_UNORM = 76,
-        /// DDS (DirectDraw Surface) BC7 format (unsigned normalised sRGB)
-        PF_BC7_UNORM_SRGB = 77,
-        /// 8-bit pixel format, all bits red.
-        PF_R8 = 78,
-        /// 16-bit pixel format, 8 bits red, 8 bits green.
-        PF_RG8 = 79,
-        /// 8-bit pixel format, 8 bits red (signed normalised int).
-        PF_R8_SNORM = 80,
-        /// 16-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int).
-        PF_R8G8_SNORM = 81,
-        /// 24-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int), 8 bits green (signed normalised int).
-        PF_R8G8B8_SNORM = 82,
-        /// 32-bit pixel format, 8 bits red (signed normalised int), 8 bits blue (signed normalised int), 8 bits green (signed normalised int), 8 bits alpha (signed normalised int).
-        PF_R8G8B8A8_SNORM = 83,
-        /// 16-bit pixel format, 16 bits red (signed normalised int).
-        PF_R16_SNORM = 84,
-        /// 32-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int).
-        PF_R16G16_SNORM = 85,
-        /// 48-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int), 16 bits green (signed normalised int).
-        PF_R16G16B16_SNORM = 86,
-        /// 64-bit pixel format, 16 bits red (signed normalised int), 16 bits blue (signed normalised int), 16 bits green (signed normalised int), 16 bits alpha (signed normalised int).
-        PF_R16G16B16A16_SNORM = 87,
-        /// ETC1 (Ericsson Texture Compression)
-        PF_ETC1_RGB8 = 88,
-        /// ETC2 (Ericsson Texture Compression)
-        PF_ETC2_RGB8 = 89,
-        /// ETC2 (Ericsson Texture Compression)
-        PF_ETC2_RGBA8 = 90,
-        /// ETC2 (Ericsson Texture Compression)
-        PF_ETC2_RGB8A1 = 91,
-        /// ATC (AMD_compressed_ATC_texture)
-        PF_ATC_RGB = 92,
-        /// ATC (AMD_compressed_ATC_texture)
-        PF_ATC_RGBA_EXPLICIT_ALPHA = 93,
-        /// ATC (AMD_compressed_ATC_texture)
-        PF_ATC_RGBA_INTERPOLATED_ALPHA = 94,
-        // Number of pixel formats currently defined
-        PF_COUNT = 95
+#endif
     };
-    typedef vector<PixelFormat>::type PixelFormatList;
+    typedef std::vector<PixelFormat> PixelFormatList;
 
     /**
      * Flags defining some on/off properties of pixel formats
@@ -300,11 +343,13 @@ namespace Ogre {
         In case of a rectangle, depth must be 1. 
         Pixels are stored as a succession of "depth" slices, each containing "height" rows of 
         "width" pixels.
+
+        @copydetails Ogre::Box
     */
     class _OgreExport PixelBox: public Box, public ImageAlloc {
     public:
         /// Parameter constructor for setting the members manually
-        PixelBox() {}
+        PixelBox() : data(NULL), rowPitch(0), slicePitch(0), format(PF_UNKNOWN) {}
         ~PixelBox() {}
         /** Constructor providing extents in the form of a Box object. This constructor
             assumes the pixel data is laid out consecutively in memory. (this
@@ -314,7 +359,7 @@ namespace Ogre {
             @param pixelData    Pointer to the actual data
         */
         PixelBox(const Box &extents, PixelFormat pixelFormat, void *pixelData=0):
-            Box(extents), data(pixelData), format(pixelFormat)
+            Box(extents), data((uchar*)pixelData), format(pixelFormat)
         {
             setConsecutive();
         }
@@ -329,15 +374,13 @@ namespace Ogre {
         */
         PixelBox(uint32 width, uint32 height, uint32 depth, PixelFormat pixelFormat, void *pixelData=0):
             Box(0, 0, 0, width, height, depth),
-            data(pixelData), format(pixelFormat)
+            data((uchar*)pixelData), format(pixelFormat)
         {
             setConsecutive();
         }
         
         /// The data pointer 
-        void *data;
-        /// The pixel format 
-        PixelFormat format;
+        uchar* data;
         /** Number of elements between the leftmost pixel of one row and the left
             pixel of the next. This value must always be equal to getWidth() (consecutive) 
             for compressed formats.
@@ -349,7 +392,8 @@ namespace Ogre {
             for compressed formats.
         */
         size_t slicePitch;
-        
+        /// The pixel format
+        PixelFormat format;
         /** Set the rowPitch and slicePitch so that the buffer is laid out consecutive 
             in memory.
         */        
@@ -382,25 +426,28 @@ namespace Ogre {
         size_t getConsecutiveSize() const;
         /** Return a subvolume of this PixelBox.
             @param def  Defines the bounds of the subregion to return
+            @param resetOrigin Whether to reset left/top/front of returned PixelBox to zero 
+                together with adjusting data pointer to compensate this, or do nothing 
+                so that returned PixelBox will have left/top/front of requested Box
             @return A pixel box describing the region and the data in it
             @remarks    This function does not copy any data, it just returns
                 a PixelBox object with a data pointer pointing somewhere inside 
                 the data of object.
             @throws Exception(ERR_INVALIDPARAMS) if def is not fully contained
         */
-        PixelBox getSubVolume(const Box &def) const;
+        PixelBox getSubVolume(const Box &def, bool resetOrigin = true) const;
         
         /** Return a data pointer pointing to top left front pixel of the pixel box.
             @remarks Non consecutive pixel boxes are supported.
          */
-        void* getTopLeftFrontPixelPtr() const;
+        uchar* getTopLeftFrontPixelPtr() const;
         
         /**
          * Get colour value from a certain location in the PixelBox. The z coordinate
          * is only valid for cubemaps and volume textures. This uses the first (largest)
          * mipmap.
          */
-        ColourValue getColourAt(size_t x, size_t y, size_t z);
+        ColourValue getColourAt(size_t x, size_t y, size_t z) const;
 
         /**
          * Set colour value at a certain location in the PixelBox. The z coordinate
@@ -419,18 +466,18 @@ namespace Ogre {
         /** Returns the size in bytes of an element of the given pixel format.
          @return
                The size in bytes of an element. See Remarks.
-         @remarks
+
                Passing PF_UNKNOWN will result in returning a size of 0 bytes.
         */
-        static size_t getNumElemBytes( PixelFormat format );
+        static uint8 getNumElemBytes( PixelFormat format );
 
         /** Returns the size in bits of an element of the given pixel format.
           @return
                The size in bits of an element. See Remarks.
-           @remarks
+
                Passing PF_UNKNOWN will result in returning a size of 0 bits.
         */
-        static size_t getNumElemBits( PixelFormat format );
+        static uint8 getNumElemBits( PixelFormat format );
 
         /** Returns the size in memory of a region with the given extents and pixel
             format with consecutive memory layout.
@@ -444,9 +491,9 @@ namespace Ogre {
                 The format of the area
             @return
                 The size in bytes
-            @remarks
+
                 In case that the format is non-compressed, this simply returns
-                width*height*depth*PixelUtil::getNumElemBytes(format). In the compressed
+                width * height * depth * PixelUtil::getNumElemBytes(format). In the compressed
                 case, this does serious magic.
         */
         static size_t getMemorySize(uint32 width, uint32 height, uint32 depth, PixelFormat format);
@@ -455,7 +502,7 @@ namespace Ogre {
           @return
                A bitfield combination of PFF_HASALPHA, PFF_ISCOMPRESSED,
                PFF_FLOAT, PFF_DEPTH, PFF_NATIVEENDIAN, PFF_LUMINANCE
-          @remarks
+
                This replaces the separate functions for formatHasAlpha, formatIsFloat, ...
         */
         static unsigned int getFlags( PixelFormat format );
@@ -474,20 +521,6 @@ namespace Ogre {
         static bool isNativeEndian(PixelFormat format);
         /** Shortcut method to determine if the format is a luminance format. */
         static bool isLuminance(PixelFormat format);
-        
-        /** Return whether a certain image extent is valid for this image format.
-            @param width
-                The width of the area
-            @param height
-                The height of the area
-            @param depth
-                The depth of the area
-            @param format
-                The format of the area
-            @remarks For non-compressed formats, this is always true. For DXT formats,
-            only sizes with a width and height multiple of 4 and depth 1 are allowed.
-        */
-        static bool isValidExtent(size_t width, size_t height, size_t depth, PixelFormat format);
 
         /** Gives the number of bits (RGBA) for a format. See remarks.          
           @remarks      For non-colour formats (dxt, depth) this returns [0,0,0,0].
@@ -506,14 +539,12 @@ namespace Ogre {
 
         /** Gets the name of an image format
         */
-        static String getFormatName(PixelFormat srcformat);
+        static const String& getFormatName(PixelFormat srcformat);
 
         /** Returns whether the format can be packed or unpacked with the packColour()
-        and unpackColour() functions. This is generally not true for compressed and
-        depth formats as they are special. It can only be true for formats with a
+        and unpackColour() functions. This is generally not true for compressed
+        formats as they are special. It can only be true for formats with a
         fixed element size.
-          @return 
-               true if yes, otherwise false
         */
         static bool isAccessible(PixelFormat srcformat);
         
@@ -526,7 +557,7 @@ namespace Ogre {
         /** Returns the component count for a certain pixel format. Returns 3(no alpha) or 
             4 (has alpha) in case there is no clear component type like with compressed formats.
          */
-        static size_t getComponentCount(PixelFormat fmt);
+        static uint8 getComponentCount(PixelFormat fmt);
 
         /** Gets the format from given name.
             @param  name            The string of format name
@@ -537,17 +568,8 @@ namespace Ogre {
         */
         static PixelFormat getFormatFromName(const String& name, bool accessibleOnly = false, bool caseSensitive = false);
 
-        /** Gets the BNF expression of the pixel-formats.
-            @note                   The string returned by this function is intended to be used as a BNF expression
-                                    to work with Compiler2Pass.
-            @param  accessibleOnly  If true, only accessible pixel format will take into account, otherwise all
-                                    pixel formats list in PixelFormat enumeration will being returned.
-            @return                A string contains the BNF expression.
-        */
-        static String getBNFExpressionOfPixelFormats(bool accessibleOnly = false);
-
-        /** Returns the similar format but acoording with given bit depths.
-            @param fmt      The original foamt.
+        /** Returns the similar format but according with given bit depths.
+            @param fmt      The original format.
             @param integerBits Preferred bit depth (pixel bits) for integer pixel format.
                             Available values: 0, 16 and 32, where 0 (the default) means as it is.
             @param floatBits Preferred bit depth (channel bits) for float pixel format.
@@ -562,7 +584,10 @@ namespace Ogre {
             @param pf       Pixelformat in which to write the colour
             @param dest     Destination memory location
         */
-        static void packColour(const ColourValue &colour, const PixelFormat pf,  void* dest);
+        static void packColour(const ColourValue& colour, const PixelFormat pf, void* dest)
+        {
+            packColour(colour.r, colour.g, colour.b, colour.a, pf, dest);
+        }
         /** Pack a colour value to memory
             @param r,g,b,a  The four colour components, range 0.0f to 1.0f
                             (an exception to this case exists for floating point pixel
@@ -571,13 +596,7 @@ namespace Ogre {
             @param dest     Destination memory location
         */
         static void packColour(const uint8 r, const uint8 g, const uint8 b, const uint8 a, const PixelFormat pf,  void* dest);
-         /** Pack a colour value to memory
-            @param r,g,b,a  The four colour components, range 0.0f to 1.0f
-                            (an exception to this case exists for floating point pixel
-                            formats, which don't clamp to 0.0f..1.0f)
-            @param pf       Pixelformat in which to write the colour
-            @param dest     Destination memory location
-        */
+        /// @overload
         static void packColour(const float r, const float g, const float b, const float a, const PixelFormat pf,  void* dest);
 
         /** Unpack a colour value from memory
@@ -585,28 +604,27 @@ namespace Ogre {
             @param pf       Pixelformat in which to read the colour
             @param src      Source memory location
         */
-        static void unpackColour(ColourValue *colour, PixelFormat pf,  const void* src);
+        static void unpackColour(ColourValue& colour, PixelFormat pf, const void* src)
+        {
+            unpackColour(&colour.r, &colour.g, &colour.b, &colour.a, pf, src);
+        }
+        /// @overload
+        static void unpackColour(ColourValue* colour, PixelFormat pf, const void* src)
+        {
+            unpackColour(&colour->r, &colour->g, &colour->b, &colour->a, pf, src);
+        }
         /** Unpack a colour value from memory
-            @param r        The red channel is returned here (as byte)
-            @param g        The blue channel is returned here (as byte)
-            @param b        The green channel is returned here (as byte)
-            @param a        The alpha channel is returned here (as byte)
-            @param pf       Pixelformat in which to read the colour
-            @param src      Source memory location
-            @remarks    This function returns the colour components in 8 bit precision,
-                this will lose precision when coming from PF_A2R10G10B10 or floating
-                point formats.  
-        */
-        static void unpackColour(uint8 *r, uint8 *g, uint8 *b, uint8 *a, PixelFormat pf,  const void* src);
-        /** Unpack a colour value from memory
-            @param r        The red channel is returned here (as float)
-            @param g        The blue channel is returned here (as float)
-            @param b        The green channel is returned here (as float)
-            @param a        The alpha channel is returned here (as float)
+            @param r,g,b,a  The four colour channels are returned here
             @param pf       Pixelformat in which to read the colour
             @param src      Source memory location
         */
         static void unpackColour(float *r, float *g, float *b, float *a, PixelFormat pf,  const void* src); 
+        /** @overload
+            @note This function returns the colour components in 8 bit precision,
+                this will lose precision when coming from #PF_A2R10G10B10 or floating
+                point formats.
+        */
+        static void unpackColour(uint8 *r, uint8 *g, uint8 *b, uint8 *a, PixelFormat pf,  const void* src);
         
         /** Convert consecutive pixels from one format to another. No dithering or filtering is being done. 
             Converting from RGB to luminance takes the R channel.  In case the source and destination format match,
@@ -615,8 +633,12 @@ namespace Ogre {
             @param  srcFormat   Pixel format of source region
             @param  dst         Pointer to destination region
             @param  dstFormat   Pixel format of destination region
+            @param  count       The number of pixels to convert
          */
-        static void bulkPixelConversion(void *src, PixelFormat srcFormat, void *dst, PixelFormat dstFormat, unsigned int count);
+        static void bulkPixelConversion(void *src, PixelFormat srcFormat, void *dst, PixelFormat dstFormat, unsigned int count)
+        {
+            bulkPixelConversion(PixelBox(count, 1, 1, srcFormat, src), PixelBox(count, 1, 1, dstFormat, dst));
+        }
 
         /** Convert pixels from one format to another. No dithering or filtering is being done. Converting
             from RGB to luminance takes the R channel. 
@@ -633,6 +655,8 @@ namespace Ogre {
          */
         static void bulkPixelVerticalFlip(const PixelBox &box);
     };
+
+    inline const String& to_string(PixelFormat v) { return PixelUtil::getFormatName(v); }
     /** @} */
     /** @} */
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,56 +34,56 @@ THE SOFTWARE.
 #include "OgreStringInterface.h"
 
 namespace Ogre {
-
-
-    /** This plugin subclass of ParticleAffector allows you to alter the rotation of particles.
-    @remarks
-        This class supplies the ParticleAffector implementation required to make the particle expand
-        or contract in mid-flight.
+    /** \addtogroup Plugins
+    *  @{
     */
-    class _OgreParticleFXExport RotationAffector : public ParticleAffector
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+
+    /** This affector rotates particles in flight.
+    */
+    class RotationAffector : public ParticleAffector
     {
     public:
         /// Command object for particle emitter  - see ParamCommand 
         class CmdRotationSpeedRangeStart : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /// Command object for particle emitter  - see ParamCommand 
         class CmdRotationSpeedRangeEnd : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /// Command object for particle emitter  - see ParamCommand 
         class CmdRotationRangeStart : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /// Command object for particle emitter  - see ParamCommand 
         class CmdRotationRangeEnd : public ParamCommand
         {
         public:
-            String doGet(const void* target) const;
-            void doSet(void* target, const String& val);
+            String doGet(const void* target) const override;
+            void doSet(void* target, const String& val) override;
         };
 
         /** Default constructor. */
         RotationAffector(ParticleSystem* psys);
 
-        /** See ParticleAffector. */
-        void _initParticle(Particle* pParticle);
+        void _initParticle(Particle* pParticle) override;
 
-        /** See ParticleAffector. */
-        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed);
+        void _affectParticles(ParticleSystem* pSystem, Real timeElapsed) override;
 
 
 
@@ -123,7 +123,8 @@ namespace Ogre {
 
     };
 
-
+    /** @} */
+    /** @} */
 }
 
 

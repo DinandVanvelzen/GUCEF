@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,6 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-#include "OgreDataStream.h"
-#include "OgreLogManager.h"
-#include "OgreException.h"
 
 namespace Ogre {
 
@@ -48,18 +45,16 @@ namespace Ogre {
         // Keep looping while not hitting delimiter
         while ((readCount = read(tmpBuf, OGRE_STREAM_TEMP_SIZE-1)) != 0)
         {
-            // Terminate string
-            tmpBuf[readCount] = '\0';
-
-            char* p = strchr(tmpBuf, '\n');
+            const char* p = static_cast<const char*>(memchr(tmpBuf, '\n', readCount));
+            size_t appendCount = readCount;
             if (p != 0)
             {
+                appendCount = static_cast<size_t>(p - tmpBuf);
                 // Reposition backwards
-                skip((long)(p + 1 - tmpBuf - readCount));
-                *p = '\0';
+                skip(static_cast<long>(appendCount + 1 - readCount));
             }
 
-            retString += tmpBuf;
+            retString.append(tmpBuf, appendCount);
 
             if (p != 0)
             {
@@ -231,12 +226,12 @@ namespace Ogre {
             mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
             mPos = mData;
             mEnd = mData + sourceStream.read(mData, mSize);
-            mFreeOnClose = freeOnClose;
         }
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
-    MemoryDataStream::MemoryDataStream(DataStreamPtr& sourceStream, 
+    MemoryDataStream::MemoryDataStream(const DataStreamPtr& sourceStream,
         bool freeOnClose, bool readOnly)
         : DataStream(static_cast<uint16>(readOnly ? READ : (READ | WRITE)))
     {
@@ -257,8 +252,8 @@ namespace Ogre {
             mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
             mPos = mData;
             mEnd = mData + sourceStream->read(mData, mSize);
-            mFreeOnClose = freeOnClose;
         }
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
@@ -283,8 +278,8 @@ namespace Ogre {
             mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
             mPos = mData;
             mEnd = mData + sourceStream.read(mData, mSize);
-            mFreeOnClose = freeOnClose;
         }
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
@@ -309,8 +304,8 @@ namespace Ogre {
             mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
             mPos = mData;
             mEnd = mData + sourceStream->read(mData, mSize);
-            mFreeOnClose = freeOnClose;
         }
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
@@ -318,10 +313,10 @@ namespace Ogre {
         : DataStream(static_cast<uint16>(readOnly ? READ : (READ | WRITE)))
     {
         mSize = inSize;
-        mFreeOnClose = freeOnClose;
         mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
         mPos = mData;
         mEnd = mData + mSize;
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
@@ -330,10 +325,10 @@ namespace Ogre {
         : DataStream(name, static_cast<uint16>(readOnly ? READ : (READ | WRITE)))
     {
         mSize = inSize;
-        mFreeOnClose = freeOnClose;
         mData = OGRE_ALLOC_T(uchar, mSize, MEMCATEGORY_GENERAL);
         mPos = mData;
         mEnd = mData + mSize;
+        mFreeOnClose = freeOnClose;
         assert(mEnd >= mPos);
     }
     //-----------------------------------------------------------------------
@@ -344,10 +339,10 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     size_t MemoryDataStream::read(void* buf, size_t count)
     {
-        size_t cnt = count;
         // Read over end of memory?
-        if (mPos + cnt > mEnd)
-            cnt = mEnd - mPos;
+        if (mPos >= mEnd)
+            return 0;
+        size_t cnt = std::min(count, static_cast<size_t>(mEnd - mPos));
         if (cnt == 0)
             return 0;
 
@@ -436,15 +431,18 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void MemoryDataStream::skip(long count)
     {
+        // will underflow to size_t max if we skip below 0
         size_t newpos = (size_t)( ( mPos - mData ) + count );
-        assert( mData + newpos <= mEnd );        
 
+        if (mData + newpos > mEnd)
+            newpos = static_cast<size_t>(mEnd - mData); // will trigger eof
         mPos = mData + newpos;
     }
     //-----------------------------------------------------------------------
     void MemoryDataStream::seek( size_t pos )
     {
-        assert( mData + pos <= mEnd );
+        if (mData + pos > mEnd)
+            pos = static_cast<size_t>(mEnd - mData); // will trigger eof
         mPos = mData + pos;
     }
     //-----------------------------------------------------------------------
@@ -461,12 +459,12 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void MemoryDataStream::close(void)    
     {
+        mAccess = 0;
         if (mFreeOnClose && mData)
         {
             OGRE_FREE(mData, MEMCATEGORY_GENERAL);
             mData = 0;
         }
-
     }
     //-----------------------------------------------------------------------
     //-----------------------------------------------------------------------
@@ -575,8 +573,8 @@ namespace Ogre {
         }
         if (delim.size() > 1)
         {
-            LogManager::getSingleton().logMessage(
-                "WARNING: FileStreamDataStream::readLine - using only first delimeter");
+            LogManager::getSingleton().logWarning(
+                "FileStreamDataStream::readLine - using only first delimiter");
         }
         // Deal with both Unix & Windows LFs
         bool trimCR = false;
@@ -624,7 +622,7 @@ namespace Ogre {
         }
 
         // trim off CR if we found CR/LF
-        if (trimCR && buf[ret-1] == '\r')
+        if (trimCR && ret && buf[ret-1] == '\r')
         {
             --ret;
             buf[ret] = '\0';
@@ -670,6 +668,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void FileStreamDataStream::close(void)
     {
+        mAccess = 0;
         if (mInStream)
         {
             // Unfortunately, there is no file-specific shared class hierarchy between fstream and ifstream (!!)
@@ -686,10 +685,11 @@ namespace Ogre {
                 // delete the stream too
                 OGRE_DELETE_T(mFStreamRO, basic_ifstream, MEMCATEGORY_GENERAL);
                 OGRE_DELETE_T(mFStream, basic_fstream, MEMCATEGORY_GENERAL);
-                mInStream = 0;
-                mFStreamRO = 0; 
-                mFStream = 0; 
             }
+
+            mInStream = 0;
+            mFStreamRO = 0; 
+            mFStream = 0; 
         }
     }
     //-----------------------------------------------------------------------
@@ -753,6 +753,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void FileHandleDataStream::close(void)
     {
+        mAccess = 0;
         if (mFileHandle != 0)
         {
             fclose(mFileHandle);

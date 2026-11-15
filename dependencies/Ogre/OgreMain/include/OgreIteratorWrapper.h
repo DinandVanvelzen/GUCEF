@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,7 @@ class IteratorWrapper
 
         
         /** Constructor.
-        @remarks
+
         Provide a start and end iterator to initialise.
         */
         IteratorWrapper ( IteratorType start, IteratorType last )
@@ -186,7 +186,7 @@ template <typename T>
 class VectorIterator : public VectorIteratorWrapper<T,  typename T::iterator>{
     public:
         /** Constructor.
-        @remarks
+
             Provide a start and end iterator to initialise.
         */  
         VectorIterator( typename T::iterator start, typename T::iterator last )
@@ -195,7 +195,7 @@ class VectorIterator : public VectorIteratorWrapper<T,  typename T::iterator>{
         }
 
         /** Constructor.
-        @remarks
+
             Provide a container to initialise.
         */
         explicit VectorIterator( T& c )
@@ -217,7 +217,7 @@ template <typename T>
 class ConstVectorIterator : public VectorIteratorWrapper<T,  typename T::const_iterator>{
     public:
         /** Constructor.
-        @remarks
+
             Provide a start and end iterator to initialise.
         */  
         ConstVectorIterator( typename T::const_iterator start, typename T::const_iterator last )
@@ -226,7 +226,7 @@ class ConstVectorIterator : public VectorIteratorWrapper<T,  typename T::const_i
         }
 
         /** Constructor.
-        @remarks
+
             Provide a container to initialise.
         */
         explicit ConstVectorIterator ( const T& c )
@@ -259,13 +259,13 @@ class MapIteratorWrapper  : public IteratorWrapper<T, IteratorType, typename T::
         /// Redefined PointerType for a map/set
         typedef typename IteratorWrapper<T, IteratorType, typename  T::mapped_type>::PointerType PointerType ;  
         
-        /// Unused, just to make it clear that map/set::value_type is not a ValueType
+        /// Unused, just to make it clear that map/set\::value_type is not a ValueType
         typedef typename T::value_type PairType ; 
         /// Type you expect to get by funktions like peekNextKey
         typedef typename T::key_type KeyType;
         
         /** Constructor.
-        @remarks
+
             Provide a start and end iterator to initialise.
         */
         MapIteratorWrapper ( IteratorType start, IteratorType last )
@@ -320,7 +320,7 @@ class MapIterator : public MapIteratorWrapper<T,  typename T::iterator>{
     public:
     
         /** Constructor.
-        @remarks
+
             Provide a start and end iterator to initialise.
         */  
         MapIterator( typename T::iterator start, typename T::iterator last )
@@ -329,7 +329,7 @@ class MapIterator : public MapIteratorWrapper<T,  typename T::iterator>{
         }
         
         /** Constructor.
-        @remarks
+
             Provide a container to initialise.
         */
         explicit MapIterator( T& c )
@@ -353,7 +353,7 @@ class ConstMapIterator : public MapIteratorWrapper<T,  typename T::const_iterato
     public:
     
         /** Constructor.
-        @remarks
+
             Provide a start and end iterator to initialise.
         */  
         ConstMapIterator( typename T::const_iterator start, typename T::const_iterator last )
@@ -362,7 +362,7 @@ class ConstMapIterator : public MapIteratorWrapper<T,  typename T::const_iterato
         }
 
         /** Constructor.
-        @remarks
+
             Provide a container to initialise.
         */
         explicit ConstMapIterator ( const T& c )

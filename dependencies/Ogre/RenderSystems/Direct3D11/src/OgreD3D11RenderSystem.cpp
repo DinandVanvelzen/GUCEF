@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,20 +38,20 @@ THE SOFTWARE.
 #include "OgreLogManager.h"
 #include "OgreMeshManager.h"
 #include "OgreD3D11HardwareBufferManager.h"
-#include "OgreD3D11HardwareIndexBuffer.h"
-#include "OgreD3D11HardwareVertexBuffer.h"
+#include "OgreD3D11HardwareBuffer.h"
 #include "OgreD3D11VertexDeclaration.h"
-#include "OgreD3D11GpuProgramManager.h"
+#include "OgreGpuProgramManager.h"
 #include "OgreD3D11HLSLProgramFactory.h"
 
 #include "OgreD3D11HardwareOcclusionQuery.h"
-#include "OgreFrustum.h"
 #include "OgreD3D11MultiRenderTarget.h"
 #include "OgreD3D11HLSLProgram.h"
 
 #include "OgreD3D11DepthBuffer.h"
 #include "OgreD3D11HardwarePixelBuffer.h"
+#include "OgreD3D11RenderTarget.h"
 #include "OgreException.h"
+#include "OgreRoot.h"
 
 #if OGRE_NO_QUAD_BUFFER_STEREO == 0
 #include "OgreD3D11StereoDriverBridge.h"
@@ -67,11 +67,18 @@ THE SOFTWARE.
 #endif
 //---------------------------------------------------------------------
 #include <d3d10.h>
-#include <OgreNsightChecker.h>
+#include "OgreNsightChecker.h"
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WINRT &&  defined(_WIN32_WINNT_WINBLUE) && _WIN32_WINNT >= _WIN32_WINNT_WINBLUE
 #include <dxgi1_3.h> // for IDXGIDevice3::Trim
 #endif
+
+#define CHECK_DEVICE_ERROR(errmsg) \
+if (mDevice.isError()) \
+{ \
+    String desc = mDevice.getErrorDescription(); \
+    throw RenderingAPIException(0, "D3D11 device cannot " errmsg "\nError Description: "+desc, __FUNCTION__, __FILE__, __LINE__); \
+}
 
 namespace Ogre 
 {
@@ -129,7 +136,6 @@ namespace Ogre
     {
         LogManager::getSingleton().logMessage( "D3D11: " + getName() + " created." );
 
-        mEnableFixedPipeline = false;
         mRenderSystemWasInited = false;
         mSwitchingFullscreenCounter = 0;
         mDriverType = D3D_DRIVER_TYPE_HARDWARE;
@@ -198,6 +204,12 @@ namespace Ogre
             mHLSLProgramFactory = 0;
         }
 
+#if OGRE_NO_QUAD_BUFFER_STEREO == 0
+        // Stereo driver must be freed after device is created
+        D3D11StereoDriverBridge* stereoBridge = D3D11StereoDriverBridge::getSingletonPtr();
+        OGRE_DELETE stereoBridge;
+#endif
+
         LogManager::getSingleton().logMessage( "D3D11: " + getName() + " destroyed." );
     }
     //---------------------------------------------------------------------
@@ -206,12 +218,7 @@ namespace Ogre
         static String strName( "Direct3D11 Rendering Subsystem");
         return strName;
     }
-    //---------------------------------------------------------------------
-	const String& D3D11RenderSystem::getFriendlyName(void) const
-	{
-		static String strName("Direct3D 11");
-		return strName;
-	}
+
 	//---------------------------------------------------------------------
     D3D11DriverList* D3D11RenderSystem::getDirect3DDrivers(bool refreshList /* = false*/)
     {
@@ -244,7 +251,15 @@ namespace Ogre
 		// This flag is required in order to enable compatibility with Direct2D.
 		deviceFlags |= D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #endif
-		if(OGRE_DEBUG_MODE && !IsWorkingUnderNsight() && D3D11Device::D3D_NO_EXCEPTION != D3D11Device::getExceptionsErrorLevel())
+
+        auto it = mOptions.find("Debug Layer");
+        bool debugEnabled = false;
+        if (it != mOptions.end())
+        {
+            debugEnabled = StringConverter::parseBool(it->second.currentValue);
+        }
+
+		if(debugEnabled && !IsWorkingUnderNsight() && D3D11Device::D3D_NO_EXCEPTION != D3D11Device::getExceptionsErrorLevel())
 		{
 			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		}
@@ -306,23 +321,16 @@ namespace Ogre
     //---------------------------------------------------------------------
     void D3D11RenderSystem::initConfigOptions()
     {
+        RenderSystem::initConfigOptions();
+
         ConfigOption optDevice;
         ConfigOption optVideoMode;
-        ConfigOption optFullScreen;
-        ConfigOption optVSync;
-        ConfigOption optVSyncInterval;
-		ConfigOption optBackBufferCount;
         ConfigOption optAA;
-        ConfigOption optFPUMode;
         ConfigOption optNVPerfHUD;
-        ConfigOption optSRGB;
         ConfigOption optMinFeatureLevels;
         ConfigOption optMaxFeatureLevels;
         ConfigOption optExceptionsErrorLevel;
         ConfigOption optDriverType;
-#if OGRE_NO_QUAD_BUFFER_STEREO == 0
-		ConfigOption optStereoMode;
-#endif
 
         optDevice.name = "Rendering Device";
         optDevice.currentValue = "(default)";
@@ -339,62 +347,16 @@ namespace Ogre
         optVideoMode.currentValue = "800 x 600 @ 32-bit colour";
         optVideoMode.immutable = false;
 
-        optFullScreen.name = "Full Screen";
-        optFullScreen.possibleValues.push_back( "Yes" );
-        optFullScreen.possibleValues.push_back( "No" );
-        optFullScreen.currentValue = "Yes";
-        optFullScreen.immutable = false;
-
-        optVSync.name = "VSync";
-        optVSync.immutable = false;
-        optVSync.possibleValues.push_back( "Yes" );
-        optVSync.possibleValues.push_back( "No" );
-        optVSync.currentValue = "No";
-
-        optVSyncInterval.name = "VSync Interval";
-        optVSyncInterval.immutable = false;
-        optVSyncInterval.possibleValues.push_back( "1" );
-        optVSyncInterval.possibleValues.push_back( "2" );
-        optVSyncInterval.possibleValues.push_back( "3" );
-        optVSyncInterval.possibleValues.push_back( "4" );
-        optVSyncInterval.currentValue = "1";
-
-		optBackBufferCount.name = "Backbuffer Count";
-		optBackBufferCount.immutable = false;
-		optBackBufferCount.possibleValues.push_back( "Auto" );
-		optBackBufferCount.possibleValues.push_back( "1" );
-		optBackBufferCount.possibleValues.push_back( "2" );
-		optBackBufferCount.currentValue = "Auto";
-
-
         optAA.name = "FSAA";
         optAA.immutable = false;
         optAA.possibleValues.push_back( "None" );
         optAA.currentValue = "None";
-
-        optFPUMode.name = "Floating-point mode";
-#if OGRE_DOUBLE_PRECISION
-        optFPUMode.currentValue = "Consistent";
-#else
-        optFPUMode.currentValue = "Fastest";
-#endif
-        optFPUMode.possibleValues.clear();
-        optFPUMode.possibleValues.push_back("Fastest");
-        optFPUMode.possibleValues.push_back("Consistent");
-        optFPUMode.immutable = false;
 
         optNVPerfHUD.currentValue = "No";
         optNVPerfHUD.immutable = false;
         optNVPerfHUD.name = "Allow NVPerfHUD";
         optNVPerfHUD.possibleValues.push_back( "Yes" );
         optNVPerfHUD.possibleValues.push_back( "No" );
-
-        // SRGB on auto window
-        optSRGB.name = "sRGB Gamma Conversion";
-        optSRGB.possibleValues.push_back("Yes");
-        optSRGB.possibleValues.push_back("No");
-        optSRGB.currentValue = "No";
-        optSRGB.immutable = false;      
 
         // min feature level
         optMinFeatureLevels;
@@ -458,33 +420,30 @@ namespace Ogre
         optDriverType.currentValue = "Hardware";
         optDriverType.immutable = false;
 
-#if OGRE_NO_QUAD_BUFFER_STEREO == 0
-		optStereoMode.name = "Stereo Mode";
-		optStereoMode.possibleValues.push_back(StringConverter::toString(SMT_NONE));
-		optStereoMode.possibleValues.push_back(StringConverter::toString(SMT_FRAME_SEQUENTIAL));
-		optStereoMode.currentValue = optStereoMode.possibleValues[0];
-		optStereoMode.immutable = false;
-		
-		mOptions[optStereoMode.name] = optStereoMode;
-#endif
-
         mOptions[optDevice.name] = optDevice;
         mOptions[optVideoMode.name] = optVideoMode;
-        mOptions[optFullScreen.name] = optFullScreen;
-        mOptions[optVSync.name] = optVSync;
-        mOptions[optVSyncInterval.name] = optVSyncInterval;
         mOptions[optAA.name] = optAA;
-        mOptions[optFPUMode.name] = optFPUMode;
         mOptions[optNVPerfHUD.name] = optNVPerfHUD;
-        mOptions[optSRGB.name] = optSRGB;
         mOptions[optMinFeatureLevels.name] = optMinFeatureLevels;
         mOptions[optMaxFeatureLevels.name] = optMaxFeatureLevels;
         mOptions[optExceptionsErrorLevel.name] = optExceptionsErrorLevel;
         mOptions[optDriverType.name] = optDriverType;
 
-		mOptions[optBackBufferCount.name] = optBackBufferCount;
+        ConfigOption opt;
+        opt.name = "Reversed Z-Buffer";
+        opt.possibleValues = {"No", "Yes"};
+        opt.currentValue = opt.possibleValues[0];
+        opt.immutable = false;
 
-        
+        mOptions[opt.name] = opt;
+
+        opt.name = "Debug Layer";
+        opt.possibleValues = {"Off", "On"};
+        opt.currentValue = opt.possibleValues[0];
+        opt.immutable = false;
+
+        mOptions[opt.name] = opt;
+
         refreshD3DSettings();
 
     }
@@ -578,6 +537,9 @@ namespace Ogre
 #endif
         }
 
+        if(name == "Reversed Z-Buffer")
+            mIsReverseDepthBufferEnabled = StringConverter::parseBool(value);
+
         if( name == "Allow NVPerfHUD" )
         {
             if (value == "Yes")
@@ -613,28 +575,16 @@ namespace Ogre
             // set maskable levels supported
             for (unsigned int n = 1; n <= D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; n++)
             {
-                HRESULT hr = device->CheckMultisampleQualityLevels(format, n, &numLevels);
-                if (SUCCEEDED(hr) && numLevels > 0)
-                {
-                    optFSAA->possibleValues.push_back(StringConverter::toString(n));
-
-                    // 8x could mean 8xCSAA, and we need other designation for 8xMSAA
-                    if(n == 8 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 4, &numLevels)) && numLevels > 8    // 8x CSAA
-                    || n == 16 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 4, &numLevels)) && numLevels > 16  // 16x CSAA
-                    || n == 16 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 8, &numLevels)) && numLevels > 16) // 16xQ CSAA
-                    {
-                        optFSAA->possibleValues.push_back(StringConverter::toString(n) + " [Quality]");
-                    }
-                }
-                else if(n == 16) // there could be case when 16xMSAA is not supported but 16xCSAA and may be 16xQ CSAA are supported
-                {
-                    bool csaa16x = SUCCEEDED(device->CheckMultisampleQualityLevels(format, 4, &numLevels)) && numLevels > 16;
-                    bool csaa16xQ = SUCCEEDED(device->CheckMultisampleQualityLevels(format, 8, &numLevels)) && numLevels > 16;
-                    if(csaa16x || csaa16xQ)
-                        optFSAA->possibleValues.push_back("16");
-                    if(csaa16x && csaa16xQ)
-                        optFSAA->possibleValues.push_back("16 [Quality]");
-                }
+                // new style enumeration, with AMD EQAA names. NVidia CSAA names are misleading
+                // see determineFSAASettings for references
+                if(n == 8 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 4, &numLevels)) && numLevels > 8)
+                    optFSAA->possibleValues.push_back("4f8"); // 8x CSAA
+                if(n == 16 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 4, &numLevels)) && numLevels > 16)
+                    optFSAA->possibleValues.push_back("4f16"); // 16x CSAA
+                if(n == 16 && SUCCEEDED(device->CheckMultisampleQualityLevels(format, 8, &numLevels)) && numLevels > 16)
+                    optFSAA->possibleValues.push_back("8f16"); // 16xQ CSAA
+                if (SUCCEEDED(device->CheckMultisampleQualityLevels(format, n, &numLevels)) && numLevels > 0)
+                    optFSAA->possibleValues.push_back(std::to_string(n)); // Nx MSAA
             }
         }
 
@@ -676,15 +626,11 @@ namespace Ogre
         return BLANKSTRING;
     }
     //---------------------------------------------------------------------
-    ConfigOptionMap& D3D11RenderSystem::getConfigOptions()
+    void D3D11RenderSystem::_initialise()
     {
-        // return a COPY of the current config options
-        return mOptions;
-    }
-    //---------------------------------------------------------------------
-    RenderWindow* D3D11RenderSystem::_initialise( bool autoCreateWindow, const String& windowTitle )
-    {
-        RenderWindow* autoWindow = NULL;
+        // call superclass method
+        RenderSystem::_initialise();
+
         LogManager::getSingleton().logMessage( "D3D11: Subsystem Initialising" );
 
 		if(IsWorkingUnderNsight())
@@ -709,130 +655,18 @@ namespace Ogre
 
 #if OGRE_NO_QUAD_BUFFER_STEREO == 0
         // Stereo driver must be created before device is created
-        StereoModeType stereoMode = StringConverter::parseStereoMode(mOptions["Stereo Mode"].currentValue);
+        auto stereoMode = StringConverter::parseBool(mOptions["Frame Sequential Stereo"].currentValue);
         D3D11StereoDriverBridge* stereoBridge = OGRE_NEW D3D11StereoDriverBridge(stereoMode);
 #endif
 
         // create the device for the selected adapter
         createDevice();
 
-        if( autoCreateWindow )
-        {
-            bool fullScreen;
-            opt = mOptions.find( "Full Screen" );
-            if( opt == mOptions.end() )
-                OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, "Can't find full screen option!", "D3D11RenderSystem::initialise" );
-            fullScreen = opt->second.currentValue == "Yes";
-
-            D3D11VideoMode* videoMode = NULL;
-            unsigned int width, height;
-            String temp;
-
-            opt = mOptions.find( "Video Mode" );
-            if( opt == mOptions.end() )
-                OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, "Can't find Video Mode option!", "D3D11RenderSystem::initialise" );
-
-            // The string we are manipulating looks like this :width x height @ colourDepth
-            // Pull out the colour depth by getting what comes after the @ and a space
-            String colourDepth = opt->second.currentValue.substr(opt->second.currentValue.rfind('@')+1);
-            // Now we know that the width starts a 0, so if we can find the end we can parse that out
-            String::size_type widthEnd = opt->second.currentValue.find(' ');
-            // we know that the height starts 3 characters after the width and goes until the next space
-            String::size_type heightEnd = opt->second.currentValue.find(' ', widthEnd+3);
-            // Now we can parse out the values
-            width = StringConverter::parseInt(opt->second.currentValue.substr(0, widthEnd));
-            height = StringConverter::parseInt(opt->second.currentValue.substr(widthEnd+3, heightEnd));
-
-            D3D11VideoModeList* videoModeList = mActiveD3DDriver.getVideoModeList();
-            for( unsigned j=0; j < videoModeList->count(); j++ )
-            {
-                temp = videoModeList->item(j)->getDescription();
-
-                // In full screen we only want to allow supported resolutions, so temp and opt->second.currentValue need to 
-                // match exactly, but in windowed mode we can allow for arbitrary window sized, so we only need
-                // to match the colour values
-                if(fullScreen && (temp == opt->second.currentValue) ||
-                  !fullScreen && (temp.substr(temp.rfind('@')+1) == colourDepth))
-                {
-                    videoMode = videoModeList->item(j);
-                    break;
-                }
-            }
-
-            // sRGB window option
-            bool hwGamma = false;
-            opt = mOptions.find( "sRGB Gamma Conversion" );
-            if( opt == mOptions.end() )
-                OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, "Can't find sRGB option!", "D3D11RenderSystem::initialise" );
-            hwGamma = opt->second.currentValue == "Yes";
-            uint fsaa = 0;
-            String fsaaHint;
-            if( (opt = mOptions.find("FSAA")) != mOptions.end() )
-            {
-                StringVector values = StringUtil::split(opt->second.currentValue, " ", 1);
-                fsaa = StringConverter::parseUnsignedInt(values[0]);
-                if (values.size() > 1)
-                    fsaaHint = values[1];
-            }
-
-            if( !videoMode )
-            {
-                LogManager::getSingleton().logMessage(
-                            "WARNING D3D11: Couldn't find requested video mode. Forcing 32bpp. "
-                            "If you have two GPUs and you're rendering to the GPU that is not "
-                            "plugged to the monitor you can then ignore this message.",
-                            LML_CRITICAL );
-            }
-
-            NameValuePairList miscParams;
-            miscParams["colourDepth"] = StringConverter::toString(videoMode ? videoMode->getColourDepth() : 32);
-            miscParams["FSAA"] = StringConverter::toString(fsaa);
-            miscParams["FSAAHint"] = fsaaHint;
-            miscParams["useNVPerfHUD"] = StringConverter::toString(mUseNVPerfHUD);
-            miscParams["gamma"] = StringConverter::toString(hwGamma);
-            //miscParams["useFlipSequentialMode"] = StringConverter::toString(true);
-
-            opt = mOptions.find("VSync");
-            if (opt == mOptions.end())
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Can't find VSync options!", "D3D11RenderSystem::initialise");
-            bool vsync = (opt->second.currentValue == "Yes");
-            miscParams["vsync"] = StringConverter::toString(vsync);
-
-            opt = mOptions.find("VSync Interval");
-            if (opt == mOptions.end())
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Can't find VSync Interval options!", "D3D11RenderSystem::initialise");
-            miscParams["vsyncInterval"] = opt->second.currentValue;
-
-            autoWindow = this->_createRenderWindow( windowTitle, width, height, 
-                fullScreen, &miscParams );
-
-            // If we have 16bit depth buffer enable w-buffering.
-            assert( autoWindow );
-            if ( autoWindow->getColourDepth() == 16 ) 
-            { 
-                mWBuffer = true;
-            } 
-            else 
-            {
-                mWBuffer = false;
-            }           
-        }
-
         LogManager::getSingleton().logMessage("***************************************");
         LogManager::getSingleton().logMessage("*** D3D11: Subsystem Initialized OK ***");
         LogManager::getSingleton().logMessage("***************************************");
 
-        // call superclass method
-        RenderSystem::_initialise( autoCreateWindow );
         this->fireDeviceEvent(&mDevice, "DeviceCreated");
-        return autoWindow;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::reinitialise()
-    {
-        LogManager::getSingleton().logMessage( "D3D11: Reinitializing" );
-        this->shutdown();
-    //  this->initialise( true );
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::shutdown()
@@ -849,14 +683,13 @@ namespace Ogre
         LogManager::getSingleton().logMessage("D3D11: Shutting down cleanly.");
         SAFE_DELETE( mTextureManager );
         SAFE_DELETE( mHardwareBufferManager );
-        SAFE_DELETE( mGpuProgramManager );
-
     }
     //---------------------------------------------------------------------
 	RenderWindow* D3D11RenderSystem::_createRenderWindow(const String &name,
 		unsigned int width, unsigned int height, bool fullScreen,
 		const NameValuePairList *miscParams)
 	{
+        RenderSystem::_createRenderWindow(name, width, height, fullScreen, miscParams);
 
 		// Check we're not creating a secondary window when the primary
 		// was fullscreen
@@ -865,36 +698,6 @@ namespace Ogre
 			OGRE_EXCEPT(Exception::ERR_INVALID_STATE,
 				"Cannot create secondary windows not in full screen when the primary is full screen",
 				"D3D11RenderSystem::_createRenderWindow");
-		}
-
-		// Log a message
-		StringStream ss;
-		ss << "D3D11RenderSystem::_createRenderWindow \"" << name << "\", " <<
-			width << "x" << height << " ";
-		if (fullScreen)
-			ss << "fullscreen ";
-		else
-			ss << "windowed ";
-		if (miscParams)
-		{
-			ss << " miscParams: ";
-			NameValuePairList::const_iterator it;
-			for (it = miscParams->begin(); it != miscParams->end(); ++it)
-			{
-				ss << it->first << "=" << it->second << " ";
-			}
-			LogManager::getSingleton().logMessage(ss.str());
-		}
-
-		String msg;
-
-		// Make sure we don't already have a render target of the 
-		// sam name as the one supplied
-		if (mRenderTargets.find(name) != mRenderTargets.end())
-		{
-			msg = "A render target of the same name '" + name + "' already "
-				"exists.  You cannot create a new window with this name.";
-			OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, msg, "D3D11RenderSystem::_createRenderWindow");
 		}
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
@@ -913,6 +716,8 @@ namespace Ogre
 #if !__OGRE_WINRT_PHONE_80
 		if(win == NULL && windowType == "SurfaceImageSource")
 			win = new D3D11RenderWindowImageSource(mDevice);
+		if(win == NULL && windowType == "SwapChainPanel")
+			win = new D3D11RenderWindowSwapChainPanel(mDevice);
 #endif // !__OGRE_WINRT_PHONE_80
 		if(win == NULL)
 			win = new D3D11RenderWindowCoreWindow(mDevice);
@@ -938,12 +743,12 @@ namespace Ogre
 			// Also create hardware buffer manager
 			mHardwareBufferManager = new D3D11HardwareBufferManager(mDevice);
 
-			// Create the GPU program manager
-			mGpuProgramManager = new D3D11GpuProgramManager();
 			// create & register HLSL factory
 			if (mHLSLProgramFactory == NULL)
 				mHLSLProgramFactory = new D3D11HLSLProgramFactory(mDevice);
 			mRealCapabilities = createRenderSystemCapabilities();
+
+            mNativeShadingLanguageVersion = 4;
 
 			// if we are using custom capabilities, then 
 			// mCurrentCapabilities has already been loaded
@@ -952,7 +757,7 @@ namespace Ogre
 
 			fireEvent("RenderSystemCapabilitiesCreated");
 
-			initialiseFromRenderSystemCapabilities(mCurrentCapabilities, mPrimaryWindow);
+			HighLevelGpuProgramManager::getSingleton().addFactory(mHLSLProgramFactory);
 
 		}
 		else
@@ -979,38 +784,39 @@ namespace Ogre
         rsc->setDriverVersion(mDriverVersion);
         rsc->setDeviceName(mActiveD3DDriver.DriverDescription());
         rsc->setRenderSystemName(getName());
-
-		rsc->setCapability(RSC_ADVANCED_BLEND_OPERATIONS);
 		
         // Does NOT support fixed-function!
         //rsc->setCapability(RSC_FIXED_FUNCTION);
 
         rsc->setCapability(RSC_HWSTENCIL);
-        rsc->setStencilBufferBitDepth(8);
 
-        rsc->setCapability(RSC_VBO);
+#ifdef NTDDI_WIN10_TH2
+        D3D11_FEATURE_DATA_D3D11_OPTIONS3 fOpt3 = {};
+        HRESULT hr = mDevice->CheckFeatureSupport( D3D11_FEATURE_D3D11_OPTIONS3, &fOpt3, sizeof( fOpt3 ) );
+        if( SUCCEEDED( hr ) && fOpt3.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer )
+        {
+            rsc->setCapability( RSC_VP_RT_INDEX_ANY_SHADER );
+        }
+#endif
+
         UINT formatSupport;
         if(mFeatureLevel >= D3D_FEATURE_LEVEL_9_2
         || SUCCEEDED(mDevice->CheckFormatSupport(DXGI_FORMAT_R32_UINT, &formatSupport)) && 0 != (formatSupport & D3D11_FORMAT_SUPPORT_IA_INDEX_BUFFER))
             rsc->setCapability(RSC_32BIT_INDEX);
 
-        // Set number of texture units, always 16
-        rsc->setNumTextureUnits(16);
+        // Set number of texture units, cap at OGRE_MAX_TEXTURE_LAYERS
+        rsc->setNumTextureUnits(OGRE_MAX_TEXTURE_LAYERS);
+        rsc->setNumVertexAttributes(D3D11_STANDARD_VERTEX_ELEMENT_COUNT);
         rsc->setCapability(RSC_ANISOTROPY);
-        rsc->setCapability(RSC_AUTOMIPMAP);
-        rsc->setCapability(RSC_BLENDING);
-        rsc->setCapability(RSC_DOT3);
         // Cube map
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
         {
-            rsc->setCapability(RSC_CUBEMAPPING);
             rsc->setCapability(RSC_READ_BACK_AS_TEXTURE);
         }
 
         // We always support compression, D3DX will decompress if device does not support
         rsc->setCapability(RSC_TEXTURE_COMPRESSION);
         rsc->setCapability(RSC_TEXTURE_COMPRESSION_DXT);
-        rsc->setCapability(RSC_SCISSOR_TEST);
 
 		if(mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
 			rsc->setCapability(RSC_TWO_SIDED_STENCIL);
@@ -1019,24 +825,18 @@ namespace Ogre
         rsc->setCapability(RSC_HWOCCLUSION);
         rsc->setCapability(RSC_HWOCCLUSION_ASYNCHRONOUS);
 
+        rsc->setCapability(RSC_UNIFORM_BUFFERS);
+
         convertVertexShaderCaps(rsc);
         convertPixelShaderCaps(rsc);
         convertGeometryShaderCaps(rsc);
         convertHullShaderCaps(rsc);
-        convertDomainShaderCaps(rsc);
         convertComputeShaderCaps(rsc);
         rsc->addShaderProfile("hlsl");
 
-        // Check support for dynamic linkage
-        if (mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
-        {
-            rsc->setCapability(RSC_SHADER_SUBROUTINE);
-        }
-
         rsc->setCapability(RSC_USER_CLIP_PLANES);
-        rsc->setCapability(RSC_VERTEX_FORMAT_UBYTE4);
 
-        rsc->setCapability(RSC_RTT_SEPARATE_DEPTHBUFFER);
+
         rsc->setCapability(RSC_RTT_MAIN_DEPTHBUFFER_ATTACHABLE);
 
 
@@ -1059,15 +859,6 @@ namespace Ogre
             case 0x8086:
                 rsc->setVendor(GPU_INTEL);
                 break;
-            case 0x5333:
-                rsc->setVendor(GPU_S3);
-                break;
-            case 0x3D3D:
-                rsc->setVendor(GPU_3DLABS);
-                break;
-            case 0x102B:
-                rsc->setVendor(GPU_MATROX);
-                break;
             default:
                 rsc->setVendor(GPU_UNKNOWN);
                 break;
@@ -1084,16 +875,16 @@ namespace Ogre
             break;
         }
 
-        rsc->setCapability(RSC_INFINITE_FAR_PLANE);
+        rsc->setCapability(RSC_DEPTH_CLAMP);
 
         rsc->setCapability(RSC_TEXTURE_3D);
+        rsc->setCapability(RSC_TEXTURE_2D_ARRAY);
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
         {
             rsc->setCapability(RSC_NON_POWER_OF_2_TEXTURES);
             rsc->setCapability(RSC_HWRENDER_TO_TEXTURE_3D);
             rsc->setCapability(RSC_TEXTURE_1D);
             rsc->setCapability(RSC_TEXTURE_COMPRESSION_BC6H_BC7);
-            rsc->setCapability(RSC_COMPLETE_TEXTURE_BINDING);
         }
 
         rsc->setCapability(RSC_HWRENDER_TO_TEXTURE);
@@ -1108,15 +899,9 @@ namespace Ogre
 #endif
 
         rsc->setNumMultiRenderTargets(std::min(numMultiRenderTargets, (int)OGRE_MAX_MULTIPLE_RENDER_TARGETS));
-        rsc->setCapability(RSC_MRT_DIFFERENT_BIT_DEPTHS);
-
-        rsc->setCapability(RSC_POINT_SPRITES);
-        rsc->setCapability(RSC_POINT_EXTENDED_PARAMETERS);
-        rsc->setMaxPointSize(256); // TODO: guess!
     
         rsc->setCapability(RSC_VERTEX_TEXTURE_FETCH);
         rsc->setNumVertexTextureUnits(4);
-        rsc->setVertexTextureUnitsShared(false);
 
         rsc->setCapability(RSC_MIPMAP_LOD_BIAS);
 
@@ -1126,28 +911,10 @@ namespace Ogre
         rsc->setCapability(RSC_VERTEX_BUFFER_INSTANCE_DATA);
         rsc->setCapability(RSC_CAN_GET_COMPILED_SHADER_BUFFER);
 
+        rsc->setCapability(RSC_PRIMITIVE_RESTART);
+
         return rsc;
 
-    }
-    //-----------------------------------------------------------------------
-    void D3D11RenderSystem::initialiseFromRenderSystemCapabilities(
-        RenderSystemCapabilities* caps, RenderTarget* primary)
-    {
-        if(caps->getRenderSystemName() != getName())
-        {
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "Trying to initialize D3D11RenderSystem from RenderSystemCapabilities that do not support Direct3D11",
-                "D3D11RenderSystem::initialiseFromRenderSystemCapabilities");
-        }
-        
-        // add hlsl
-        HighLevelGpuProgramManager::getSingleton().addFactory(mHLSLProgramFactory);
-
-        Log* defaultLog = LogManager::getSingleton().getDefaultLog();
-        if (defaultLog)
-        {
-            caps->log(defaultLog);
-        }
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::convertVertexShaderCaps(RenderSystemCapabilities* rsc) const
@@ -1164,7 +931,6 @@ namespace Ogre
             rsc->addShaderProfile("vs_4_0_level_9_3");
 #if SUPPORT_SM2_0_HLSL_SHADERS == 1
             rsc->addShaderProfile("vs_2_a");
-            rsc->addShaderProfile("vs_2_x");
 #endif
         }
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
@@ -1185,13 +951,8 @@ namespace Ogre
 
         rsc->setCapability(RSC_VERTEX_PROGRAM);
 
-        // TODO: constant buffers have no limits but lower models do
-        // 16 boolean params allowed
-        rsc->setVertexProgramConstantBoolCount(16);
-        // 16 integer params allowed, 4D
-        rsc->setVertexProgramConstantIntCount(16);
         // float params, always 4D
-        rsc->setVertexProgramConstantFloatCount(512);
+        rsc->setVertexProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
 
     }
     //---------------------------------------------------------------------
@@ -1210,7 +971,6 @@ namespace Ogre
 #if SUPPORT_SM2_0_HLSL_SHADERS == 1
             rsc->addShaderProfile("ps_2_a");
             rsc->addShaderProfile("ps_2_b");
-            rsc->addShaderProfile("ps_2_x");
 #endif
         }
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
@@ -1218,7 +978,6 @@ namespace Ogre
             rsc->addShaderProfile("ps_4_0");
 #if SUPPORT_SM2_0_HLSL_SHADERS == 1
             rsc->addShaderProfile("ps_3_0");
-            rsc->addShaderProfile("ps_3_x");
 #endif
         }
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_1)
@@ -1230,17 +989,8 @@ namespace Ogre
             rsc->addShaderProfile("ps_5_0");
         }
 
-
-        rsc->setCapability(RSC_FRAGMENT_PROGRAM);
-
-
-        // TODO: constant buffers have no limits but lower models do
-        // 16 boolean params allowed
-        rsc->setFragmentProgramConstantBoolCount(16);
-        // 16 integer params allowed, 4D
-        rsc->setFragmentProgramConstantIntCount(16);
         // float params, always 4D
-        rsc->setFragmentProgramConstantFloatCount(512);
+        rsc->setFragmentProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
 
     }
     //---------------------------------------------------------------------
@@ -1250,39 +1000,19 @@ namespace Ogre
         if (mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
         {
             rsc->addShaderProfile("hs_5_0");
+            rsc->addShaderProfile("ds_5_0");
             
-            rsc->setCapability(RSC_TESSELLATION_HULL_PROGRAM);
+            rsc->setCapability(RSC_TESSELLATION_PROGRAM);
 
-            // TODO: constant buffers have no limits but lower models do
-            // 16 boolean params allowed
-            rsc->setTessellationHullProgramConstantBoolCount(16);
-            // 16 integer params allowed, 4D
-            rsc->setTessellationHullProgramConstantIntCount(16);
             // float params, always 4D
-            rsc->setTessellationHullProgramConstantFloatCount(512);
+            rsc->setTessellationHullProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
+            rsc->setTessellationDomainProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
         }
 
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::convertDomainShaderCaps(RenderSystemCapabilities* rsc) const
     {
-        // Only for shader model 5.0
-        if (mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
-        {
-            rsc->addShaderProfile("ds_5_0");
-
-            rsc->setCapability(RSC_TESSELLATION_DOMAIN_PROGRAM);
-
-
-            // TODO: constant buffers have no limits but lower models do
-            // 16 boolean params allowed
-            rsc->setTessellationDomainProgramConstantBoolCount(16);
-            // 16 integer params allowed, 4D
-            rsc->setTessellationDomainProgramConstantIntCount(16);
-            // float params, always 4D
-            rsc->setTessellationDomainProgramConstantFloatCount(512);
-        }
-
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::convertComputeShaderCaps(RenderSystemCapabilities* rsc) const
@@ -1302,16 +1032,8 @@ namespace Ogre
             rsc->addShaderProfile("cs_5_0");
         }
 
-
-
-        // TODO: constant buffers have no limits but lower models do
-        // 16 boolean params allowed
-        rsc->setComputeProgramConstantBoolCount(16);
-        // 16 integer params allowed, 4D
-        rsc->setComputeProgramConstantIntCount(16);
         // float params, always 4D
-        rsc->setComputeProgramConstantFloatCount(512);
-
+        rsc->setComputeProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::convertGeometryShaderCaps(RenderSystemCapabilities* rsc) const
@@ -1331,18 +1053,11 @@ namespace Ogre
             rsc->addShaderProfile("gs_5_0");
         }
 
-        rsc->setGeometryProgramConstantFloatCount(512);
-        rsc->setGeometryProgramConstantIntCount(16);
-        rsc->setGeometryProgramConstantBoolCount(16);
+        rsc->setGeometryProgramConstantFloatCount(D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
         rsc->setGeometryProgramNumOutputVertices(1024);
     }
     //-----------------------------------------------------------------------
     bool D3D11RenderSystem::checkVertexTextureFormats(void)
-    {
-        return true;
-    }
-    //-----------------------------------------------------------------------
-    bool D3D11RenderSystem::_checkTextureFilteringSupported(TextureType ttype, PixelFormat format, int usage)
     {
         return true;
     }
@@ -1358,11 +1073,22 @@ namespace Ogre
     //-----------------------------------------------------------------------
     DepthBuffer* D3D11RenderSystem::_createDepthBufferFor( RenderTarget *renderTarget )
     {
-        //Get surface data (mainly to get MSAA data)
-        D3D11HardwarePixelBuffer *pBuffer;
-        renderTarget->getCustomAttribute( "BUFFER", &pBuffer );
+        // Get surface data (mainly to get MSAA data)
+        D3D11RenderTarget* d3d11RenderTarget = dynamic_cast<D3D11RenderTarget*>(renderTarget);
+        ID3D11Texture2D* d3d11Texture = NULL;
+        if (d3d11RenderTarget)
+        {
+            d3d11Texture = d3d11RenderTarget->getSurface();
+        }
+
+        if (!d3d11Texture)
+        {
+            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Invalid render target",
+                        "D3D11RenderSystem::_createDepthBufferFor");
+        }
+
         D3D11_TEXTURE2D_DESC BBDesc;
-        static_cast<ID3D11Texture2D*>(pBuffer->getParentTexture()->getTextureResource())->GetDesc( &BBDesc );
+        d3d11Texture->GetDesc(&BBDesc);
 
         // Create depth stencil texture
         ComPtr<ID3D11Texture2D> pDepthStencil;
@@ -1374,9 +1100,9 @@ namespace Ogre
         descDepth.ArraySize             = BBDesc.ArraySize;
 
         if ( mFeatureLevel < D3D_FEATURE_LEVEL_10_0)
-            descDepth.Format            = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            descDepth.Format            = isReverseDepthBufferEnabled() ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_D24_UNORM_S8_UINT;
         else
-            descDepth.Format            = DXGI_FORMAT_R32_TYPELESS;
+            descDepth.Format            = isReverseDepthBufferEnabled() ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_R24G8_TYPELESS;
 
         descDepth.SampleDesc.Count      = BBDesc.SampleDesc.Count;
         descDepth.SampleDesc.Quality    = BBDesc.SampleDesc.Quality;
@@ -1396,15 +1122,8 @@ namespace Ogre
             descDepth.MiscFlags     |= D3D11_RESOURCE_MISC_TEXTURECUBE;
         }
 
-
-        HRESULT hr = mDevice->CreateTexture2D( &descDepth, NULL, pDepthStencil.ReleaseAndGetAddressOf() );
-        if( FAILED(hr) || mDevice.isError())
-        {
-            String errorDescription = mDevice.getErrorDescription(hr);
-			OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                "Unable to create depth texture\nError Description:" + errorDescription,
-                "D3D11RenderSystem::_createDepthBufferFor");
-        }
+        OGRE_CHECK_DX_ERROR(
+            mDevice->CreateTexture2D(&descDepth, NULL, pDepthStencil.ReleaseAndGetAddressOf()));
 
         //
         // Create the View of the texture
@@ -1413,18 +1132,12 @@ namespace Ogre
         if(!mReadBackAsTexture && mFeatureLevel >= D3D_FEATURE_LEVEL_10_0 && BBDesc.SampleDesc.Count == 1)
         {
             D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
-            viewDesc.Format = DXGI_FORMAT_R32_FLOAT;
-            viewDesc.ViewDimension = D3D10_SRV_DIMENSION_TEXTURE2D;
+            viewDesc.Format = isReverseDepthBufferEnabled() ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+            viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
             viewDesc.Texture2D.MostDetailedMip = 0;
             viewDesc.Texture2D.MipLevels = 1;
-            HRESULT hr = mDevice->CreateShaderResourceView( pDepthStencil.Get(), &viewDesc, mDSTResView.ReleaseAndGetAddressOf());
-            if( FAILED(hr) || mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription(hr);
-                OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                    "Unable to create the view of the depth texture \nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_createDepthBufferFor");
-            }
+            OGRE_CHECK_DX_ERROR(mDevice->CreateShaderResourceView(pDepthStencil.Get(), &viewDesc,
+                                                                  mDSTResView.ReleaseAndGetAddressOf()));
         }
 
         // Create the depth stencil view
@@ -1432,26 +1145,21 @@ namespace Ogre
         D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
         ZeroMemory( &descDSV, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC) );
 
-        if (mFeatureLevel < D3D_FEATURE_LEVEL_10_0)
-            descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        else
-            descDSV.Format = DXGI_FORMAT_D32_FLOAT;
-
+        descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         descDSV.ViewDimension = (BBDesc.SampleDesc.Count > 1) ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
         descDSV.Flags = 0 /* D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL */;    // TODO: Allows bind depth buffer as depth view AND texture simultaneously.
+
+        if(isReverseDepthBufferEnabled())
+        {
+            descDSV.Format            = DXGI_FORMAT_D32_FLOAT;
+        }
                                                                                             // TODO: Decide how to expose this feature
         descDSV.Texture2D.MipSlice = 0;
-        hr = mDevice->CreateDepthStencilView( pDepthStencil.Get(), &descDSV, &depthStencilView );
-        if( FAILED(hr) )
-        {
-			String errorDescription = mDevice.getErrorDescription(hr);
-			OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                "Unable to create depth stencil view\nError Description:" + errorDescription,
-                "D3D11RenderSystem::_createDepthBufferFor");
-        }
+        OGRE_CHECK_DX_ERROR(
+            mDevice->CreateDepthStencilView(pDepthStencil.Get(), &descDSV, &depthStencilView));
 
         //Create the abstract container
-        D3D11DepthBuffer *newDepthBuffer = new D3D11DepthBuffer( DepthBuffer::POOL_DEFAULT, this, depthStencilView,
+        D3D11DepthBuffer *newDepthBuffer = new D3D11DepthBuffer( renderTarget->getDepthBufferPool(), this, depthStencilView,
                                                 descDepth.Width, descDepth.Height,
                                                 descDepth.SampleDesc.Count, descDepth.SampleDesc.Quality,
                                                 false );
@@ -1578,6 +1286,9 @@ namespace Ogre
         ID3D11DeviceN * device = createD3D11Device(d3dDriver, mDriverType, mMinRequestedFeatureLevel, mMaxRequestedFeatureLevel, &mFeatureLevel);
         mDevice.TransferOwnership(device);
 
+        LogManager::getSingleton().stream() << "D3D11: Device Feature Level " << (mFeatureLevel >> 12)
+                                            << "." << ((mFeatureLevel >> 8) & 0xF);
+
         LARGE_INTEGER driverVersion = mDevice.GetDriverVersion();
         mDriverVersion.major = HIWORD(driverVersion.HighPart);
         mDriverVersion.minor = LOWORD(driverVersion.HighPart);
@@ -1592,9 +1303,8 @@ namespace Ogre
         // release device depended resources
         fireDeviceEvent(&mDevice, "DeviceLost");
 
-        SceneManagerEnumerator::SceneManagerIterator scnIt = SceneManagerEnumerator::getSingleton().getSceneManagerIterator();
-        while(scnIt.hasMoreElements())
-            scnIt.getNext()->_releaseManualHardwareResources();
+        for(auto& it : Root::getSingleton().getSceneManagers())
+            it.second->_releaseManualHardwareResources();
 
         notifyDeviceLost(&mDevice);
 
@@ -1614,9 +1324,8 @@ namespace Ogre
 
         MeshManager::getSingleton().reloadAll(Resource::LF_PRESERVE_STATE);
 
-        scnIt = SceneManagerEnumerator::getSingleton().getSceneManagerIterator();
-        while(scnIt.hasMoreElements())
-            scnIt.getNext()->_restoreManualHardwareResources();
+        for(auto& it : Root::getSingleton().getSceneManagers())
+            it.second->_restoreManualHardwareResources();
 
         // Invalidate active view port.
         mActiveViewport = NULL;
@@ -1658,9 +1367,9 @@ namespace Ogre
         {
             RenderSystem::_updateAllRenderTargets(swapBuffers);
         }
-        catch(const RenderingAPIException& e)
+        catch(const D3D11RenderingAPIException& e)
         {
-            if(e.getNumber() == DXGI_ERROR_DEVICE_REMOVED || e.getNumber() == DXGI_ERROR_DEVICE_RESET)
+            if(e.getHResult() == DXGI_ERROR_DEVICE_REMOVED || e.getHResult() == DXGI_ERROR_DEVICE_RESET)
                 LogManager::getSingleton().logMessage("D3D11: Device was lost while rendering.");
             else
                 throw;
@@ -1673,18 +1382,13 @@ namespace Ogre
         {
             RenderSystem::_swapAllRenderTargetBuffers();
         }
-        catch(const RenderingAPIException& e)
+        catch(const D3D11RenderingAPIException& e)
         {
-            if(e.getNumber() == DXGI_ERROR_DEVICE_REMOVED || e.getNumber() == DXGI_ERROR_DEVICE_RESET)
+            if(e.getHResult() == DXGI_ERROR_DEVICE_REMOVED || e.getHResult() == DXGI_ERROR_DEVICE_RESET)
                 LogManager::getSingleton().logMessage("D3D11: Device was lost while rendering.");
             else
                 throw;
         }
-    }
-    //---------------------------------------------------------------------
-    VertexElementType D3D11RenderSystem::getColourVertexElementType(void) const
-    {
-        return VET_COLOUR_ABGR;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_convertProjectionMatrix(const Matrix4& matrix,
@@ -1692,11 +1396,22 @@ namespace Ogre
     {
         dest = matrix;
 
-        // Convert depth range from [-1,+1] to [0,1]
-        dest[2][0] = (dest[2][0] + dest[3][0]) / 2;
-        dest[2][1] = (dest[2][1] + dest[3][1]) / 2;
-        dest[2][2] = (dest[2][2] + dest[3][2]) / 2;
-        dest[2][3] = (dest[2][3] + dest[3][3]) / 2;
+        if (mIsReverseDepthBufferEnabled)
+        {
+            // Convert depth range from [-1,+1] to [1,0]
+            dest[2][0] = (dest[2][0] - dest[3][0]) * -0.5f;
+            dest[2][1] = (dest[2][1] - dest[3][1]) * -0.5f;
+            dest[2][2] = (dest[2][2] - dest[3][2]) * -0.5f;
+            dest[2][3] = (dest[2][3] - dest[3][3]) * -0.5f;
+        }
+        else
+        {
+            // Convert depth range from [-1,+1] to [0,1]
+            dest[2][0] = (dest[2][0] + dest[3][0]) / 2;
+            dest[2][1] = (dest[2][1] + dest[3][1]) / 2;
+            dest[2][2] = (dest[2][2] + dest[3][2]) / 2;
+            dest[2][3] = (dest[2][3] + dest[3][3]) / 2;
+        }
 
         if (!forGpuProgram)
         {
@@ -1708,133 +1423,14 @@ namespace Ogre
         }
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::_makeProjectionMatrix(const Radian& fovy, Real aspect, Real nearPlane, 
-        Real farPlane, Matrix4& dest, bool forGpuProgram)
-    {
-        Radian theta ( fovy * 0.5 );
-        Real h = 1 / Math::Tan(theta);
-        Real w = h / aspect;
-        Real q, qn;
-        if (farPlane == 0)
-        {
-            q = 1 - Frustum::INFINITE_FAR_PLANE_ADJUST;
-            qn = nearPlane * (Frustum::INFINITE_FAR_PLANE_ADJUST - 1);
-        }
-        else
-        {
-            q = farPlane / ( farPlane - nearPlane );
-            qn = -q * nearPlane;
-        }
-
-        dest = Matrix4::ZERO;
-        dest[0][0] = w;
-        dest[1][1] = h;
-
-        if (forGpuProgram)
-        {
-            dest[2][2] = -q;
-            dest[3][2] = -1.0f;
-        }
-        else
-        {
-            dest[2][2] = q;
-            dest[3][2] = 1.0f;
-        }
-
-        dest[2][3] = qn;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_makeOrthoMatrix(const Radian& fovy, Real aspect, Real nearPlane, Real farPlane, 
-        Matrix4& dest, bool forGpuProgram )
-    {
-        Radian thetaY (fovy / 2.0f);
-        Real tanThetaY = Math::Tan(thetaY);
-
-        //Real thetaX = thetaY * aspect;
-        Real tanThetaX = tanThetaY * aspect; //Math::Tan(thetaX);
-        Real half_w = tanThetaX * nearPlane;
-        Real half_h = tanThetaY * nearPlane;
-        Real iw = 1.0f / half_w;
-        Real ih = 1.0f / half_h;
-        Real q;
-        if (farPlane == 0)
-        {
-            q = 0;
-        }
-        else
-        {
-            q = 1.0f / (farPlane - nearPlane);
-        }
-
-        dest = Matrix4::ZERO;
-        dest[0][0] = iw;
-        dest[1][1] = ih;
-        dest[2][2] = q;
-        dest[2][3] = -nearPlane / (farPlane - nearPlane);
-        dest[3][3] = 1;
-
-        if (forGpuProgram)
-        {
-            dest[2][2] = -dest[2][2];
-        }
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setAmbientLight( float r, float g, float b )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_useLights(const LightList& lights, unsigned short limit)
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setShadingType( ShadeOptions so )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setLightingEnabled( bool enabled )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setViewMatrix( const Matrix4 &m )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setProjectionMatrix( const Matrix4 &m )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setWorldMatrix( const Matrix4 &m )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setSurfaceParams( const ColourValue &ambient, const ColourValue &diffuse,
-        const ColourValue &specular, const ColourValue &emissive, Real shininess,
-        TrackVertexColourType tracking )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setPointParameters(Real size, 
-        bool attenuationEnabled, Real constant, Real linear, Real quadratic,
-        Real minSize, Real maxSize)
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setPointSpritesEnabled(bool enabled)
-    {
-    }
-    //---------------------------------------------------------------------
     void D3D11RenderSystem::_setTexture( size_t stage, bool enabled, const TexturePtr& tex )
     {
-        static D3D11TexturePtr dt;
-        dt = tex.staticCast<D3D11Texture>();
-        if (enabled && !dt.isNull() && dt->getSize() > 0)
+        if (enabled && tex && tex->getSize() > 0)
         {
             // note used
-            dt->touch();
-            ID3D11ShaderResourceView * pTex = dt->getTexture();
-            mTexStageDesc[stage].pTex = pTex;
+            tex->touch();
+            mTexStageDesc[stage].pTex = static_cast<D3D11Texture*>(tex.get());
             mTexStageDesc[stage].used = true;
-            mTexStageDesc[stage].type = dt->getTextureType();
 
             mLastTextureUnitState = stage+1;
         }
@@ -1846,154 +1442,15 @@ namespace Ogre
         }
         mSamplerStatesChanged = true;
     }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setBindingType(TextureUnitState::BindingType bindingType)
+    void D3D11RenderSystem::_setSampler(size_t unit, Sampler& sampler)
     {
-        mBindingType = bindingType;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setVertexTexture(size_t stage, const TexturePtr& tex)
-    {
-        if (tex.isNull())
-            _setTexture(stage, false, tex);
-        else
-            _setTexture(stage, true, tex);  
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setGeometryTexture(size_t stage, const TexturePtr& tex)
-    {
-        if (tex.isNull())
-            _setTexture(stage, false, tex);
-        else
-            _setTexture(stage, true, tex);  
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setComputeTexture(size_t stage, const TexturePtr& tex)
-    {
-        if (tex.isNull())
-            _setTexture(stage, false, tex);
-        else
-            _setTexture(stage, true, tex);  
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTesselationHullTexture(size_t stage, const TexturePtr& tex)
-    {
-        if (tex.isNull())
-            _setTexture(stage, false, tex);
-        else
-            _setTexture(stage, true, tex);  
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTesselationDomainTexture(size_t stage, const TexturePtr& tex)
-    {
-        if (tex.isNull())
-            _setTexture(stage, false, tex);
-        else
-            _setTexture(stage, true, tex);  
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_disableTextureUnit(size_t texUnit)
-    {
-        RenderSystem::_disableTextureUnit(texUnit);
-        // also disable vertex texture unit
-        static TexturePtr nullPtr;
-        _setVertexTexture(texUnit, nullPtr);
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureCoordSet( size_t stage, size_t index )
-    {
-        mTexStageDesc[stage].coordIndex = index;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureCoordCalculation( size_t stage, TexCoordCalcMethod m,
-        const Frustum* frustum)
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureMipmapBias(size_t unit, float bias)
-    {
-        mTexStageDesc[unit].samplerDesc.MipLODBias = bias;
         mSamplerStatesChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureMatrix( size_t stage, const Matrix4& xForm )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureAddressingMode( size_t stage, 
-        const TextureUnitState::UVWAddressingMode& uvw )
-    {
-        // record the stage state
-        mTexStageDesc[stage].samplerDesc.AddressU = D3D11Mappings::get(uvw.u);
-        mTexStageDesc[stage].samplerDesc.AddressV = D3D11Mappings::get(uvw.v);
-        mTexStageDesc[stage].samplerDesc.AddressW = D3D11Mappings::get(uvw.w);
-        mSamplerStatesChanged = true;
-    }
-    //-----------------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureBorderColour(size_t stage,
-        const ColourValue& colour)
-    {
-        D3D11Mappings::get(colour, mTexStageDesc[stage].samplerDesc.BorderColor);
-        mSamplerStatesChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureBlendMode( size_t stage, const LayerBlendModeEx& bm )
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setSceneBlending( SceneBlendFactor sourceFactor, SceneBlendFactor destFactor, SceneBlendOperation op /*= SBO_ADD*/ )
-    {
-        if( sourceFactor == SBF_ONE && destFactor == SBF_ZERO)
-        {
-            mBlendDesc.RenderTarget[0].BlendEnable = FALSE;
-        }
-        else
-        {
-            mBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-            mBlendDesc.RenderTarget[0].SrcBlend = D3D11Mappings::get(sourceFactor, false);
-            mBlendDesc.RenderTarget[0].DestBlend = D3D11Mappings::get(destFactor, false);
-            mBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11Mappings::get(sourceFactor, true);
-            mBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11Mappings::get(destFactor, true);
-            mBlendDesc.RenderTarget[0].BlendOp = mBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11Mappings::get(op);
-            
-            // feature level 9 and below does not support alpha to coverage.
-            if (mFeatureLevel < D3D_FEATURE_LEVEL_10_0)
-                mBlendDesc.AlphaToCoverageEnable = false;
-            else
-                mBlendDesc.AlphaToCoverageEnable = mSceneAlphaToCoverage;
 
-            mBlendDesc.RenderTarget[0].RenderTargetWriteMask = 0x0F;
-        }
-        mBlendDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setSeparateSceneBlending( SceneBlendFactor sourceFactor, SceneBlendFactor destFactor, SceneBlendFactor sourceFactorAlpha, SceneBlendFactor destFactorAlpha, SceneBlendOperation op /*= SBO_ADD*/, SceneBlendOperation alphaOp /*= SBO_ADD*/ )
-    {
-        if( sourceFactor == SBF_ONE && destFactor == SBF_ZERO)
-        {
-            mBlendDesc.RenderTarget[0].BlendEnable = FALSE;
-        }
-        else
-        {
-            mBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-            mBlendDesc.RenderTarget[0].SrcBlend = D3D11Mappings::get(sourceFactor, false);
-            mBlendDesc.RenderTarget[0].DestBlend = D3D11Mappings::get(destFactor, false);
-            mBlendDesc.RenderTarget[0].BlendOp = D3D11Mappings::get(op) ;
-            mBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11Mappings::get(sourceFactorAlpha, true);
-            mBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11Mappings::get(destFactorAlpha, true);
-            mBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11Mappings::get(alphaOp) ;
-            mBlendDesc.AlphaToCoverageEnable = false;
-
-            mBlendDesc.RenderTarget[0].RenderTargetWriteMask = 0x0F;
-        }
-        mBlendDescChanged = true;
+        mTexStageDesc[unit].pSampler = static_cast<D3D11Sampler&>(sampler).getState();
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setAlphaRejectSettings( CompareFunction func, unsigned char value, bool alphaToCoverage )
     {
-        mSceneAlphaRejectFunc   = func;
-        mSceneAlphaRejectValue  = value;
-        mSceneAlphaToCoverage   = alphaToCoverage;
         mBlendDesc.AlphaToCoverageEnable = alphaToCoverage;
         mBlendDescChanged = true;
     }
@@ -2002,72 +1459,77 @@ namespace Ogre
     {
         mCullingMode = mode;
 
-		bool flip = (mInvertVertexWinding && !mActiveRenderTarget->requiresTextureFlipping() ||
-					!mInvertVertexWinding && mActiveRenderTarget->requiresTextureFlipping());
-
-		mRasterizerDesc.CullMode = D3D11Mappings::get(mode, flip);
+		mRasterizerDesc.CullMode = D3D11Mappings::get(mode);
+        mRasterizerDesc.FrontCounterClockwise = !flipFrontFace();
+        mRasterizerDescChanged = true;
+    }
+    void D3D11RenderSystem::_setDepthClamp(bool enable)
+    {
+        mRasterizerDesc.DepthClipEnable = !enable;
         mRasterizerDescChanged = true;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setDepthBufferParams( bool depthTest, bool depthWrite, CompareFunction depthFunction )
     {
-        _setDepthBufferCheckEnabled( depthTest );
-        _setDepthBufferWriteEnabled( depthWrite );
-        _setDepthBufferFunction( depthFunction );
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setDepthBufferCheckEnabled( bool enabled )
-    {
-        mDepthStencilDesc.DepthEnable = enabled;
-        mDepthStencilDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setDepthBufferWriteEnabled( bool enabled )
-    {
-        if (enabled)
-        {
-            mDepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        }
-        else
-        {
-            mDepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        }
-        mDepthStencilDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setDepthBufferFunction( CompareFunction func )
-    {
-        mDepthStencilDesc.DepthFunc = D3D11Mappings::get(func);
+        mDepthStencilDesc.DepthEnable = depthTest;
+        mDepthStencilDesc.DepthWriteMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+
+        if(isReverseDepthBufferEnabled())
+            depthFunction = reverseCompareFunction(depthFunction);
+        mDepthStencilDesc.DepthFunc = D3D11Mappings::get(depthFunction);
         mDepthStencilDescChanged = true;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setDepthBias(float constantBias, float slopeScaleBias)
     {
+        if(isReverseDepthBufferEnabled())
+        {
+            slopeScaleBias *= -1;
+            constantBias *= -1;
+        }
+
 		const float nearFarFactor = 10.0; 
 		mRasterizerDesc.DepthBias = static_cast<int>(-constantBias * nearFarFactor);
 		mRasterizerDesc.SlopeScaledDepthBias = -slopeScaleBias;
         mRasterizerDescChanged = true;
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setColourBufferWriteEnabled(bool red, bool green, 
-        bool blue, bool alpha)
+    void D3D11RenderSystem::setColourBlendState(const ColourBlendState& state)
     {
+        // record this
+        mCurrentBlend = state;
+
+        if (state.blendingEnabled())
+        {
+            mBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+            mBlendDesc.RenderTarget[0].SrcBlend = D3D11Mappings::get(state.sourceFactor, false);
+            mBlendDesc.RenderTarget[0].DestBlend = D3D11Mappings::get(state.destFactor, false);
+            mBlendDesc.RenderTarget[0].BlendOp = D3D11Mappings::get(state.operation) ;
+            mBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11Mappings::get(state.sourceFactorAlpha, true);
+            mBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11Mappings::get(state.destFactorAlpha, true);
+            mBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11Mappings::get(state.alphaOperation) ;
+            mBlendDesc.AlphaToCoverageEnable = false;
+
+            mBlendDesc.RenderTarget[0].RenderTargetWriteMask = 0x0F;
+        }
+        else
+        {
+            mBlendDesc.RenderTarget[0].BlendEnable = FALSE;
+        }
+
         UINT8 val = 0;
-        if (red) 
+        if (state.writeR)
             val |= D3D11_COLOR_WRITE_ENABLE_RED;
-        if (green)
+        if (state.writeG)
             val |= D3D11_COLOR_WRITE_ENABLE_GREEN;
-        if (blue)
+        if (state.writeB)
             val |= D3D11_COLOR_WRITE_ENABLE_BLUE;
-        if (alpha)
+        if (state.writeA)
             val |= D3D11_COLOR_WRITE_ENABLE_ALPHA;
 
-        mBlendDesc.RenderTarget[0].RenderTargetWriteMask = val; 
+        mBlendDesc.RenderTarget[0].RenderTargetWriteMask = val;
+
         mBlendDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setFog( FogMode mode, const ColourValue& colour, Real densitiy, Real start, Real end )
-    {
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setPolygonMode(PolygonMode level)
@@ -2080,82 +1542,29 @@ namespace Ogre
         }
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::setStencilCheckEnabled(bool enabled)
-    {
-        mDepthStencilDesc.StencilEnable = enabled;
-        mDepthStencilDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setStencilBufferParams(CompareFunction func, 
-        uint32 refValue, uint32 compareMask, uint32 writeMask, StencilOperation stencilFailOp, 
-        StencilOperation depthFailOp, StencilOperation passOp, 
-        bool twoSidedOperation, bool readBackAsTexture)
+    void D3D11RenderSystem::setStencilState(const StencilState& state)
     {
 		// We honor user intent in case of one sided operation, and carefully tweak it in case of two sided operations.
-		bool flipFront = twoSidedOperation &&
-						(mInvertVertexWinding && !mActiveRenderTarget->requiresTextureFlipping() ||
-						!mInvertVertexWinding && mActiveRenderTarget->requiresTextureFlipping());
-		bool flipBack = twoSidedOperation && !flipFront;
+		bool flipFront = state.twoSidedOperation;
+		bool flipBack = state.twoSidedOperation && !flipFront;
 
-        mStencilRef = refValue;
-        mDepthStencilDesc.StencilReadMask = compareMask;
-        mDepthStencilDesc.StencilWriteMask = writeMask;
+        mDepthStencilDesc.StencilEnable = state.enabled;
+        mStencilRef = state.referenceValue;
+        mDepthStencilDesc.StencilReadMask = state.compareMask;
+        mDepthStencilDesc.StencilWriteMask = state.writeMask;
 
-		mDepthStencilDesc.FrontFace.StencilFailOp = D3D11Mappings::get(stencilFailOp, flipFront);
-		mDepthStencilDesc.BackFace.StencilFailOp = D3D11Mappings::get(stencilFailOp, flipBack);
+		mDepthStencilDesc.FrontFace.StencilFailOp = D3D11Mappings::get(state.stencilFailOp, flipFront);
+		mDepthStencilDesc.BackFace.StencilFailOp = D3D11Mappings::get(state.stencilFailOp, flipBack);
         
-		mDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D11Mappings::get(depthFailOp, flipFront);
-		mDepthStencilDesc.BackFace.StencilDepthFailOp = D3D11Mappings::get(depthFailOp, flipBack);
+		mDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D11Mappings::get(state.depthFailOp, flipFront);
+		mDepthStencilDesc.BackFace.StencilDepthFailOp = D3D11Mappings::get(state.depthFailOp, flipBack);
         
-		mDepthStencilDesc.FrontFace.StencilPassOp = D3D11Mappings::get(passOp, flipFront);
-		mDepthStencilDesc.BackFace.StencilPassOp = D3D11Mappings::get(passOp, flipBack);
+		mDepthStencilDesc.FrontFace.StencilPassOp = D3D11Mappings::get(state.depthStencilPassOp, flipFront);
+		mDepthStencilDesc.BackFace.StencilPassOp = D3D11Mappings::get(state.depthStencilPassOp, flipBack);
 
-		mDepthStencilDesc.FrontFace.StencilFunc = D3D11Mappings::get(func);
-		mDepthStencilDesc.BackFace.StencilFunc = D3D11Mappings::get(func);
-        mReadBackAsTexture = readBackAsTexture;
+		mDepthStencilDesc.FrontFace.StencilFunc = D3D11Mappings::get(state.compareOp);
+		mDepthStencilDesc.BackFace.StencilFunc = D3D11Mappings::get(state.compareOp);
         mDepthStencilDescChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureUnitFiltering(size_t unit, FilterType ftype, 
-        FilterOptions filter)
-    {
-        switch(ftype) {
-        case FT_MIN:
-            FilterMinification[unit] = filter;
-            break;
-        case FT_MAG:
-            FilterMagnification[unit] = filter;
-            break;
-        case FT_MIP:
-            FilterMips[unit] = filter;
-            break;
-        }
-
-        mTexStageDesc[unit].samplerDesc.Filter = D3D11Mappings::get(FilterMinification[unit], FilterMagnification[unit], FilterMips[unit],CompareEnabled);
-        mSamplerStatesChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureUnitCompareEnabled(size_t unit, bool compare)
-    {
-        CompareEnabled = compare;
-        mSamplerStatesChanged = true;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureUnitCompareFunction(size_t unit, CompareFunction function)
-    {
-        mTexStageDesc[unit].samplerDesc.ComparisonFunc = D3D11Mappings::get(function);
-        mSamplerStatesChanged = true;
-    }
-    //---------------------------------------------------------------------
-    DWORD D3D11RenderSystem::_getCurrentAnisotropy(size_t unit)
-    {
-        return mTexStageDesc[unit].samplerDesc.MaxAnisotropy;;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_setTextureLayerAnisotropy(size_t unit, unsigned int maxAnisotropy)
-    {
-        mTexStageDesc[unit].samplerDesc.MaxAnisotropy = maxAnisotropy;
-        mSamplerStatesChanged = true;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setRenderTarget(RenderTarget *target)
@@ -2165,38 +1574,43 @@ namespace Ogre
         {
             // we need to clear the state 
             mDevice.GetImmediateContext()->ClearState();
-
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot Clear State\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_setRenderTarget");
-            }
-
+            CHECK_DEVICE_ERROR("Clear State");
             _setRenderTargetViews();
+            if(mRasterizerDesc.ScissorEnable)
+            {
+                // Reapply scissor rects
+                mDevice.GetImmediateContext()->RSSetScissorRects(1, &mScissorRect);
+                CHECK_DEVICE_ERROR("set scissor rects");
+            }
         }
     }
 
     //---------------------------------------------------------------------
     void D3D11RenderSystem::_setRenderTargetViews()
     {
-        RenderTarget *target = mActiveRenderTarget;
+        RenderTarget* target = mActiveRenderTarget;
+        D3D11RenderTarget* d3d11RenderTarget = dynamic_cast<D3D11RenderTarget*>(target);
 
-        if (target)
+        if (target && d3d11RenderTarget)
         {
-            ID3D11RenderTargetView * pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
+            ID3D11RenderTargetView* pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
             memset(pRTView, 0, sizeof(pRTView));
 
-            target->getCustomAttribute( "ID3D11RenderTargetView", &pRTView );
+            uint numberOfViews = d3d11RenderTarget->getNumberOfViews();
 
-            uint numberOfViews;
-            target->getCustomAttribute( "numberOfViews", &numberOfViews );
+            for (uint i = 0; i < OGRE_MAX_MULTIPLE_RENDER_TARGETS; i++)
+            {
+                pRTView[i] = d3d11RenderTarget->getRenderTargetView(i);
+                if (!pRTView[i])
+                {
+                    break;
+                }
+            }
 
             //Retrieve depth buffer
             D3D11DepthBuffer *depthBuffer = static_cast<D3D11DepthBuffer*>(target->getDepthBuffer());
 
-            if( target->getDepthBufferPool() != DepthBuffer::POOL_NO_DEPTH && !depthBuffer )
+            if( target->getDepthBufferPool() != RBP_NONE && !depthBuffer )
             {
                 //Depth is automatically managed and there is no depth buffer attached to this RT
                 //or the Current D3D device doesn't match the one this Depth buffer was created
@@ -2212,13 +1626,7 @@ namespace Ogre
                 pRTView,
                 depthBuffer ? depthBuffer->getDepthStencilView() : 0 );
 
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set render target\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_setRenderTargetViews");
-            }
+            CHECK_DEVICE_ERROR("set render target");
         }
     }
     //---------------------------------------------------------------------
@@ -2259,13 +1667,7 @@ namespace Ogre
             d3dvp.MaxDepth = 1.0f;
 
             mDevice.GetImmediateContext()->RSSetViewports(1, &d3dvp);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set viewports\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_setViewport");
-            }
+            CHECK_DEVICE_ERROR("set viewports");
 
 #if OGRE_NO_QUAD_BUFFER_STEREO == 0
 			D3D11RenderWindowBase* d3d11Window = dynamic_cast<D3D11RenderWindowBase*>(target);
@@ -2284,13 +1686,6 @@ namespace Ogre
         }
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::_beginFrame()
-    {
-    
-        if( !mActiveViewport )
-            OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, "Cannot begin frame - no viewport selected.", "D3D11RenderSystem::_beginFrame" );
-    }
-    //---------------------------------------------------------------------
     void D3D11RenderSystem::_endFrame()
     {
     }
@@ -2304,10 +1699,8 @@ namespace Ogre
     //---------------------------------------------------------------------
     void D3D11RenderSystem::setVertexDeclaration(VertexDeclaration* decl, VertexBufferBinding* binding)
     {
-        D3D11VertexDeclaration* d3ddecl = 
-            static_cast<D3D11VertexDeclaration*>(decl);
-
-        d3ddecl->bindToShader(mBoundVertexProgram, binding);
+        D3D11VertexDeclaration* d3ddecl = static_cast<D3D11VertexDeclaration*>(decl);
+        d3ddecl->bindToShader(mBoundProgram[GPT_VERTEX_PROGRAM], binding);
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::setVertexBufferBinding(VertexBufferBinding* binding)
@@ -2318,13 +1711,12 @@ namespace Ogre
         iend = binds.end();
         for (i = binds.begin(); i != iend; ++i)
         {
-            const D3D11HardwareVertexBuffer* d3d11buf = 
-                static_cast<const D3D11HardwareVertexBuffer*>(i->second.get());
+            const D3D11HardwareBuffer* d3d11buf = i->second->_getImpl<D3D11HardwareBuffer>();
 
-            UINT stride = static_cast<UINT>(d3d11buf->getVertexSize());
+            UINT stride = static_cast<UINT>(i->second->getVertexSize());
             UINT offset = 0; // no stream offset, this is handled in _render instead
             UINT slot = static_cast<UINT>(i->first);
-            ID3D11Buffer * pVertexBuffers = d3d11buf->getD3DVertexBuffer();
+            ID3D11Buffer * pVertexBuffers = d3d11buf->getD3DBuffer();
             mDevice.GetImmediateContext()->IASetVertexBuffers(
                 slot, // The first input slot for binding.
                 1, // The number of vertex buffers in the array.
@@ -2333,13 +1725,7 @@ namespace Ogre
                 &offset 
                 );
 
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set vertex buffers\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::setVertexBufferBinding");
-            }
+            CHECK_DEVICE_ERROR("set vertex buffers");
         }
 
         mLastVertexSourceCount = binds.size();      
@@ -2347,47 +1733,82 @@ namespace Ogre
 
     //---------------------------------------------------------------------
     // TODO: Move this class to the right place.
-    class D3D11RenderOperationState : public Renderable::RenderSystemData
+    class D3D11RenderOperationState
     {
     public:
-        ID3D11BlendState * mBlendState;
-        ID3D11RasterizerState * mRasterizer;
-        ID3D11DepthStencilState * mDepthStencilState;
+        ComPtr<ID3D11BlendState> mBlendState;
+        ComPtr<ID3D11RasterizerState> mRasterizer;
+        ComPtr<ID3D11DepthStencilState> mDepthStencilState;
 
-        ID3D11SamplerState * mSamplerStates[OGRE_MAX_TEXTURE_LAYERS];
+        ID3D11SamplerState* mSamplerStates[OGRE_MAX_TEXTURE_LAYERS];
         size_t mSamplerStatesCount;
 
-        ID3D11ShaderResourceView * mTextures[OGRE_MAX_TEXTURE_LAYERS];
+        ID3D11ShaderResourceView * mTextures[OGRE_MAX_TEXTURE_LAYERS]; // note - not owning
         size_t mTexturesCount;
 
-        D3D11RenderOperationState() :
-            mBlendState(NULL)
-            , mRasterizer(NULL)
-            , mDepthStencilState(NULL)
-            , mSamplerStatesCount(0)
-            , mTexturesCount(0)
-        {
-            for (size_t i = 0 ; i < OGRE_MAX_TEXTURE_LAYERS ; i++)
-            {
-                mSamplerStates[i] = 0;
-            }
-        }
-
-
-        ~D3D11RenderOperationState()
-        {
-            SAFE_RELEASE( mBlendState );
-            SAFE_RELEASE( mRasterizer );
-            SAFE_RELEASE( mDepthStencilState );
-
-            for (size_t i = 0 ; i < OGRE_MAX_TEXTURE_LAYERS ; i++)
-            {
-                SAFE_RELEASE( mSamplerStates[i] );
-            }
-        }
+        D3D11RenderOperationState() : mSamplerStatesCount(0), mTexturesCount(0) {}
+        ~D3D11RenderOperationState() {}
     };
 
     //---------------------------------------------------------------------
+    void D3D11RenderSystem::_dispatchCompute(const Vector3i& workgroupDim)
+    {
+        mDevice.GetImmediateContext()->CSSetShader(mBoundProgram[GPT_COMPUTE_PROGRAM]->getComputeShader(),
+                                                    mClassInstances[GPT_COMPUTE_PROGRAM],
+                                                    mNumClassInstances[GPT_COMPUTE_PROGRAM]);
+        CHECK_DEVICE_ERROR("set compute shader");
+
+        ID3D11ShaderResourceView* nullSrv[] = { 0 };
+
+        ID3D11UnorderedAccessView* uavs[OGRE_MAX_TEXTURE_LAYERS] = {NULL};
+        ID3D11ShaderResourceView * srvs[OGRE_MAX_TEXTURE_LAYERS] = {NULL};
+        ID3D11SamplerState* samplers[OGRE_MAX_TEXTURE_LAYERS] = {NULL};
+
+        // samplers mapping
+        size_t numberOfSamplers = std::min(mLastTextureUnitState,(size_t)(OGRE_MAX_TEXTURE_LAYERS + 1));
+        for (size_t n = 0; n < numberOfSamplers; n++)
+        {
+            if(!mTexStageDesc[n].used)
+                continue;
+
+            if(mTexStageDesc[n].pTex->getUsage() & TU_UNORDERED_ACCESS)
+                uavs[n] = mTexStageDesc[n].pTex->getUavView();
+            else
+            {
+                srvs[n] = mTexStageDesc[n].pTex->getSrvView();
+                samplers[n] = mTexStageDesc[n].pSampler;
+            }
+        }
+
+        if(mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
+        {
+            // unbind SRVs from other stages
+            mDevice.GetImmediateContext()->VSSetShaderResources(0, 1, nullSrv);
+            mDevice.GetImmediateContext()->PSSetShaderResources(0, 1, nullSrv);
+            mSamplerStatesChanged = true;
+
+            mDevice.GetImmediateContext()->CSSetUnorderedAccessViews(0, static_cast<UINT>(numberOfSamplers), uavs, NULL);
+            CHECK_DEVICE_ERROR("set compute UAVs");
+        }
+
+        if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
+        {
+            mDevice.GetImmediateContext()->CSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(numberOfSamplers), samplers);
+            CHECK_DEVICE_ERROR("set compute shader samplers");
+            mDevice.GetImmediateContext()->CSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(numberOfSamplers), srvs);
+            CHECK_DEVICE_ERROR("set compute shader resources");
+        }
+
+        // Bound unordered access views
+        mDevice.GetImmediateContext()->Dispatch(workgroupDim[0], workgroupDim[1], workgroupDim[2]);
+
+        // unbind
+        ID3D11UnorderedAccessView* views[] = { 0 };
+        mDevice.GetImmediateContext()->CSSetShaderResources( 0, 1, nullSrv );
+        mDevice.GetImmediateContext()->CSSetUnorderedAccessViews( 0, 1, views, NULL );
+        mDevice.GetImmediateContext()->CSSetShader( NULL, NULL, 0 );
+    }
+
     void D3D11RenderSystem::_render(const RenderOperation& op)
     {
 
@@ -2397,19 +1818,7 @@ namespace Ogre
             return;
         }
 
-        HardwareVertexBufferSharedPtr globalInstanceVertexBuffer = getGlobalInstanceVertexBuffer();
-        VertexDeclaration* globalVertexDeclaration = getGlobalInstanceVertexBufferVertexDeclaration();
-
-        bool hasInstanceData = op.useGlobalInstancingVertexBufferIsAvailable &&
-                    !globalInstanceVertexBuffer.isNull() && globalVertexDeclaration != NULL 
-                || op.vertexData->vertexBufferBinding->getHasInstanceData();
-
         size_t numberOfInstances = op.numberOfInstances;
-
-        if (op.useGlobalInstancingVertexBufferIsAvailable)
-        {
-            numberOfInstances *= getGlobalNumberOfInstances();
-        }
 
         // Call super class
         RenderSystem::_render(op);
@@ -2422,14 +1831,8 @@ namespace Ogre
             mBlendDescChanged = false;
             mBoundBlendState = 0;
 
-            HRESULT hr = mDevice->CreateBlendState(&mBlendDesc, &opState->mBlendState) ;
-            if (FAILED(hr))
-            {
-				String errorDescription = mDevice.getErrorDescription(hr);
-				OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                    "Failed to create blend state\nError Description:" + errorDescription, 
-                    "D3D11RenderSystem::_render" );
-            }
+            OGRE_CHECK_DX_ERROR(
+                mDevice->CreateBlendState(&mBlendDesc, opState->mBlendState.ReleaseAndGetAddressOf()));
         }
         else
         {
@@ -2441,14 +1844,7 @@ namespace Ogre
 			mRasterizerDescChanged=false;
 			mBoundRasterizer = 0;
 
-            HRESULT hr = mDevice->CreateRasterizerState(&mRasterizerDesc, &opState->mRasterizer) ;
-            if (FAILED(hr))
-            {
-				String errorDescription = mDevice.getErrorDescription(hr);
-				OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                    "Failed to create rasterizer state\nError Description:" + errorDescription, 
-                    "D3D11RenderSystem::_render" );
-            }
+            OGRE_CHECK_DX_ERROR(mDevice->CreateRasterizerState(&mRasterizerDesc, opState->mRasterizer.ReleaseAndGetAddressOf()));
         }
         else
         {
@@ -2460,14 +1856,7 @@ namespace Ogre
 			mBoundDepthStencilState = 0;
 			mDepthStencilDescChanged=false;
 
-            HRESULT hr = mDevice->CreateDepthStencilState(&mDepthStencilDesc, &opState->mDepthStencilState) ;
-            if (FAILED(hr))
-            {
-				String errorDescription = mDevice.getErrorDescription(hr);
-				OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                    "Failed to create depth stencil state\nError Description:" + errorDescription, 
-                    "D3D11RenderSystem::_render" );
-            }
+            OGRE_CHECK_DX_ERROR(mDevice->CreateDepthStencilState(&mDepthStencilDesc, opState->mDepthStencilState.ReleaseAndGetAddressOf()));
         }
         else
 		{
@@ -2484,38 +1873,10 @@ namespace Ogre
                             
             for (size_t n = 0; n < numberOfSamplers; n++)
             {
-                ID3D11SamplerState * samplerState  = NULL;
-                ID3D11ShaderResourceView *texture = NULL;
+                ID3D11SamplerState *sampler = NULL;
                 sD3DTextureStageDesc & stage = mTexStageDesc[n];
-                if(!stage.used)
-                {
-                    samplerState    = NULL;
-                    texture         = NULL;
-                }
-                else
-                {
-                    texture = stage.pTex;
-
-                    stage.samplerDesc.Filter = D3D11Mappings::get(FilterMinification[n], FilterMagnification[n],
-                        FilterMips[n],false );
-                    stage.samplerDesc.ComparisonFunc = D3D11Mappings::get(mSceneAlphaRejectFunc);
-                    stage.samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-					stage.samplerDesc.MipLODBias = static_cast<float>(Math::Clamp(stage.samplerDesc.MipLODBias - 0.5, -16.00, 15.99));
-					stage.samplerDesc.MinLOD = -D3D11_FLOAT32_MAX;
-					
-
-                    HRESULT hr = mDevice->CreateSamplerState(&stage.samplerDesc, &samplerState) ;
-                    if (FAILED(hr))
-                    {
-                        String errorDescription = mDevice.getErrorDescription(hr);
-                        OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr,
-                            "Failed to create sampler state\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render" );
-                    }
-                
-                }
-                opState->mSamplerStates[n]  = samplerState;
-                opState->mTextures[n]       = texture;
+                opState->mSamplerStates[n]  = stage.used ? stage.pSampler : NULL;
+                opState->mTextures[n]       = stage.used ? stage.pTex->getSrvView() : NULL;
             }
             for (size_t n = opState->mTexturesCount; n < OGRE_MAX_TEXTURE_LAYERS; n++)
 			{
@@ -2526,49 +1887,16 @@ namespace Ogre
         if (opState->mBlendState != mBoundBlendState)
         {
             mBoundBlendState = opState->mBlendState ;
-            mDevice.GetImmediateContext()->OMSetBlendState(opState->mBlendState, 0, 0xffffffff); // TODO - find out where to get the parameters
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set blend state\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
-            if (mSamplerStatesChanged && mBoundGeometryProgram && mBindingType == TextureUnitState::BT_GEOMETRY)
-            {
-                {
-                    mDevice.GetImmediateContext()->GSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set pixel shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-                mDevice.GetImmediateContext()->GSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set pixel shader resources\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::_render");
-                }
-            }
+            mDevice.GetImmediateContext()->OMSetBlendState(opState->mBlendState.Get(), 0, 0xffffffff); // TODO - find out where to get the parameters
+            CHECK_DEVICE_ERROR("set blend state");
         }
 
         if (opState->mRasterizer != mBoundRasterizer)
         {
             mBoundRasterizer = opState->mRasterizer ;
 
-            mDevice.GetImmediateContext()->RSSetState(opState->mRasterizer);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set rasterizer state\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            mDevice.GetImmediateContext()->RSSetState(opState->mRasterizer.Get());
+            CHECK_DEVICE_ERROR("set rasterizer state");
         }
         
 
@@ -2576,166 +1904,53 @@ namespace Ogre
         {
             mBoundDepthStencilState = opState->mDepthStencilState ;
 
-            mDevice.GetImmediateContext()->OMSetDepthStencilState(opState->mDepthStencilState, mStencilRef); 
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set depth stencil state\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            mDevice.GetImmediateContext()->OMSetDepthStencilState(opState->mDepthStencilState.Get(), mStencilRef);
+            CHECK_DEVICE_ERROR("set depth stencil state");
         }
 
         if (mSamplerStatesChanged && opState->mSamplerStatesCount > 0 ) //  if the NumSamplers is 0, the operation effectively does nothing.
         {
             mSamplerStatesChanged = false; // now it's time to set it to false
             /// Pixel Shader binding
-            {
-                // Assaf: seem I have better performance without this check... TODO - remove?
-                // if ((mBoundSamplerStatesCount != opState->mSamplerStatesCount) || ( 0 != memcmp(opState->mSamplerStates, mBoundSamplerStates, mBoundSamplerStatesCount) ) )
-                {
-                    //mBoundSamplerStatesCount = opState->mSamplerStatesCount;
-                    //memcpy(mBoundSamplerStates,opState->mSamplerStates, mBoundSamplerStatesCount);
-                    mDevice.GetImmediateContext()->PSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set pixel shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-
-                mDevice.GetImmediateContext()->PSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set pixel shader resources\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::_render");
-                }
-            }
+            mDevice.GetImmediateContext()->PSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
+            CHECK_DEVICE_ERROR("set pixel shader samplers");
+            mDevice.GetImmediateContext()->PSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
+            CHECK_DEVICE_ERROR("set pixel shader resources");
             
             /// Vertex Shader binding
-			
-			/*if (mBindingType == TextureUnitState::BindingType::BT_VERTEX)*/
-			
+            if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
             {
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    //mBoundSamplerStatesCount = opState->mSamplerStatesCount;
-                    //memcpy(mBoundSamplerStates,opState->mSamplerStates, mBoundSamplerStatesCount);
-                    mDevice.GetImmediateContext()->VSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set pixel shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    mDevice.GetImmediateContext()->VSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set pixel shader resources\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
+                mDevice.GetImmediateContext()->VSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
+                CHECK_DEVICE_ERROR("set vertex shader samplers");
+                mDevice.GetImmediateContext()->VSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
+                CHECK_DEVICE_ERROR("set vertex shader resources");
             }
 
-            /// Compute Shader binding
-            if (mBoundComputeProgram && mBindingType == TextureUnitState::BT_COMPUTE)
+            /// Geometry Shader binding
+            if (mBoundProgram[GPT_GEOMETRY_PROGRAM] && mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
             {
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    //mBoundSamplerStatesCount = opState->mSamplerStatesCount;
-                    //memcpy(mBoundSamplerStates,opState->mSamplerStates, mBoundSamplerStatesCount);
-                    mDevice.GetImmediateContext()->CSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set compute shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-                
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    mDevice.GetImmediateContext()->CSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set compute shader resources\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
+                mDevice.GetImmediateContext()->GSSetSamplers(0, opState->mSamplerStatesCount, opState->mSamplerStates);
+                CHECK_DEVICE_ERROR("set geometry shader samplers");
+                mDevice.GetImmediateContext()->GSSetShaderResources(0, opState->mTexturesCount, &opState->mTextures[0]);
+                CHECK_DEVICE_ERROR("set geometry shader resources");
             }
 
             /// Hull Shader binding
-            if (mBoundTessellationHullProgram && mBindingType == TextureUnitState::BT_TESSELLATION_HULL)
+            if (mBoundProgram[GPT_HULL_PROGRAM] && mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
             {
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    //mBoundSamplerStatesCount = opState->mSamplerStatesCount;
-                    //memcpy(mBoundSamplerStates,opState->mSamplerStates, mBoundSamplerStatesCount);
-                    mDevice.GetImmediateContext()->HSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set hull shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-                
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    mDevice.GetImmediateContext()->HSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set hull shader resources\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
+                mDevice.GetImmediateContext()->HSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
+                CHECK_DEVICE_ERROR("set hull shader samplers");
+                mDevice.GetImmediateContext()->HSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
+                CHECK_DEVICE_ERROR("set hull shader resources");
             }
             
             /// Domain Shader binding
-            if (mBoundTessellationDomainProgram && mBindingType == TextureUnitState::BT_TESSELLATION_DOMAIN)
+            if (mBoundProgram[GPT_DOMAIN_PROGRAM] && mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
             {
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    //mBoundSamplerStatesCount = opState->mSamplerStatesCount;
-                    //memcpy(mBoundSamplerStates,opState->mSamplerStates, mBoundSamplerStatesCount);
-                    mDevice.GetImmediateContext()->DSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set domain shader samplers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
-
-                if (mFeatureLevel >= D3D_FEATURE_LEVEL_10_0)
-                {
-                    mDevice.GetImmediateContext()->DSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set domain shader resources\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_render");
-                    }
-                }
+                mDevice.GetImmediateContext()->DSSetSamplers(static_cast<UINT>(0), static_cast<UINT>(opState->mSamplerStatesCount), opState->mSamplerStates);
+                CHECK_DEVICE_ERROR("set domain shader samplers");
+                mDevice.GetImmediateContext()->DSSetShaderResources(static_cast<UINT>(0), static_cast<UINT>(opState->mTexturesCount), &opState->mTextures[0]);
+                CHECK_DEVICE_ERROR("set domain shader resources");
             }
         }
 
@@ -2744,9 +1959,8 @@ namespace Ogre
         mDevice.GetImmediateContext()->SOGetTargets(1, pSOTarget.GetAddressOf());
 
         //check consistency of vertex-fragment shaders
-        if (!mBoundVertexProgram ||
-             (!mBoundFragmentProgram && op.operationType != RenderOperation::OT_POINT_LIST && !pSOTarget ) 
-           ) 
+        if (!mBoundProgram[GPT_VERTEX_PROGRAM] ||
+            (!mBoundProgram[GPT_FRAGMENT_PROGRAM] && op.operationType != RenderOperation::OT_POINT_LIST && !pSOTarget))
         {
             
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
@@ -2755,10 +1969,10 @@ namespace Ogre
         }
 
         // Check consistency of tessellation shaders
-        if( (mBoundTessellationHullProgram && !mBoundTessellationDomainProgram) ||
-            (!mBoundTessellationHullProgram && mBoundTessellationDomainProgram) )
+        if( (mBoundProgram[GPT_HULL_PROGRAM] && !mBoundProgram[GPT_DOMAIN_PROGRAM]) ||
+            (!mBoundProgram[GPT_HULL_PROGRAM] && mBoundProgram[GPT_DOMAIN_PROGRAM]) )
         {
-            if (mBoundTessellationHullProgram && !mBoundTessellationDomainProgram) {
+            if (mBoundProgram[GPT_HULL_PROGRAM] && !mBoundProgram[GPT_DOMAIN_PROGRAM]) {
             OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
                 "Attempted to use tessellation, but domain shader is missing",
                 "D3D11RenderSystem::_render");
@@ -2769,97 +1983,46 @@ namespace Ogre
                 "D3D11RenderSystem::_render"); }
         }
 
-        if (mDevice.isError())
-        {
-            // this will never happen but we want to be consistent with the error checks... 
-            String errorDescription = mDevice.getErrorDescription();
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "D3D11 device cannot set geometry shader to null\nError Description:" + errorDescription,
-                "D3D11RenderSystem::_render");
-        }
+        CHECK_DEVICE_ERROR("set geometry shader to null");
 
         // Defer program bind to here because we must bind shader class instances,
         // and this can only be made in SetShader calls.
         // Also, bind shader resources
-        if (mBoundVertexProgram)
+        if (mBoundProgram[GPT_VERTEX_PROGRAM])
         {
-            mDevice.GetImmediateContext()->VSSetShader(mBoundVertexProgram->getVertexShader(), 
+            mDevice.GetImmediateContext()->VSSetShader(mBoundProgram[GPT_VERTEX_PROGRAM]->getVertexShader(),
                                                        mClassInstances[GPT_VERTEX_PROGRAM], 
                                                        mNumClassInstances[GPT_VERTEX_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set vertex shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set vertex shader");
         }
-        if (mBoundFragmentProgram)
+        if (mBoundProgram[GPT_FRAGMENT_PROGRAM])
         {
-            mDevice.GetImmediateContext()->PSSetShader(mBoundFragmentProgram->getPixelShader(),
+            mDevice.GetImmediateContext()->PSSetShader(mBoundProgram[GPT_FRAGMENT_PROGRAM]->getPixelShader(),
                                                        mClassInstances[GPT_FRAGMENT_PROGRAM], 
                                                        mNumClassInstances[GPT_FRAGMENT_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set pixel shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set pixel shader");
         }
-        if (mBoundGeometryProgram)
+        if (mBoundProgram[GPT_GEOMETRY_PROGRAM])
         {
-            mDevice.GetImmediateContext()->GSSetShader(mBoundGeometryProgram->getGeometryShader(),
+            mDevice.GetImmediateContext()->GSSetShader(mBoundProgram[GPT_GEOMETRY_PROGRAM]->getGeometryShader(),
                                                        mClassInstances[GPT_GEOMETRY_PROGRAM], 
                                                        mNumClassInstances[GPT_GEOMETRY_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set geometry shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set geometry shader");
         }
-        if (mBoundTessellationHullProgram)
+        if (mBoundProgram[GPT_HULL_PROGRAM])
         {
-            mDevice.GetImmediateContext()->HSSetShader(mBoundTessellationHullProgram->getHullShader(),
+            mDevice.GetImmediateContext()->HSSetShader(mBoundProgram[GPT_HULL_PROGRAM]->getHullShader(),
                                                        mClassInstances[GPT_HULL_PROGRAM], 
                                                        mNumClassInstances[GPT_HULL_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set hull shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set hull shader");
         }
-        if (mBoundTessellationDomainProgram)
+        if (mBoundProgram[GPT_DOMAIN_PROGRAM])
         {
-            mDevice.GetImmediateContext()->DSSetShader(mBoundTessellationDomainProgram->getDomainShader(),
+            mDevice.GetImmediateContext()->DSSetShader(mBoundProgram[GPT_DOMAIN_PROGRAM]->getDomainShader(),
                                                        mClassInstances[GPT_DOMAIN_PROGRAM], 
                                                        mNumClassInstances[GPT_DOMAIN_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set domain shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set domain shader");
         }
-        if (mBoundComputeProgram)
-        {
-            mDevice.GetImmediateContext()->CSSetShader(mBoundComputeProgram->getComputeShader(),
-                                                       mClassInstances[GPT_COMPUTE_PROGRAM], 
-                                                       mNumClassInstances[GPT_COMPUTE_PROGRAM]);
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set compute shader\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
-        }
-
 
         setVertexDeclaration(op.vertexData->vertexDeclaration, op.vertexData->vertexBufferBinding);
         setVertexBufferBinding(op.vertexData->vertexBufferBinding);
@@ -2869,21 +2032,7 @@ namespace Ogre
         D3D11_PRIMITIVE_TOPOLOGY primType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         DWORD primCount = 0;
 
-        // Handle computing
-        if(mBoundComputeProgram)
-        {
-            // Bound unordered access views
-            mDevice.GetImmediateContext()->Dispatch(1, 1, 1);
-
-            ID3D11UnorderedAccessView* views[] = { 0 };
-            ID3D11ShaderResourceView* srvs[] = { 0 };
-            mDevice.GetImmediateContext()->CSSetShaderResources( 0, 1, srvs );
-            mDevice.GetImmediateContext()->CSSetUnorderedAccessViews( 0, 1, views, NULL );
-            mDevice.GetImmediateContext()->CSSetShader( NULL, NULL, 0 );
-
-            return;
-        }
-        else if(mBoundTessellationHullProgram && mBoundTessellationDomainProgram)
+        if(mBoundProgram[GPT_HULL_PROGRAM] && mBoundProgram[GPT_DOMAIN_PROGRAM])
         {
             // useful primitives for tessellation
             switch( op.operationType )
@@ -2911,9 +2060,12 @@ namespace Ogre
         }
         else
         {
-            //rendering without tessellation.
-            bool useAdjacency = (mGeometryProgramBound && mBoundGeometryProgram && mBoundGeometryProgram->isAdjacencyInfoRequired());
-            switch( op.operationType )
+            //rendering without tessellation.   
+            int operationType = op.operationType;
+            if(mPolygonMode == PM_POINTS)
+                operationType = RenderOperation::OT_POINT_LIST;
+
+            switch( operationType )
             {
             case RenderOperation::OT_POINT_LIST:
                 primType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
@@ -2921,23 +2073,43 @@ namespace Ogre
                 break;
 
             case RenderOperation::OT_LINE_LIST:
-                primType = useAdjacency ? D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ : D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+                primType = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
                 primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) / 2;
                 break;
 
+            case RenderOperation::OT_LINE_LIST_ADJ:
+                primType = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+                primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) / 4;
+                break;
+
             case RenderOperation::OT_LINE_STRIP:
-                primType = useAdjacency ? D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ : D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+                primType = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
                 primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) - 1;
                 break;
 
+            case RenderOperation::OT_LINE_STRIP_ADJ:
+                primType = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+                primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) - 2;
+                break;
+
             case RenderOperation::OT_TRIANGLE_LIST:
-                primType = useAdjacency ? D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ : D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                primType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
                 primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) / 3;
                 break;
 
+            case RenderOperation::OT_TRIANGLE_LIST_ADJ:
+                primType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+                primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) / 6;
+                break;
+
             case RenderOperation::OT_TRIANGLE_STRIP:
-                primType = useAdjacency ? D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ : D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                primType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
                 primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) - 2;
+                break;
+
+            case RenderOperation::OT_TRIANGLE_STRIP_ADJ:
+                primType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+                primCount = (DWORD)(op.useIndexes ? op.indexData->indexCount : op.vertexData->vertexCount) / 2 - 2;
                 break;
 
             case RenderOperation::OT_TRIANGLE_FAN:
@@ -2954,32 +2126,19 @@ namespace Ogre
             //HRESULT hr;
             if( op.useIndexes  )
             {
-                D3D11HardwareIndexBuffer* d3dIdxBuf = 
-                    static_cast<D3D11HardwareIndexBuffer*>(op.indexData->indexBuffer.get());
-                mDevice.GetImmediateContext()->IASetIndexBuffer( d3dIdxBuf->getD3DIndexBuffer(), D3D11Mappings::getFormat(d3dIdxBuf->getType()), 0 );
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set index buffer\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::_render");
-                }
+                auto d3dBuf = op.indexData->indexBuffer->_getImpl<D3D11HardwareBuffer>();
+                mDevice.GetImmediateContext()->IASetIndexBuffer( d3dBuf->getD3DBuffer(), D3D11Mappings::getFormat(op.indexData->indexBuffer->getType()), 0 );
+                CHECK_DEVICE_ERROR("set index buffer");
             }
 
             mDevice.GetImmediateContext()->IASetPrimitiveTopology( primType );
-            if (mDevice.isError())
-            {
-                String errorDescription = mDevice.getErrorDescription();
-                OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                    "D3D11 device cannot set primitive topology\nError Description:" + errorDescription,
-                    "D3D11RenderSystem::_render");
-            }
+            CHECK_DEVICE_ERROR("set primitive topology");
 
             do
             {
                 if(op.useIndexes)
                 {
-                    if(hasInstanceData)
+                    if(numberOfInstances > 1)
                     {
                         mDevice.GetImmediateContext()->DrawIndexedInstanced(
                             static_cast<UINT>(op.indexData->indexCount), 
@@ -3002,7 +2161,7 @@ namespace Ogre
                     {
                         mDevice.GetImmediateContext()->DrawAuto();
                     }
-                    else if(hasInstanceData)
+                    else if(numberOfInstances > 1)
                     {
                         mDevice.GetImmediateContext()->DrawInstanced(
                             static_cast<UINT>(op.vertexData->vertexCount),
@@ -3024,15 +2183,14 @@ namespace Ogre
                     if(!op.useIndexes && op.vertexData->vertexCount == -1) // -1 is a sign to use DrawAuto
                         errorDescription.append(" auto");
                     else
-                        errorDescription.append(op.useIndexes ? " indexed" : "").append(hasInstanceData ? " instanced" : "");
+                        errorDescription.append(op.useIndexes ? " indexed" : "").append(numberOfInstances > 1 ? " instanced" : "");
                     errorDescription.append("\nError Description:").append(mDevice.getErrorDescription());
-                    errorDescription.append("\nActive OGRE shaders:")
-                        .append(mBoundVertexProgram ? ("\nVS = " + mBoundVertexProgram->getName()).c_str() : "")
-                        .append(mBoundTessellationHullProgram ? ("\nHS = " + mBoundTessellationHullProgram->getName()).c_str() : "")
-                        .append(mBoundTessellationDomainProgram ? ("\nDS = " + mBoundTessellationDomainProgram->getName()).c_str() : "")
-                        .append(mBoundGeometryProgram ? ("\nGS = " + mBoundGeometryProgram->getName()).c_str() : "")
-                        .append(mBoundFragmentProgram ? ("\nFS = " + mBoundFragmentProgram->getName()).c_str() : "")
-                        .append(mBoundComputeProgram ? ("\nCS = " + mBoundComputeProgram->getName()).c_str() : "");
+                    errorDescription.append("\nActive OGRE shaders:");
+                    for(auto shader : mBoundProgram)
+                    {
+                        if(shader)
+                            errorDescription.append(("\n"+to_string(shader->getType())+" = " + shader->getName()).c_str());
+                    }
 
                     OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, errorDescription, "D3D11RenderSystem::_render");
                 }
@@ -3056,278 +2214,53 @@ namespace Ogre
 
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::_renderUsingReadBackAsTexture(unsigned int passNr, Ogre::String variableName, unsigned int StartSlot)
-    {
-        RenderTarget *target = mActiveRenderTarget;
-        switch (passNr)
-        {
-        case 1:
-            if (target)
-            {
-                ID3D11RenderTargetView * pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
-                memset(pRTView, 0, sizeof(pRTView));
-
-                target->getCustomAttribute( "ID3D11RenderTargetView", &pRTView );
-
-                uint numberOfViews;
-                target->getCustomAttribute( "numberOfViews", &numberOfViews );
-
-                //Retrieve depth buffer
-                D3D11DepthBuffer *depthBuffer = static_cast<D3D11DepthBuffer*>(target->getDepthBuffer());
-
-                // now switch to the new render target
-                mDevice.GetImmediateContext()->OMSetRenderTargets(
-                    numberOfViews,
-                    pRTView,
-                    depthBuffer->getDepthStencilView());
-
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set render target\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::_renderUsingReadBackAsTexture");
-                }
-                
-                mDevice.GetImmediateContext()->ClearDepthStencilView(depthBuffer->getDepthStencilView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-                float ClearColor[4];
-                //D3D11Mappings::get(colour, ClearColor);
-                // Clear all views
-                mActiveRenderTarget->getCustomAttribute( "numberOfViews", &numberOfViews );
-                if( numberOfViews == 1 )
-                    mDevice.GetImmediateContext()->ClearRenderTargetView( pRTView[0], ClearColor );
-                else
-                {
-                    for( uint i = 0; i < numberOfViews; ++i )
-                        mDevice.GetImmediateContext()->ClearRenderTargetView( pRTView[i], ClearColor );
-                }
-
-            }
-            break;
-        case 2:
-            if (target)
-            {
-                //
-                // We need to remove the the DST from the Render Targets if we want to use it as a texture :
-                //
-                ID3D11RenderTargetView * pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
-                memset(pRTView, 0, sizeof(pRTView));
-
-                target->getCustomAttribute( "ID3D11RenderTargetView", &pRTView );
-
-                uint numberOfViews;
-                target->getCustomAttribute( "numberOfViews", &numberOfViews );
-
-                //Retrieve depth buffer
-                D3D11DepthBuffer *depthBuffer = static_cast<D3D11DepthBuffer*>(target->getDepthBuffer());
-
-                // now switch to the new render target
-                mDevice.GetImmediateContext()->OMSetRenderTargets(
-                    numberOfViews,
-                    pRTView,
-                    NULL);
-
-                mDevice.GetImmediateContext()->PSSetShaderResources(static_cast<UINT>(StartSlot), 1, mDSTResView.GetAddressOf());
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set pixel shader resources\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::_renderUsingReadBackAsTexture");
-                }
-
-            }
-            break;
-        case 3:
-            //
-            // We need to unbind mDSTResView from the given variable because this buffer
-            // will be used later as the typical depth buffer, again
-            // must call Apply(0) here : to flush SetResource(NULL)
-            //
-            
-            if (target)
-            {
-                uint numberOfViews;
-                target->getCustomAttribute( "numberOfViews", &numberOfViews );
-
-                mDevice.GetImmediateContext()->PSSetShaderResources(static_cast<UINT>(StartSlot), static_cast<UINT>(numberOfViews), NULL);
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set pixel shader resources\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::_renderUsingReadBackAsTexture");
-                    }           
-            }
-
-            break;
-        }
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setNormaliseNormals(bool normalise)
-    {
-    }
-    //---------------------------------------------------------------------
     void D3D11RenderSystem::bindGpuProgram(GpuProgram* prg)
     {
         if (!prg)
         {
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "Null program bound.",
-                "D3D11RenderSystem::bindGpuProgram");
+            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "Null program bound");
         }
 
-        switch (prg->getType())
-        {
-        case GPT_VERTEX_PROGRAM:
-            {
-                // get the shader
-                mBoundVertexProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11VertexShader * vsShaderToSet = mBoundVertexProgram->getVertexShader();
-
-                // set the shader
-                mDevice.GetImmediateContext()->VSSetShader(vsShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set vertex shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }*/     
-            }
-            break;
-        case GPT_FRAGMENT_PROGRAM:
-            {
-                mBoundFragmentProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11PixelShader* psShaderToSet = mBoundFragmentProgram->getPixelShader();
-
-                mDevice.GetImmediateContext()->PSSetShader(psShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set fragment shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }*/     
-            }
-            break;
-        case GPT_GEOMETRY_PROGRAM:
-            {
-                mBoundGeometryProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11GeometryShader* gsShaderToSet = mBoundGeometryProgram->getGeometryShader();
-
-                mDevice.GetImmediateContext()->GSSetShader(gsShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set geometry shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }*/     
-
-            }
-            break;
-        case GPT_HULL_PROGRAM:
-            {
-                mBoundTessellationHullProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11HullShader* gsShaderToSet = mBoundTessellationHullProgram->getHullShader();
-
-                mDevice.GetImmediateContext()->HSSetShader(gsShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set hull shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }       */
-
-            }
-            break;
-        case GPT_DOMAIN_PROGRAM:
-            {
-                mBoundTessellationDomainProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11DomainShader* gsShaderToSet = mBoundTessellationDomainProgram->getDomainShader();
-
-                mDevice.GetImmediateContext()->DSSetShader(gsShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set domain shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }*/     
-
-            }
-            break;
-        case GPT_COMPUTE_PROGRAM:
-            {
-                mBoundComputeProgram = static_cast<D3D11HLSLProgram*>(prg);
-/*              ID3D11ComputeShader* gsShaderToSet = mBoundComputeProgram->getComputeShader();
-
-                mDevice.GetImmediateContext()->CSSetShader(gsShaderToSet, NULL, 0);
-                if (mDevice.isError())
-                {
-                    String errorDescription = mDevice.getErrorDescription();
-                    OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                        "D3D11 device cannot set compute shader\nError Description:" + errorDescription,
-                        "D3D11RenderSystem::bindGpuProgram");
-                }*/     
-
-            }
-            break;
-        };
+        mBoundProgram[prg->getType()] = static_cast<D3D11HLSLProgram*>(prg);
 
         RenderSystem::bindGpuProgram(prg);
    }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::unbindGpuProgram(GpuProgramType gptype)
     {
+        mActiveParameters[gptype].reset();
+        mBoundProgram[gptype] = NULL;
 
         switch(gptype)
         {
         case GPT_VERTEX_PROGRAM:
             {
-                mActiveVertexGpuProgramParameters.setNull();
-                mBoundVertexProgram = NULL;
-                //mDevice->VSSetShader(NULL);
                 mDevice.GetImmediateContext()->VSSetShader(NULL, NULL, 0);
             }
             break;
         case GPT_FRAGMENT_PROGRAM:
             {
-                mActiveFragmentGpuProgramParameters.setNull();
-                mBoundFragmentProgram = NULL;
-                //mDevice->PSSetShader(NULL);
                 mDevice.GetImmediateContext()->PSSetShader(NULL, NULL, 0);
             }
 
             break;
         case GPT_GEOMETRY_PROGRAM:
             {
-                mActiveGeometryGpuProgramParameters.setNull();
-                mBoundGeometryProgram = NULL;
                 mDevice.GetImmediateContext()->GSSetShader( NULL, NULL, 0 );
             }
             break;
         case GPT_HULL_PROGRAM:
             {
-                mActiveTessellationHullGpuProgramParameters.setNull();
-                mBoundTessellationHullProgram = NULL;
                 mDevice.GetImmediateContext()->HSSetShader( NULL, NULL, 0 );
             }
             break;
         case GPT_DOMAIN_PROGRAM:
             {
-                mActiveTessellationDomainGpuProgramParameters.setNull();
-                mBoundTessellationDomainProgram = NULL;
                 mDevice.GetImmediateContext()->DSSetShader( NULL, NULL, 0 );
             }
             break;
         case GPT_COMPUTE_PROGRAM:
             {
-                mActiveComputeGpuProgramParameters.setNull();
-                mBoundComputeProgram = NULL;
                 mDevice.GetImmediateContext()->CSSetShader( NULL, NULL, 0 );
             }
             break;
@@ -3337,167 +2270,107 @@ namespace Ogre
         RenderSystem::unbindGpuProgram(gptype);
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::bindGpuProgramParameters(GpuProgramType gptype, GpuProgramParametersSharedPtr params, uint16 mask)
+    void D3D11RenderSystem::bindGpuProgramParameters(GpuProgramType gptype, const GpuProgramParametersPtr& params, uint16 mask)
     {
+        if (!mBoundProgram[gptype])
+            return;
+
+        std::vector<ID3D11Buffer*> buffers = {NULL};
+
+        if(params->getConstantList().size())
+        {
+            auto& cbuffer = updateDefaultUniformBuffer(gptype, params->getConstantList());
+            buffers[0] = static_cast<D3D11HardwareBuffer*>(cbuffer.get())->getD3DBuffer();
+        }
+
+        auto& bufferInfoMap = mBoundProgram[gptype]->getBufferInfoMap();
+        for (const auto& usage : params->getSharedParameters())
+        {
+            auto it = bufferInfoMap.find(usage.getName());
+            auto bufSize = usage.getSharedParams()->getConstantList().size();
+            if(it == bufferInfoMap.end() || bufSize == 0)
+                continue; // TODO: error?
+
+            auto hwBuffer = usage.getSharedParams()->_getHardwareBuffer();
+            if (!hwBuffer || hwBuffer->getSizeInBytes() < bufSize)
+            {
+                hwBuffer = mHardwareBufferManager->createUniformBuffer(bufSize);
+                usage.getSharedParams()->_setHardwareBuffer(hwBuffer);
+            }
+
+            size_t slot = it->second;
+            buffers.resize(std::max(slot + 1, buffers.size()));
+            buffers[slot] = static_cast<D3D11HardwareBuffer*>(hwBuffer.get())->getD3DBuffer();
+        }
+
         if (mask & (uint16)GPV_GLOBAL)
         {
-            // TODO: Dx11 supports shared constant buffers, so use them
-            // check the match to constant buffers & use rendersystem data hooks to store
-            // for now, just copy
-            params->_copySharedParams();
+            params->_updateSharedParams();
         }
 
         // Do everything here in Dx11, since deal with via buffers anyway so number of calls
         // is actually the same whether we categorise the updates or not
-        ID3D11Buffer* pBuffers[1] ;
         switch(gptype)
         {
         case GPT_VERTEX_PROGRAM:
             {
-                //  if (params->getAutoConstantCount() > 0)
-                //{
-                if (mBoundVertexProgram)
                 {
-                    pBuffers[0] = mBoundVertexProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->VSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set vertex shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->VSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set vertex shader constant buffers");
                 }
             }
             break;
         case GPT_FRAGMENT_PROGRAM:
             {
-                //if (params->getAutoConstantCount() > 0)
-                //{
-                if (mBoundFragmentProgram)
                 {
-                    pBuffers[0] = mBoundFragmentProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->PSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set fragment shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->PSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set fragment shader constant buffers");
                 }
             }
             break;
         case GPT_GEOMETRY_PROGRAM:
             {
-                if (mBoundGeometryProgram)
                 {
-                    pBuffers[0] = mBoundGeometryProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->GSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set Geometry shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->GSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set Geometry shader constant buffers");
                 }
             }
             break;
         case GPT_HULL_PROGRAM:
             {
-                if (mBoundTessellationHullProgram)
                 {
-                    pBuffers[0] = mBoundTessellationHullProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->HSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set Hull shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->HSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set Hull shader constant buffers");
                 }
             }
             break;
         case GPT_DOMAIN_PROGRAM:
             {
-                if (mBoundTessellationDomainProgram)
                 {
-                    pBuffers[0] = mBoundTessellationDomainProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->DSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set Domain shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->DSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set Domain shader constant buffers");
                 }
             }
             break;
         case GPT_COMPUTE_PROGRAM:
             {
-                if (mBoundComputeProgram)
                 {
-                    pBuffers[0] = mBoundComputeProgram->getConstantBuffer(params, mask);
-                    mDevice.GetImmediateContext()->CSSetConstantBuffers( 0, 1, pBuffers );
-                    if (mDevice.isError())
-                    {
-                        String errorDescription = mDevice.getErrorDescription();
-                        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                            "D3D11 device cannot set Compute shader constant buffers\nError Description:" + errorDescription,
-                            "D3D11RenderSystem::bindGpuProgramParameters");
-                    }       
-
+                    mDevice.GetImmediateContext()->CSSetConstantBuffers( 0, buffers.size(), buffers.data());
+                    CHECK_DEVICE_ERROR("set Compute shader constant buffers");
                 }
             }
             break;
         };
 
+#ifdef SUBROUTINES
         // Now, set class instances
-        const GpuProgramParameters::SubroutineMap& subroutineMap = params->getSubroutineMap();
-        if (subroutineMap.empty())
-            return;
+        std::map<uint32, String> subroutineMap;
 
-        GpuProgramParameters::SubroutineIterator it;
-        GpuProgramParameters::SubroutineIterator end = subroutineMap.end();
-        for(it = subroutineMap.begin(); it != end; ++it)
+        for(auto it& : subroutineMap)
         {
-            setSubroutine(gptype, it->first, it->second);
+            setSubroutine(gptype, it.first, it.second);
         }
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::bindGpuProgramPassIterationParameters(GpuProgramType gptype)
-    {
-
-        switch(gptype)
-        {
-        case GPT_VERTEX_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveVertexGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-
-        case GPT_FRAGMENT_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveFragmentGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-        case GPT_GEOMETRY_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveGeometryGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-        case GPT_HULL_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveTessellationHullGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-        case GPT_DOMAIN_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveTessellationDomainGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-        case GPT_COMPUTE_PROGRAM:
-            bindGpuProgramParameters(gptype, mActiveComputeGpuProgramParameters, (uint16)GPV_PASS_ITERATION_NUMBER);
-            break;
-        }
+#endif
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::setSubroutine(GpuProgramType gptype, unsigned int slotIndex, const String& subroutineName)
@@ -3536,111 +2409,49 @@ namespace Ogre
     //---------------------------------------------------------------------
     void D3D11RenderSystem::setSubroutine(GpuProgramType gptype, const String& slotName, const String& subroutineName)
     {
-        unsigned int slotIdx = 0;
-        switch(gptype)
-        {
-        case GPT_VERTEX_PROGRAM:
-            {
-                if (mBoundVertexProgram)
-                {
-                    slotIdx = mBoundVertexProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        case GPT_FRAGMENT_PROGRAM:
-            {
-                if (mBoundFragmentProgram)
-                {
-                    slotIdx = mBoundFragmentProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        case GPT_GEOMETRY_PROGRAM:
-            {
-                if (mBoundGeometryProgram)
-                {
-                    slotIdx = mBoundGeometryProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        case GPT_HULL_PROGRAM:
-            {
-                if (mBoundTessellationHullProgram)
-                {
-                    slotIdx = mBoundTessellationHullProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        case GPT_DOMAIN_PROGRAM:
-            {
-                if (mBoundTessellationDomainProgram)
-                {
-                    slotIdx = mBoundTessellationDomainProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        case GPT_COMPUTE_PROGRAM:
-            {
-                if (mBoundComputeProgram)
-                {
-                    slotIdx = mBoundComputeProgram->getSubroutineSlot(slotName);
-                }
-            }
-            break;
-        };
-        
+        unsigned int slotIdx = mBoundProgram[gptype] ? mBoundProgram[gptype]->getSubroutineSlot(slotName) : 0;
         // Set subroutine for slot
         setSubroutine(gptype, slotIdx, subroutineName);
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::setClipPlanesImpl(const PlaneList& clipPlanes)
-    {
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::setScissorTest(bool enabled, size_t left, size_t top, size_t right,
-        size_t bottom)
+    void D3D11RenderSystem::setScissorTest(bool enabled, const Rect& rect)
     {
         mRasterizerDesc.ScissorEnable = enabled;
-        mScissorRect.left = static_cast<LONG>(left);
-        mScissorRect.top = static_cast<LONG>(top);
-        mScissorRect.right = static_cast<LONG>(right);
-        mScissorRect.bottom =static_cast<LONG>( bottom);
+        mScissorRect.left = rect.left;
+        mScissorRect.top = rect.top;
+        mScissorRect.right = rect.right;
+        mScissorRect.bottom = rect.bottom;
 
         mDevice.GetImmediateContext()->RSSetScissorRects(1, &mScissorRect);
-        if (mDevice.isError())
-        {
-            String errorDescription = mDevice.getErrorDescription();
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "D3D11 device cannot set scissor rects\nError Description:" + errorDescription,
-                "D3D11RenderSystem::setScissorTest");
-        }   
+        CHECK_DEVICE_ERROR("set scissor rects");
         mRasterizerDescChanged=true;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::clearFrameBuffer(unsigned int buffers, 
-        const ColourValue& colour, Real depth, unsigned short stencil)
+        const ColourValue& colour, float depth, unsigned short stencil)
     {
-        if (mActiveRenderTarget)
+        D3D11RenderTarget* d3d11RenderTarget = dynamic_cast<D3D11RenderTarget*>(mActiveRenderTarget);
+        if (mActiveRenderTarget && d3d11RenderTarget)
         {
-            ID3D11RenderTargetView * pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
+            ID3D11RenderTargetView* pRTView[OGRE_MAX_MULTIPLE_RENDER_TARGETS];
             memset(pRTView, 0, sizeof(pRTView));
 
-            mActiveRenderTarget->getCustomAttribute( "ID3D11RenderTargetView", &pRTView );
-            
+            for (uint i = 0; i < OGRE_MAX_MULTIPLE_RENDER_TARGETS; i++)
+            {
+                pRTView[i] = d3d11RenderTarget->getRenderTargetView(i);
+                if (!pRTView[i])
+                {
+                    break;
+                }
+            }
+
             if (buffers & FBT_COLOUR)
             {
-                float ClearColor[4];
-                D3D11Mappings::get(colour, ClearColor);
-
                 // Clear all views
-                uint numberOfViews;
-                mActiveRenderTarget->getCustomAttribute( "numberOfViews", &numberOfViews );
-                if( numberOfViews == 1 )
-                    mDevice.GetImmediateContext()->ClearRenderTargetView( pRTView[0], ClearColor );
-                else
+                uint numberOfViews = d3d11RenderTarget->getNumberOfViews();
+                for (uint i = 0; i < numberOfViews; ++i)
                 {
-                    for( uint i = 0; i < numberOfViews; ++i )
-                        mDevice.GetImmediateContext()->ClearRenderTargetView( pRTView[i], ClearColor );
+                    mDevice.GetImmediateContext()->ClearRenderTargetView(pRTView[i], colour.ptr());
                 }
 
             }
@@ -3660,6 +2471,11 @@ namespace Ogre
                                                                                         getDepthBuffer());
                 if( depthBuffer )
                 {
+                    if (isReverseDepthBufferEnabled())
+                    {
+                        depth = 1.0f - 0.5f * (depth + 1.0f);
+                    }
+
                     mDevice.GetImmediateContext()->ClearDepthStencilView(
                                                         depthBuffer->getDepthStencilView(),
                                                         ClearFlags, depth, static_cast<UINT8>(stencil) );
@@ -3668,127 +2484,11 @@ namespace Ogre
         }
     }
     //---------------------------------------------------------------------
-    void D3D11RenderSystem::_makeProjectionMatrix(Real left, Real right, 
-        Real bottom, Real top, Real nearPlane, Real farPlane, Matrix4& dest,
-        bool forGpuProgram)
-    {
-        // Correct position for off-axis projection matrix
-        if (!forGpuProgram)
-        {
-            Real offsetX = left + right;
-            Real offsetY = top + bottom;
-
-            left -= offsetX;
-            right -= offsetX;
-            top -= offsetY;
-            bottom -= offsetY;
-        }
-
-        Real width = right - left;
-        Real height = top - bottom;
-        Real q, qn;
-        if (farPlane == 0)
-        {
-            q = 1 - Frustum::INFINITE_FAR_PLANE_ADJUST;
-            qn = nearPlane * (Frustum::INFINITE_FAR_PLANE_ADJUST - 1);
-        }
-        else
-        {
-            q = farPlane / ( farPlane - nearPlane );
-            qn = -q * nearPlane;
-        }
-        dest = Matrix4::ZERO;
-        dest[0][0] = 2 * nearPlane / width;
-        dest[0][2] = (right+left) / width;
-        dest[1][1] = 2 * nearPlane / height;
-        dest[1][2] = (top+bottom) / height;
-        if (forGpuProgram)
-        {
-            dest[2][2] = -q;
-            dest[3][2] = -1.0f;
-        }
-        else
-        {
-            dest[2][2] = q;
-            dest[3][2] = 1.0f;
-        }
-        dest[2][3] = qn;
-    }
-
-    // ------------------------------------------------------------------
-    void D3D11RenderSystem::setClipPlane (ushort index, Real A, Real B, Real C, Real D)
-    {
-    }
-
-    // ------------------------------------------------------------------
-    void D3D11RenderSystem::enableClipPlane (ushort index, bool enable)
-    {
-    }
-    //---------------------------------------------------------------------
     HardwareOcclusionQuery* D3D11RenderSystem::createHardwareOcclusionQuery(void)
     {
         D3D11HardwareOcclusionQuery* ret = new D3D11HardwareOcclusionQuery (mDevice); 
         mHwOcclusionQueries.push_back(ret);
         return ret;
-    }
-    //---------------------------------------------------------------------
-    Real D3D11RenderSystem::getHorizontalTexelOffset(void)
-    {
-        // D3D11 is now like GL
-        return 0.0f;
-    }
-    //---------------------------------------------------------------------
-    Real D3D11RenderSystem::getVerticalTexelOffset(void)
-    {
-        // D3D11 is now like GL
-        return 0.0f;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::_applyObliqueDepthProjection(Matrix4& matrix, const Plane& plane, 
-        bool forGpuProgram)
-    {
-        // Thanks to Eric Lenyel for posting this calculation at www.terathon.com
-
-        // Calculate the clip-space corner point opposite the clipping plane
-        // as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and
-        // transform it into camera space by multiplying it
-        // by the inverse of the projection matrix
-
-        /* generalised version
-        Vector4 q = matrix.inverse() * 
-            Vector4(Math::Sign(plane.normal.x), Math::Sign(plane.normal.y), 1.0f, 1.0f);
-        */
-        Vector4 q;
-        q.x = Math::Sign(plane.normal.x) / matrix[0][0];
-        q.y = Math::Sign(plane.normal.y) / matrix[1][1];
-        q.z = 1.0F; 
-        // flip the next bit from Lengyel since we're right-handed
-        if (forGpuProgram)
-        {
-            q.w = (1.0F - matrix[2][2]) / matrix[2][3];
-        }
-        else
-        {
-            q.w = (1.0F + matrix[2][2]) / matrix[2][3];
-        }
-
-        // Calculate the scaled plane vector
-        Vector4 clipPlane4d(plane.normal.x, plane.normal.y, plane.normal.z, plane.d);
-        Vector4 c = clipPlane4d * (1.0F / (clipPlane4d.dotProduct(q)));
-
-        // Replace the third row of the projection matrix
-        matrix[2][0] = c.x;
-        matrix[2][1] = c.y;
-        // flip the next bit from Lengyel since we're right-handed
-        if (forGpuProgram)
-        {
-            matrix[2][2] = c.z; 
-        }
-        else
-        {
-            matrix[2][2] = -c.z; 
-        }
-        matrix[2][3] = c.w;        
     }
     //---------------------------------------------------------------------
     Real D3D11RenderSystem::getMinimumDepthInputValue(void)
@@ -3800,46 +2500,22 @@ namespace Ogre
     Real D3D11RenderSystem::getMaximumDepthInputValue(void)
     {
         // Range [0.0f, 1.0f]
-        // D3D inverts even identity view matrices, so maximum INPUT is -1.0
-        return -1.0f;
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::registerThread()
-    {
-        // nothing to do - D3D11 shares rendering context already
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::unregisterThread()
-    {
-        // nothing to do - D3D11 shares rendering context already
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::preExtraThreadsStarted()
-    {
-        // nothing to do - D3D11 shares rendering context already
-    }
-    //---------------------------------------------------------------------
-    void D3D11RenderSystem::postExtraThreadsStarted()
-    {
-        // nothing to do - D3D11 shares rendering context already
-    }
-    //---------------------------------------------------------------------
-    String D3D11RenderSystem::getErrorDescription( long errorNumber ) const
-    {
-        return mDevice.getErrorDescription(errorNumber);
+        return 1.0f;
     }
     //---------------------------------------------------------------------
     void D3D11RenderSystem::determineFSAASettings(uint fsaa, const String& fsaaHint, 
         DXGI_FORMAT format, DXGI_SAMPLE_DESC* outFSAASettings)
     {
-        bool qualityHint = fsaa >= 8 && fsaaHint.find("Quality") != String::npos;
-        
-        // NVIDIA, AMD - prefer CSAA aka EQAA if available.
-        // see http://developer.nvidia.com/object/coverage-sampled-aa.html
-        // see http://developer.amd.com/wordpress/media/2012/10/EQAA%20Modes%20for%20AMD%20HD%206900%20Series%20Cards.pdf
+        // "4f8" -> hint = "f8"
+        bool useCSAA = !fsaaHint.empty() && fsaaHint.front() == 'f';
+        uint32 quality = 0;
+        if(useCSAA) StringConverter::parse(fsaaHint.substr(1), quality);
+
+        // NVIDIA, AMD - enable CSAA
+        // http://developer.download.nvidia.com/assets/gamedev/docs/CSAA_Tutorial.pdf
+        // http://developer.amd.com/wordpress/media/2012/10/EQAA%20Modes%20for%20AMD%20HD%206900%20Series%20Cards.pdf
 
         // Modes are sorted from high quality to low quality, CSAA aka EQAA are listed first
-        // Note, that max(Count, Quality) == FSAA level and (Count >= 8 && Quality != 0) == quality hint
         DXGI_SAMPLE_DESC presets[] = {
                 { 8, 16 }, // CSAA 16xQ, EQAA 8f16x
                 { 4, 16 }, // CSAA 16x,  EQAA 4f16x
@@ -3855,16 +2531,14 @@ namespace Ogre
                 { 4, 0 },  // MSAA 4x
                 { 2, 0 },  // MSAA 2x
                 { 1, 0 },  // MSAA 1x
-                { NULL },
+                { 0 },
         };
 
-        // Skip too HQ modes
+        // Find matching AA mode
         DXGI_SAMPLE_DESC* mode = presets;
         for(; mode->Count != 0; ++mode)
         {
-            unsigned modeFSAA = std::max(mode->Count, mode->Quality);
-            bool modeQuality = mode->Count >= 8 && mode->Quality != 0;
-            bool tooHQ = (modeFSAA > fsaa || modeFSAA == fsaa && modeQuality && !qualityHint);
+            bool tooHQ = (mode->Count > fsaa || mode->Quality > quality);
             if(!tooHQ)
                 break;
         }
@@ -3898,7 +2572,6 @@ namespace Ogre
         mDriverList = NULL;
         mTextureManager = NULL;
         mHardwareBufferManager = NULL;
-        mGpuProgramManager = NULL;
         mPrimaryWindow = NULL;
         mMinRequestedFeatureLevel = D3D_FEATURE_LEVEL_9_1;
 #if __OGRE_WINRT_PHONE // Windows Phone support only FL 9.3, but simulator can create much more capable device, so restrict it artificially here
@@ -3916,14 +2589,7 @@ namespace Ogre
 		mStereoDriver = NULL;
 #endif
 
-        mBoundVertexProgram = NULL;
-        mBoundFragmentProgram = NULL;
-        mBoundGeometryProgram = NULL;
-        mBoundTessellationHullProgram = NULL;
-        mBoundTessellationDomainProgram = NULL;
-        mBoundComputeProgram = NULL;
-
-        mBindingType = TextureUnitState::BT_FRAGMENT;
+        mBoundProgram.fill(NULL);
 
         ZeroMemory( &mBlendDesc, sizeof(mBlendDesc));
 
@@ -3937,14 +2603,6 @@ namespace Ogre
 
         ZeroMemory( &mDepthStencilDesc, sizeof(mDepthStencilDesc));
         ZeroMemory( &mScissorRect, sizeof(mScissorRect));
-
-        // set filters to defaults
-        for (size_t n = 0; n < OGRE_MAX_TEXTURE_LAYERS; n++)
-        {
-            FilterMinification[n] = FO_NONE;
-            FilterMagnification[n] = FO_NONE;
-            FilterMips[n] = FO_NONE;
-        }
 
         mPolygonMode = PM_SOLID;
         mRasterizerDesc.FillMode = D3D11Mappings::get(mPolygonMode);
@@ -3969,47 +2627,12 @@ namespace Ogre
     {
         if( name == "D3DDEVICE" )
         {
-            ID3D11DeviceN  **device = (ID3D11DeviceN **)pData;
-            *device = mDevice.get();
-            return;
+            *(ID3D11DeviceN**)pData = mDevice.get();
         }
-
-        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Attribute not found: " + name, "RenderSystem::getCustomAttribute");
-    }
-    //---------------------------------------------------------------------
-    bool D3D11RenderSystem::_getDepthBufferCheckEnabled( void )
-    {
-        return mDepthStencilDesc.DepthEnable == TRUE;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundVertexProgram() const
-    {
-        return mBoundVertexProgram;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundFragmentProgram() const
-    {
-        return mBoundFragmentProgram;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundGeometryProgram() const
-    {
-        return mBoundGeometryProgram;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundTessellationHullProgram() const
-    {
-        return mBoundTessellationHullProgram;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundTessellationDomainProgram() const
-    {
-        return mBoundTessellationDomainProgram;
-    }
-    //---------------------------------------------------------------------
-    D3D11HLSLProgram* D3D11RenderSystem::_getBoundComputeProgram() const
-    {
-        return mBoundComputeProgram;
+        else
+        {
+            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Attribute not found: " + name, "RenderSystem::getCustomAttribute");
+        }
     }
 	//---------------------------------------------------------------------
 	bool D3D11RenderSystem::setDrawBuffer(ColourBufferType colourBuffer)

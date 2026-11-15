@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreD3D11Device.h"
+#include "OgreException.h"
 
 namespace Ogre
 {
@@ -47,8 +48,8 @@ namespace Ogre
         // Clear state
         if (mImmediateContext)
         {
-            mImmediateContext->Flush();
             mImmediateContext->ClearState();
+            mImmediateContext->Flush();
         }
 #if OGRE_D3D11_PROFILING
         mPerf.Reset();
@@ -108,7 +109,7 @@ namespace Ogre
 
                 D3D11_INFO_QUEUE_FILTER filter;
                 ZeroMemory(&filter, sizeof(D3D11_INFO_QUEUE_FILTER));
-                vector<D3D11_MESSAGE_SEVERITY>::type severityList;
+                std::vector<D3D11_MESSAGE_SEVERITY> severityList;
 
                 switch(mExceptionsErrorLevel)
                 {
@@ -136,11 +137,22 @@ namespace Ogre
                 mInfoQueue->AddRetrievalFilterEntries(&filter);
             }
 
+#ifdef SUBROUTINES
             // If feature level is 11, create class linkage
             if (mD3D11Device->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
             {
                 hr = mD3D11Device->CreateClassLinkage(mClassLinkage.ReleaseAndGetAddressOf());
             }
+#endif
+        }
+    }
+    //---------------------------------------------------------------------
+    void D3D11Device::throwIfFailed(HRESULT hr, const char* desc, const char* src)
+    {
+        if(FAILED(hr) || isError())
+        {
+            String description = std::string(desc).append("\nError Description:").append(getErrorDescription(hr));
+            OGRE_EXCEPT_EX(Exception::ERR_RENDERINGAPI_ERROR, hr, description, src);
         }
     }
     //---------------------------------------------------------------------
@@ -166,11 +178,7 @@ namespace Ogre
             res.append("invalid parameters were passed.\n");
             break;
         default:
-            {
-            char tmp[64];
-            sprintf(tmp, "hr = 0x%08X\n", lastResult);
-            res.append(tmp);
-            }
+            res = StringUtil::format("hr = 0x%08X\n", lastResult);
         }
 
         if (mInfoQueue)

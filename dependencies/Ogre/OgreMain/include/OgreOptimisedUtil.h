@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +100,7 @@ namespace Ogre {
             const float *srcPosPtr, float *destPosPtr,
             const float *srcNormPtr, float *destNormPtr,
             const float *blendWeightPtr, const unsigned char* blendIndexPtr,
-            const Matrix4* const* blendMatrices,
+            const Affine3* const* blendMatrices,
             size_t srcPosStride, size_t destPosStride,
             size_t srcNormStride, size_t destNormStride,
             size_t blendWeightStride, size_t blendIndexStride,
@@ -109,7 +109,7 @@ namespace Ogre {
 
         /** Performs a software vertex morph, of the kind used for
             morph animation although it can be used for other purposes. 
-        @remarks
+
             This function will linearly interpolate positions between two
             source buffers, into a third buffer.
         @param t Parametric distance between the start and end positions
@@ -120,9 +120,10 @@ namespace Ogre {
         @param numVertices Number of vertices to morph, which agree with
             the number in start, end and destination buffer. Bear in mind
             three floating-point values per vertex
+        @param morphNormals
         */
         virtual void softwareVertexMorph(
-            Real t,
+            float t,
             const float *srcPos1, const float *srcPos2,
             float *dstPos,
             size_t pos1VSize, size_t pos2VSize, size_t dstVSize, 
@@ -139,9 +140,9 @@ namespace Ogre {
         @param numMatrices Number of matrices in the array.
         */
         virtual void concatenateAffineMatrices(
-            const Matrix4& baseMatrix,
-            const Matrix4* srcMatrices,
-            Matrix4* dstMatrices,
+            const Affine3& baseMatrix,
+            const Affine3* srcMatrices,
+            Affine3* dstMatrices,
             size_t numMatrices) = 0;
 
         /** Calculate the face normals for the triangles based on position
@@ -162,7 +163,7 @@ namespace Ogre {
             size_t numTriangles) = 0;
 
         /** Calculate the light facing state of the triangle's face normals
-        @remarks
+
             This is normally the first stage of calculating a silhouette, i.e.
             establishing which tris are facing the light and which are facing
             away.
@@ -205,18 +206,18 @@ namespace Ogre {
             size_t numVertices) = 0;
     };
 
-    /** Returns raw offseted of the given pointer.
+    /** Returns raw offsetted of the given pointer.
     @note
         The offset are in bytes, no matter what type of the pointer.
     */
     template <class T>
-    static FORCEINLINE const T* rawOffsetPointer(const T* ptr, ptrdiff_t offset)
+    static OGRE_FORCE_INLINE const T* rawOffsetPointer(const T* ptr, ptrdiff_t offset)
     {
         return (const T*)((const char*)(ptr) + offset);
     }
 
     template <class T>
-    static FORCEINLINE T* rawOffsetPointer(T* ptr, ptrdiff_t offset)
+    static OGRE_FORCE_INLINE T* rawOffsetPointer(T* ptr, ptrdiff_t offset)
     {
         return (T*)((char*)(ptr) + offset);
     }
@@ -226,13 +227,13 @@ namespace Ogre {
         The offset are in bytes, no matter what type of the pointer.
     */
     template <class T>
-    static FORCEINLINE void advanceRawPointer(const T*& ptr, ptrdiff_t offset)
+    static OGRE_FORCE_INLINE void advanceRawPointer(const T*& ptr, ptrdiff_t offset)
     {
         ptr = rawOffsetPointer(ptr, offset);
     }
 
     template <class T>
-    static FORCEINLINE void advanceRawPointer(T*& ptr, ptrdiff_t offset)
+    static OGRE_FORCE_INLINE void advanceRawPointer(T*& ptr, ptrdiff_t offset)
     {
         ptr = rawOffsetPointer(ptr, offset);
     }

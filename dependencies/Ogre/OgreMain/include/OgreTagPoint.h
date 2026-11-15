@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ namespace Ogre  {
     */
     /** A tagged point on a skeleton, which can be used to attach entities to on specific
         other entities.
-    @remarks
+
         A Skeleton, like a Mesh, is shared between Entity objects and simply updated as required
         when it comes to rendering. However there are times when you want to attach another object
         to an animated entity, and make sure that attachment follows the parent entity's animation
@@ -62,7 +62,6 @@ namespace Ogre  {
 
     public:
         TagPoint(unsigned short handle, Skeleton* creator);
-        virtual ~TagPoint();
 
         Entity *getParentEntity(void) const;
         MovableObject* getChildObject(void) const;
@@ -91,27 +90,22 @@ namespace Ogre  {
         bool getInheritParentEntityScale(void) const;
 
         /** Gets the transform of parent entity. */
-        const Matrix4& getParentEntityTransform(void) const;
+        const Affine3& getParentEntityTransform(void) const;
 
         /** Gets the transform of this node just for the skeleton (not entity) */
-        const Matrix4& _getFullLocalTransform(void) const;
+        const Affine3& _getFullLocalTransform(void) const;
 
-        /** @copydoc Node::needUpdate */
-        void needUpdate(bool forceParentUpdate = false);
 
+        void needUpdate(bool forceParentUpdate = false) override;
         /** Overridden from Node in order to include parent Entity transform. */
-        void updateFromParentImpl(void) const;
-        /** @copydoc Renderable::getLights */
-        const LightList& getLights(void) const;
-
-
+        void updateFromParentImpl(void) const override;
 
     private:
-        Entity *mParentEntity;
-        MovableObject *mChildObject;
-        mutable Matrix4 mFullLocalTransform;
         bool mInheritParentEntityOrientation;
         bool mInheritParentEntityScale;
+        Entity *mParentEntity;
+        MovableObject *mChildObject;
+        mutable Affine3 mFullLocalTransform;
     };
 
     /** @} */

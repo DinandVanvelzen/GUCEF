@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,10 +56,8 @@ THE SOFTWARE.
 */
 
 #include "OgreStableHeaders.h"
-
 #include "OgreDualQuaternion.h"
-#include "OgreMatrix4.h"
-#include "OgreVector3.h"
+
 
 namespace Ogre {
 
@@ -99,7 +97,7 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    void DualQuaternion::fromTransformationMatrix (const Matrix4& kTrans)
+    void DualQuaternion::fromTransformationMatrix (const Affine3& kTrans)
     {
         Vector3 pos;
         Vector3 scale;
@@ -110,7 +108,7 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    void DualQuaternion::toTransformationMatrix (Matrix4& kTrans) const
+    void DualQuaternion::toTransformationMatrix (Affine3& kTrans) const
     {
         Vector3 pos;
         Quaternion rot;

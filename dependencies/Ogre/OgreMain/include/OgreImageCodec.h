@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 #include "OgreCodec.h"
 #include "OgrePixelFormat.h"
+#include "OgreBitwise.h"
 
 namespace Ogre {
 
@@ -40,48 +41,23 @@ namespace Ogre {
     *  @{
     */
     /** Codec specialized in images.
-        @remarks
-            The users implementing subclasses of ImageCodec are required to return
-            a valid pointer to a ImageData class from the decode(...) function.
     */
     class _OgreExport ImageCodec : public Codec
     {
-    public:
-        virtual ~ImageCodec();
-        /** Codec return class for images. Has information about the size and the
-            pixel format of the image. */
-        class _OgrePrivate ImageData : public Codec::CodecData
+    protected:
+        static void flipEndian(void* pData, size_t size, size_t count)
         {
-        public:
-            ImageData():
-                height(0), width(0), depth(1), size(0),
-                num_mipmaps(0), flags(0), format(PF_UNKNOWN)
-            {
-            }
-            uint32 height;
-            uint32 width;
-            uint32 depth;
-            size_t size;
-            
-            uint8 num_mipmaps;
-            uint flags;
-
-            PixelFormat format;
-
-        public:
-            String dataType() const
-            {
-                return "ImageData";
-            }
-        };
-
-    public:
-        String getDataType() const
+#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
+            Bitwise::bswapChunks(pData, size, count);
+#endif
+        }
+        static void flipEndian(void* pData, size_t size)
         {
-            return "ImageData";
+#if OGRE_ENDIAN == OGRE_ENDIAN_BIG
+            Bitwise::bswapBuffer(pData, size);
+#endif
         }
     };
-
     /** @} */
     /** @} */
 } // namespace

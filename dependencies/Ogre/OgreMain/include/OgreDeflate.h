@@ -4,7 +4,7 @@
  (Object-oriented Graphics Rendering Engine)
  For the latest info, see http://www.ogre3d.org/
  
- Copyright (c) 2000-2016 Torus Knot Software Ltd
+ Copyright (c) 2000-2014 Torus Knot Software Ltd
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -35,14 +35,124 @@
 #include "OgreHeaderPrefix.h"
 
 /// forward decls
-struct z_stream_s;
-typedef struct z_stream_s z_stream;
+struct mz_stream_s;
+typedef struct mz_stream_s z_stream;
 
 namespace Ogre
 {
+    /** Template version of cache based on static array.
+     'cacheSize' defines size of cache in bytes. */
+    template <size_t cacheSize>
+    class StaticCache
+    {
+    private:
+        /// Static buffer
+        char mBuffer[cacheSize];
+
+        /// Number of bytes valid in cache (written from the beginning of static buffer)
+        size_t mValidBytes;
+        /// Current read position
+        size_t mPos;
+    public:
+        /// Constructor
+        StaticCache()
+        {
+            mValidBytes = 0;
+            mPos = 0;
+            memset(mBuffer, 0, cacheSize);
+        }
+
+        /** Cache data pointed by 'buf'. If 'count' is greater than cache size, we cache only last bytes.
+         Returns number of bytes written to cache. */
+        size_t cacheData(const void* buf, size_t count)
+        {
+            assert(avail() == 0 && "It is assumed that you cache data only after you have read everything.");
+
+            if (count < cacheSize)
+            {
+                // number of bytes written is less than total size of cache
+                if (count + mValidBytes <= cacheSize)
+                {
+                    // just append
+                    memcpy(mBuffer + mValidBytes, buf, count);
+                    mValidBytes += count;
+                }
+                else
+                {
+                    size_t begOff = count - (cacheSize - mValidBytes);
+                    // override old cache content in the beginning
+                    memmove(mBuffer, mBuffer + begOff, mValidBytes - begOff);
+                    // append new data
+                    memcpy(mBuffer + cacheSize - count, buf, count);
+                    mValidBytes = cacheSize;
+                }
+                mPos = mValidBytes;
+                return count;
+            }
+            else
+            {
+                // discard all
+                memcpy(mBuffer, (const char*)buf + count - cacheSize, cacheSize);
+                mValidBytes = mPos = cacheSize;
+                return cacheSize;
+            }
+        }
+        /** Read data from cache to 'buf' (maximum 'count' bytes). Returns number of bytes read from cache. */
+        size_t read(void* buf, size_t count)
+        {
+            size_t rb = avail();
+            rb = (rb < count) ? rb : count;
+            memcpy(buf, mBuffer + mPos, rb);
+            mPos += rb;
+            return rb;
+        }
+
+        /** Step back in cached stream by 'count' bytes. Returns 'true' if cache contains resulting position. */
+        bool rewind(size_t count)
+        {
+            if (mPos < count)
+            {
+                clear();
+                return false;
+            }
+            else
+            {
+                mPos -= count;
+                return true;
+            }
+        }
+        /** Step forward in cached stream by 'count' bytes. Returns 'true' if cache contains resulting position. */
+        bool ff(size_t count)
+        {
+            if (avail() < count)
+            {
+                clear();
+                return false;
+            }
+            else
+            {
+                mPos += count;
+                return true;
+            }
+        }
+
+        /** Returns number of bytes available for reading in cache after rewinding. */
+        size_t avail() const
+        {
+            return mValidBytes - mPos;
+        }
+
+        /** Clear the cache */
+        void clear()
+        {
+            mValidBytes = 0;
+            mPos = 0;
+        }
+    };
+
     /** Stream which compresses / uncompresses data using the 'deflate' compression
         algorithm.
-    @remarks
+
         This stream is designed to wrap another stream for the actual source / destination
         of the compressed data, it has no concrete source / data itself. The idea is
         that you pass uncompressed data through this stream, and the underlying
@@ -56,11 +166,23 @@ namespace Ogre
     */
     class _OgreExport DeflateStream : public DataStream
     {
-    protected:
+    public:
+        /** Requested stream type. All are essentially the same deflate stream with varying wrapping.
+            ZLib is used by default.
+        */
+        enum StreamType
+        {
+            Invalid = -1, /// Unexpected stream type or uncompressed data
+            Deflate = 0,  /// no header, no checksum, rfc1951
+            ZLib = 1,     /// 2 byte header, 4 byte footer with adler32 checksum, rfc1950
+            GZip = 2,     /// 10 byte header, 8 byte footer with crc32 checksum and unpacked size, rfc1952
+        };
+    private:
         DataStreamPtr mCompressedStream;
         DataStreamPtr mTmpWriteStream;
         String mTempFileName;
         z_stream* mZStream;
+        int mStatus;
         size_t mCurrentPos;
         size_t mAvailIn;
         
@@ -71,7 +193,7 @@ namespace Ogre
         unsigned char *mTmp;
         
         /// Whether the underlying stream is valid compressed data
-        bool mIsCompressedValid;
+        StreamType mStreamType;
         
         void init();
         void destroy();
@@ -98,44 +220,55 @@ namespace Ogre
          */
         DeflateStream(const String& name, const DataStreamPtr& compressedStream, const String& tmpFileName="",
             size_t avail_in = 0);
+        /** Constructor for creating named stream wrapping another stream.
+         @param name The name to give this stream
+         @param compressedStream The stream that this stream will use when reading / 
+            writing compressed data. The access mode from this stream will be matched.
+         @param streamType The type of compressed stream
+         @param tmpFileName Path/Filename to be used for temporary storage of incoming data
+         @param avail_in Available data length to be uncompressed. With it we can uncompress
+            DataStream partly.
+         */
+        DeflateStream(const String& name, const DataStreamPtr& compressedStream, StreamType streamType, const String& tmpFileName="",
+            size_t avail_in = 0);
         
         ~DeflateStream();
         
         /** Returns whether the compressed stream is valid deflated data.
-         @remarks
+
             If you pass this class a READ stream which is not compressed with the 
             deflate algorithm, this method returns false and all read commands
             will actually be executed as passthroughs as a fallback. 
         */
-        bool isCompressedStreamValid() const { return mIsCompressedValid; }
+        bool isCompressedStreamValid() const { return mStreamType != Invalid; }
         
         /** @copydoc DataStream::read
          */
-        size_t read(void* buf, size_t count);
+        size_t read(void* buf, size_t count) override;
         
         /** @copydoc DataStream::write
          */
-        size_t write(const void* buf, size_t count);
+        size_t write(const void* buf, size_t count) override;
                 
         /** @copydoc DataStream::skip
          */
-        void skip(long count);
+        void skip(long count) override;
         
         /** @copydoc DataStream::seek
          */
-        void seek( size_t pos );
+        void seek( size_t pos ) override;
         
         /** @copydoc DataStream::tell
          */
-        size_t tell(void) const;
+        size_t tell(void) const override;
         
         /** @copydoc DataStream::eof
          */
-        bool eof(void) const;
+        bool eof(void) const override;
         
         /** @copydoc DataStream::close
          */
-        void close(void);
+        void close(void) override;
         
     };
 }

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreBspSceneManager.h"
-#include "OgreBspResourceManager.h"
 #include "OgreBspNode.h"
 #include "OgreException.h"
 #include "OgreRenderSystem.h"
@@ -44,7 +43,8 @@ THE SOFTWARE.
 #include "OgreTechnique.h"
 #include "OgrePass.h"
 #include "OgreMaterialManager.h"
-
+#include "OgreCodec.h"
+#include "OgreRoot.h"
 
 #include <fstream>
 
@@ -57,12 +57,7 @@ namespace Ogre {
         // Set features for debugging render
         mShowNodeAABs = false;
 
-        // No sky by default
-        mSkyPlaneEnabled = false;
-        mSkyBoxEnabled = false;
-        mSkyDomeEnabled = false;
-
-        mLevel.setNull();
+        mLevel.reset();
 
     }
     //-----------------------------------------------------------------------
@@ -71,11 +66,7 @@ namespace Ogre {
         return BspSceneManagerFactory::FACTORY_TYPE_NAME;
     }
     //-----------------------------------------------------------------------
-    BspSceneManager::~BspSceneManager()
-    {
-        freeMemory();
-        mLevel.setNull();
-    }
+    BspSceneManager::~BspSceneManager() {}
     //-----------------------------------------------------------------------
     size_t BspSceneManager::estimateWorldGeometry(const String& filename)
     {
@@ -92,73 +83,23 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void BspSceneManager::setWorldGeometry(const String& filename)
     {
-        mLevel.setNull();
-        // Check extension is .bsp
-        char extension[6];
-        size_t pos = filename.find_last_of(".");
-        if( pos == String::npos )
-            OGRE_EXCEPT(
-                Exception::ERR_INVALIDPARAMS,
-                "Unable to load world geometry. Invalid extension (must be .bsp).",
-                "BspSceneManager::setWorldGeometry");
-
-        strncpy(extension, filename.substr(pos + 1, filename.length() - pos).c_str(), 5);
-        extension[5] = 0;
-
-#if  OGRE_COMPILER == OGRE_COMPILER_MSVC
-        if (_stricmp(extension, "bsp"))
-#else
-        if (stricmp(extension, "bsp"))
-#endif
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
-            "Unable to load world geometry. Invalid extension (must be .bsp).",
-            "BspSceneManager::setWorldGeometry");
-
-        // Load using resource manager
-        mLevel = BspResourceManager::getSingleton().load(filename, 
-            ResourceGroupManager::getSingleton().getWorldResourceGroupName()).staticCast<BspLevel>();
-
-        if (mLevel->isSkyEnabled())
-        {
-            // Quake3 is always aligned with Z upwards
-            Quaternion q;
-            q.FromAngleAxis(Radian(Math::HALF_PI), Vector3::UNIT_X);
-            // Also draw last, and make close to camera (far clip plane is shorter)
-            setSkyDome(true, mLevel->getSkyMaterialName(),
-                mLevel->getSkyCurvature(), 12, 2000, false, q);
-        }
-        else
-        {
-            setSkyDome(false, BLANKSTRING);
-        }
-
-        // Init static render operation
-        mRenderOp.vertexData = mLevel->mVertexData;
-        // index data is per-frame
-        mRenderOp.indexData = OGRE_NEW IndexData();
-        mRenderOp.indexData->indexStart = 0;
-        mRenderOp.indexData->indexCount = 0;
-        // Create enough index space to render whole level
-        mRenderOp.indexData->indexBuffer = HardwareBufferManager::getSingleton()
-            .createIndexBuffer(
-                HardwareIndexBuffer::IT_32BIT, // always 32-bit
-                mLevel->mNumIndexes, 
-                HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE, false);
-
-        mRenderOp.operationType = RenderOperation::OT_TRIANGLE_LIST;
-        mRenderOp.useIndexes = true;
-
-
+        auto stream = Root::openFileStream(
+            filename, ResourceGroupManager::getSingleton().getWorldResourceGroupName());
+        setWorldGeometry(stream);
     }
     //-----------------------------------------------------------------------
     void BspSceneManager::setWorldGeometry(DataStreamPtr& stream, 
         const String& typeName)
     {
-        mLevel.setNull();
+        Codec::getCodec("bsp")->decode(stream, getRootSceneNode());
+    }
 
-        // Load using resource manager
-        mLevel = BspResourceManager::getSingleton().load(stream, 
-            ResourceGroupManager::getSingleton().getWorldResourceGroupName()).staticCast<BspLevel>();
+    void BspSceneManager::setLevel(const BspLevelPtr& level)
+    {
+        mLevel = level;
+
+        if(!mLevel)
+            return;
 
         if (mLevel->isSkyEnabled())
         {
@@ -173,24 +114,6 @@ namespace Ogre {
         {
             setSkyDome(false, BLANKSTRING);
         }
-
-        // Init static render operation
-        mRenderOp.vertexData = mLevel->mVertexData;
-        // index data is per-frame
-        mRenderOp.indexData = OGRE_NEW IndexData();
-        mRenderOp.indexData->indexStart = 0;
-        mRenderOp.indexData->indexCount = 0;
-        // Create enough index space to render whole level
-        mRenderOp.indexData->indexBuffer = HardwareBufferManager::getSingleton()
-            .createIndexBuffer(
-                HardwareIndexBuffer::IT_32BIT, // always 32-bit
-                mLevel->mNumIndexes, 
-                HardwareBuffer::HBU_DYNAMIC_WRITE_ONLY_DISCARDABLE, false);
-
-        mRenderOp.operationType = RenderOperation::OT_TRIANGLE_LIST;
-        mRenderOp.useIndexes = true;
-
-
     }
     //-----------------------------------------------------------------------
     void BspSceneManager::_findVisibleObjects(Camera* cam, 
@@ -224,56 +147,25 @@ namespace Ogre {
     void BspSceneManager::renderStaticGeometry(void)
     {
         // Check we should be rendering
-        if (!isRenderQueueToBeProcessed(mWorldGeometryRenderQueue))
+        if (!isRenderQueueToBeProcessed(getWorldGeometryRenderQueue()))
             return;
-
-        // Cache vertex/face data first
-        vector<StaticFaceGroup*>::type::const_iterator faceGrpi;
-        static RenderOperation patchOp;
-        
-        // no world transform required
-        mDestRenderSystem->_setWorldMatrix(Matrix4::IDENTITY);
-        // Set view / proj
-        setViewMatrix(mCachedViewMatrix);
-        mDestRenderSystem->_setProjectionMatrix(mCameraInProgress->getProjectionMatrixRS());
 
         // For each material in turn, cache rendering data & render
         MaterialFaceGroupMap::const_iterator mati;
-
         for (mati = mMatFaceGroupMap.begin(); mati != mMatFaceGroupMap.end(); ++mati)
         {
             // Get Material
             Material* thisMaterial = mati->first;
-
-            // Empty existing cache
-            mRenderOp.indexData->indexCount = 0;
-            // lock index buffer ready to receive data
-            unsigned int* pIdx = static_cast<unsigned int*>(
-                mRenderOp.indexData->indexBuffer->lock(HardwareBuffer::HBL_DISCARD));
-
-            for (faceGrpi = mati->second.begin(); faceGrpi != mati->second.end(); ++faceGrpi)
-            {
-                // Cache each
-                unsigned int numelems = cacheGeometry(pIdx, *faceGrpi);
-                mRenderOp.indexData->indexCount += numelems;
-                pIdx += numelems;
-            }
-            // Unlock the buffer
-            mRenderOp.indexData->indexBuffer->unlock();
+            thisMaterial->touch();
 
             // Skip if no faces to process (we're not doing flare types yet)
-            if (mRenderOp.indexData->indexCount == 0)
+            if (!mLevel->cacheGeometry(mati->second))
                 continue;
 
-            Technique::PassIterator pit = thisMaterial->getBestTechnique()->getPassIterator();
-
-            while (pit.hasMoreElements())
+            const Technique::Passes& passes = thisMaterial->getBestTechnique ()->getPasses();
+            for (size_t p = 0; p < passes.size(); p++)
             {
-                _setPass(pit.getNext());
-
-                mDestRenderSystem->_render(mRenderOp);
-
-
+                _injectRenderWithPass(passes[p], mLevel.get());
             } 
 
 
@@ -298,7 +190,7 @@ namespace Ogre {
     BspNode* BspSceneManager::walkTree(Camera* camera, 
         VisibleObjectsBoundsInfo *visibleBounds, bool onlyShadowCasters)
     {
-        if (mLevel.isNull()) return 0;
+        if (!mLevel) return 0;
 
         // Locate the leaf node where the camera is located
         BspNode* cameraNode = mLevel->findLeaf(camera->getDerivedPosition());
@@ -387,8 +279,8 @@ namespace Ogre {
                     continue;
                 StaticFaceGroup* faceGroup = mLevel->mFaceGroups + realIndex;
                 // Get Material pointer by handle
-                pMat = MaterialManager::getSingleton().getByHandle(faceGroup->materialHandle).staticCast<Material>();
-                assert (!pMat.isNull());
+                pMat = static_pointer_cast<Material>(MaterialManager::getSingleton().getByHandle(faceGroup->materialHandle));
+                assert (pMat);
                 // Check normal (manual culling)
                 ManualCullingMode cullMode = pMat->getTechnique(0)->getPass(0)->getManualCullingMode();
                 if (cullMode != MANUAL_CULL_NONE)
@@ -401,9 +293,7 @@ namespace Ogre {
                 mFaceGroupSet.insert(realIndex);
                 // Try to insert, will find existing if already there
                 std::pair<MaterialFaceGroupMap::iterator, bool> matgrpi;
-                matgrpi = mMatFaceGroupMap.insert(
-                    MaterialFaceGroupMap::value_type(pMat.getPointer(), vector<StaticFaceGroup*>::type())
-                    );
+                matgrpi = mMatFaceGroupMap.emplace(pMat.get(), std::vector<StaticFaceGroup*>());
                 // Whatever happened, matgrpi.first is map iterator
                 // Need to get second part of that to get vector
                 matgrpi.first->second.push_back(faceGroup);
@@ -432,64 +322,6 @@ namespace Ogre {
         }
 
 
-    }
-    //-----------------------------------------------------------------------
-    unsigned int BspSceneManager::cacheGeometry(unsigned int* pIndexes, 
-        const StaticFaceGroup* faceGroup)
-    {
-        // Skip sky always
-        if (faceGroup->isSky)
-            return 0;
-
-        size_t idxStart, numIdx, vertexStart;
-
-        if (faceGroup->fType == FGT_FACE_LIST)
-        {
-            idxStart = faceGroup->elementStart;
-            numIdx = faceGroup->numElements;
-            vertexStart = faceGroup->vertexStart;
-        }
-        else if (faceGroup->fType == FGT_PATCH)
-        {
-
-            idxStart = faceGroup->patchSurf->getIndexOffset();
-            numIdx = faceGroup->patchSurf->getCurrentIndexCount();
-            vertexStart = faceGroup->patchSurf->getVertexOffset();
-        }
-        else
-        {
-            // Unsupported face type
-            return 0;
-        }
-
-
-        // Copy index data
-        unsigned int* pSrc = static_cast<unsigned int*>(
-            mLevel->mIndexes->lock(
-                idxStart * sizeof(unsigned int),
-                numIdx * sizeof(unsigned int), 
-                HardwareBuffer::HBL_READ_ONLY));
-        // Offset the indexes here
-        // we have to do this now rather than up-front because the 
-        // indexes are sometimes reused to address different vertex chunks
-        for (size_t elem = 0; elem < numIdx; ++elem)
-        {
-            *pIndexes++ = *pSrc++ + static_cast<unsigned int>(vertexStart);
-        }
-        mLevel->mIndexes->unlock();
-
-        // return number of elements
-        return static_cast<unsigned int>(numIdx);
-
-
-    }
-
-    //-----------------------------------------------------------------------
-    void BspSceneManager::freeMemory(void)
-    {
-        // no need to delete index buffer, will be handled by shared pointer
-        OGRE_DELETE mRenderOp.indexData;
-        mRenderOp.indexData = 0;
     }
     //-----------------------------------------------------------------------
     void BspSceneManager::showNodeBoxes(bool show)
@@ -571,7 +403,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     ViewPoint BspSceneManager::getSuggestedViewpoint(bool random)
     {
-        if (mLevel.isNull() || mLevel->mPlayerStarts.empty())
+        if (!mLevel || mLevel->mPlayerStarts.empty())
         {
             // No level, use default
             return SceneManager::getSuggestedViewpoint(random);
@@ -606,7 +438,7 @@ namespace Ogre {
     void BspSceneManager::_notifyObjectMoved(const MovableObject* mov, 
         const Vector3& pos)
     {
-        if (!mLevel.isNull())
+        if (mLevel)
         {
             mLevel->_notifyObjectMoved(mov, pos);
         }
@@ -614,7 +446,7 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void BspSceneManager::_notifyObjectDetached(const MovableObject* mov)
     {
-        if (!mLevel.isNull())
+        if (mLevel)
         {
             mLevel->_notifyObjectDetached(mov);
         }
@@ -623,9 +455,8 @@ namespace Ogre {
     void BspSceneManager::clearScene(void)
     {
         SceneManager::clearScene();
-        freeMemory();
         // Clear level
-        mLevel.setNull();
+        mLevel.reset();
     }
     //-----------------------------------------------------------------------
     /*
@@ -663,11 +494,11 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     //-----------------------------------------------------------------------
     BspIntersectionSceneQuery::BspIntersectionSceneQuery(SceneManager* creator) 
-        : DefaultIntersectionSceneQuery(creator)
+        : DefaultIntersectionSceneQuery(creator), mWorldFragmentType(WFT_NONE)
     {
+        mSupportedWorldFragments.insert(WFT_NONE);
         // Add bounds fragment type
-        mSupportedWorldFragments.insert(SceneQuery::WFT_PLANE_BOUNDED_REGION);
-        
+        mSupportedWorldFragments.insert(WFT_PLANE_BOUNDED_REGION);
     }
     void BspIntersectionSceneQuery::execute(IntersectionSceneQueryListener* listener)
     {
@@ -677,7 +508,7 @@ namespace Ogre {
         overlap 2 leaves?
         */
         const BspLevelPtr& lvl = ((BspSceneManager*)mParentSceneMgr)->getLevel();
-        if (lvl.isNull()) return;
+        if (!lvl) return;
 
         BspNode* leaf = lvl->getLeafStart();
         int numLeaves = lvl->getNumLeaves();
@@ -734,7 +565,7 @@ namespace Ogre {
 
                     for (bi = brushes.begin(); bi != biend; ++bi)
                     {
-                        list<Plane>::type::const_iterator planeit, planeitend;
+                        std::vector<Plane>::const_iterator planeit, planeitend;
                         planeitend = (*bi)->planes.end();
                         bool brushIntersect = true; // Assume intersecting for now
 
@@ -751,7 +582,7 @@ namespace Ogre {
                         if (brushIntersect)
                         {
                             // report this brush as it's WorldFragment
-                            assert((*bi)->fragment.fragmentType == SceneQuery::WFT_PLANE_BOUNDED_REGION);
+                            assert((*bi)->fragment.fragmentType == WFT_PLANE_BOUNDED_REGION);
                             if (!listener->queryResult(const_cast<MovableObject*>(aObj), 
                                     const_cast<WorldFragment*>(&((*bi)->fragment))))
                                 return; 
@@ -772,18 +603,19 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     //-----------------------------------------------------------------------
     BspRaySceneQuery::BspRaySceneQuery(SceneManager* creator)
-        :DefaultRaySceneQuery(creator)
+        :DefaultRaySceneQuery(creator), mWorldFragmentType(WFT_NONE)
     {
         // Add supported fragment types
-        mSupportedWorldFragments.insert(SceneQuery::WFT_SINGLE_INTERSECTION);
-        mSupportedWorldFragments.insert(SceneQuery::WFT_PLANE_BOUNDED_REGION);
+        mSupportedWorldFragments.insert(WFT_NONE);
+        mSupportedWorldFragments.insert(WFT_SINGLE_INTERSECTION);
+        mSupportedWorldFragments.insert(WFT_PLANE_BOUNDED_REGION);
     }
     //-----------------------------------------------------------------------
     void BspRaySceneQuery::execute(RaySceneQueryListener* listener)
     {
         clearTemporaries();
         BspLevelPtr lvl = static_cast<BspSceneManager*>(mParentSceneMgr)->getLevel();
-        if (!lvl.isNull())
+        if (lvl)
         {
             processNode(
                 lvl->getRootNode(), 
@@ -799,7 +631,7 @@ namespace Ogre {
     void BspRaySceneQuery::clearTemporaries(void)
     {
         mObjsThisQuery.clear();
-        vector<WorldFragment*>::type::iterator i;
+        std::vector<WorldFragment*>::iterator i;
         for (i = mSingleIntersections.begin(); i != mSingleIntersections.end(); ++i)
         {
             OGRE_FREE(*i, MEMCATEGORY_SCENE_CONTROL);
@@ -911,22 +743,22 @@ namespace Ogre {
                 if(result.first && result.second <= maxDistance)
                 {
                     intersectedBrush = true;
-                    if(mWorldFragmentType == SceneQuery::WFT_SINGLE_INTERSECTION)
+                    if(mWorldFragmentType == WFT_SINGLE_INTERSECTION)
                     {
                         // We're interested in a single intersection
                         // Have to create these 
                         SceneQuery::WorldFragment* wf = OGRE_ALLOC_T(SceneQuery::WorldFragment, 1, MEMCATEGORY_SCENE_CONTROL);
-                        wf->fragmentType = SceneQuery::WFT_SINGLE_INTERSECTION;
+                        wf->fragmentType = WFT_SINGLE_INTERSECTION;
                         wf->singleIntersection = tracingRay.getPoint(result.second);
                         // save this so we can clean up later
                         mSingleIntersections.push_back(wf);
                         if (!listener->queryResult(wf, result.second + traceDistance))
                             return false;
                     }
-                    else if (mWorldFragmentType ==  SceneQuery::WFT_PLANE_BOUNDED_REGION)
+                    else if (mWorldFragmentType ==  WFT_PLANE_BOUNDED_REGION)
                     {
                         // We want the whole bounded volume
-                        assert((*bi)->fragment.fragmentType == SceneQuery::WFT_PLANE_BOUNDED_REGION);
+                        assert((*bi)->fragment.fragmentType == WFT_PLANE_BOUNDED_REGION);
                         if (!listener->queryResult(const_cast<WorldFragment*>(&(brush->fragment)), 
                             result.second + traceDistance))
                             return false; 
@@ -947,23 +779,10 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     const String BspSceneManagerFactory::FACTORY_TYPE_NAME = "BspSceneManager";
     //-----------------------------------------------------------------------
-    void BspSceneManagerFactory::initMetaData(void) const
-    {
-        mMetaData.typeName = FACTORY_TYPE_NAME;
-        mMetaData.description = "Scene manager for loading Quake3 .bsp files.";
-        mMetaData.sceneTypeMask = ST_INTERIOR;
-        mMetaData.worldGeometrySupported = true;
-    }
-    //-----------------------------------------------------------------------
     SceneManager* BspSceneManagerFactory::createInstance(
         const String& instanceName)
     {
         return OGRE_NEW BspSceneManager(instanceName);
-    }
-    //-----------------------------------------------------------------------
-    void BspSceneManagerFactory::destroyInstance(SceneManager* instance)
-    {
-        OGRE_DELETE instance;
     }
 
 }

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,6 @@ namespace Ogre
     //---------------------------------------------------------------------
     String D3D11VideoMode::getDescription() const
     {
-        char tmp[128];
         unsigned int colourDepth = 16;
         if( mModeDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM ||
             mModeDesc.Format == DXGI_FORMAT_R32G32B32A32_TYPELESS ||
@@ -46,25 +45,7 @@ namespace Ogre
             )
             colourDepth = 32;
 
-        sprintf( tmp, "%d x %d @ %d-bit colour", mModeDesc.Width, mModeDesc.Height, colourDepth );
-        return String(tmp);
-    }
-    //---------------------------------------------------------------------
-    unsigned int D3D11VideoMode::getColourDepth() const
-    {
-        unsigned int colourDepth = 16;
-        if( mModeDesc.Format == DXGI_FORMAT_R32G32B32A32_TYPELESS ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32A32_UINT ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32A32_SINT ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32_TYPELESS ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32_FLOAT ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32_UINT ||
-            mModeDesc.Format == DXGI_FORMAT_R32G32B32_SINT 
-            )
-            colourDepth = 32;
-
-        return colourDepth;
+        return StringUtil::format("%d x %d @ %d-bit colour", mModeDesc.Width, mModeDesc.Height, colourDepth);
     }
     //---------------------------------------------------------------------
     unsigned int D3D11VideoMode::getWidth() const

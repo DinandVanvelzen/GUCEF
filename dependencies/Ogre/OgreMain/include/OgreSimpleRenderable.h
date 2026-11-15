@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -49,17 +49,14 @@ namespace Ogre {
     */
     class _OgreExport SimpleRenderable : public MovableObject, public Renderable
     {
+        bool getCastsShadows(void) const override { return getCastShadows(); }
     protected:
         RenderOperation mRenderOp;
 
-        Matrix4 mWorldTransform;
+        Affine3 mTransform;
         AxisAlignedBox mBox;
 
-        String mMatName;
         MaterialPtr mMaterial;
-
-        /// The scene manager for the current frame.
-        SceneManager *mParentSceneManager;
 
         /// The camera for the current frame.
         Camera *mCamera;
@@ -74,34 +71,27 @@ namespace Ogre {
         /// Named constructor
         SimpleRenderable(const String& name);
 
-        virtual void setMaterial( const String& matName );
-        virtual const MaterialPtr& getMaterial(void) const;
+        virtual void setMaterial(const MaterialPtr& mat);
+        const MaterialPtr& getMaterial(void) const override;
 
         virtual void setRenderOperation( const RenderOperation& rend );
-        virtual void getRenderOperation(RenderOperation& op);
+        void getRenderOperation(RenderOperation& op) override;
 
-        void setWorldTransform( const Matrix4& xform );
-        virtual void getWorldTransforms( Matrix4* xform ) const;
+        void setTransform( const Affine3& xform );
+        void getWorldTransforms( Matrix4* xform ) const override;
 
 
-        virtual void _notifyCurrentCamera(Camera* cam);
+        void _notifyCurrentCamera(Camera* cam) override;
 
         void setBoundingBox( const AxisAlignedBox& box );
-        virtual const AxisAlignedBox& getBoundingBox(void) const;
+        const AxisAlignedBox& getBoundingBox(void) const override;
 
-        virtual void _updateRenderQueue(RenderQueue* queue);
-        /// @copydoc MovableObject::visitRenderables
-        void visitRenderables(Renderable::Visitor* visitor, 
-            bool debugRenderables = false);
+        void _updateRenderQueue(RenderQueue* queue) override;
 
-        virtual ~SimpleRenderable();
-
-
-        /** Overridden from MovableObject */
-        virtual const String& getMovableType(void) const;
-
-        /** @copydoc Renderable::getLights */
-        const LightList& getLights(void) const;
+        void visitRenderables(Renderable::Visitor* visitor,
+            bool debugRenderables = false) override;
+        const String& getMovableType(void) const override;
+        const LightList& getLights(void) const override;
 
     };
     /** @} */

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,19 @@ THE SOFTWARE.
 #ifndef __Ogre_Volume_CacheSource_H__
 #define __Ogre_Volume_CacheSource_H__
 
-#include "OgreVector4.h"
+#include "OgreVector.h"
 
 #include "OgreVolumeSource.h"
 #include "OgreVolumePrerequisites.h"
 
 namespace Ogre {
 namespace Volume {
-    
+    /** \addtogroup Optional
+    *  @{
+    */
+    /** \addtogroup Volume
+    *  @{
+    */
     /** A less operator. 
     @note
         This operator is needed so that Vertex can serve as the key in a map structrue 
@@ -53,7 +58,7 @@ namespace Volume {
     protected:
         
         /// Map for the cache
-        typedef map<Vector3, Vector4>::type UMapPositionValue;
+        typedef std::map<Vector3, Vector4> UMapPositionValue;
         mutable UMapPositionValue mCache;
 
         /// The source to cache.
@@ -68,7 +73,7 @@ namespace Volume {
         inline Vector4 getFromCache(const Vector3 &position) const
         {
             Vector4 result;
-            map<Vector3, Vector4>::iterator it = mCache.find(position);
+            std::map<Vector3, Vector4>::iterator it = mCache.find(position);
             if (it == mCache.end())
             {
                 result = mSrc->getValueAndGradient(position);
@@ -91,14 +96,15 @@ namespace Volume {
         
         /** Overridden from Source.
         */
-        virtual Vector4 getValueAndGradient(const Vector3 &position) const;
+        Vector4 getValueAndGradient(const Vector3 &position) const override;
         
         /** Overridden from Source.
         */
-        virtual Real getValue(const Vector3 &position) const;
+        Real getValue(const Vector3 &position) const override;
 
     };
-
+    /** @} */
+    /** @} */
 }
 }
 

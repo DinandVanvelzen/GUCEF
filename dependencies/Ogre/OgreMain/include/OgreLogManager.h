@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,12 +45,12 @@ namespace Ogre
     */
     /** The log manager handles the creation and retrieval of logs for the
         application.
-        @remarks
-            This class will create new log files and will retrieve instances
-            of existing ones. Other classes wishing to log output can either
-            create a fresh log or retrieve an existing one to output to.
-            One log is the default log, and is the one written to when the
-            logging methods of this class are called.
+
+        This class will create new log files and will retrieve instances
+        of existing ones. Other classes wishing to log output can either
+        create a fresh log or retrieve an existing one to output to.
+        One log is the default log, and is the one written to when the
+        logging methods of this class are called.
         @par
             By default, Root will instantiate a LogManager (which becomes the 
             Singleton instance) on construction, and will create a default log
@@ -63,8 +63,8 @@ namespace Ogre
     */
     class _OgreExport LogManager : public Singleton<LogManager>, public LogAlloc
     {
-    protected:
-        typedef map<String, Log*>::type LogList;
+    private:
+        typedef std::map<String, Log*> LogList;
 
         /// A list of all the logs the manager can access
         LogList mLogs;
@@ -120,6 +120,11 @@ namespace Ogre
         void logMessage( const String& message, LogMessageLevel lml = LML_NORMAL, 
             bool maskDebug = false);
 
+        /// @overload
+        void logError(const String& message, bool maskDebug = false );
+        /// @overload
+        void logWarning(const String& message, bool maskDebug = false );
+
         /** Log a message to the default log (signature for backward compatibility).
         */
         void logMessage( LogMessageLevel lml, const String& message,  
@@ -129,40 +134,13 @@ namespace Ogre
         Log::Stream stream(LogMessageLevel lml = LML_NORMAL, 
             bool maskDebug = false);
 
-        /** Sets the level of detail of the default log.
-        */
-        void setLogDetail(LoggingLevel ll);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @deprecated use setMinLogLevel()
+        OGRE_DEPRECATED void setLogDetail(LoggingLevel ll);
+        /// sets the minimal #LogMessageLevel for the default log
+        void setMinLogLevel(LogMessageLevel lml);
+        /// @copydoc Singleton::getSingleton()
         static LogManager& getSingleton(void);
-        /** Override standard Singleton retrieval.
-        @remarks
-        Why do we do this? Well, it's because the Singleton
-        implementation is in a .h file, which means it gets compiled
-        into anybody who includes it. This is needed for the
-        Singleton template to work, but we actually only want it
-        compiled into the implementation of the class based on the
-        Singleton, not all of them. If we don't change this, we get
-        link errors when trying to use the Singleton-based class from
-        an outside dll.
-        @par
-        This method just delegates to the template version anyway,
-        but the implementation stays in this single compilation unit,
-        preventing link errors.
-        */
+        /// @copydoc Singleton::getSingleton()
         static LogManager* getSingletonPtr(void);
 
     };

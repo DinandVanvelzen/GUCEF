@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-PCZCamera.h  -  description
------------------------------------------------------------------------------
-begin                : Wed Feb 21 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    :
------------------------------------------------------------------------------
 */
 
 #ifndef PCZCAMERA_H
@@ -42,6 +35,12 @@ Code Style Update    :
 
 namespace Ogre
 {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup PCZSceneManager
+    *  @{
+    */
     #define MAX_EXTRA_CULLING_PLANES    40
 
     class PCZone;
@@ -51,6 +50,7 @@ namespace Ogre
 
     class _OgrePCZPluginExport PCZCamera : public Camera
     {
+        using Camera::isVisible;
     public:
         /** Visibility types */
         enum Visibility
@@ -65,14 +65,10 @@ namespace Ogre
         /* Standard destructor */
         ~PCZCamera();
 
-        /** Overridden: Retrieves the local axis-aligned bounding box for this object.
-            @remarks
-                This bounding box is in local coordinates.
-        */
-        virtual const AxisAlignedBox& getBoundingBox(void) const;
+        const AxisAlignedBox& getBoundingBox(void) const override;
 
         /* Overridden isVisible function for aabb */
-        virtual bool isVisible( const AxisAlignedBox &bound, FrustumPlane *culledBy=0) const;
+        bool isVisible( const AxisAlignedBox &bound, FrustumPlane *culledBy=0) const override;
 
         /* isVisible() function for portals */
         bool isVisible(PortalBase* portal, FrustumPlane* culledBy = 0) const;
@@ -86,7 +82,7 @@ namespace Ogre
         PCZCamera::Visibility getVisibility( const AxisAlignedBox &bound );
 
         /// Sets the type of projection to use (orthographic or perspective).
-        void setProjectionType(ProjectionType pt);
+        void setProjectionType(ProjectionType pt) override;
 
         /* Update function (currently used for making sure the origin stuff for the
            extra culling frustum is up to date */
@@ -103,7 +99,8 @@ namespace Ogre
         AxisAlignedBox mBox;
         PCZFrustum mExtraCullingFrustum;
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

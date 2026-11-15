@@ -4,7 +4,7 @@
  * (Object-oriented Graphics Rendering Engine)
  * For the latest info, see http://www.ogre3d.org/
  *
- * Copyright (c) 2000-2016 Torus Knot Software Ltd
+ * Copyright (c) 2000-2014 Torus Knot Software Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,17 +31,23 @@
 
 #include "OgreLodPrerequisites.h"
 #include "OgreDistanceLodStrategy.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
-
+/** \addtogroup Optional
+*  @{
+*/
+/** \addtogroup MeshLodGenerator
+*  @{
+*/
 struct _OgreLodExport ProfiledEdge {
     Vector3 src; // Vertex identifier
     Vector3 dst; // Direction of collapse
     Real cost; // Requested collapse cost
 };
 
-typedef vector<ProfiledEdge>::type LodProfile;
+typedef std::vector<ProfiledEdge> LodProfile;
 
 /**
  * @brief Structure for automatic Lod configuration.
@@ -123,10 +129,10 @@ struct _OgreLodExport LodConfig {
     MeshPtr mesh; /// The mesh which we want to reduce.
     LodStrategy* strategy; /// Lod strategy to use.
 
-    typedef vector<LodLevel>::type LodLevelList;
+    typedef std::vector<LodLevel> LodLevelList;
     LodLevelList levels; /// Info about Lod levels
 
-    LodConfig(MeshPtr & _mesh, LodStrategy * _strategy = DistanceLodStrategy::getSingletonPtr());
+    LodConfig(MeshPtr & _mesh, LodStrategy * _strategy = DistanceLodBoxStrategy::getSingletonPtr());
     LodConfig();
 
     // Helper functions:
@@ -139,7 +145,7 @@ struct _OgreLodExport LodConfig {
         /// Whether you want to process it immediatelly on main thread or you want to use Ogre::WorkQueue.
         /// If you use workqueue the generator will return immediately. After processed in background,
         /// the LodWorkQueueInjector will inject it in frameEnd event when rendering next frame.
-        /// Ready LODs can also be injected by calling Root::getSingleton().getWorkQueue()->processResponses().
+        /// Ready LODs can also be injected by calling Root::getSingleton().getWorkQueue()->processMainThreadTasks().
         /// (disabled by default)
         bool useBackgroundQueue;
         /// If enabled, it allows up to 50% smaller index buffers by storing once shared faces with frame shifting.
@@ -148,6 +154,12 @@ struct _OgreLodExport LodConfig {
         /// Use vertex normals to improve quality. Bit slower to generate, but it has better quality most of the time.
         /// (enabled by default)
         bool useVertexNormals;
+        /// When an edge is collapsed, triangles may be destroyed if they cannot be adjusted to the new vertex.
+        /// Set this option to true to prevent collapsing edges that will result in destruction of triangles.
+        bool preventPunchingHoles;
+        /// When an edge is collapsed, lines may be destroyed if they cannot be adjusted to the new vertex.
+        /// Set this option to true to prevent collapsing edges that will result in destruction of lines.
+        bool preventBreakingLines;
         /// Faces inside a house can't be seen from far away. Weightening outside allows to remove those internal faces.
         /// It makes generation smaller and it is not 100% accurate. Set it to 0.0 to disable.
         /// (disabled by default)
@@ -160,5 +172,10 @@ struct _OgreLodExport LodConfig {
         Advanced();
     } advanced;
 };
+/** @} */
+/** @} */
 }
+
+#include "OgreHeaderSuffix.h"
+
 #endif

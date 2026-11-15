@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Copyright (c) 2006 Matthias Fink, netAllied GmbH <matthias.fink@web.de>                             
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,21 +29,17 @@ THE SOFTWARE.
 
 #include "OgreStableHeaders.h"
 #include "OgreShadowCameraSetupLiSPSM.h"
-#include "OgreSceneManager.h"
-#include "OgreCamera.h"
-#include "OgreLight.h"
-#include "OgrePlane.h"
 
 namespace Ogre
 {
 
 
-    LiSPSMShadowCameraSetup::LiSPSMShadowCameraSetup(void)
-        : mOptAdjustFactor(0.1f)
-        , mUseSimpleNOpt(true)
+    LiSPSMShadowCameraSetup::LiSPSMShadowCameraSetup(Real n, bool useSimpleNOpt, Degree angle)
+        : mOptAdjustFactor(n)
+        , mUseSimpleNOpt(useSimpleNOpt)
         , mOptAdjustFactorTweak(1.0)
-        , mCosCamLightDirThreshold(0.9)
     {
+        setCameraLightDirectionThreshold(angle);
     }
     //-----------------------------------------------------------------------
     LiSPSMShadowCameraSetup::~LiSPSMShadowCameraSetup(void)
@@ -94,7 +90,7 @@ namespace Ogre
 
         // set up the LiSPSM perspective transformation
         // build up frustum to map P onto the unit cube with (-1/-1/-1) and (+1/+1/+1)
-        Matrix4 P = buildFrustumProjection(-1, 1, -1, 1, n_opt + d, n_opt);
+        Matrix4 P = Math::makePerspectiveMatrix(-1, 1, -1, 1, n_opt + d, n_opt);
 
         return P * lightSpaceTranslation;
     }
@@ -107,7 +103,7 @@ namespace Ogre
         Matrix4 invLightSpace = lightSpace.inverse();
 
         // get view matrix
-        const Matrix4& viewMatrix = cam.getViewMatrix();
+        const Affine3& viewMatrix = cam.getViewMatrix();
 
         // calculate z0_ls
         const Vector3 e_ws  = getNearCameraPoint_ws(viewMatrix, bodyLVS);
@@ -141,7 +137,7 @@ namespace Ogre
         const Camera& cam) const
     {
         // get view matrix
-        const Matrix4& viewMatrix = cam.getViewMatrix();
+        const Affine3& viewMatrix = cam.getViewMatrix();
 
         // calculate e_es
         const Vector3 e_ws  = getNearCameraPoint_ws(viewMatrix, bodyLVS);
@@ -200,26 +196,6 @@ namespace Ogre
         }
     }
     //-----------------------------------------------------------------------
-    Matrix4 LiSPSMShadowCameraSetup::buildFrustumProjection(Real left, Real right, 
-        Real bottom, Real top, Real nearf, Real farf) const
-    {
-        // Changed to nearf because windows defines near and far as a macros
-        Real m00 = 2 * nearf / (right - left),
-            m02 = (right + left) / (right - left),
-            m11 = 2 * nearf / (top - bottom),
-            m12 = (top + bottom) / (top - bottom),
-            m22 = -(farf + nearf) / (farf - nearf),
-            m23 = -2 * farf * nearf / (farf - nearf),
-            m32 = -1;
-
-        Matrix4 m(m00, 0.0, m02, 0.0,
-            0.0, m11, m12, 0.0,
-            0.0, 0.0, m22, m23,
-            0.0, 0.0, m32, 0.0);
-
-        return m;
-    }
-    //-----------------------------------------------------------------------
     void LiSPSMShadowCameraSetup::getShadowCamera (const SceneManager *sm, const Camera *cam, 
         const Viewport *vp, const Light *light, Camera *texCam, size_t iteration) const
     {
@@ -228,13 +204,11 @@ namespace Ogre
         OgreAssert(cam != NULL, "Camera (viewer) is NULL");
         OgreAssert(light != NULL, "Light is NULL");
         OgreAssert(texCam != NULL, "Camera (texture) is NULL");
-        mLightFrustumCameraCalculated = false;
-
 
         // calculate standard shadow mapping matrix
-        Matrix4 LView, LProj;
-        calculateShadowMappingMatrix(*sm, *cam, *light, &LView, &LProj, NULL);
-        
+        DefaultShadowCameraSetup::getShadowCamera(sm, cam, vp, light, texCam, iteration);
+        mLightFrustumCamera = texCam;
+
         // if the direction of the light and the direction of the camera tend to be parallel,
         // then tweak up the adjust factor
         Real dot = Math::Abs(cam->getDerivedDirection().dotProduct(light->getDerivedDirection()));
@@ -251,15 +225,12 @@ namespace Ogre
         const VisibleObjectsBoundsInfo& visInfo = sm->getVisibleObjectsBoundsInfo(texCam);
         AxisAlignedBox sceneBB = visInfo.aabb;
         AxisAlignedBox receiverAABB = sm->getVisibleObjectsBoundsInfo(cam).receiverAabb;
-        sceneBB.merge(receiverAABB);
         sceneBB.merge(cam->getDerivedPosition());
 
         // in case the sceneBB is empty (e.g. nothing visible to the cam) simply
         // return the standard shadow mapping matrix
         if (sceneBB.isNull())
         {
-            texCam->setCustomViewMatrix(true, LView);
-            texCam->setCustomProjectionMatrix(true, LProj);
             return;
         }
 
@@ -271,10 +242,11 @@ namespace Ogre
         // simply return the standard shadow mapping matrix
         if (mPointListBodyB.getPointCount() == 0)
         {
-            texCam->setCustomViewMatrix(true, LView);
-            texCam->setCustomProjectionMatrix(true, LProj);
             return;
         }
+
+        auto LView = texCam->getViewMatrix();
+        auto LProj = texCam->getProjectionMatrix();
 
         // transform to light space: y -> -z, z -> y
         LProj = msNormalToLightSpace * LProj;
@@ -294,7 +266,7 @@ namespace Ogre
         // - position is the origin
         // - the view direction is the calculated viewDir
         // - the up vector is the y-axis
-        LProj = buildViewMatrix(Vector3::ZERO, viewDir, Vector3::UNIT_Y) * LProj;
+        LProj = Matrix4(Math::lookRotation(-viewDir, Vector3::UNIT_Y).transpose()) * LProj;
 
         // calculate LiSPSM projection
         LProj = calculateLiSPSM(LProj * LView, mPointListBodyB, mPointListBodyLVS, *sm, *cam, *light) * LProj;

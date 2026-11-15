@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,7 @@ namespace Ogre {
             resourceGroup);
         Ogre::Pass* ogrePass = mat->getTechnique(0)->getPass(0);
 
-        LogManager::getSingleton().logMessage("Using Q3 shader " + mName, LML_CRITICAL);
+        LogManager::getSingleton().logMessage("Using Q3 shader " + mName, LML_TRIVIAL);
         for (int p = 0; p < numPasses; ++p)
         {
             TextureUnitState* t;
@@ -178,7 +178,7 @@ namespace Ogre {
             }
             else if (pass[p].texGen == TEXGEN_ENVIRONMENT)
             {
-                t->setEnvironmentMap(true, TextureUnitState::ENV_PLANAR);
+                t->setEnvironmentMap(true, TextureUnitState::ENV_CURVED);
             }
             // Tex mod
             // Scale
@@ -264,14 +264,9 @@ namespace Ogre {
     String Quake3Shader::getAlternateName(const String& texName)
     {
         // Get alternative JPG to TGA and vice versa
-        size_t pos;
         String ext, base;
-
-        pos = texName.find_last_of(".");
-        ext = texName.substr(pos, 4);
-        StringUtil::toLowerCase(ext);
-        base = texName.substr(0,pos);
-        if (ext == ".jpg")
+        StringUtil::splitBaseFilename(texName, base, ext);
+        if (StringUtil::endsWith(ext, "jpg"))
         {
             return base + ".tga";
         }

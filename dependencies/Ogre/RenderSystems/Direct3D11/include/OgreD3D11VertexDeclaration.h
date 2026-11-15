@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,18 +36,16 @@ THE SOFTWARE.
 namespace Ogre { 
 
     /** Specialisation of VertexDeclaration for D3D11 */
-    class D3D11VertexDeclaration
+    class _OgreD3D11Export D3D11VertexDeclaration
         : public VertexDeclaration
         , protected D3D11DeviceResource
     {
     protected:
         D3D11Device & mlpD3DDevice;
 
-        bool mNeedsRebuild;
-
-        typedef map<D3D11HLSLProgram*, ComPtr<ID3D11InputLayout>>::type ShaderToILayoutMap;
+        typedef std::map<D3D11HLSLProgram*, ComPtr<ID3D11InputLayout>> ShaderToILayoutMap;
         typedef ShaderToILayoutMap::iterator ShaderToILayoutMapIterator;
-        typedef map<D3D11HLSLProgram*, vector<D3D11_INPUT_ELEMENT_DESC>::type>::type ShaderToInputDesc;
+        typedef std::map<D3D11HLSLProgram*, std::vector<D3D11_INPUT_ELEMENT_DESC>> ShaderToInputDesc;
         typedef ShaderToInputDesc::iterator ShaderToInputDescIterator;
 
         ShaderToInputDesc  mD3delems;
@@ -62,36 +60,12 @@ namespace Ogre {
         void notifyDeviceLost(D3D11Device* device);
         void notifyDeviceRestored(D3D11Device* device);
 
+        void notifyChanged();
     public:
         D3D11VertexDeclaration(D3D11Device &  device);
         ~D3D11VertexDeclaration();
 
-        /** See VertexDeclaration */
-        const VertexElement& addElement(unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        const VertexElement& insertElement(unsigned short atPosition,
-            unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        void removeElement(unsigned short elem_index);
-
-        /** See VertexDeclaration */
-        void removeElement(VertexElementSemantic semantic, unsigned short index = 0);
-
-        /** See VertexDeclaration */
-        void removeAllElements(void);
-
-
-        /** See VertexDeclaration */
-        void modifyElement(unsigned short elem_index, unsigned short source, size_t offset, VertexElementType theType,
-            VertexElementSemantic semantic, unsigned short index = 0);
-
-
         void bindToShader(D3D11HLSLProgram* boundVertexProgram, VertexBufferBinding* binding);
-
     };
 
 }

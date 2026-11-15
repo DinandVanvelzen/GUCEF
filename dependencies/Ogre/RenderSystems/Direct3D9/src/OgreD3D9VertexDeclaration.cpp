@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@ THE SOFTWARE.
 namespace Ogre {
 
     //-----------------------------------------------------------------------
-    D3D9VertexDeclaration::D3D9VertexDeclaration() : mLastUsedGlobalDeclaration(0), mUsedGlobalDeclaration(false)
+    D3D9VertexDeclaration::D3D9VertexDeclaration()
     {
 
     }
@@ -43,47 +43,10 @@ namespace Ogre {
     {
        releaseDeclaration();
     }
-    //-----------------------------------------------------------------------
-    const VertexElement& D3D9VertexDeclaration::addElement(unsigned short source, 
-        size_t offset, VertexElementType theType,
-        VertexElementSemantic semantic, unsigned short index)
+
+    void D3D9VertexDeclaration::notifyChanged()
     {
-        releaseDeclaration();   
-        return VertexDeclaration::addElement(source, offset, theType, semantic, index);
-    }
-    //-----------------------------------------------------------------------------
-    const VertexElement& D3D9VertexDeclaration::insertElement(unsigned short atPosition,
-        unsigned short source, size_t offset, VertexElementType theType,
-        VertexElementSemantic semantic, unsigned short index)
-    {
-        releaseDeclaration();   
-        return VertexDeclaration::insertElement(atPosition, source, offset, theType, semantic, index);
-    }
-    //-----------------------------------------------------------------------
-    void D3D9VertexDeclaration::removeElement(unsigned short elem_index)
-    {
-        VertexDeclaration::removeElement(elem_index);
-        releaseDeclaration();   
-    }
-    //-----------------------------------------------------------------------
-    void D3D9VertexDeclaration::removeElement(VertexElementSemantic semantic, unsigned short index)
-    {
-        VertexDeclaration::removeElement(semantic, index);
-        releaseDeclaration();   
-    }
-    //-----------------------------------------------------------------------
-    void D3D9VertexDeclaration::removeAllElements(void)
-    {
-        VertexDeclaration::removeAllElements();
-        releaseDeclaration();   
-    }
-    //-----------------------------------------------------------------------
-    void D3D9VertexDeclaration::modifyElement(unsigned short elem_index, 
-        unsigned short source, size_t offset, VertexElementType theType,
-        VertexElementSemantic semantic, unsigned short index)
-    {
-        VertexDeclaration::modifyElement(elem_index, source, offset, theType, semantic, index);
-        releaseDeclaration();       
+        releaseDeclaration();
     }
 
      //-----------------------------------------------------------------------
@@ -107,17 +70,8 @@ namespace Ogre {
     }
 
     //-----------------------------------------------------------------------
-    IDirect3DVertexDeclaration9* D3D9VertexDeclaration::getD3DVertexDeclaration(
-            VertexDeclaration * globalDeclaration, bool useGlobalInstancingVertexBufferIsAvailable)
+    IDirect3DVertexDeclaration9* D3D9VertexDeclaration::getD3DVertexDeclaration()
     {
-        if (mLastUsedGlobalDeclaration != globalDeclaration ||
-            useGlobalInstancingVertexBufferIsAvailable != mUsedGlobalDeclaration )
-        {
-            releaseDeclaration();
-            mLastUsedGlobalDeclaration = globalDeclaration;
-            mUsedGlobalDeclaration = useGlobalInstancingVertexBufferIsAvailable;
-        }
-
         IDirect3DDevice9* pCurDevice   = D3D9RenderSystem::getActiveD3D9Device();
         DeviceToDeclarationIterator it = mMapDeviceToDeclaration.find(pCurDevice);
         IDirect3DVertexDeclaration9* lpVertDecl = NULL;
@@ -126,10 +80,6 @@ namespace Ogre {
         if (it == mMapDeviceToDeclaration.end() || it->second == NULL)
         {
             size_t d3delemsSize = mElementList.size() + 1;
-            if(mLastUsedGlobalDeclaration != NULL && mUsedGlobalDeclaration )
-            {
-                d3delemsSize += globalDeclaration->getElementCount(); 
-            }
             D3DVERTEXELEMENT9* d3delems = OGRE_ALLOC_T(D3DVERTEXELEMENT9, d3delemsSize, MEMCATEGORY_RENDERSYS);
 
             VertexElementList::const_iterator i, iend;
@@ -147,19 +97,6 @@ namespace Ogre {
                 }
             }
 
-            if(mLastUsedGlobalDeclaration != NULL && mUsedGlobalDeclaration )
-            {
-                iend = globalDeclaration->getElements().end();
-                for (i = globalDeclaration->getElements().begin(); i != iend; ++i, ++idx)
-                {
-                    const VertexElement & element = *i;
-                    D3DVERTEXELEMENT9 & dxElement = d3delems[idx];
-                    convertElement(element, dxElement);
-                    dxElement.Stream = maxSource + 1;
-                }                
-            }
-
-
             // Add terminator
             d3delems[idx].Stream = 0xff;
             d3delems[idx].Offset = 0;
@@ -175,7 +112,7 @@ namespace Ogre {
             {
                 OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR, 
                     "Cannot create D3D9 vertex declaration: " + 
-                    Root::getSingleton().getErrorDescription(hr), 
+                    DXGetErrorDescription(hr), 
                     "Direct3D9VertexDeclaration::getD3DVertexDeclaration");
             }
 

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
-PCZLight.h  -  description
------------------------------------------------------------------------------
-begin                : Wed May 23 2007
-author               : Eric Cha
-email                : ericc@xenopi.com
-Code Style Update    :
------------------------------------------------------------------------------
 */
 
 #ifndef PCZLIGHT_H
@@ -41,9 +34,15 @@ Code Style Update    :
 
 namespace Ogre
 {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup PCZSceneManager
+    *  @{
+    */
     class PCZone;
 
-    typedef list<PCZone*>::type ZoneList;
+    typedef std::list<PCZone*> ZoneList;
 
     /** Specialized version of Ogre::Light which caches which zones the light affects
     */
@@ -64,7 +63,7 @@ namespace Ogre
         ~PCZLight();
 
         /** Overridden from MovableObject */
-        const String& getMovableType(void) const;
+        const String& getMovableType(void) const override;
 
         /** Clear the affectedZonesList 
         */
@@ -94,7 +93,7 @@ namespace Ogre
         void removeZoneFromAffectedZonesList(PCZone * zone);
 
         /// MovableObject notified when SceneNode changes
-        virtual void _notifyMoved(void);   
+        void _notifyMoved(void) override;
 
         /// Clear update flag
         void clearNeedsUpdate(void)   { mNeedsUpdate = false; } 
@@ -120,18 +119,17 @@ namespace Ogre
     class _OgrePCZPluginExport PCZLightFactory : public MovableObjectFactory
     {
     protected:
-        MovableObject* createInstanceImpl( const String& name, const NameValuePairList* params);
+        MovableObject* createInstanceImpl( const String& name, const NameValuePairList* params) override;
     public:
         PCZLightFactory() {}
         ~PCZLightFactory() {}
 
         static String FACTORY_TYPE_NAME;
 
-        const String& getType(void) const;
-        void destroyInstance( MovableObject* obj);  
-
+        const String& getType(void) const override;
     };
-
+    /** @} */
+    /** @} */
 
 } // Namespace
 #endif

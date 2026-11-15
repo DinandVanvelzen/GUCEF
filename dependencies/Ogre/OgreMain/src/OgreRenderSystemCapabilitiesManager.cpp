@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,10 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 
-#include "OgreStringVector.h"
-#include "OgreArchiveManager.h"
-#include "OgreArchive.h"
 #include "OgreRenderSystemCapabilitiesManager.h"
 #include "OgreRenderSystemCapabilitiesSerializer.h"
-
-
+#include "OgreConfigFile.h"
+#include "OgreFileSystemLayer.h"
 
 namespace Ogre {
 
@@ -56,13 +53,45 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     RenderSystemCapabilitiesManager::~RenderSystemCapabilitiesManager()
     {
-        for (CapabilitiesMap::iterator it = mCapabilitiesMap.begin(), end = mCapabilitiesMap.end(); it != end; ++it)
+        for (auto& cm : mCapabilitiesMap)
         {
         // free memory in RenderSystemCapabilities*
-            OGRE_DELETE it->second;
+            OGRE_DELETE cm.second;
         }
 
         OGRE_DELETE mSerializer;
+    }
+
+    RenderSystemCapabilities* RenderSystemCapabilitiesManager::loadCapabilitiesConfig(const String& customConfig)
+    {
+        ConfigFile cfg;
+        cfg.load(customConfig, "\t:=", false);
+
+        // resolve relative path with regards to configfile
+        String baseDir, unused;
+        StringUtil::splitFilename(customConfig, unused, baseDir);
+
+        // Capabilities Database setting must be in the same format as
+        // resources.cfg in Ogre examples.
+        for(auto& it : cfg.getSettings("Capabilities Database"))
+        {
+            String filename = it.second;
+            if(filename.empty() || filename[0] == '.')
+                filename = baseDir + it.second;
+
+            filename = FileSystemLayer::resolveBundlePath(filename);
+            parseCapabilitiesFromArchive(filename, it.first, true);
+        }
+
+        String capsName = cfg.getSetting("Custom Capabilities");
+        // The custom capabilities have been parsed, let's retrieve them
+        RenderSystemCapabilities* rsc = loadParsedCapabilities(capsName);
+        if (rsc == 0)
+        {
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Cannot load a RenderSystemCapability named '" + capsName + "'");
+        }
+
+        return rsc;
     }
 
     //-----------------------------------------------------------------------
@@ -73,9 +102,9 @@ namespace Ogre {
         StringVectorPtr files = arch->find(mScriptPattern, recursive);
 
         // loop through .rendercaps files and load each one
-        for (StringVector::iterator it = files->begin(), end = files->end(); it != end; ++it)
+        for (auto& f : *files)
         {
-            DataStreamPtr stream = arch->open(*it);
+            DataStreamPtr stream = arch->open(f);
             mSerializer->parseScript(stream);
             stream->close();
         }
@@ -86,7 +115,7 @@ namespace Ogre {
         return mCapabilitiesMap[name];
     }
 
-    const map<String, RenderSystemCapabilities*>::type &RenderSystemCapabilitiesManager::getCapabilities() const
+    const std::map<String, RenderSystemCapabilities*> &RenderSystemCapabilitiesManager::getCapabilities() const
     {
         return mCapabilitiesMap;
     }
@@ -94,7 +123,7 @@ namespace Ogre {
     /** Method used by RenderSystemCapabilitiesSerializer::parseScript */
     void RenderSystemCapabilitiesManager::_addRenderSystemCapabilities(const String& name, RenderSystemCapabilities* caps)
     {
-        mCapabilitiesMap.insert(CapabilitiesMap::value_type(name, caps));
+        mCapabilitiesMap.emplace(name, caps);
     }
 }
 

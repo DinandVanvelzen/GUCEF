@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,10 +29,10 @@ THE SOFTWARE.
 #define __Compositor_H__
 
 #include "OgrePrerequisites.h"
-#include "OgreIteratorWrappers.h"
 #include "OgreHeaderPrefix.h"
 
 namespace Ogre {
+    template <typename T> class VectorIterator;
 
     /** \addtogroup Core
     *  @{
@@ -46,7 +46,7 @@ namespace Ogre {
         it possible to apply postfilter effects, HDRI postprocessing, and shadow 
         effects to a Viewport.
      */
-    class _OgreExport Compositor: public Resource
+    class _OgreExport Compositor final : public Resource
     {
     public:
         Compositor(ResourceManager* creator, const String& name, ResourceHandle handle,
@@ -54,7 +54,7 @@ namespace Ogre {
         ~Compositor();
         
         /// Data types for internal lists
-        typedef vector<CompositionTechnique *>::type Techniques;
+        typedef std::vector<CompositionTechnique *> Techniques;
         typedef VectorIterator<Techniques> TechniqueIterator;
         
         /** Create a new technique, and return a pointer to it.
@@ -67,11 +67,11 @@ namespace Ogre {
         
         /** Get a technique.
         */
-        CompositionTechnique *getTechnique(size_t idx);
+        CompositionTechnique *getTechnique(size_t idx) const { return mTechniques.at(idx); }
         
         /** Get the number of techniques.
         */
-        size_t getNumTechniques();
+        size_t getNumTechniques() const { return mTechniques.size(); }
         
         /** Remove all techniques
         */
@@ -81,23 +81,23 @@ namespace Ogre {
         TechniqueIterator getTechniqueIterator(void);
         
         /** Get a supported technique.
-        @remarks
+
             The supported technique list is only available after this compositor has been compiled,
             which typically happens on loading it. Therefore, if this method returns
             an empty list, try calling Compositor::load.
         */
-        CompositionTechnique *getSupportedTechnique(size_t idx);
+        CompositionTechnique *getSupportedTechnique(size_t idx) const { return mSupportedTechniques.at(idx); }
         
         /** Get the number of supported techniques.
-        @remarks
+
             The supported technique list is only available after this compositor has been compiled,
             which typically happens on loading it. Therefore, if this method returns
             an empty list, try calling Compositor::load.
         */
-        size_t getNumSupportedTechniques();
+        size_t getNumSupportedTechniques() const { return mSupportedTechniques.size(); }
         
         /** Gets an iterator over all the Techniques which are supported by the current card. 
-        @remarks
+
             The supported technique list is only available after this compositor has been compiled,
             which typically happens on loading it. Therefore, if this method returns
             an empty list, try calling Compositor::load.
@@ -105,7 +105,7 @@ namespace Ogre {
         TechniqueIterator getSupportedTechniqueIterator(void);
 
         /** Get a pointer to a supported technique for a given scheme. 
-        @remarks
+
             If there is no specific supported technique with this scheme name, 
             then the first supported technique with no specific scheme will be returned.
         @param schemeName The scheme name you are looking for. Blank means to 
@@ -125,24 +125,24 @@ namespace Ogre {
         @param mrtIndex If name identifies a MRT, which texture attachment to retrieve
         @return The texture pointer, corresponds to a real texture
         */
-        TexturePtr getTextureInstance(const String& name, size_t mrtIndex);
+        const TexturePtr& getTextureInstance(const String& name, size_t mrtIndex);
 
         /** Get the render target for a given render texture name. 
-        @remarks
+
             You can use this to add listeners etc, but do not use it to update the
             targets manually or any other modifications, the compositor instance 
             is in charge of this.
         */
-        RenderTarget* getRenderTarget(const String& name);
+        RenderTarget* getRenderTarget(const String& name, int slice = 0);
 
     protected:
         /// @copydoc Resource::loadImpl
-        void loadImpl(void);
+        void loadImpl(void) override;
 
         /// @copydoc Resource::unloadImpl
-        void unloadImpl(void);
+        void unloadImpl(void) override;
         /// @copydoc Resource::calculateSize
-        size_t calculateSize(void) const;
+        size_t calculateSize(void) const override;
         
         /** Check supportedness of techniques.
          */
@@ -166,10 +166,10 @@ namespace Ogre {
 
         //TODO GSOC : These typedefs are duplicated from CompositorInstance. Solve?
         /// Map from name->local texture
-        typedef map<String,TexturePtr>::type GlobalTextureMap;
+        typedef std::unordered_map<String,TexturePtr> GlobalTextureMap;
         GlobalTextureMap mGlobalTextures;
         /// Store a list of MRTs we've created
-        typedef map<String,MultiRenderTarget*>::type GlobalMRTMap;
+        typedef std::unordered_map<String,MultiRenderTarget*> GlobalMRTMap;
         GlobalMRTMap mGlobalMRTs;
     };
     /** @} */

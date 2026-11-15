@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,16 @@ THE SOFTWARE.
 #include "OgreLodPrerequisites.h"
 #include "OgreLodData.h"
 #include "OgreResourceGroupManager.h"
+#include "OgreHeaderPrefix.h"
 
 namespace Ogre
 {
+/** \addtogroup Optional
+*  @{
+*/
+/** \addtogroup MeshLodGenerator
+*  @{
+*/
 /// This class will mark vertices of a mesh, which are visible from far away (from outside).
 /// Triangle is visible if each vertex of it is visible.
 class _OgreLodExport LodOutsideMarker
@@ -41,6 +48,7 @@ class _OgreLodExport LodOutsideMarker
 public:
     /**
      * @param vertexList List of vertices. vertex.position is the input and vertex.isOuterWallVertex is the output of the algorithm.
+     * @param boundingSphereRadius
      * @param walkAngle Walk angle in dot product values. Allowed range is from -1 to 1. Default = 0. Smaller value is bigger angle.
      *        If you set it to 1 then you can disable walking and it will only mark the vertices on the convex hull.
      */
@@ -60,7 +68,11 @@ private:
         bool removed; // Whether the triangle is excluded from hull.
         CHVertex* vertex[3];
         Vector3 normal;
-        void computeNormal();
+        void computeNormal()
+        {
+            normal = Math::calculateBasicFaceNormal(vertex[0]->position, vertex[1]->position,
+                                                    vertex[2]->position);
+        }
     };
 
     
@@ -71,10 +83,10 @@ private:
         bool isInsideHull;
     };
 
-    typedef vector<OutsideData>::type OutsideDataList;
-    typedef vector<CHTriangle>::type CHTriangleList;
-    typedef vector<CHTriangle*>::type CHTrianglePList;
-    typedef vector<std::pair<CHVertex*, CHVertex*> >::type CHEdgeList;
+    typedef std::vector<OutsideData> OutsideDataList;
+    typedef std::vector<CHTriangle> CHTriangleList;
+    typedef std::vector<CHTriangle*> CHTrianglePList;
+    typedef std::vector<std::pair<CHVertex*, CHVertex*> > CHEdgeList;
 
 
 
@@ -118,6 +130,10 @@ private:
     bool isInsideLine(const Vector3& ptarget, const Vector3& p0, const Vector3& p1); /// Whether ptarget is between p0 and p1. Assuming they are on the same line.
     bool isSamePosition(const Vector3& p0, const Vector3& p1); /// Whether p0 = p1 with mEpsilon allowed float error.
 };
+/** @} */
+/** @} */
 }
+
+#include "OgreHeaderSuffix.h"
 
 #endif /* ifndef __OutsideMarker_H__ */

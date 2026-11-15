@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,32 +29,33 @@ THE SOFTWARE.
 #define __GLPlugin_H__
 
 #include "OgrePlugin.h"
-#include "OgreGLRenderSystem.h"
+#include "OgreGLPrerequisites.h"
 
 namespace Ogre
 {
+    class GLRenderSystem;
 
     /** Plugin instance for GL Manager */
-    class GLPlugin : public Plugin
+    class _OgreGLExport GLPlugin : public Plugin
     {
     public:
         GLPlugin();
 
 
         /// @copydoc Plugin::getName
-        const String& getName() const;
+        const String& getName() const override;
 
         /// @copydoc Plugin::install
-        void install();
+        void install() override;
 
         /// @copydoc Plugin::initialise
-        void initialise();
+        void initialise() override;
 
         /// @copydoc Plugin::shutdown
-        void shutdown();
+        void shutdown() override;
 
         /// @copydoc Plugin::uninstall
-        void uninstall();
+        void uninstall() override;
     protected:
         GLRenderSystem* mRenderSystem;
     };

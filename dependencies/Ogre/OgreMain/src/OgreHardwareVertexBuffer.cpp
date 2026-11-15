@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,36 +27,37 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgreHardwareVertexBuffer.h"
-#include "OgreColourValue.h"
-#include "OgreException.h"
-#include "OgreHardwareBufferManager.h"
+
+#include <memory>
 #include "OgreDefaultHardwareBufferManager.h"
-#include "OgreRoot.h"
-#include "OgreRenderSystem.h"
 
 namespace Ogre {
 
     //-----------------------------------------------------------------------------
-    HardwareVertexBuffer::HardwareVertexBuffer(HardwareBufferManagerBase* mgr, size_t vertexSize,  
-        size_t numVertices, HardwareBuffer::Usage usage, 
-        bool useSystemMemory, bool useShadowBuffer) 
-        : HardwareBuffer(usage, useSystemMemory, useShadowBuffer), 
+    HardwareVertexBuffer::HardwareVertexBuffer(HardwareBufferManagerBase* mgr, size_t vertexSize,
+        size_t numVertices, HardwareBuffer::Usage usage, bool useShadowBuffer)
+        : HardwareBuffer(usage, useShadowBuffer),
+          mIsInstanceData(false),
           mMgr(mgr),
           mNumVertices(numVertices),
           mVertexSize(vertexSize),
-          mIsInstanceData(false),
           mInstanceDataStepRate(1)
     {
         // Calculate the size of the vertices
         mSizeInBytes = mVertexSize * numVertices;
 
         // Create a shadow buffer if required
-        if (mUseShadowBuffer)
+        if (useShadowBuffer)
         {
-            mShadowBuffer = OGRE_NEW DefaultHardwareVertexBuffer(mMgr, mVertexSize, 
-                    mNumVertices, HardwareBuffer::HBU_DYNAMIC);
+            mShadowBuffer = std::make_unique<DefaultHardwareBuffer>(mSizeInBytes);
         }
 
+    }
+    HardwareVertexBuffer::HardwareVertexBuffer(HardwareBufferManagerBase* mgr, size_t vertexSize,
+                                               size_t numVertices, HardwareBuffer* delegate)
+        : HardwareVertexBuffer(mgr, vertexSize, numVertices, delegate->getUsage(), false)
+    {
+        mDelegate.reset(delegate);
     }
     //-----------------------------------------------------------------------------
     HardwareVertexBuffer::~HardwareVertexBuffer()
@@ -65,33 +66,19 @@ namespace Ogre {
         {
             mMgr->_notifyVertexBufferDestroyed(this);
         }
-        OGRE_DELETE mShadowBuffer;
-    }
-    //-----------------------------------------------------------------------------
-    bool HardwareVertexBuffer::checkIfVertexInstanceDataIsSupported()
-    {
-        // Use the current render system
-        RenderSystem* rs = Root::getSingleton().getRenderSystem();
-
-        // Check if the supported  
-        return rs->getCapabilities()->hasCapability(RSC_VERTEX_BUFFER_INSTANCE_DATA);
     }
     //-----------------------------------------------------------------------------
     void HardwareVertexBuffer::setIsInstanceData( const bool val )
     {
-        if (val && !checkIfVertexInstanceDataIsSupported())
-        {
-            OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, 
-                "vertex instance data is not supported by the render system.", 
-                "HardwareVertexBuffer::checkIfInstanceDataSupported");
-        }
-        else
-        {
-            mIsInstanceData = val;  
-        }
+        RenderSystem* rs = Root::getSingleton().getRenderSystem();
+
+        OgreAssert(!val || rs->getCapabilities()->hasCapability(RSC_VERTEX_BUFFER_INSTANCE_DATA),
+                   "unsupported by rendersystem");
+
+        mIsInstanceData = val;
     }
     //-----------------------------------------------------------------------------
-    size_t HardwareVertexBuffer::getInstanceDataStepRate() const
+    uint32 HardwareVertexBuffer::getInstanceDataStepRate() const
     {
         return mInstanceDataStepRate;
     }
@@ -112,10 +99,9 @@ namespace Ogre {
     //-----------------------------------------------------------------------------
     // VertexElement
     //-----------------------------------------------------------------------------
-    VertexElement::VertexElement(unsigned short source, size_t offset, 
-        VertexElementType theType, VertexElementSemantic semantic, unsigned short index)
-        : mSource(source), mOffset(offset), mType(theType), 
-        mSemantic(semantic), mIndex(index)
+    VertexElement::VertexElement(unsigned short source, size_t offset, VertexElementType theType,
+                                 VertexElementSemantic semantic, unsigned short index)
+        : mOffset(offset), mSource(source), mIndex(index), mType(theType), mSemantic(semantic)
     {
     }
     //-----------------------------------------------------------------------------
@@ -128,10 +114,6 @@ namespace Ogre {
     {
         switch(etype)
         {
-        case VET_COLOUR:
-        case VET_COLOUR_ABGR:
-        case VET_COLOUR_ARGB:
-            return sizeof(RGBA);
         case VET_FLOAT1:
             return sizeof(float);
         case VET_FLOAT2:
@@ -149,39 +131,45 @@ namespace Ogre {
         case VET_DOUBLE4:
             return sizeof(double)*4;
         case VET_SHORT1:
-            return sizeof(short);
-        case VET_SHORT2:
-            return sizeof(short)*2;
-        case VET_SHORT3:
-            return sizeof(short)*3;
-        case VET_SHORT4:
-            return sizeof(short)*4;
         case VET_USHORT1:
-            return sizeof(unsigned short);
+        case VET_HALF1:
+            return sizeof( short );
+        case VET_SHORT2:
+        case VET_SHORT2_NORM:
         case VET_USHORT2:
-            return sizeof(unsigned short)*2;
+        case VET_USHORT2_NORM:
+        case VET_HALF2:
+            return sizeof( short ) * 2;
+        case VET_SHORT3:
         case VET_USHORT3:
-            return sizeof(unsigned short)*3;
+        case VET_HALF3:
+            return sizeof( short ) * 3;
+        case VET_SHORT4:
+        case VET_SHORT4_NORM:
         case VET_USHORT4:
-            return sizeof(unsigned short)*4;
+        case VET_USHORT4_NORM:
+        case VET_HALF4:
+            return sizeof( short ) * 4;
         case VET_INT1:
-            return sizeof(int);
-        case VET_INT2:
-            return sizeof(int)*2;
-        case VET_INT3:
-            return sizeof(int)*3;
-        case VET_INT4:
-            return sizeof(int)*4;
         case VET_UINT1:
-            return sizeof(unsigned int);
+            return sizeof( int );
+        case VET_INT2:
         case VET_UINT2:
-            return sizeof(unsigned int)*2;
+            return sizeof( int ) * 2;
+        case VET_INT3:
         case VET_UINT3:
-            return sizeof(unsigned int)*3;
+            return sizeof( int ) * 3;
+        case VET_INT4:
         case VET_UINT4:
-            return sizeof(unsigned int)*4;
+            return sizeof( int ) * 4;
+        case VET_BYTE4:
+        case VET_BYTE4_NORM:
         case VET_UBYTE4:
-            return sizeof(unsigned char)*4;
+        case VET_UBYTE4_NORM:
+        case _DETAIL_SWAP_RB:
+            return sizeof(char)*4;
+        case VET_INT_10_10_10_2_NORM:
+            return 4;
         }
         return 0;
     }
@@ -190,22 +178,23 @@ namespace Ogre {
     {
         switch (etype)
         {
-        case VET_COLOUR:
-        case VET_COLOUR_ABGR:
-        case VET_COLOUR_ARGB:
         case VET_FLOAT1:
         case VET_SHORT1:
         case VET_USHORT1:
         case VET_UINT1:
         case VET_INT1:
         case VET_DOUBLE1:
+        case VET_HALF1:
             return 1;
         case VET_FLOAT2:
         case VET_SHORT2:
+        case VET_SHORT2_NORM:
         case VET_USHORT2:
+        case VET_USHORT2_NORM:
         case VET_UINT2:
         case VET_INT2:
         case VET_DOUBLE2:
+        case VET_HALF2:
             return 2;
         case VET_FLOAT3:
         case VET_SHORT3:
@@ -213,14 +202,23 @@ namespace Ogre {
         case VET_UINT3:
         case VET_INT3:
         case VET_DOUBLE3:
+        case VET_HALF3:
             return 3;
         case VET_FLOAT4:
         case VET_SHORT4:
+        case VET_SHORT4_NORM:
         case VET_USHORT4:
+        case VET_USHORT4_NORM:
         case VET_UINT4:
         case VET_INT4:
         case VET_DOUBLE4:
+        case VET_BYTE4:
         case VET_UBYTE4:
+        case VET_BYTE4_NORM:
+        case VET_UBYTE4_NORM:
+        case _DETAIL_SWAP_RB:
+        case VET_INT_10_10_10_2_NORM:
+        case VET_HALF4:
             return 4;
         }
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Invalid type", 
@@ -230,38 +228,54 @@ namespace Ogre {
     VertexElementType VertexElement::multiplyTypeCount(VertexElementType baseType, 
         unsigned short count)
     {
+        OgreAssert(count > 0 && count < 5, "Count out of range");
+
         switch (baseType)
         {
         case VET_FLOAT1:
-            switch(count)
-            {
-            case 1:
-                return VET_FLOAT1;
-            case 2:
-                return VET_FLOAT2;
-            case 3:
-                return VET_FLOAT3;
-            case 4:
-                return VET_FLOAT4;
-            default:
-                break;
-            }
-            break;
+        case VET_DOUBLE1:
+        case VET_INT1:
+        case VET_UINT1:
+        case VET_HALF1:
+            // evil enumeration arithmetic
+            return static_cast<VertexElementType>( baseType + count - 1 );
+
         case VET_SHORT1:
-            switch(count)
+        case VET_SHORT2:
+            if ( count <= 2 )
             {
-            case 1:
-                return VET_SHORT1;
-            case 2:
                 return VET_SHORT2;
-            case 3:
-                return VET_SHORT3;
-            case 4:
-                return VET_SHORT4;
-            default:
-                break;
             }
-            break;
+            return VET_SHORT4;
+
+        case VET_USHORT1:
+        case VET_USHORT2:
+            if ( count <= 2 )
+            {
+                return VET_USHORT2;
+            }
+            return VET_USHORT4;
+
+        case VET_SHORT2_NORM:
+            if ( count <= 2 )
+            {
+                return VET_SHORT2_NORM;
+            }
+            return VET_SHORT4_NORM;
+
+        case VET_USHORT2_NORM:
+            if ( count <= 2 )
+            {
+                return VET_USHORT2_NORM;
+            }
+            return VET_USHORT4_NORM;
+
+        case VET_BYTE4:
+        case VET_BYTE4_NORM:
+        case VET_UBYTE4:
+        case VET_UBYTE4_NORM:
+            return baseType;
+
         default:
             break;
         }
@@ -269,54 +283,13 @@ namespace Ogre {
             "VertexElement::multiplyTypeCount");
     }
     //--------------------------------------------------------------------------
-    VertexElementType VertexElement::getBestColourVertexElementType(void)
-    {
-        // Use the current render system to determine if possible
-        if (Root::getSingletonPtr() && Root::getSingletonPtr()->getRenderSystem())
-        {
-            return Root::getSingleton().getRenderSystem()->getColourVertexElementType();
-        }
-        else
-        {
-            // We can't know the specific type right now, so pick a type
-            // based on platform
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
-            return VET_COLOUR_ARGB; // prefer D3D format on windows
-#else
-            return VET_COLOUR_ABGR; // prefer GL format on everything else
-#endif
-
-        }
-    }
-    //--------------------------------------------------------------------------
-    void VertexElement::convertColourValue(VertexElementType srcType, 
-        VertexElementType dstType, uint32* ptr)
+    void VertexElement::convertColourValue(VertexElementType srcType, VertexElementType dstType, uint32* ptr)
     {
         if (srcType == dstType)
             return;
 
         // Conversion between ARGB and ABGR is always a case of flipping R/B
-        *ptr = 
-           ((*ptr&0x00FF0000)>>16)|((*ptr&0x000000FF)<<16)|(*ptr&0xFF00FF00);               
-    }
-    //--------------------------------------------------------------------------
-    uint32 VertexElement::convertColourValue(const ColourValue& src, 
-        VertexElementType dst)
-    {
-        switch(dst)
-        {
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32 || OGRE_PLATFORM == OGRE_PLATFORM_WINRT
-        default:
-#endif
-        case VET_COLOUR_ARGB:
-            return src.getAsARGB();
-#if OGRE_PLATFORM != OGRE_PLATFORM_WIN32 && OGRE_PLATFORM != OGRE_PLATFORM_WINRT
-        default:
-#endif
-        case VET_COLOUR_ABGR: 
-            return src.getAsABGR();
-        };
-
+        *ptr = ((*ptr & 0x00FF0000) >> 16) | ((*ptr & 0x000000FF) << 16) | (*ptr & 0xFF00FF00);
     }
     //-----------------------------------------------------------------------------
     VertexElementType VertexElement::getBaseType(VertexElementType multiType)
@@ -328,6 +301,11 @@ namespace Ogre {
             case VET_FLOAT3:
             case VET_FLOAT4:
                 return VET_FLOAT1;
+            case VET_HALF1:
+            case VET_HALF2:
+            case VET_HALF3:
+            case VET_HALF4:
+                return VET_HALF1;
             case VET_DOUBLE1:
             case VET_DOUBLE2:
             case VET_DOUBLE3:
@@ -343,12 +321,6 @@ namespace Ogre {
             case VET_UINT3:
             case VET_UINT4:
                 return VET_UINT1;
-            case VET_COLOUR:
-                return VET_COLOUR;
-            case VET_COLOUR_ABGR:
-                return VET_COLOUR_ABGR;
-            case VET_COLOUR_ARGB:
-                return VET_COLOUR_ARGB;
             case VET_SHORT1:
             case VET_SHORT2:
             case VET_SHORT3:
@@ -359,8 +331,23 @@ namespace Ogre {
             case VET_USHORT3:
             case VET_USHORT4:
                 return VET_USHORT1;
+            case VET_SHORT2_NORM:
+            case VET_SHORT4_NORM:
+                return VET_SHORT2_NORM;
+            case VET_USHORT2_NORM:
+            case VET_USHORT4_NORM:
+                return VET_USHORT2_NORM;
+            case VET_BYTE4:
+                return VET_BYTE4;
+            case VET_BYTE4_NORM:
+                return VET_BYTE4_NORM;
             case VET_UBYTE4:
                 return VET_UBYTE4;
+            case VET_UBYTE4_NORM:
+            case _DETAIL_SWAP_RB:
+                return VET_UBYTE4_NORM;
+            case VET_INT_10_10_10_2_NORM:
+                return VET_INT_10_10_10_2_NORM;
         };
         // To keep compiler happy
         return VET_FLOAT1;
@@ -383,14 +370,8 @@ namespace Ogre {
         size_t offset, VertexElementType theType,
         VertexElementSemantic semantic, unsigned short index)
     {
-        // Refine colour type to a specific type
-        if (theType == VET_COLOUR)
-        {
-            theType = VertexElement::getBestColourVertexElementType();
-        }
-        mElementList.push_back(
-            VertexElement(source, offset, theType, semantic, index)
-            );
+        mElementList.push_back(VertexElement(source, offset, theType, semantic, index));
+        notifyChanged();
         return mElementList.back();
     }
     //-----------------------------------------------------------------------------
@@ -409,8 +390,9 @@ namespace Ogre {
 
         i = mElementList.insert(i, 
             VertexElement(source, offset, theType, semantic, index));
-        return *i;
 
+        notifyChanged();
+        return *i;
     }
     //-----------------------------------------------------------------------------
     const VertexElement* VertexDeclaration::getElement(unsigned short index) const
@@ -432,6 +414,7 @@ namespace Ogre {
         for (unsigned short n = 0; n < elem_index; ++n)
             ++i;
         mElementList.erase(i);
+        notifyChanged();
     }
     //-----------------------------------------------------------------------------
     void VertexDeclaration::removeElement(VertexElementSemantic semantic, unsigned short index)
@@ -443,6 +426,7 @@ namespace Ogre {
             if (ei->getSemantic() == semantic && ei->getIndex() == index)
             {
                 mElementList.erase(ei);
+                notifyChanged();
                 break;
             }
         }
@@ -451,6 +435,7 @@ namespace Ogre {
     void VertexDeclaration::removeAllElements(void)
     {
         mElementList.clear();
+        notifyChanged();
     }
     //-----------------------------------------------------------------------------
     void VertexDeclaration::modifyElement(unsigned short elem_index, 
@@ -461,55 +446,46 @@ namespace Ogre {
         VertexElementList::iterator i = mElementList.begin();
         std::advance(i, elem_index);
         (*i) = VertexElement(source, offset, theType, semantic, index);
+        notifyChanged();
     }
     //-----------------------------------------------------------------------------
     const VertexElement* VertexDeclaration::findElementBySemantic(
         VertexElementSemantic sem, unsigned short index) const
     {
-        VertexElementList::const_iterator ei, eiend;
-        eiend = mElementList.end();
-        for (ei = mElementList.begin(); ei != eiend; ++ei)
+        for (auto& e : mElementList)
         {
-            if (ei->getSemantic() == sem && ei->getIndex() == index)
+            if (e.getSemantic() == sem && e.getIndex() == index)
             {
-                return &(*ei);
+                return &e;
             }
         }
 
         return NULL;
-
-
     }
     //-----------------------------------------------------------------------------
     VertexDeclaration::VertexElementList VertexDeclaration::findElementsBySource(
         unsigned short source) const
     {
         VertexElementList retList;
-        VertexElementList::const_iterator ei, eiend;
-        eiend = mElementList.end();
-        for (ei = mElementList.begin(); ei != eiend; ++ei)
+        for (auto& e : mElementList)
         {
-            if (ei->getSource() == source)
+            if (e.getSource() == source)
             {
-                retList.push_back(*ei);
+                retList.push_back(e);
             }
         }
         return retList;
-
     }
 
     //-----------------------------------------------------------------------------
     size_t VertexDeclaration::getVertexSize(unsigned short source) const
     {
-        VertexElementList::const_iterator i, iend;
-        iend = mElementList.end();
         size_t sz = 0;
-
-        for (i = mElementList.begin(); i != iend; ++i)
+        for (auto& e : mElementList)
         {
-            if (i->getSource() == source)
+            if (e.getSource() == source)
             {
-                sz += i->getSize();
+                sz += e.getSize();
 
             }
         }
@@ -521,17 +497,15 @@ namespace Ogre {
         HardwareBufferManagerBase* pManager = mgr ? mgr : HardwareBufferManager::getSingletonPtr(); 
         VertexDeclaration* ret = pManager->createVertexDeclaration();
 
-        VertexElementList::const_iterator i, iend;
-        iend = mElementList.end();
-        for (i = mElementList.begin(); i != iend; ++i)
+        for (auto& e : mElementList)
         {
-            ret->addElement(i->getSource(), i->getOffset(), i->getType(), i->getSemantic(), i->getIndex());
+            ret->addElement(e.getSource(), e.getOffset(), e.getType(), e.getSemantic(), e.getIndex());
         }
         return ret;
     }
     //-----------------------------------------------------------------------------
     // Sort routine for VertexElement
-    bool VertexDeclaration::vertexElementLess(const VertexElement& e1, const VertexElement& e2)
+    static bool vertexElementLess(const VertexElement& e1, const VertexElement& e2)
     {
         // Sort by source first
         if (e1.getSource() < e2.getSource())
@@ -558,7 +532,7 @@ namespace Ogre {
     }
     void VertexDeclaration::sort(void)
     {
-        mElementList.sort(VertexDeclaration::vertexElementLess);
+        mElementList.sort(vertexElementLess);
     }
     //-----------------------------------------------------------------------------
     void VertexDeclaration::closeGapsInSource(void)
@@ -569,14 +543,11 @@ namespace Ogre {
         // Sort first
         sort();
 
-        VertexElementList::iterator i, iend;
-        iend = mElementList.end();
         unsigned short targetIdx = 0;
         unsigned short lastIdx = getElement(0)->getSource();
         unsigned short c = 0;
-        for (i = mElementList.begin(); i != iend; ++i, ++c)
+        for (auto& elem : mElementList)
         {
-            VertexElement& elem = *i;
             if (lastIdx != elem.getSource())
             {
                 targetIdx++;
@@ -588,8 +559,8 @@ namespace Ogre {
                     elem.getSemantic(), elem.getIndex());
             }
 
+            ++c;
         }
-
     }
     //-----------------------------------------------------------------------
     VertexDeclaration* VertexDeclaration::getAutoOrganisedDeclaration(
@@ -598,13 +569,12 @@ namespace Ogre {
         VertexDeclaration* newDecl = this->clone();
         // Set all sources to the same buffer (for now)
         const VertexDeclaration::VertexElementList& elems = newDecl->getElements();
-        VertexDeclaration::VertexElementList::const_iterator i;
         unsigned short c = 0;
-        for (i = elems.begin(); i != elems.end(); ++i, ++c)
+        for (auto& elem : elems)
         {
-            const VertexElement& elem = *i;
             // Set source & offset to 0 for now, before sort
             newDecl->modifyElement(c, 0, 0, elem.getType(), elem.getSemantic(), elem.getIndex());
+            ++c;
         }
         newDecl->sort();
         // Now sort out proper buffer assignments and offsets
@@ -612,10 +582,8 @@ namespace Ogre {
         c = 0;
         unsigned short buffer = 0;
         VertexElementSemantic prevSemantic = VES_POSITION;
-        for (i = elems.begin(); i != elems.end(); ++i, ++c)
+        for (auto& elem : elems)
         {
-            const VertexElement& elem = *i;
-
             bool splitWithPrev = false;
             bool splitWithNext = false;
             switch (elem.getSemantic())
@@ -671,6 +639,7 @@ namespace Ogre {
             {
                 offset += elem.getSize();
             }
+            ++c;
         }
 
         return newDecl;
@@ -680,16 +649,13 @@ namespace Ogre {
     //-----------------------------------------------------------------------------
     unsigned short VertexDeclaration::getMaxSource(void) const
     {
-        VertexElementList::const_iterator i, iend;
-        iend = mElementList.end();
         unsigned short ret = 0;
-        for (i = mElementList.begin(); i != iend; ++i)
+        for (auto& e : mElementList)
         {
-            if (i->getSource() > ret)
+            if (e.getSource() > ret)
             {
-                ret = i->getSource();
+                ret = e.getSource();
             }
-
         }
         return ret;
     }
@@ -697,10 +663,8 @@ namespace Ogre {
     unsigned short VertexDeclaration::getNextFreeTextureCoordinate() const
     {
         unsigned short texCoord = 0;
-        for (VertexElementList::const_iterator i = mElementList.begin(); 
-             i != mElementList.end(); ++i)
+        for (const auto & el : mElementList)
         {
-            const VertexElement& el = *i;
             if (el.getSemantic() == VES_TEXTURE_COORDINATES)
             {
                 ++texCoord;
@@ -797,28 +761,4 @@ namespace Ogre {
         mBindingMap.swap(newBindingMap);
         mHighIndex = targetIndex;
     }
-    //-----------------------------------------------------------------------------
-    bool VertexBufferBinding::getHasInstanceData() const
-    {
-        VertexBufferBinding::VertexBufferBindingMap::const_iterator i, iend;
-        iend = mBindingMap.end();
-        for (i = mBindingMap.begin(); i != iend; ++i)
-        {
-            if ( i->second->getIsInstanceData() )
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-    //-----------------------------------------------------------------------------
-    HardwareVertexBufferSharedPtr::HardwareVertexBufferSharedPtr(HardwareVertexBuffer* buf)
-        : SharedPtr<HardwareVertexBuffer>(buf)
-    {
-
-    }
-
-
-
-
 }

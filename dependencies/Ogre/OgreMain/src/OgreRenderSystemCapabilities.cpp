@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,18 +31,41 @@ THE SOFTWARE.
 
 namespace Ogre {
 
+    String DriverVersion::toString() const
+    {
+        StringStream str;
+        str << major << "." << minor << "." << release << "." << build;
+        return str.str();
+    }
+
+    void  DriverVersion::fromString(const String& versionString)
+    {
+        StringVector tokens = StringUtil::split(versionString, ".");
+        if(!tokens.empty())
+        {
+            major = StringConverter::parseInt(tokens[0]);
+            if (tokens.size() > 1)
+                minor = StringConverter::parseInt(tokens[1]);
+            if (tokens.size() > 2)
+                release = StringConverter::parseInt(tokens[2]);
+            if (tokens.size() > 3)
+                build = StringConverter::parseInt(tokens[3]);
+        }
+    }
+
     //-----------------------------------------------------------------------
     RenderSystemCapabilities::RenderSystemCapabilities()
         : mVendor(GPU_UNKNOWN)
-        , mNumWorldMatrices(0)
         , mNumTextureUnits(0)
-        , mStencilBufferBitDepth(0)
-        , mNumVertexBlendMatrices(0)
+        , mStencilBufferBitDepth(8)
+        , mConstantFloatCount{}
         , mNumMultiRenderTargets(1)
+        , mMaxPointSize(1)
         , mNonPOW2TexturesLimited(false)
         , mMaxSupportedAnisotropy(0)
-        , mVertexTextureUnitsShared(0)
+        , mNumVertexTextureUnits(0)
         , mGeometryProgramNumOutputVertices(0)
+        , mNumVertexAttributes(1)
     {
         for(int i = 0; i < CAPS_CATEGORY_COUNT; i++)
         {
@@ -54,12 +77,21 @@ namespace Ogre {
         mCategoryRelevant[CAPS_CATEGORY_D3D9] = false;
         mCategoryRelevant[CAPS_CATEGORY_GL] = false;
     }
-    //-----------------------------------------------------------------------
-    RenderSystemCapabilities::~RenderSystemCapabilities()
+
+    void RenderSystemCapabilities::addShaderProfile(const String& profile) { mSupportedShaderProfiles.insert(profile); }
+
+    void RenderSystemCapabilities::removeShaderProfile(const String& profile)
     {
+        mSupportedShaderProfiles.erase(profile);
     }
+
+    bool RenderSystemCapabilities::isShaderProfileSupported(const String& profile) const
+    {
+        return (mSupportedShaderProfiles.end() != mSupportedShaderProfiles.find(profile));
+    }
+
     //-----------------------------------------------------------------------
-    void RenderSystemCapabilities::log(Log* pLog)
+    void RenderSystemCapabilities::log(Log* pLog) const
     {
         pLog->logMessage("RenderSystem capabilities");
         pLog->logMessage("-------------------------");
@@ -67,161 +99,110 @@ namespace Ogre {
         pLog->logMessage("GPU Vendor: " + vendorToString(getVendor()));
         pLog->logMessage("Device Name: " + getDeviceName());
         pLog->logMessage("Driver Version: " + getDriverVersion().toString());
-        pLog->logMessage(" * Fixed function pipeline: " 
-            + StringConverter::toString(hasCapability(RSC_FIXED_FUNCTION), true));
-        pLog->logMessage(
-            " * Hardware generation of mipmaps: "
-            + StringConverter::toString(hasCapability(RSC_AUTOMIPMAP), true));
-        pLog->logMessage(
-            " * Texture blending: "
-            + StringConverter::toString(hasCapability(RSC_BLENDING), true));
-        pLog->logMessage(
-            " * Anisotropic texture filtering: "
-            + StringConverter::toString(hasCapability(RSC_ANISOTROPY), true));
-        pLog->logMessage(
-            " * Dot product texture operation: "
-            + StringConverter::toString(hasCapability(RSC_DOT3), true));
-        pLog->logMessage(
-            " * Cube mapping: "
-            + StringConverter::toString(hasCapability(RSC_CUBEMAPPING), true));
-        pLog->logMessage(
-            " * Hardware stencil buffer: "
-            + StringConverter::toString(hasCapability(RSC_HWSTENCIL), true));
+        pLog->logMessage(" * Fixed function pipeline: " +
+                         StringConverter::toString(hasCapability(RSC_FIXED_FUNCTION), true));
+        pLog->logMessage(" * 32-bit index buffers: " + StringConverter::toString(hasCapability(RSC_32BIT_INDEX), true));
+        pLog->logMessage(" * Hardware stencil buffer: " +
+                         StringConverter::toString(hasCapability(RSC_HWSTENCIL), true));
         if (hasCapability(RSC_HWSTENCIL))
         {
-            pLog->logMessage(
-                "   - Stencil depth: "
-                + StringConverter::toString(getStencilBufferBitDepth()));
-            pLog->logMessage(
-                "   - Two sided stencil support: "
-                + StringConverter::toString(hasCapability(RSC_TWO_SIDED_STENCIL), true));
-            pLog->logMessage(
-                "   - Wrap stencil values: "
-                + StringConverter::toString(hasCapability(RSC_STENCIL_WRAP), true));
+            pLog->logMessage("   - Two sided stencil support: " +
+                             StringConverter::toString(hasCapability(RSC_TWO_SIDED_STENCIL), true));
+            pLog->logMessage("   - Wrap stencil values: " +
+                             StringConverter::toString(hasCapability(RSC_STENCIL_WRAP), true));
         }
-        pLog->logMessage(
-            " * Hardware vertex / index buffers: "
-            + StringConverter::toString(hasCapability(RSC_VBO), true));
-        if(hasCapability(RSC_VBO))
+        pLog->logMessage(" * Uniform buffers: " + StringConverter::toString(hasCapability(RSC_UNIFORM_BUFFERS), true));
+        pLog->logMessage(" * Gpu programs: " + StringConverter::toString(hasCapability(RSC_VERTEX_PROGRAM), true));
+        if (hasCapability(RSC_VERTEX_PROGRAM))
         {
-            pLog->logMessage(
-                " * 32-bit index buffers: "
-                + StringConverter::toString(hasCapability(RSC_32BIT_INDEX), true));
+            pLog->logMessage("   - Vertex constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_VERTEX_PROGRAM]));
+            pLog->logMessage("   - Fragment constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_FRAGMENT_PROGRAM]));
         }
-        pLog->logMessage(
-            " * Vertex programs: "
-            + StringConverter::toString(hasCapability(RSC_VERTEX_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for vertex programs: "
-             + StringConverter::toString(mVertexProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for vertex programs: "
-             + StringConverter::toString(mVertexProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for vertex programs: "
-             + StringConverter::toString(mVertexProgramConstantBoolCount));
-        pLog->logMessage(
-            " * Fragment programs: "
-            + StringConverter::toString(hasCapability(RSC_FRAGMENT_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for fragment programs: "
-             + StringConverter::toString(mFragmentProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for fragment programs: "
-             + StringConverter::toString(mFragmentProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for fragment programs: "
-             + StringConverter::toString(mFragmentProgramConstantBoolCount));
-        pLog->logMessage(
-            " * Geometry programs: "
-            + StringConverter::toString(hasCapability(RSC_GEOMETRY_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for geometry programs: "
-             + StringConverter::toString(mGeometryProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for geometry programs: "
-             + StringConverter::toString(mGeometryProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for geometry programs: "
-             + StringConverter::toString(mGeometryProgramConstantBoolCount));
-        pLog->logMessage(
-            " * Tessellation Hull programs: "
-            + StringConverter::toString(hasCapability(RSC_TESSELLATION_HULL_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for tessellation hull programs: "
-             + StringConverter::toString(mTessellationHullProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for tessellation hull programs: "
-             + StringConverter::toString(mTessellationHullProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for tessellation hull programs: "
-             + StringConverter::toString(mTessellationHullProgramConstantBoolCount));
-        pLog->logMessage(
-            " * Tessellation Domain programs: "
-            + StringConverter::toString(hasCapability(RSC_TESSELLATION_DOMAIN_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for tessellation domain programs: "
-             + StringConverter::toString(mTessellationDomainProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for tessellation domain programs: "
-             + StringConverter::toString(mTessellationDomainProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for tessellation domain programs: "
-             + StringConverter::toString(mTessellationDomainProgramConstantBoolCount));
-        pLog->logMessage(
-            " * Compute programs: "
-            + StringConverter::toString(hasCapability(RSC_COMPUTE_PROGRAM), true));
-        pLog->logMessage(
-             " * Number of floating-point constants for compute programs: "
-             + StringConverter::toString(mComputeProgramConstantFloatCount));
-        pLog->logMessage(
-             " * Number of integer constants for compute programs: "
-             + StringConverter::toString(mComputeProgramConstantIntCount));
-        pLog->logMessage(
-             " * Number of boolean constants for compute programs: "
-             + StringConverter::toString(mComputeProgramConstantBoolCount));
-        String profileList = "";
-        for(ShaderProfiles::iterator iter = mSupportedShaderProfiles.begin(), end = mSupportedShaderProfiles.end();
-            iter != end; ++iter)
+        pLog->logMessage(" * Geometry programs: " +
+                         StringConverter::toString(hasCapability(RSC_GEOMETRY_PROGRAM), true));
+        if (hasCapability(RSC_GEOMETRY_PROGRAM))
         {
-            profileList += " " + *iter;
+            pLog->logMessage("   - Number of constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_GEOMETRY_PROGRAM]));
         }
-        pLog->logMessage(" * Supported Shader Profiles:" + profileList);
+        pLog->logMessage(" * Tessellation programs: " +
+                         StringConverter::toString(hasCapability(RSC_TESSELLATION_PROGRAM), true));
+        if (hasCapability(RSC_TESSELLATION_PROGRAM))
+        {
+            pLog->logMessage("   - Hull program constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_HULL_PROGRAM]));
+            pLog->logMessage("   - Domain program constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_DOMAIN_PROGRAM]));
+        }
+        pLog->logMessage(" * Mesh programs: " + StringConverter::toString(hasCapability(RSC_MESH_PROGRAM), true));
+        pLog->logMessage(" * Compute programs: " + StringConverter::toString(hasCapability(RSC_COMPUTE_PROGRAM), true));
+        if (hasCapability(RSC_COMPUTE_PROGRAM))
+        {
+            pLog->logMessage("   - Number of constant 4-vectors: " +
+                             StringConverter::toString(mConstantFloatCount[GPT_COMPUTE_PROGRAM]));
+        }
+        pLog->logMessage(" * VP/RT index from any shader: " +
+            StringConverter::toString(hasCapability(RSC_VP_RT_INDEX_ANY_SHADER), true));
+        pLog->logMessage(
+            " * Supported Shader Profiles: " +
+            StringConverter::toString(StringVector(mSupportedShaderProfiles.begin(), mSupportedShaderProfiles.end())));
+        pLog->logMessage(" * Read-back compiled shader: " +
+                         StringConverter::toString(hasCapability(RSC_CAN_GET_COMPILED_SHADER_BUFFER), true));
+        pLog->logMessage(" * Number of vertex attributes: " + StringConverter::toString(mNumVertexAttributes));
+        pLog->logMessage(" * Textures");
+        pLog->logMessage("   - Number of texture units: " + StringConverter::toString(mNumTextureUnits));
+        pLog->logMessage("   - Number of vertex textures: " + StringConverter::toString(mNumVertexTextureUnits));
+        pLog->logMessage("   - Floating point: " + StringConverter::toString(hasCapability(RSC_TEXTURE_FLOAT), true));
+        pLog->logMessage(
+            "   - Non-power-of-two: " + StringConverter::toString(hasCapability(RSC_NON_POWER_OF_2_TEXTURES), true) +
+            (mNonPOW2TexturesLimited ? " (limited)" : ""));
+        pLog->logMessage("   - 1D textures: " + StringConverter::toString(hasCapability(RSC_TEXTURE_1D), true));
+        pLog->logMessage("   - 2D array textures: " + StringConverter::toString(hasCapability(RSC_TEXTURE_2D_ARRAY), true));
+        pLog->logMessage("   - 3D textures: " + StringConverter::toString(hasCapability(RSC_TEXTURE_3D), true));
+        pLog->logMessage("   - Anisotropic filtering: " + StringConverter::toString(hasCapability(RSC_ANISOTROPY), true));
 
         pLog->logMessage(
             " * Texture Compression: "
             + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION), true));
         if (hasCapability(RSC_TEXTURE_COMPRESSION))
         {
-            pLog->logMessage(
-                "   - DXT: "
-                + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_DXT), true));
-            pLog->logMessage(
-                "   - VTC: "
-                + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_VTC), true));
-            pLog->logMessage(
-                 "   - PVRTC: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_PVRTC), true));
-            pLog->logMessage(
-                 "   - ATC: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ATC), true));
-            pLog->logMessage(
-                 "   - ETC1: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ETC1), true));
-            pLog->logMessage(
-                 "   - ETC2: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ETC2), true));
-            pLog->logMessage(
-                 "   - BC4/BC5: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_BC4_BC5), true));
-            pLog->logMessage(
-                 "   - BC6H/BC7: "
-                 + StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_BC6H_BC7), true));
+            pLog->logMessage("   - DXT: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_DXT), true));
+            pLog->logMessage("   - VTC: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_VTC), true));
+            pLog->logMessage("   - PVRTC: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_PVRTC), true));
+            pLog->logMessage("   - ATC: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ATC), true));
+            pLog->logMessage("   - ETC1: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ETC1), true));
+            pLog->logMessage("   - ETC2: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ETC2), true));
+            pLog->logMessage("   - BC4/BC5: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_BC4_BC5), true));
+            pLog->logMessage("   - BC6H/BC7: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_BC6H_BC7), true));
+            pLog->logMessage("   - ASTC: " +
+                             StringConverter::toString(hasCapability(RSC_TEXTURE_COMPRESSION_ASTC), true));
+            pLog->logMessage("   - Automatic mipmap generation: " +
+                             StringConverter::toString(hasCapability(RSC_AUTOMIPMAP_COMPRESSED), true));
         }
 
-        pLog->logMessage(
-            " * Scissor Rectangle: "
-            + StringConverter::toString(hasCapability(RSC_SCISSOR_TEST), true));
+        pLog->logMessage(" * Vertex Buffers");
+        pLog->logMessage("   - Render to Vertex Buffer: " +
+                         StringConverter::toString(hasCapability(RSC_HWRENDER_TO_VERTEX_BUFFER), true));
+        pLog->logMessage("   - Instance Data: " +
+                         StringConverter::toString(hasCapability(RSC_VERTEX_BUFFER_INSTANCE_DATA), true));
+        pLog->logMessage("   - Primitive Restart: " +
+                         StringConverter::toString(hasCapability(RSC_PRIMITIVE_RESTART), true));
+        pLog->logMessage("   - INT_10_10_10_2_NORM element type: " +
+                         StringConverter::toString(hasCapability(RSC_VERTEX_FORMAT_INT_10_10_10_2), true));
+        pLog->logMessage("   - 16x3 element types: " +
+                            StringConverter::toString(hasCapability(RSC_VERTEX_FORMAT_16X3), true));
+        pLog->logMessage(" * Read/Write Buffers: " +
+                         StringConverter::toString(hasCapability(RSC_READ_WRITE_BUFFERS), true));
         pLog->logMessage(
             " * Hardware Occlusion Query: "
             + StringConverter::toString(hasCapability(RSC_HWOCCLUSION), true));
@@ -229,103 +210,41 @@ namespace Ogre {
             " * User clip planes: "
             + StringConverter::toString(hasCapability(RSC_USER_CLIP_PLANES), true));
         pLog->logMessage(
-            " * VET_UBYTE4 vertex element type: "
-            + StringConverter::toString(hasCapability(RSC_VERTEX_FORMAT_UBYTE4), true));
-        pLog->logMessage(
-            " * Infinite far plane projection: "
-            + StringConverter::toString(hasCapability(RSC_INFINITE_FAR_PLANE), true));
+            " * Depth clamping: "
+            + StringConverter::toString(hasCapability(RSC_DEPTH_CLAMP), true));
         pLog->logMessage(
             " * Hardware render-to-texture: "
             + StringConverter::toString(hasCapability(RSC_HWRENDER_TO_TEXTURE), true));
-        pLog->logMessage(
-            " * Floating point textures: "
-            + StringConverter::toString(hasCapability(RSC_TEXTURE_FLOAT), true));
-        pLog->logMessage(
-            " * Non-power-of-two textures: "
-            + StringConverter::toString(hasCapability(RSC_NON_POWER_OF_2_TEXTURES), true)
-            + (mNonPOW2TexturesLimited ? " (limited)" : ""));
-        pLog->logMessage(
-            " * 1d textures: "
-            + StringConverter::toString(hasCapability(RSC_TEXTURE_1D), true));
-        pLog->logMessage(
-            " * Volume textures: "
-            + StringConverter::toString(hasCapability(RSC_TEXTURE_3D), true));
-        pLog->logMessage(
-            " * Multiple Render Targets: "
-            + StringConverter::toString(mNumMultiRenderTargets));
-        pLog->logMessage(
-            "   - With different bit depths: " + StringConverter::toString(hasCapability(RSC_MRT_DIFFERENT_BIT_DEPTHS), true));
-        pLog->logMessage(
-            " * Point Sprites: "
-            + StringConverter::toString(hasCapability(RSC_POINT_SPRITES), true));
-        pLog->logMessage(
-            " * Extended point parameters: "
-            + StringConverter::toString(hasCapability(RSC_POINT_EXTENDED_PARAMETERS), true));
-        if(hasCapability(RSC_POINT_SPRITES))
+        pLog->logMessage("   - Multiple Render Targets: " + StringConverter::toString(mNumMultiRenderTargets));
+        pLog->logMessage(" * Point Sprites: " + StringConverter::toString(hasCapability(RSC_POINT_SPRITES), true));
+        if (hasCapability(RSC_POINT_SPRITES))
         {
-            pLog->logMessage(
-                " * Max Point Size: "
-                + StringConverter::toString(mMaxPointSize));
+            pLog->logMessage("   - Max Size: " + StringConverter::toString(mMaxPointSize));
         }
         pLog->logMessage(
-            " * Vertex texture fetch: "
-            + StringConverter::toString(hasCapability(RSC_VERTEX_TEXTURE_FETCH), true));
+            " * Wide Lines: "
+            + StringConverter::toString(hasCapability(RSC_WIDE_LINES), true));
         pLog->logMessage(
-             " * Number of world matrices: "
-             + StringConverter::toString(mNumWorldMatrices));
-        pLog->logMessage(
-             " * Number of texture units: "
-             + StringConverter::toString(mNumTextureUnits));
-        pLog->logMessage(
-             " * Stencil buffer depth: "
-             + StringConverter::toString(mStencilBufferBitDepth));
-        pLog->logMessage(
-             " * Number of vertex blend matrices: "
-             + StringConverter::toString(mNumVertexBlendMatrices));
-        if (hasCapability(RSC_VERTEX_TEXTURE_FETCH))
-        {
-            pLog->logMessage(
-                "   - Max vertex textures: "
-                + StringConverter::toString(mNumVertexTextureUnits));
-            pLog->logMessage(
-                "   - Vertex textures shared: "
-                + StringConverter::toString(mVertexTextureUnitsShared, true));
-
-        }
-        pLog->logMessage(
-            " * Render to Vertex Buffer : "
-            + StringConverter::toString(hasCapability(RSC_HWRENDER_TO_VERTEX_BUFFER), true));
-        pLog->logMessage(
-            " * Hardware Atomic Counters: "
-            + StringConverter::toString(hasCapability(RSC_ATOMIC_COUNTERS), true));
-
+            " * Hardware Gamma: "
+            + StringConverter::toString(hasCapability(RSC_HW_GAMMA), true));
         if (mCategoryRelevant[CAPS_CATEGORY_GL])
         {
-            pLog->logMessage(
-                " * GL 1.5 without VBO workaround: "
-                + StringConverter::toString(hasCapability(RSC_GL1_5_NOVBO), true));
-
-            pLog->logMessage(
-                " * Frame Buffer objects: "
-                + StringConverter::toString(hasCapability(RSC_FBO), true));
-            pLog->logMessage(
-                " * Frame Buffer objects (ARB extension): "
-                + StringConverter::toString(hasCapability(RSC_FBO_ARB), true));
-            pLog->logMessage(
-                " * Frame Buffer objects (ATI extension): "
-                + StringConverter::toString(hasCapability(RSC_FBO_ATI), true));
             pLog->logMessage(
                 " * PBuffer support: "
                 + StringConverter::toString(hasCapability(RSC_PBUFFER), true));
             pLog->logMessage(
-                " * GL 1.5 without HW-occlusion workaround: "
-                + StringConverter::toString(hasCapability(RSC_GL1_5_NOHWOCCLUSION), true));
-            pLog->logMessage(
                 " * Vertex Array Objects: "
                 + StringConverter::toString(hasCapability(RSC_VAO), true));
+            pLog->logMessage(" * Separate shader objects: " +
+                             StringConverter::toString(hasCapability(RSC_SEPARATE_SHADER_OBJECTS), true));
+            pLog->logMessage("   - redeclare GLSL interface block: " +
+                             StringConverter::toString(hasCapability(RSC_GLSL_SSO_REDECLARE), true));
             pLog->logMessage(
-                " * Separate shader objects: "
-                + StringConverter::toString(hasCapability(RSC_SEPARATE_SHADER_OBJECTS), true));
+                " * Debugging/ profiling events: "
+                + StringConverter::toString(hasCapability(RSC_DEBUG), true));
+            pLog->logMessage(
+                " * Map buffer storage: "
+                + StringConverter::toString(hasCapability(RSC_MAPBUFFER), true));
         }
 
         if (mCategoryRelevant[CAPS_CATEGORY_D3D9])
@@ -333,10 +252,15 @@ namespace Ogre {
             pLog->logMessage(
                 " * DirectX per stage constants: "
                 + StringConverter::toString(hasCapability(RSC_PERSTAGECONSTANT), true));
+            pLog->logMessage(
+                " * W-Buffer supported: "
+                + StringConverter::toString(hasCapability(RSC_WBUFFER), true));
+            pLog->logMessage(" * Multiple Render Targets must have same bit depth: " +
+                             StringConverter::toString(hasCapability(RSC_MRT_SAME_BIT_DEPTHS), true));
         }
     }
     //---------------------------------------------------------------------
-    StringVector RenderSystemCapabilities::msGPUVendorStrings;
+    String RenderSystemCapabilities::msGPUVendorStrings[GPU_VENDOR_COUNT];
     //---------------------------------------------------------------------
     GPUVendor RenderSystemCapabilities::vendorFromString(const String& vendorString)
     {
@@ -358,7 +282,7 @@ namespace Ogre {
         
     }
     //---------------------------------------------------------------------
-    String RenderSystemCapabilities::vendorToString(GPUVendor v)
+    const String& RenderSystemCapabilities::vendorToString(GPUVendor v)
     {
         initVendorStrings();
         return msGPUVendorStrings[v];
@@ -366,18 +290,13 @@ namespace Ogre {
     //---------------------------------------------------------------------
     void RenderSystemCapabilities::initVendorStrings()
     {
-        if (msGPUVendorStrings.empty())
+        if (msGPUVendorStrings[0].empty())
         {
             // Always lower case!
-            msGPUVendorStrings.resize(GPU_VENDOR_COUNT);
             msGPUVendorStrings[GPU_UNKNOWN] = "unknown";
             msGPUVendorStrings[GPU_NVIDIA] = "nvidia";
             msGPUVendorStrings[GPU_AMD] = "amd";
             msGPUVendorStrings[GPU_INTEL] = "intel";
-            msGPUVendorStrings[GPU_3DLABS] = "3dlabs";
-            msGPUVendorStrings[GPU_S3] = "s3";
-            msGPUVendorStrings[GPU_MATROX] = "matrox";
-            msGPUVendorStrings[GPU_SIS] = "sis";
             msGPUVendorStrings[GPU_IMAGINATION_TECHNOLOGIES] = "imagination technologies";
             msGPUVendorStrings[GPU_APPLE] = "apple";    // iOS Simulator
             msGPUVendorStrings[GPU_NOKIA] = "nokia";

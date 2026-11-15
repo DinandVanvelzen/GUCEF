@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
- Copyright (c) 2000-2016 Torus Knot Software Ltd
+ Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@ THE SOFTWARE.
 */
 #include "OgreStableHeaders.h"
 #include "OgrePose.h"
-#include "OgreHardwareBufferManager.h"
 
 namespace Ogre {
     //---------------------------------------------------------------------
@@ -36,16 +35,10 @@ namespace Ogre {
     {
     }
     //---------------------------------------------------------------------
-    Pose::~Pose()
+    void Pose::addVertex(uint32 index, const Vector3f& offset)
     {
-    }
-    //---------------------------------------------------------------------
-    void Pose::addVertex(size_t index, const Vector3& offset)
-    {
-        if (!mNormalsMap.empty())
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "Inconsistent calls to addVertex, must include normals always or never",
-                "Pose::addVertex");
+        OgreAssert(mNormalsMap.empty(),
+                   "Inconsistent calls to addVertex, must include normals always or never");
 
         if(offset.squaredLength() < 1e-6f)
         {
@@ -53,15 +46,13 @@ namespace Ogre {
         }
 
         mVertexOffsetMap[index] = offset;
-        mBuffer.setNull();
+        mBuffer.reset();
     }
     //---------------------------------------------------------------------
-    void Pose::addVertex(size_t index, const Vector3& offset, const Vector3& normal)
+    void Pose::addVertex(uint32 index, const Vector3f& offset, const Vector3f& normal)
     {
-        if (!mVertexOffsetMap.empty() && mNormalsMap.empty())
-            OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, 
-                "Inconsistent calls to addVertex, must include normals always or never",
-                "Pose::addVertex");
+        OgreAssert(mVertexOffsetMap.empty() || !mNormalsMap.empty(),
+                   "Inconsistent calls to addVertex, must include normals always or never");
 
         if(offset.squaredLength() < 1e-6f && normal.squaredLength() < 1e-6f)
         {
@@ -70,16 +61,16 @@ namespace Ogre {
 
         mVertexOffsetMap[index] = offset;
         mNormalsMap[index] = normal;
-        mBuffer.setNull();
+        mBuffer.reset();
     }
     //---------------------------------------------------------------------
-    void Pose::removeVertex(size_t index)
+    void Pose::removeVertex(uint32 index)
     {
         VertexOffsetMap::iterator i = mVertexOffsetMap.find(index);
         if (i != mVertexOffsetMap.end())
         {
             mVertexOffsetMap.erase(i);
-            mBuffer.setNull();
+            mBuffer.reset();
         }
         NormalsMap::iterator j = mNormalsMap.find(index);
         if (j != mNormalsMap.end())
@@ -92,7 +83,7 @@ namespace Ogre {
     {
         mVertexOffsetMap.clear();
         mNormalsMap.clear();
-        mBuffer.setNull();
+        mBuffer.reset();
     }
     //---------------------------------------------------------------------
     Pose::ConstVertexOffsetIterator 
@@ -121,7 +112,7 @@ namespace Ogre {
     {
         size_t numVertices = origData->vertexCount;
         
-        if (mBuffer.isNull())
+        if (!mBuffer)
         {
             // Create buffer
             size_t vertexSize = VertexElement::getTypeSize(VET_FLOAT3);
@@ -132,8 +123,8 @@ namespace Ogre {
             mBuffer = HardwareBufferManager::getSingleton().createVertexBuffer(
                 vertexSize, numVertices, HardwareBuffer::HBU_STATIC_WRITE_ONLY);
 
-            float* pFloat = static_cast<float*>(
-                mBuffer->lock(HardwareBuffer::HBL_DISCARD));
+            HardwareBufferLockGuard bufLock(mBuffer, HardwareBuffer::HBL_DISCARD);
+            float* pFloat = static_cast<float*>(bufLock.pData);
             // initialise - these will be the values used where no pose vertex is included
             memset(pFloat, 0, mBuffer->getSizeInBytes()); 
             if (normals)
@@ -147,10 +138,10 @@ namespace Ogre {
                 
                 const HardwareVertexBufferSharedPtr& origBuffer = 
                     origData->vertexBufferBinding->getBuffer(origNormElem->getSource());
+                HardwareBufferLockGuard origBufLock(origBuffer, HardwareBuffer::HBL_READ_ONLY);
                 float* pDst = pFloat + 3;
-                void* pSrcBase = origBuffer->lock(HardwareBuffer::HBL_READ_ONLY);
                 float* pSrc;
-                origNormElem->baseVertexPointerToElement(pSrcBase, &pSrc);
+                origNormElem->baseVertexPointerToElement(origBufLock.pData, &pSrc);
                 for (size_t v = 0; v < numVertices; ++v)
                 {
                     memcpy(pDst, pSrc, sizeof(float)*3);
@@ -158,9 +149,6 @@ namespace Ogre {
                     pDst += 6;
                     pSrc = (float*)(((char*)pSrc) + origBuffer->getVertexSize());
                 }
-                origBuffer->unlock();
-                
-                
             }
             // Set each vertex
             VertexOffsetMap::const_iterator v = mVertexOffsetMap.begin();
@@ -173,20 +161,19 @@ namespace Ogre {
                 // Remember, vertex maps are *sparse* so may have missing entries
                 // This is why we skip
                 float* pDst = pFloat + (numFloatsPerVertex * v->first);
-                *pDst++ = v->second.x;
-                *pDst++ = v->second.y;
-                *pDst++ = v->second.z;
+                *pDst++ = v->second[0];
+                *pDst++ = v->second[1];
+                *pDst++ = v->second[2];
                 ++v;
                 if (normals)
                 {
-                    *pDst++ = n->second.x;
-                    *pDst++ = n->second.y;
-                    *pDst++ = n->second.z;
+                    *pDst++ = n->second[0];
+                    *pDst++ = n->second[1];
+                    *pDst++ = n->second[2];
                     ++n;
                 }
                 
             }
-            mBuffer->unlock();
         }
         return mBuffer;
     }

@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,11 +53,15 @@ namespace Ogre {
             /// Temporary volume in main memory if direct locking of mVolume is not possible
             IDirect3DVolume9* tempVolume;
             /// Mip map texture.
-            IDirect3DBaseTexture9 *mipTex;          
+            IDirect3DBaseTexture9 *mipTex;
+            // for depth only RTTs
+            IDirect3DSurface9* nullSurface;
         };
 
-        typedef map<IDirect3DDevice9*, BufferResources*>::type  DeviceToBufferResourcesMap;
+        typedef std::map<IDirect3DDevice9*, BufferResources*>  DeviceToBufferResourcesMap;
         typedef DeviceToBufferResourcesMap::iterator            DeviceToBufferResourcesIterator;
+
+        BufferResources* createOrRetrieveResources(IDirect3DDevice9* d3d9Device);
 
         /// Map between device to buffer resources.
         DeviceToBufferResourcesMap  mMapDeviceToBufferResources;
@@ -65,29 +69,24 @@ namespace Ogre {
         /// Mipmapping
         bool mDoMipmapGen;
         bool mHWMipmaps;
-        
-        /// Render target
-        D3D9RenderTexture* mRenderTexture;
 
         // The owner texture if exists.
         D3D9Texture* mOwnerTexture;
-        
-        // The current lock flags of this surface.
-        DWORD mLockFlags;
 
         // Device access mutex.
         OGRE_STATIC_MUTEX(msDeviceAccessMutex);
+
+        Image mStagingBuffer;
     protected:
         /// Lock a box
-        PixelBox lockImpl(const Image::Box &lockBox, LockOptions options);
-        PixelBox lockBuffer(BufferResources* bufferResources, const Image::Box &lockBox, DWORD flags);
+        PixelBox lockImpl(const Box &lockBox, LockOptions options);
+        PixelBox lockBuffer(BufferResources* bufferResources, const Box &lockBox, DWORD flags);
 
         /// Unlock a box
         void unlockImpl(void);
         void unlockBuffer(BufferResources* bufferResources);
 
         BufferResources* getBufferResources(IDirect3DDevice9* d3d9Device);
-        BufferResources* createBufferResources();
     
         /// updates render texture.
         void updateRenderTexture(bool writeGamma, uint fsaa, const String& srcName);
@@ -95,12 +94,12 @@ namespace Ogre {
         void destroyRenderTexture();
 
         void blit(IDirect3DDevice9* d3d9Device, const HardwarePixelBufferSharedPtr &src,
-                const Image::Box &srcBox, const Image::Box &dstBox, 
+                const Box &srcBox, const Box &dstBox, 
                 BufferResources* srcBufferResources, 
                 BufferResources* dstBufferResources);
-        void blitFromMemory(const PixelBox &src, const Image::Box &dstBox, BufferResources* dstBufferResources);
+        void blitFromMemory(const PixelBox &src, const Box &dstBox, BufferResources* dstBufferResources);
 
-        void blitToMemory(const Image::Box &srcBox, const PixelBox &dst, BufferResources* srcBufferResources, IDirect3DDevice9* d3d9Device);
+        void blitToMemory(const Box &srcBox, const PixelBox &dst, BufferResources* srcBufferResources, IDirect3DDevice9* d3d9Device);
             
     public:
         D3D9HardwarePixelBuffer(HardwareBuffer::Usage usage, 
@@ -113,13 +112,13 @@ namespace Ogre {
         void bind(IDirect3DDevice9 *dev, IDirect3DVolume9 *mVolume, IDirect3DBaseTexture9 *mipTex);
         
         /// @copydoc HardwarePixelBuffer::blit
-        void blit(const HardwarePixelBufferSharedPtr &src, const Image::Box &srcBox, const Image::Box &dstBox);
+        void blit(const HardwarePixelBufferSharedPtr &src, const Box &srcBox, const Box &dstBox);
         
         /// @copydoc HardwarePixelBuffer::blitFromMemory
-        void blitFromMemory(const PixelBox &src, const Image::Box &dstBox);
+        void blitFromMemory(const PixelBox &src, const Box &dstBox);
     
         /// @copydoc HardwarePixelBuffer::blitToMemory
-        void blitToMemory(const Image::Box &srcBox, const PixelBox &dst);
+        void blitToMemory(const Box &srcBox, const PixelBox &dst);
         
         /// Internal function to update mipmaps on update of level 0
         void _genMipmaps(IDirect3DBaseTexture9* mipTex);
@@ -132,13 +131,22 @@ namespace Ogre {
         RenderTexture *getRenderTarget(size_t zoffset);
 
         /// Accessor for surface
-        IDirect3DSurface9 *getSurface(IDirect3DDevice9* d3d9Device);
-        
-        /// Accessor for AA surface
-        IDirect3DSurface9 *getFSAASurface(IDirect3DDevice9* d3d9Device);
+        IDirect3DSurface9* getSurface(IDirect3DDevice9* d3d9Device)
+        {
+            return createOrRetrieveResources(d3d9Device)->surface;
+        }
 
-        /// Notify TextureBuffer of destruction of render target
-        virtual void _clearSliceRTT(size_t zoffset);
+        /// Accessor for AA surface
+        IDirect3DSurface9* getFSAASurface(IDirect3DDevice9* d3d9Device)
+        {
+            return createOrRetrieveResources(d3d9Device)->fSAASurface;
+        }
+
+        /// For depth-only targets
+        IDirect3DSurface9* getNullSurface(IDirect3DDevice9* d3d9Device)
+        {
+            return createOrRetrieveResources(d3d9Device)->nullSurface;
+        }
 
         /// Release surfaces held by this pixel buffer.
         void releaseSurfaces(IDirect3DDevice9* d3d9Device);

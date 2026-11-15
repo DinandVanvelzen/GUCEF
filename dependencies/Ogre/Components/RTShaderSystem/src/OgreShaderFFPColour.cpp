@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,14 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#include "OgreShaderFFPColour.h"
+#include "OgreShaderPrecompiledHeaders.h"
 #ifdef RTSHADER_SYSTEM_BUILD_CORE_SHADERS
-#include "OgreShaderFFPRenderState.h"
-#include "OgreShaderProgram.h"
-#include "OgreShaderParameter.h"
-#include "OgreShaderProgramSet.h"
-#include "OgrePass.h"
-#include "OgreMaterialSerializer.h"
 
 namespace Ogre {
 namespace RTShader {
@@ -39,18 +33,18 @@ namespace RTShader {
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-String FFPColour::Type = "FFP_Colour";
+const String SRS_VERTEX_COLOUR = "FFP_Colour";
 
 //-----------------------------------------------------------------------
 FFPColour::FFPColour()
 {
-    mResolveStageFlags  = SF_PS_OUTPUT_DIFFUSE;
+    mResolveStageFlags  = 0;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPColour::getType() const
 {
-    return Type;
+    return SRS_VERTEX_COLOUR;
 }
 
 
@@ -63,54 +57,32 @@ int FFPColour::getExecutionOrder() const
 //-----------------------------------------------------------------------
 bool FFPColour::resolveParameters(ProgramSet* programSet)
 {
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
     Function* vsMain   = vsProgram->getEntryPointFunction();
     Function* psMain   = psProgram->getEntryPointFunction();    
-    bool hasError = false;
 
     if (mResolveStageFlags & SF_VS_INPUT_DIFFUSE)
-        mVSInputDiffuse  = vsMain->resolveInputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
-    
-    if (mResolveStageFlags & SF_VS_INPUT_SPECULAR)
-        mVSInputSpecular = vsMain->resolveInputParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
-    
-    // Resolve VS color outputs if have inputs from vertex stream.
-    if (mVSInputDiffuse.get() != NULL || mResolveStageFlags & SF_VS_OUTPUT_DIFFUSE)     
-        mVSOutputDiffuse = vsMain->resolveOutputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);                               
+        mVSInputDiffuse  = vsMain->resolveInputParameter(Parameter::SPC_COLOR_DIFFUSE);
 
-    if (mVSInputSpecular.get() != NULL || mResolveStageFlags & SF_VS_OUTPUT_SPECULAR)       
-        mVSOutputSpecular = vsMain->resolveOutputParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);         
+    // Resolve VS color outputs if have inputs from vertex stream.
+    if (mVSInputDiffuse.get() != NULL || mResolveStageFlags & SF_VS_OUTPUT_DIFFUSE)
+        mVSOutputDiffuse = vsMain->resolveOutputParameter(Parameter::SPC_COLOR_DIFFUSE);
+
+    if (mResolveStageFlags & SF_VS_OUTPUT_SPECULAR)
+        mVSOutputSpecular = vsMain->resolveOutputParameter(Parameter::SPC_COLOR_SPECULAR);
 
     // Resolve PS color inputs if have inputs from vertex shader.
-    if (mVSOutputDiffuse.get() != NULL || mResolveStageFlags & SF_PS_INPUT_DIFFUSE)     
-        mPSInputDiffuse = psMain->resolveInputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
+    if (mVSOutputDiffuse.get() != NULL || mResolveStageFlags & SF_PS_INPUT_DIFFUSE)
+        mPSInputDiffuse = psMain->resolveInputParameter(Parameter::SPC_COLOR_DIFFUSE);
 
-    if (mVSOutputSpecular.get() != NULL || mResolveStageFlags & SF_PS_INPUT_SPECULAR)       
-        mPSInputSpecular = psMain->resolveInputParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
+    if (mVSOutputSpecular.get() != NULL || mResolveStageFlags & SF_PS_INPUT_SPECULAR)
+        mPSInputSpecular = psMain->resolveInputParameter(Parameter::SPC_COLOR_SPECULAR);
 
 
     // Resolve PS output diffuse color.
-    if (mResolveStageFlags & SF_PS_OUTPUT_DIFFUSE)
-    {
-        mPSOutputDiffuse = psMain->resolveOutputParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
-        hasError |= !(mPSOutputDiffuse.get());
-    }
+    mPSOutputDiffuse = psMain->resolveOutputParameter(Parameter::SPC_COLOR_DIFFUSE);
 
-    // Resolve PS output specular color.
-    if (mResolveStageFlags & SF_PS_OUTPUT_SPECULAR)
-    {
-        mPSOutputSpecular = psMain->resolveOutputParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
-        hasError |= !(mPSOutputSpecular.get());
-    }
-    
-    
-    if (hasError)
-    {
-        OGRE_EXCEPT( Exception::ERR_INTERNAL_ERROR, 
-                "Not all parameters could be constructed for the sub-render state.",
-                "FFPColour::resolveParameters" );
-    }
     return true;
 }
 
@@ -118,86 +90,56 @@ bool FFPColour::resolveParameters(ProgramSet* programSet)
 //-----------------------------------------------------------------------
 bool FFPColour::resolveDependencies(ProgramSet* programSet)
 {
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
-
-    vsProgram->addDependency(FFP_LIB_COMMON);
-    psProgram->addDependency(FFP_LIB_COMMON);
-
     return true;
 }
 
 //-----------------------------------------------------------------------
 bool FFPColour::addFunctionInvocations(ProgramSet* programSet)
 {
-    Program* vsProgram = programSet->getCpuVertexProgram();
-    Program* psProgram = programSet->getCpuFragmentProgram();
+    Program* vsProgram = programSet->getCpuProgram(GPT_VERTEX_PROGRAM);
+    Program* psProgram = programSet->getCpuProgram(GPT_FRAGMENT_PROGRAM);
     Function* vsMain   = vsProgram->getEntryPointFunction();
     Function* psMain   = psProgram->getEntryPointFunction();    
-    FunctionInvocation* curFuncInvocation = NULL;   
-    int internalCounter;
-
     
+    vsProgram->addDependency("RTSLib_Colour");
+    psProgram->addDependency("RTSLib_Colour");
+
     // Create vertex shader colour invocations.
     ParameterPtr vsDiffuse;
     ParameterPtr vsSpecular;
-    internalCounter = 0;    
-    if (mVSInputDiffuse.get() != NULL)
+
+    auto vsStage = vsMain->getStage(FFP_VS_COLOUR);
+    if (mVSInputDiffuse)
     {
         vsDiffuse = mVSInputDiffuse;
+        vsStage.callFunction("ENABLE_LINEAR_COLOUR", vsDiffuse);
     }
     else
     {
-        vsDiffuse = vsMain->resolveLocalParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_CONSTRUCT, FFP_VS_COLOUR, internalCounter++);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(vsDiffuse, Operand::OPS_OUT);
-        vsMain->addAtomInstance(curFuncInvocation);
+        vsDiffuse = vsMain->resolveLocalParameter(Parameter::SPC_COLOR_DIFFUSE);
+        vsStage.assign(Vector4(1.0), vsDiffuse);
     }
 
-    if (mVSOutputDiffuse.get() != NULL)
+    if (mVSOutputDiffuse)
     {
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, FFP_VS_COLOUR, internalCounter++);
-        curFuncInvocation->pushOperand(vsDiffuse, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mVSOutputDiffuse, Operand::OPS_OUT);
-        vsMain->addAtomInstance(curFuncInvocation);
+        vsStage.assign(vsDiffuse, mVSOutputDiffuse);
     }
     
-    if (mVSInputSpecular.get() != NULL)
-    {
-        vsSpecular = mVSInputSpecular;      
-    }
-    else
-    {
-        vsSpecular = vsMain->resolveLocalParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
+    vsSpecular = vsMain->resolveLocalParameter(Parameter::SPC_COLOR_SPECULAR);
+    vsStage.assign(Vector4::ZERO, vsSpecular);
 
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_CONSTRUCT, FFP_VS_COLOUR, internalCounter++);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(vsSpecular, Operand::OPS_OUT);
-        vsMain->addAtomInstance(curFuncInvocation);
+    if (mVSOutputSpecular)
+    {
+        vsStage.assign(vsSpecular, mVSOutputSpecular);
     }
 
-    if (mVSOutputSpecular.get() != NULL)
-    {
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, FFP_VS_COLOUR, internalCounter++);
-        curFuncInvocation->pushOperand(vsSpecular, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mVSOutputSpecular, Operand::OPS_OUT);
-        vsMain->addAtomInstance(curFuncInvocation);
-    }
-    
-    
+
 
     // Create fragment shader colour invocations.
     ParameterPtr psDiffuse;
     ParameterPtr psSpecular;
-    internalCounter = 0;
-    
+    auto psStage = psMain->getStage(FFP_PS_COLOUR_BEGIN);
+
     // Handle diffuse colour.
     if (mPSInputDiffuse.get() != NULL)
     {
@@ -205,62 +147,29 @@ bool FFPColour::addFunctionInvocations(ProgramSet* programSet)
     }
     else
     {
-        psDiffuse = psMain->resolveLocalParameter(Parameter::SPS_COLOR, 0, Parameter::SPC_COLOR_DIFFUSE, GCT_FLOAT4);
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_CONSTRUCT, FFP_PS_COLOUR_BEGIN, internalCounter++);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(1.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(psDiffuse, Operand::OPS_OUT);
-        psMain->addAtomInstance(curFuncInvocation);
+        psDiffuse = psMain->resolveLocalParameter(Parameter::SPC_COLOR_DIFFUSE);
+        psStage.assign(Vector4(1.0), psDiffuse);
     }
 
     // Handle specular colour.
-    if (mPSInputSpecular.get() != NULL)
+    if (mPSInputSpecular)
     {
-        psSpecular = mPSInputSpecular;      
+        psSpecular = mPSInputSpecular;
     }
     else
     {
-        psSpecular = psMain->resolveLocalParameter(Parameter::SPS_COLOR, 1, Parameter::SPC_COLOR_SPECULAR, GCT_FLOAT4);
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_CONSTRUCT, FFP_PS_COLOUR_BEGIN, internalCounter++);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(ParameterFactory::createConstParamFloat(0.0), Operand::OPS_IN);
-        curFuncInvocation->pushOperand(psSpecular, Operand::OPS_OUT);
-        psMain->addAtomInstance(curFuncInvocation);
+        psSpecular = psMain->resolveLocalParameter(Parameter::SPC_COLOR_SPECULAR);
+        psStage.assign(Vector4::ZERO, psSpecular);
     }
 
     // Assign diffuse colour.
-    if (mPSOutputDiffuse.get() != NULL)
-    {   
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, FFP_PS_COLOUR_BEGIN, internalCounter++);
-        curFuncInvocation->pushOperand(psDiffuse, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSOutputDiffuse, Operand::OPS_OUT);     
-        psMain->addAtomInstance(curFuncInvocation);
-    }
-
-    // Assign specular colour.
-    if (mPSOutputSpecular.get() != NULL)
-    {
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ASSIGN, FFP_PS_COLOUR_BEGIN, internalCounter++);
-        curFuncInvocation->pushOperand(psSpecular, Operand::OPS_IN);
-        curFuncInvocation->pushOperand(mPSOutputSpecular, Operand::OPS_OUT);        
-        psMain->addAtomInstance(curFuncInvocation);
-    }
+    psStage.assign(psDiffuse, mPSOutputDiffuse);
 
     // Add specular to out colour.
-    internalCounter = 0;
-    if (mPSOutputDiffuse.get() != NULL && psSpecular.get() != NULL)
-    {
-        curFuncInvocation = OGRE_NEW FunctionInvocation(FFP_FUNC_ADD, FFP_PS_COLOUR_END, internalCounter++);
-        curFuncInvocation->pushOperand(mPSOutputDiffuse, Operand::OPS_IN, Operand::OPM_XYZ);
-        curFuncInvocation->pushOperand(psSpecular, Operand::OPS_IN, Operand::OPM_XYZ);
-        curFuncInvocation->pushOperand(mPSOutputDiffuse, Operand::OPS_OUT, Operand::OPM_XYZ);
-        psMain->addAtomInstance(curFuncInvocation);
-    }   
+    psMain->getStage(FFP_PS_COLOUR_END)
+        .add(In(mPSOutputDiffuse).xyz(), In(psSpecular).xyz(), Out(mPSOutputDiffuse).xyz());
 
+    psMain->getStage(FFP_PS_POST_PROCESS).callFunction("COLOUR_TRANSFER", mPSOutputDiffuse);
     return true;
 }
 
@@ -278,39 +187,24 @@ bool FFPColour::preAddToRenderState(const RenderState* renderState, Pass* srcPas
 {
     TrackVertexColourType trackColour = srcPass->getVertexColourTracking();
 
-    if (trackColour != 0)           
+    if (trackColour != 0)
         addResolveStageMask(FFPColour::SF_VS_INPUT_DIFFUSE);
-    
+
     return true;
 }
 
 //-----------------------------------------------------------------------
 const String& FFPColourFactory::getType() const
 {
-    return FFPColour::Type;
+    return SRS_VERTEX_COLOUR;
 }
 
 //-----------------------------------------------------------------------
-SubRenderState* FFPColourFactory::createInstance(ScriptCompiler* compiler, 
-                                                    PropertyAbstractNode* prop, Pass* pass, SGScriptTranslator* translator)
+SubRenderState* FFPColourFactory::createInstance(const ScriptProperty& prop, Pass* pass, SGScriptTranslator* translator)
 {
-    if (prop->name == "colour_stage")
+    if (prop.name == "colour_stage" && prop.values[0] == "ffp")
     {
-        if(prop->values.size() == 1)
-        {
-            String modelType;
-
-            if(false == SGScriptTranslator::getString(prop->values.front(), &modelType))
-            {
-                compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line);
-                return NULL;
-            }
-
-            if (modelType == "ffp")
-            {
-                return createOrRetrieveInstance(translator);
-            }
-        }       
+        return createOrRetrieveInstance(translator);
     }
 
     return NULL;

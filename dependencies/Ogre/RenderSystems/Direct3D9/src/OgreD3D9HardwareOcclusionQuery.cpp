@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,6 @@ namespace Ogre {
         {
             pOccQuery->Issue(D3DISSUE_BEGIN); 
             mIsQueryResultStillOutstanding = true;
-            mPixelCount = 0;
         }       
     }
 
@@ -141,7 +140,6 @@ namespace Ogre {
                 if (hr == D3DERR_DEVICELOST)
                 {
                     *NumOfFragments = 0;
-                    mPixelCount = 0;
                     SAFE_RELEASE(it->second);
                     break;
                 }
@@ -154,12 +152,6 @@ namespace Ogre {
             *NumOfFragments = mPixelCount;
         }       
         return true;
-    }
-
-    //------------------------------------------------------------------
-    unsigned int D3D9HardwareOcclusionQuery::getLastQuerysPixelcount()
-    {
-        return mPixelCount;
     }
 
     //------------------------------------------------------------------

@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,13 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreD3D11Mappings.h"
+#include "OgreD3D11RenderSystem.h"
+#include "OgreRoot.h"
 
 namespace Ogre 
 {
     //---------------------------------------------------------------------
-    D3D11_TEXTURE_ADDRESS_MODE D3D11Mappings::get(TextureUnitState::TextureAddressingMode tam)
+    D3D11_TEXTURE_ADDRESS_MODE D3D11Mappings::get(TextureAddressingMode tam)
     {
         D3D11RenderSystem* rsys = static_cast<D3D11RenderSystem*>(Root::getSingleton().getRenderSystem());
         if (rsys->_getFeatureLevel() == D3D_FEATURE_LEVEL_9_1)
@@ -130,7 +132,7 @@ namespace Ogre
         switch(level)
         {
         case PM_POINTS:
-            return D3D11_FILL_SOLID; // this will done in a geometry shader like in the FixedFuncEMU sample  and the shader needs solid
+            return D3D11_FILL_SOLID;
         case PM_WIREFRAME:
             return D3D11_FILL_WIREFRAME;
         case PM_SOLID:
@@ -225,7 +227,7 @@ namespace Ogre
             // D3D debug runtime doesn't like you locking managed buffers readonly
             // when they were created with write-only (even though you CAN read
             // from the software backed version)
-            if (!(usage & HardwareBuffer::HBU_WRITE_ONLY))
+            if (!(usage & HBU_DETAIL_WRITE_ONLY))
                 ret = D3D11_MAP_READ;
 
         }
@@ -259,12 +261,12 @@ namespace Ogre
         {
             OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Invalid pixel format", "setPixelBoxMapping");
         }
-        box.data = mapping.pData;
+        box.data = (uchar*)mapping.pData;
     }
     //---------------------------------------------------------------------
-    PixelBox D3D11Mappings::getPixelBoxWithMapping(size_t width, size_t height, size_t depth, PixelFormat pixelFormat, const D3D11_MAPPED_SUBRESOURCE& mapping)
+    PixelBox D3D11Mappings::getPixelBoxWithMapping(D3D11_BOX extents, DXGI_FORMAT pixelFormat, const D3D11_MAPPED_SUBRESOURCE& mapping)
     {
-        PixelBox box(width, height, depth, pixelFormat);
+        PixelBox box(Box(extents.left, extents.top, extents.front, extents.right, extents.bottom, extents.back), _getPF(pixelFormat));
         setPixelBoxMapping(box, mapping);
         return box;
     }
@@ -278,11 +280,6 @@ namespace Ogre
     {
         switch (vType)
         {
-        case VET_COLOUR:
-        case VET_COLOUR_ABGR:
-        case VET_COLOUR_ARGB:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-
         // Float32
         case VET_FLOAT1:
             return DXGI_FORMAT_R32_FLOAT;
@@ -293,6 +290,14 @@ namespace Ogre
         case VET_FLOAT4:
             return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
+        // Float16
+        case VET_HALF1:
+            return DXGI_FORMAT_R16_FLOAT;
+        case VET_HALF2:
+            return DXGI_FORMAT_R16G16_FLOAT;
+        case VET_HALF4:
+            return DXGI_FORMAT_R16G16B16A16_FLOAT;
+
         // Signed short
         case VET_SHORT1:
             return DXGI_FORMAT_R16_SINT;
@@ -300,6 +305,10 @@ namespace Ogre
             return DXGI_FORMAT_R16G16_SINT;
         case VET_SHORT4:
             return DXGI_FORMAT_R16G16B16A16_SINT;
+        case VET_SHORT2_NORM:
+            return DXGI_FORMAT_R16G16_SNORM;
+        case VET_SHORT4_NORM:
+            return DXGI_FORMAT_R16G16B16A16_SNORM;
 
         // Unsigned short
         case VET_USHORT1:
@@ -308,6 +317,10 @@ namespace Ogre
             return DXGI_FORMAT_R16G16_UINT;
         case VET_USHORT4:
             return DXGI_FORMAT_R16G16B16A16_UINT;
+        case VET_USHORT2_NORM:
+            return DXGI_FORMAT_R16G16_UNORM;
+        case VET_USHORT4_NORM:
+            return DXGI_FORMAT_R16G16B16A16_UNORM;
 
         // Signed int
         case VET_INT1:
@@ -328,39 +341,18 @@ namespace Ogre
             return DXGI_FORMAT_R32G32B32_UINT;
         case VET_UINT4:
             return DXGI_FORMAT_R32G32B32A32_UINT;
-
+            
+        case VET_BYTE4:
+            return DXGI_FORMAT_R8G8B8A8_SINT;
+        case VET_BYTE4_NORM:
+            return DXGI_FORMAT_R8G8B8A8_SNORM;
         case VET_UBYTE4:
             return DXGI_FORMAT_R8G8B8A8_UINT;
+        case VET_UBYTE4_NORM:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
         }
         // to keep compiler happy
         return DXGI_FORMAT_R32G32B32_FLOAT;
-    }
-    //---------------------------------------------------------------------
-    VertexElementSemantic D3D11Mappings::get(LPCSTR sem)
-    {
-        // todo - add to ogre - POSITIONT and PSIZE ("Transformed vertex position" and "Point size")
-
-        if( strcmp(sem, "BLENDINDICES") == 0 )
-            return VES_BLEND_INDICES;
-        if( strcmp(sem, "BLENDWEIGHT") == 0 )
-            return VES_BLEND_WEIGHTS;
-        if( strcmp(sem, "COLOR") == 0 )
-            return VES_DIFFUSE;
-//      if( strcmp(sem, "COLOR") == 0 )
-//          return VES_SPECULAR;
-        if( strcmp(sem, "NORMAL") == 0 )
-            return VES_NORMAL;
-        if( strcmp(sem, "POSITION") == 0 )
-            return VES_POSITION;
-        if( strcmp(sem, "TEXCOORD") == 0 )
-            return VES_TEXTURE_COORDINATES;
-        if( strcmp(sem, "BINORMAL") == 0 )
-            return VES_BINORMAL;
-        if( strcmp(sem, "TANGENT") == 0 )
-            return VES_TANGENT;
-
-        // to keep compiler happy
-        return VES_POSITION;
     }
     //---------------------------------------------------------------------
     LPCSTR D3D11Mappings::get(VertexElementSemantic sem)
@@ -389,14 +381,6 @@ namespace Ogre
         }
         // to keep compiler happy
         return "";
-    }
-    //---------------------------------------------------------------------
-    void D3D11Mappings::get(const ColourValue& inColour, float * outColour )
-    {
-        outColour[0] = inColour.r;
-        outColour[1] = inColour.g;
-        outColour[2] = inColour.b;
-        outColour[3] = inColour.a;  
     }
     //---------------------------------------------------------------------
     PixelFormat D3D11Mappings::_getPF(DXGI_FORMAT d3dPF)
@@ -429,7 +413,7 @@ namespace Ogre
         case DXGI_FORMAT_R10G10B10A2_TYPELESS:      return PF_UNKNOWN;
         case DXGI_FORMAT_R10G10B10A2_UNORM:         return PF_A2B10G10R10;
         case DXGI_FORMAT_R10G10B10A2_UINT:          return PF_UNKNOWN;
-        case DXGI_FORMAT_R11G11B10_FLOAT:           return PF_UNKNOWN;
+        case DXGI_FORMAT_R11G11B10_FLOAT:           return PF_R11G11B10_FLOAT;
         case DXGI_FORMAT_R8G8B8A8_TYPELESS:         return PF_UNKNOWN;
         case DXGI_FORMAT_R8G8B8A8_UNORM:            return PF_A8B8G8R8;
         case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:       return PF_A8B8G8R8;
@@ -437,18 +421,18 @@ namespace Ogre
         case DXGI_FORMAT_R8G8B8A8_SNORM:            return PF_UNKNOWN;
         case DXGI_FORMAT_R8G8B8A8_SINT:             return PF_UNKNOWN;
         case DXGI_FORMAT_R16G16_TYPELESS:           return PF_UNKNOWN;
-        case DXGI_FORMAT_R16G16_FLOAT:              return PF_UNKNOWN;
+        case DXGI_FORMAT_R16G16_FLOAT:              return PF_FLOAT16_GR;
         case DXGI_FORMAT_R16G16_UNORM:              return PF_SHORT_GR;
         case DXGI_FORMAT_R16G16_UINT:               return PF_UNKNOWN;
         case DXGI_FORMAT_R16G16_SNORM:              return PF_UNKNOWN;
         case DXGI_FORMAT_R16G16_SINT:               return PF_R16G16_SINT;
-        case DXGI_FORMAT_R32_TYPELESS:              return PF_UNKNOWN;
-        case DXGI_FORMAT_D32_FLOAT:                 return PF_DEPTH;
+        case DXGI_FORMAT_R32_TYPELESS:              return PF_DEPTH32;
+        case DXGI_FORMAT_D32_FLOAT:                 return PF_DEPTH32F;
         case DXGI_FORMAT_R32_FLOAT:                 return PF_FLOAT32_R;
         case DXGI_FORMAT_R32_UINT:                  return PF_UNKNOWN;
         case DXGI_FORMAT_R32_SINT:                  return PF_UNKNOWN;
         case DXGI_FORMAT_R24G8_TYPELESS:            return PF_UNKNOWN;
-        case DXGI_FORMAT_D24_UNORM_S8_UINT:         return PF_UNKNOWN;
+        case DXGI_FORMAT_D24_UNORM_S8_UINT:         return PF_DEPTH24_STENCIL8;
         case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:     return PF_UNKNOWN;
         case DXGI_FORMAT_X24_TYPELESS_G8_UINT:      return PF_UNKNOWN;
         case DXGI_FORMAT_R8G8_TYPELESS:             return PF_UNKNOWN;
@@ -458,13 +442,13 @@ namespace Ogre
         case DXGI_FORMAT_R8G8_SINT:                 return PF_UNKNOWN;
         case DXGI_FORMAT_R16_TYPELESS:              return PF_UNKNOWN;
         case DXGI_FORMAT_R16_FLOAT:                 return PF_FLOAT16_R;
-        case DXGI_FORMAT_D16_UNORM:                 return PF_UNKNOWN;
+        case DXGI_FORMAT_D16_UNORM:                 return PF_DEPTH16;
         case DXGI_FORMAT_R16_UNORM:                 return PF_L16;
         case DXGI_FORMAT_R16_UINT:                  return PF_UNKNOWN;
         case DXGI_FORMAT_R16_SNORM:                 return PF_UNKNOWN;
         case DXGI_FORMAT_R16_SINT:                  return PF_UNKNOWN;
         case DXGI_FORMAT_R8_TYPELESS:               return PF_UNKNOWN;
-        case DXGI_FORMAT_R8_UNORM:                  return PF_L8;
+        case DXGI_FORMAT_R8_UNORM:                  return PF_R8;
         case DXGI_FORMAT_R8_UINT:                   return PF_UNKNOWN;
         case DXGI_FORMAT_R8_SNORM:                  return PF_UNKNOWN;
         case DXGI_FORMAT_R8_SINT:                   return PF_UNKNOWN;
@@ -497,7 +481,7 @@ namespace Ogre
         case DXGI_FORMAT_BC6H_SF16:                 return PF_BC6H_SF16;
         case DXGI_FORMAT_BC7_TYPELESS:              return PF_BC7_UNORM;
         case DXGI_FORMAT_BC7_UNORM:                 return PF_BC7_UNORM;
-        case DXGI_FORMAT_BC7_UNORM_SRGB:            return PF_BC7_UNORM_SRGB;
+        case DXGI_FORMAT_BC7_UNORM_SRGB:            return PF_BC7_UNORM;
 
 #if defined(_WIN32_WINNT_WIN8) && (_WIN32_WINNT >= _WIN32_WINNT_WIN8) && defined(DXGI_FORMAT_AYUV)
         case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:return PF_UNKNOWN;
@@ -529,12 +513,14 @@ namespace Ogre
     //---------------------------------------------------------------------
     DXGI_FORMAT D3D11Mappings::_getPF(PixelFormat ogrePF)
     {
+        // PF_L8 maps to DXGI_FORMAT_R8_UNORM and grayscale textures became "redscale", without green and blue components.
+        // This can be fixed by shader modification, but here we can only convert PF_L8 to PF_A8B8G8R8 manually to fix the issue.
+        // Note, that you can use PF_R8 to explicitly request "redscale" behavior for grayscale textures, avoiding overhead.
         switch(ogrePF)
         {
-        case PF_L8:             return DXGI_FORMAT_R8_UNORM;
+        case PF_R8:             return DXGI_FORMAT_R8_UNORM;
         case PF_L16:            return DXGI_FORMAT_R16_UNORM;
         case PF_A8:             return DXGI_FORMAT_A8_UNORM;
-        case PF_A4L4:           return DXGI_FORMAT_UNKNOWN;
         case PF_BYTE_LA:        return DXGI_FORMAT_UNKNOWN; 
         case PF_R3G3B2:         return DXGI_FORMAT_UNKNOWN;
         case PF_A1R5G5B5:       return DXGI_FORMAT_UNKNOWN;
@@ -547,7 +533,9 @@ namespace Ogre
         case PF_X8B8G8R8:       return DXGI_FORMAT_UNKNOWN;
         case PF_A2B10G10R10:    return DXGI_FORMAT_R10G10B10A2_TYPELESS;
         case PF_A2R10G10B10:    return DXGI_FORMAT_UNKNOWN;
+        case PF_R11G11B10_FLOAT:return DXGI_FORMAT_R11G11B10_FLOAT;
         case PF_FLOAT16_R:      return DXGI_FORMAT_R16_FLOAT;
+        case PF_FLOAT16_GR:     return DXGI_FORMAT_R16G16_FLOAT;
         case PF_FLOAT16_RGBA:   return DXGI_FORMAT_R16G16B16A16_FLOAT;
         case PF_FLOAT32_R:      return DXGI_FORMAT_R32_FLOAT;
         case PF_FLOAT32_RGBA:   return DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -564,12 +552,47 @@ namespace Ogre
         case PF_BC6H_UF16:      return DXGI_FORMAT_BC6H_UF16;
         case PF_BC6H_SF16:      return DXGI_FORMAT_BC6H_SF16;
         case PF_BC7_UNORM:      return DXGI_FORMAT_BC7_UNORM;
-        case PF_BC7_UNORM_SRGB: return DXGI_FORMAT_BC7_UNORM_SRGB;
         case PF_R16G16_SINT:    return DXGI_FORMAT_R16G16_SINT;
-        case PF_FLOAT32_GR:     return DXGI_FORMAT_R32G32_FLOAT;         
-        case PF_UNKNOWN:
+        case PF_FLOAT32_GR:     return DXGI_FORMAT_R32G32_FLOAT;
+        case PF_DEPTH16:        return DXGI_FORMAT_R32_TYPELESS;
+        case PF_DEPTH32:        return DXGI_FORMAT_R32_TYPELESS;
+        case PF_DEPTH32F:       return DXGI_FORMAT_R32_TYPELESS;
+        case PF_DEPTH24_STENCIL8:     return DXGI_FORMAT_R24G8_TYPELESS;
         default:                return DXGI_FORMAT_UNKNOWN;
         }
+    }
+    //---------------------------------------------------------------------
+    DXGI_FORMAT D3D11Mappings::_getGammaFormat(DXGI_FORMAT format, bool appendSRGB)
+    {
+        if(appendSRGB)
+        {
+            switch(format)
+            {
+            case DXGI_FORMAT_R8G8B8A8_UNORM:       return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+            case DXGI_FORMAT_B8G8R8A8_UNORM:       return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+            case DXGI_FORMAT_B8G8R8X8_UNORM:       return DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
+            case DXGI_FORMAT_BC1_UNORM:            return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case DXGI_FORMAT_BC2_UNORM:            return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case DXGI_FORMAT_BC3_UNORM:            return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case DXGI_FORMAT_BC7_UNORM:            return DXGI_FORMAT_BC7_UNORM_SRGB;
+            }
+        }
+        return format;
+    }
+    //---------------------------------------------------------------------
+    bool D3D11Mappings::_isBinaryCompressedFormat(DXGI_FORMAT d3dPF)
+    {
+        return
+            d3dPF == DXGI_FORMAT_BC1_TYPELESS || d3dPF == DXGI_FORMAT_BC1_UNORM || d3dPF == DXGI_FORMAT_BC1_UNORM_SRGB ||
+            d3dPF == DXGI_FORMAT_BC2_TYPELESS || d3dPF == DXGI_FORMAT_BC2_UNORM || d3dPF == DXGI_FORMAT_BC2_UNORM_SRGB ||
+            d3dPF == DXGI_FORMAT_BC3_TYPELESS || d3dPF == DXGI_FORMAT_BC3_UNORM || d3dPF == DXGI_FORMAT_BC3_UNORM_SRGB ||
+            d3dPF == DXGI_FORMAT_BC4_TYPELESS || d3dPF == DXGI_FORMAT_BC4_UNORM || d3dPF == DXGI_FORMAT_BC4_SNORM ||
+            d3dPF == DXGI_FORMAT_BC5_TYPELESS || d3dPF == DXGI_FORMAT_BC5_UNORM || d3dPF == DXGI_FORMAT_BC5_SNORM ||
+#if OGRE_PLATFORM == OGRE_PLATFORM_WINRT
+            d3dPF == DXGI_FORMAT_BC6H_TYPELESS|| d3dPF == DXGI_FORMAT_BC6H_UF16 || d3dPF == DXGI_FORMAT_BC6H_SF16 || 
+            d3dPF == DXGI_FORMAT_BC7_TYPELESS || d3dPF == DXGI_FORMAT_BC7_UNORM || d3dPF == DXGI_FORMAT_BC7_UNORM_SRGB ||
+#endif
+            0;
     }
     //---------------------------------------------------------------------
     PixelFormat D3D11Mappings::_getClosestSupportedPF(PixelFormat ogrePF)
@@ -580,10 +603,18 @@ namespace Ogre
         }
         switch(ogrePF)
         {
+        case PF_R8G8B8:
+            return PF_X8R8G8B8;
         case PF_FLOAT16_RGB:
             return PF_FLOAT16_RGBA;
         case PF_FLOAT32_RGB:
             return PF_FLOAT32_RGBA;
+        case PF_DEPTH16:
+            return PF_L16;
+        case PF_DEPTH24_STENCIL8:
+        case PF_DEPTH32:
+        case PF_DEPTH32F:
+            return PF_FLOAT32_R;
         case PF_UNKNOWN:
         default:
             return PF_A8B8G8R8;
@@ -694,18 +725,28 @@ namespace Ogre
 			}
 		}
 
-		return isRenderTarget ? D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET : D3D11_BIND_SHADER_RESOURCE;
+        UINT retVal = 0;
+        if( !(usage & TU_NOT_SAMPLED) )
+            retVal |= D3D11_BIND_SHADER_RESOURCE;
+
+        if( isRenderTarget )
+            retVal |= D3D11_BIND_RENDER_TARGET;
+
+        if( usage & TU_UNORDERED_ACCESS )
+            retVal |= D3D11_BIND_UNORDERED_ACCESS;
+
+        return retVal;
 	}
 
-    UINT D3D11Mappings::_getTextureMiscFlags(UINT bindflags, TextureType textype, bool isdynamic)
+    UINT D3D11Mappings::_getTextureMiscFlags(UINT bindflags, TextureType textype, TextureUsage usage)
     {
-        if(isdynamic)
+        if(_isDynamic(usage))
             return 0;
 
         UINT flags = 0;
 
-		if((bindflags & D3D11_BIND_SHADER_RESOURCE) && (bindflags & D3D11_BIND_RENDER_TARGET))
-			flags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	    if((bindflags & D3D11_BIND_SHADER_RESOURCE) && (bindflags & D3D11_BIND_RENDER_TARGET) && (usage & TU_AUTOMIPMAP))
+		    flags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
         if(textype == TEX_TYPE_CUBE_MAP)
             flags |= D3D11_RESOURCE_MISC_TEXTURECUBE;

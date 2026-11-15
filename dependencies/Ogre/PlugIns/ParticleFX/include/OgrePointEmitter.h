@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,31 +32,28 @@ THE SOFTWARE.
 #include "OgreParticleEmitter.h"
 
 namespace Ogre {
+    /** \addtogroup Plugins
+    *  @{
+    */
+    /** \addtogroup ParticleFX
+    *  @{
+    */
+    /** This emitter emits particles from a single point, which is it’s position.
 
-    /** Particle emitter which emits particles from a single point.
-    @remarks
-        This basic particle emitter emits particles from a single point in space. The
-        initial direction of these particles can either be a single direction (i.e. a line),
+        The initial direction of these particles can either be a single direction (i.e. a line),
         a random scattering inside a cone, or a random scattering in all directions, 
         depending the 'angle' parameter, which is the angle across which to scatter the 
         particles either side of the base direction of the emitter. 
     */
-    class _OgreParticleFXExport PointEmitter : public ParticleEmitter
+    class PointEmitter : public ParticleEmitter
     {
     public:
         PointEmitter(ParticleSystem* psys);
 
-        /** See ParticleEmitter. */
-        void _initParticle(Particle* pParticle);
-
-        /** See ParticleEmitter. */
-        unsigned short _getEmissionCount(Real timeElapsed);
-
-
-
-
+        void _initParticle(Particle* pParticle) override;
     };
-
+    /** @} */
+    /** @} */
 }
 
 #endif

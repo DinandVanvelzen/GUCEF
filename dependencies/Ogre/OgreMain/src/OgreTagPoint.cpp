@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,25 +26,18 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreStableHeaders.h"
-
 #include "OgreTagPoint.h"
-#include "OgreMatrix4.h"
-#include "OgreEntity.h"
-#include "OgreQuaternion.h"
+
 
 namespace Ogre {
 
     //-----------------------------------------------------------------------------
     TagPoint::TagPoint(unsigned short handle, Skeleton* creator)
         : Bone(handle, creator)
-        , mParentEntity(0)
-        , mChildObject(0)
         , mInheritParentEntityOrientation(true)
         , mInheritParentEntityScale(true)
-    {
-    }
-    //-----------------------------------------------------------------------------
-    TagPoint::~TagPoint()
+        , mParentEntity(0)
+        , mChildObject(0)
     {
     }
     //-----------------------------------------------------------------------------
@@ -90,12 +83,12 @@ namespace Ogre {
         return mInheritParentEntityScale;
     }
     //-----------------------------------------------------------------------------
-    const Matrix4& TagPoint::_getFullLocalTransform(void) const
+    const Affine3& TagPoint::_getFullLocalTransform(void) const
     {
         return mFullLocalTransform;
     }
     //-----------------------------------------------------------------------------
-    const Matrix4& TagPoint::getParentEntityTransform(void) const
+    const Affine3& TagPoint::getParentEntityTransform(void) const
     {
 
         return mParentEntity->_getParentNodeFullTransform();
@@ -164,11 +157,6 @@ namespace Ogre {
         {
             mChildObject->_notifyMoved();
         }
-    }
-    //-----------------------------------------------------------------------------
-    const LightList& TagPoint::getLights(void) const
-    {
-        return mParentEntity->queryLights();
     }
 
 }

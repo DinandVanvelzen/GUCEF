@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,62 +32,52 @@ THE SOFTWARE.
 
 namespace Ogre {
     // Forward declarations
-    class GLSupport;
+    class GLNativeSupport;
     class GLRenderSystem;
     class GLTexture;
     class GLTextureManager;
+    struct GLGpuProgramBase;
     class GLGpuProgram;
     class GLContext;
     class GLRTTManager;
     class GLFBOManager;
     class GLHardwarePixelBuffer;
     class GLRenderBuffer;
-    class GLDepthBuffer;
 
-    typedef SharedPtr<GLGpuProgram> GLGpuProgramPtr;
-    typedef SharedPtr<GLTexture> GLTexturePtr;
+    typedef shared_ptr<GLGpuProgram> GLGpuProgramPtr;
+    typedef shared_ptr<GLTexture> GLTexturePtr;
 }
 
-#if OGRE_THREAD_SUPPORT == 1
-#   define GLEW_MX
-#endif
-
-#if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
-#if !defined( __MINGW32__ )
-#   define WIN32_LEAN_AND_MEAN
-#  ifndef NOMINMAX
-#   define NOMINMAX // required to stop windows.h messing up std::min
-#  endif
-#endif
-#   include <windows.h>
-#   include <wingdi.h>
-#   include <GL/glew.h>
-#   include <GL/wglew.h>
-#   include <GL/glu.h>
-#elif OGRE_PLATFORM == OGRE_PLATFORM_LINUX
-#   include <GL/glew.h>
-#   include <GL/glu.h>
-#   define GL_GLEXT_PROTOTYPES
-#elif OGRE_PLATFORM == OGRE_PLATFORM_APPLE
-#   include <GL/glew.h>
-#   include <OpenGL/glu.h>
-#endif
-
-#if OGRE_THREAD_SUPPORT == 1
-    // implemented in OgreGLContext.cpp
-    GLEWContext * glewGetContext();
-
-#   if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
-    // implemented in OgreWin32Context.cpp
-    WGLEWContext * wglewGetContext();
+#if (OGRE_PLATFORM == OGRE_PLATFORM_WIN32)
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN 1
 #   endif
-
+#   ifndef NOMINMAX
+#       define NOMINMAX // required to stop windows.h messing up std::min
+#   endif
 #endif
 
-/// Lots of generated code in here which triggers the new VC CRT security warnings
-#if !defined( _CRT_SECURE_NO_DEPRECATE )
-#define _CRT_SECURE_NO_DEPRECATE
-#endif
+#include <glad/glad.h>
+
+namespace Ogre {
+    inline const char* glErrorToString(GLenum glErr) {
+        switch(glErr)
+        {
+            case GL_INVALID_ENUM:
+                return "GL_INVALID_ENUM";
+            case GL_INVALID_VALUE:
+                return "GL_INVALID_VALUE";
+            case GL_INVALID_OPERATION:
+                return "GL_INVALID_OPERATION";
+            case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
+                return "GL_INVALID_FRAMEBUFFER_OPERATION";
+            case GL_OUT_OF_MEMORY:
+                return "GL_OUT_OF_MEMORY";
+            default:
+                return "";
+        }
+    }
+}
 
 #if (OGRE_PLATFORM == OGRE_PLATFORM_WIN32) && !defined(__MINGW32__) && !defined(OGRE_STATIC_LIB)
 #   ifdef OGRE_GLPLUGIN_EXPORTS

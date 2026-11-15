@@ -4,7 +4,7 @@ This source file is part of OGRE
     (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,12 +38,12 @@ namespace Ogre {
     /** \addtogroup Core
     *  @{
     */
-    /** \addtogroup General
+    /** \defgroup Script Script
     *  @{
     */
     /** Abstract class defining the interface used by classes which wish 
         to perform script loading to define instances of whatever they manage.
-    @remarks
+
         Typically classes of this type wish to either parse individual script files
         on demand, or be called with a group of files matching a certain pattern
         at the appropriate time. Normally this will coincide with resource loading,
@@ -59,10 +59,10 @@ namespace Ogre {
     class _OgreExport ScriptLoader
     {
     public:
-        virtual ~ScriptLoader();
+        virtual ~ScriptLoader() {}
         /** Gets the file patterns which should be used to find scripts for this
             class.
-        @remarks
+
             This method is called when a resource group is loaded if you use 
             ResourceGroupManager::_registerScriptLoader.
         @return
@@ -77,12 +77,11 @@ namespace Ogre {
         */
         virtual void parseScript(DataStreamPtr& stream, const String& groupName) = 0;
 
-        /** Gets the relative loading order of scripts of this type.
-        @remarks
-            There are dependencies between some kinds of scripts, and to enforce
-            this all implementors of this interface must define a loading order. 
-        @return A value representing the relative loading order of these scripts
-            compared to other script users, where higher values load later.
+        /** Gets the loading order for scripts of this type.
+
+            There are dependencies between some kinds of scripts, and this value enumerates that.
+            Higher values load later during bulk loading tasks.
+        @return The loading order
         */
         virtual Real getLoadingOrder(void) const  = 0;
 

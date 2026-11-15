@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include "OgreManualObject.h"
 #include "OgreMeshManager.h"
 #include "OgreSceneManager.h"
+#include <sstream>
 
 namespace Ogre {
 namespace Volume {
@@ -45,24 +46,24 @@ namespace Volume {
             a.nY == b.nY &&
             a.nZ == b.nZ;
     }
-    
+
     //-----------------------------------------------------------------------
 
     bool operator<(const Vertex& a, const Vertex& b)
     {
          return memcmp(&a, &b, sizeof(Vertex)) < 0;
     }
-    
+
     //-----------------------------------------------------------------------
 
     const unsigned short MeshBuilder::MAIN_BINDING = 0;
-    
+
     //-----------------------------------------------------------------------
 
     MeshBuilder::MeshBuilder(void) : mBoxInit(false)
     {
     }
-    
+
     //-----------------------------------------------------------------------
 
     size_t MeshBuilder::generateBuffers(RenderOperation &operation)
@@ -79,47 +80,43 @@ namespace Volume {
         operation.vertexData = OGRE_NEW VertexData();
         operation.vertexData->vertexCount = mVertices.size();
         operation.vertexData->vertexStart = 0;
-    
+
         VertexDeclaration *decl = operation.vertexData->vertexDeclaration;
         VertexBufferBinding *bind = operation.vertexData->vertexBufferBinding;
-    
+
         size_t offset = 0;
 
         // Add vertex-positions to the buffer
-        decl->addElement(0, offset, VET_FLOAT3, VES_POSITION);
-        offset += VertexElement::getTypeSize(VET_FLOAT3);
-    
+        offset += decl->addElement(0, offset, VET_FLOAT3, VES_POSITION).getSize();
+
         // Add vertex-normals to the buffer
         decl->addElement(0, offset, VET_FLOAT3, VES_NORMAL);
-    
+
         HardwareVertexBufferSharedPtr vbuf = HardwareBufferManager::getSingleton().createVertexBuffer(
             decl->getVertexSize(MAIN_BINDING),
             operation.vertexData->vertexCount,
             HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-    
+
         bind->setBinding(0, vbuf);
 
         float* vertices = static_cast<float*>(vbuf->lock(HardwareBuffer::HBL_DISCARD));
-    
-        VecVertex::const_iterator endVertices = mVertices.end();
-        for (VecVertex::const_iterator iter = mVertices.begin(); iter != endVertices; ++iter)
+        for (const auto& v : mVertices)
         {
-            *vertices++ = (float)iter->x;
-            *vertices++ = (float)iter->y;
-            *vertices++ = (float)iter->z;
-            *vertices++ = (float)iter->nX;
-            *vertices++ = (float)iter->nY;
-            *vertices++ = (float)iter->nZ;
+            *vertices++ = (float)v.x;
+            *vertices++ = (float)v.y;
+            *vertices++ = (float)v.z;
+            *vertices++ = (float)v.nX;
+            *vertices++ = (float)v.nY;
+            *vertices++ = (float)v.nZ;
         }
 
         vbuf->unlock();
-    
+
         // Get Indexarray
         operation.indexData = OGRE_NEW IndexData();
         operation.indexData->indexCount = mIndices.size();
         operation.indexData->indexStart = 0;
-    
-        VecIndices::const_iterator endIndices = mIndices.end();
+
         if (operation.indexData->indexCount > USHRT_MAX)
         {
             operation.indexData->indexBuffer =
@@ -131,10 +128,10 @@ namespace Volume {
                 operation.indexData->indexBuffer->lock(0,
                     operation.indexData->indexBuffer->getSizeInBytes(),
                     HardwareBuffer::HBL_DISCARD));
-    
-            for (VecIndices::const_iterator iter = mIndices.begin(); iter != endIndices; ++iter)
+
+        for (const auto& i : mIndices)
             {
-                *indices++ = static_cast<uint32>(*iter);
+                *indices++ = static_cast<uint32>(i);
             }
         }
         else
@@ -148,49 +145,49 @@ namespace Volume {
                 operation.indexData->indexBuffer->lock(0,
                     operation.indexData->indexBuffer->getSizeInBytes(),
                     HardwareBuffer::HBL_DISCARD));
-    
-            for (VecIndices::const_iterator iter = mIndices.begin(); iter != endIndices; ++iter)
+
+            for (const auto& i : mIndices)
             {
-                *indices++ = (unsigned short)*iter;
+                *indices++ = (unsigned short)i;
             }
         }
 
         operation.indexData->indexBuffer->unlock();
         return mIndices.size() / 3;
     }
-    
+
     //-----------------------------------------------------------------------
 
     AxisAlignedBox MeshBuilder::getBoundingBox(void)
     {
         return mBox;
     }
-    
+
     //-----------------------------------------------------------------------
 
     Entity* MeshBuilder::generateWithManualObject(SceneManager *sceneManager, const String &name, const String &material)
     {
             ManualObject* manual = sceneManager->createManualObject();
             manual->begin(material, RenderOperation::OT_TRIANGLE_LIST);
-        
-            for (VecVertex::const_iterator iter = mVertices.begin(); iter != mVertices.end(); ++iter)
+
+            for (const auto& v : mVertices)
             {
-                manual->position(Vector3(iter->x, iter->y, iter->z));
-                manual->normal(Vector3(iter->nX, iter->nY, iter->nZ));
+                manual->position(Vector3(v.x, v.y, v.z));
+                manual->normal(Vector3(v.nX, v.nY, v.nZ));
             }
-            for (VecIndices::const_iterator iter = mIndices.begin(); iter != mIndices.end(); ++iter)
+            for (const auto& i : mIndices)
             {
-                manual->index(static_cast<uint32>(*iter));
+                manual->index(static_cast<uint32>(i));
             }
 
             manual->end();
             StringStream meshName;
             meshName << name << "ManualObject";
-            MeshManager::getSingleton().remove(meshName.str());
+            MeshManager::getSingleton().remove(meshName.str(), ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
             manual->convertToMesh(meshName.str());
             return sceneManager->createEntity(name, meshName.str());
     }
-    
+
     //-----------------------------------------------------------------------
 
     void MeshBuilder::executeCallback(MeshBuilderCallback *callback, const SimpleRenderable *simpleRenderable, size_t level, int inProcess) const

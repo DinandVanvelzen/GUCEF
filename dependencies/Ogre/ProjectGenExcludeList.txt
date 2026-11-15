@@ -1,12 +1,3 @@
 .hg
-bin
-Components
-Docs
-inst
-Other
-PlugIns
-Samples
-Scripts
-SDK
-Tests
-Tools
+CMake
+Media

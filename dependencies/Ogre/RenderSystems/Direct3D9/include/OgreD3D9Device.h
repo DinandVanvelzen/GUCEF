@@ -4,7 +4,7 @@ This source file is part of OGRE
 (Object-oriented Graphics Rendering Engine)
 For the latest info, see http://www.ogre3d.org/
 
-Copyright (c) 2000-2016 Torus Knot Software Ltd
+Copyright (c) 2000-2014 Torus Knot Software Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ namespace Ogre {
         uint                    getLastPresentFrame     () const { return mLastPresentFrame; }
 
         void                    setAdapterOrdinalIndex  (D3D9RenderWindow* renderWindow, uint adapterOrdinalInGroupIndex);
-        void                    copyContentsToMemory(D3D9RenderWindow* window, const PixelBox &dst, RenderTarget::FrameBuffer buffer);
+        void                    copyContentsToMemory(D3D9RenderWindow* window, const Box& src, const PixelBox &dst, RenderTarget::FrameBuffer buffer);
         void                    clearDeviceStreams      ();
         int                     getVBlankMissCount      (D3D9RenderWindow* renderWindow);
     
@@ -121,7 +121,7 @@ namespace Ogre {
             D3DPRESENT_PARAMETERS   presentParameters;              // Present parameters of the render window.
             bool                    acquired;                       // True if resources acquired.          
         };      
-        typedef map<D3D9RenderWindow*, RenderWindowResources*>::type RenderWindowToResourcesMap;
+        typedef std::map<D3D9RenderWindow*, RenderWindowResources*> RenderWindowToResourcesMap;
         typedef RenderWindowToResourcesMap::iterator                 RenderWindowToResourcesIterator;
 
         RenderWindowToResourcesMap mMapRenderWindowToResources;     // Map between render window to resources.

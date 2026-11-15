@@ -56,7 +56,8 @@ namespace Ogre
 
     D3D11DeviceResourceManager::~D3D11DeviceResourceManager()
     {
-        assert(mResources.empty());
+        OgreAssertDbg(mResources.empty(),
+                      "Not all resources have been released! Are you holding on to a reference somewhere?");
         assert(gs_D3D11DeviceResourceManager == this);
         gs_D3D11DeviceResourceManager = NULL;
     }
@@ -69,21 +70,34 @@ namespace Ogre
 
     void D3D11DeviceResourceManager::notifyResourceDestroyed(D3D11DeviceResource* deviceResource)
     {
-        vector<D3D11DeviceResource*>::type::iterator it = std::find(mResources.begin(), mResources.end(), deviceResource);
+        std::vector<D3D11DeviceResource*>::iterator it = std::find(mResources.begin(), mResources.end(), deviceResource);
         assert(it != mResources.end());
         mResources.erase(it);
+
+        std::vector<D3D11DeviceResource*>::iterator itCopy = std::find(mResourcesCopy.begin(), mResourcesCopy.end(), deviceResource);
+        if(itCopy != mResourcesCopy.end())
+            *itCopy = NULL;
     }
 
     void D3D11DeviceResourceManager::notifyDeviceLost(D3D11Device* device)
     {
-        for(vector<D3D11DeviceResource*>::type::iterator it = mResources.begin(), it_end = mResources.end(); it != it_end; ++it)
-            (*it)->notifyDeviceLost(device);
+        assert(mResourcesCopy.empty()); // reentrancy is not expected nor supported
+        mResourcesCopy = mResources;
+        for (auto *r : mResourcesCopy) {
+            if(r)
+                r->notifyDeviceLost(device);
+        }
+        mResourcesCopy.clear();
     }
 
     void D3D11DeviceResourceManager::notifyDeviceRestored(D3D11Device* device)
     {
-        for(vector<D3D11DeviceResource*>::type::iterator it = mResources.begin(), it_end = mResources.end(); it != it_end; ++it)
-            (*it)->notifyDeviceRestored(device);
+        assert(mResourcesCopy.empty()); // reentrancy is not expected nor supported
+        mResourcesCopy = mResources;
+        for (auto *r : mResourcesCopy) {
+            if(r)
+                r->notifyDeviceRestored(device);
+        }
+        mResourcesCopy.clear();
     }
-
 }
