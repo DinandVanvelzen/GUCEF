@@ -78,6 +78,8 @@ class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
     static const GUCEF::CORE::CEvent WindowContextSizeEvent;
     static const GUCEF::CORE::CEvent WindowContextActivateEvent;
     static const GUCEF::CORE::CEvent WindowContextCloseRequestEvent;    /**< the user asked to close the window (its close button); the application decides */
+    static const GUCEF::CORE::CEvent WindowContextSurfaceLostEvent;     /**< the native surface of the window went away while the window stays (Android: the app went to the background); a renderer that made a surface on it lets go of it, the native window property is empty until WindowContextSurfaceRestoredEvent */
+    static const GUCEF::CORE::CEvent WindowContextSurfaceRestoredEvent; /**< the window has a native surface again, possibly another one: the native window property names it */
 
     typedef GUCEF::CORE::TCloneableBool WindowContextActivateEventData;
     

@@ -61,7 +61,8 @@ enum ETestWindowMode
 {
     TESTWINDOWMODE_NONE = 0 ,   /**< no windows: GUCEF_TEST_RENDER_GPU=0, or a display server the tests may not use */
     TESTWINDOWMODE_X11      ,   /**< on XWinGL windows of the X server of DISPLAY, when GUCEF_TEST_X11_WINDOWS=1 (Xvfb) */
-    TESTWINDOWMODE_OFFSCREEN    /**< Ogre's headless EGL surface, without any display server */
+    TESTWINDOWMODE_OFFSCREEN,   /**< Ogre's headless EGL surface, without any display server */
+    TESTWINDOWMODE_WAYLAND      /**< on Wayland windows of the compositor of WAYLAND_DISPLAY with the Wayland flavour of the render system, when GUCEF_TEST_WAYLAND_WINDOWS=1 (a headless compositor) */
 };
 
 ETestWindowMode GetTestWindowMode( void );

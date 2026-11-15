@@ -79,6 +79,13 @@ EnvIs( const char* name, char value )
 }
 
 bool
+HasWaylandDisplay( void )
+{
+    const char* display = ::getenv( "WAYLAND_DISPLAY" );
+    return GUCEF_NULL != display && '\0' != display[ 0 ];
+}
+
+bool
 HasDisplay( void )
 {
     const char* display = ::getenv( "DISPLAY" );
@@ -108,6 +115,8 @@ GetTestWindowMode( void )
     if ( EnvIs( "GUCEF_TEST_RENDER_GPU", '0' ) )
         return TESTWINDOWMODE_NONE;
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+    if ( HasWaylandDisplay() && EnvIs( "GUCEF_TEST_WAYLAND_WINDOWS", '1' ) )
+        return TESTWINDOWMODE_WAYLAND;
     if ( HasDisplay() )
         return EnvIs( "GUCEF_TEST_X11_WINDOWS", '1' ) ? TESTWINDOWMODE_X11 : TESTWINDOWMODE_NONE;
     return TESTWINDOWMODE_OFFSCREEN;
@@ -146,7 +155,9 @@ SetUpOgreForTests( void )
     CORE::CDataNode* group = config.AddChild( "PluginGroup" );
     group->SetAttribute( "GroupName", OgrePluginGroup );
     group->SetAttribute( "LoadImmediately", true );
-    AddOgrePluginEntry( *group, "OgreRenderSystem_GL3Plus", true );
+    // Ogre chooses X11 or Wayland when it is compiled: Wayland windows need the Wayland flavour of the render system
+    const bool wayland = TESTWINDOWMODE_WAYLAND == GetTestWindowMode();
+    AddOgrePluginEntry( *group, wayland ? "OgreRenderSystem_GL3Plus_Wayland" : "OgreRenderSystem_GL3Plus", true );
     AddOgrePluginEntry( *group, "OgrePlugin_GucefVFS", true );
     AddOgrePluginEntry( *group, "OgreCodec_GucefIMAGE", true );
     CORE::CCoreGlobal::Instance()->GetPluginControl().LoadConfig( config );
@@ -162,6 +173,8 @@ SetUpOgreForTests( void )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     if ( !pluginControl.AddPluginFromDir( "$MODULEDIR$/guidriverXWinGL", GuiPluginGroup, true ) )
         pluginControl.AddPluginFromDir( "$MODULEDIR$/guidriverXWinGL_d", GuiPluginGroup, true );
+    if ( wayland && !pluginControl.AddPluginFromDir( "$MODULEDIR$/guidriverWAYLAND", GuiPluginGroup, true ) )
+        pluginControl.AddPluginFromDir( "$MODULEDIR$/guidriverWAYLAND_d", GuiPluginGroup, true );
     #endif
     return !GUI::CGuiGlobal::Instance()->GetWindowManager().GetBackend( "Ogre" ).IsNULL();
 }
@@ -191,6 +204,13 @@ GetTestWindowParams( void )
     CORE::CValueList params;
     if ( TESTWINDOWMODE_OFFSCREEN == GetTestWindowMode() )
         params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, GUIDRIVEROGRE::COgreWindowContext::OffscreenPlatformBackend );
+    else
+    if ( TESTWINDOWMODE_WAYLAND == GetTestWindowMode() )
+    {
+        params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, "Wayland" );
+        // a headless compositor has no decorations of its own; the tests need none, and libdecor would load GTK
+        params.Set( "DECORATIONS", "none" );
+    }
     else
         params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, "XWinGL" );
     return params;

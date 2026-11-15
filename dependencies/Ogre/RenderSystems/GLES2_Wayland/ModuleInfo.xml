@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE OpenGL ES 2 and 3 render system plugin, Wayland flavour</DescriptionHeadline>
+        <DescriptionDetails>The sources of OgreRenderSystem_GLES2 (the directory GLES2) linked with OgreGLSupport_Wayland, so that its render windows are made on a wl_surface of a Wayland window (externalWlDisplay, externalWlSurface). An application on Wayland lists this plugin instead of OgreRenderSystem_GLES2; the render system has the same name. The module lists the sources of the other directory in its ProjectGenInstructions.xml.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreRenderSystem_GLES2_Wayland" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreGLSupport_Wayland" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreGLSupport_Wayland" />
+            <Dependency Name="dl" />
+        </Linker>
+        <Preprocessor>
+            <Define String="RenderSystem_GLES2_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

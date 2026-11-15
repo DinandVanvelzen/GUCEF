@@ -90,9 +90,10 @@ struct SSharedConnection
     MT::CMutex lock;
     CWaylandConnection* connection;
     UInt32 users;
+    bool retained;                  /**< one of the users is the hold of RetainUntilUnload(): the connection stays until the library unloads */
     GUCEF::vector< CWaylandConnection* > retired;
 
-    SSharedConnection( void ) : lock(), connection( GUCEF_NULL ), users( 0 ), retired() {}
+    SSharedConnection( void ) : lock(), connection( GUCEF_NULL ), users( 0 ), retained( false ), retired() {}
 };
 
 SSharedConnection&
@@ -665,6 +666,7 @@ CWaylandConnection::Release( CWaylandConnection* connection )
         return;
 
     shared.connection = GUCEF_NULL;
+    shared.retained = false;
     if ( connection->m_pumping )
     {
         // released from within an event of its own: it goes the next time it is safe
@@ -673,6 +675,47 @@ CWaylandConnection::Release( CWaylandConnection* connection )
     }
     else
         delete connection;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWaylandConnection::RetainUntilUnload( CWaylandConnection* connection )
+{GUCEF_TRACE;
+
+    SSharedConnection& shared = Shared();
+    MT::CScopeMutex lock( shared.lock );
+    if ( GUCEF_NULL == connection || connection != shared.connection )
+        return false;
+    if ( !shared.retained )
+    {
+        shared.retained = true;
+        ++shared.users;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWaylandConnection::IsRetainedUntilUnload( void )
+{GUCEF_TRACE;
+
+    SSharedConnection& shared = Shared();
+    MT::CScopeMutex lock( shared.lock );
+    return shared.retained;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWaylandConnection::StopPumpingRetained( void )
+{GUCEF_TRACE;
+
+    SSharedConnection& shared = Shared();
+    MT::CScopeMutex lock( shared.lock );
+    if ( shared.retained && GUCEF_NULL != shared.connection )
+        shared.connection->SetPumpOnPulse( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -686,6 +729,7 @@ CWaylandConnection::Deinstance( void )
     delete shared.connection;
     shared.connection = GUCEF_NULL;
     shared.users = 0;
+    shared.retained = false;
     for ( UInt32 i=0; i<shared.retired.size(); ++i )
         delete shared.retired[ i ];
     shared.retired.clear();

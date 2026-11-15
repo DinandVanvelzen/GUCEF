@@ -84,6 +84,9 @@ class GUIDRIVERANDROIDGLES_PUBLIC_CPP CAndroidWindowManagerImp : public GUI::CWi
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   );
 
+    /** GraphicsApi GL (an OpenGL ES 3 context of the window) and None (no context: a renderer makes its own on the native window) */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     CAndroidWindowManagerImp( const CAndroidWindowManagerImp& src );

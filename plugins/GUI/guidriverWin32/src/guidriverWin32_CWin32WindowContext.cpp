@@ -50,6 +50,16 @@
 #define GUCEF_GUI_CWINDOWCONTEXT_H
 #endif /* GUCEF_GUI_CWINDOWCONTEXT_H ? */
 
+#ifndef GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#include "gucefGUI_CWindowManagerBackend.h"
+#define GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#endif /* GUCEF_GUI_CWINDOWMANAGERBACKEND_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 #include "GUIDRIVERWIN32_CWin32WindowContext.h"
 
 /*-------------------------------------------------------------------------//
@@ -63,6 +73,46 @@ namespace GUIDRIVERWIN32 {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace {
+
+GUI::UInt32 g_nextWindowId = 1;
+bool g_dpiAwarenessDone = false;
+
+/** DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, which older SDK headers do not define */
+const HANDLE PerMonitorAwareV2 = (HANDLE) (LONG_PTR) -4;
+
+typedef BOOL ( WINAPI *TSetProcessDpiAwarenessContext )( HANDLE value );
+typedef UINT ( WINAPI *TGetDpiForWindow )( HWND window );
+
+/** The process is made per monitor DPI aware once, before its first window; the functions are looked up because older Windows lacks them */
+void
+MakeProcessDpiAware( void )
+{
+    if ( g_dpiAwarenessDone )
+        return;
+    g_dpiAwarenessDone = true;
+    HMODULE user32 = ::GetModuleHandleA( "user32.dll" );
+    if ( GUCEF_NULL == user32 )
+        return;
+    TSetProcessDpiAwarenessContext setAwareness = (TSetProcessDpiAwarenessContext) ::GetProcAddress( user32, "SetProcessDpiAwarenessContext" );
+    if ( GUCEF_NULL == setAwareness )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: Windows offers no per monitor DPI awareness (before Windows 10 1703): windows are scaled by Windows" );
+        return;
+    }
+    // fails when the manifest of the application or an earlier call already decided: that choice stays
+    if ( FALSE == setAwareness( PerMonitorAwareV2 ) )
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: The DPI awareness of the process was already set, error " << (UInt32) ::GetLastError() );
+}
+
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -72,7 +122,8 @@ CWin32WindowContext::CWin32WindowContext( void )
       m_guiContext()           ,
       m_id()                   ,
       m_name()                 ,
-      m_window()               
+      m_window()               ,
+      m_pulseFrequency( 0 )
 {GUCEF_TRACE;
 
     SubscribeTo( &m_window );
@@ -119,7 +170,8 @@ bool
 CWin32WindowContext::IsActive( void ) const
 {GUCEF_TRACE;
 
-    return false;
+    HWND window = m_window.GetHwnd();
+    return GUCEF_NULL != window && ::GetForegroundWindow() == window;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -137,14 +189,12 @@ void
 CWin32WindowContext::Shutdown( void )
 {GUCEF_TRACE;
 
-	CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-    pulseGenerator->RequestStopOfPeriodicUpdates( this );
-    UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
-
+    SetPulseFrequency( 0 );
     if ( GUCEF_NULL != m_window.GetHwnd() )
     {
-        CORE::CMsWin32Window::UnregisterWindowClass( m_window.GetText() );
         m_window.WindowDestroy();
+        // fails while other windows of the class exist, which is as it should be
+        CORE::CMsWin32Window::UnregisterWindowClass( GetClassTypeName() );
     }
 }
 
@@ -188,6 +238,18 @@ CWin32WindowContext::GetProperty( const GUI::CString& propertyName ) const
     {
         return CORE::PointerToString( m_window.GetHwnd() );
     }
+    if ( propertyName == "GRAPHICS_API" )
+    {
+        return GUI::CWindowManagerBackend::GraphicsApiNone;
+    }
+    if ( propertyName == "DPI" )
+    {
+        return CORE::UInt32ToString( GetDpi() );
+    }
+    if ( propertyName == "SCALE" )
+    {
+        return CORE::FloatToString( (Float32) GetDpi() / 96.0f );
+    }
     return GUI::CString(); 
 }
 
@@ -229,13 +291,90 @@ CWin32WindowContext::SetSystemCursorShape( GUI::TCursorShape shape )
 
 /*-------------------------------------------------------------------------*/
 
+GUI::UInt32
+CWin32WindowContext::GetDpi( void ) const
+{GUCEF_TRACE;
+
+    HWND window = m_window.GetHwnd();
+    HMODULE user32 = ::GetModuleHandleA( "user32.dll" );
+    if ( GUCEF_NULL == window || GUCEF_NULL == user32 )
+        return 96;
+    TGetDpiForWindow getDpiForWindow = (TGetDpiForWindow) ::GetProcAddress( user32, "GetDpiForWindow" );
+    if ( GUCEF_NULL == getDpiForWindow )
+        return 96;
+    const UINT dpi = getDpiForWindow( window );
+    return 0 != dpi ? (GUI::UInt32) dpi : 96;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWin32WindowContext::SetPulseFrequency( GUI::UInt32 frequency )
+{GUCEF_TRACE;
+
+    if ( frequency == m_pulseFrequency )
+        return;
+    CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+    if ( 0 != m_pulseFrequency )
+    {
+        pulseGenerator->RequestStopOfPeriodicUpdates( this );
+        UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
+    }
+    m_pulseFrequency = frequency;
+    if ( 0 != frequency )
+    {
+        // the redraws are paced by the pulses of the application at the frequency of the video settings
+        const GUI::UInt32 interval = frequency < 1000 ? 1000 / frequency : 1;
+        pulseGenerator->RequestPeriodicPulses( this, interval );
+        SubscribeTo( pulseGenerator.GetPointerAlways() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32WindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_window.GetHwnd() )
+        return false;
+    m_window.SetFullscreenStatus( videoSettings.GetFullscreenState() );
+    if ( !videoSettings.GetFullscreenState() && videoSettings.GetResolutionWidthInPixels() > 0 && videoSettings.GetResolutionHeightInPixels() > 0 )
+    {
+        m_window.ClientAreaResize( (int) videoSettings.GetResolutionWidthInPixels(), (int) videoSettings.GetResolutionHeightInPixels() );
+    }
+    SetPulseFrequency( videoSettings.GetFrequency() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWin32WindowContext::Initialize( const GUI::CString& title                ,
                                      const GUI::CVideoSettings& videoSettings )
 {GUCEF_TRACE;
 
+    return Initialize( title, videoSettings, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32WindowContext::Initialize( const GUI::CString& title                ,
+                                 const GUI::CVideoSettings& videoSettings ,
+                                 const CORE::CValueList* params           )
+{GUCEF_TRACE;
+
     // Do not initialize twice
     Shutdown();
+
+    m_name = title;
+    m_id = g_nextWindowId++;
+    bool dpiAware = true;
+    if ( GUCEF_NULL != params && params->HasKey( "DPI_AWARE" ) )
+        dpiAware = params->GetValueAlways( "DPI_AWARE" ).AsBool( true, true );
+    if ( dpiAware )
+        MakeProcessDpiAware();
 
     if ( !CORE::CMsWin32Window::RegisterWindowClass( GetClassTypeName() ) )
     {
@@ -256,10 +395,10 @@ CWin32WindowContext::Initialize( const GUI::CString& title                ,
         m_window.SendToForegound();
         m_window.GrabFocus();
 
-        // Grab the main app pulse generator and set the update interval for the context to the desired refresh rate
-        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator(); 
-        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
-        SubscribeTo( pulseGenerator.GetPointerAlways() );
+        // the redraws are paced by the application's pulses at the frequency of the video settings
+        SetPulseFrequency( videoSettings.GetFrequency() );
+        if ( videoSettings.GetFullscreenState() )
+            m_window.SetFullscreenStatus( true );
 
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: Succesfully created Win32 window" );
         return true;
@@ -304,10 +443,17 @@ CWin32WindowContext::OnNotify( CORE::CNotifier* notifier   ,
         NotifyObservers( WindowContextActivateEvent );
     }
     else
-    if ( ( eventID == CORE::CMsWin32Window::WindowCloseEvent )    ||
-         ( eventID == CORE::CMsWin32Window::WindowDestroyEvent )  )
+    if ( eventID == CORE::CMsWin32Window::WindowCloseEvent )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: Window close/destroy event received" );
+        // CMsWin32Window destroys the window right after this: whoever drew in it lets go of its surface now
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: Window close event received" );
+        NotifyObservers( WindowContextCloseRequestEvent );
+        Shutdown();
+    }
+    else
+    if ( eventID == CORE::CMsWin32Window::WindowDestroyEvent )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Win32WindowContext: Window destroy event received" );
         Shutdown();
     }
 }

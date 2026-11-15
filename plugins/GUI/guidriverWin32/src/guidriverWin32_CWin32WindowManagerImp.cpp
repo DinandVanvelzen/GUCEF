@@ -88,7 +88,8 @@ CWin32WindowManagerImp::CreateWindowContext( const GUI::CString& title          
 
     TWin32WindowContextPtr windowContext = TWin32WindowContextPtr( new CWin32WindowContext() );
     if ( windowContext->Initialize( title    ,
-                                    settings ) )
+                                    settings ,
+                                    params   ) )
     {
         return windowContext;
     }
@@ -143,7 +144,10 @@ CWin32WindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowContex
                                             const GUI::CVideoSettings& settings   )
 {GUCEF_TRACE;
 
-    return false;
+    CWin32WindowContext* context = static_cast< CWin32WindowContext* >( windowContext.GetPointerAlways() );
+    if ( GUCEF_NULL == context )
+        return false;
+    return context->ApplyVideoSettings( settings );
 }
 
 /*-------------------------------------------------------------------------*/

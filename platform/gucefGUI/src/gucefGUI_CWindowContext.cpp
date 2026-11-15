@@ -51,6 +51,8 @@ const CORE::CEvent CWindowContext::WindowContextRedrawEvent = "GUCEF::GUI::CWind
 const CORE::CEvent CWindowContext::WindowContextSizeEvent = "GUCEF::GUI::CWindowContext::WindowContextSizeEvent";
 const CORE::CEvent CWindowContext::WindowContextActivateEvent = "GUCEF::GUI::CWindowContext::WindowContextActivateEvent";
 const CORE::CEvent CWindowContext::WindowContextCloseRequestEvent = "GUCEF::GUI::CWindowContext::WindowContextCloseRequestEvent";
+const CORE::CEvent CWindowContext::WindowContextSurfaceLostEvent = "GUCEF::GUI::CWindowContext::WindowContextSurfaceLostEvent";
+const CORE::CEvent CWindowContext::WindowContextSurfaceRestoredEvent = "GUCEF::GUI::CWindowContext::WindowContextSurfaceRestoredEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -85,6 +87,8 @@ CWindowContext::RegisterEvents( void )
     WindowContextSizeEvent.Initialize();
     WindowContextActivateEvent.Initialize();
     WindowContextCloseRequestEvent.Initialize();
+    WindowContextSurfaceLostEvent.Initialize();
+    WindowContextSurfaceRestoredEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/

@@ -80,6 +80,9 @@ class GUIDRIVEREMSCRIPTEN_PUBLIC_CPP CEmscriptenWindowManagerImp : public GUI::C
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** GraphicsApi GL (a WebGL 2 context of the window) and None (no context: a renderer makes its own on the canvas) */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:

@@ -91,6 +91,10 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     GUI::CVideoOptions::UnregisterDisplayModeSource( "Wayland" );
     GUI::CGuiGlobal::Instance()->GetWindowManager().UnregisterBackend( "Wayland" );
     g_windowManager.Unlink();
+
+    // a connection kept for a renderer (GraphicsApi None windows) stays connected but is no longer pumped: the code
+    // that pumps it may be unloaded after this
+    PLUGINGLUE::WAYLAND::CWaylandConnection::StopPumpingRetained();
 }
 
 /*-------------------------------------------------------------------------*/

@@ -55,6 +55,7 @@
 #endif /* GUCEF_GUI_H ? */
 
 #include "TestOgreSupport.h"
+#include "TestOgrePlatform.h"
 #include "TestOgreWindow.h"
 
 using namespace GUCEF;
@@ -91,6 +92,7 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "guidriverOgre_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
+        PerformOgrePlatformTests();
         PerformOgreWindowTests();
 
         CORE::CLogStreamScope::FlushLogs();

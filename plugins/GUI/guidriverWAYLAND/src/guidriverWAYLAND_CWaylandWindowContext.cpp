@@ -50,6 +50,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#include "gucefGUI_CWindowManagerBackend.h"
+#define GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#endif /* GUCEF_GUI_CWINDOWMANAGERBACKEND_H ? */
+
 #ifndef GUCEF_PLUGINGLUE_WAYLAND_CEVENTGUARD_H
 #include "pluginglueWAYLAND_CEventGuard.h"
 #define GUCEF_PLUGINGLUE_WAYLAND_CEVENTGUARD_H
@@ -287,6 +292,7 @@ CWaylandWindowContext::CWaylandWindowContext( CWaylandConnection& connection, co
     , m_ready( false )
     , m_shutDown( false )
     , m_closeReported( false )
+    , m_graphicsApiNone( false )
     , m_surface( GUCEF_NULL )
     , m_surfaceId( 0 )
     , m_activation( GUCEF_NULL )
@@ -417,6 +423,10 @@ CWaylandWindowContext::GetProperty( const GUI::CString& propertyName ) const
         return CORE::PointerToString( m_connection.GetDisplay() );
     if ( propertyName == "WL_SURFACE" )
         return CORE::PointerToString( m_surface );
+    if ( propertyName == "GRAPHICS_API" )
+        return m_graphicsApiNone ? GUI::CWindowManagerBackend::GraphicsApiNone : GUI::CWindowManagerBackend::GraphicsApiGL;
+    if ( m_graphicsApiNone && propertyName.StartsWith( "GL_" ) )
+        return GUI::CString();          // no GL context: the GL properties are not offered
     if ( propertyName == "GL_GETPROCADDRESS" )
         return CORE::PointerToString( (const void*) &GetGlProcAddress );
     if ( propertyName == "GL_FRAMEBUFFER" )
@@ -505,6 +515,7 @@ UInt32 CWaylandWindowContext::GetLogicalHeight( void ) const { return m_logicalH
 bool CWaylandWindowContext::IsFullscreen( void ) const { return 0 != ( m_configure.GetStates() & TOPLEVELSTATE_FULLSCREEN ); }
 bool CWaylandWindowContext::IsMaximized( void ) const { return 0 != ( m_configure.GetStates() & TOPLEVELSTATE_MAXIMIZED ); }
 bool CWaylandWindowContext::IsConfigured( void ) const { return m_configure.IsConfigured(); }
+bool CWaylandWindowContext::IsGraphicsApiNone( void ) const { return m_graphicsApiNone; }
 UInt32 CWaylandWindowContext::GetFramesDrawn( void ) const { return m_pacer.GetFramesDrawn(); }
 
 /*-------------------------------------------------------------------------*/
@@ -524,7 +535,8 @@ CWaylandWindowContext::Initialize( const GUI::CString& title                ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CWaylandWindowContext: The compositor does not offer wl_compositor and xdg_wm_base" );
         return false;
     }
-    if ( !m_runtime.hasEgl || !m_runtime.hasEglWindow )
+    m_graphicsApiNone = params.graphicsApiNone;
+    if ( !m_graphicsApiNone && ( !m_runtime.hasEgl || !m_runtime.hasEglWindow ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CWaylandWindowContext: EGL (libEGL.so.1 and libwayland-egl.so.1) is not available" );
         return false;
@@ -613,12 +625,15 @@ CWaylandWindowContext::Initialize( const GUI::CString& title                ,
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CWaylandWindowContext: The compositor has not configured the window yet: it is drawn once it does" );
 
     ApplySizeAndScale();
-    if ( !InitializeEgl() )
+    if ( !m_graphicsApiNone )
     {
-        Shutdown();
-        return false;
+        if ( !InitializeEgl() )
+        {
+            Shutdown();
+            return false;
+        }
+        ApplySizeAndScale();
     }
-    ApplySizeAndScale();
 
     TEventCallback connectionLost( this, &CWaylandWindowContext::OnConnectionLostEvent );
     SubscribeTo( &m_connection, CWaylandConnection::ConnectionLostEvent, connectionLost );
@@ -632,7 +647,7 @@ CWaylandWindowContext::Initialize( const GUI::CString& title                ,
     m_pulsing = true;
 
     m_ready = true;
-    const char* apiName = m_isGles ? "OpenGL ES 3" : "OpenGL 3.3 core";
+    const char* apiName = m_graphicsApiNone ? "without a graphics context (GraphicsApi None)" : ( m_isGles ? "OpenGL ES 3" : "OpenGL 3.3 core" );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CWaylandWindowContext: Window \"" << title << "\" of " << (UInt32) m_logicalWidth << " x " << (UInt32) m_logicalHeight
         << " units, " << (UInt32) m_bufferWidth << " x " << (UInt32) m_bufferHeight << " pixels at scale " << CWaylandScale::ToString( GetScale120() )
         << ", decorations: " << CDecorationPolicy::ToString( m_decorationMode ) << ", " << apiName );
@@ -1208,6 +1223,21 @@ void
 CWaylandWindowContext::DrawFrame( UInt32 now )
 {GUCEF_TRACE;
 
+    const SWaylandApi& api = m_connection.GetApi();
+    if ( m_graphicsApiNone )
+    {
+        // the renderer presents in the redraw event and its swap commits the surface: the frame callback is asked for before
+        if ( m_pacer.WantsFrameCallback() && GUCEF_NULL != m_surface )
+        {
+            m_frameCallback = gucef_wl_surface_frame( &api, m_surface );
+            gucef_wl_callback_add_listener( &api, m_frameCallback, &g_frameListener, this );
+            m_pacer.OnFrameCallbackRequested( now );
+        }
+        NotifyObservers( WindowContextRedrawEvent );
+        m_pacer.OnFrameDrawn( now );
+        return;
+    }
+
     if ( GUCEF_NULL == m_eglSurface )
         return;
     MakeCurrent();
@@ -1217,7 +1247,6 @@ CWaylandWindowContext::DrawFrame( UInt32 now )
     NotifyObservers( WindowContextRedrawEvent );
 
     // the frame callback is asked for before the swap: the swap commits the surface
-    const SWaylandApi& api = m_connection.GetApi();
     if ( m_pacer.WantsFrameCallback() )
     {
         m_frameCallback = gucef_wl_surface_frame( &api, m_surface );

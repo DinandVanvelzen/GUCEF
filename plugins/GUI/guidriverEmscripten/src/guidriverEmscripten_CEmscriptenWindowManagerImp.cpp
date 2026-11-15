@@ -140,6 +140,15 @@ CEmscriptenWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowC
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CEmscriptenWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GUI::CWindowManagerBackend::GraphicsApiGL == graphicsApi || GUI::CWindowManagerBackend::GraphicsApiNone == graphicsApi;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CORE::CString&
 CEmscriptenWindowManagerImp::GetClassTypeName( void ) const
 {GUCEF_TRACE;

@@ -55,8 +55,14 @@
 #define GUIDRIVEROGRE_CIOGREWINDOWOVERLAY_H
 #endif /* GUIDRIVEROGRE_CIOGREWINDOWOVERLAY_H ? */
 
+#ifndef GUCEF_PLUGINGLUE_OGRE_H
+#include "pluginglueOGRE.h"
+#define GUCEF_PLUGINGLUE_OGRE_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_H ? */
+
 #include "TestOgreSupport.h"
 #include "TestOgreWindow.h"
+#include "TestOgreWorkQueueWindow.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -328,10 +334,17 @@ PerformOgreWindowTests( void )
         if ( GUCEF_NULL != window )
         {
             const UInt32 threadsAfter = CountProcessThreads();
-            // Ogre's own work queue starts its worker threads with the first render window
-            Ogre::DefaultWorkQueueBase* workQueue = dynamic_cast< Ogre::DefaultWorkQueueBase* >( Ogre::Root::getSingleton().getWorkQueue() );
+            // the work queue of the Root starts with the first render window, on the GUCEF thread pool: Ogre makes no
+            // worker threads of its own (it names them "[Ogre] Worker")
+            const UInt32 ogreWorkers = CountProcessThreadsNamed( "[Ogre] Worker" );
+            const UInt32 poolWorkers = CountProcessThreadsNamed( "OgreWork" );
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "guidriverOgre_TestApp: threads before the first render window " << threadsBefore << ", after it " << threadsAfter
-                << "; worker threads of Ogre's work queue: " << ( GUCEF_NULL != workQueue ? workQueue->getWorkerThreadCount() : 0 ) );
+                << "; worker threads of Ogre: " << ogreWorkers << ", of the GUCEF thread pool of the work queue: " << poolWorkers );
+            #if ( defined( __linux__ ) )
+            ASSERT_TRUE( 0 == ogreWorkers );
+            ASSERT_TRUE( poolWorkers >= 2 );
+            #endif
+            ASSERT_TRUE( GUCEF_NULL != PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup().GetTaskWorkQueue() );
 
             ASSERT_TRUE( GUCEF_NULL != window->GetOgreRenderWindow() );
             ASSERT_TRUE( GUCEF_NULL != window->GetOgreRoot() && window->GetOgreRoot()->isInitialised() );
@@ -350,6 +363,16 @@ PerformOgreWindowTests( void )
                 ASSERT_TRUE( "None" == window->GetPlatformWindowContext()->GetProperty( "GRAPHICS_API" ) );
                 ASSERT_TRUE( 0 != CORE::StringToUInt32( window->GetProperty( "WINDOW" ), 0 ) );
                 ASSERT_TRUE( window->GetPlatformWindowContext()->GetProperty( "WINDOW" ) == window->GetProperty( "WINDOW" ) );
+                ASSERT_TRUE( GUCEF_NULL != CORE::StringToPointer( window->GetProperty( "DISPLAY" ) ) );
+            }
+            else
+            if ( TESTWINDOWMODE_WAYLAND == mode )
+            {
+                // Ogre's wl_egl_window is on the surface of the platform window, made on the connection of pluginglueWAYLAND
+                ASSERT_TRUE( "Wayland" == window->GetPlatformBackendName() );
+                ASSERT_FALSE( window->GetPlatformWindowContext().IsNULL() );
+                ASSERT_TRUE( "None" == window->GetPlatformWindowContext()->GetProperty( "GRAPHICS_API" ) );
+                ASSERT_TRUE( GUCEF_NULL != CORE::StringToPointer( window->GetProperty( "WL_SURFACE" ) ) );
                 ASSERT_TRUE( GUCEF_NULL != CORE::StringToPointer( window->GetProperty( "DISPLAY" ) ) );
             }
             else
@@ -619,7 +642,11 @@ PerformOgreWindowTests( void )
         ASSERT_FALSE( settings.GetVSyncState() );
         settings.SetVSyncState( true );
         ASSERT_TRUE( backend->ApplyVideoSettings( windowPtr, settings ) );
-        ASSERT_TRUE( renderWindow->isVSyncEnabled() );
+        // on Wayland the frame callbacks of the platform window are the vertical sync: Ogre's swap does not wait
+        if ( TESTWINDOWMODE_WAYLAND == mode )
+            ASSERT_FALSE( renderWindow->isVSyncEnabled() );
+        else
+            ASSERT_TRUE( renderWindow->isVSyncEnabled() );
         ASSERT_TRUE( window->GetVideoSettings().GetVSyncState() );
         ASSERT_TRUE( window->GetVideoSettings().GetAntiAliasingFactor() == renderWindow->getFSAA() );
         settings.SetVSyncState( false );
@@ -633,7 +660,7 @@ PerformOgreWindowTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Platform window: its redraws pace the frames, its size changes resize the render window, its close requests are passed on" )
-    if ( TESTWINDOWMODE_X11 != mode )
+    if ( TESTWINDOWMODE_X11 != mode && TESTWINDOWMODE_WAYLAND != mode )
         GUCEF_TESTFW_SKIP( "the window has no platform window" );
     try
     {
@@ -641,7 +668,7 @@ PerformOgreWindowTests( void )
         CFrameRecorder recorder( 0 );
         recorder.SubscribeTo( window );
 
-        // the redraws of the XWinGL window come with the pulses of the application
+        // the redraws of the platform window come with the pulses of the application (on Wayland when the compositor showed the frame before)
         const UInt64 frames = window->GetFrameCount();
         ASSERT_TRUE( PulseUntil( SFrameCountAbove( window, frames ) ) );
 
@@ -658,22 +685,25 @@ PerformOgreWindowTests( void )
 
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         // the window manager's close request: WM_DELETE_WINDOW to the platform window
-        ::Display* display = (::Display*) CORE::StringToPointer( window->GetProperty( "DISPLAY" ) );
-        const ::Window xwindow = (::Window) CORE::StringToUInt32( window->GetProperty( "WINDOW" ), 0 );
-        ASSERT_TRUE( GUCEF_NULL != display && 0 != xwindow );
-        if ( GUCEF_NULL != display && 0 != xwindow )
+        if ( TESTWINDOWMODE_X11 == mode )
         {
-            ::XEvent event;
-            memset( &event, 0, sizeof( event ) );
-            event.xclient.type = ClientMessage;
-            event.xclient.window = xwindow;
-            event.xclient.message_type = ::XInternAtom( display, "WM_PROTOCOLS", False );
-            event.xclient.format = 32;
-            event.xclient.data.l[ 0 ] = (long) ::XInternAtom( display, "WM_DELETE_WINDOW", False );
-            event.xclient.data.l[ 1 ] = CurrentTime;
-            ::XSendEvent( display, xwindow, False, NoEventMask, &event );
-            ::XFlush( display );
-            ASSERT_TRUE( PulseUntil( SHasStep( recorder, "closeRequest" ) ) );
+            ::Display* display = (::Display*) CORE::StringToPointer( window->GetProperty( "DISPLAY" ) );
+            const ::Window xwindow = (::Window) CORE::StringToUInt32( window->GetProperty( "WINDOW" ), 0 );
+            ASSERT_TRUE( GUCEF_NULL != display && 0 != xwindow );
+            if ( GUCEF_NULL != display && 0 != xwindow )
+            {
+                ::XEvent event;
+                memset( &event, 0, sizeof( event ) );
+                event.xclient.type = ClientMessage;
+                event.xclient.window = xwindow;
+                event.xclient.message_type = ::XInternAtom( display, "WM_PROTOCOLS", False );
+                event.xclient.format = 32;
+                event.xclient.data.l[ 0 ] = (long) ::XInternAtom( display, "WM_DELETE_WINDOW", False );
+                event.xclient.data.l[ 1 ] = CurrentTime;
+                ::XSendEvent( display, xwindow, False, NoEventMask, &event );
+                ::XFlush( display );
+                ASSERT_TRUE( PulseUntil( SHasStep( recorder, "closeRequest" ) ) );
+            }
         }
         #endif
 
@@ -715,6 +745,9 @@ PerformOgreWindowTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    // Ogre's work queue on the GUCEF thread pool, with this window
+    PerformOgreWorkQueueWindowTests( window );
 
     GUCEF_TESTFW_TESTCASE( "Shutdown: the window goes, then the plugins and the Root" )
     try

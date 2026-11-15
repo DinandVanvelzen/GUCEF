@@ -1,0 +1,55 @@
+<PROJECTGENERATOR>
+    <!-- The Wayland flavour of the render system: the sources of ../GLES2, linked with OgreGLSupport_Wayland instead of OgreGLSupport. The module has no sources of its own. -->
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="../GLES2/include/OgreGLES2FBORenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2FrameBufferObject.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2HardwareBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2HardwareBufferManager.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2HardwareOcclusionQuery.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2HardwarePixelBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2ManagedResource.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2ManagedResourceManager.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2PixelFormat.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2Plugin.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2Prerequisites.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2RenderSystem.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2RenderToVertexBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2StateCacheManager.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2Texture.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/OgreGLES2TextureManager.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/GLES2/gl2ext.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/GLES3/gl3.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/GLES3/gl3platform.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/GLES3/glesw.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/include/KHR/khrplatform.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESExtSupport.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESLinkProgram.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESProgram.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESProgramCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESProgramManager.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/include/OgreGLSLESProgramPipeline.h" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2EngineDll.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2FBORenderTexture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2FrameBufferObject.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2HardwareBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2HardwareBufferManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2HardwareOcclusionQuery.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2HardwarePixelBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2ManagedResource.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2ManagedResourceManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2PixelFormat.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2Plugin.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2RenderSystem.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2RenderToVertexBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2StateCacheManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2Texture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/OgreGLES2TextureManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/glesw.c" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESExtSupport.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESLinkProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESProgramCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESProgramManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLES2/src/GLSLES/src/OgreGLSLESProgramPipeline.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

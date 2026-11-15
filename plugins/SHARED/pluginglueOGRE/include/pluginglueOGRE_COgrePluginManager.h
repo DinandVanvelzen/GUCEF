@@ -85,6 +85,18 @@ class GUCEF_PLUGINGLUE_OGRE_EXPORT_CPP COgrePluginManager : public CORE::CPlugin
     /** The plugin object registered under the name, NULL when there is none */
     static Ogre::Plugin* GetStaticOgrePlugin( const CORE::CString& pluginName );
 
+    /**
+     *  For an Ogre plugin that is linked into the application (WebAssembly, Android): makes the module file name of
+     *  the bootstrap entry known to the module loader of gucefCORE (CORE::RegisterStaticModule(), so loading the entry
+     *  finds the application instead of a file) and registers the plugin object under the name of the module
+     *  (RegisterStaticOgrePlugin()). 'moduleFilename' is the name as the bootstrap configuration gives it to the
+     *  loader. The object must stay valid until the plugin is unloaded
+     */
+    static bool RegisterLinkedOgrePlugin( const CORE::CString& moduleFilename, Ogre::Plugin* plugin );
+
+    /** The name of an Ogre plugin by its module file: without directory, extension, "lib" prefix and "_d" suffix */
+    static CORE::CString GetOgrePluginNameOfModule( const CORE::CString& moduleFilename );
+
     protected:
 
     virtual CORE::TPluginPtr RegisterPlugin( void* modulePtr                         ,

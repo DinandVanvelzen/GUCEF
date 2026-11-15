@@ -15,16 +15,20 @@
 
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
+    include/TestOgrePlatform.h
     include/TestOgreSupport.h
     include/TestOgreWindow.h
+    include/TestOgreWorkQueueWindow.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestOgrePlatform.cpp
     src/TestOgreSupport.cpp
     src/TestOgreWindow.cpp
+    src/TestOgreWorkQueueWindow.cpp
     src/guidriverOgre_TestApp.cpp
   )
 
@@ -33,16 +37,20 @@ if (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
+    include/TestOgrePlatform.h
     include/TestOgreSupport.h
     include/TestOgreWindow.h
+    include/TestOgreWorkQueueWindow.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestOgrePlatform.cpp
     src/TestOgreSupport.cpp
     src/TestOgreWindow.cpp
+    src/TestOgreWorkQueueWindow.cpp
     src/guidriverOgre_TestApp.cpp
   )
 
@@ -51,16 +59,20 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/TestOgrePlatform.h
     include/TestOgreSupport.h
     include/TestOgreWindow.h
+    include/TestOgreWorkQueueWindow.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestOgrePlatform.cpp
     src/TestOgreSupport.cpp
     src/TestOgreWindow.cpp
+    src/TestOgreWorkQueueWindow.cpp
     src/guidriverOgre_TestApp.cpp
   )
 
@@ -69,16 +81,20 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/TestOgrePlatform.h
     include/TestOgreSupport.h
     include/TestOgreWindow.h
+    include/TestOgreWorkQueueWindow.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestOgrePlatform.cpp
     src/TestOgreSupport.cpp
     src/TestOgreWindow.cpp
+    src/TestOgreWorkQueueWindow.cpp
     src/guidriverOgre_TestApp.cpp
   )
 

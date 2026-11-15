@@ -66,8 +66,14 @@ namespace GUIDRIVEREMSCRIPTEN {
  *  aspect ratio kept and nearest filtering; a browser only allows that in the handler of a user's input, a request
  *  made elsewhere is carried out at the next key press or click.
  *
- *  Properties: WINDOW (the selector of the canvas, which the input driver "EMSCRIPTEN" takes), GL_FRAMEBUFFER ("0"),
- *  GL_GETPROCADDRESS, GL_API ("GLES"), GL_VERSION ("3.0").
+ *  Properties: WINDOW (the selector of the canvas, which the input driver "EMSCRIPTEN" takes), GRAPHICS_API ("GL" or
+ *  "None"), GL_FRAMEBUFFER ("0"), GL_GETPROCADDRESS, GL_API ("GLES"), GL_VERSION ("3.0").
+ *
+ *  With the window parameter GraphicsApi None the window makes no WebGL context: a renderer (Ogre through Emscripten's
+ *  EGL) makes it. The window then sizes the drawing buffer of the canvas, handles full screen and the cursor and
+ *  announces the frames (WindowContextRedrawEvent) on the pulses without clearing; it offers no GL_* properties.
+ *  Emscripten's EGL makes its context on the canvas of the module (Module['canvas'], "#canvas" on the page Emscripten
+ *  makes): a renderer through EGL draws there, so CANVAS has to name that canvas; another one is logged as an error.
  *
  *  With a frequency in the video settings the window asks for a redraw on the pulses of the application, which on
  *  the web come once per display refresh; the browser shows the frame when the pulse returns.
@@ -133,6 +139,8 @@ class GUIDRIVEREMSCRIPTEN_PUBLIC_CPP CEmscriptenWindowContext : public GUI::CWin
     CEmscriptenWindowContext( const CEmscriptenWindowContext& src );
     CEmscriptenWindowContext& operator=( const CEmscriptenWindowContext& src );
 
+    void StartPulses( const GUI::CVideoSettings& videoSettings );
+
     private:
 
     GUI::TGuiContextPtr m_guiContext;
@@ -144,6 +152,8 @@ class GUIDRIVEREMSCRIPTEN_PUBLIC_CPP CEmscriptenWindowContext : public GUI::CWin
     CORE::Int64 m_webglContext;     /**< EMSCRIPTEN_WEBGL_CONTEXT_HANDLE, 0 without a context */
     bool m_fullscreen;
     bool m_drivesRedraws;
+    bool m_hasCanvas;               /**< Initialize() found the canvas: sizing and full screen work, with or without a context */
+    bool m_graphicsApiNone;
 };
 
 /*-------------------------------------------------------------------------*/

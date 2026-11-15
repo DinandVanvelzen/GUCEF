@@ -139,6 +139,15 @@ CAndroidWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowCont
     return glesContext->ApplyVideoSettings( settings );
 }
 
+bool
+CAndroidWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GUI::CWindowManagerBackend::GraphicsApiGL == graphicsApi || GUI::CWindowManagerBackend::GraphicsApiNone == graphicsApi;
+}
+
+/*-------------------------------------------------------------------------*/
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

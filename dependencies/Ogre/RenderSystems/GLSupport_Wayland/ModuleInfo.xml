@@ -1,0 +1,27 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE OpenGL support library, Wayland flavour: context and window creation through EGL on Wayland</DescriptionHeadline>
+        <DescriptionDetails>The sources of OgreGLSupport (the directory GLSupport) built with the EGL window system of Wayland instead of X11 (OGRE_WAYLAND, the upstream option OGRE_USE_WAYLAND), for the Wayland flavours of the OpenGL render systems. Ogre 1.x chooses X11 or Wayland when it is compiled; render windows of this flavour take externalWlDisplay and externalWlSurface. The module lists the sources of the other directory in its ProjectGenInstructions.xml.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreGLSupport_Wayland" Type="StaticLibrary" Platform="linux">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="wayland-client" />
+            <Dependency Name="wayland-egl" />
+            <Dependency Name="EGL" />
+        </Linker>
+        <Preprocessor>
+            <Define String="OGRE_WAYLAND" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

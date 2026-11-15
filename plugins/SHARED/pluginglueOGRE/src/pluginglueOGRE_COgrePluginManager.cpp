@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <OgrePrerequisites.h>
+
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
@@ -41,6 +43,16 @@
 #include "pluginglueOGRE_COgrePluginAdapter.h"
 #define GUCEF_PLUGINGLUE_OGRE_COGREPLUGINADAPTER_H
 #endif /* GUCEF_PLUGINGLUE_OGRE_COGREPLUGINADAPTER_H ? */
+
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
 
 #include "pluginglueOGRE_COgrePluginManager.h"
 
@@ -165,6 +177,36 @@ COgrePluginManager::GetStaticOgrePlugin( const CORE::CString& pluginName )
     MT::CScopeMutex lock( StaticPluginLock() );
     TStaticPluginMap::const_iterator i = StaticPlugins().find( pluginName );
     return i == StaticPlugins().end() ? GUCEF_NULL : (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+COgrePluginManager::GetOgrePluginNameOfModule( const CORE::CString& moduleFilename )
+{GUCEF_TRACE;
+
+    Ogre::String name = CORE::ExtractFilename( moduleFilename ).C_String();
+    const size_t dot = name.find( '.' );
+    if ( Ogre::String::npos != dot )
+        name.erase( dot );
+    if ( name.size() > 3 && 0 == name.compare( 0, 3, "lib" ) )
+        name.erase( 0, 3 );
+    if ( name.size() > 2 && 0 == name.compare( name.size() - 2, 2, "_d" ) )
+        name.erase( name.size() - 2 );
+    return name.c_str();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgrePluginManager::RegisterLinkedOgrePlugin( const CORE::CString& moduleFilename, Ogre::Plugin* plugin )
+{GUCEF_TRACE;
+
+    if ( moduleFilename.IsNULLOrEmpty() || GUCEF_NULL == plugin )
+        return false;
+    if ( GUCEF_NULL == CORE::RegisterStaticModule( moduleFilename ) )
+        return false;
+    return RegisterStaticOgrePlugin( GetOgrePluginNameOfModule( moduleFilename ), plugin );
 }
 
 /*-------------------------------------------------------------------------//

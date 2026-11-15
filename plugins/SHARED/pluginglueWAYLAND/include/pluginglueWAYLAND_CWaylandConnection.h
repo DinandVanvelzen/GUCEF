@@ -160,6 +160,26 @@ class GUCEF_PLUGINGLUE_WAYLAND_EXPORT_CPP CWaylandConnection : public CORE::CObs
 
     static void Release( CWaylandConnection* connection );
 
+    /**
+     *  The shared connection stays connected whatever Release() calls follow, until Deinstance() (the unload of the
+     *  library where its unload function runs) or the end of the process.
+     *  For windows that something else draws in with EGL objects on this display (GraphicsApi None): such a renderer
+     *  (Ogre terminates its EGL display when its Root shuts down) needs the display after its last window is gone.
+     *  False when 'connection' is not the shared connection
+     */
+    static bool RetainUntilUnload( CWaylandConnection* connection );
+
+    /** Whether the shared connection is held by RetainUntilUnload() */
+    static bool IsRetainedUntilUnload( void );
+
+    /**
+     *  For the window plugin that retained the connection, when it unloads: a retained connection stops pumping on the
+     *  pulses (its code may be unloaded with the plugin, the pulse generator must not call it any more) and stays
+     *  connected, so that the renderer can still terminate its EGL display on it. On Linux the module of this library
+     *  is unloaded without its unload function running, so the connection then stays until the process ends
+     */
+    static void StopPumpingRetained( void );
+
     /** Closes the shared connection whatever the count (the library unloads) */
     static void Deinstance( void );
 

@@ -89,23 +89,6 @@ typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TOGREPLUGFPTR_StopPlugin ) ( void )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static CORE::CString
-DeriveOgrePluginName( const CORE::CString& moduleFilename )
-{GUCEF_TRACE;
-
-    Ogre::String name = CORE::ExtractFilename( moduleFilename ).C_String();
-    const size_t dot = name.find( '.' );
-    if ( Ogre::String::npos != dot )
-        name.erase( dot );
-    if ( name.size() > 3 && 0 == name.compare( 0, 3, "lib" ) )
-        name.erase( 0, 3 );
-    if ( name.size() > 2 && 0 == name.compare( name.size() - 2, 2, "_d" ) )
-        name.erase( name.size() - 2 );
-    return name.c_str();
-}
-
-/*-------------------------------------------------------------------------*/
-
 COgrePluginAdapter::COgrePluginAdapter( void )
     : CORE::CIPlugin()
     , m_moduleHandle( GUCEF_NULL )
@@ -191,7 +174,7 @@ COgrePluginAdapter::Link( void* modulePtr                         ,
 
     // The name by which an application can hand over a plugin object: the module file name without directory,
     // extension and the prefix and debug suffix of the platform, "libOgrePlugin_x_d.so" is "OgrePlugin_x"
-    const CORE::CString pluginName = DeriveOgrePluginName( pluginMetaData->GetModuleFilename() );
+    const CORE::CString pluginName = COgrePluginManager::GetOgrePluginNameOfModule( pluginMetaData->GetModuleFilename() );
 
     Ogre::Plugin* staticPlugin = COgrePluginManager::GetStaticOgrePlugin( pluginName );
     if ( GUCEF_NULL != staticPlugin )

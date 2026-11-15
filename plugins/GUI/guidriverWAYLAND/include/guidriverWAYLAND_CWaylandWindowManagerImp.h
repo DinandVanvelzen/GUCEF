@@ -107,6 +107,14 @@ class GUIDRIVERWAYLAND_PUBLIC_CPP CWaylandWindowManagerImp : public GUI::CWindow
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  GraphicsApi GL (an EGL context of the window) and None (no context: Ogre makes its EGL surface on the wl_surface).
+     *  A window made with None keeps the shared connection connected after the last window
+     *  (CWaylandConnection::RetainUntilUnload()), because the renderer terminates its EGL display on the connection only
+     *  when it shuts down, after its windows are gone; the plugin stops pumping it when it unloads
+     */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     CWaylandWindowManagerImp( const CWaylandWindowManagerImp& src );

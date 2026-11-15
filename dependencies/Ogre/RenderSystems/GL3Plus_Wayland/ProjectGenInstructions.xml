@@ -1,0 +1,52 @@
+<PROJECTGENERATOR>
+    <!-- The Wayland flavour of the render system: the sources of ../GL3Plus, linked with OgreGLSupport_Wayland instead of OgreGLSupport. The module has no sources of its own. -->
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusFBORenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusFrameBufferObject.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusHardwareBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusHardwareBufferManager.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusHardwareOcclusionQuery.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusHardwarePixelBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusPixelFormat.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusPlugin.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusPrerequisites.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusRenderSystem.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusRenderToVertexBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusStateCacheManager.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusTexture.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusTextureBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreGL3PlusTextureManager.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/OgreSPIRVShaderFactory.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/GL/gl3w.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/include/GL/glcorearb.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLExtSupport.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLMonolithicProgram.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLProgram.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLProgramManager.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLSeparableProgram.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/include/OgreGLSLShader.h" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusEngineDll.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusFBORenderTexture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusFrameBufferObject.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusHardwareBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusHardwareBufferManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusHardwareOcclusionQuery.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusHardwarePixelBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusPixelFormat.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusPlugin.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusRenderSystem.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusRenderToVertexBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusStateCacheManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusTexture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusTextureBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreGL3PlusTextureManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/OgreSPIRVShaderFactory.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/gl3w.c" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLExtSupport.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLMonolithicProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLProgramManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLSeparableProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../GL3Plus/src/GLSL/src/OgreGLSLShader.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

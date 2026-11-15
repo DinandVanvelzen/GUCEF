@@ -110,14 +110,18 @@ defines( { "GUIDRIVEROGRE_TESTAPP_BUILD_MODULE", "MODULE_NAME=guidriverOgre_Test
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestOgrePlatform.h",
       "include/TestOgreSupport.h",
-      "include/TestOgreWindow.h"
+      "include/TestOgreWindow.h",
+      "include/TestOgreWorkQueueWindow.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestOgrePlatform.cpp",
       "src/TestOgreSupport.cpp",
       "src/TestOgreWindow.cpp",
+      "src/TestOgreWorkQueueWindow.cpp",
       "src/guidriverOgre_TestApp.cpp"
     } )
 
@@ -126,14 +130,18 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestOgrePlatform.h",
       "include/TestOgreSupport.h",
-      "include/TestOgreWindow.h"
+      "include/TestOgreWindow.h",
+      "include/TestOgreWorkQueueWindow.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestOgrePlatform.cpp",
       "src/TestOgreSupport.cpp",
       "src/TestOgreWindow.cpp",
+      "src/TestOgreWorkQueueWindow.cpp",
       "src/guidriverOgre_TestApp.cpp"
     } )
 
@@ -142,14 +150,18 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestOgrePlatform.h",
       "include/TestOgreSupport.h",
-      "include/TestOgreWindow.h"
+      "include/TestOgreWindow.h",
+      "include/TestOgreWorkQueueWindow.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestOgrePlatform.cpp",
       "src/TestOgreSupport.cpp",
       "src/TestOgreWindow.cpp",
+      "src/TestOgreWorkQueueWindow.cpp",
       "src/guidriverOgre_TestApp.cpp"
     } )
 
@@ -158,14 +170,18 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestOgrePlatform.h",
       "include/TestOgreSupport.h",
-      "include/TestOgreWindow.h"
+      "include/TestOgreWindow.h",
+      "include/TestOgreWorkQueueWindow.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestOgrePlatform.cpp",
       "src/TestOgreSupport.cpp",
       "src/TestOgreWindow.cpp",
+      "src/TestOgreWorkQueueWindow.cpp",
       "src/guidriverOgre_TestApp.cpp"
     } )
 

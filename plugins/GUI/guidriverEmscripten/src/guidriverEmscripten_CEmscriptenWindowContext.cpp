@@ -52,6 +52,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#include "gucefGUI_CWindowManagerBackend.h"
+#define GUCEF_GUI_CWINDOWMANAGERBACKEND_H
+#endif /* GUCEF_GUI_CWINDOWMANAGERBACKEND_H ? */
+
 #include "guidriverEmscripten_CEmscriptenWindowContext.h"
 
 /*-------------------------------------------------------------------------//
@@ -64,6 +69,11 @@
 
 EM_JS( int, guidriverEmscripten_CanvasExists, ( const char* selector ), {
     return document.querySelector( UTF8ToString( selector ) ) ? 1 : 0;
+} );
+
+EM_JS( int, guidriverEmscripten_IsModuleCanvas, ( const char* selector ), {
+    var canvas = document.querySelector( UTF8ToString( selector ) );
+    return ( canvas && typeof Module !== 'undefined' && Module['canvas'] === canvas ) ? 1 : 0;
 } );
 
 EM_JS( void, guidriverEmscripten_SetCanvasCursor, ( const char* selector, int visible ), {
@@ -123,6 +133,8 @@ CEmscriptenWindowContext::CEmscriptenWindowContext( void )
     , m_webglContext( 0 )
     , m_fullscreen( false )
     , m_drivesRedraws( false )
+    , m_hasCanvas( false )
+    , m_graphicsApiNone( false )
 {GUCEF_TRACE;
 
 }
@@ -186,7 +198,7 @@ bool
 CEmscriptenWindowContext::IsActive( void ) const
 {GUCEF_TRACE;
 
-    return 0 != m_webglContext;
+    return m_graphicsApiNone ? m_hasCanvas : 0 != m_webglContext;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -206,6 +218,10 @@ CEmscriptenWindowContext::GetProperty( const GUI::CString& propertyName ) const
 
     if ( "WINDOW" == propertyName )
         return m_canvas;
+    if ( "GRAPHICS_API" == propertyName )
+        return m_graphicsApiNone ? GUI::CWindowManagerBackend::GraphicsApiNone : GUI::CWindowManagerBackend::GraphicsApiGL;
+    if ( m_graphicsApiNone && propertyName.StartsWith( "GL_" ) )
+        return GUI::CString::Empty;     // no GL context: the GL properties are not offered
     if ( "GL_FRAMEBUFFER" == propertyName )
         return "0";
     if ( "GL_GETPROCADDRESS" == propertyName )
@@ -277,6 +293,30 @@ CEmscriptenWindowContext::Initialize( const GUI::CString& title                ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CEmscriptenWindowContext: The page has no canvas \"" + m_canvas + "\"" );
         return false;
     }
+    m_hasCanvas = true;
+    m_graphicsApiNone = GUI::CWindowManagerBackend::GraphicsApiNone == GUI::CWindowManagerBackend::GetRequestedGraphicsApi( params );
+    if ( m_graphicsApiNone )
+    {
+        // the renderer makes the context through Emscripten's EGL, which draws in the canvas of the module
+        if ( 0 == guidriverEmscripten_IsModuleCanvas( m_canvas.C_String() ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CEmscriptenWindowContext: The canvas \"" + m_canvas + "\" is not the canvas of the module (Module['canvas']), "
+                "the one Emscripten's EGL makes its context on: a renderer through EGL does not draw in it" );
+        }
+        if ( !Resize( videoSettings.GetResolutionWidthInPixels(), videoSettings.GetResolutionHeightInPixels() ) )
+        {
+            Shutdown();
+            return false;
+        }
+        if ( !title.IsNULLOrEmpty() )
+            ::emscripten_set_window_title( title.C_String() );
+        StartPulses( videoSettings );
+        if ( videoSettings.GetFullscreenState() )
+            SetFullscreen( true );
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CEmscriptenWindowContext: Made a window without a graphics context (GraphicsApi None) of " + CORE::UInt32ToString( m_width ) +
+                          " x " + CORE::UInt32ToString( m_height ) + " in canvas \"" + m_canvas + "\"" );
+        return true;
+    }
 
     EmscriptenWebGLContextAttributes attributes;
     ::emscripten_webgl_init_context_attributes( &attributes );
@@ -311,13 +351,7 @@ CEmscriptenWindowContext::Initialize( const GUI::CString& title                ,
     if ( !title.IsNULLOrEmpty() )
         ::emscripten_set_window_title( title.C_String() );
 
-    if ( videoSettings.GetFrequency() > 0 )
-    {
-        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
-        SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
-        m_drivesRedraws = true;
-    }
+    StartPulses( videoSettings );
     if ( videoSettings.GetFullscreenState() )
         SetFullscreen( true );
 
@@ -328,11 +362,27 @@ CEmscriptenWindowContext::Initialize( const GUI::CString& title                ,
 
 /*-------------------------------------------------------------------------*/
 
+void
+CEmscriptenWindowContext::StartPulses( const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    // on the web the pulses come from the main loop of the browser, once per display refresh (requestAnimationFrame)
+    if ( videoSettings.GetFrequency() > 0 && !m_drivesRedraws )
+    {
+        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
+        SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+        m_drivesRedraws = true;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CEmscriptenWindowContext::Resize( GUI::UInt32 width, GUI::UInt32 height )
 {GUCEF_TRACE;
 
-    if ( 0 == m_webglContext )
+    if ( !m_hasCanvas )
         return false;
     if ( 0 == width || 0 == height )
     {
@@ -361,7 +411,7 @@ bool
 CEmscriptenWindowContext::SetFullscreen( bool fullscreen )
 {GUCEF_TRACE;
 
-    if ( 0 == m_webglContext )
+    if ( !m_hasCanvas )
         return false;
     if ( fullscreen == m_fullscreen )
         return true;
@@ -409,6 +459,13 @@ void
 CEmscriptenWindowContext::RequestRedraw( void )
 {GUCEF_TRACE;
 
+    if ( m_graphicsApiNone )
+    {
+        // the renderer draws; the browser shows the canvas when the frame of the main loop returns
+        if ( m_hasCanvas )
+            NotifyObservers( WindowContextRedrawEvent );
+        return;
+    }
     if ( !MakeCurrent() )
         return;
 
@@ -444,6 +501,12 @@ CEmscriptenWindowContext::Shutdown( void )
         ::emscripten_webgl_destroy_context( (EMSCRIPTEN_WEBGL_CONTEXT_HANDLE) m_webglContext );
         m_webglContext = 0;
     }
+    else
+    if ( m_hasCanvas && !m_canvas.IsNULLOrEmpty() )
+    {
+        guidriverEmscripten_SetCanvasCursor( m_canvas.C_String(), 1 );
+    }
+    m_hasCanvas = false;
     m_width = m_height = 0;
 }
 

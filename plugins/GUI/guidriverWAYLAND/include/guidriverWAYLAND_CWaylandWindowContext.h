@@ -110,8 +110,9 @@ struct SWaylandWindowParams
     Int32 minHeight;
     Int32 maxWidth;
     Int32 maxHeight;
+    bool graphicsApiNone;                       /**< the window has no EGL context or surface of its own (window parameter GraphicsApi None): something else makes its surface on WL_SURFACE */
 
-    SWaylandWindowParams( void ) : appId(), decorations( DECORATIONPREFERENCE_AUTO ), minWidth( 0 ), minHeight( 0 ), maxWidth( 0 ), maxHeight( 0 ) {}
+    SWaylandWindowParams( void ) : appId(), decorations( DECORATIONPREFERENCE_AUTO ), minWidth( 0 ), minHeight( 0 ), maxWidth( 0 ), maxHeight( 0 ), graphicsApiNone( false ) {}
 };
 
 /**
@@ -124,6 +125,12 @@ struct SWaylandWindowParams
  *
  *  Everything runs on the thread that pumps the connection (the pulse generator of the application): the events of the
  *  compositor arrive in the pump of the connection and the frames are drawn on the pulses.
+ *
+ *  Made with GraphicsApi None the window has no EGL context and no buffer of its own: the renderer that draws in it (Ogre)
+ *  makes its wl_egl_window and EGL surface on WL_SURFACE with the display DISPLAY, at the size GetWidth() x GetHeight().
+ *  The window still decides when a frame is drawn: on each frame that is due it asks for the frame callback first and then
+ *  notifies WindowContextRedrawEvent, in which the renderer draws and presents (its eglSwapBuffers commits the surface).
+ *  It neither clears nor presents, and reports GRAPHICS_API "None" and no GL_* properties.
  */
 class GUIDRIVERWAYLAND_PUBLIC_CPP CWaylandWindowContext : public GUI::CWindowContext
 {
@@ -203,6 +210,9 @@ class GUIDRIVERWAYLAND_PUBLIC_CPP CWaylandWindowContext : public GUI::CWindowCon
 
     bool IsConfigured( void ) const;
 
+    /** Made without a graphics context of its own (GraphicsApi None) */
+    bool IsGraphicsApiNone( void ) const;
+
     UInt32 GetFramesDrawn( void ) const;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -247,6 +257,7 @@ class GUIDRIVERWAYLAND_PUBLIC_CPP CWaylandWindowContext : public GUI::CWindowCon
     bool m_ready;                   /**< Initialize() is done: size changes are announced from then on */
     bool m_shutDown;                /**< Shutdown() ran: the connection may be gone (this window gave back its reference), it is not touched again */
     bool m_closeReported;
+    bool m_graphicsApiNone;
 
     // protocol objects
     struct wl_surface* m_surface;

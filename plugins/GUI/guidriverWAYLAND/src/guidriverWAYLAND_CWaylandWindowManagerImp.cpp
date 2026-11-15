@@ -274,6 +274,7 @@ CWaylandWindowManagerImp::CreateWindowContext( const GUI::CString& title        
         windowParams.maxWidth = params->GetValueAlways( "MAX_WIDTH", "0" ).AsInt32( 0, true );
         windowParams.maxHeight = params->GetValueAlways( "MAX_HEIGHT", "0" ).AsInt32( 0, true );
     }
+    windowParams.graphicsApiNone = GUI::CWindowManagerBackend::GraphicsApiNone == GetRequestedGraphicsApi( params );
 
     TWaylandWindowContextPtr windowContext( GUCEF_NEW CWaylandWindowContext( *connection, GetRuntime() ) );
     if ( !windowContext->Initialize( title, settings, windowParams ) )
@@ -284,7 +285,20 @@ CWaylandWindowManagerImp::CreateWindowContext( const GUI::CString& title        
         return GUI::TWindowContextPtr();
     }
     windowContext->SetReleaseConnectionOnShutdown( acquired );
+
+    // the renderer of a window without a context of its own holds EGL objects on this display until it shuts down
+    if ( windowParams.graphicsApiNone && acquired )
+        CWaylandConnection::RetainUntilUnload( connection );
     return windowContext;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWaylandWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GUI::CWindowManagerBackend::GraphicsApiGL == graphicsApi || GUI::CWindowManagerBackend::GraphicsApiNone == graphicsApi;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -63,6 +63,8 @@ files( {
   "include/guidriverOgre.h",
   "include/guidriverOgre_CIOgreWindowOverlay.h",
   "include/guidriverOgre_COgreGuiMaterial.h",
+  "include/guidriverOgre_COgrePlatformWindowSupport.h",
+  "include/guidriverOgre_COgreSurfaceState.h",
   "include/guidriverOgre_COgreWindowContext.h",
   "include/guidriverOgre_COgreWindowManagerImp.h",
   "include/guidriverOgre_config.h",
@@ -77,6 +79,8 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/guidriverOgre_CIOgreWindowOverlay.cpp",
   "src/guidriverOgre_COgreGuiMaterial.cpp",
+  "src/guidriverOgre_COgrePlatformWindowSupport.cpp",
+  "src/guidriverOgre_COgreSurfaceState.cpp",
   "src/guidriverOgre_COgreWindowContext.cpp",
   "src/guidriverOgre_COgreWindowManagerImp.cpp",
   "src/guidriverOgre_pluginAPI.cpp"

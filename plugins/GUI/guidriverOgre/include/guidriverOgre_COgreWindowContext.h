@@ -63,6 +63,11 @@
 #define GUIDRIVEROGRE_CIOGREWINDOWOVERLAY_H
 #endif /* GUIDRIVEROGRE_CIOGREWINDOWOVERLAY_H ? */
 
+#ifndef GUIDRIVEROGRE_COGRESURFACESTATE_H
+#include "guidriverOgre_COgreSurfaceState.h"
+#define GUIDRIVEROGRE_COGRESURFACESTATE_H
+#endif /* GUIDRIVEROGRE_COGRESURFACESTATE_H ? */
+
 namespace Ogre { class RenderWindow; class Root; class Viewport; class SceneManager; }
 
 /*-------------------------------------------------------------------------//
@@ -84,11 +89,17 @@ namespace GUIDRIVEROGRE {
  *  A window of the window backend "Ogre": an Ogre render window on a window of a platform window backend.
  *
  *  The platform window is made with the window parameter GraphicsApi=None, so it has no graphics context, and the
- *  render window is made from its native handles (Linux X11: the WINDOW property as externalWindowHandle; Ogre makes
- *  its child window in it). Size, close requests, activation, the cursor and the properties of the platform window
- *  (the native handles that input drivers attach to) are passed on. The platform backend is the window parameter
- *  "PlatformBackend": "XWinGL" (the default on Linux), or "Offscreen" for a render window of Ogre's own without a
- *  platform window (Ogre's headless EGL surface where there is no display server).
+ *  render window is made from its native handles (COgrePlatformWindowSupport: the X11 window, the wl_display and
+ *  wl_surface, the HWND, the ANativeWindow, the canvas). Size, close requests, activation, the cursor and the
+ *  properties of the platform window (the native handles that input drivers attach to) are passed on. The platform
+ *  backend is the window parameter "PlatformBackend", by default the one of the build platform (XWinGL on Linux, Win32
+ *  on Windows, AndroidGLES on Android, Emscripten on the web); "Wayland" on Linux with the Wayland flavour of the render
+ *  system, or "Offscreen" for a render window of Ogre's own without a platform window (Ogre's headless EGL surface
+ *  where there is no display server).
+ *
+ *  When the platform window loses its native surface (WindowContextSurfaceLostEvent, an Android app in the background)
+ *  Ogre is told, and no frames are drawn until the surface comes back (WindowContextSurfaceRestoredEvent), when Ogre gets
+ *  the new native window; the render window, the Root and the resources stay (COgreSurfaceState).
  *
  *  Frames are paced by the platform window. On each of its redraws the window draws one frame, in this order:
  *  1. Root::_fireFrameStarted(): the frame listeners of the application;
@@ -174,6 +185,9 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowContext : public GUI::CWindowContext  
     /** The number of frames drawn since Initialize() */
     UInt64 GetFrameCount( void ) const;
 
+    /** Whether the render window has its native surface, and how often it was lost and adopted again */
+    const COgreSurfaceState& GetSurfaceState( void ) const;
+
     virtual void SetGuiContext( GUI::TGuiContextPtr& context ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual GUI::TGuiContextPtr GetGuiContext( void ) GUCEF_VIRTUAL_OVERRIDE;
@@ -217,6 +231,8 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowContext : public GUI::CWindowContext  
     void OnPlatformSize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnPlatformActivate( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnPlatformCloseRequest( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPlatformSurfaceLost( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPlatformSurfaceRestored( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     virtual void postRenderTargetUpdate( const Ogre::RenderTargetEvent& evt ) GUCEF_VIRTUAL_OVERRIDE;
@@ -247,6 +263,7 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowContext : public GUI::CWindowContext  
     UInt64 m_frameCount;
     bool m_inFrame;
     GUI::CVideoSettings m_videoSettings;
+    COgreSurfaceState m_surfaceState;
 };
 
 /*-------------------------------------------------------------------------*/

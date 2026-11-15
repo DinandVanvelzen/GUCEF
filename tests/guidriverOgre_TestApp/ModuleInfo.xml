@@ -39,6 +39,8 @@
         </Linker>
         <RuntimeDependencies>
             <RuntimeDependency Name="guidriverXWinGL" />
+            <RuntimeDependency Name="guidriverWAYLAND" />
+            <RuntimeDependency Name="OgreRenderSystem_GL3Plus_Wayland" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="mswin">

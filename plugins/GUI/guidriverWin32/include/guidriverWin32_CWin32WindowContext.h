@@ -36,6 +36,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
 #ifndef GUCEF_GUI_CWINDOWCONTEXT_H
 #include "gucefGUI_CWindowContext.h"
 #define GUCEF_GUI_CWINDOWCONTEXT_H
@@ -66,6 +71,22 @@ namespace GUIDRIVERWIN32 {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  A plain Win32 window without a graphics context (GraphicsApi None, the only kind this backend makes): a renderer
+ *  (Ogre with Direct3D 11 or OpenGL through WGL) makes its swap chain or context on the HWND.
+ *
+ *  Frames are announced (WindowContextRedrawEvent) on the pulses of the application at the frequency of the video
+ *  settings and on WM_PAINT; the window neither clears nor presents. Full screen is a borderless window over the whole
+ *  monitor (CMsWin32Window::SetFullscreenStatus), no change of the display mode. Closing the window (WM_CLOSE) notifies
+ *  WindowContextCloseRequestEvent; CMsWin32Window destroys the window right after it, so a renderer lets go of its
+ *  surface in that event.
+ *
+ *  Sizes are in physical pixels: unless the window parameter "DPI_AWARE" is "false" the process is made per monitor DPI
+ *  aware (version 2) before its first window, where Windows offers it (Windows 10 1703 and newer), so Windows does not
+ *  scale the picture of the window. The property SCALE is the DPI of the monitor of the window divided by 96, DPI the DPI.
+ *
+ *  Properties: WINDOW and HWND (the HWND), GRAPHICS_API ("None"), SCALE, DPI.
+ */
 class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowContext : public GUI::CWindowContext
 {        
     public:
@@ -96,6 +117,16 @@ class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowContext : public GUI::CWindowContext
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings );
 
+    bool Initialize( const GUI::CString& title                ,
+                     const GUI::CVideoSettings& videoSettings ,
+                     const CORE::CValueList* params           );
+
+    /** Full screen or windowed; a windowed window takes the size of the settings; the pulses follow the frequency */
+    bool ApplyVideoSettings( const GUI::CVideoSettings& videoSettings );
+
+    /** The DPI of the monitor the window is on, 96 where Windows cannot tell (before Windows 10 1607) */
+    GUI::UInt32 GetDpi( void ) const;
+
     void Shutdown( void );
 
     virtual const CORE::CString& GetClassTypeName( void ) const;
@@ -113,12 +144,15 @@ class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowContext : public GUI::CWindowContext
 
     bool MakeCurrent( void );
 
+    void SetPulseFrequency( GUI::UInt32 frequency );
+
     private:
 
     GUI::TGuiContextPtr m_guiContext;
     GUI::UInt32 m_id;
     GUI::CString m_name;
     CORE::CMsWin32Window m_window;
+    GUI::UInt32 m_pulseFrequency;
 };
 
 /*-------------------------------------------------------------------------*/

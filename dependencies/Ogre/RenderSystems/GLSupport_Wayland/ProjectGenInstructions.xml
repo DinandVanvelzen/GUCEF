@@ -1,0 +1,51 @@
+<PROJECTGENERATOR>
+    <!-- The Wayland flavour of the OpenGL support library: the sources of ../GLSupport with the EGL window system of Wayland instead of X11, compiled with OGRE_WAYLAND. The module has no sources of its own. -->
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="../GLSupport/include/EGL/OgreEGLContext.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/EGL/OgreEGLRenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/EGL/OgreEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/EGL/OgreEGLWindow.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/EGL/Wayland/OgreWaylandEGLSupport.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/EGL/Wayland/OgreWaylandEGLWindow.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/GLSL/OgreGLSLPreprocessor.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/GLSL/OgreGLSLProgramCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/GLSL/OgreGLSLProgramManagerCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/GLSL/OgreGLSLShaderCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLContext.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLDepthBufferCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLHardwarePixelBufferCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLMultiRenderTarget.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLNativeSupport.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLPBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLRenderSystemCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLRenderTarget.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLRenderTexture.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLRenderToVertexBufferCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLStateCacheManagerCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLTextureCommon.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLUniformCache.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLUtil.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLVertexArrayObject.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/include/OgreGLWindow.h" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/OgreEGLContext.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/OgreEGLRenderTexture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/OgreEGLSupport.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/OgreEGLWindow.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/Wayland/OgreWaylandEGLSupport.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/EGL/Wayland/OgreWaylandEGLWindow.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/GLSL/OgreGLSLPreprocessor.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/GLSL/OgreGLSLProgramCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/GLSL/OgreGLSLProgramManagerCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/GLSL/OgreGLSLShaderCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLDepthBufferCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLHardwarePixelBufferCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLMultiRenderTarget.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLRenderSystemCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLRenderTexture.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLRenderToVertexBufferCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLTextureCommon.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLUniformCache.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLVertexArrayObject.cpp" TYPE="FILE" />
+        <ITEM NAME="../GLSupport/src/OgreGLWindow.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

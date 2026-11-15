@@ -3,8 +3,19 @@
         <License>MIT</License>
         <SemVer>14.6.3.0</SemVer>
         <DescriptionHeadline>OGRE OpenGL ES 2 and 3 render system plugin</DescriptionHeadline>
-        <DescriptionDetails>The OpenGL ES 2 render system of OGRE 14.6.3, which uses ES 3 where available, a plugin of the Ogre core library. It is the render system of Android and of WebAssembly (WebGL), where it is a static library that is linked into the application; on Linux it runs on top of EGL. The OpenGL ES entry points are loaded at run time. Without GLSL optimiser and Cg support.</DescriptionDetails>
+        <DescriptionDetails>The OpenGL ES 2 render system of OGRE 14.6.3, which uses ES 3 where available, a plugin of the Ogre core library. It is the render system of Android and of WebAssembly (WebGL); on both it is a static library that is linked into the application. On Linux it runs on top of EGL. The OpenGL ES entry points are loaded at run time. Without GLSL optimiser and Cg support.</DescriptionDetails>
     </ModuleMetaData>
+    <!-- The library type of a platform is that of the first entry for it: the static library entries of the web and of
+         Android come before the entry that names the module and lists its platforms -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+    <!-- Android links the render system into the application as well: no module is loaded with dlopen, the application
+         hands the plugin object to pluginglueOGRE (COgrePluginManager::RegisterLinkedOgrePlugin) -->
+    <Module Type="StaticLibrary" Platform="android">
+        <Linker>
+            <Dependency Name="dl" />
+        </Linker>
+    </Module>
     <Module Name="OgreRenderSystem_GLES2" Type="SharedLibrary" Platform="linux;android;emscripten" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
@@ -24,9 +35,7 @@
             <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
         </Compiler>
     </Module>
-    <Module Type="StaticLibrary" Platform="emscripten">
-    </Module>
-    <Module Platform="linux;android">
+    <Module Platform="linux">
         <Linker>
             <Dependency Name="dl" />
         </Linker>

@@ -138,6 +138,43 @@ FindFrameCallback( const CFakeWayland& fake )
     return fake.FindProxy( "wl_callback" );
 }
 
+/** What a renderer that draws in a window without a graphics context sees in the redraw event: how many frame callbacks were asked for by then */
+class CRedrawProbe : public CORE::CObserver
+{
+    public:
+
+    CRedrawProbe( const CFakeWayland& fake ) : CORE::CObserver(), m_fake( fake ), redraws( 0 ), frameRequestsAtLastRedraw( 0 ) {}
+
+    void Watch( CORE::CNotifier& notifier )
+    {
+        TEventCallback callback( this, &CRedrawProbe::OnRedraw );
+        SubscribeTo( &notifier, GUI::CWindowContext::WindowContextRedrawEvent, callback );
+    }
+
+    UInt32 redraws;
+    UInt32 frameRequestsAtLastRedraw;
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CRedrawProbe > TEventCallback;
+
+    void OnRedraw( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++redraws;
+        frameRequestsAtLastRedraw = m_fake.CountRequestsWithPrefix( "wl_surface.frame(" );
+    }
+
+    const CFakeWayland& m_fake;
+};
+
+SWaylandWindowParams
+MakeNoneParams( void )
+{
+    SWaylandWindowParams params = MakeParams();
+    params.graphicsApiNone = true;
+    return params;
+}
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1036,6 +1073,135 @@ PerformWaylandWindowTests( void )
             GUI::CVideoOptions::RetrieveCurrentDisplayModeFromOS( platformMode );
             ASSERT_FALSE( 800 == platformMode.widthInPixels && 75 == platformMode.frequency );
             GUI::CVideoOptions::SelectDisplayModeSource( selectedBefore );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A window without a graphics context (GraphicsApi None) makes no EGL objects and offers its surface and display, no GL properties" )
+        try
+        {
+            SRig rig;
+            ASSERT_TRUE( rig.Connect() );
+            CWaylandWindowContext window( rig.connection, rig.graphics.GetRuntime() );
+            ASSERT_TRUE( window.Initialize( "Redux", MakeSettings(), MakeNoneParams() ) );
+            ASSERT_TRUE( window.IsGraphicsApiNone() );
+            ASSERT_TRUE( window.IsConfigured() );
+            ASSERT_TRUE( 0 == rig.graphics.platformDisplayCalls );
+            ASSERT_TRUE( 0 == rig.graphics.windowCreateCount );
+            ASSERT_TRUE( 0 == rig.graphics.createSurfaceCount );
+            ASSERT_TRUE( 0 == rig.graphics.makeCurrentCount );
+            ASSERT_TRUE( 1280 == window.GetWidth() && 720 == window.GetHeight() );
+            ASSERT_TRUE( "None" == window.GetProperty( "GRAPHICS_API" ) );
+            ASSERT_TRUE( window.GetProperty( "GL_GETPROCADDRESS" ).IsNULLOrEmpty() );
+            ASSERT_TRUE( window.GetProperty( "GL_API" ).IsNULLOrEmpty() );
+            ASSERT_TRUE( window.GetProperty( "GL_FRAMEBUFFER" ).IsNULLOrEmpty() );
+            ASSERT_TRUE( CORE::PointerToString( rig.connection.GetDisplay() ) == window.GetProperty( "DISPLAY" ) );
+            ASSERT_FALSE( window.GetProperty( "WL_SURFACE" ).IsNULLOrEmpty() );
+            ASSERT_TRUE( GUCEF_NULL != CORE::StringToPointer( window.GetProperty( "WL_SURFACE" ) ) );
+            ASSERT_TRUE( rig.fake.Requested( "wl_region.add(0, 0, 1280, 720)" ) );
+
+            // a window with a context reports GL
+            SRig rig2;
+            ASSERT_TRUE( rig2.Connect() );
+            CWaylandWindowContext window2( rig2.connection, rig2.graphics.GetRuntime() );
+            ASSERT_TRUE( window2.Initialize( "Redux", MakeSettings(), MakeParams() ) );
+            ASSERT_TRUE( "GL" == window2.GetProperty( "GRAPHICS_API" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A window without a graphics context asks for the frame callback before the renderer presents in the redraw event, and neither clears nor swaps" )
+        try
+        {
+            SRig rig;
+            ASSERT_TRUE( rig.Connect() );
+            CWaylandWindowContext window( rig.connection, rig.graphics.GetRuntime() );
+            CRedrawProbe probe( rig.fake );
+            probe.Watch( window );
+            ASSERT_TRUE( window.Initialize( "Redux", MakeSettings( true ), MakeNoneParams() ) );
+
+            window.Update( 1000 );
+            ASSERT_TRUE( 1 == probe.redraws );
+            ASSERT_TRUE( 1 == probe.frameRequestsAtLastRedraw );            // asked for before the renderer drew
+            ASSERT_TRUE( 0 == rig.graphics.swapCount );
+            ASSERT_TRUE( 0 == rig.graphics.clearCount );
+            SFakeProxy* callback = FindFrameCallback( rig.fake );
+            ASSERT_TRUE( GUCEF_NULL != callback );
+
+            // paced by the compositor as a window with a context is
+            window.Update( 1004 );
+            window.Update( 1500 );
+            ASSERT_TRUE( 1 == probe.redraws );
+            rig.fake.SendFrameDone( callback );
+            window.Update( 1510 );
+            ASSERT_TRUE( 2 == probe.redraws );
+            ASSERT_TRUE( 2 == probe.frameRequestsAtLastRedraw );
+            ASSERT_TRUE( 2 == window.GetFramesDrawn() );
+
+            // a size the compositor gives is announced; the renderer resizes its buffer to GetWidth() x GetHeight()
+            CEventCounter counter;
+            counter.Watch( window, GUI::CWindowContext::WindowContextSizeEvent );
+            rig.fake.Configure( 1000, 700, GUCEF_NULL, 0 );
+            ASSERT_TRUE( 1 == counter.Count( GUI::CWindowContext::WindowContextSizeEvent ) );
+            ASSERT_TRUE( 1000 == window.GetWidth() && 700 == window.GetHeight() );
+            ASSERT_TRUE( 0 == rig.graphics.resizeCount );
+
+            // without vertical sync: at the pace of the settings and no callbacks
+            GUI::CVideoSettings settings = MakeSettings( false );
+            settings.SetFrequency( 50 );
+            SRig rig2;
+            ASSERT_TRUE( rig2.Connect() );
+            CWaylandWindowContext window2( rig2.connection, rig2.graphics.GetRuntime() );
+            CRedrawProbe probe2( rig2.fake );
+            probe2.Watch( window2 );
+            ASSERT_TRUE( window2.Initialize( "Redux", settings, MakeNoneParams() ) );
+            window2.Update( 5000 );
+            window2.Update( 5010 );
+            window2.Update( 5020 );
+            ASSERT_TRUE( 2 == probe2.redraws );
+            ASSERT_TRUE( 0 == probe2.frameRequestsAtLastRedraw );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The backend makes windows without a graphics context when asked, and a window of it gives everything back when it goes" )
+        try
+        {
+            SRig rig;
+            ASSERT_TRUE( rig.Connect() );
+            CWaylandWindowManagerImp manager( &rig.connection, &rig.graphics.GetRuntime() );
+            ASSERT_TRUE( manager.IsGraphicsApiSupported( GUI::CWindowManagerBackend::GraphicsApiNone ) );
+            ASSERT_TRUE( manager.IsGraphicsApiSupported( GUI::CWindowManagerBackend::GraphicsApiGL ) );
+            ASSERT_FALSE( manager.IsGraphicsApiSupported( "Vulkan" ) );
+
+            CORE::CValueList params;
+            params.Set( GUI::CWindowManagerBackend::GraphicsApiParameterName, "none" );
+            GUI::TWindowContextPtr window = manager.CreateWindowContext( "Redux", MakeSettings(), &params );
+            ASSERT_FALSE( window.IsNULL() );
+            ASSERT_TRUE( "None" == window->GetProperty( "GRAPHICS_API" ) );
+            ASSERT_TRUE( 0 == rig.graphics.createSurfaceCount );
+
+            // a connection of the test is not the shared one: it is not held beyond the window
+            ASSERT_FALSE( CWaylandConnection::RetainUntilUnload( &rig.connection ) );
+            ASSERT_FALSE( CWaylandConnection::IsRetainedUntilUnload() );
+
+            manager.DestroyWindowContext( window );
+            ASSERT_TRUE( 0 == rig.fake.CountLiveProxies( "xdg_toplevel" ) );
+            ASSERT_TRUE( 0 == rig.fake.CountLiveProxies( "wl_surface" ) );
+            window.Unlink();
+
+            CORE::CValueList vulkan;
+            vulkan.Set( GUI::CWindowManagerBackend::GraphicsApiParameterName, "Vulkan" );
+            ASSERT_TRUE( manager.CreateWindowContext( "Redux", MakeSettings(), &vulkan ).IsNULL() );
         }
         catch ( ... )
         {

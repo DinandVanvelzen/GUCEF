@@ -68,6 +68,11 @@
 #define GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H
 #endif /* GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H ? */
 
+#ifndef GUIDRIVEROGRE_COGREPLATFORMWINDOWSUPPORT_H
+#include "guidriverOgre_COgrePlatformWindowSupport.h"
+#define GUIDRIVEROGRE_COGREPLATFORMWINDOWSUPPORT_H
+#endif /* GUIDRIVEROGRE_COGREPLATFORMWINDOWSUPPORT_H ? */
+
 #include "guidriverOgre_COgreWindowContext.h"
 
 /*-------------------------------------------------------------------------//
@@ -86,6 +91,8 @@ namespace GUIDRIVEROGRE {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString COgreWindowContext::ClassTypeName = "GUCEF::GUIDRIVEROGRE::COgreWindowContext";
+// the same text as COgrePlatformWindowSupport::PlatformBackendParameterName and OffscreenBackend; literals, because the
+// order in which the constants of two source files are made is not defined
 const CORE::CString COgreWindowContext::PlatformBackendParameterName = "PlatformBackend";
 const CORE::CString COgreWindowContext::OffscreenPlatformBackend = "Offscreen";
 const CORE::CString COgreWindowContext::GraphicsApiName = "Ogre";
@@ -100,31 +107,6 @@ namespace {
 
 /** Every render window of Ogre needs a name of its own */
 UInt32 g_windowCounter = 0;
-
-/** The platform backend when the parameters name none: the one window driver per platform that makes windows without a graphics context */
-CORE::CString
-DefaultPlatformBackend( void )
-{
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
-    return "XWinGL";
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    return "Win32";
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
-    return "AndroidGLES";
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-    return "Emscripten";
-    #else
-    return COgreWindowContext::OffscreenPlatformBackend;
-    #endif
-}
-
-/** Ogre takes window handles as decimal numbers in a string */
-Ogre::String
-PointerPropertyToHandle( const GUI::CString& pointerProperty )
-{
-    void* pointer = CORE::StringToPointer( pointerProperty );
-    return Ogre::StringConverter::toString( (size_t) pointer );
-}
 
 }
 
@@ -152,6 +134,7 @@ COgreWindowContext::COgreWindowContext( void )
     , m_frameCount( 0 )
     , m_inFrame( false )
     , m_videoSettings()
+    , m_surfaceState()
 {GUCEF_TRACE;
 
 }
@@ -341,6 +324,15 @@ COgreWindowContext::GetFrameCount( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const COgreSurfaceState&
+COgreWindowContext::GetSurfaceState( void ) const
+{GUCEF_TRACE;
+
+    return m_surfaceState;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 COgreWindowContext::Initialize( const GUI::CString& title                ,
                                 const GUI::CVideoSettings& videoSettings ,
@@ -351,9 +343,13 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
 
     m_name = title;
     m_videoSettings = videoSettings;
-    m_platformBackendName = DefaultPlatformBackend();
-    if ( GUCEF_NULL != params && params->HasKey( PlatformBackendParameterName ) )
-        m_platformBackendName = params->GetValueAlways( PlatformBackendParameterName ).AsString( m_platformBackendName, true );
+    m_platformBackendName = COgrePlatformWindowSupport::SelectPlatformBackend( params, COgrePlatformWindowSupport::GetDefaultPlatformBackend() );
+    if ( !COgrePlatformWindowSupport::IsKnownPlatformBackend( m_platformBackendName ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre render windows on platform windows of the backend \""
+            << m_platformBackendName << "\" are not supported" );
+        return false;
+    }
 
     // the Root of the support library, initialised with the render system of its configuration
     PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
@@ -363,9 +359,8 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
         return false;
     }
 
-    if ( m_platformBackendName.Equals( OffscreenPlatformBackend, false ) )
+    if ( OffscreenPlatformBackend == m_platformBackendName )
     {
-        m_platformBackendName = OffscreenPlatformBackend;
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         // with a display server Ogre's EGL support makes a top level X11 window of its own instead of a headless surface
         const char* display = ::getenv( "DISPLAY" );
@@ -390,11 +385,12 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
         return false;
     }
 
-    if ( m_platformWindow.IsNULL() && videoSettings.GetFrequency() > 0 )
+    const UInt32 pulseInterval = COgrePlatformWindowSupport::GetPulseIntervalInMs( videoSettings.GetFrequency() );
+    if ( m_platformWindow.IsNULL() && pulseInterval > 0 )
     {
         // without a platform window the window paces its own frames
         CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
+        pulseGenerator->RequestPeriodicPulses( this, pulseInterval );
         TEventCallback pulse( this, &COgreWindowContext::OnPulse );
         SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, pulse );
     }
@@ -448,6 +444,10 @@ COgreWindowContext::CreatePlatformWindow( const GUI::CString& title             
     SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextActivateEvent, activate );
     TEventCallback closeRequest( this, &COgreWindowContext::OnPlatformCloseRequest );
     SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextCloseRequestEvent, closeRequest );
+    TEventCallback surfaceLost( this, &COgreWindowContext::OnPlatformSurfaceLost );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextSurfaceLostEvent, surfaceLost );
+    TEventCallback surfaceRestored( this, &COgreWindowContext::OnPlatformSurfaceRestored );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextSurfaceRestoredEvent, surfaceRestored );
     return true;
 }
 
@@ -460,12 +460,7 @@ COgreWindowContext::CreateRenderWindow( const GUI::CString& title               
 
     Ogre::Root* root = GetOgreRoot();
     Ogre::NameValuePairList miscParams;
-    miscParams[ "title" ] = title.C_String();
-    miscParams[ "vsync" ] = videoSettings.GetVSyncState() ? "true" : "false";
-    if ( videoSettings.GetAntiAliasingFactor() > 1 )
-        miscParams[ "FSAA" ] = Ogre::StringConverter::toString( videoSettings.GetAntiAliasingFactor() );
-    if ( videoSettings.GetFrequency() > 0 )
-        miscParams[ "displayFrequency" ] = Ogre::StringConverter::toString( videoSettings.GetFrequency() );
+    COgrePlatformWindowSupport::AddVideoSettingParams( m_platformBackendName, videoSettings, title, miscParams );
 
     UInt32 width = videoSettings.GetResolutionWidthInPixels();
     UInt32 height = videoSettings.GetResolutionHeightInPixels();
@@ -473,32 +468,10 @@ COgreWindowContext::CreateRenderWindow( const GUI::CString& title               
     if ( !m_platformWindow.IsNULL() )
     {
         // the native handles of the platform window, as its properties give them
-        if ( "XWinGL" == m_platformBackendName )
+        CORE::CString problem;
+        if ( !COgrePlatformWindowSupport::AddNativeWindowParams( m_platformBackendName, *m_platformWindow, miscParams, problem ) )
         {
-            const UInt32 window = CORE::StringToUInt32( m_platformWindow->GetProperty( "WINDOW" ), 0 );
-            if ( 0 == window )
-            {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The XWinGL window has no X11 window" );
-                return false;
-            }
-            miscParams[ "externalWindowHandle" ] = Ogre::StringConverter::toString( window );
-        }
-        else
-        if ( "Win32" == m_platformBackendName || "AndroidGLES" == m_platformBackendName )
-        {
-            // the HWND, the ANativeWindow*
-            miscParams[ "externalWindowHandle" ] = PointerPropertyToHandle( m_platformWindow->GetProperty( "WINDOW" ) );
-        }
-        else
-        if ( "Emscripten" == m_platformBackendName )
-        {
-            // the CSS selector of the canvas
-            miscParams[ "externalWindowHandle" ] = m_platformWindow->GetProperty( "WINDOW" ).C_String();
-        }
-        else
-        {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre render windows on platform windows of the backend \""
-                << m_platformBackendName << "\" are not supported" );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: No render window can be made: " << problem );
             return false;
         }
         width = m_platformWindow->GetWidth();
@@ -528,6 +501,7 @@ COgreWindowContext::CreateRenderWindow( const GUI::CString& title               
     m_renderWindow->setAutoUpdated( false );
     m_renderWindow->addListener( this );
     m_overlayViewport = OGRE_NEW Ogre::Viewport( GUCEF_NULL, m_renderWindow, 0.0f, 0.0f, 1.0f, 1.0f, 0 );
+    m_surfaceState.OnRenderWindowCreated();
     return true;
 }
 
@@ -565,6 +539,7 @@ COgreWindowContext::Shutdown( void )
     m_captureViewport = GUCEF_NULL;
     m_overlayViewport = GUCEF_NULL;
     m_renderWindow = GUCEF_NULL;
+    m_surfaceState.OnRenderWindowDestroyed();
 
     if ( !m_platformWindow.IsNULL() )
     {
@@ -590,7 +565,8 @@ COgreWindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings
         success = m_platformBackend->ApplyVideoSettings( m_platformWindow, videoSettings );
     else
         m_renderWindow->resize( videoSettings.GetResolutionWidthInPixels(), videoSettings.GetResolutionHeightInPixels() );
-    m_renderWindow->setVSyncEnabled( videoSettings.GetVSyncState() );
+    // on Wayland the frame callbacks of the platform window are the vertical sync, Ogre's swap does not wait
+    m_renderWindow->setVSyncEnabled( videoSettings.GetVSyncState() && COgrePlatformWindowSupport::WaylandBackend != m_platformBackendName );
     if ( videoSettings.GetAntiAliasingFactor() != m_videoSettings.GetAntiAliasingFactor() )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The anti aliasing of a render window is chosen when it is made, "
@@ -600,8 +576,9 @@ COgreWindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings
     {
         CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
         pulseGenerator->RequestStopOfPeriodicUpdates( this );
-        if ( videoSettings.GetFrequency() > 0 )
-            pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
+        const UInt32 pulseInterval = COgrePlatformWindowSupport::GetPulseIntervalInMs( videoSettings.GetFrequency() );
+        if ( pulseInterval > 0 )
+            pulseGenerator->RequestPeriodicPulses( this, pulseInterval );
     }
     m_videoSettings = videoSettings;
     return success;
@@ -617,7 +594,8 @@ COgreWindowContext::GetVideoSettings( void ) const
     if ( GUCEF_NULL != m_renderWindow )
     {
         settings.SetResolution( GetWidth(), GetHeight(), m_videoSettings.GetResolutionDepthInBits() );
-        settings.SetVSyncState( m_renderWindow->isVSyncEnabled() );
+        const bool platformVSync = COgrePlatformWindowSupport::WaylandBackend == m_platformBackendName;
+        settings.SetVSyncState( platformVSync ? m_videoSettings.GetVSyncState() : m_renderWindow->isVSyncEnabled() );
         settings.SetAntiAliasingFactor( m_renderWindow->getFSAA() );
     }
     return settings;
@@ -750,7 +728,7 @@ bool
 COgreWindowContext::RenderFrame( IMAGE::TPixelMapPtr* capture )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_renderWindow || m_inFrame )
+    if ( GUCEF_NULL == m_renderWindow || m_inFrame || !m_surfaceState.CanDraw() )
         return false;
     Ogre::Root* root = GetOgreRoot();
     if ( GUCEF_NULL == root || GUCEF_NULL == root->getRenderSystem() )
@@ -904,14 +882,82 @@ void
 COgreWindowContext::OnPlatformSize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_renderWindow && !m_platformWindow.IsNULL() )
+    if ( GUCEF_NULL != m_renderWindow && !m_platformWindow.IsNULL() && m_surfaceState.CanDraw() )
     {
-        const UInt32 width = m_platformWindow->GetWidth();
-        const UInt32 height = m_platformWindow->GetHeight();
-        if ( width > 0 && height > 0 )
-            m_renderWindow->resize( width, height );
+        if ( COgrePlatformWindowSupport::RESIZEMETHOD_FROM_NATIVE == COgrePlatformWindowSupport::GetResizeMethod( m_platformBackendName ) )
+        {
+            // Ogre reads the size of the native window it was given
+            m_renderWindow->windowMovedOrResized();
+        }
+        else
+        {
+            const UInt32 width = m_platformWindow->GetWidth();
+            const UInt32 height = m_platformWindow->GetHeight();
+            if ( width > 0 && height > 0 )
+                m_renderWindow->resize( width, height );
+        }
     }
     NotifyObservers( WindowContextSizeEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPlatformSurfaceLost( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( COgreSurfaceState::SURFACEACTION_RELEASE_SURFACE != m_surfaceState.OnSurfaceLost() )
+        return;
+    if ( !COgrePlatformWindowSupport::CanLoseSurface( m_platformBackendName ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The platform window of backend " << m_platformBackendName
+            << " lost its surface, which Ogre cannot be told on this platform: nothing is drawn until it comes back" );
+        return;
+    }
+    #if ( OGRE_PLATFORM == OGRE_PLATFORM_ANDROID ) || ( OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN )
+    try
+    {
+        // while the native window still exists: Ogre lets go of its EGL surface, the context stays
+        m_renderWindow->_notifySurfaceDestroyed();
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The native surface of \"" << m_name << "\" is gone, no frames are drawn until it comes back" );
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre could not let go of the surface: " << e.getFullDescription() );
+    }
+    #else
+    // the render windows of Ogre are told of a lost surface only in the Android and web builds of Ogre
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The render window cannot be told that its surface is gone on this platform" );
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPlatformSurfaceRestored( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_platformWindow.IsNULL() )
+        return;
+    void* nativeWindow = CORE::StringToPointer( m_platformWindow->GetProperty( "WINDOW" ) );
+    if ( COgreSurfaceState::SURFACEACTION_ADOPT_SURFACE != m_surfaceState.OnSurfaceRestored( GUCEF_NULL != nativeWindow ) )
+        return;
+    if ( !COgrePlatformWindowSupport::CanLoseSurface( m_platformBackendName ) )
+        return;
+    #if ( OGRE_PLATFORM == OGRE_PLATFORM_ANDROID ) || ( OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN )
+    try
+    {
+        void* config = CORE::StringToPointer( m_platformWindow->GetProperty( "ANDROID_CONFIG" ) );
+        m_renderWindow->_notifySurfaceCreated( nativeWindow, config );
+        m_renderWindow->windowMovedOrResized();
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: \"" << m_name << "\" draws on a new native surface of "
+            << m_renderWindow->getWidth() << " x " << m_renderWindow->getHeight() );
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre could not take the new surface: " << e.getFullDescription() );
+    }
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

@@ -24,6 +24,8 @@ LOCAL_MODULE_FILENAME := libguidriverOgre
 LOCAL_SRC_FILES := \
   src/guidriverOgre_CIOgreWindowOverlay.cpp \
   src/guidriverOgre_COgreGuiMaterial.cpp \
+  src/guidriverOgre_COgrePlatformWindowSupport.cpp \
+  src/guidriverOgre_COgreSurfaceState.cpp \
   src/guidriverOgre_COgreWindowContext.cpp \
   src/guidriverOgre_COgreWindowManagerImp.cpp \
   src/guidriverOgre_pluginAPI.cpp
