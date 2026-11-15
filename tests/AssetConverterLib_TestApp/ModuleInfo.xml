@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="AssetConverterLib_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETCONVERTERLIB_TESTAPP_BUILD_MODULE" />
+            <Define String="GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="vfspluginZIP" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,12 @@
+{
+    "AssetConverter": {
+        "threads": 0,
+        "threadPoolName": "AssetConversion"
+    },
+    "Main": {
+        "AppArgs": {
+            "minimalLogLevel": 1,
+            "logFile": ""
+        }
+    }
+}

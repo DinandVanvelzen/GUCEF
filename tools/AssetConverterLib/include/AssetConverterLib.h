@@ -1,0 +1,210 @@
+/*
+ *  AssetConverterLib: conversion of asset packs into an engine-neutral intermediate and its cooking
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+#ifndef ASSETCONVERTERLIB_H
+#define ASSETCONVERTERLIB_H
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      INCLUDES                                                           //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifndef ASSETCONVERTERLIB_MACROS_H
+#include "AssetConverterLib_macros.h"
+#define ASSETCONVERTERLIB_MACROS_H
+#endif /* ASSETCONVERTERLIB_MACROS_H ? */
+
+#ifndef ASSETCONVERTERLIB_ETYPES_H
+#include "AssetConverterLib_ETypes.h"
+#define ASSETCONVERTERLIB_ETYPES_H
+#endif /* ASSETCONVERTERLIB_ETYPES_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETCONVERTERGLOBAL_H
+#include "AssetConverterLib_CAssetConverterGlobal.h"
+#define ASSETCONVERTERLIB_CASSETCONVERTERGLOBAL_H
+#endif /* ASSETCONVERTERLIB_CASSETCONVERTERGLOBAL_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPLUGINREGISTRY_H
+#include "AssetConverterLib_CAssetPluginRegistry.h"
+#define ASSETCONVERTERLIB_CASSETPLUGINREGISTRY_H
+#endif /* ASSETCONVERTERLIB_CASSETPLUGINREGISTRY_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETSCENE_H
+#include "AssetConverterLib_CAssetScene.h"
+#define ASSETCONVERTERLIB_CASSETSCENE_H
+#endif /* ASSETCONVERTERLIB_CASSETSCENE_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETSCENESUMMARY_H
+#include "AssetConverterLib_CAssetSceneSummary.h"
+#define ASSETCONVERTERLIB_CASSETSCENESUMMARY_H
+#endif /* ASSETCONVERTERLIB_CASSETSCENESUMMARY_H ? */
+
+#ifndef ASSETCONVERTERLIB_CCONVERSIONREPORT_H
+#include "AssetConverterLib_CConversionReport.h"
+#define ASSETCONVERTERLIB_CCONVERSIONREPORT_H
+#endif /* ASSETCONVERTERLIB_CCONVERSIONREPORT_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPACKMANIFEST_H
+#include "AssetConverterLib_CAssetPackManifest.h"
+#define ASSETCONVERTERLIB_CASSETPACKMANIFEST_H
+#endif /* ASSETCONVERTERLIB_CASSETPACKMANIFEST_H ? */
+
+#ifndef ASSETCONVERTERLIB_CLICENCERECORD_H
+#include "AssetConverterLib_CLicenceRecord.h"
+#define ASSETCONVERTERLIB_CLICENCERECORD_H
+#endif /* ASSETCONVERTERLIB_CLICENCERECORD_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPACKCONTEXT_H
+#include "AssetConverterLib_CAssetPackContext.h"
+#define ASSETCONVERTERLIB_CASSETPACKCONTEXT_H
+#endif /* ASSETCONVERTERLIB_CASSETPACKCONTEXT_H ? */
+
+#ifndef ASSETCONVERTERLIB_CIMPORTSETTINGSBUILDER_H
+#include "AssetConverterLib_CImportSettingsBuilder.h"
+#define ASSETCONVERTERLIB_CIMPORTSETTINGSBUILDER_H
+#endif /* ASSETCONVERTERLIB_CIMPORTSETTINGSBUILDER_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETCACHEENTRY_H
+#include "AssetConverterLib_CAssetCacheEntry.h"
+#define ASSETCONVERTERLIB_CASSETCACHEENTRY_H
+#endif /* ASSETCONVERTERLIB_CASSETCACHEENTRY_H ? */
+
+#ifndef ASSETCONVERTERLIB_CIMPORTACTIVITYLOG_H
+#include "AssetConverterLib_CImportActivityLog.h"
+#define ASSETCONVERTERLIB_CIMPORTACTIVITYLOG_H
+#endif /* ASSETCONVERTERLIB_CIMPORTACTIVITYLOG_H ? */
+
+#ifndef ASSETCONVERTERLIB_CREFERENCEGRAPH_H
+#include "AssetConverterLib_CReferenceGraph.h"
+#define ASSETCONVERTERLIB_CREFERENCEGRAPH_H
+#endif /* ASSETCONVERTERLIB_CREFERENCEGRAPH_H ? */
+
+#ifndef ASSETCONVERTERLIB_CSIZEREPORT_H
+#include "AssetConverterLib_CSizeReport.h"
+#define ASSETCONVERTERLIB_CSIZEREPORT_H
+#endif /* ASSETCONVERTERLIB_CSIZEREPORT_H ? */
+
+#ifndef ASSETCONVERTERLIB_CCONVERSIONSIDECAR_H
+#include "AssetConverterLib_CConversionSidecar.h"
+#define ASSETCONVERTERLIB_CCONVERSIONSIDECAR_H
+#endif /* ASSETCONVERTERLIB_CCONVERSIONSIDECAR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETNORMALISER_H
+#include "AssetConverterLib_CAssetNormaliser.h"
+#define ASSETCONVERTERLIB_CASSETNORMALISER_H
+#endif /* ASSETCONVERTERLIB_CASSETNORMALISER_H ? */
+
+#ifndef ASSETCONVERTERLIB_CTEXTUREBAKER_H
+#include "AssetConverterLib_CTextureBaker.h"
+#define ASSETCONVERTERLIB_CTEXTUREBAKER_H
+#endif /* ASSETCONVERTERLIB_CTEXTUREBAKER_H ? */
+
+#ifndef ASSETCONVERTERLIB_CCOOKSETTINGS_H
+#include "AssetConverterLib_CCookSettings.h"
+#define ASSETCONVERTERLIB_CCOOKSETTINGS_H
+#endif /* ASSETCONVERTERLIB_CCOOKSETTINGS_H ? */
+
+#ifndef ASSETCONVERTERLIB_CCANONICALJSON_H
+#include "AssetConverterLib_CCanonicalJson.h"
+#define ASSETCONVERTERLIB_CCANONICALJSON_H
+#endif /* ASSETCONVERTERLIB_CCANONICALJSON_H ? */
+
+#ifndef ASSETCONVERTERLIB_CCONTENTHASH_H
+#include "AssetConverterLib_CContentHash.h"
+#define ASSETCONVERTERLIB_CCONTENTHASH_H
+#endif /* ASSETCONVERTERLIB_CCONTENTHASH_H ? */
+
+#ifndef ASSETCONVERTERLIB_CVFSPATHS_H
+#include "AssetConverterLib_CVfsPaths.h"
+#define ASSETCONVERTERLIB_CVFSPATHS_H
+#endif /* ASSETCONVERTERLIB_CVFSPATHS_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPIPELINE_H
+#include "AssetConverterLib_CAssetPipeline.h"
+#define ASSETCONVERTERLIB_CASSETPIPELINE_H
+#endif /* ASSETCONVERTERLIB_CASSETPIPELINE_H ? */
+
+#ifndef ASSETCONVERTERLIB_CINTERMEDIATELOCK_H
+#include "AssetConverterLib_CIntermediateLock.h"
+#define ASSETCONVERTERLIB_CINTERMEDIATELOCK_H
+#endif /* ASSETCONVERTERLIB_CINTERMEDIATELOCK_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPLANENTRY_H
+#include "AssetConverterLib_CAssetPlanEntry.h"
+#define ASSETCONVERTERLIB_CASSETPLANENTRY_H
+#endif /* ASSETCONVERTERLIB_CASSETPLANENTRY_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPACKPLAN_H
+#include "AssetConverterLib_CAssetPackPlan.h"
+#define ASSETCONVERTERLIB_CASSETPACKPLAN_H
+#endif /* ASSETCONVERTERLIB_CASSETPACKPLAN_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETCONVERTERAPP_H
+#include "AssetConverterLib_CAssetConverterApp.h"
+#define ASSETCONVERTERLIB_CASSETCONVERTERAPP_H
+#endif /* ASSETCONVERTERLIB_CASSETCONVERTERAPP_H ? */
+
+#ifndef ASSETCONVERTERLIB_CNAMEHINTSPOSTPROCESSOR_H
+#include "AssetConverterLib_CNameHintsPostProcessor.h"
+#define ASSETCONVERTERLIB_CNAMEHINTSPOSTPROCESSOR_H
+#endif /* ASSETCONVERTERLIB_CNAMEHINTSPOSTPROCESSOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CGENERATETANGENTSPOSTPROCESSOR_H
+#include "AssetConverterLib_CGenerateTangentsPostProcessor.h"
+#define ASSETCONVERTERLIB_CGENERATETANGENTSPOSTPROCESSOR_H
+#endif /* ASSETCONVERTERLIB_CGENERATETANGENTSPOSTPROCESSOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CPRUNEEMPTYNODESPOSTPROCESSOR_H
+#include "AssetConverterLib_CPruneEmptyNodesPostProcessor.h"
+#define ASSETCONVERTERLIB_CPRUNEEMPTYNODESPOSTPROCESSOR_H
+#endif /* ASSETCONVERTERLIB_CPRUNEEMPTYNODESPOSTPROCESSOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CMERGEIDENTICALMATERIALSPOSTPROCESSOR_H
+#include "AssetConverterLib_CMergeIdenticalMaterialsPostProcessor.h"
+#define ASSETCONVERTERLIB_CMERGEIDENTICALMATERIALSPOSTPROCESSOR_H
+#endif /* ASSETCONVERTERLIB_CMERGEIDENTICALMATERIALSPOSTPROCESSOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CTEXTURESIZEVALIDATOR_H
+#include "AssetConverterLib_CTextureSizeValidator.h"
+#define ASSETCONVERTERLIB_CTEXTURESIZEVALIDATOR_H
+#endif /* ASSETCONVERTERLIB_CTEXTURESIZEVALIDATOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CMISSINGTEXTURESVALIDATOR_H
+#include "AssetConverterLib_CMissingTexturesValidator.h"
+#define ASSETCONVERTERLIB_CMISSINGTEXTURESVALIDATOR_H
+#endif /* ASSETCONVERTERLIB_CMISSINGTEXTURESVALIDATOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H
+#include "AssetConverterLib_CBoneLimitValidator.h"
+#define ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H
+#endif /* ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CTRIANGLEBUDGETVALIDATOR_H
+#include "AssetConverterLib_CTriangleBudgetValidator.h"
+#define ASSETCONVERTERLIB_CTRIANGLEBUDGETVALIDATOR_H
+#endif /* ASSETCONVERTERLIB_CTRIANGLEBUDGETVALIDATOR_H ? */
+
+#ifndef ASSETCONVERTERLIB_CNAMINGVALIDATOR_H
+#include "AssetConverterLib_CNamingValidator.h"
+#define ASSETCONVERTERLIB_CNAMINGVALIDATOR_H
+#endif /* ASSETCONVERTERLIB_CNAMINGVALIDATOR_H ? */
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* ASSETCONVERTERLIB_H ? */

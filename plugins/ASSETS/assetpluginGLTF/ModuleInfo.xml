@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <Module Name="assetpluginGLTF" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF asset converter plugin: glTF 2.0 import, export of the intermediate and validation</DescriptionHeadline>
+            <DescriptionDetails>The importer "gltf" reads glTF and GLB files through the VFS into the model of the asset converter (every vertex stream, skins with more than four influences, morph targets, animations, PBR materials with their extensions, lights, LOD groups and colliders of the intermediate). The exporter "gltf" writes the intermediate as glTF with a binary buffer, deterministically, and validates what it writes with cgltf. Built on cgltf.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="cgltf" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="cgltf" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETPLUGIN_GLTF_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="assetpluginUNITY" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF asset converter plugin: Unity project and package import</DescriptionHeadline>
+            <DescriptionDetails>The importer "unity" reads Unity projects and the project tree of a .unitypackage (through vfspluginUNITYPACKAGE) into the model of the asset converter: prefabs of both serialisation generations with their hierarchies, renderers, colliders (including the meshes of generated mesh assets), LOD groups and lights, scenes with resolved prefab instances, materials of the built-in Standard shaders, URP Lit, shader graphs and custom shaders with their textures, model files with the scale and the animation clips of their .meta files, and .anim clips with generic curves. Model files are read by the importers of their format (FBX, glTF) through the plugin registry; its own reader handles the YAML dialect of Unity.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETPLUGIN_UNITY_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
+</ModuleInfoEntry>

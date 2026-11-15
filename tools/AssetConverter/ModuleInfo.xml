@@ -1,0 +1,49 @@
+<ModuleInfoEntry>
+    <Module Name="AssetConverter" Type="Executable" Platform="mswin;linux" Tags="tools">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Asset converter: converts asset packs into the engine-neutral intermediate (glTF plus sidecar) and cooks it into runtime files</DescriptionHeadline>
+            <DescriptionDetails>Runs the pack of a manifest (--manifest) or a single source (--input with --importer and --licence) through the pipeline of AssetConverterLib: licence check, import, normalisation, post-processing, validation, export and cooking (--cook), with a cache that skips unchanged assets, a report (--report), an import activity log and per cook profile a reference graph and a size report. The importer, exporter and cooker plugins come from its bootstrap configuration.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETCONVERTER_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+            <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetpluginFBX" />
+            <RuntimeDependency Name="assetpluginUNITY" />
+            <RuntimeDependency Name="assetpluginGODOT" />
+            <RuntimeDependency Name="assetcookerOGRE" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

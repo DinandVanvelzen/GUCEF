@@ -1,0 +1,35 @@
+<ModuleInfoEntry>
+    <Module Name="AssetConverterLib" Type="SharedLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Asset converter library: the engine-neutral intermediate model, the plugin interfaces and registry, and the pipeline that converts asset packs and cooks them</DescriptionHeadline>
+            <DescriptionDetails>The model of an asset (nodes, meshes, skins, animations, materials with their source materials, textures with their operation chains, lights, LOD groups, colliders, prefabs), the interfaces of importers, exporters, cookers, post-processors and validators with their registry, the pack manifests and licence records, the effective settings from importer defaults, pack rules, presets and per-asset overrides, the normalisation into metres, Y up and right-handed, the texture operations on gucefIMAGE, the pipeline with a task per asset and a cache keyed by the SHA-256 of the source, the settings, the plugin versions and the dependencies, the built-in post-processors and validators, the sidecar, the conversion report, the import activity log, the reference graph and the size report, and the command line converter. C++98, GUCEF only.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETCONVERTERLIB_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

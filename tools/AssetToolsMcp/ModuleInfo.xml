@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="AssetToolsMcp" Platform="All" Type="Executable" Tags="tools" >
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>The asset tools as an MCP server over stdio, on a local asset store service</DescriptionHeadline>
+            <DescriptionDetails>Hosts the asset tool set of gucefASSETSTORE (CAssetToolSet) on the in-process asset store service (CLocalAssetStoreService) with the converter pipeline as its converter hook (AssetStoreConverterHook), for an MCP client that starts it as a child process. Reads one settings file; no logic of its own beyond hosting.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

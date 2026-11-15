@@ -1,0 +1,50 @@
+<ModuleInfoEntry>
+    <Module Name="assetcookerOGRE" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF asset converter plugin: the cooker of the intermediate into Ogre 1.x runtime files</DescriptionHeadline>
+            <DescriptionDetails>The cooker "ogre" reads the glTF intermediate of the asset converter through the glTF importer and writes the runtime files of Ogre 1.x: v1 meshes with their submeshes per material, tangents, skinning of at most four weights, pose animations of the morph targets and levels of detail (manual from the source, generated with the MeshLodGenerator), skeletons with every clip, material scripts for the run time shader system (metal-roughness lighting, normal maps, emission, alpha modes), DotScene files of the assets and their prefabs, the colliders as JSON and the textures. It runs headless with the software buffers of Ogre and needs no render system.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreMeshLodGenerator" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreMeshLodGenerator" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETCOOKER_OGRE_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,47 @@
+<ModuleInfoEntry>
+    <Module Name="AssetStoreConverterHook" Type="SharedLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>The converter pipeline as the conversion step of the primary asset store</DescriptionHeadline>
+            <DescriptionDetails>Implements the converter hook of gucefASSETSTORE (CIAssetConverterHook) on the pipeline of AssetConverterLib, with the cook profile of the primary store: the licence record of the converter from the licence of the pack in the catalogue, the manifest of the pack, the run with progress and cancel, the mapping of the conversion report onto the asset records and the ingest result, and the converter versions that a later conversion compares to see that it is stale. It is a module of its own because gucefASSETSTORE does not depend on the tools and AssetConverterLib does not know the store. C++98, GUCEF only.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETSTORECONVERTERHOOK_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="assetpluginGODOT" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF asset converter plugin: Godot 4 project import</DescriptionHeadline>
+            <DescriptionDetails>The importer "godot" reads Godot 4 scenes (.tscn) and mesh resources (.tres) of a project through the VFS into the model of the asset converter: the text format with every variant literal, node hierarchies and transforms, meshes (ArrayMesh surfaces and the primitive meshes), surface materials (StandardMaterial3D and ORMMaterial3D mapped to glTF), instanced scenes as prefab instances with their overrides, glTF and FBX sources through the importers of their plugins, collision shapes and bodies as OMI physics, lights as KHR_lights_punctual, and the import settings of the .import files that change geometry.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETPLUGIN_GODOT_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <Module Name="assetpluginFBX" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF asset converter plugin: FBX import</DescriptionHeadline>
+            <DescriptionDetails>The importer "fbx" reads FBX files (binary and ASCII, versions 6100 to 7700) through the VFS into the model of the asset converter: meshes with every vertex stream, skins with all their influences, bind poses, blend shapes, animation stacks as clips, FBX standard and PBR materials, embedded textures, and the units and axes of the file for the normalisation. Built on ufbx.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="ufbx" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="ufbx" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETPLUGIN_FBX_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
+</ModuleInfoEntry>

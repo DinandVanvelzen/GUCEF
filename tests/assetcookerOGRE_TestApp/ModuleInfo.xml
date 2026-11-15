@@ -1,0 +1,47 @@
+<ModuleInfoEntry>
+    <Module Name="assetcookerOGRE_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETCOOKER_OGRE_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+        <!-- the plugins are loaded by name through GUCEF plugin control, so they are built along but not linked -->
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetcookerOGRE" />
+            <RuntimeDependency Name="OgrePlugin_GucefVFS" />
+            <RuntimeDependency Name="OgrePlugin_DotScene" />
+            <RuntimeDependency Name="OgrePlugin_ParticleFX" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

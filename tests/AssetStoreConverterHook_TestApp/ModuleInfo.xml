@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="AssetStoreConverterHook_TestApp" Platform="linux;mswin" Type="Executable" Tags="test" >
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+            <Dependency Name="dbpluginPOSTGRESQL" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+            <Dependency Name="dbpluginPOSTGRESQL" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETSTORECONVERTERHOOK_TESTAPP_BUILD_MODULE" />
+            <Define String="GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="MemoryLeakFinder" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

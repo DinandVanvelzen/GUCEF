@@ -1,0 +1,40 @@
+<ModuleInfoEntry>
+    <Module Name="assetpluginUNITY_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="assetpluginUNITY" />
+            <Dependency Name="cgltf" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="assetpluginUNITY" />
+            <Dependency Name="cgltf" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETPLUGIN_UNITY_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+            <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetpluginFBX" />
+            <RuntimeDependency Name="assetpluginUNITY" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
