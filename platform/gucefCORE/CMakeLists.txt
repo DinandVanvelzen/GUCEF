@@ -156,6 +156,7 @@ set( HEADER_FILES
   include/gucefCORE_CCronSchedule.h
   include/gucefCORE_CCsvTableCodec.h
   include/gucefCORE_CDStoreBinaryCodec.h
+  include/gucefCORE_CDailyBudgetPacingPolicy.h
   include/gucefCORE_CDataDrivenDStoreCodec.h
   include/gucefCORE_CDataDrivenDStoreCodecFactory.h
   include/gucefCORE_CDataDrivenDStoreCodecMeta.h
@@ -243,6 +244,11 @@ set( HEADER_FILES
   include/gucefCORE_CIEnumerable.h
   include/gucefCORE_CIEventHandlerFunctorBase.h
   include/gucefCORE_CIFunction.h
+  include/gucefCORE_CIJobPayloadValidator.h
+  include/gucefCORE_CIJobSchedulerStateStore.h
+  include/gucefCORE_CIJobThrottlePolicy.h
+  include/gucefCORE_CIJobWorkItemSink.h
+  include/gucefCORE_CIJobWorkSource.h
   include/gucefCORE_CILoggingFormatter.h
   include/gucefCORE_CIMetricsSystemClient.h
   include/gucefCORE_CIMonotonicClock.h
@@ -257,12 +263,35 @@ set( HEADER_FILES
   include/gucefCORE_CITableReader.h
   include/gucefCORE_CITableWriter.h
   include/gucefCORE_CITime.h
+  include/gucefCORE_CIUtcClock.h
   include/gucefCORE_CIValueMapParserCallbacks.h
   include/gucefCORE_CIValueToDataNodeSerializer.h
   include/gucefCORE_CIniDataStoreCodec.h
   include/gucefCORE_CIniParser.h
   include/gucefCORE_CInstanceBasedCodec.h
   include/gucefCORE_CInt128.h
+  include/gucefCORE_CJobControlCommand.h
+  include/gucefCORE_CJobControlResult.h
+  include/gucefCORE_CJobCustomAction.h
+  include/gucefCORE_CJobDefinition.h
+  include/gucefCORE_CJobLaneDefinition.h
+  include/gucefCORE_CJobLaneStatus.h
+  include/gucefCORE_CJobRetryPolicy.h
+  include/gucefCORE_CJobRunHistory.h
+  include/gucefCORE_CJobRunRecord.h
+  include/gucefCORE_CJobScheduler.h
+  include/gucefCORE_CJobSchedulerChange.h
+  include/gucefCORE_CJobSchedulerFileStateStore.h
+  include/gucefCORE_CJobSchedulerHealthCheck.h
+  include/gucefCORE_CJobSchedulerLaneHoldScope.h
+  include/gucefCORE_CJobSchedulerRunLink.h
+  include/gucefCORE_CJobSchedulerSettings.h
+  include/gucefCORE_CJobSchedulerSnapshot.h
+  include/gucefCORE_CJobSchedulerTask.h
+  include/gucefCORE_CJobStatus.h
+  include/gucefCORE_CJobSubmission.h
+  include/gucefCORE_CJobTrigger.h
+  include/gucefCORE_CJobWorkItem.h
   include/gucefCORE_CJsonLoggingFormatter.h
   include/gucefCORE_CJsonSchema.h
   include/gucefCORE_CJsonSchemaValidator.h
@@ -303,12 +332,14 @@ set( HEADER_FILES
   include/gucefCORE_CRsaPkcs1Codecs.h
   include/gucefCORE_CSchedule.h
   include/gucefCORE_CScheduleTrigger.h
+  include/gucefCORE_CScheduledJobInfo.h
   include/gucefCORE_CSecureBuffer.h
   include/gucefCORE_CServiceHealthRegistry.h
   include/gucefCORE_CSha256.h
   include/gucefCORE_CSha512.h
   include/gucefCORE_CSimplisticPluginLoadLogic.h
   include/gucefCORE_CSingleTaskDelegator.h
+  include/gucefCORE_CSlidingWindowThrottlePolicy.h
   include/gucefCORE_CSoftwareCryptoCodecs.h
   include/gucefCORE_CStandardInputReader.h
   include/gucefCORE_CStandardOutputWriter.h
@@ -317,6 +348,7 @@ set( HEADER_FILES
   include/gucefCORE_CString.h
   include/gucefCORE_CSubFileAccess.h
   include/gucefCORE_CSubIOAccess.h
+  include/gucefCORE_CSystemUtcClock.h
   include/gucefCORE_CTAbstractFactoryRegistry.h
   include/gucefCORE_CTBasicAbstractFactory.h
   include/gucefCORE_CTBasicAbstractFactoryWithParam.h
@@ -347,6 +379,7 @@ set( HEADER_FILES
   include/gucefCORE_CTaskManagerInfo.h
   include/gucefCORE_CThreadLogBuffers.h
   include/gucefCORE_CThreadPool.h
+  include/gucefCORE_CThreadPoolCounters.h
   include/gucefCORE_CThreadPoollnfo.h
   include/gucefCORE_CThreadlnfo.h
   include/gucefCORE_CTime.h
@@ -383,6 +416,7 @@ set( HEADER_FILES
   include/gucefCORE_GenericPluginAPI.h
   include/gucefCORE_IFileSystemAccess.h
   include/gucefCORE_IFileSystemIterator.h
+  include/gucefCORE_JobSchedulerTypes.h
   include/gucefCORE_LogLevels.h
   include/gucefCORE_LogTypes.h
   include/gucefCORE_Logging.h
@@ -437,6 +471,7 @@ set( HEADER_FILES
   src/gucefCORE_CCsvTableReader.h
   src/gucefCORE_CCsvTableText.h
   src/gucefCORE_CCsvTableWriter.h
+  src/gucefCORE_CDailyBudgetPacingPolicy.cpp
   src/gucefCORE_CDataTableBufferPoolCore.h
   src/gucefCORE_CDataTableScanTask.h
 )
@@ -660,6 +695,11 @@ set( SOURCE_FILES
   src/gucefCORE_CIEnumerable.cpp
   src/gucefCORE_CIEventHandlerFunctorBase.cpp
   src/gucefCORE_CIFunction.cpp
+  src/gucefCORE_CIJobPayloadValidator.cpp
+  src/gucefCORE_CIJobSchedulerStateStore.cpp
+  src/gucefCORE_CIJobThrottlePolicy.cpp
+  src/gucefCORE_CIJobWorkItemSink.cpp
+  src/gucefCORE_CIJobWorkSource.cpp
   src/gucefCORE_CILoggingFormatter.cpp
   src/gucefCORE_CIMetricsSystemClient.cpp
   src/gucefCORE_CIMonotonicClock.cpp
@@ -674,11 +714,34 @@ set( SOURCE_FILES
   src/gucefCORE_CITableReader.cpp
   src/gucefCORE_CITableWriter.cpp
   src/gucefCORE_CITime.cpp
+  src/gucefCORE_CIUtcClock.cpp
   src/gucefCORE_CIValueMapParserCallbacks.cpp
   src/gucefCORE_CIValueToDataNodeSerializer.cpp
   src/gucefCORE_CIniDataStoreCodec.cpp
   src/gucefCORE_CIniParser.cpp
   src/gucefCORE_CInstanceBasedCodec.cpp
+  src/gucefCORE_CJobControlCommand.cpp
+  src/gucefCORE_CJobControlResult.cpp
+  src/gucefCORE_CJobCustomAction.cpp
+  src/gucefCORE_CJobDefinition.cpp
+  src/gucefCORE_CJobLaneDefinition.cpp
+  src/gucefCORE_CJobLaneStatus.cpp
+  src/gucefCORE_CJobRetryPolicy.cpp
+  src/gucefCORE_CJobRunHistory.cpp
+  src/gucefCORE_CJobRunRecord.cpp
+  src/gucefCORE_CJobScheduler.cpp
+  src/gucefCORE_CJobSchedulerChange.cpp
+  src/gucefCORE_CJobSchedulerFileStateStore.cpp
+  src/gucefCORE_CJobSchedulerHealthCheck.cpp
+  src/gucefCORE_CJobSchedulerLaneHoldScope.cpp
+  src/gucefCORE_CJobSchedulerRunLink.cpp
+  src/gucefCORE_CJobSchedulerSettings.cpp
+  src/gucefCORE_CJobSchedulerSnapshot.cpp
+  src/gucefCORE_CJobSchedulerTask.cpp
+  src/gucefCORE_CJobStatus.cpp
+  src/gucefCORE_CJobSubmission.cpp
+  src/gucefCORE_CJobTrigger.cpp
+  src/gucefCORE_CJobWorkItem.cpp
   src/gucefCORE_CJsonLoggingFormatter.cpp
   src/gucefCORE_CJsonSchema.cpp
   src/gucefCORE_CJsonSchemaValidator.cpp
@@ -719,12 +782,14 @@ set( SOURCE_FILES
   src/gucefCORE_CRsaPkcs1Codecs.cpp
   src/gucefCORE_CSchedule.cpp
   src/gucefCORE_CScheduleTrigger.cpp
+  src/gucefCORE_CScheduledJobInfo.cpp
   src/gucefCORE_CSecureBuffer.cpp
   src/gucefCORE_CServiceHealthRegistry.cpp
   src/gucefCORE_CSha256.cpp
   src/gucefCORE_CSha512.cpp
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp
   src/gucefCORE_CSingleTaskDelegator.cpp
+  src/gucefCORE_CSlidingWindowThrottlePolicy.cpp
   src/gucefCORE_CSoftwareCryptoCodecs.cpp
   src/gucefCORE_CStandardInputReader.cpp
   src/gucefCORE_CStandardOutputWriter.cpp
@@ -733,6 +798,7 @@ set( SOURCE_FILES
   src/gucefCORE_CStringLogHelper.cpp
   src/gucefCORE_CSubFileAccess.cpp
   src/gucefCORE_CSubIOAccess.cpp
+  src/gucefCORE_CSystemUtcClock.cpp
   src/gucefCORE_CTEventHandlerFunctor.cpp
   src/gucefCORE_CTEventHandlerFunctorProxy.cpp
   src/gucefCORE_CTFraction.cpp
@@ -752,6 +818,7 @@ set( SOURCE_FILES
   src/gucefCORE_CTaskManagerInfo.cpp
   src/gucefCORE_CThreadLogBuffers.cpp
   src/gucefCORE_CThreadPool.cpp
+  src/gucefCORE_CThreadPoolCounters.cpp
   src/gucefCORE_CThreadPoollnfo.cpp
   src/gucefCORE_CThreadlnfo.cpp
   src/gucefCORE_CTime.cpp
@@ -784,6 +851,7 @@ set( SOURCE_FILES
   src/gucefCORE_EFileSystemAccessResult.cpp
   src/gucefCORE_IFileSystemAccess.cpp
   src/gucefCORE_IFileSystemIterator.cpp
+  src/gucefCORE_JobSchedulerTypes.cpp
   src/gucefCORE_LogLevels.cpp
   src/gucefCORE_ProcessArguments.cpp
   src/gucefCORE_SecureMemory.cpp

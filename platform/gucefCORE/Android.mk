@@ -157,6 +157,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CCsvTableText.cpp \
   src/gucefCORE_CCsvTableWriter.cpp \
   src/gucefCORE_CDStoreBinaryCodec.cpp \
+  src/gucefCORE_CDailyBudgetPacingPolicy.cpp \
   src/gucefCORE_CDataDrivenDStoreCodec.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp \
@@ -240,6 +241,11 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIEnumerable.cpp \
   src/gucefCORE_CIEventHandlerFunctorBase.cpp \
   src/gucefCORE_CIFunction.cpp \
+  src/gucefCORE_CIJobPayloadValidator.cpp \
+  src/gucefCORE_CIJobSchedulerStateStore.cpp \
+  src/gucefCORE_CIJobThrottlePolicy.cpp \
+  src/gucefCORE_CIJobWorkItemSink.cpp \
+  src/gucefCORE_CIJobWorkSource.cpp \
   src/gucefCORE_CILoggingFormatter.cpp \
   src/gucefCORE_CIMetricsSystemClient.cpp \
   src/gucefCORE_CIMonotonicClock.cpp \
@@ -254,11 +260,34 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CITableReader.cpp \
   src/gucefCORE_CITableWriter.cpp \
   src/gucefCORE_CITime.cpp \
+  src/gucefCORE_CIUtcClock.cpp \
   src/gucefCORE_CIValueMapParserCallbacks.cpp \
   src/gucefCORE_CIValueToDataNodeSerializer.cpp \
   src/gucefCORE_CIniDataStoreCodec.cpp \
   src/gucefCORE_CIniParser.cpp \
   src/gucefCORE_CInstanceBasedCodec.cpp \
+  src/gucefCORE_CJobControlCommand.cpp \
+  src/gucefCORE_CJobControlResult.cpp \
+  src/gucefCORE_CJobCustomAction.cpp \
+  src/gucefCORE_CJobDefinition.cpp \
+  src/gucefCORE_CJobLaneDefinition.cpp \
+  src/gucefCORE_CJobLaneStatus.cpp \
+  src/gucefCORE_CJobRetryPolicy.cpp \
+  src/gucefCORE_CJobRunHistory.cpp \
+  src/gucefCORE_CJobRunRecord.cpp \
+  src/gucefCORE_CJobScheduler.cpp \
+  src/gucefCORE_CJobSchedulerChange.cpp \
+  src/gucefCORE_CJobSchedulerFileStateStore.cpp \
+  src/gucefCORE_CJobSchedulerHealthCheck.cpp \
+  src/gucefCORE_CJobSchedulerLaneHoldScope.cpp \
+  src/gucefCORE_CJobSchedulerRunLink.cpp \
+  src/gucefCORE_CJobSchedulerSettings.cpp \
+  src/gucefCORE_CJobSchedulerSnapshot.cpp \
+  src/gucefCORE_CJobSchedulerTask.cpp \
+  src/gucefCORE_CJobStatus.cpp \
+  src/gucefCORE_CJobSubmission.cpp \
+  src/gucefCORE_CJobTrigger.cpp \
+  src/gucefCORE_CJobWorkItem.cpp \
   src/gucefCORE_CJsonLoggingFormatter.cpp \
   src/gucefCORE_CJsonSchema.cpp \
   src/gucefCORE_CJsonSchemaValidator.cpp \
@@ -299,12 +328,14 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CRsaPkcs1Codecs.cpp \
   src/gucefCORE_CSchedule.cpp \
   src/gucefCORE_CScheduleTrigger.cpp \
+  src/gucefCORE_CScheduledJobInfo.cpp \
   src/gucefCORE_CSecureBuffer.cpp \
   src/gucefCORE_CServiceHealthRegistry.cpp \
   src/gucefCORE_CSha256.cpp \
   src/gucefCORE_CSha512.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \
   src/gucefCORE_CSingleTaskDelegator.cpp \
+  src/gucefCORE_CSlidingWindowThrottlePolicy.cpp \
   src/gucefCORE_CSoftwareCryptoCodecs.cpp \
   src/gucefCORE_CStandardInputReader.cpp \
   src/gucefCORE_CStandardOutputWriter.cpp \
@@ -313,6 +344,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CStringLogHelper.cpp \
   src/gucefCORE_CSubFileAccess.cpp \
   src/gucefCORE_CSubIOAccess.cpp \
+  src/gucefCORE_CSystemUtcClock.cpp \
   src/gucefCORE_CTEventHandlerFunctor.cpp \
   src/gucefCORE_CTEventHandlerFunctorProxy.cpp \
   src/gucefCORE_CTFraction.cpp \
@@ -332,6 +364,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CTaskManagerInfo.cpp \
   src/gucefCORE_CThreadLogBuffers.cpp \
   src/gucefCORE_CThreadPool.cpp \
+  src/gucefCORE_CThreadPoolCounters.cpp \
   src/gucefCORE_CThreadPoollnfo.cpp \
   src/gucefCORE_CThreadlnfo.cpp \
   src/gucefCORE_CTime.cpp \
@@ -364,6 +397,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_EFileSystemAccessResult.cpp \
   src/gucefCORE_IFileSystemAccess.cpp \
   src/gucefCORE_IFileSystemIterator.cpp \
+  src/gucefCORE_JobSchedulerTypes.cpp \
   src/gucefCORE_LogLevels.cpp \
   src/gucefCORE_ProcessArguments.cpp \
   src/gucefCORE_SecureMemory.cpp \

@@ -65,6 +65,7 @@ namespace CORE {
 CMultiLogger::CMultiLogger( void )
     : CILogger()
     , m_loggers()
+    , m_loggerCount( 0 )
     , m_msgTypeEnablers()
     , m_minLogLevel( LOGLEVEL_BELOW_NORMAL ) 
 {GUCEF_TRACE;
@@ -95,6 +96,7 @@ CMultiLogger::~CMultiLogger()
 CMultiLogger::CMultiLogger( const CMultiLogger& src )
     : CILogger( src )
     , m_loggers( src.m_loggers )
+    , m_loggerCount( src.m_loggerCount )
     , m_msgTypeEnablers( src.m_msgTypeEnablers )
     , m_minLogLevel( src.m_minLogLevel ) 
 {GUCEF_TRACE;
@@ -110,6 +112,7 @@ CMultiLogger::operator=( const CMultiLogger& src )
     if ( &src != this )
     {
         m_loggers = src.m_loggers;
+        m_loggerCount = src.m_loggerCount;
         m_msgTypeEnablers = src.m_msgTypeEnablers;
         m_minLogLevel = src.m_minLogLevel; 
     }
@@ -122,42 +125,98 @@ UInt32
 CMultiLogger::GetLoggerCount( void ) const
 {GUCEF_TRACE;
     
-    return (UInt32) m_loggers.size();
+    return m_loggerCount;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CMultiLogger::AddLogger( CILogger* loggerImp )
+CMultiLogger::AddLogger( CILogger* loggerImp, bool whileLogging )
 {GUCEF_TRACE;
 
     // Do not add bogus loggers
     // Nothing is logged here: the log manager calls this under its own lock, which a log statement must not be made
     // under (see CLogManager::AddLogger()); the log manager logs the change once it gave up that lock
-    if ( GUCEF_NULL != loggerImp )
-        m_loggers.insert( loggerImp );
+    if ( GUCEF_NULL == loggerImp )
+        return;
+
+    if ( !whileLogging )
+        CompactLoggers();
+    for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
+    {
+        if ( loggerImp == m_loggers[ i ] )
+            return;
+    }
+
+    // at the end: a delivery in progress (by index) reaches it, and no logger moves under that delivery
+    m_loggers.push_back( loggerImp );
+    ++m_loggerCount;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CMultiLogger::RemoveLogger( CILogger* loggerImp )
+CMultiLogger::RemoveLogger( CILogger* loggerImp, bool whileLogging )
 {GUCEF_TRACE;
 
     // Do not pass in bogus pointers
     assert( GUCEF_NULL != loggerImp );
 
     // nothing is logged here, see AddLogger()
-    m_loggers.erase( loggerImp );
+    for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
+    {
+        if ( loggerImp == m_loggers[ i ] )
+        {
+            // within a delivery the others keep their place: a logger that moved forward would miss the message
+            if ( whileLogging )
+                m_loggers[ i ] = GUCEF_NULL;
+            else
+                m_loggers.erase( m_loggers.begin() + i );
+            --m_loggerCount;
+            break;
+        }
+    }
+    if ( !whileLogging )
+        CompactLoggers();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CMultiLogger::ClearLoggers( void )
+CMultiLogger::ClearLoggers( bool whileLogging )
 {GUCEF_TRACE;
 
-    m_loggers.clear();
+    if ( whileLogging )
+    {
+        for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
+            m_loggers[ i ] = GUCEF_NULL;
+    }
+    else
+    {
+        m_loggers.clear();
+    }
+    m_loggerCount = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMultiLogger::CompactLoggers( void )
+{GUCEF_TRACE;
+
+    if ( m_loggerCount == (UInt32) m_loggers.size() )
+        return;
+
+    TLoggerList::size_type kept = 0;
+    for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
+    {
+        if ( GUCEF_NULL != m_loggers[ i ] )
+        {
+            m_loggers[ kept ] = m_loggers[ i ];
+            ++kept;
+        }
+    }
+    m_loggers.resize( kept );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -188,15 +247,13 @@ CMultiLogger::SetMinimalLogLevel( const Int32 logLevel )
 {GUCEF_TRACE;
 
     m_minLogLevel = logLevel;
-    TLoggerList::const_iterator i = m_loggers.begin();
-    while ( i != m_loggers.end() )
+    for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
     {
-        CILogger* logger = (*i);
+        CILogger* logger = m_loggers[ i ];
         if ( GUCEF_NULL != logger )
         {
             logger->SetMinimalLogLevel( logLevel );
         }
-        ++i;
     }
 }
 
@@ -245,10 +302,9 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
     {
         if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
-            TLoggerList::const_iterator i = m_loggers.begin();
-            while ( i != m_loggers.end() )
+            for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
             {
-                CILogger* logger = (*i);
+                CILogger* logger = m_loggers[ i ];
                 if ( GUCEF_NULL != logger )
                 {
                     logger->Log( logMsgType ,
@@ -257,7 +313,6 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
                                  threadId   ,
                                  timestamp  );
                 }
-                ++i;
             }
 
             // We want to make certain that errors are always in the log file.
@@ -292,10 +347,9 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
     {
         if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
-            TLoggerList::const_iterator i = m_loggers.begin();
-            while ( i != m_loggers.end() )
+            for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
             {
-                CILogger* logger = (*i);
+                CILogger* logger = m_loggers[ i ];
                 if ( GUCEF_NULL != logger )
                 {
                     logger->LogWithoutFormatting( logMsgType ,
@@ -304,7 +358,6 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                                   threadId   ,
                                                   timestamp  );
                 }
-                ++i;
             }
 
             // We want to make certain that errors are always in the log file.
@@ -332,10 +385,9 @@ CMultiLogger::Log( const TLogMsgType logMsgType     ,
     {
         if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
-            TLoggerList::const_iterator i = m_loggers.begin();
-            while ( i != m_loggers.end() )
+            for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
             {
-                CILogger* logger = (*i);
+                CILogger* logger = m_loggers[ i ];
                 if ( GUCEF_NULL != logger )
                 {
                     logger->Log( logMsgType ,
@@ -344,7 +396,6 @@ CMultiLogger::Log( const TLogMsgType logMsgType     ,
                                  threadId   ,
                                  timestamp  );
                 }
-                ++i;
             }
 
             if ( LOG_ERROR == logMsgType || LOG_EXCEPTION == logMsgType )
@@ -369,10 +420,9 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
     {
         if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
-            TLoggerList::const_iterator i = m_loggers.begin();
-            while ( i != m_loggers.end() )
+            for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
             {
-                CILogger* logger = (*i);
+                CILogger* logger = m_loggers[ i ];
                 if ( GUCEF_NULL != logger )
                 {
                     logger->LogWithoutFormatting( logMsgType ,
@@ -381,7 +431,6 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                                   threadId   ,
                                                   timestamp  );
                 }
-                ++i;
             }
 
             if ( LOG_ERROR == logMsgType )
@@ -398,15 +447,13 @@ void
 CMultiLogger::FlushLog( void )
 {GUCEF_TRACE;
 
-    TLoggerList::const_iterator i = m_loggers.begin();
-    while ( i != m_loggers.end() )
+    for ( TLoggerList::size_type i=0; i<m_loggers.size(); ++i )
     {
-        CILogger* logger = (*i);
+        CILogger* logger = m_loggers[ i ];
         if ( GUCEF_NULL != logger )
         {
             logger->FlushLog();
         }
-        ++i;
     }
 }
 

@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -62,6 +61,9 @@ CTaskManagerInfo::CTaskManagerInfo( void )
     , m_taskDataFactoryTypes()
     , m_allowAppThreadToWork( false )
     , m_globalNrOfQueuedTasks( 0 )
+    , m_jobSchedulerCount( 0 )
+    , m_scheduledJobCount( 0 )
+    , m_mainThreadScheduledJobCount( 0 )
 {GUCEF_TRACE;
 
 }
@@ -77,6 +79,9 @@ CTaskManagerInfo::CTaskManagerInfo( const CTaskManagerInfo& src )
     , m_taskDataFactoryTypes( src.m_taskDataFactoryTypes )
     , m_allowAppThreadToWork( src.m_allowAppThreadToWork )
     , m_globalNrOfQueuedTasks( src.m_globalNrOfQueuedTasks )
+    , m_jobSchedulerCount( src.m_jobSchedulerCount )
+    , m_scheduledJobCount( src.m_scheduledJobCount )
+    , m_mainThreadScheduledJobCount( src.m_mainThreadScheduledJobCount )
 {GUCEF_TRACE;
 
 }
@@ -108,6 +113,9 @@ CTaskManagerInfo::Serialize( CDataNode& domRootNode                        ,
     totalSuccess = domRootNode.SetAttribute( "activeGlobalNrOfThreads", m_activeGlobalNrOfThreads ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "allowAppThreadToWork", m_allowAppThreadToWork ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "globalNrOfQueuedTasks", m_globalNrOfQueuedTasks ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "jobSchedulerCount", m_jobSchedulerCount ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "scheduledJobCount", m_scheduledJobCount ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "mainThreadScheduledJobCount", m_mainThreadScheduledJobCount ) && totalSuccess;
     
     if ( CDataNodeSerializableSettings::DataNodeSerializableLod_MinimumDetails < settings.levelOfDetail )
     {
@@ -136,6 +144,9 @@ CTaskManagerInfo::Deserialize( const CDataNode& domRootNode                  ,
     m_activeGlobalNrOfThreads = domRootNode.GetAttributeValueOrChildValueByName( "activeGlobalNrOfThreads" ).AsInt32( m_activeGlobalNrOfThreads, true );
     m_allowAppThreadToWork = domRootNode.GetAttributeValueOrChildValueByName( "allowAppThreadToWork" ).AsBool( m_allowAppThreadToWork, true );
     m_globalNrOfQueuedTasks = domRootNode.GetAttributeValueOrChildValueByName( "globalNrOfQueuedTasks" ).AsUInt32( m_globalNrOfQueuedTasks, true );
+    m_jobSchedulerCount = domRootNode.GetAttributeValueOrChildValueByName( "jobSchedulerCount" ).AsUInt32( m_jobSchedulerCount, true );
+    m_scheduledJobCount = domRootNode.GetAttributeValueOrChildValueByName( "scheduledJobCount" ).AsUInt32( m_scheduledJobCount, true );
+    m_mainThreadScheduledJobCount = domRootNode.GetAttributeValueOrChildValueByName( "mainThreadScheduledJobCount" ).AsUInt32( m_mainThreadScheduledJobCount, true );
 
     domRootNode.GetValuesOfChildByName( "threadPoolNames", m_threadPoolNames );
     domRootNode.GetValuesOfChildByName( "taskConsumerFactoryTypes", m_taskConsumerFactoryTypes );
@@ -296,6 +307,61 @@ CTaskManagerInfo::Clone( void ) const
 
     return new CTaskManagerInfo( *this );
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManagerInfo::SetJobSchedulerCount( UInt32 jobSchedulerCount )
+{GUCEF_TRACE;
+
+    m_jobSchedulerCount = jobSchedulerCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskManagerInfo::GetJobSchedulerCount( void ) const
+{GUCEF_TRACE;
+
+    return m_jobSchedulerCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManagerInfo::SetScheduledJobCount( UInt32 scheduledJobCount )
+{GUCEF_TRACE;
+
+    m_scheduledJobCount = scheduledJobCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskManagerInfo::GetScheduledJobCount( void ) const
+{GUCEF_TRACE;
+
+    return m_scheduledJobCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManagerInfo::SetMainThreadScheduledJobCount( UInt32 mainThreadScheduledJobCount )
+{GUCEF_TRACE;
+
+    m_mainThreadScheduledJobCount = mainThreadScheduledJobCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskManagerInfo::GetMainThreadScheduledJobCount( void ) const
+{GUCEF_TRACE;
+
+    return m_mainThreadScheduledJobCount;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

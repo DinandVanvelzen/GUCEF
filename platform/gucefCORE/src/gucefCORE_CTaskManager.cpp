@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -122,6 +121,8 @@ const CEvent CTaskManager::GlobalTaskConsumerFactoryRegisteredEvent = "GUCEF::CO
 const CEvent CTaskManager::GlobalTaskConsumerFactoryUnregisteredEvent = "GUCEF::CORE::CTaskManager::GlobalTaskConsumerFactoryUnregisteredEvent";
 const CEvent CTaskManager::GlobalTaskDataFactoryRegisteredEvent = "GUCEF::CORE::CTaskManager::GlobalTaskDataFactoryRegisteredEvent";
 const CEvent CTaskManager::GlobalTaskDataFactoryUnregisteredEvent = "GUCEF::CORE::CTaskManager::GlobalTaskDataFactoryUnregisteredEvent";
+const CEvent CTaskManager::JobSchedulerCreatedEvent = "GUCEF::CORE::CTaskManager::JobSchedulerCreatedEvent";
+const CEvent CTaskManager::JobSchedulerUnregisteredEvent = "GUCEF::CORE::CTaskManager::JobSchedulerUnregisteredEvent";
 
 const CString CTaskManager::ClassTypeName = "GUCEF::CORE::CTaskManager";
 const CString CTaskManager::DefaultThreadPoolName = "default";
@@ -153,6 +154,8 @@ CTaskManager::RegisterEvents( void )
     GlobalTaskConsumerFactoryUnregisteredEvent.Initialize();
     GlobalTaskDataFactoryRegisteredEvent.Initialize();
     GlobalTaskDataFactoryUnregisteredEvent.Initialize();
+    JobSchedulerCreatedEvent.Initialize();
+    JobSchedulerUnregisteredEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -186,6 +189,9 @@ CTaskManager::CTaskManager( void )
 
 CTaskManager::~CTaskManager( void )
 {GUCEF_TRACE;
+
+    // schedulers first: their dispatchers and runs are tasks of the pools below
+    StopAndUnregisterAllJobSchedulers();
 
     MT::CObjectScopeLock lock( this, GUCEF_MT_INFINITE_LOCK_TIMEOUT );    
     UnregisterAllTaskConsumerFactories();
@@ -229,6 +235,12 @@ CTaskManager::OnAppShutdown( CORE::CNotifier* notifier    ,
     // CGUCEFApplication::Stop() waits for the threads once it gave those locks up. The thread pools stay registered:
     // the wait of the teardown of CCoreGlobal finds every thread that is still running there, before the global
     // objects the threads use are destroyed
+    // the schedulers stop dispatching and ask their runs to cancel (returns at once), before the threads are asked to stop
+    JobSchedulerVector schedulers;
+    GetAllJobSchedulers( schedulers );
+    for ( JobSchedulerVector::iterator i = schedulers.begin(); i != schedulers.end(); ++i )
+        (*i)->BeginDrain();
+
     RequestAllThreadsToStop( false, false, GUCEF_MT_SUPER_LONG_LOCK_TIMEOUT );
 }
 
@@ -237,6 +249,10 @@ CTaskManager::OnAppShutdown( CORE::CNotifier* notifier    ,
 void
 CTaskManager::Shutdown( void )
 {GUCEF_TRACE;
+
+    // the schedulers stop first (their state is saved) and are unregistered: their dispatchers and runs are tasks of
+    // the pools that stop below, a scheduler stopped afterwards would find its pools gone
+    StopAndUnregisterAllJobSchedulers();
 
     RequestAllThreadsToStop( true, false, GUCEF_MT_SUPER_LONG_LOCK_TIMEOUT );
     UnregisterAllTaskDataFactories();
@@ -1102,6 +1118,9 @@ bool
 CTaskManager::GetInfo( CTaskManagerInfo& info ) const
 {GUCEF_TRACE;
 
+    // the scheduler counts first, without the task manager lock (the two locks are never held together)
+    AddScheduledJobCounts( &info, GUCEF_NULL );
+
     // Obtain an overall lock to get a coherent snapshot of threadpool info
     MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
 
@@ -1224,6 +1243,10 @@ CTaskManager::GetAllThreadPoolInfo( TThreadPoolInfoMap& info ) const
     }
     if ( !m_externalThreads.empty() )
         GetExternalThreadPoolInfo( info[ ExternalThreadPoolName ] );
+    lock.EarlyReaderUnlock();
+
+    // the jobs that run on each pool, asked of the schedulers without the task manager lock
+    AddScheduledJobCounts( GUCEF_NULL, &info );
     return totalSuccess;
 }
 
@@ -1240,7 +1263,14 @@ CTaskManager::GetThreadPoolInfo( const CString& poolName, CThreadPoolInfo& info 
     if ( i != m_threadPools.end() )
     {
         if ( (*i).second->GetInfo( info ) )
+        {
+            lock.EarlyReaderUnlock();
+            TThreadPoolInfoMap single;
+            single[ poolName ] = info;
+            AddScheduledJobCounts( GUCEF_NULL, &single );
+            info.SetScheduledJobCount( single[ poolName ].GetScheduledJobCount() );
             return true;
+        }
     }
     else if ( ExternalThreadPoolName == poolName )
     {
@@ -1465,6 +1495,185 @@ CTaskManager::GetSerializedTaskDataCopy( const UInt32 taskId                    
         ++i;
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+JobSchedulerPtr
+CTaskManager::GetOrCreateJobScheduler( const CJobSchedulerSettings& settings ,
+                                       PulseGeneratorPtr mainPulseGenerator  )
+{GUCEF_TRACE;
+
+    const CString& hostName = settings.GetHostName();
+    if ( hostName.IsNULLOrEmpty() )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "TaskManager:GetOrCreateJobScheduler: a job scheduler needs a host name" );
+        return JobSchedulerPtr();
+    }
+
+    {
+        MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+        JobSchedulerMap::iterator i = m_jobSchedulers.find( hostName );
+        if ( i != m_jobSchedulers.end() )
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TaskManager:GetOrCreateJobScheduler: \"" << hostName << "\" exists, the settings given are not used" );
+            return (*i).second;
+        }
+    }
+
+    // made without the task manager lock: the scheduler links to the main pulse generator. Another thread may have
+    // made the same one meanwhile: then that one is used and this one is dropped
+    if ( mainPulseGenerator.IsNULL() )
+        mainPulseGenerator = CCoreGlobal::Instance()->GetPulseGenerator();
+    JobSchedulerPtr newScheduler = ( GUCEF_NEW CJobScheduler( *this, mainPulseGenerator, settings ) )->CreateSharedPtr();
+    {
+        MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+        JobSchedulerMap::iterator i = m_jobSchedulers.find( hostName );
+        if ( i != m_jobSchedulers.end() )
+            return (*i).second;
+        m_jobSchedulers[ hostName ] = newScheduler;
+    }
+
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager:GetOrCreateJobScheduler: job scheduler \"" << hostName << "\" created" );
+    JobSchedulerCreatedEventData eData( hostName );
+    NotifyObserversFromThread( JobSchedulerCreatedEvent, &eData );
+    return newScheduler;
+}
+
+/*-------------------------------------------------------------------------*/
+
+JobSchedulerPtr
+CTaskManager::GetJobScheduler( const CString& hostName ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+    JobSchedulerMap::const_iterator i = m_jobSchedulers.find( hostName );
+    if ( i != m_jobSchedulers.end() )
+        return (*i).second;
+    return JobSchedulerPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::GetAllJobSchedulers( JobSchedulerVector& schedulers ) const
+{GUCEF_TRACE;
+
+    schedulers.clear();
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+    for ( JobSchedulerMap::const_iterator i = m_jobSchedulers.begin(); i != m_jobSchedulers.end(); ++i )
+        schedulers.push_back( (*i).second );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::GetAllJobSchedulerNames( CString::StringSet& hostNames ) const
+{GUCEF_TRACE;
+
+    hostNames.clear();
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+    for ( JobSchedulerMap::const_iterator i = m_jobSchedulers.begin(); i != m_jobSchedulers.end(); ++i )
+        hostNames.insert( (*i).first );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::UnregisterJobScheduler( const CString& hostName )
+{GUCEF_TRACE;
+
+    // taken out of the registry under the lock, stopped without it (the two locks are never held together)
+    JobSchedulerPtr scheduler;
+    {
+        MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+        JobSchedulerMap::iterator i = m_jobSchedulers.find( hostName );
+        if ( i == m_jobSchedulers.end() )
+            return false;
+        scheduler = (*i).second;
+        m_jobSchedulers.erase( i );
+    }
+
+    scheduler->Stop();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager:UnregisterJobScheduler: job scheduler \"" << hostName << "\" stopped and unregistered" );
+    JobSchedulerUnregisteredEventData eData( hostName );
+    NotifyObserversFromThread( JobSchedulerUnregisteredEvent, &eData );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::StopAndUnregisterAllJobSchedulers( void )
+{GUCEF_TRACE;
+
+    CString::StringSet hostNames;
+    GetAllJobSchedulerNames( hostNames );
+    for ( CString::StringSet::iterator i = hostNames.begin(); i != hostNames.end(); ++i )
+        UnregisterJobScheduler( (*i) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::GetPoolCounters( TThreadPoolCounterMap& counters ) const
+{GUCEF_TRACE;
+
+    // the counters only: no walk over tasks, the read lock of the task manager only (the counters are atomics)
+    counters.clear();
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+    for ( ThreadPoolMap::const_iterator i = m_threadPools.begin(); i != m_threadPools.end(); ++i )
+        (*i).second->GetCounters( counters[ (*i).first ] );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::GetAllScheduledJobInfo( TScheduledJobInfoVector& info ) const
+{GUCEF_TRACE;
+
+    // the schedulers are copied under the task manager lock and asked without it
+    info.clear();
+    JobSchedulerVector schedulers;
+    GetAllJobSchedulers( schedulers );
+    for ( JobSchedulerVector::iterator i = schedulers.begin(); i != schedulers.end(); ++i )
+        (*i)->GetScheduledJobInfo( info );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::AddScheduledJobCounts( CTaskManagerInfo* managerInfo, TThreadPoolInfoMap* poolInfo ) const
+{GUCEF_TRACE;
+
+    // called without the task manager lock: the schedulers take their own
+    JobSchedulerVector schedulers;
+    GetAllJobSchedulers( schedulers );
+    TScheduledJobInfoVector jobs;
+    for ( JobSchedulerVector::iterator i = schedulers.begin(); i != schedulers.end(); ++i )
+        (*i)->GetScheduledJobInfo( jobs );
+
+    if ( GUCEF_NULL != managerInfo )
+    {
+        UInt32 mainThreadJobs = 0;
+        for ( TScheduledJobInfoVector::iterator j = jobs.begin(); j != jobs.end(); ++j )
+            if ( JOBEXECUTIONTARGET_MAIN_THREAD == (*j).GetExecutionTarget() )
+                ++mainThreadJobs;
+        managerInfo->SetJobSchedulerCount( (UInt32) schedulers.size() );
+        managerInfo->SetScheduledJobCount( (UInt32) jobs.size() );
+        managerInfo->SetMainThreadScheduledJobCount( mainThreadJobs );
+    }
+    if ( GUCEF_NULL != poolInfo )
+    {
+        for ( TScheduledJobInfoVector::iterator j = jobs.begin(); j != jobs.end(); ++j )
+        {
+            TThreadPoolInfoMap::iterator p = poolInfo->find( (*j).GetThreadPoolName() );
+            if ( p != poolInfo->end() )
+                (*p).second.SetScheduledJobCount( (*p).second.GetScheduledJobCount() + 1 );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------//

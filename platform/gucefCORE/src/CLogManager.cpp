@@ -138,6 +138,63 @@ typedef CTFactory< CILoggingFormatter, CJsonLoggingFormatter, MT::CMutex > JsonL
 typedef CTFactory< CILoggingFormatter, CBasicBracketLoggingFormatter, MT::CMutex > BasicBracketLoggingFormatterFactory;
 typedef CTFactory< CILoggingFormatter, CCharSepLoggingFormatter, MT::CMutex > CharSepLoggingFormatterFactory;
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The logging task of the log manager: at its end the log manager takes over what is still queued for it and the
+ *  delivery, before the task does that by itself without the lock of the log manager
+ */
+class CLogManagerLoggingTask : public CLoggingTask
+{
+    public:
+
+    CLogManagerLoggingTask( CLogManager& logManager, CILogger& loggerBackend )
+        : CLoggingTask( loggerBackend )
+        , m_logManager( logManager )
+    {}
+
+    virtual ~CLogManagerLoggingTask()
+    {}
+
+    protected:
+
+    virtual void OnTaskEnded( CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_logManager.OnLoggingTaskEnded( *this );
+        CLoggingTask::OnTaskEnded( task, wasForced );
+    }
+
+    private:
+
+    CLogManager& m_logManager;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** A change of the loggers handed to the logging thread, see CLogManager::ChangeLoggers() */
+class CLogManagerLoggerChange : public CLoggingTask::CIWork
+{
+    public:
+
+    CLogManagerLoggerChange( CLogManager& logManager, CLogManager::TLoggerChange change, CILogger* logger )
+        : CLoggingTask::CIWork()
+        , m_logManager( logManager )
+        , m_change( change )
+        , m_logger( logger )
+    {}
+
+    virtual void OnLoggingTaskWork( bool betweenMessages ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_logManager.ApplyLoggerChange( m_change, m_logger, !betweenMessages );
+    }
+
+    private:
+
+    CLogManager& m_logManager;
+    CLogManager::TLoggerChange m_change;
+    CILogger* m_logger;
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      GLOBAL VARS                                                        //
@@ -171,6 +228,7 @@ CLogManager::CLogManager( void )
     , m_maxBootstrapLogEntries( DefaultMaxBootstrapLogEntries )
     , m_droppedBootstrapLogEntries( 0 )
     , m_busyLogging( false )
+    , m_loggerWalkDepth( 0 )
     , m_redirectToLogQueue( false )
     , m_logFormatterFactory( false, false )
     , m_defaultLogFormatter()
@@ -348,19 +406,12 @@ void
 CLogManager::AddLogger( CILogger* loggerImp )
 {GUCEF_TRACE;
 
-    // Lock order: nothing is logged, and no task is paused or resumed, under the lock of the log manager. A log
-    // statement takes the lock of the thread buffer map, the thread pool takes locks of its own and logs under them,
-    // and a thread that flushes the thread buffers takes the lock of the log manager to hand their entries to the
-    // loggers: either would close a cycle with a thread that flushes
-    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
-    {
-        MT::CObjectScopeLock lock( this );
-        m_loggers->AddLogger( loggerImp );
-    }
-    ResumeLoggingTask( loggingTask );
-
+    // Lock order: nothing is logged under the lock of the log manager. A log statement takes the lock of the thread
+    // buffer map, and a thread that flushes the thread buffers takes the lock of the log manager to hand their entries
+    // to the loggers: that would close a cycle with a thread that flushes
     if ( GUCEF_NULL != loggerImp )
     {
+        ChangeLoggers( LOGGERS_ADD, loggerImp );
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "LogManager: Added logger" );
     }
     else
@@ -379,40 +430,89 @@ CLogManager::RemoveLogger( CILogger* loggerImp )
     // the lock order of AddLogger()
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "LogManager: Removing logger" );
 
-    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
-    {
-        MT::CObjectScopeLock lock( this );
-        m_loggers->RemoveLogger( loggerImp );
-    }
-    ResumeLoggingTask( loggingTask );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CLogManager::CLoggingTaskBasePtr
-CLogManager::PauseLoggingTask( void )
-{GUCEF_TRACE;
-
-    // the task is taken under the lock and paused without it, see AddLogger()
-    CLoggingTaskBasePtr loggingTask;
-    {
-        MT::CObjectScopeLock lock( this );
-        if ( m_useLogThread )
-            loggingTask = m_loggingTask;
-    }
-    if ( !loggingTask.IsNULL() )
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( loggingTask->GetCurrentTaskId(), true );
-    return loggingTask;
+    if ( GUCEF_NULL != loggerImp )
+        ChangeLoggers( LOGGERS_REMOVE, loggerImp );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CLogManager::ResumeLoggingTask( CLoggingTaskBasePtr& loggingTask )
+CLogManager::ChangeLoggers( TLoggerChange change, CILogger* logger )
 {GUCEF_TRACE;
 
-    if ( !loggingTask.IsNULL() )
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( loggingTask->GetCurrentTaskId() );
+    CLoggingTaskBasePtr loggingTask;
+    {
+        MT::CObjectScopeLock lock( this );
+        if ( m_loggingTask.IsNULL() )
+        {
+            // the loggers are called under this lock
+            ApplyLoggerChange( change, logger, false );
+            return;
+        }
+        loggingTask = m_loggingTask;
+    }
+
+    // The logging thread calls the loggers without this lock, and the delivery of a message takes no lock for them:
+    // that thread makes the change itself, between two batches, and this one waits for it. Without this lock: the
+    // logging thread takes it to make the change. On the logging thread itself (a logger that changes the loggers),
+    // and once the task delivers no more, the change is made here at once
+    CLogManagerLoggerChange work( *this, change, logger );
+    loggingTask->RunOnTaskThread( work );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::ApplyLoggerChange( TLoggerChange change, CILogger* logger, bool mayBeWhileLogging )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+
+    // Either flag is only ever set by a thread that holds this lock: set, it is this thread, within a call to the
+    // loggers that leads here (a logger that changes the loggers). That call goes on with the loggers as changed
+    const bool whileLogging = mayBeWhileLogging || m_busyLogging || 0 != m_loggerWalkDepth;
+    switch ( change )
+    {
+        case LOGGERS_ADD :
+        {
+            m_loggers->AddLogger( logger, whileLogging );
+            break;
+        }
+        case LOGGERS_REMOVE :
+        {
+            m_loggers->RemoveLogger( logger, whileLogging );
+            break;
+        }
+        case LOGGERS_CLEAR :
+        {
+            m_loggers->ClearLoggers( whileLogging );
+            break;
+        }
+        default :
+            break;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::OnLoggingTaskEnded( CLoggingTask& loggingTask )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+
+    // What is queued for the task is delivered first, here: messages are handed to the task under this lock, so
+    // nothing logged meanwhile goes ahead of them. A message a logger makes meanwhile is dropped, as during any delivery
+    const bool wasBusyLogging = m_busyLogging;
+    m_busyLogging = true;
+    loggingTask.CloseAndDeliverQueued();
+    m_busyLogging = wasBusyLogging;
+
+    if ( !m_loggingTask.IsNULL() && &loggingTask == m_loggingTask.GetPointerAlways() )
+    {
+        m_useLogThread = false;
+        m_loggingTask.Unlink();
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -586,12 +686,7 @@ CLogManager::ClearLoggers( void )
 {GUCEF_TRACE;
 
     // the lock order of AddLogger()
-    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
-    {
-        MT::CObjectScopeLock lock( this );
-        m_loggers->ClearLoggers();
-    }
-    ResumeLoggingTask( loggingTask );
+    ChangeLoggers( LOGGERS_CLEAR, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -695,7 +790,9 @@ CLogManager::SetMinLogLevel( const Int32 logLevel )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
+    ++m_loggerWalkDepth;
     m_loggers->SetMinimalLogLevel( logLevel );
+    --m_loggerWalkDepth;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -975,7 +1072,9 @@ CLogManager::FlushLogs( void )
     }
     else
     {
+        ++m_loggerWalkDepth;
         m_loggers->FlushLog();
+        --m_loggerWalkDepth;
     }
 }
 
@@ -1116,27 +1215,38 @@ CLogManager::SetUseLoggingThread( bool useLogThread )
 
     if ( useLogThread )
     {
-        CLoggingTaskPtr loggingTask( GUCEF_NEW CLoggingTask( *m_loggers ) );
+        // The task takes the messages from now on; it delivers them once its thread runs. A logger change made before
+        // that waits for it too
+        CLoggingTaskPtr loggingTask( GUCEF_NEW CLogManagerLoggingTask( *this, *m_loggers ) );
+        m_loggingTask = loggingTask;
+        m_useLogThread = true;
         lock.EarlyUnlock();
 
-        if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( loggingTask, GUCEF_NULL ).HasAFuture() )
+        if ( !CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( loggingTask, GUCEF_NULL ).HasAFuture() )
         {
-            MT::CObjectScopeLock startedLock( this );
-            m_loggingTask = loggingTask;
-            m_useLogThread = true;
+            // never ran: what was handed to it is delivered here and the log manager delivers again
+            OnLoggingTaskEnded( *loggingTask );
         }
     }
     else
     {
+        // The task delivers what was handed to it and ends. At its end the log manager takes over the delivery
+        // (OnLoggingTaskEnded()), until then the task delivers. The logging thread itself cannot wait for its end
         CLoggingTaskBasePtr loggingTask = m_loggingTask;
         lock.EarlyUnlock();
 
-        if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( loggingTask->GetCurrentTaskId(), false ) )
+        if ( loggingTask->IsTaskThread() )
         {
-            MT::CObjectScopeLock stoppedLock( this );
-            m_useLogThread = false;
-            m_loggingTask.Unlink();
+            CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( loggingTask->GetCurrentTaskId(), false );
+            return;
         }
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( loggingTask->GetCurrentTaskId(), true );
+
+        // The thread of the task ended, or it never got to run the task (then OnTaskEnded() never comes): the log
+        // manager takes over now unless the task still runs (a stop that is slower than the wait for it), whose end
+        // does that. Taken over before it ran, the task never starts any more
+        if ( !loggingTask->IsRunning() )
+            OnLoggingTaskEnded( *loggingTask );
     }
 }
 

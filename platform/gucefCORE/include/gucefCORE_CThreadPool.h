@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTHREADPOOL_H
@@ -77,6 +76,21 @@
 #include "gucefCORE_TaskStatus.h"
 #define GUCEF_CORE_TASKSTATUS_H
 #endif /* GUCEF_CORE_TASKSTATUS_H ? */
+
+#ifndef GUCEF_CORE_CTHREADPOOLCOUNTERS_H
+#include "gucefCORE_CThreadPoolCounters.h"
+#define GUCEF_CORE_CTHREADPOOLCOUNTERS_H
+#endif /* GUCEF_CORE_CTHREADPOOLCOUNTERS_H ? */
+
+#ifndef GUCEF_CORE_CJOBSCHEDULERRUNLINK_H
+#include "gucefCORE_CJobSchedulerRunLink.h"
+#define GUCEF_CORE_CJOBSCHEDULERRUNLINK_H
+#endif /* GUCEF_CORE_CJOBSCHEDULERRUNLINK_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
 
 #ifndef GUCEF_CORE_CTASKINFO_H
 #include "gucefCORE_CTaskInfo.h"
@@ -526,6 +540,16 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
                                     const CDataNodeSerializableSettings& serializerSettings ) const;
 
     const CString& GetThreadPoolName( void ) const;
+
+    /**
+     *  The totals of the pool since it was made: tasks queued, started, and ended as finished, failed, cancelled
+     *  (cancelled or stopped on request) or killed, with the cumulative queue wait and run time (monotonic ms).
+     *  Kept with one relaxed atomic add per transition of a task; read without a lock and without a walk over tasks
+     */
+    void GetCounters( CThreadPoolCounters& counters ) const;
+
+    /** Tasks a thread started and that did not end yet (a relaxed counter, as the totals) */
+    UInt32 GetRunningTaskCount( void ) const;
     
     virtual ~CThreadPool() GUCEF_VIRTUAL_OVERRIDE;
     
@@ -571,6 +595,26 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     friend class CTask;
 
     CTaskPtr GetTaskObjById( TIntegerTypeUsedForTaskId taskId ) const;
+
+    private:
+    friend class CJobScheduler;
+
+    /**
+     *  Queues a task that carries out a run of a scheduled job: as QueueTask(), with the run link, job id and run id set
+     *  on the task before it is queued, so the end of the task always reaches the link (TaskCleanup())
+     */
+    CFutureResult QueueScheduledRunTask( const CString& taskType                  ,
+                                         CICloneable* taskData                    ,
+                                         bool assumeOwnershipOfTaskData           ,
+                                         const CJobSchedulerRunLinkPtr& runLink   ,
+                                         const CString& jobId                     ,
+                                         UInt64 runId                             );
+
+    /** Next number of a thread of this pool (1, 2, ...): the thread is named <pool>#<n> */
+    UInt32 NextThreadSequenceNumber( void );
+
+    /** The counters of a task that ends (TaskCleanup()) */
+    void CountEndedTask( const CTaskPtr& task );
 
     private:
     friend class CTaskManager;
@@ -684,6 +728,16 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     TTaskDelegatorSet m_retiredDelegators;          /**< delegators whose threads ended, see ReleaseRetiredDelegators() */
     bool m_acceptNewWork;
     bool m_allowAppThreadToWork;
+    MT::CTAtomic< UInt64 > m_queuedTotal;           /**< the counters of GetCounters(): relaxed atomic adds on the task path */
+    MT::CTAtomic< UInt64 > m_startedTotal;
+    MT::CTAtomic< UInt64 > m_finishedTotal;
+    MT::CTAtomic< UInt64 > m_failedTotal;
+    MT::CTAtomic< UInt64 > m_cancelledTotal;
+    MT::CTAtomic< UInt64 > m_killedTotal;
+    MT::CTAtomic< UInt64 > m_cumulativeQueueWaitMs;
+    MT::CTAtomic< UInt64 > m_cumulativeRunMs;
+    MT::CTAtomic< UInt32 > m_runningTasks;
+    MT::CTAtomic< UInt32 > m_threadSequence;
 };
 
 /*-------------------------------------------------------------------------*/

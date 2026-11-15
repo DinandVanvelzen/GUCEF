@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -65,6 +64,9 @@ CThreadPoolInfo::CThreadPoolInfo( void )
     , m_allowAppThreadToWork( false )
     , m_queuedTaskCount( 0 )
     , m_taskIds()
+    , m_counters()
+    , m_runningTaskCount( 0 )
+    , m_scheduledJobCount( 0 )
 {GUCEF_TRACE;
 
 }
@@ -83,6 +85,9 @@ CThreadPoolInfo::CThreadPoolInfo( const CThreadPoolInfo& src )
     , m_allowAppThreadToWork( src.m_allowAppThreadToWork )
     , m_queuedTaskCount( src.m_queuedTaskCount )
     , m_taskIds( src.m_taskIds )
+    , m_counters( src.m_counters )
+    , m_runningTaskCount( src.m_runningTaskCount )
+    , m_scheduledJobCount( src.m_scheduledJobCount )
 {GUCEF_TRACE;
 
 }
@@ -110,6 +115,9 @@ CThreadPoolInfo::Clear( void )
     m_taskDataFactoryTypes.clear();
     m_allowAppThreadToWork = false;
     m_queuedTaskCount = 0;
+    m_counters = CThreadPoolCounters();
+    m_runningTaskCount = 0;
+    m_scheduledJobCount = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -135,6 +143,23 @@ CThreadPoolInfo::Serialize( CDataNode& domRootNode                        ,
     totalSuccess = domRootNode.SetAttribute( "activeNrOfWorkerThreads", m_activeNrOfWorkerThreads ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "allowAppThreadToWork", m_allowAppThreadToWork ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "queuedTaskCount", m_queuedTaskCount ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "runningTaskCount", m_runningTaskCount ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "scheduledJobCount", m_scheduledJobCount ) && totalSuccess;
+    CDataNode* countersNode = domRootNode.AddChild( "counters", GUCEF_DATATYPE_OBJECT );
+    if ( GUCEF_NULL != countersNode )
+    {
+        totalSuccess = countersNode->SetAttribute( "queuedTotal", m_counters.GetQueuedTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "startedTotal", m_counters.GetStartedTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "finishedTotal", m_counters.GetFinishedTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "failedTotal", m_counters.GetFailedTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "cancelledTotal", m_counters.GetCancelledTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "killedTotal", m_counters.GetKilledTotal() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "cumulativeQueueWaitMs", m_counters.GetCumulativeQueueWaitMs() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "cumulativeRunMs", m_counters.GetCumulativeRunMs() ) && totalSuccess;
+        totalSuccess = countersNode->SetAttribute( "sampleMonotonicMs", m_counters.GetSampleMonotonicMs() ) && totalSuccess;
+    }
+    else
+        totalSuccess = false;
     
     if ( CDataNodeSerializableSettings::DataNodeSerializableLod_MinimumDetails < settings.levelOfDetail )
     {
@@ -167,8 +192,24 @@ CThreadPoolInfo::Deserialize( const CDataNode& domRootNode                  ,
     m_activeNrOfDedicatedThreads = domRootNode.GetAttributeValueOrChildValueByName( "activeNrOfDedicatedThreads" ).AsUInt32( m_activeNrOfDedicatedThreads, true );
     m_activeNrOfWorkerThreads = domRootNode.GetAttributeValueOrChildValueByName( "activeNrOfWorkerThreads" ).AsUInt32( m_activeNrOfWorkerThreads, true );
     m_allowAppThreadToWork = domRootNode.GetAttributeValueOrChildValueByName( "allowAppThreadToWork" ).AsBool( m_allowAppThreadToWork, true );
-    m_queuedTaskCount = domRootNode.GetAttributeValueOrChildValueByName( "globalNrOfQueuedTasks" ).AsUInt32( m_queuedTaskCount, true );
+    m_queuedTaskCount = domRootNode.GetAttributeValueOrChildValueByName( "queuedTaskCount" ).AsUInt32( m_queuedTaskCount, true );
 
+    m_runningTaskCount = domRootNode.GetAttributeValueOrChildValueByName( "runningTaskCount" ).AsUInt32( m_runningTaskCount, true );
+    m_scheduledJobCount = domRootNode.GetAttributeValueOrChildValueByName( "scheduledJobCount" ).AsUInt32( m_scheduledJobCount, true );
+    const CDataNode* countersNode = domRootNode.FindChild( "counters" );
+    if ( GUCEF_NULL != countersNode )
+    {
+        m_counters.SetThreadPoolName( m_threadPoolName );
+        m_counters.SetQueuedTotal( countersNode->GetAttributeValueOrChildValueByName( "queuedTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetStartedTotal( countersNode->GetAttributeValueOrChildValueByName( "startedTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetFinishedTotal( countersNode->GetAttributeValueOrChildValueByName( "finishedTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetFailedTotal( countersNode->GetAttributeValueOrChildValueByName( "failedTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetCancelledTotal( countersNode->GetAttributeValueOrChildValueByName( "cancelledTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetKilledTotal( countersNode->GetAttributeValueOrChildValueByName( "killedTotal" ).AsUInt64( 0, true ) );
+        m_counters.SetCumulativeQueueWaitMs( countersNode->GetAttributeValueOrChildValueByName( "cumulativeQueueWaitMs" ).AsUInt64( 0, true ) );
+        m_counters.SetCumulativeRunMs( countersNode->GetAttributeValueOrChildValueByName( "cumulativeRunMs" ).AsUInt64( 0, true ) );
+        m_counters.SetSampleMonotonicMs( countersNode->GetAttributeValueOrChildValueByName( "sampleMonotonicMs" ).AsUInt64( 0, true ) );
+    }
     domRootNode.GetValuesOfChildByName( "taskIds", m_taskIds );
     domRootNode.GetValuesOfChildByName( "taskConsumerFactoryTypes", m_taskConsumerFactoryTypes );
     domRootNode.GetValuesOfChildByName( "taskDataFactoryTypes", m_taskDataFactoryTypes );
@@ -373,6 +414,61 @@ CThreadPoolInfo::Clone( void ) const
 
     return new CThreadPoolInfo( *this );
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPoolInfo::SetCounters( const CThreadPoolCounters& counters )
+{GUCEF_TRACE;
+
+    m_counters = counters;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CThreadPoolCounters&
+CThreadPoolInfo::GetCounters( void ) const
+{GUCEF_TRACE;
+
+    return m_counters;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPoolInfo::SetRunningTaskCount( UInt32 runningTaskCount )
+{GUCEF_TRACE;
+
+    m_runningTaskCount = runningTaskCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadPoolInfo::GetRunningTaskCount( void ) const
+{GUCEF_TRACE;
+
+    return m_runningTaskCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPoolInfo::SetScheduledJobCount( UInt32 scheduledJobCount )
+{GUCEF_TRACE;
+
+    m_scheduledJobCount = scheduledJobCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadPoolInfo::GetScheduledJobCount( void ) const
+{GUCEF_TRACE;
+
+    return m_scheduledJobCount;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

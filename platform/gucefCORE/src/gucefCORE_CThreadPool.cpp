@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -74,6 +73,11 @@
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 #include "gucefCORE_CThreadPool.h"
+
+#ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
+#include "gucefCORE_CIMonotonicClock.h"
+#define GUCEF_CORE_CIMONOTONICCLOCK_H
+#endif /* GUCEF_CORE_CIMONOTONICCLOCK_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -154,6 +158,16 @@ CThreadPool::CThreadPool( PulseGeneratorPtr threadPoolPulseContext ,
     , m_taskGenericDelegators()
     , m_acceptNewWork( true )
     , m_allowAppThreadToWork( false )
+    , m_queuedTotal( 0 )
+    , m_startedTotal( 0 )
+    , m_finishedTotal( 0 )
+    , m_failedTotal( 0 )
+    , m_cancelledTotal( 0 )
+    , m_killedTotal( 0 )
+    , m_cumulativeQueueWaitMs( 0 )
+    , m_cumulativeRunMs( 0 )
+    , m_runningTasks( 0 )
+    , m_threadSequence( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -762,6 +776,8 @@ CThreadPool::QueueTask( CTaskPtr task )
     }
 
     task->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
+    task->SetQueuedAtMs( CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() );
+    m_queuedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED );
 
     {
         MT::CObjectScopeLock lock( this );
@@ -834,6 +850,8 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
 
     CTaskPtr firstTask = tasks.front();
     firstTask->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
+    firstTask->SetQueuedAtMs( CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() );
+    m_queuedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED );
     status = CORE::TASKSTATUS_QUEUED;
 
     {
@@ -931,6 +949,95 @@ CThreadPool::QueueTask( const CString& taskType        ,
                                  assumeOwnershipOfTaskData );
 
     return QueueTask( task );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFutureResult
+CThreadPool::QueueScheduledRunTask( const CString& taskType                  ,
+                                    CICloneable* taskData                    ,
+                                    bool assumeOwnershipOfTaskData           ,
+                                    const CJobSchedulerRunLinkPtr& runLink   ,
+                                    const CString& jobId                     ,
+                                    UInt64 runId                             )
+{GUCEF_TRACE;
+
+    CTaskPtr task = PrepTaskObj( taskType                  ,
+                                 taskData                  ,
+                                 GUCEF_NULL                ,
+                                 assumeOwnershipOfTaskData );
+
+    // set before the task is queued: once it is, another thread may carry it out and end it
+    if ( !task.IsNULL() && !task->IsTaskInErrorState() )
+        task->SetScheduledRun( runLink, jobId, runId );
+
+    return QueueTask( task );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadPool::NextThreadSequenceNumber( void )
+{GUCEF_TRACE;
+
+    return m_threadSequence.FetchAdd( 1, MT::MEMORDER_RELAXED ) + 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::CountEndedTask( const CTaskPtr& task )
+{GUCEF_TRACE;
+
+    // a task object that never got as far as the queue or a thread (a set up that failed) is not counted
+    UInt64 startedAtMs = task->GetStartedAtMs();
+    if ( 0 == startedAtMs && 0 == task->GetQueuedAtMs() )
+        return;
+
+    switch ( task->GetTaskStatus() )
+    {
+        case CORE::TASKSTATUS_FINISHED:     { m_finishedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED ); break; }
+        case CORE::TASKSTATUS_CANCELLED:
+        case CORE::TASKSTATUS_STOPPED:      { m_cancelledTotal.FetchAdd( 1, MT::MEMORDER_RELAXED ); break; }
+        case CORE::TASKSTATUS_KILLED:       { m_killedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED ); break; }
+        default:                            { m_failedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED ); break; }
+    }
+
+    if ( 0 != startedAtMs )
+    {
+        UInt64 nowMs = CSystemMonotonicClock::Instance().GetMonotonicTimeInMs();
+        if ( nowMs > startedAtMs )
+            m_cumulativeRunMs.FetchAdd( nowMs - startedAtMs, MT::MEMORDER_RELAXED );
+        m_runningTasks.FetchSub( 1, MT::MEMORDER_RELAXED );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::GetCounters( CThreadPoolCounters& counters ) const
+{GUCEF_TRACE;
+
+    counters.Clear();
+    counters.SetThreadPoolName( m_poolName );
+    counters.SetQueuedTotal( m_queuedTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetStartedTotal( m_startedTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetFinishedTotal( m_finishedTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetFailedTotal( m_failedTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetCancelledTotal( m_cancelledTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetKilledTotal( m_killedTotal.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetCumulativeQueueWaitMs( m_cumulativeQueueWaitMs.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetCumulativeRunMs( m_cumulativeRunMs.Load( MT::MEMORDER_RELAXED ) );
+    counters.SetSampleMonotonicMs( CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadPool::GetRunningTaskCount( void ) const
+{GUCEF_TRACE;
+
+    return m_runningTasks.Load( MT::MEMORDER_RELAXED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1750,6 +1857,23 @@ CThreadPool::TaskCleanup( CTaskPtr task )
     if ( task.IsNULL() )
         return;
 
+    CountEndedTask( task );
+
+    // A run of a scheduled job: what its scheduler is told once the task object is given back below (the object can
+    // be reused for another task from then on, so everything is read before)
+    CJobSchedulerRunLinkPtr runLink;
+    CString scheduledJobId;
+    UInt64 scheduledRunId = 0;
+    UInt32 endedTaskId = 0;
+    TTaskStatus endedStatus = CORE::TASKSTATUS_UNDEFINED;
+    CString endedStatusExtra;
+    if ( task->GetScheduledRun( runLink, scheduledJobId, scheduledRunId ) )
+    {
+        endedTaskId = task->GetTaskId();
+        endedStatus = task->GetTaskStatus();
+        endedStatusExtra = task->GetTaskStatusExtraInfo();
+    }
+
     // Make sure we update the bi-directional link, breaking it
     // Otherwise you will end up with a memory leak
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
@@ -1804,6 +1928,10 @@ CThreadPool::TaskCleanup( CTaskPtr task )
         MT::CObjectScopeLock lock( this );
         m_freeTaskConsumers[ taskConsumer->GetType() ].insert( taskConsumer );
     }
+
+    // no lock of the pool is held here: the scheduler takes its own (CJobScheduler::OnRunTaskEnded())
+    if ( !runLink.IsNULL() )
+        runLink->OnRunTaskEnded( scheduledRunId, endedTaskId, endedStatus, endedStatusExtra );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1857,6 +1985,16 @@ CThreadPool::OnTaskStartup( CTaskPtr task )
 
     if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
+        UInt64 startedAtMs = CSystemMonotonicClock::Instance().GetMonotonicTimeInMs();
+        if ( 0 == startedAtMs )
+            startedAtMs = 1;    // 0 means not started
+        task->SetStartedAtMs( startedAtMs );
+        UInt64 queuedAtMs = task->GetQueuedAtMs();
+        if ( 0 != queuedAtMs && startedAtMs > queuedAtMs )
+            m_cumulativeQueueWaitMs.FetchAdd( startedAtMs - queuedAtMs, MT::MEMORDER_RELAXED );
+        m_startedTotal.FetchAdd( 1, MT::MEMORDER_RELAXED );
+        m_runningTasks.FetchAdd( 1, MT::MEMORDER_RELAXED );
+
         TTaskStartupEventData eData( task->GetTaskId() ); 
         NotifyObserversFromThread( TaskStartupEvent, &eData ); 
     }
@@ -2773,6 +2911,10 @@ CThreadPool::GetInfo( CThreadPoolInfo& info ) const
     m_taskDataFactory.ObtainKeySet( info.GetTaskDataFactoryTypes() );
     info.SetQueuedTaskCount( m_taskQueue.AmountOfMail() );
     info.SetThreadPoolName( m_poolName );
+    info.SetRunningTaskCount( GetRunningTaskCount() );
+    CThreadPoolCounters counters;
+    GetCounters( counters );
+    info.SetCounters( counters );
 
     return true;
 }
@@ -2801,6 +2943,18 @@ CThreadPool::GetTaskInfo( UInt32 taskId                                         
             info.SetThreadId( task->GetThreadId() );
             info.SetTaskStatus( task->GetTaskStatus() );
             info.SetTaskTypeName( task->GetTaskType() );
+            info.SetThreadPoolName( m_poolName );
+            info.SetQueuedAtMs( task->GetQueuedAtMs() );
+            info.SetStartedAtMs( task->GetStartedAtMs() );
+            CJobSchedulerRunLinkPtr runLink;
+            CString scheduledJobId;
+            UInt64 scheduledRunId = 0;
+            if ( task->GetScheduledRun( runLink, scheduledJobId, scheduledRunId ) )
+            {
+                info.SetSchedulerName( runLink->GetSchedulerName() );
+                info.SetScheduledJobId( scheduledJobId );
+                info.SetScheduledRunId( scheduledRunId );
+            }
             info.SetCustomTaskDataIsSerializable( IsCustomTaskDataForTaskTypeSerializable( info.GetTaskTypeName() ) );
             info.SetHasTaskData( task->HasTaskData() );
             if ( obtainTaskDataCopyIfPossible && info.GetHasTaskData() && info.GetCustomTaskDataIsSerializable() )
@@ -2896,14 +3050,20 @@ CThreadPool::GetThreadInfo( TSystemThreadId threadId, CThreadInfo& info ) const
     while ( i != m_taskDedicatedDelegators.end() )
     {
         if ( threadId == (*i)->GetThreadID() )
+        {
+            info.SetThreadPoolName( m_poolName );
             return (*i)->GetThreadInfo( info );
+        }
         ++i;
     }
     i = m_taskGenericDelegators.begin();
     while ( i != m_taskGenericDelegators.end() )
     {
         if ( threadId == (*i)->GetThreadID() )
+        {
+            info.SetThreadPoolName( m_poolName );
             return (*i)->GetThreadInfo( info );
+        }
         ++i;
     }
     return false;
@@ -2927,6 +3087,7 @@ CThreadPool::GetAllThreadInfo( TThreadInfoMap& info ) const
         {
             TSystemThreadId threadId = (*i)->GetThreadID();
             CThreadInfo& threadInfo = info[ threadId ];
+            threadInfo.SetThreadPoolName( m_poolName );
             totalSuccess = delegator->GetThreadInfo( threadInfo ) && totalSuccess;
         }        
         ++i;
@@ -2939,6 +3100,7 @@ CThreadPool::GetAllThreadInfo( TThreadInfoMap& info ) const
         {
             TSystemThreadId threadId = (*i)->GetThreadID();
             CThreadInfo& threadInfo = info[ threadId ];
+            threadInfo.SetThreadPoolName( m_poolName );
             totalSuccess = delegator->GetThreadInfo( threadInfo ) && totalSuccess;
         }        
         ++i;

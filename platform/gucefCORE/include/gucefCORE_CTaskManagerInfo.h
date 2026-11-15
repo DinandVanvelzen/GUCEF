@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTASKMANAGERINFO_H
@@ -118,6 +117,18 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManagerInfo : public CIDataNodeSerializable
 
     CString::StringSet& GetTaskDataFactoryTypes( void );
 
+    /** Job schedulers registered with the task manager */
+    void SetJobSchedulerCount( UInt32 jobSchedulerCount );
+    UInt32 GetJobSchedulerCount( void ) const;
+
+    /** Jobs of all job schedulers */
+    void SetScheduledJobCount( UInt32 scheduledJobCount );
+    UInt32 GetScheduledJobCount( void ) const;
+
+    /** Jobs whose runs execute on the main thread */
+    void SetMainThreadScheduledJobCount( UInt32 mainThreadScheduledJobCount );
+    UInt32 GetMainThreadScheduledJobCount( void ) const;
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -133,6 +144,9 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManagerInfo : public CIDataNodeSerializable
     CString::StringSet m_taskDataFactoryTypes;
     bool m_allowAppThreadToWork;
     UInt32 m_globalNrOfQueuedTasks;
+    UInt32 m_jobSchedulerCount;
+    UInt32 m_scheduledJobCount;
+    UInt32 m_mainThreadScheduledJobCount;
 };
 
 /*-------------------------------------------------------------------------//

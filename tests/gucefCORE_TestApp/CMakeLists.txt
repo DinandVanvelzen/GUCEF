@@ -53,6 +53,7 @@ set( HEADER_FILES
   include/TestDataTableVariant.h
   include/TestDateTime.h
   include/TestDateTimeRange.h
+  include/TestDateTimeSystemLocal.h
   include/TestDecimal.h
   include/TestDecimalReference.h
   include/TestDecimalVariant.h
@@ -74,11 +75,16 @@ set( HEADER_FILES
   include/TestFutureResultSource.h
   include/TestIniParser.h
   include/TestInt128.h
+  include/TestJobScheduler.h
+  include/TestJobSchedulerPolicies.h
+  include/TestJobSchedulerSupport.h
   include/TestJsonDataNodeFidelity.h
   include/TestJsonSchema.h
   include/TestJsonSyntaxValidator.h
   include/TestLogManagerLockOrder.h
+  include/TestLogManagerLoggerChanges.h
   include/TestLogging.h
+  include/TestManualClocks.h
   include/TestMemoryDataTable.h
   include/TestNotificationCost.h
   include/TestNotifierDelivery.h
@@ -106,7 +112,9 @@ set( HEADER_FILES
   include/TestSysConsole.h
   include/TestTableCodecRegistry.h
   include/TestTaskDelegatorWakeUp.h
+  include/TestTaskManagerCounters.h
   include/TestTaskMemoryRetention.h
+  include/TestTaskPoolHotPath.h
   include/TestTaskPulseRequests.h
   include/TestThreadPoolCancellation.h
   include/TestTimeZoneRules.h
@@ -167,6 +175,7 @@ set( SOURCE_FILES
   src/TestDataTableVariant.cpp
   src/TestDateTime.cpp
   src/TestDateTimeRange.cpp
+  src/TestDateTimeSystemLocal.cpp
   src/TestDecimal.cpp
   src/TestDecimalVariant.cpp
   src/TestDedicatedTasks.cpp
@@ -189,10 +198,14 @@ set( SOURCE_FILES
   src/TestFutureResultSource.cpp
   src/TestIniParser.cpp
   src/TestInt128.cpp
+  src/TestJobScheduler.cpp
+  src/TestJobSchedulerPolicies.cpp
+  src/TestJobSchedulerSupport.cpp
   src/TestJsonDataNodeFidelity.cpp
   src/TestJsonSchema.cpp
   src/TestJsonSyntaxValidator.cpp
   src/TestLogManagerLockOrder.cpp
+  src/TestLogManagerLoggerChanges.cpp
   src/TestLogging.cpp
   src/TestMemoryDataTable.cpp
   src/TestNotificationCost.cpp
@@ -220,7 +233,9 @@ set( SOURCE_FILES
   src/TestSysConsole.cpp
   src/TestTableCodecRegistry.cpp
   src/TestTaskDelegatorWakeUp.cpp
+  src/TestTaskManagerCounters.cpp
   src/TestTaskMemoryRetention.cpp
+  src/TestTaskPoolHotPath.cpp
   src/TestTaskPulseRequests.cpp
   src/TestThreadPoolCancellation.cpp
   src/TestTimeZoneRules.cpp

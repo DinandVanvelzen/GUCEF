@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -39,6 +38,21 @@
 #endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
 #include "gucefCORE_CTaskDelegator.h"
+
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
+#ifndef GUCEF_MT_THREADNAME_H
+#include "gucefMT_ThreadName.h"
+#define GUCEF_MT_THREADNAME_H
+#endif /* GUCEF_MT_THREADNAME_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -100,6 +114,11 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
     , m_waitingForTask( false )
+    , m_threadSequence( 0 )
+    , m_currentTaskInfoLock()
+    , m_currentTaskInfoId( 0 )
+    , m_currentTaskInfoType()
+    , m_currentTaskInfoBusySinceMs( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -133,6 +152,11 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
     , m_waitingForTask( false )
+    , m_threadSequence( 0 )
+    , m_currentTaskInfoLock()
+    , m_currentTaskInfoId( 0 )
+    , m_currentTaskInfoType()
+    , m_currentTaskInfoBusySinceMs( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -279,6 +303,22 @@ CTaskDelegator::OnThreadStart( void* taskData )
     GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( driverIds.systemThreadId ); )
     m_driverThreadId.Store( driverIds.threadId );
     m_pulseGenerator->SetPulseDriverThreadId( m_driverThreadId.Load() );
+
+    // the thread is known as <pool>#<n>, in the thread info and at the level of the operating system; where the
+    // system keeps only a few bytes of a name the pool name is cut so the number stays
+    if ( !m_threadPool.IsNULL() )
+    {
+        UInt32 sequence = m_threadPool->NextThreadSequenceNumber();
+        m_threadSequence.Store( sequence );
+        CString suffix = "#" + ToString( sequence );
+        CString poolName = m_threadPool->GetThreadPoolName();
+        UInt32 maxPoolNameBytes = GUCEF_MT_MAX_OS_THREAD_NAME_BYTES > suffix.Length() ? GUCEF_MT_MAX_OS_THREAD_NAME_BYTES - suffix.Length() : 0;
+        if ( poolName.Length() > maxPoolNameBytes )
+            poolName = poolName.SubstrToIndex( maxPoolNameBytes, true );
+        CString osThreadName = poolName + suffix;
+        MT::SetCurrentThreadName( osThreadName.C_String() );
+    }
+
     ThreadStartedEventData id( GetThreadID() );
     NotifyObservers( ThreadStartedEvent, &id );
     return true;
@@ -513,6 +553,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
         // Notify the thread pool directly
         task->SetTaskStatus( TASKSTATUS_STARTUP );
         m_threadPool->OnTaskStartup( task );
+        SetCurrentTaskInfo( task );
         if ( taskConsumer->OnTaskStart( task ) )
         {
             task->SetTaskStatus( TASKSTATUS_RUNNING );
@@ -635,6 +676,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
             }
         }
         m_consumerBusy = false;    
+        ClearCurrentTaskInfo();
     }
     else
     {
@@ -911,6 +953,18 @@ CTaskDelegator::GetThreadInfo( CThreadInfo& info ) const
 
     info.SetThreadId( GetThreadID() );
     info.SetThreadStatus( GetThreadStatus() );
+
+    UInt32 sequence = m_threadSequence.Load();
+    if ( 0 != sequence && !m_threadPool.IsNULL() )
+        info.SetThreadName( m_threadPool->GetThreadPoolName() + "#" + ToString( sequence ) );
+
+    // what the delegator thread noted of its current task: m_task itself is not read here, that thread assigns it
+    {
+        MT::CScopeMutex lock( m_currentTaskInfoLock );
+        info.SetCurrentTaskId( m_currentTaskInfoId );
+        info.SetCurrentTaskTypeName( m_currentTaskInfoType );
+        info.SetBusySinceMs( m_currentTaskInfoBusySinceMs );
+    }
         
     UInt64 affinityMask = 0;
     UInt32 affinityMaskSize = sizeof(affinityMask);
@@ -934,6 +988,30 @@ CTaskDelegator::GetThreadInfo( CThreadInfo& info ) const
     }
 
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskDelegator::SetCurrentTaskInfo( const CTaskPtr& task )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_currentTaskInfoLock );
+    m_currentTaskInfoId = task->GetTaskId();
+    m_currentTaskInfoType = task->GetTaskType();
+    m_currentTaskInfoBusySinceMs = task->GetStartedAtMs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskDelegator::ClearCurrentTaskInfo( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_currentTaskInfoLock );
+    m_currentTaskInfoId = 0;
+    m_currentTaskInfoType.Clear();
+    m_currentTaskInfoBusySinceMs = 0;
 }
 
 /*-------------------------------------------------------------------------*/

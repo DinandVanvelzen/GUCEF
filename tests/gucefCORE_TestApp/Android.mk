@@ -58,6 +58,7 @@ LOCAL_SRC_FILES := \
   src/TestDataTableVariant.cpp \
   src/TestDateTime.cpp \
   src/TestDateTimeRange.cpp \
+  src/TestDateTimeSystemLocal.cpp \
   src/TestDecimal.cpp \
   src/TestDecimalVariant.cpp \
   src/TestDedicatedTasks.cpp \
@@ -80,10 +81,14 @@ LOCAL_SRC_FILES := \
   src/TestFutureResultSource.cpp \
   src/TestIniParser.cpp \
   src/TestInt128.cpp \
+  src/TestJobScheduler.cpp \
+  src/TestJobSchedulerPolicies.cpp \
+  src/TestJobSchedulerSupport.cpp \
   src/TestJsonDataNodeFidelity.cpp \
   src/TestJsonSchema.cpp \
   src/TestJsonSyntaxValidator.cpp \
   src/TestLogManagerLockOrder.cpp \
+  src/TestLogManagerLoggerChanges.cpp \
   src/TestLogging.cpp \
   src/TestMemoryDataTable.cpp \
   src/TestNotificationCost.cpp \
@@ -111,7 +116,9 @@ LOCAL_SRC_FILES := \
   src/TestSysConsole.cpp \
   src/TestTableCodecRegistry.cpp \
   src/TestTaskDelegatorWakeUp.cpp \
+  src/TestTaskManagerCounters.cpp \
   src/TestTaskMemoryRetention.cpp \
+  src/TestTaskPoolHotPath.cpp \
   src/TestTaskPulseRequests.cpp \
   src/TestThreadPoolCancellation.cpp \
   src/TestTimeZoneRules.cpp \

@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTASKDELEGATOR_H
@@ -321,6 +320,14 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     MT::CSemaphore* m_wakeUpSignal;         /**< posted to end the delegator thread's wait between cycles, counts at most 1; NULL without a working semaphore (CTaskManager::IsTaskDelegatorWakeUpAvailable()) */
     MT::CTAtomic< bool > m_wakeUpPosted;    /**< whether m_wakeUpSignal holds a post the delegator thread did not take yet */
     MT::CTAtomic< bool > m_waitingForTask;  /**< set by the delegator thread while it has no task and waits for one, cleared by the thread pool that wakes it for a queued task */
+    MT::CTAtomic< UInt32 > m_threadSequence;    /**< n of the thread name <pool>#<n>, set when the thread starts; 0 = no thread of its own (yet) */
+    MT::CMutex m_currentTaskInfoLock;           /**< leaf: what GetThreadInfo() shows of the task being carried out, written by the delegator thread */
+    UInt32 m_currentTaskInfoId;
+    CString m_currentTaskInfoType;
+    UInt64 m_currentTaskInfoBusySinceMs;
+
+    void SetCurrentTaskInfo( const CTaskPtr& task );
+    void ClearCurrentTaskInfo( void );
 };
 
 /*-------------------------------------------------------------------------*/

@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -32,6 +31,7 @@
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
 #include "gucefCORE_CDateTime.h"
+#include "gucefCORE_CTimeZoneRules.h"
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -896,6 +896,110 @@ CDateTime::ToUTC( void ) const
     if ( 0 != m_timezoneOffsetInMins )
         return COSDateTimeUtils::DateTimeToUtc( *this );
     return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The offset of the operating system zone from UTC at the instant, in minutes east of UTC, with daylight saving applied. False when the platform cannot say */
+bool
+GetSystemZoneOffsetMinutesAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // SYSTEMTIME covers the years 1601 to 30827
+    Int64 days = utcSeconds / 86400;
+    Int64 secondOfDay = utcSeconds % 86400;
+    if ( secondOfDay < 0 )
+    {
+        secondOfDay += 86400;
+        --days;
+    }
+    Int64 year = 0;
+    Int32 month = 0, day = 0;
+    CTimeZoneRules::CivilFromDays( days, year, month, day );
+    if ( year < 1602 || year > 30826 )
+        return false;
+
+    ::SYSTEMTIME utcSystemTime;
+    memset( &utcSystemTime, 0, sizeof( utcSystemTime ) );
+    utcSystemTime.wYear = (WORD) year;
+    utcSystemTime.wMonth = (WORD) month;
+    utcSystemTime.wDay = (WORD) day;
+    utcSystemTime.wHour = (WORD) ( secondOfDay / 3600 );
+    utcSystemTime.wMinute = (WORD) ( ( secondOfDay % 3600 ) / 60 );
+    utcSystemTime.wSecond = (WORD) ( secondOfDay % 60 );
+
+    ::SYSTEMTIME localSystemTime;
+    memset( &localSystemTime, 0, sizeof( localSystemTime ) );
+    if ( 0 == ::SystemTimeToTzSpecificLocalTime( GUCEF_NULL, &utcSystemTime, &localSystemTime ) )
+        return false;
+
+    Int64 localSeconds = CTimeZoneRules::DaysFromCivil( localSystemTime.wYear, localSystemTime.wMonth, localSystemTime.wDay ) * 86400 +
+                         localSystemTime.wHour * 3600 + localSystemTime.wMinute * 60 + localSystemTime.wSecond;
+    offsetMinutes = (Int32) ( ( localSeconds - utcSeconds ) / 60 );
+    return true;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    time_t instant = (time_t) utcSeconds;
+    if ( (Int64) instant != utcSeconds )
+        return false;
+
+    // localtime_r() is not required to look at the TZ variable again: tzset() makes it follow the variable
+    ::tzset();
+    struct tm localTime;
+    memset( &localTime, 0, sizeof( localTime ) );
+    if ( GUCEF_NULL == ::localtime_r( &instant, &localTime ) )
+        return false;
+    offsetMinutes = (Int32) ( localTime.tm_gmtoff / 60 );
+    return true;
+
+    #else
+
+    // no way to ask this platform: the caller shows UTC
+    return false;
+
+    #endif
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDateTime
+CDateTime::ToSystemLocal( void ) const
+{GUCEF_TRACE;
+
+    // The instant in whole seconds plus milliseconds, from the date and time and the offset this value carries
+    Int64 days = CTimeZoneRules::DaysFromCivil( GetYear(), GetMonth(), GetDay() );
+    Int64 utcSeconds = days * 86400 + (Int64) GetHours() * 3600 + (Int64) GetMinutes() * 60 + GetSeconds() - (Int64) m_timezoneOffsetInMins * 60;
+    Int32 milliseconds = GetMilliseconds();
+
+    Int32 offsetMinutes = 0;
+    if ( !GetSystemZoneOffsetMinutesAtUtcSeconds( utcSeconds, offsetMinutes ) )
+        offsetMinutes = 0;      // the platform cannot say: the value is shown as UTC, which is always correct
+
+    Int64 localSeconds = utcSeconds + (Int64) offsetMinutes * 60;
+    Int64 localDays = localSeconds / 86400;
+    Int64 secondOfDay = localSeconds % 86400;
+    if ( secondOfDay < 0 )
+    {
+        secondOfDay += 86400;
+        --localDays;
+    }
+    Int64 year = 0;
+    Int32 month = 0, day = 0;
+    CTimeZoneRules::CivilFromDays( localDays, year, month, day );
+
+    return CDateTime( (Int16) year, (UInt8) month, (UInt8) day                  ,
+                      (Int8) ( secondOfDay / 3600 )                             ,
+                      (Int8) ( ( secondOfDay % 3600 ) / 60 )                    ,
+                      (Int8) ( secondOfDay % 60 )                               ,
+                      (Int16) milliseconds                                      ,
+                      (Int16) offsetMinutes                                     );
 }
 
 /*-------------------------------------------------------------------------*/

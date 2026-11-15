@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTASKMANAGER_H
@@ -50,6 +49,21 @@
 #include "gucefCORE_CASync.h"
 #define GUCEF_CORE_CASYNC_H
 #endif /* GUCEF_CORE_CASYNC_H ? */
+
+#ifndef GUCEF_CORE_CJOBSCHEDULER_H
+#include "gucefCORE_CJobScheduler.h"
+#define GUCEF_CORE_CJOBSCHEDULER_H
+#endif /* GUCEF_CORE_CJOBSCHEDULER_H ? */
+
+#ifndef GUCEF_CORE_CTHREADPOOLCOUNTERS_H
+#include "gucefCORE_CThreadPoolCounters.h"
+#define GUCEF_CORE_CTHREADPOOLCOUNTERS_H
+#endif /* GUCEF_CORE_CTHREADPOOLCOUNTERS_H ? */
+
+#ifndef GUCEF_CORE_CSCHEDULEDJOBINFO_H
+#include "gucefCORE_CScheduledJobInfo.h"
+#define GUCEF_CORE_CSCHEDULEDJOBINFO_H
+#endif /* GUCEF_CORE_CSCHEDULEDJOBINFO_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -94,6 +108,8 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     static const CEvent GlobalTaskConsumerFactoryUnregisteredEvent;
     static const CEvent GlobalTaskDataFactoryRegisteredEvent;
     static const CEvent GlobalTaskDataFactoryUnregisteredEvent;
+    static const CEvent JobSchedulerCreatedEvent;
+    static const CEvent JobSchedulerUnregisteredEvent;
 
     typedef TCloneableString    ThreadPoolCreatedEventData;                           /**< name of the thread pool that is created */
     typedef TCloneableString    ThreadPoolDestructionEventData;                       /**< name of the thread pool that is being destroyed */
@@ -102,6 +118,8 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     typedef TCloneableString    GlobalTaskConsumerFactoryUnregisteredEventData;       /**< name of the task consumer factory which is no longer registered */
     typedef TCloneableString    GlobalTaskDataFactoryRegisteredEventData;             /**< name of the task data factory which is newly registered */
     typedef TCloneableString    GlobalTaskDataFactoryUnregisteredEventData;           /**< name of the task data factory which is no longer registered */
+    typedef TCloneableString    JobSchedulerCreatedEventData;                         /**< host name of the job scheduler that is created */
+    typedef TCloneableString    JobSchedulerUnregisteredEventData;                    /**< host name of the job scheduler that is unregistered */
 
     static void RegisterEvents( void );
 
@@ -113,6 +131,8 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     typedef CThreadPool::TThreadInfoMap                     TThreadInfoMap;
     typedef GUCEF::map< CString, CThreadPoolInfo >          TThreadPoolInfoMap;
     typedef GUCEF::vector< ThreadPoolPtr >                  ThreadPoolVector;
+    typedef GUCEF::vector< JobSchedulerPtr >                JobSchedulerVector;
+    typedef GUCEF::map< CString, CThreadPoolCounters >      TThreadPoolCounterMap;
 
     static const CString ClassTypeName;
     static const CString DefaultThreadPoolName; 
@@ -142,6 +162,27 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     bool UnregisterThreadPool( ThreadPoolPtr threadPool );
 
     void UnregisterAllThreadPools( void );
+
+    /**
+     *  Job schedulers are a facility of the task manager: threads are globally impactful and the task manager is the
+     *  overview of them, so schedulers are created, owned and found here, like thread pools. Returns the scheduler
+     *  registered under the settings' host name, or creates, registers and returns a new one (JobSchedulerCreatedEvent).
+     *  A second call with the same name returns the existing scheduler and ignores the settings given.
+     *  The main pulse generator is the application's main (notification) pulse generator: scheduler events are mailed
+     *  to it and MAIN_THREAD runs are carried out on its thread. Start() is the caller's, after jobs are added.
+     *  Shutdown() stops and unregisters every scheduler before the pools stop.
+     */
+    JobSchedulerPtr GetOrCreateJobScheduler( const CJobSchedulerSettings& settings ,
+                                             PulseGeneratorPtr mainPulseGenerator  );
+
+    JobSchedulerPtr GetJobScheduler( const CString& hostName ) const;
+
+    void GetAllJobSchedulers( JobSchedulerVector& schedulers ) const;
+
+    void GetAllJobSchedulerNames( CString::StringSet& hostNames ) const;
+
+    /** Stops (outside the task manager lock) and unregisters the scheduler (JobSchedulerUnregisteredEvent) */
+    bool UnregisterJobScheduler( const CString& hostName );
     
     /**
      *  Queues a task for execution as soon as a thread is available
@@ -308,6 +349,17 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     bool GetAllThreadInfo( TThreadInfoMap& info ) const;
 
     /**
+     *  The counters of every pool (CThreadPoolCounters), without a walk over tasks: read lock of the task manager only
+     */
+    bool GetPoolCounters( TThreadPoolCounterMap& counters ) const;
+
+    /**
+     *  The jobs of every job scheduler as the overview shows them next to the pools and tasks, including which run on
+     *  the main thread. Taken per scheduler (CJobScheduler::GetScheduledJobInfo()) without the task manager lock held
+     */
+    bool GetAllScheduledJobInfo( TScheduledJobInfoVector& info ) const;
+
+    /**
      *  Obtains a snapshot in time of which task which what id is being processed by a thread with the given thread id
      *  Note that since this is information that can change at any time this is for informational/debugging (display?) purposes only
      *
@@ -408,12 +460,19 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     void RegisterEventHandlers( void );
 
+    /** Stops (outside the task manager lock) and unregisters every job scheduler: the first step of Shutdown() */
+    void StopAndUnregisterAllJobSchedulers( void );
+
+    /** The scheduler and job counts of the info classes, asked of the schedulers without the task manager lock */
+    void AddScheduledJobCounts( CTaskManagerInfo* managerInfo, TThreadPoolInfoMap* poolInfo ) const;
+
     CTaskManager( const CTaskManager& src );            /**< not implemented */
     CTaskManager& operator=( const CTaskManager& src ); /**< not implemented */
 
     private:
 
     typedef GUCEF::map< CString, ThreadPoolPtr > ThreadPoolMap;
+    typedef GUCEF::map< CString, JobSchedulerPtr > JobSchedulerMap;
     typedef CTAbstractFactory< CString, CTaskConsumer, MT::CMutex > TAbstractTaskConsumerFactory;
     typedef CTAbstractFactory< CString, CIDataNodeSerializableTaskData, MT::CMutex > TAbstractTaskDataFactory;
     typedef CTask::TTaskIdGenerator TTaskIdGenerator;
@@ -438,6 +497,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     TAbstractTaskConsumerFactory m_consumerFactory;
     TAbstractTaskDataFactory m_taskDataFactory;
     ThreadPoolMap m_threadPools;
+    JobSchedulerMap m_jobSchedulers;
 
     TExternalThreadMap m_externalThreads;
     UInt32 m_desiredGlobalNrOfThreads;

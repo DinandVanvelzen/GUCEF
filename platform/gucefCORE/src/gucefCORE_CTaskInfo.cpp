@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -72,6 +71,12 @@ CTaskInfo::CTaskInfo( void )
     , m_customTaskDataIsSerializable( false )
     , m_taskData( GUCEF_DATATYPE_NIL )
     , m_taskTypeName()
+    , m_threadPoolName()
+    , m_queuedAtMs( 0 )
+    , m_startedAtMs( 0 )
+    , m_schedulerName()
+    , m_scheduledJobId()
+    , m_scheduledRunId( 0 )
 {GUCEF_TRACE;
 
 }
@@ -87,6 +92,12 @@ CTaskInfo::CTaskInfo( const CTaskInfo& src )
     , m_customTaskDataIsSerializable( src.m_customTaskDataIsSerializable )
     , m_taskData( src.m_taskData )
     , m_taskTypeName( src.m_taskTypeName )
+    , m_threadPoolName( src.m_threadPoolName )
+    , m_queuedAtMs( src.m_queuedAtMs )
+    , m_startedAtMs( src.m_startedAtMs )
+    , m_schedulerName( src.m_schedulerName )
+    , m_scheduledJobId( src.m_scheduledJobId )
+    , m_scheduledRunId( src.m_scheduledRunId )
 {GUCEF_TRACE;
 
 }
@@ -112,6 +123,12 @@ CTaskInfo::Clear( void )
     m_customTaskDataIsSerializable = false;
     m_taskData.Clear();
     m_taskTypeName.Clear();
+    m_threadPoolName = CString();
+    m_queuedAtMs = 0;
+    m_startedAtMs = 0;
+    m_schedulerName = CString();
+    m_scheduledJobId = CString();
+    m_scheduledRunId = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -129,6 +146,16 @@ CTaskInfo::Serialize( CDataNode& domRootNode                        ,
     totalSuccess = domRootNode.SetAttribute( "hasTaskData", m_hasTaskData ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "customTaskDataIsSerializable", m_customTaskDataIsSerializable ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "taskTypeName", m_taskTypeName ) && totalSuccess;
+    if ( !m_threadPoolName.IsNULLOrEmpty() )
+        totalSuccess = domRootNode.SetAttribute( "threadPoolName", m_threadPoolName ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "queuedAtMs", m_queuedAtMs ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "startedAtMs", m_startedAtMs ) && totalSuccess;
+    if ( !m_schedulerName.IsNULLOrEmpty() )
+    {
+        totalSuccess = domRootNode.SetAttribute( "schedulerName", m_schedulerName ) && totalSuccess;
+        totalSuccess = domRootNode.SetAttribute( "scheduledJobId", m_scheduledJobId ) && totalSuccess;
+        totalSuccess = domRootNode.SetAttribute( "scheduledRunId", m_scheduledRunId ) && totalSuccess;
+    }
 
     if ( CDataNodeSerializableSettings::DataNodeSerializableLod_MinimumDetails < settings.levelOfDetail )
     {
@@ -176,6 +203,12 @@ CTaskInfo::Deserialize( const CDataNode& domRootNode                  ,
     m_hasTaskData = domRootNode.GetAttributeValueOrChildValueByName( "hasTaskData" ).AsBool( m_hasTaskData, true );
     m_customTaskDataIsSerializable = domRootNode.GetAttributeValueOrChildValueByName( "customTaskDataIsSerializable" ).AsBool( m_customTaskDataIsSerializable, true );
     m_taskTypeName = domRootNode.GetAttributeValueOrChildValueByName( "taskTypeName" ).AsString( m_taskTypeName, true );
+    m_threadPoolName = domRootNode.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( m_threadPoolName, true );
+    m_queuedAtMs = domRootNode.GetAttributeValueOrChildValueByName( "queuedAtMs" ).AsUInt64( m_queuedAtMs, true );
+    m_startedAtMs = domRootNode.GetAttributeValueOrChildValueByName( "startedAtMs" ).AsUInt64( m_startedAtMs, true );
+    m_schedulerName = domRootNode.GetAttributeValueOrChildValueByName( "schedulerName" ).AsString( m_schedulerName, true );
+    m_scheduledJobId = domRootNode.GetAttributeValueOrChildValueByName( "scheduledJobId" ).AsString( m_scheduledJobId, true );
+    m_scheduledRunId = domRootNode.GetAttributeValueOrChildValueByName( "scheduledRunId" ).AsUInt64( m_scheduledRunId, true );
 
     CDataNode* taskDataNode = domRootNode.FindChild( "customTaskData" );
     if ( GUCEF_NULL != taskDataNode )
@@ -332,6 +365,115 @@ CTaskInfo::GetCustomTaskData( void )
 
     return m_taskData;
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetThreadPoolName( const CString& threadPoolName )
+{GUCEF_TRACE;
+
+    m_threadPoolName = threadPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CTaskInfo::GetThreadPoolName( void ) const
+{GUCEF_TRACE;
+
+    return m_threadPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetQueuedAtMs( UInt64 queuedAtMs )
+{GUCEF_TRACE;
+
+    m_queuedAtMs = queuedAtMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CTaskInfo::GetQueuedAtMs( void ) const
+{GUCEF_TRACE;
+
+    return m_queuedAtMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetStartedAtMs( UInt64 startedAtMs )
+{GUCEF_TRACE;
+
+    m_startedAtMs = startedAtMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CTaskInfo::GetStartedAtMs( void ) const
+{GUCEF_TRACE;
+
+    return m_startedAtMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetSchedulerName( const CString& schedulerName )
+{GUCEF_TRACE;
+
+    m_schedulerName = schedulerName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CTaskInfo::GetSchedulerName( void ) const
+{GUCEF_TRACE;
+
+    return m_schedulerName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetScheduledJobId( const CString& scheduledJobId )
+{GUCEF_TRACE;
+
+    m_scheduledJobId = scheduledJobId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CTaskInfo::GetScheduledJobId( void ) const
+{GUCEF_TRACE;
+
+    return m_scheduledJobId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskInfo::SetScheduledRunId( UInt64 scheduledRunId )
+{GUCEF_TRACE;
+
+    m_scheduledRunId = scheduledRunId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CTaskInfo::GetScheduledRunId( void ) const
+{GUCEF_TRACE;
+
+    return m_scheduledRunId;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -55,6 +54,10 @@ CThreadInfo::CThreadInfo( void )
     , m_threadCpuId( 0 )
     , m_threadName()
     , m_isExternal( false )
+    , m_threadPoolName()
+    , m_currentTaskId( 0 )
+    , m_currentTaskTypeName()
+    , m_busySinceMs( 0 )
 {GUCEF_TRACE;
 
 }
@@ -69,6 +72,10 @@ CThreadInfo::CThreadInfo( const CThreadInfo& src )
     , m_threadCpuId( src.m_threadCpuId )
     , m_threadName( src.m_threadName )
     , m_isExternal( src.m_isExternal )
+    , m_threadPoolName( src.m_threadPoolName )
+    , m_currentTaskId( src.m_currentTaskId )
+    , m_currentTaskTypeName( src.m_currentTaskTypeName )
+    , m_busySinceMs( src.m_busySinceMs )
 {GUCEF_TRACE;
 
 }
@@ -93,6 +100,10 @@ CThreadInfo::Clear( void )
     m_threadCpuId = 0;
     m_threadName.Clear();
     m_isExternal = false;
+    m_threadPoolName = CString();
+    m_currentTaskId = 0;
+    m_currentTaskTypeName = CString();
+    m_busySinceMs = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -111,6 +122,12 @@ CThreadInfo::Serialize( CDataNode& domRootNode                        ,
     totalSuccess = domRootNode.SetAttribute( "isExternal", m_isExternal ) && totalSuccess;
     if ( !m_threadName.IsNULLOrEmpty() )
         totalSuccess = domRootNode.SetAttribute( "threadName", m_threadName ) && totalSuccess;
+    if ( !m_threadPoolName.IsNULLOrEmpty() )
+        totalSuccess = domRootNode.SetAttribute( "threadPoolName", m_threadPoolName ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "currentTaskId", m_currentTaskId ) && totalSuccess;
+    if ( !m_currentTaskTypeName.IsNULLOrEmpty() )
+        totalSuccess = domRootNode.SetAttribute( "currentTaskTypeName", m_currentTaskTypeName ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "busySinceMs", m_busySinceMs ) && totalSuccess;
 
     if ( CDataNodeSerializableSettings::DataNodeSerializableLod_MinimumDetails < settings.levelOfDetail )
     {
@@ -135,6 +152,10 @@ CThreadInfo::Deserialize( const CDataNode& domRootNode                  ,
     m_threadCpuId = domRootNode.GetAttributeValueOrChildValueByName( "threadCpuId" ).AsUInt32( m_threadCpuId, true );
     m_threadName = domRootNode.GetAttributeValueOrChildValueByName( "threadName" ).AsString( m_threadName, true );
     m_isExternal = domRootNode.GetAttributeValueOrChildValueByName( "isExternal" ).AsBool( m_isExternal, true );
+    m_threadPoolName = domRootNode.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( m_threadPoolName, true );
+    m_currentTaskId = domRootNode.GetAttributeValueOrChildValueByName( "currentTaskId" ).AsUInt32( m_currentTaskId, true );
+    m_currentTaskTypeName = domRootNode.GetAttributeValueOrChildValueByName( "currentTaskTypeName" ).AsString( m_currentTaskTypeName, true );
+    m_busySinceMs = domRootNode.GetAttributeValueOrChildValueByName( "busySinceMs" ).AsUInt64( m_busySinceMs, true );
 
     return true;
 }
@@ -264,6 +285,79 @@ CThreadInfo::GetThreadAffinityByCpuId( void ) const
 
     return m_threadCpuId;
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetThreadPoolName( const CString& threadPoolName )
+{GUCEF_TRACE;
+
+    m_threadPoolName = threadPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CThreadInfo::GetThreadPoolName( void ) const
+{GUCEF_TRACE;
+
+    return m_threadPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetCurrentTaskId( UInt32 currentTaskId )
+{GUCEF_TRACE;
+
+    m_currentTaskId = currentTaskId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadInfo::GetCurrentTaskId( void ) const
+{GUCEF_TRACE;
+
+    return m_currentTaskId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetCurrentTaskTypeName( const CString& currentTaskTypeName )
+{GUCEF_TRACE;
+
+    m_currentTaskTypeName = currentTaskTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CThreadInfo::GetCurrentTaskTypeName( void ) const
+{GUCEF_TRACE;
+
+    return m_currentTaskTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetBusySinceMs( UInt64 busySinceMs )
+{GUCEF_TRACE;
+
+    m_busySinceMs = busySinceMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CThreadInfo::GetBusySinceMs( void ) const
+{GUCEF_TRACE;
+
+    return m_busySinceMs;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -146,6 +146,11 @@
 #define GUCEF_CORE_TESTAPP_TESTDATETIMERANGE_H
 #endif /* GUCEF_CORE_TESTAPP_TESTDATETIMERANGE_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTDATETIMESYSTEMLOCAL_H
+#include "TestDateTimeSystemLocal.h"
+#define GUCEF_CORE_TESTAPP_TESTDATETIMESYSTEMLOCAL_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATETIMESYSTEMLOCAL_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTTOKENIZER_H
 #include "TestTokenizer.h"
 #define GUCEF_CORE_TESTAPP_TESTTOKENIZER_H
@@ -322,6 +327,7 @@
 #ifndef GUCEF_CORE_TESTAPP_TESTLOGGING_H
 #include "TestLogging.h"
 #include "TestLogManagerLockOrder.h"
+#include "TestLogManagerLoggerChanges.h"
 #include "TestPumpedObserverLockOrder.h"
 #include "TestPumpedObserverMail.h"
 #include "TestAppStopWithTasks.h"
@@ -447,6 +453,29 @@
 #define GUCEF_CORE_TESTAPP_TESTSERVICEHEALTHREGISTRY_H
 #endif /* GUCEF_CORE_TESTAPP_TESTSERVICEHEALTHREGISTRY_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTTASKPOOLHOTPATH_H
+#include "TestTaskPoolHotPath.h"
+#define GUCEF_CORE_TESTAPP_TESTTASKPOOLHOTPATH_H
+#endif /* GUCEF_CORE_TESTAPP_TESTTASKPOOLHOTPATH_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H
+#include "TestJobScheduler.h"
+#define GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H
+#endif /* GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTJOBSCHEDULERPOLICIES_H
+#include "TestJobSchedulerPolicies.h"
+#define GUCEF_CORE_TESTAPP_TESTJOBSCHEDULERPOLICIES_H
+#endif /* GUCEF_CORE_TESTAPP_TESTJOBSCHEDULERPOLICIES_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTTASKMANAGERCOUNTERS_H
+#include "TestTaskManagerCounters.h"
+#define GUCEF_CORE_TESTAPP_TESTTASKMANAGERCOUNTERS_H
+#endif /* GUCEF_CORE_TESTAPP_TESTTASKMANAGERCOUNTERS_H ? */
+
+/** runs only the suites of the job scheduler and the task manager counters (a quick run while working on them) */
+#define GUCEF_CORE_TESTAPP_JOB_SCHEDULER_SUITES_ARG    "--job-scheduler-suites"
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -478,6 +507,10 @@ GUCEF_OSMAIN_BEGIN
         if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_LOG_BUFFER_SWAP_RACE_ARG ) )
             return RunLogBufferSwapRace();
 
+        // started by a test as the process of a case of logger changes, see TestLogManagerLoggerChanges.h
+        if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_LOGGER_CHANGE_CASE_ARG ) )
+            return RunLoggerChangeCase( argv[ 2 ] );
+
         // started by a test as the application that stops while a task of it calls into it, see TestAppStopWithTasks.h
         if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_APP_STOP_WITH_TASK_ARG ) )
             return RunAppStopWithAppUsingTask();
@@ -489,6 +522,14 @@ GUCEF_OSMAIN_BEGIN
         // started by a test as the application whose exit it looks at
         if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_EXIT_WITH_CONSOLE_LOG_WINDOW_ARG ) )
             return RunExitWithConsoleLogWindow();
+
+        // started by a test as the process whose task manager shuts down with a running job scheduler, see TestTaskManagerCounters.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_SCHEDULER_SHUTDOWN_ARG ) )
+            return RunJobSchedulerShutdownChild();
+
+        // started by a test as the process whose pool task ends while it exits, see TestTaskManagerCounters.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_POOL_TASK_ENDS_AT_EXIT_ARG ) )
+            return RunPoolTaskEndsAtExitChild();
 
         // started by a test framework test as a run of its own with assertions outside its test cases, see TestFrameworkSuites.h
         if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_ASSERT_OUTSIDE_CASES_ARG ) )
@@ -524,6 +565,19 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefCORE_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_JOB_SCHEDULER_SUITES_ARG ) )
+        {
+            PerformTaskManagerCounterTests();
+            PerformJobSchedulerPolicyTests();
+            PerformJobSchedulerTests();
+            PerformTaskPoolHotPathTests();
+
+            GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+            GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );
+            GUCEF_TESTFW_WRITE_RESULTS( subsetXmlPath.C_String() );
+            return GUCEF_TESTFW_EXITCODE;
+        }
+
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         
         PerformStringTests();
@@ -540,6 +594,7 @@ GUCEF_OSMAIN_BEGIN
         PerformStopwatchTests();
         PerformDateTimeTests();
         PerformDateTimeRangeTests();
+        PerformDateTimeSystemLocalTests();
         PerformUriTests();
         PerformVersionTests();
         PerformVersionRangeTests();
@@ -572,6 +627,7 @@ GUCEF_OSMAIN_BEGIN
         PerformVariantStreamTests();
         PerformLoggingTests();
         PerformLogManagerLockOrderTests();
+        PerformLogManagerLoggerChangeTests();
         PerformPumpedObserverLockOrderTests();
         PerformPumpedObserverMailTests();
         PerformAppStopWithTasksTests();
@@ -636,6 +692,10 @@ GUCEF_OSMAIN_BEGIN
         PerformServiceHostingTests();
         PerformServiceHealthRegistryTests();
         PerformCpuIsaFeaturesTests();
+        PerformTaskPoolHotPathTests();
+        PerformTaskManagerCounterTests();
+        PerformJobSchedulerPolicyTests();
+        PerformJobSchedulerTests();
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );

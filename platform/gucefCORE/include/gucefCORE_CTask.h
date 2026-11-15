@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTASK_H
@@ -67,6 +66,16 @@
 #include "gucefCORE_CDeferredTask.h"
 #define GUCEF_CORE_CDEFERREDTASK_H
 #endif /* GUCEF_CORE_CDEFERREDTASK_H ? */
+
+#ifndef GUCEF_CORE_CJOBSCHEDULERRUNLINK_H
+#include "gucefCORE_CJobSchedulerRunLink.h"
+#define GUCEF_CORE_CJOBSCHEDULERRUNLINK_H
+#endif /* GUCEF_CORE_CJOBSCHEDULERRUNLINK_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -329,6 +338,24 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     /** Releases what one use of the task holds, shared by Clear() and the destructor */
     void ClearUseState( void );
 
+    /**
+     *  Monotonic time (CSystemMonotonicClock, ms) at which the task was queued and at which a thread started it, set by
+     *  the thread pool at those transitions; 0 = not (yet). Relaxed atomic stores: the task info reads them from
+     *  other threads
+     */
+    void SetQueuedAtMs( UInt64 queuedAtMs );
+    UInt64 GetQueuedAtMs( void ) const;
+    void SetStartedAtMs( UInt64 startedAtMs );
+    UInt64 GetStartedAtMs( void ) const;
+
+    /**
+     *  The run of a scheduled job (CJobScheduler) that this task carries out, set by the thread pool before the task
+     *  is queued (CThreadPool::QueueScheduledRunTask()). The link is told when the task ends
+     */
+    void SetScheduledRun( const CJobSchedulerRunLinkPtr& runLink, const CString& jobId, UInt64 runId );
+    bool GetScheduledRun( CJobSchedulerRunLinkPtr& runLink, CString& jobId, UInt64& runId ) const;
+    bool IsScheduledRun( void ) const;
+
     private:
 
     CICloneable* m_taskData;
@@ -342,6 +369,11 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     TTaskStatus m_taskStatus;
     CString m_taskStatusExtraInfo;
     TTaskIdVector m_chainTasks;
+    MT::CTAtomic< UInt64 > m_queuedAtMs;
+    MT::CTAtomic< UInt64 > m_startedAtMs;
+    CJobSchedulerRunLinkPtr m_runLink;      /**< set for a run of a scheduled job only */
+    CString m_scheduledJobId;
+    UInt64 m_scheduledRunId;
     MT::CMutex m_lock;
 };
 

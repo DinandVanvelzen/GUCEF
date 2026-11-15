@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CTHREADINFO_H
@@ -123,6 +122,21 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
 
     UInt32 GetThreadAffinityByCpuId( void ) const;
 
+    /** The pool of the thread (the external pseudo pool for external threads) */
+    void SetThreadPoolName( const CString& threadPoolName );
+    const CString& GetThreadPoolName( void ) const;
+
+    /** The task the thread works on; 0 = none */
+    void SetCurrentTaskId( UInt32 currentTaskId );
+    UInt32 GetCurrentTaskId( void ) const;
+
+    void SetCurrentTaskTypeName( const CString& currentTaskTypeName );
+    const CString& GetCurrentTaskTypeName( void ) const;
+
+    /** Monotonic time at which the thread started its current task; 0 = idle */
+    void SetBusySinceMs( UInt64 busySinceMs );
+    UInt64 GetBusySinceMs( void ) const;
+
     void Clear( void );
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -137,6 +151,10 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
     UInt32 m_threadCpuId;
     CString m_threadName;
     bool m_isExternal;
+    CString m_threadPoolName;
+    UInt32 m_currentTaskId;
+    CString m_currentTaskTypeName;
+    UInt64 m_busySinceMs;
 };
 
 /*-------------------------------------------------------------------------//

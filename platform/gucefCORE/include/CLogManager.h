@@ -121,6 +121,8 @@ class CThreadLogBuffers;
 class CPlatformNativeConsoleLogger;
 class CIConsoleLogger;
 class CUserActionLogger;
+class CLogManagerLoggingTask;
+class CLogManagerLoggerChange;
 
 /*-------------------------------------------------------------------------*/
 
@@ -128,10 +130,18 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
 {
     public:
 
+    /**
+     *  Adds a logger: the messages logged once this returned reach it.
+     *  With the logging thread (SetUseLoggingThread()) that thread makes the change between two batches of messages,
+     *  and this waits for it: the delivery of a message takes no lock for the loggers, the change takes the cost.
+     *  A logger may add and remove loggers from within its log call, also on the logging thread.
+     */
     void AddLogger( CILogger* loggerImp );
 
+    /** Removes a logger: once this returns the log manager does not call it any more, it may be destroyed. See AddLogger() */
     void RemoveLogger( CILogger* loggerImp );
 
+    /** Removes all loggers, see RemoveLogger() */
     void ClearLoggers( void );
 
     /**
@@ -252,6 +262,12 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
      */
     UInt32 FlushThreadStreamBuffers( void );
 
+    /**
+     *  Whether the loggers are called on a logging thread of their own instead of on the threads that log.
+     *  Switched off, the logging thread delivers what was handed to it and ends; the log manager delivers itself from
+     *  then on, after what the logging thread delivered. Switched off from the logging thread itself (a logger), the
+     *  switch takes effect once the logging thread ended.
+     */
     void SetUseLoggingThread( bool useLogThread );
 
     bool GetUseLoggingThread( void ) const;
@@ -308,6 +324,8 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     private:
     friend class CLoggingGlobal;
     friend class CCoreGlobal;
+    friend class CLogManagerLoggingTask;
+    friend class CLogManagerLoggerChange;
 
     CLogManager( void );
 
@@ -347,11 +365,32 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     /** Called on the thread the buffers are for, threadId is its MT::GetCurrentThreadID() */
     CThreadLogBuffers* GetOrCreateThreadBuffers( TThreadId threadId );
 
-    /** pauses the logging task, if there is one, without the lock of the log manager; returns that task */
-    CLoggingTaskBasePtr PauseLoggingTask( void );
+    enum ELoggerChange
+    {
+        LOGGERS_ADD     ,
+        LOGGERS_REMOVE  ,
+        LOGGERS_CLEAR
+    };
+    typedef enum ELoggerChange TLoggerChange;
 
-    /** resumes the task PauseLoggingTask() paused, without the lock of the log manager */
-    void ResumeLoggingTask( CLoggingTaskBasePtr& loggingTask );
+    /**
+     *  Changes the loggers: here under the lock of the log manager without a logging thread, else on the logging thread
+     *  between two batches of messages (CLoggingTask::RunOnTaskThread()). Called without the lock of the log manager
+     */
+    void ChangeLoggers( TLoggerChange change, CILogger* logger );
+
+    /**
+     *  Makes the change, under the lock of the log manager.
+     *  @param mayBeWhileLogging true when the calling thread may be within a delivery of the loggers
+     */
+    void ApplyLoggerChange( TLoggerChange change, CILogger* logger, bool mayBeWhileLogging );
+
+    /**
+     *  On the thread that ends the logging task, from its OnTaskEnded(): delivers what is still queued for the task and
+     *  takes the delivery over, under the lock of the log manager, under which messages are handed to the task: none
+     *  comes in between
+     */
+    void OnLoggingTaskEnded( CLoggingTask& loggingTask );
 
     CMultiLogger* m_loggers;
     CPlatformNativeConsoleLogger* m_nativeConsoleLogger;
@@ -364,6 +403,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     UInt32 m_maxBootstrapLogEntries;
     UInt64 m_droppedBootstrapLogEntries;
     bool m_busyLogging;
+    UInt32 m_loggerWalkDepth;                       /**< calls to all loggers this thread makes under the lock (SetMinLogLevel(), FlushLogs()), besides the delivery (m_busyLogging) */
     bool m_redirectToLogQueue;
     TAbstractLoggingFormatterFactory m_logFormatterFactory;
     CString m_defaultLogFormatter;

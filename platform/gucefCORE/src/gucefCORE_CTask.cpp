@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -65,6 +64,11 @@ CTask::CTask( TTaskStatus taskStatus )
     , m_taskStatus( taskStatus )
     , m_taskStatusExtraInfo()
     , m_chainTasks()
+    , m_queuedAtMs( 0 )
+    , m_startedAtMs( 0 )
+    , m_runLink()
+    , m_scheduledJobId()
+    , m_scheduledRunId( 0 )
     , m_lock()
 {GUCEF_TRACE;
 
@@ -97,6 +101,11 @@ CTask::CTask( const CTask& src )
     , m_taskStatus( src.m_taskStatus )
     , m_taskStatusExtraInfo( src.m_taskStatusExtraInfo )
     , m_chainTasks( src.m_chainTasks )
+    , m_queuedAtMs( src.m_queuedAtMs.Load() )
+    , m_startedAtMs( src.m_startedAtMs.Load() )
+    , m_runLink( src.m_runLink )
+    , m_scheduledJobId( src.m_scheduledJobId )
+    , m_scheduledRunId( src.m_scheduledRunId )
     , m_lock()
 {GUCEF_TRACE;
 
@@ -121,6 +130,11 @@ CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
     , m_taskStatus( src.m_taskStatus )
     , m_taskStatusExtraInfo( GUCEF_MOVE( src.m_taskStatusExtraInfo ) )
     , m_chainTasks( GUCEF_MOVE( src.m_chainTasks ) )
+    , m_queuedAtMs( src.m_queuedAtMs.Load() )
+    , m_startedAtMs( src.m_startedAtMs.Load() )
+    , m_runLink( src.m_runLink )
+    , m_scheduledJobId( GUCEF_MOVE( src.m_scheduledJobId ) )
+    , m_scheduledRunId( src.m_scheduledRunId )
     , m_lock( GUCEF_MOVE( src.m_lock ) )
 {GUCEF_TRACE;
 
@@ -577,6 +591,82 @@ CTask::ClearUseState( void )
     m_taskType.Clear();
     m_taskConsumer.Unlink();
     m_threadPool.Unlink();        
+    m_queuedAtMs.Store( 0, MT::MEMORDER_RELAXED );
+    m_startedAtMs.Store( 0, MT::MEMORDER_RELAXED );
+    m_runLink.Unlink();
+    m_scheduledJobId.Clear();
+    m_scheduledRunId = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTask::SetQueuedAtMs( UInt64 queuedAtMs )
+{GUCEF_TRACE;
+
+    m_queuedAtMs.Store( queuedAtMs, MT::MEMORDER_RELAXED );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CTask::GetQueuedAtMs( void ) const
+{GUCEF_TRACE;
+
+    return m_queuedAtMs.Load( MT::MEMORDER_RELAXED );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTask::SetStartedAtMs( UInt64 startedAtMs )
+{GUCEF_TRACE;
+
+    m_startedAtMs.Store( startedAtMs, MT::MEMORDER_RELAXED );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CTask::GetStartedAtMs( void ) const
+{GUCEF_TRACE;
+
+    return m_startedAtMs.Load( MT::MEMORDER_RELAXED );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTask::SetScheduledRun( const CJobSchedulerRunLinkPtr& runLink, const CString& jobId, UInt64 runId )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_runLink = runLink;
+    m_scheduledJobId = jobId;
+    m_scheduledRunId = runId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::GetScheduledRun( CJobSchedulerRunLinkPtr& runLink, CString& jobId, UInt64& runId ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    runLink = m_runLink;
+    jobId = m_scheduledJobId;
+    runId = m_scheduledRunId;
+    return !m_runLink.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::IsScheduledRun( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return !m_runLink.IsNULL();
 }
                                                                                                                                                                                                                                      
 /*-------------------------------------------------------------------------*/
