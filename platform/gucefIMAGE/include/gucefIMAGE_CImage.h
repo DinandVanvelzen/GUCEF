@@ -105,6 +105,11 @@ class GUCEF_IMAGE_EXPORT_CPP CImage
     
     bool Load( const CORE::CString& filePath );
 
+    /**
+     *  Loads the pixels and/or the meta-data of an encoded image. The image codec plugins (CImageCodecRegistry) give
+     *  both. A codec of the codec registry has only the pixels: through it the meta-data stays empty, and meta-data
+     *  alone cannot be loaded (false)
+     */
     bool Load( const CORE::CString& filePath ,
                const CORE::CString& dataType ,
                bool loadImageData = true     ,

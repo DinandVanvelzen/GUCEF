@@ -175,11 +175,26 @@ PerformCoordinateSystemsTests( void )
                 }
         ASSERT_TRUE( 0 == failures && 48 == valid );
         ASSERT_TRUE( TFloat32Vector3D( 0, 0, -1 ) == CCoordinateSystem::GucefDefault().GetForward< Float32 >() && TInt32Vector3D( 0, 1, 0 ) == CCoordinateSystem::Unreal().GetRight< Int32 >() );
-        #ifndef GUCEF_MATH_DEBUG_MODE
-        // axes on one coordinate axis or a non-positive unit scale are invalid (and assert in debug builds)
+        // axes on one coordinate axis or a non-positive unit scale are invalid; debug builds assert on them unless the
+        // assert is off, as it is in this test application (GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT)
+        ASSERT_FALSE( CCoordinateSystem::IsValidityAssertEnabled() );
         ASSERT_FALSE( CCoordinateSystem( SIGNEDAXIS_POSITIVE_X, SIGNEDAXIS_NEGATIVE_X, SIGNEDAXIS_POSITIVE_Z, 1.0 ).IsValid() );
         ASSERT_FALSE( CCoordinateSystem( SIGNEDAXIS_POSITIVE_X, SIGNEDAXIS_POSITIVE_Y, SIGNEDAXIS_POSITIVE_Z, 0.0 ).IsValid() );
-        #endif
+        ASSERT_FALSE( CCoordinateSystem( SIGNEDAXIS_POSITIVE_Y, SIGNEDAXIS_POSITIVE_Y, SIGNEDAXIS_POSITIVE_Y, 1.0 ).IsValid() );
+        ASSERT_FALSE( CCoordinateSystem( SIGNEDAXIS_POSITIVE_X, SIGNEDAXIS_POSITIVE_Y, SIGNEDAXIS_POSITIVE_Z, -1.0 ).IsValid() );
+        // an invalid system is refused by the text and DataNode forms, which keep the value they have
+        CCoordinateSystem kept = CCoordinateSystem::Unity();
+        ASSERT_FALSE( kept.FromString( CCoordinateSystem( SIGNEDAXIS_POSITIVE_X, SIGNEDAXIS_NEGATIVE_X, SIGNEDAXIS_POSITIVE_Z, 1.0 ).ToString() ) );
+        ASSERT_TRUE( kept == CCoordinateSystem::Unity() );
+        CORE::CDataNode invalidNode;
+        ASSERT_TRUE( CCoordinateSystem( SIGNEDAXIS_POSITIVE_Z, SIGNEDAXIS_POSITIVE_Y, SIGNEDAXIS_NEGATIVE_Z, 1.0 ).Serialize( invalidNode, CORE::CDataNodeSerializableSettings() ) );
+        ASSERT_FALSE( kept.Deserialize( invalidNode, CORE::CDataNodeSerializableSettings() ) );
+        ASSERT_TRUE( kept == CCoordinateSystem::Unity() );
+        // switching the assert back on and off again
+        CCoordinateSystem::SetValidityAssertEnabled( true );
+        ASSERT_TRUE( CCoordinateSystem::IsValidityAssertEnabled() );
+        CCoordinateSystem::SetValidityAssertEnabled( false );
+        ASSERT_FALSE( CCoordinateSystem::IsValidityAssertEnabled() );
     }
     catch( ... )
     {

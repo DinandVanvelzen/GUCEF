@@ -452,6 +452,98 @@ CChannelOperations::ConvertColourSpace( const CPixelMap& source, TColourSpace fr
     return true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** Multiplies (premultiply) or divides the colour channels of every texel by its alpha */
+bool
+ApplyAlphaToColour( CPixelMap& map, TColourSpace colourSpace, bool premultiply, const char* operation )
+{
+    if ( !CheckSupported( map, operation ) )
+        return false;
+
+    const TPixelStorageFormat format = map.GetPixelStorageFormat();
+    const UInt32 colourChannels = CPixelMapChannelAccess::GetColourChannelCount( format );
+    const Int32 alphaIndex = CPixelMapChannelAccess::GetAlphaChannelIndex( format );
+    if ( 0 == colourChannels || alphaIndex < 0 || CPixelMapChannelAccess::IsHueBased( format ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChannelOperations: " << operation << ": the picture has no red, green, blue and alpha channels" );
+        return false;
+    }
+
+    CPixelMapChannelAccess::TFloatVector values;
+    if ( !CPixelMapChannelAccess::Read( map, values ) )
+        return false;
+
+    const UInt32 channelCount = map.GetNumberOfChannelsPerPixel();
+    const UInt32 pixelCount = map.GetPixelCount();
+    const bool srgb = COLOURSPACE_SRGB == colourSpace;
+    for ( UInt32 i=0; i<pixelCount; ++i )
+    {
+        Float32* texel = &values[ (size_t) i * channelCount ];
+        const Float32 alpha = texel[ alphaIndex ];
+        for ( UInt32 c=0; c<colourChannels; ++c )
+        {
+            Float32 value = srgb ? CPixelMapChannelAccess::SrgbToLinear( texel[ c ] ) : texel[ c ];
+            if ( premultiply )
+                value *= alpha;
+            else
+                value = alpha > 0.0f ? value / alpha : 0.0f;
+            if ( value > 1.0f )
+                value = 1.0f;
+            texel[ c ] = srgb ? CPixelMapChannelAccess::LinearToSrgb( value ) : value;
+        }
+    }
+    return CPixelMapChannelAccess::Write( &values[ 0 ], map );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChannelOperations::PremultiplyAlpha( CPixelMap& map, TColourSpace colourSpace )
+{GUCEF_TRACE;
+
+    return ApplyAlphaToColour( map, colourSpace, true, "PremultiplyAlpha" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChannelOperations::PremultiplyAlpha( const CPixelMap& source, TColourSpace colourSpace, TPixelMapPtr& result )
+{GUCEF_TRACE;
+
+    TPixelMapPtr copy( GUCEF_NEW CPixelMap( source ) );
+    if ( !PremultiplyAlpha( *copy, colourSpace ) )
+        return false;
+    result = copy;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChannelOperations::UnpremultiplyAlpha( CPixelMap& map, TColourSpace colourSpace )
+{GUCEF_TRACE;
+
+    return ApplyAlphaToColour( map, colourSpace, false, "UnpremultiplyAlpha" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChannelOperations::UnpremultiplyAlpha( const CPixelMap& source, TColourSpace colourSpace, TPixelMapPtr& result )
+{GUCEF_TRACE;
+
+    TPixelMapPtr copy( GUCEF_NEW CPixelMap( source ) );
+    if ( !UnpremultiplyAlpha( *copy, colourSpace ) )
+        return false;
+    result = copy;
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

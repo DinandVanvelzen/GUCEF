@@ -359,6 +359,61 @@ PerformChannelOperationsTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "ChannelOperations: PremultiplyAlpha and UnpremultiplyAlpha scale the colour by alpha, in linear light for sRGB" )
+    try
+    {
+        // linear: the stored values are multiplied, alpha stays
+        UInt8 pixels[ 8 ] = { 200, 100, 50, 128,   90, 60, 30, 0 };
+        IMAGE::TPixelMapPtr source( GUCEF_NEW IMAGE::CPixelMap( pixels, 2, 1, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8 ) ), result;
+        ASSERT_TRUE( IMAGE::CChannelOperations::PremultiplyAlpha( *source, IMAGE::COLOURSPACE_LINEAR, result ) );
+        ASSERT_TRUE( !result.IsNULL() );
+        if ( !result.IsNULL() )
+        {
+            const UInt8* p = Bytes( *result );
+            ASSERT_TRUE( Difference( p[ 0 ], 100 ) <= 1 && Difference( p[ 1 ], 50 ) <= 1 && Difference( p[ 2 ], 25 ) <= 1 && 128 == p[ 3 ] );
+            ASSERT_TRUE( 0 == p[ 4 ] && 0 == p[ 5 ] && 0 == p[ 6 ] && 0 == p[ 7 ] );
+
+            // and back, within the rounding of 8 bits; a texel with alpha 0 keeps colour 0
+            IMAGE::TPixelMapPtr back;
+            ASSERT_TRUE( IMAGE::CChannelOperations::UnpremultiplyAlpha( *result, IMAGE::COLOURSPACE_LINEAR, back ) );
+            if ( !back.IsNULL() )
+            {
+                const UInt8* b = Bytes( *back );
+                ASSERT_TRUE( Difference( b[ 0 ], 200 ) <= 2 && Difference( b[ 1 ], 100 ) <= 2 && Difference( b[ 2 ], 50 ) <= 2 && 128 == b[ 3 ] );
+                ASSERT_TRUE( 0 == b[ 4 ] && 0 == b[ 7 ] );
+            }
+        }
+        ASSERT_TRUE( 200 == Bytes( *source )[ 0 ] );
+
+        // sRGB: full red at half alpha is 0.5 in linear light, which is about 188 in sRGB (not 128)
+        UInt8 red[ 4 ] = { 255, 0, 0, 128 };
+        IMAGE::CPixelMap srgb( red, 1, 1, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8 );
+        ASSERT_TRUE( IMAGE::CChannelOperations::PremultiplyAlpha( srgb, IMAGE::COLOURSPACE_SRGB ) );
+        ASSERT_TRUE( Difference( Bytes( srgb )[ 0 ], 188 ) <= 1 && 0 == Bytes( srgb )[ 1 ] && 128 == Bytes( srgb )[ 3 ] );
+        ASSERT_TRUE( IMAGE::CChannelOperations::UnpremultiplyAlpha( srgb, IMAGE::COLOURSPACE_SRGB ) );
+        ASSERT_TRUE( Difference( Bytes( srgb )[ 0 ], 255 ) <= 1 );
+
+        // the alpha of a BGRA map is its fourth channel too, its colour the first three
+        UInt8 bgra[ 4 ] = { 50, 100, 200, 128 };
+        IMAGE::CPixelMap swapped( bgra, 1, 1, IMAGE::PSF_BGRA, GUCEF::DATATYPE_UINT8 );
+        ASSERT_TRUE( IMAGE::CChannelOperations::PremultiplyAlpha( swapped, IMAGE::COLOURSPACE_LINEAR ) );
+        ASSERT_TRUE( Difference( Bytes( swapped )[ 0 ], 25 ) <= 1 && Difference( Bytes( swapped )[ 2 ], 100 ) <= 1 && 128 == Bytes( swapped )[ 3 ] );
+
+        // no alpha, or no colour: refused and unchanged
+        UInt8 rgbPixels[ 3 ] = { 10, 20, 30 };
+        IMAGE::CPixelMap rgb( rgbPixels, 1, 1, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 );
+        ASSERT_FALSE( IMAGE::CChannelOperations::PremultiplyAlpha( rgb, IMAGE::COLOURSPACE_LINEAR ) );
+        ASSERT_FALSE( IMAGE::CChannelOperations::UnpremultiplyAlpha( rgb, IMAGE::COLOURSPACE_LINEAR ) );
+        ASSERT_TRUE( 10 == Bytes( rgb )[ 0 ] );
+        IMAGE::CPixelMap grey( GUCEF_NULL, 1, 1, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8 );
+        ASSERT_FALSE( IMAGE::CChannelOperations::PremultiplyAlpha( grey, IMAGE::COLOURSPACE_LINEAR ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "ChannelOperations: Unusable pictures are refused and left alone" )
     try
     {
@@ -369,6 +424,7 @@ PerformChannelOperationsTests( void )
         ASSERT_FALSE( IMAGE::CChannelOperations::Invert( palettised, 1 ) );
         ASSERT_FALSE( IMAGE::CChannelOperations::ScaleBias( palettised, 1, 1.0f, 0.0f ) );
         ASSERT_FALSE( IMAGE::CChannelOperations::ConvertColourSpace( palettised, IMAGE::COLOURSPACE_SRGB, IMAGE::COLOURSPACE_LINEAR ) );
+        ASSERT_FALSE( IMAGE::CChannelOperations::PremultiplyAlpha( palettised, IMAGE::COLOURSPACE_LINEAR ) );
         ASSERT_TRUE( result.IsNULL() );
 
         IMAGE::CPixelMap bigEndian( GUCEF_NULL, 2, 2, IMAGE::PSF_RGB, GUCEF::DATATYPE_BE_UINT16 );

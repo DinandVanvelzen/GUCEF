@@ -227,7 +227,26 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
 
     private:
     typedef CORE::CTSharedPtr< CORE::CDynamicBuffer, MT::CMutex > TDynamicBufferPtr;
-    typedef std::map< CString, TDynamicBufferPtr >                TFileMemCache;
+
+    /** A small file in memory, with the state of the file on disk when it was read */
+    struct SCachedFile
+    {
+        TDynamicBufferPtr buffer;
+        UInt64 sizeInBytes;
+        CORE::CDateTime modificationTime;
+        bool hasModificationTime;
+    };
+    typedef std::map< CString, SCachedFile > TFileMemCache;
+
+    /**
+     *  Whether the cached copy can be handed out again: another handle still uses it and the file on disk has the size
+     *  and modification time it had when it was read. The handles release the buffer by reference count, the archive
+     *  is not told, so an entry only the cache holds is of a file nobody has open: it is read from disk again
+     */
+    static bool IsCachedFileCurrent( const CString& fsPath, const SCachedFile& cachedFile );
+
+    /** Takes the entries out of the cache that no open handle uses anymore. The cache lock must be held */
+    void ForgetUnusedCachedFiles( void );
     
     mutable MT::CMutex m_diskCacheLock;     /**< guards m_diskCacheList: files are opened and released on any thread */
     TFileMemCache m_diskCacheList;

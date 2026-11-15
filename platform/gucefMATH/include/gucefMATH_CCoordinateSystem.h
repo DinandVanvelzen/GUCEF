@@ -82,7 +82,10 @@ class GUCEF_MATH_PUBLIC_CPP CCoordinateSystem
     /** GucefDefault() */
     CCoordinateSystem( void );
 
-    /** The axes must lie on three different coordinate axes and unitsPerMetre must be positive (else IsValid() is false) */
+    /**
+     *  The axes must lie on three different coordinate axes and unitsPerMetre must be positive (else IsValid() is false).
+     *  Debug builds assert that the system is valid, unless the assert is switched off (SetValidityAssertEnabled()).
+     */
     CCoordinateSystem( TSignedAxis right, TSignedAxis up, TSignedAxis forward, Float64 unitsPerMetre );
 
     /** +X right, +Y up, -Z forward, metres: right-handed (also Ogre, OpenAL, glTF cameras, gucefAUDIO) */
@@ -151,6 +154,18 @@ class GUCEF_MATH_PUBLIC_CPP CCoordinateSystem
     bool operator==( const CCoordinateSystem& other ) const GUCEF_MATH_REALTIME_CONTEXT;
 
     bool operator!=( const CCoordinateSystem& other ) const GUCEF_MATH_REALTIME_CONTEXT;
+
+    /**
+     *  Whether the constructor of the axes asserts that the system is valid, in debug builds (release builds never
+     *  assert). On by default. Code that makes invalid systems on purpose, tests of the validity checks of their users,
+     *  switches it off for the whole process: compiled with GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT, every
+     *  file that includes this header does so when the process starts (see the end of this header). The constructor is
+     *  compiled in gucefMATH, so the define cannot remove the assert itself; it switches this value of the module.
+     *  Meant to be set at start-up, before other threads make systems.
+     */
+    static void SetValidityAssertEnabled( bool enabled );
+
+    static bool IsValidityAssertEnabled( void );
 
     /*---------------------------------------------------------------------*/
     /*  Text and DataNode (not realtime-safe: they allocate)                */
@@ -347,6 +362,21 @@ CCoordinateSystem::ConvertTransform( const CCoordinateSystem& target, const CTTr
 
 }  /* namespace MATH */
 }  /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------*/
+
+/*
+ *  GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT: for test applications and other test code only, set in the
+ *  <Preprocessor> section of their ModuleInfo.xml. Every file of such a module that includes this header switches the
+ *  validity assert of the CCoordinateSystem constructor off when the process starts, before main(), so the module can
+ *  make invalid systems in a debug build to test how they are refused. Libraries and applications do not define it,
+ *  so their debug builds keep the assert; release builds have no assert either way.
+ */
+#ifdef GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT
+namespace {
+const bool GucefMathCoordinateSystemValidityAssertSwitchedOff = ( GUCEF::MATH::CCoordinateSystem::SetValidityAssertEnabled( false ), true );
+}
+#endif /* GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT ? */
 
 /*-------------------------------------------------------------------------*/
 

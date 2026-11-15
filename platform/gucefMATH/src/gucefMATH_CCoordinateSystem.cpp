@@ -72,6 +72,11 @@ GetBasis( TSignedAxis right, TSignedAxis up, TSignedAxis forward, UInt32 ( &inde
     sign[ 2 ] = -SignedAxisSign( forward );
 }
 
+/*-------------------------------------------------------------------------*/
+
+/** Whether the constructor of the axes asserts validity in debug builds: constant initialised, so set before any code runs */
+static bool g_validityAssertEnabled = true;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -94,7 +99,23 @@ CCoordinateSystem::CCoordinateSystem( TSignedAxis right, TSignedAxis up, TSigned
     , m_forward( forward )
     , m_unitsPerMetre( unitsPerMetre )
 {
-    GUCEF_MATH_ASSERT( IsValid() );
+    GUCEF_MATH_ASSERT( !g_validityAssertEnabled || IsValid() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCoordinateSystem::SetValidityAssertEnabled( bool enabled )
+{
+    g_validityAssertEnabled = enabled;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCoordinateSystem::IsValidityAssertEnabled( void )
+{
+    return g_validityAssertEnabled;
 }
 
 /*-------------------------------------------------------------------------*/

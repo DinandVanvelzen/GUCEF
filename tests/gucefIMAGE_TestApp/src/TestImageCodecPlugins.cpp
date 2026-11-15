@@ -170,6 +170,164 @@ TestImageCodecPluginsOnTheCodecInterface( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** A 9 x 4 RGB picture whose pixels differ: its rows are 27 bytes, not a multiple of 4 */
+static IMAGE::TPixelMapPtr
+MakeTestPicture( void )
+{GUCEF_TRACE;
+
+    IMAGE::TPixelMapPtr pixels( new IMAGE::CPixelMap( GUCEF_NULL, 9, 4, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 ) );
+    CORE::UInt8* data = static_cast< CORE::UInt8* >( pixels->GetDataPtr() );
+    for ( CORE::UInt32 i=0; i<pixels->GetTotalSizeInBytes(); ++i )
+        data[ i ] = (CORE::UInt8) ( 3 + i * 5 );
+    return pixels;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The PNG of MakeTestPicture(), made by the built-in encoder */
+static bool
+MakeTestPng( CORE::CDynamicBuffer& png )
+{GUCEF_TRACE;
+
+    CORE::CString problem;
+    return IMAGE::CPngImageCodec::EncodePixelMap( *MakeTestPicture(), png, problem );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether a decoded picture has the pixels of the RGB picture, in RGB or BGR order */
+static bool
+HasPixelsOf( const IMAGE::CPixelMap& decoded, const IMAGE::CPixelMap& rgb )
+{GUCEF_TRACE;
+
+    const bool bgr = IMAGE::PSF_BGR == decoded.GetPixelStorageFormat();
+    if ( ( !bgr && IMAGE::PSF_RGB != decoded.GetPixelStorageFormat() ) ||
+         decoded.GetWidthInPixels() != rgb.GetWidthInPixels() || decoded.GetHeightInPixels() != rgb.GetHeightInPixels() ||
+         decoded.GetTotalSizeInBytes() != rgb.GetTotalSizeInBytes() )
+        return false;
+    const CORE::UInt8* a = static_cast< const CORE::UInt8* >( decoded.GetDataPtr() );
+    const CORE::UInt8* b = static_cast< const CORE::UInt8* >( rgb.GetDataPtr() );
+    for ( CORE::UInt32 i=0; i<rgb.GetTotalSizeInBytes(); i+=3 )
+        for ( CORE::UInt32 c=0; c<3; ++c )
+            if ( a[ i + ( bgr ? 2 - c : c ) ] != b[ i + c ] )
+                return false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Loads, with meta-data, saves as PNG and loads that again: what the users of CImage do with a picture */
+static void
+CheckLoadWithMetaDataAndSavePng( const CORE::CString& pluginUse )
+{GUCEF_TRACE;
+
+    CORE::CDynamicBuffer png;
+    GUCEF_TESTFW_ASSERT_TRUE( MakeTestPng( png ) );
+
+    // the pixels and the meta-data, from a stream and from a file
+    CORE::CDynamicBufferAccess pngAccess( &png, false );
+    IMAGE::CImage loaded;
+    GUCEF_TESTFW_ASSERT_TRUE( loaded.Load( pngAccess, "png", true, true ) );
+    const IMAGE::TPixelMapPtr original = MakeTestPicture();
+    IMAGE::TPixelMapPtr pixels;
+    GUCEF_TESTFW_ASSERT_TRUE( loaded.TryGetPixelMap( 0, 0, pixels ) && !pixels.IsNULL() );
+    if ( !pixels.IsNULL() )
+        GUCEF_TESTFW_ASSERT_TRUE( HasPixelsOf( *pixels, *original ) );
+
+    const CORE::CString file = CORE::CombinePath( CORE::TempDir(), "gucefIMAGE_TestApp_" + pluginUse + ".png" );
+    GUCEF_TESTFW_ASSERT_TRUE( png.WriteContentToFile( file, 0, true ) );
+    IMAGE::CImage fromFile;
+    GUCEF_TESTFW_ASSERT_TRUE( fromFile.Load( file ) );
+    GUCEF_TESTFW_ASSERT_TRUE( 1 == fromFile.GetFrameCount() );
+
+    // saved as PNG, which reads back with the same pixels; saving leaves the pixels of the image as they are
+    {
+        IMAGE::CImage image( IMAGE::TPixelMapPtr( new IMAGE::CPixelMap( *original ) ) );
+        CORE::CDynamicBuffer saved;
+        CORE::CDynamicBufferAccess savedAccess( &saved, false );
+        GUCEF_TESTFW_ASSERT_TRUE( image.Save( savedAccess, "png" ) );
+        GUCEF_TESTFW_ASSERT_TRUE( saved.GetDataSize() > 8 && 0 == memcmp( saved.GetConstBufferPtr(), "\x89PNG\r\n\x1a\n", 8 ) );
+        savedAccess.Setpos( 0 );
+        IMAGE::CImage reloaded;
+        GUCEF_TESTFW_ASSERT_TRUE( reloaded.Load( savedAccess, "png", true, true ) );
+        IMAGE::TPixelMapPtr reloadedPixels;
+        GUCEF_TESTFW_ASSERT_TRUE( reloaded.TryGetPixelMap( 0, 0, reloadedPixels ) && !reloadedPixels.IsNULL() );
+        if ( !reloadedPixels.IsNULL() )
+            GUCEF_TESTFW_ASSERT_TRUE( HasPixelsOf( *reloadedPixels, *original ) );
+        IMAGE::TPixelMapPtr imagePixels;
+        GUCEF_TESTFW_ASSERT_TRUE( image.TryGetPixelMap( 0, 0, imagePixels ) && !imagePixels.IsNULL() && HasPixelsOf( *imagePixels, *original ) );
+
+        // and to a file
+        const CORE::CString savedFile = CORE::CombinePath( CORE::TempDir(), "gucefIMAGE_TestApp_" + pluginUse + "_saved.png" );
+        GUCEF_TESTFW_ASSERT_TRUE( image.Save( savedFile, "png" ) );
+        IMAGE::CImage savedFromFile;
+        GUCEF_TESTFW_ASSERT_TRUE( savedFromFile.Load( savedFile ) && 1 == savedFromFile.GetFrameCount() );
+        IMAGE::TPixelMapPtr savedPixels;
+        GUCEF_TESTFW_ASSERT_TRUE( savedFromFile.TryGetPixelMap( 0, 0, savedPixels ) && !savedPixels.IsNULL() && HasPixelsOf( *savedPixels, *original ) );
+        CORE::DeleteFile( savedFile );
+    }
+
+    // the decoded picture, in the channel order of the codec, saved twice: the same pixels both times
+    if ( !pixels.IsNULL() )
+    {
+        IMAGE::CImage decodedImage( pixels );
+        for ( CORE::UInt32 i=0; i<2; ++i )
+        {
+            CORE::CDynamicBuffer saved;
+            CORE::CDynamicBufferAccess savedAccess( &saved, false );
+            GUCEF_TESTFW_ASSERT_TRUE( decodedImage.Save( savedAccess, "png" ) );
+            savedAccess.Setpos( 0 );
+            IMAGE::CImage reloaded;
+            IMAGE::TPixelMapPtr reloadedPixels;
+            GUCEF_TESTFW_ASSERT_TRUE( reloaded.Load( savedAccess, "png", true, false ) && reloaded.TryGetPixelMap( 0, 0, reloadedPixels ) &&
+                                      !reloadedPixels.IsNULL() && HasPixelsOf( *reloadedPixels, *original ) );
+            GUCEF_TESTFW_ASSERT_TRUE( HasPixelsOf( *pixels, *original ) );
+        }
+    }
+    CORE::DeleteFile( file );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestImageLoadWithMetaDataAndSavePng( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "CImage loads with meta-data and saves PNG through imgpluginFreeImage loaded as an image codec plugin" )
+        try
+        {
+            IMAGE::CImageGlobal::Instance();
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage" ) );
+            GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry().IsRegistered( "png" ) );
+            CheckLoadWithMetaDataAndSavePng( "typed" );
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "imagecodecplugintests" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CImage loads with meta-data and saves PNG through imgpluginFreeImage loaded without a plugin type" )
+        try
+        {
+            // the plugin control finds the plugin manager by trial and error, as for plugins from a directory
+            IMAGE::CImageGlobal::Instance();
+            CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
+            GUCEF_TESTFW_ASSERT_TRUE( pluginControl.AddPluginFromDir( "$MODULEDIR$/imgpluginFreeImage_d", "imagecodecplugintests", true ) ||
+                                      pluginControl.AddPluginFromDir( "$MODULEDIR$/imgpluginFreeImage", "imagecodecplugintests", true ) );
+            CheckLoadWithMetaDataAndSavePng( "untyped" );
+            GUCEF_TESTFW_ASSERT_TRUE( pluginControl.UnloadPluginGroup( "imagecodecplugintests" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformImageCodecPluginTests( void )
 {GUCEF_TRACE;
@@ -178,6 +336,7 @@ PerformImageCodecPluginTests( void )
 
     TestUnlinkedImageCodecPlugin();
     TestImageCodecPluginsOnTheCodecInterface();
+    TestImageLoadWithMetaDataAndSavePng();
 }
 
 /*-------------------------------------------------------------------------*/

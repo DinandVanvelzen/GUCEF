@@ -209,6 +209,39 @@ PerformVfsCodecTests( void )
             GUCEF_TESTFW_ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "VfsCodecs: EncodeFile and DecodeFile read a source in a read-only mount into another archive, also with overwrite" )
+        try
+        {
+            const CORE::CString sourceDir = CORE::CombinePath( CORE::TempDir(), "gucefVFS_TestApp_CodecsSource" );
+            const CORE::CString targetDir = CORE::CombinePath( CORE::TempDir(), "gucefVFS_TestApp_CodecsTarget" );
+            CORE::DeleteDir( sourceDir, true );
+            CORE::DeleteDir( targetDir, true );
+            CORE::CreateDirs( sourceDir );
+            CORE::CreateDirs( targetDir );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( sourceDir, "plain.txt" ), "payload" ) );
+            ASSERT_TRUE( vfs.AddRoot( sourceDir, "VfsCodecSource", false, false, "vfscodecsource" ) );
+            ASSERT_TRUE( vfs.AddRoot( targetDir, "VfsCodecTarget", true, false, "vfscodectarget" ) );
+            RegisterMarkingTestCodec();
+
+            ASSERT_TRUE( vfs.EncodeFile( "vfscodecsource/plain.txt", "vfscodectarget/encoded.txt", true, TestCodecFamily, TestCodecType ) );
+            ASSERT_TRUE( vfs.DecodeFile( "vfscodecsource/plain.txt", "vfscodectarget/decoded.txt", true, TestCodecFamily, TestCodecType ) );
+            CORE::CString encoded;
+            CORE::CString decoded;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( CORE::CombinePath( targetDir, "encoded.txt" ), encoded ) && "E:payload" == encoded );
+            ASSERT_TRUE( CORE::LoadTextFileAsString( CORE::CombinePath( targetDir, "decoded.txt" ), decoded ) && "D:payload" == decoded );
+
+            UnregisterMarkingTestCodec();
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "VfsCodecSource" ) );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "VfsCodecTarget" ) );
+            CORE::DeleteDir( sourceDir, true );
+            CORE::DeleteDir( targetDir, true );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

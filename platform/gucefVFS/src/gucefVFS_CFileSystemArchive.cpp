@@ -586,10 +586,10 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
              ( strcmp( mode, "r" ) == 0 )   )
         {
             // Check our cache for this file: it shares the memory of a small file between the handles open at once.
-            // A file whose size on disk differs from the cached copy was changed from outside the archive since
+            // A copy no open handle uses anymore, or of a file changed on disk since it was read, is read again
             MT::CScopeMutex cacheLock( m_diskCacheLock );
             TFileMemCache::iterator n = m_diskCacheList.find( path );
-            if ( n != m_diskCacheList.end() && (*n).second->GetDataSize() != CORE::FileSize( path ) )
+            if ( n != m_diskCacheList.end() && !IsCachedFileCurrent( path, (*n).second ) )
             {
                 m_diskCacheList.erase( n );
                 n = m_diskCacheList.end();
@@ -597,7 +597,7 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
             if ( n != m_diskCacheList.end() )
             {
                 // We found the file in our cache, we will link to the existing buffer.
-                TDynamicBufferPtr bufferPtr = (*n).second;
+                TDynamicBufferPtr bufferPtr = (*n).second.buffer;
                 CORE::DynamicBufferAccessPtr bufferAccess( GUCEF_NEW CORE::CDynamicBufferAccess( bufferPtr.GetPointer(), false ) );
                 TVfsResourcePtr vfsResource( GUCEF_NEW CVFSHandle( bufferAccess ,
                                                                    path         ,
@@ -660,8 +660,11 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
         if ( ( strcmp( mode, "rb" ) == 0 ) ||
              ( strcmp( mode, "r" ) == 0 )   )
         {
-            // check if we can load the file into memory
-            UInt64 fsize = CORE::FileSize( path );
+            // check if we can load the file into memory. The state of the file is taken before it is read: a change
+            // made while it is read gives another modification time, so the copy is not handed out after that
+            CORE::CResourceMetaData diskState;
+            CORE::GetFileMetaData( path, diskState );
+            UInt64 fsize = diskState.hasResourceSizeInBytes ? diskState.resourceSizeInBytes : CORE::FileSize( path );
             if ( fsize <= memLoadSize )
             {
                 // Create the memory buffer
@@ -678,8 +681,15 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
 
                     // Add the file to our buffered files list, in place of an entry made meanwhile
                     {
+                        SCachedFile cachedFile;
+                        cachedFile.buffer = bufferPtr;
+                        cachedFile.sizeInBytes = fsize;
+                        cachedFile.modificationTime = diskState.modifiedDateTime;
+                        cachedFile.hasModificationTime = diskState.hasModifiedDateTime;
+
                         MT::CScopeMutex cacheLock( m_diskCacheLock );
-                        m_diskCacheList[ path ] = bufferPtr;
+                        ForgetUnusedCachedFiles();
+                        m_diskCacheList[ path ] = cachedFile;
                     }
 
                     // return the file handle
@@ -731,7 +741,7 @@ CFileSystemArchive::DestroyObject( CVFSHandle* vfshandle ) const
             {
                 // The cache and this handle hold the buffer: nobody else is using it anymore.
                 // Dropping an entry another handle still uses only ends the sharing, it keeps its buffer
-                if ( (*n).second.GetReferenceCount() <= 2 )
+                if ( (*n).second.buffer.GetReferenceCount() <= 2 )
                 {
                     mutableThis->m_diskCacheList.erase( n );
                 }
@@ -1012,6 +1022,42 @@ CFileSystemArchive::MoveDir( const CString& oldDirPath, const CString& newDirPat
     // the rename of MoveFile() also moves a directory
     ForgetCachedFiles( oldPath, true );
     return CORE::MoveFile( oldPath, newPath, false ) && CORE::DirExists( newPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileSystemArchive::IsCachedFileCurrent( const CString& fsPath, const SCachedFile& cachedFile )
+{GUCEF_TRACE;
+
+    // the cache holds one reference, every open handle of the file another
+    if ( cachedFile.buffer.GetReferenceCount() <= 1 )
+        return false;
+
+    CORE::CResourceMetaData diskState;
+    if ( !CORE::GetFileMetaData( fsPath, diskState ) || !diskState.hasResourceSizeInBytes )
+        return false;
+    if ( diskState.resourceSizeInBytes != cachedFile.sizeInBytes )
+        return false;
+    if ( diskState.hasModifiedDateTime != cachedFile.hasModificationTime )
+        return false;
+    return !cachedFile.hasModificationTime || diskState.modifiedDateTime == cachedFile.modificationTime;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemArchive::ForgetUnusedCachedFiles( void )
+{GUCEF_TRACE;
+
+    TFileMemCache::iterator i = m_diskCacheList.begin();
+    while ( i != m_diskCacheList.end() )
+    {
+        if ( (*i).second.buffer.GetReferenceCount() <= 1 )
+            m_diskCacheList.erase( i++ );
+        else
+            ++i;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

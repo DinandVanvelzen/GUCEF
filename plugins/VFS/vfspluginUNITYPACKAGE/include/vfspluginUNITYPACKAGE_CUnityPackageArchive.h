@@ -71,7 +71,9 @@ namespace UNITYPACKAGE {
  *  the package from its start. At mount the package is decompressed once and indexed: the position of every entry
  *  is recorded and the small pathname entries are read. In that same pass entries up to CacheEntryLimit bytes
  *  (the .meta files, the previews and small assets, which are what a project scan touches) are kept in memory,
- *  up to CacheTotalLimit bytes, so that opening them costs nothing. Other entries are decompressed up to their
+ *  up to CacheTotalLimit bytes, so that opening them costs nothing; the .meta files have a budget of their own,
+ *  MetaCacheTotalLimit, so that a large package, whose previews and small assets use up the first, keeps every
+ *  .meta file a project scan reads. Other entries are decompressed up to their
  *  position when they are opened. Entries up to LoadOnOpenLimit bytes are loaded into memory at that time so
  *  that the content can be accessed randomly. Larger entries are streamed, where seeking backwards decompresses
  *  from the start again. The cost of opening an uncached entry is therefore linear in its position in the package,
@@ -90,6 +92,9 @@ class CUnityPackageArchive : public VFS::CArchive
 
     /** Total number of bytes that are kept in memory for the entries above */
     static const UInt32 CacheTotalLimit = 32 * 1024 * 1024;
+
+    /** Total number of bytes that are kept in memory for the .meta entries, apart from CacheTotalLimit */
+    static const UInt32 MetaCacheTotalLimit = 64 * 1024 * 1024;
 
     /** Entries up to this size that are not cached are loaded into memory when opened, larger entries are streamed */
     static const UInt32 LoadOnOpenLimit = 256 * 1024 * 1024;

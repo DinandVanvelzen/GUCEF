@@ -42,7 +42,7 @@ links( { "gucefCORE", "gucefMATH", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_MATH_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMATH_TestApp", "MODULE_NAME=gucefMATH_TestApp" } )
+defines( { "GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT", "GUCEF_MATH_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMATH_TestApp", "MODULE_NAME=gucefMATH_TestApp" } )
 
 
 configuration( {} )

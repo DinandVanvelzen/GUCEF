@@ -271,6 +271,7 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
     // Pass over the entire package: record where each entry is, read the pathnames and keep the small entries
     TAssetMap assets;
     UInt32 cacheBytes = 0;
+    UInt32 metaCacheBytes = 0;
     UInt32 ignoredEntries = 0;
     struct archive_entry* entry = GUCEF_NULL;
     while ( reader.NextEntry( &entry ) )
@@ -316,8 +317,10 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
             continue;
         }
 
-        // Keep the small ones, the data is passing by anyway
-        if ( fileEntry.size <= CacheEntryLimit && cacheBytes + fileEntry.size <= CacheTotalLimit )
+        // Keep the small ones, the data is passing by anyway; the .meta files within a budget of their own
+        const bool meta = ENTRYROLE_META == role;
+        UInt32& budgetBytes = meta ? metaCacheBytes : cacheBytes;
+        if ( fileEntry.size <= CacheEntryLimit && budgetBytes + fileEntry.size <= ( meta ? MetaCacheTotalLimit : CacheTotalLimit ) )
         {
             CORE::CDynamicBuffer* content = GUCEF_NEW CORE::CDynamicBuffer();
             content->SetDataSize( (UInt32) fileEntry.size );
@@ -325,7 +328,7 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
             {
                 fileEntry.cacheSlot = (Int32) m_cache.size();
                 m_cache.push_back( content );
-                cacheBytes += (UInt32) fileEntry.size;
+                budgetBytes += (UInt32) fileEntry.size;
             }
             else
             {
@@ -385,7 +388,7 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UnityPackageArchive: " << assetsWithoutPathname << " asset folders in \"" << path << "\" have no usable pathname and are left out" );
     }
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UnityPackageArchive: Indexed " << (UInt32) assets.size() << " assets, " << ignoredEntries <<
-        " other entries ignored, " << cacheBytes << " bytes kept in memory" );
+        " other entries ignored, " << cacheBytes + metaCacheBytes << " bytes kept in memory" );
     return true;
 }
 

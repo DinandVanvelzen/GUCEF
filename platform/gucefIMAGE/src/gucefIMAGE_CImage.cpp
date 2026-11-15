@@ -553,6 +553,8 @@ CImage::Load( CORE::CIOAccess& data         ,
     CImageCodecRegistry::TImageCodecPtr imageCodec;
     if ( CImageGlobal::Instance()->GetImageCodecRegistry().TryLookup( dataType, imageCodec, false ) )
     {
+        // Both decodes read the encoded image from where it starts
+        const UInt64 start = data.Tell();
         bool success = true;
         if ( loadImageData )
         {
@@ -562,7 +564,9 @@ CImage::Load( CORE::CIOAccess& data         ,
         }
         if ( loadMetaData )
         {
-            // We have found a codec we can use, now try to load the meta-data
+            // We have found a codec we can use, now try to load the meta-data, from the start again after the pixels
+            // (Setpos follows fsetpos: 0 is success)
+            success = success && ( !loadImageData || 0 == data.Setpos( start ) );
             success = success && imageCodec->DecodeMetaData( data       ,
                                                              m_metaData );
 
@@ -571,10 +575,15 @@ CImage::Load( CORE::CIOAccess& data         ,
         return success;
     }
 
-    // We have not found a codec with the extended image interface
-    // because meta data is requested we will not try to load the data
+    // We have not found a codec with the extended image interface. A codec with the basic interface has the pixels
+    // but no meta-data: with the pixels asked for they are loaded and the meta-data is left empty, meta-data alone
+    // cannot be loaded
     if ( loadMetaData )
-        return false;
+    {
+        m_metaData.Clear();
+        if ( !loadImageData )
+            return false;
+    }
 
     if ( loadImageData )
     {

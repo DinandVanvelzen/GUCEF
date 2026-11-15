@@ -101,6 +101,22 @@ class GUCEF_IMAGE_EXPORT_CPP CChannelOperations
 
     static bool ConvertColourSpace( const CPixelMap& source, TColourSpace from, TColourSpace to, TPixelMapPtr& result );
 
+    /**
+     *  Multiplies the colour channels by alpha. For COLOURSPACE_SRGB the colour is multiplied in linear light (decoded,
+     *  multiplied, encoded again); alpha itself stays as it is. Refused for formats without red, green, blue and alpha.
+     */
+    static bool PremultiplyAlpha( CPixelMap& map, TColourSpace colourSpace );
+
+    static bool PremultiplyAlpha( const CPixelMap& source, TColourSpace colourSpace, TPixelMapPtr& result );
+
+    /**
+     *  The opposite of PremultiplyAlpha(): divides the colour channels by alpha, clamped to the largest value. Texels
+     *  with an alpha of 0 keep a colour of 0, since their colour is lost.
+     */
+    static bool UnpremultiplyAlpha( CPixelMap& map, TColourSpace colourSpace );
+
+    static bool UnpremultiplyAlpha( const CPixelMap& source, TColourSpace colourSpace, TPixelMapPtr& result );
+
     private:
 
     CChannelOperations( void );

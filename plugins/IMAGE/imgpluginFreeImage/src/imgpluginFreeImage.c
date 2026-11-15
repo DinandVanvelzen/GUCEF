@@ -72,6 +72,7 @@ struct SFreeImageDataLink
 {
     void* pixelData;
     FIBITMAP* fiData;
+    void* packedPixelData;      /**< the rows of fiData without their padding when they have any, else NULL */
 };
 typedef struct SFreeImageDataLink TFreeImageDataLink;
 
@@ -607,8 +608,79 @@ ImageStreamEncode( void* plugdata         ,
                     TIOAccess* input       ,
                     TIOAccess* output      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    /* Saving images is not supported atm */
-    return 0;
+    /*
+     *  The input is the decoded 'ImageCodec' stream, as ImageStreamDecode writes it: the image info, for every frame
+     *  its info followed by that of its mipmap levels, then the pixels of every level. The formats this plugin writes
+     *  hold one picture: the first level of the first frame is encoded
+     */
+    TImageInfo imageInfo;
+    TImageFrameInfo frameInfo;
+    TImageFrameInfo firstFrameInfo;
+    TImageMipMapLevelInfo levelInfo;
+    TImageMipMapLevelInfo firstLevelInfo;
+    TImage image;
+    TImageFrame frame;
+    TImageMipMapLevel level;
+    UInt32 i=0, n=0, pixelSize=0, result=0;
+    UInt64 pixelDataSize=0;
+    void* pixelData = NULL;
+
+    /* input sanity check */
+    if ( ( NULL == familyType ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == output ) ) return 0;
+    if ( 0 != strcmp( familyType, "ImageCodec" ) ) return 0;
+
+    memset( &firstFrameInfo, 0, sizeof( firstFrameInfo ) );
+    memset( &firstLevelInfo, 0, sizeof( firstLevelInfo ) );
+    if ( 1 != input->read( input, &imageInfo, sizeof( TImageInfo ), 1 ) ||
+         GUCEF_IMAGE_TIMAGEINFO_VERSION != imageInfo.version         ||
+         0 == imageInfo.nrOfFramesInImage                            )
+        return 0;
+    for ( i=0; i<imageInfo.nrOfFramesInImage; ++i )
+    {
+        if ( 1 != input->read( input, &frameInfo, sizeof( TImageFrameInfo ), 1 ) ||
+             GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION != frameInfo.version         ||
+             ( 0 == i && 0 == frameInfo.nrOfMipmapLevels )                   )
+            return 0;
+        if ( 0 == i )
+            firstFrameInfo = frameInfo;
+        for ( n=0; n<frameInfo.nrOfMipmapLevels; ++n )
+        {
+            if ( 1 != input->read( input, &levelInfo, sizeof( TImageMipMapLevelInfo ), 1 ) ||
+                 GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION != levelInfo.version         )
+                return 0;
+            if ( 0 == i && 0 == n )
+                firstLevelInfo = levelInfo;
+        }
+    }
+
+    /* the pixels of the first level come first */
+    pixelSize = GetPixelSize( firstLevelInfo.pixelStorageFormat, firstLevelInfo.pixelComponentDataType );
+    pixelDataSize = (UInt64) pixelSize * firstLevelInfo.frameWidth * firstLevelInfo.frameHeight;
+    if ( 0 == pixelDataSize || pixelDataSize > GUCEF_UINT32MAX ) return 0;
+    pixelData = malloc( (size_t) pixelDataSize );
+    if ( NULL == pixelData ) return 0;
+    if ( 1 != input->read( input, pixelData, (UInt32) pixelDataSize, 1 ) )
+    {
+        free( pixelData );
+        return 0;
+    }
+
+    level.version = GUCEF_IMAGE_TIMAGEMIPMAPLEVEL_VERSION;
+    level.mipLevelInfo = firstLevelInfo;
+    level.pixelData = pixelData;
+    level.pixelDataSizeInBytes = (UInt32) pixelDataSize;
+    frame.version = GUCEF_IMAGE_TIMAGEFRAME_VERSION;
+    frame.frameInfo = firstFrameInfo;
+    frame.frameInfo.nrOfMipmapLevels = 1;
+    frame.mipmapLevel = &level;
+    image.version = GUCEF_IMAGE_TIMAGE_VERSION;
+    image.imageInfo = imageInfo;
+    image.imageInfo.nrOfFramesInImage = 1;
+    image.frames = &frame;
+
+    result = IMGCODECPLUGIN_EncodeImage( plugdata, codecData, codecType, &image, output );
+    free( pixelData );
+    return result;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -724,6 +796,7 @@ IMGCODECPLUGIN_FreeImageStorage( TImage* image   ,
         for ( i=0; i<frameCount; ++i )
         {
             TFreeImageDataLink* imageDataLink = &allImageDataLinks->links[ i ];
+            free( imageDataLink->packedPixelData );
             FreeImage_Unload( imageDataLink->fiData );
         }
         free( allImageDataLinks );
@@ -968,10 +1041,30 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData      ,
                     TFreeImageDataLink* dataLink = &imageDataLinks->links[ linkIndex ];
 
                     /* @TODO: note that GetBits/dib needs to be something else once we support frames/mipmapping */
-                    mipmapLevel->pixelData = FreeImage_GetBits( dib );
-                    mipmapLevel->pixelDataSizeInBytes = ( FreeImage_GetBPP( dib ) / 8 ) * mipmapLevel->mipLevelInfo.frameWidth * mipmapLevel->mipLevelInfo.frameHeight; 
-                    dataLink->pixelData = mipmapLevel->pixelData;
+                    UInt32 lineSize = FreeImage_GetLine( dib );
+                    UInt32 pitch = FreeImage_GetPitch( dib );
                     dataLink->fiData = dib;
+                    mipmapLevel->pixelDataSizeInBytes = lineSize * mipmapLevel->mipLevelInfo.frameHeight;
+                    if ( lineSize == pitch )
+                    {
+                        mipmapLevel->pixelData = FreeImage_GetBits( dib );
+                    }
+                    else
+                    {
+                        /* FreeImage pads every row to a multiple of 4 bytes, the rows of a pixel map follow each other */
+                        UInt32 y = 0;
+                        UInt8* packed = (UInt8*) malloc( mipmapLevel->pixelDataSizeInBytes );
+                        if ( NULL == packed )
+                        {
+                            IMGCODECPLUGIN_FreeImageStorage( image, imageDataLinks );
+                            return 0;
+                        }
+                        for ( y=0; y<mipmapLevel->mipLevelInfo.frameHeight; ++y )
+                            memcpy( packed + ( y * lineSize ), FreeImage_GetScanLine( dib, (int) y ), lineSize );
+                        dataLink->packedPixelData = packed;
+                        mipmapLevel->pixelData = packed;
+                    }
+                    dataLink->pixelData = mipmapLevel->pixelData;
 
                     ++linkIndex;
                 }
@@ -1442,10 +1535,10 @@ IMGCODECPLUGIN_DecodeImageMetaData( void* pluginData                       ,
             }
         }
 
-	    /* Load the bitmap */
+	    /* Load the bitmap: the header and the meta-data, the formats that can leave the pixels out do */
         if( fif != FIF_UNKNOWN )
         {
-            dib = FreeImage_LoadFromHandle( fif, &io, (fi_handle) input, 0 );
+            dib = FreeImage_LoadFromHandle( fif, &io, (fi_handle) input, FIF_LOAD_NOPIXELS );
             if ( dib != NULL )
             {
                 /* now we map the metadata */
@@ -1507,7 +1600,9 @@ IMGCODECPLUGIN_EncodeImage( void* pluginData      ,
             
             int bpp = pixelSizeInBytes * 8;
             int pitch = pixelSizeInBytes * level->mipLevelInfo.frameWidth; 
-            FIBITMAP* bitmap = FreeImage_ConvertFromRawBitsEx( 0                               ,
+
+            /* a copy: FreeImage turns the rows over to keep the bottom row first, the pixels of the caller stay as they are */
+            FIBITMAP* bitmap = FreeImage_ConvertFromRawBitsEx( 1                               ,
                                                                (BYTE*) pixelData               ,
                                                                FIT_BITMAP                      ,
                                                                level->mipLevelInfo.frameWidth  , 
@@ -1526,10 +1621,12 @@ IMGCODECPLUGIN_EncodeImage( void* pluginData      ,
             fif = FreeImage_GetFIFFromFormat( codecType );            
             if ( 0 != FreeImage_SaveToHandle( fif, bitmap, &io, (fi_handle) output, 0 ) )
             {
+                FreeImage_Unload( bitmap );
                 if ( TRUE == pixelsConverted )
                     free( pixelData );
                 return 1;
             }
+            FreeImage_Unload( bitmap );
             if ( TRUE == pixelsConverted )
                 free( pixelData );
         }

@@ -932,7 +932,8 @@ CVFS::CopyFileContent( const CORE::CString& originalFilepath ,
         return false;
     }
 
-    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", overwrite );
+    // read from any mount, a read-only one too: the last argument of GetFile() asks for writeable mounts only
+    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", false );
     if ( originalFile.IsNULL() || originalFile->GetAccess().IsNULL() || !originalFile->GetAccess()->IsValid() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:CopyFileContent: Cannot obtain original file: " + originalFilepath );
@@ -1026,7 +1027,8 @@ CVFS::CopyFile( const CORE::CString& originalFilepath ,
         return false;
     }
 
-    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", overwrite );
+    // read from any mount, a read-only one too: the last argument of GetFile() asks for writeable mounts only
+    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", false );
     if ( originalFile.IsNULL() || originalFile->GetAccess().IsNULL() || !originalFile->GetAccess()->IsValid() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:CopyFile: Cannot obtain original file: " + originalFilepath );
@@ -1145,7 +1147,8 @@ CVFS::EncodeFile( const CORE::CString& originalFilepath ,
         return false;
     }
 
-    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", overwrite );
+    // read from any mount, a read-only one too: the last argument of GetFile() asks for writeable mounts only
+    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", false );
     if ( originalFile.IsNULL() || originalFile->GetAccess().IsNULL() || !originalFile->GetAccess()->IsValid() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:EncodeFile: Cannot obtain original file: " + originalFilepath );
@@ -1405,7 +1408,8 @@ CVFS::DecodeFile( const CORE::CString& originalFilepath ,
         return false;
     }
 
-    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", overwrite );
+    // read from any mount, a read-only one too: the last argument of GetFile() asks for writeable mounts only
+    TBasicVfsResourcePtr originalFile = GetFile( originalFilepath, "rb", false );
     if ( originalFile.IsNULL() || originalFile->GetAccess().IsNULL() || !originalFile->GetAccess()->IsValid() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:DecodeFile: Cannot obtain original file: " + originalFilepath );

@@ -68,6 +68,11 @@
 #define GUCEF_VFS_CVFSFILESYSTEMACCESS_H
 #endif /* GUCEF_VFS_CVFSFILESYSTEMACCESS_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -355,6 +360,168 @@ PerformVfsFileSystemAccessTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** The content of a file read through the VFS as text, empty when it cannot be read */
+CORE::CString
+ReadVfsText( VFS::CVFS& vfs, const CORE::CString& path )
+{
+    CORE::CDynamicBuffer content;
+    if ( !vfs.LoadFile( content, path, "rb" ) || 0 == content.GetDataSize() )
+        return CORE::CString::Empty;
+    return CORE::CString( (const char*) content.GetConstBufferPtr(), content.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The content of an open VFS file from its start, as text */
+CORE::CString
+ReadHandleText( VFS::TBasicVfsResourcePtr& file )
+{
+    if ( file.IsNULL() || file->GetAccess().IsNULL() )
+        return CORE::CString::Empty;
+    CORE::IOAccessPtr access = file->GetAccess();
+    access->Setpos( 0 );
+    CORE::CDynamicBuffer content;
+    content.Append( *access );
+    if ( 0 == content.GetDataSize() )
+        return CORE::CString::Empty;
+    return CORE::CString( (const char*) content.GetConstBufferPtr(), content.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformFolderArchiveChangeTests( void )
+{
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+
+    GUCEF_TESTFW_TESTCASE( "VfsFileSystemAccess: A small file rewritten outside the VFS with the same size reads back the new content" )
+        try
+        {
+            const CORE::CString dir = MakeTestDir( "samesizerewrite" );
+            ASSERT_TRUE( vfs.AddRoot( dir, "FsaSameSizeRewrite", true, false, "fsasamesize" ) );
+            const CORE::CString path = CORE::CombinePath( dir, "licence.txt" );
+
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "first" ) );
+            ASSERT_TRUE( "first" == ReadVfsText( vfs, "fsasamesize/licence.txt" ) );
+            ASSERT_TRUE( "first" == ReadVfsText( vfs, "fsasamesize/licence.txt" ) );   // an unchanged file reads the same again
+
+            // no handle is open: the next read sees the new bytes at once
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "other" ) );
+            ASSERT_TRUE( "other" == ReadVfsText( vfs, "fsasamesize/licence.txt" ) );
+
+            // a handle stays open on the old content: a later read sees the new bytes, the open handle keeps its own
+            VFS::TBasicVfsResourcePtr held = vfs.GetFile( "fsasamesize/licence.txt", "rb", false );
+            ASSERT_TRUE( "other" == ReadHandleText( held ) );
+            MT::ThreadDelay( 50 );     // past the granularity of the modification time of the file system
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "third" ) );
+            ASSERT_TRUE( "third" == ReadVfsText( vfs, "fsasamesize/licence.txt" ) );
+            ASSERT_TRUE( "other" == ReadHandleText( held ) );
+            held.Unlink();
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaSameSizeRewrite" ) );
+            CORE::DeleteDir( dir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "VfsFileSystemAccess: CopyFile copies between two folder archives, the source in a read-only mount" )
+        try
+        {
+            const CORE::CString srcDir = MakeTestDir( "copysrc" );
+            const CORE::CString dstDir = MakeTestDir( "copydst" );
+            ASSERT_TRUE( vfs.AddRoot( srcDir, "FsaCopySrc", false, false, "fsacopysrc" ) );
+            ASSERT_TRUE( vfs.AddRoot( dstDir, "FsaCopyDst", true, false, "fsacopydst" ) );
+
+            // a small file, loaded in memory, and one larger than the memory load size of the VFS
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( srcDir, "small.txt" ), "small file" ) );
+            CORE::CString large;
+            for ( UInt32 i=0; i<600; ++i )
+                large += "0123456789";
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( srcDir, "large.txt" ), large ) );
+
+            ASSERT_TRUE( vfs.CopyFile( "fsacopysrc/small.txt", "fsacopydst/sub/small.txt", false ) );
+            ASSERT_TRUE( "small file" == ReadVfsText( vfs, "fsacopydst/sub/small.txt" ) );
+            ASSERT_TRUE( vfs.CopyFile( "fsacopysrc/large.txt", "fsacopydst/large.txt", false ) );
+            ASSERT_TRUE( large == ReadVfsText( vfs, "fsacopydst/large.txt" ) );
+            ASSERT_TRUE( "small file" == ReadVfsText( vfs, "fsacopysrc/small.txt" ) );     // the source stays
+            ASSERT_TRUE( vfs.CopyFileContent( "fsacopysrc/large.txt", "fsacopydst/content.txt", true ) );
+            ASSERT_TRUE( large == ReadVfsText( vfs, "fsacopydst/content.txt" ) );
+
+            // overwrite replaces the copy, without it an existing copy stays
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( srcDir, "small.txt" ), "changed source" ) );
+            ASSERT_FALSE( vfs.CopyFile( "fsacopysrc/small.txt", "fsacopydst/sub/small.txt", false ) );
+            ASSERT_TRUE( "small file" == ReadVfsText( vfs, "fsacopydst/sub/small.txt" ) );
+            ASSERT_TRUE( vfs.CopyFile( "fsacopysrc/small.txt", "fsacopydst/sub/small.txt", true ) );
+            ASSERT_TRUE( "changed source" == ReadVfsText( vfs, "fsacopydst/sub/small.txt" ) );
+
+            // a read-only mount does not take a copy
+            ASSERT_FALSE( vfs.CopyFile( "fsacopydst/large.txt", "fsacopysrc/copied.txt", true ) );
+            ASSERT_FALSE( CORE::FileExists( CORE::CombinePath( srcDir, "copied.txt" ) ) );
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaCopySrc" ) );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaCopyDst" ) );
+            CORE::DeleteDir( srcDir, true );
+            CORE::DeleteDir( dstDir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    const bool zipAvailable = !vfs.CreateArchiveWriter( "zip" ).IsNULL() || TestArchiveUtils::LoadVfsPlugin( "vfspluginZIP" );
+
+    GUCEF_TESTFW_TESTCASE( "VfsFileSystemAccess: CopyFile copies from a zip archive to a folder archive" )
+        GUCEF_TESTFW_SKIP_IF( !zipAvailable || vfs.CreateArchiveWriter( "zip" ).IsNULL(), "vfspluginZIP is not available" );
+        try
+        {
+            const CORE::CString zipDir = MakeTestDir( "copyzip" );
+            const CORE::CString dstDir = MakeTestDir( "copyzipdst" );
+            const CORE::CString zipPath = CORE::CombinePath( zipDir, "pack.zip" );
+            CORE::CString text = "a file in a zip archive";
+            CORE::CDynamicBuffer textContent;
+            textContent.CopyFrom( text.Length(), text.C_String() );
+            {
+                CORE::CFileAccess output( zipPath, "wb" );
+                VFS::CVFS::TArchiveWriterPtr writer = vfs.CreateArchiveWriter( "zip" );
+                ASSERT_TRUE( output.IsValid() && !writer.IsNULL() );
+                if ( output.IsValid() && !writer.IsNULL() )
+                {
+                    ASSERT_TRUE( writer->Open( output ) );
+                    CORE::CDynamicBufferAccess textAccess( textContent );
+                    VFS::CArchiveWriterEntrySettings deflated;
+                    deflated.compression = VFS::CArchiveWriterEntrySettings::COMPRESSION_DEFLATE;
+                    ASSERT_TRUE( writer->AddFile( "textures/readme.txt", textAccess, deflated ) );
+                    ASSERT_TRUE( writer->Close() );
+                }
+            }
+            ASSERT_TRUE( vfs.AddRoot( zipDir, "FsaCopyZipDir", false, false, "fsacopyzipdir" ) );
+            ASSERT_TRUE( vfs.MountArchive( "FsaCopyZip", "fsacopyzipdir/pack.zip", "zip", "fsacopyzip", false, false ) );
+            ASSERT_TRUE( vfs.AddRoot( dstDir, "FsaCopyZipDst", true, false, "fsacopyzipdst" ) );
+
+            ASSERT_TRUE( vfs.CopyFile( "fsacopyzip/textures/readme.txt", "fsacopyzipdst/readme.txt", false ) );
+            ASSERT_TRUE( text == ReadVfsText( vfs, "fsacopyzipdst/readme.txt" ) );
+            ASSERT_TRUE( vfs.CopyFile( "fsacopyzip/textures/readme.txt", "fsacopyzipdst/readme.txt", true ) );
+            ASSERT_TRUE( text == ReadVfsText( vfs, "fsacopyzipdst/readme.txt" ) );
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaCopyZip" ) );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaCopyZipDir" ) );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaCopyZipDst" ) );
+            CORE::DeleteDir( zipDir, true );
+            CORE::DeleteDir( dstDir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformArchiveExtensionTests( void )
 {
@@ -462,6 +629,7 @@ PerformFileSystemAccessTests( void )
     PerformVfsDirectoryTests();
     PerformVfsFileSystemAccessTests();
     PerformArchiveExtensionTests();
+    PerformFolderArchiveChangeTests();
 }
 
 /*-------------------------------------------------------------------------*/

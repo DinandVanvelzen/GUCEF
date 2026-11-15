@@ -14,6 +14,7 @@
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_MATH_TESTAPP_BUILD_MODULE" />
+            <Define String="GUCEF_MATH_NO_COORDINATESYSTEM_VALIDITY_ASSERT" />
         </Preprocessor>
         <Compiler>
             <CompilerFlags CompilerName="G++" Flags="-ffp-contract=off" />
