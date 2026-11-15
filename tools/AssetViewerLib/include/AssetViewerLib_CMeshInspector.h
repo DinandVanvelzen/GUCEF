@@ -115,6 +115,13 @@ class ASSETVIEWERLIB_PUBLIC_CPP CMeshInspector
     /** The geometry of a sub mesh; false for a sub mesh that does not exist or buffers that cannot be read */
     static bool ReadSubMesh( const Ogre::MeshPtr& mesh, UInt32 subMeshIndex, SSubMeshGeometry& geometry );
 
+    /**
+     *  The bounds of the vertex positions of all sub meshes. Unlike the bounds of the mesh these have no padding (Ogre pads the
+     *  bounds it is given by its bounds padding factor): the size of the model as its file has it. Read from the shadow buffers
+     *  of a mesh loaded with them (CModelView loads meshes so); false without positions or for a mesh without shadow buffers
+     */
+    static bool GetGeometryBounds( const Ogre::MeshPtr& mesh, Ogre::AxisAlignedBox& bounds );
+
     /** The vertex data a sub mesh draws from (its own or the shared data of the mesh) */
     static Ogre::VertexData* GetVertexData( const Ogre::MeshPtr& mesh, UInt32 subMeshIndex );
 

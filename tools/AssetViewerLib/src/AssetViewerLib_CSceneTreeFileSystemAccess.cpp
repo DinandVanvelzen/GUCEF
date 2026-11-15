@@ -46,7 +46,7 @@ namespace ASSETVIEWER {
 
 namespace {
 
-const char* const ObjectKinds[] = { "entity", "light", "camera", "object" };
+const char* const ObjectKinds[] = { "entity", "light", "camera", "particles", "object" };
 
 }
 

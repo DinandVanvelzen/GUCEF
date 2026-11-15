@@ -17,21 +17,41 @@ if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetViewerAssets.h
     include/TestAssetViewerBasic.h
+    include/TestAssetViewerOpen.h
+    include/TestAssetViewerParticles.h
     include/TestAssetViewerRender.h
+    include/TestAssetViewerServiceAdapters.h
     include/TestAssetViewerShell.h
+    include/TestAssetViewerSignIn.h
+    include/TestAssetViewerSources.h
     include/TestAssetViewerSupport.h
+    include/TestFakeAssetStoreService.h
+    include/TestFakeConverterHook.h
+    include/TestFakeLoginSite.h
+    include/TestFakeSignInBrowser.h
+    include/TestFakeSourceStore.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    ../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp
     src/AssetViewerLib_TestApp.cpp
     src/TestAssetViewerAssets.cpp
     src/TestAssetViewerBasic.cpp
+    src/TestAssetViewerOpen.cpp
+    src/TestAssetViewerParticles.cpp
     src/TestAssetViewerRender.cpp
+    src/TestAssetViewerServiceAdapters.cpp
     src/TestAssetViewerShell.cpp
+    src/TestAssetViewerSignIn.cpp
+    src/TestAssetViewerSources.cpp
     src/TestAssetViewerSupport.cpp
+    src/TestFakeConverterHook.cpp
+    src/TestFakeSourceStore.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX32" )
@@ -41,21 +61,41 @@ elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetViewerAssets.h
     include/TestAssetViewerBasic.h
+    include/TestAssetViewerOpen.h
+    include/TestAssetViewerParticles.h
     include/TestAssetViewerRender.h
+    include/TestAssetViewerServiceAdapters.h
     include/TestAssetViewerShell.h
+    include/TestAssetViewerSignIn.h
+    include/TestAssetViewerSources.h
     include/TestAssetViewerSupport.h
+    include/TestFakeAssetStoreService.h
+    include/TestFakeConverterHook.h
+    include/TestFakeLoginSite.h
+    include/TestFakeSignInBrowser.h
+    include/TestFakeSourceStore.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    ../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp
     src/AssetViewerLib_TestApp.cpp
     src/TestAssetViewerAssets.cpp
     src/TestAssetViewerBasic.cpp
+    src/TestAssetViewerOpen.cpp
+    src/TestAssetViewerParticles.cpp
     src/TestAssetViewerRender.cpp
+    src/TestAssetViewerServiceAdapters.cpp
     src/TestAssetViewerShell.cpp
+    src/TestAssetViewerSignIn.cpp
+    src/TestAssetViewerSources.cpp
     src/TestAssetViewerSupport.cpp
+    src/TestFakeConverterHook.cpp
+    src/TestFakeSourceStore.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
@@ -65,21 +105,41 @@ elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetViewerAssets.h
     include/TestAssetViewerBasic.h
+    include/TestAssetViewerOpen.h
+    include/TestAssetViewerParticles.h
     include/TestAssetViewerRender.h
+    include/TestAssetViewerServiceAdapters.h
     include/TestAssetViewerShell.h
+    include/TestAssetViewerSignIn.h
+    include/TestAssetViewerSources.h
     include/TestAssetViewerSupport.h
+    include/TestFakeAssetStoreService.h
+    include/TestFakeConverterHook.h
+    include/TestFakeLoginSite.h
+    include/TestFakeSignInBrowser.h
+    include/TestFakeSourceStore.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    ../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp
     src/AssetViewerLib_TestApp.cpp
     src/TestAssetViewerAssets.cpp
     src/TestAssetViewerBasic.cpp
+    src/TestAssetViewerOpen.cpp
+    src/TestAssetViewerParticles.cpp
     src/TestAssetViewerRender.cpp
+    src/TestAssetViewerServiceAdapters.cpp
     src/TestAssetViewerShell.cpp
+    src/TestAssetViewerSignIn.cpp
+    src/TestAssetViewerSources.cpp
     src/TestAssetViewerSupport.cpp
+    src/TestFakeConverterHook.cpp
+    src/TestFakeSourceStore.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN32" )
@@ -89,21 +149,41 @@ elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetViewerAssets.h
     include/TestAssetViewerBasic.h
+    include/TestAssetViewerOpen.h
+    include/TestAssetViewerParticles.h
     include/TestAssetViewerRender.h
+    include/TestAssetViewerServiceAdapters.h
     include/TestAssetViewerShell.h
+    include/TestAssetViewerSignIn.h
+    include/TestAssetViewerSources.h
     include/TestAssetViewerSupport.h
+    include/TestFakeAssetStoreService.h
+    include/TestFakeConverterHook.h
+    include/TestFakeLoginSite.h
+    include/TestFakeSignInBrowser.h
+    include/TestFakeSourceStore.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    ../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp
+    ../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp
     src/AssetViewerLib_TestApp.cpp
     src/TestAssetViewerAssets.cpp
     src/TestAssetViewerBasic.cpp
+    src/TestAssetViewerOpen.cpp
+    src/TestAssetViewerParticles.cpp
     src/TestAssetViewerRender.cpp
+    src/TestAssetViewerServiceAdapters.cpp
     src/TestAssetViewerShell.cpp
+    src/TestAssetViewerSignIn.cpp
+    src/TestAssetViewerSources.cpp
     src/TestAssetViewerSupport.cpp
+    src/TestFakeConverterHook.cpp
+    src/TestFakeSourceStore.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
@@ -154,48 +234,144 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE;MODULE_NAME=AssetViewerLib_TestApp" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE;MODULE_NAME=AssetViewerLib_TestApp" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE;MODULE_NAME=AssetViewerLib_TestApp" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC AssetViewerLib Ogre gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE;MODULE_NAME=AssetViewerLib_TestApp" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( WIN64 )
+
+if ( ANDROID )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( ANDROID )
+
+if ( ANDROID32 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( ANDROID64 )
+
+if ( ARDUINO )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( EMSCRIPTEN )
+
+if ( EMSCRIPTEN32 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( EMSCRIPTEN64 )
+
+if ( GLX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( GLX )
+
+if ( GTK )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( GTK )
+
+if ( IOS )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( IOS )
+
+if ( IPHONE )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( LINUX )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetViewerLib/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include ../../tools/AssetViewerLib/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetViewerLib/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include ../../tools/AssetViewerLib/include include )
 endif( LINUX64 )
 
+if ( MAC )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( MSWIN )
+
+if ( NACL )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( NACL )
+
+if ( OSX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( OSX )
+
+if ( POSIX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( POSIX )
+
+if ( SDL )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( SDL )
+
+if ( SYMBIAN )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( SYMBIAN )
+
+if ( UNIX )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( UNIX )
+
 if ( WIN32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetViewerLib/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include ../../tools/AssetViewerLib/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetViewerLib/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include ../../tools/AssetViewerLib/include include )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include )
+endif( WINDOWS )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
 if ( LINUX32 )

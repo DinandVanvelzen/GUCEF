@@ -70,6 +70,16 @@
 #define ASSETVIEWERLIB_CASSETCAPTURE_H
 #endif /* ASSETVIEWERLIB_CASSETCAPTURE_H ? */
 
+#ifndef ASSETVIEWERLIB_CASSETSOURCESSETTINGS_H
+#include "AssetViewerLib_CAssetSourcesSettings.h"
+#define ASSETVIEWERLIB_CASSETSOURCESSETTINGS_H
+#endif /* ASSETVIEWERLIB_CASSETSOURCESSETTINGS_H ? */
+
+#ifndef ASSETVIEWERLIB_CVIEWERCREDENTIALS_H
+#include "AssetViewerLib_CViewerCredentials.h"
+#define ASSETVIEWERLIB_CVIEWERCREDENTIALS_H
+#endif /* ASSETVIEWERLIB_CVIEWERCREDENTIALS_H ? */
+
 #ifndef ASSETVIEWERLIB_CVIEWERSHELL_H
 #include "AssetViewerLib_CViewerShell.h"
 #define ASSETVIEWERLIB_CVIEWERSHELL_H
@@ -96,6 +106,7 @@ namespace ASSETVIEWER {
 /**
  *  The asset viewer as an application. The command line:
  *
+ *      <path>...                       folders, archives (zip, unitypackage, ...) or files of the disk to open at the start, as the open dialogs do
  *      --mount <mountPoint>=<source>   a folder, an archive (zip, unitypackage, ...) or the VFS path of an archive in an earlier mount; repeatable
  *      --open <vfs path>               an asset to show at the start
  *      --renderer <name>               OpenGL or Vulkan (the renderer of the video settings otherwise)
@@ -103,12 +114,20 @@ namespace ASSETVIEWER {
  *      --thumbnail-cache <folder>      where the thumbnails are kept (the cache folder of the user otherwise)
  *      --tile <pixels>                 the size of one view of a contact sheet (256)
  *      --offscreen                     no window on the screen (always when --capture runs without a display)
+ *      --ingest <path>                 a folder or archive (VFS path or path of the disk) to add to the primary store after the start; repeatable
+ *      --search <text>                 the text to search the primary store for once the ingests are done
+ *      --screenshot <file.png>         writes the window to the file once the ingests and the search are done, then exits
  *      --bootstrap <file>, --config <file>, --log <file>, --help
  *
  *  With --capture no GUI is made: the window is only the place Ogre draws in, and it is Ogre's own headless surface when there is no
  *  display. The exit code is 0 when every sheet was written, 3 when one was not, 2 and above 3 for a start that failed.
  *
- *  Settings: section "AssetViewer" (thumbnailCache, captureTileSize), "VideoSettings", "GeneralSettings" and "Main/AppArgs"
+ *  Sign in: the sessions of the online stores that sign in on a web site are kept in a key file store and the passwords the owner saves in a
+ *  keyring code store, both in the folder "Auth" of the settings folder (CViewerCredentials), installed for the store plugins from the
+ *  start and locked when the viewer ends; the sign in itself is the business of the sources tab (CViewerSignIn).
+ *
+ *  Settings: section "AssetViewer" (thumbnailCache, captureTileSize, RecentLocations: the places that were opened lately), "AssetSources" (the primary store, the downloads, the formats
+ *  to prefer, the idle lock of the keyring, see CAssetSourcesSettings), "VideoSettings", "GeneralSettings" and "Main/AppArgs"
  *  (minimalLogLevel, logFile). The section "Ogre" belongs to the Ogre support library.
  */
 class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable ,
@@ -158,10 +177,15 @@ class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable 
     /** What the command line asked for, for tests */
     const CORE::CString::StringVector& GetMountSpecs( void ) const;
     const CORE::CString::StringVector& GetCaptureAssets( void ) const;
+    const CORE::CString::StringVector& GetOpenLocations( void ) const;
+    GUI::CRecentLocations& GetRecentLocations( void );
     const CORE::CString& GetCaptureFolder( void ) const;
     const CORE::CString& GetOpenPath( void ) const;
     const CORE::CString& GetRenderer( void ) const;
     const CORE::CString& GetThumbnailCacheFolder( void ) const;
+    const CORE::CString::StringVector& GetIngestPaths( void ) const;
+    const CORE::CString& GetSearchText( void ) const;
+    const CORE::CString& GetScreenshotFile( void ) const;
 
     virtual bool SaveConfig( CORE::CDataNode& globalConfig ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool LoadConfig( const CORE::CDataNode& globalConfig ) GUCEF_VIRTUAL_OVERRIDE;
@@ -172,6 +196,8 @@ class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable 
     void OnWorkStartTrigger( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnCloseRequest( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void KeepRecentLocations( void );
+    void OnRecentLocationsChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     void Start( void );
     bool CreateViewerWindow( void );
@@ -179,6 +205,7 @@ class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable 
     bool StartInteractive( void );
     bool CreateInput( void );
     void CaptureNext( void );
+    void StepScript( void );
     void Stop( Int32 exitCode );
 
     CViewerApp( const CViewerApp& src );              /**< not implemented: the application is unique */
@@ -197,14 +224,24 @@ class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable 
     CORE::CString m_openPath;
     CORE::CString m_captureFolder;
     CORE::CString m_thumbnailCacheFolder;
+    CORE::CString m_screenshotFile;
+    CORE::CString m_searchText;
+    CORE::CString::StringVector m_ingestPaths;
     CORE::CString::StringVector m_mountSpecs;
     CORE::CString::StringVector m_captureAssets;
+    CORE::CString::StringVector m_openLocations;
+    CORE::CString m_settingsThumbnailCache;     /**< what the settings file says: a value given on the command line is for this run only and is not kept in it */
+    CORE::CString m_settingsLogFile;
+    UInt32 m_settingsTileSize;
     Int32 m_minimalLogLevel;
     UInt32 m_tileSize;
     bool m_offscreen;
     bool m_capturing;
     GUI::CVideoSettings m_videoSettings;
     GUI::CGeneralSettings m_generalSettings;
+    CAssetSourcesSettings m_sourcesSettings;
+    GUI::CRecentLocations m_recentLocations;
+    CViewerCredentials m_credentials;           /**< the stores of the sessions and the saved passwords of the sign in of the online stores: installed from the start, before the store plugins load; locked when the viewer ends */
 
     // the running viewer
     CORE::CEventAggregateTrigger m_workStartTrigger;
@@ -218,9 +255,12 @@ class ASSETVIEWERLIB_PUBLIC_CPP CViewerApp : public CORE::CGloballyConfigurable 
     GUI::CGUIInputAdapter* m_inputAdapter;
     UInt32 m_nextCapture;
     UInt32 m_captureFailures;
+    UInt32 m_scriptStage;
+    UInt32 m_scriptFrames;
     Int32 m_exitCode;
     bool m_started;
     bool m_stopRequested;
+    bool m_recentDirty;
 };
 
 /*-------------------------------------------------------------------------//

@@ -197,6 +197,7 @@ SetUpViewerTests( void )
     AddOgrePluginEntry( *group, "OgreCodec_GucefIMAGE", true );
     AddOgrePluginEntry( *group, "OgreCodec_Assimp", true );
     AddOgrePluginEntry( *group, "OgrePlugin_DotScene", true );
+    AddOgrePluginEntry( *group, "OgrePlugin_ParticleFX", true );
     CORE::CCoreGlobal::Instance()->GetPluginControl().LoadConfig( config );
 
     CORE::CString::StringVector renderSystems;
@@ -213,6 +214,14 @@ SetUpViewerTests( void )
     LoadGuiPlugin( "guidriverXWinGL" );
     #endif
     LoadGuiPlugin( "guidriverImGuiOgre" );
+
+    // what the catalogue of the primary store needs: JSON and compression for its files, the table codec and the database of the VFS tables
+    LoadGuiPlugin( "dstorepluginJSONPARSER" );
+    LoadGuiPlugin( "codecspluginZLIB" );
+    // the sealing and key derivation of the credential stores of the sign in of the online stores
+    LoadGuiPlugin( "codecspluginMONOCYPHER" );
+    LoadGuiPlugin( "tablecodecpluginPARQUET" );
+    LoadGuiPlugin( "dbpluginVFSTABLES" );
     return !GUI::CGuiGlobal::Instance()->GetWindowManager().GetBackend( "Ogre" ).IsNULL();
 }
 
@@ -245,7 +254,21 @@ GetMainTestWindow( void )
         return GUI::TWindowContextPtr();
 
     GUI::CVideoSettings settings;
-    settings.SetResolution( 1280, 720, 32 );
+    // 1280 x 720, or the size that GUCEF_TEST_WINDOW_SIZE gives ("1600x900"), for the pictures that people look at
+    UInt32 width = 1280;
+    UInt32 height = 720;
+    const char* size = ::getenv( "GUCEF_TEST_WINDOW_SIZE" );
+    if ( GUCEF_NULL != size && '\0' != size[ 0 ] )
+    {
+        const CORE::CString text( size );
+        const CORE::CString::StringVector parts = text.ParseElements( 'x', false );
+        if ( 2 == parts.size() && CORE::StringToUInt32( parts[ 0 ], 0 ) >= 640 && CORE::StringToUInt32( parts[ 1 ], 0 ) >= 480 )
+        {
+            width = CORE::StringToUInt32( parts[ 0 ], 0 );
+            height = CORE::StringToUInt32( parts[ 1 ], 0 );
+        }
+    }
+    settings.SetResolution( width, height, 32 );
     settings.SetFullscreenState( false );
     settings.SetVSyncState( false );
     settings.SetRenderer( GetTestRenderer() );

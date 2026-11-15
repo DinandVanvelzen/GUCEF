@@ -1040,6 +1040,256 @@ TestThumbnails( void )
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** Appends a 32 bit value, little endian as the binary STL format has it */
+void
+AppendUInt32( CORE::CDynamicBuffer& buffer, UInt32 value )
+{
+    const UInt8 bytes[ 4 ] = { (UInt8) ( value & 0xFF ), (UInt8) ( ( value >> 8 ) & 0xFF ), (UInt8) ( ( value >> 16 ) & 0xFF ), (UInt8) ( ( value >> 24 ) & 0xFF ) };
+    buffer.Append( bytes, 4 );
+}
+
+void
+AppendFloat32( CORE::CDynamicBuffer& buffer, Float32 value )
+{
+    UInt32 bits = 0;
+    memcpy( &bits, &value, 4 );
+    AppendUInt32( buffer, bits );
+}
+
+/** A binary STL of a box from 'low' to 'high', two triangles a side: 12 triangles, 3 vertices each */
+bool
+WriteBinaryStlBox( const CORE::CString& path, const Float32 low[ 3 ], const Float32 high[ 3 ] )
+{
+    // the corners by bits: bit 0 picks x, bit 1 y, bit 2 z; each side as two triangles of corner indices
+    static const UInt32 sides[ 12 ][ 3 ] =
+    {
+        { 0, 2, 1 }, { 1, 2, 3 }, { 4, 5, 6 }, { 5, 7, 6 },     // z low, z high
+        { 0, 1, 4 }, { 1, 5, 4 }, { 2, 6, 3 }, { 3, 6, 7 },     // y low, y high
+        { 0, 4, 2 }, { 2, 4, 6 }, { 1, 3, 5 }, { 3, 7, 5 }      // x low, x high
+    };
+    CORE::CDynamicBuffer buffer;
+    const UInt8 header[ 80 ] = { 0 };
+    buffer.Append( header, 80 );
+    AppendUInt32( buffer, 12 );
+    for ( UInt32 t=0; t<12; ++t )
+    {
+        for ( UInt32 n=0; n<3; ++n )
+            AppendFloat32( buffer, 0.0f );      // the reader makes the normals
+        for ( UInt32 v=0; v<3; ++v )
+        {
+            const UInt32 corner = sides[ t ][ v ];
+            AppendFloat32( buffer, ( corner & 1 ) ? high[ 0 ] : low[ 0 ] );
+            AppendFloat32( buffer, ( corner & 2 ) ? high[ 1 ] : low[ 1 ] );
+            AppendFloat32( buffer, ( corner & 4 ) ? high[ 2 ] : low[ 2 ] );
+        }
+        const UInt8 attributes[ 2 ] = { 0, 0 };
+        buffer.Append( attributes, 2 );
+    }
+    CORE::CFileAccess file( path, "wb" );
+    if ( !file.IsValid() )
+        return false;
+    return buffer.GetDataSize() == file.Write( buffer.GetBufferPtr(), 1, buffer.GetDataSize() );
+}
+
+bool
+AddTextEntry( VFS::CIArchiveWriter& writer, const CORE::CString& name, const CORE::CString& text )
+{
+    CORE::CDynamicBuffer content;
+    content.CopyFrom( text.Length(), text.C_String() );
+    CORE::CDynamicBufferAccess access( content );
+    VFS::CArchiveWriterEntrySettings settings;
+    return writer.AddFile( name, access, settings );
+}
+
+/** A 3MF package with one object: a tetrahedron 10 wide and 20 high along Z, standing at the origin */
+bool
+Write3mfTetrahedron( const CORE::CString& path )
+{
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    CORE::CFileAccess output( path, "wb" );
+    VFS::CVFS::TArchiveWriterPtr writer = vfs.CreateArchiveWriter( "zip" );
+    if ( writer.IsNULL() || !writer->Open( output ) )
+        return false;
+    const bool written =
+        AddTextEntry( *writer, "[Content_Types].xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
+            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
+            "<Default Extension=\"model\" ContentType=\"application/vnd.ms-package.3dmanufacturing-3dmodel+xml\"/></Types>\n" ) &&
+        AddTextEntry( *writer, "_rels/.rels",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            "<Relationship Target=\"/3D/3dmodel.model\" Id=\"rel0\" Type=\"http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel\"/>"
+            "</Relationships>\n" ) &&
+        AddTextEntry( *writer, "3D/3dmodel.model",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            "<model unit=\"millimeter\" xml:lang=\"en-US\" xmlns=\"http://schemas.microsoft.com/3dmanufacturing/core/2015/02\">"
+            "<resources><object id=\"1\" type=\"model\"><mesh>"
+            "<vertices><vertex x=\"0\" y=\"0\" z=\"0\"/><vertex x=\"10\" y=\"0\" z=\"0\"/><vertex x=\"0\" y=\"10\" z=\"0\"/><vertex x=\"0\" y=\"0\" z=\"20\"/></vertices>"
+            "<triangles><triangle v1=\"0\" v2=\"2\" v3=\"1\"/><triangle v1=\"0\" v2=\"1\" v3=\"3\"/><triangle v1=\"1\" v2=\"2\" v3=\"3\"/><triangle v1=\"0\" v2=\"3\" v3=\"2\"/></triangles>"
+            "</mesh></object></resources><build><item objectid=\"1\"/></build></model>\n" );
+    return writer->Close() && written;
+}
+
+bool
+Near( Float32 a, Float32 b )
+{
+    return fabsf( a - b ) < 1e-3f;
+}
+
+bool
+CenterIs( const CModelView& model, Float32 x, Float32 y, Float32 z )
+{
+    COrbitController::SVector3 center;
+    Float32 radius = 0.0f;
+    model.GetBoundingSphere( center, radius );
+    return Near( center.x, x ) && Near( center.y, y ) && Near( center.z, z );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+TestPrintFormats( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Print formats: the extensions of 3D printing files in any case are known, the others are not" )
+    try
+    {
+        ASSERT_TRUE( CModelView::IsPrintFormat( "stl" ) && CModelView::IsPrintFormat( "STL" ) && CModelView::IsPrintFormat( "3mf" ) && CModelView::IsPrintFormat( "Amf" ) );
+        ASSERT_FALSE( CModelView::IsPrintFormat( "fbx" ) || CModelView::IsPrintFormat( "obj" ) || CModelView::IsPrintFormat( "" ) );
+    }
+    catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Print formats: a binary STL, an ASCII STL with an upper case extension and a 3MF stand Z up on the grid; the settings turn and move them back; a broken file does not load" )
+    try
+    {
+        if ( !HaveWindow() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        const CORE::CString dir = MakeCleanTestDir( "print" );
+        // a box 20 wide (x), 10 deep (y) and 30 high (z), on a build plate at 100, 50
+        const Float32 low[ 3 ] = { 100.0f, 50.0f, 0.0f };
+        const Float32 high[ 3 ] = { 120.0f, 60.0f, 30.0f };
+        ASSERT_TRUE( WriteBinaryStlBox( dir + "/box.stl", low, high ) );
+        ASSERT_TRUE( WriteTestFile( dir + "/TRI.STL", "solid tri\nfacet normal 0 0 1\n outer loop\n  vertex 0 0 0\n  vertex 10 0 0\n  vertex 0 10 0\n endloop\nendfacet\nendsolid tri\n" ) );
+        ASSERT_TRUE( Write3mfTetrahedron( dir + "/tetra.3mf" ) );
+        ASSERT_TRUE( WriteTestFile( dir + "/broken.stl", "not a model" ) );
+        ASSERT_TRUE( WriteModelFolder( dir ) );
+        CAssetMounter mounter;
+        ASSERT_TRUE( mounter.Mount( "avprint", dir ) );
+
+        CAssetCapture capture( AsOgreWindow( GetMainTestWindow() ) );
+        ASSERT_TRUE( capture.Initialize( TileSize ) );
+        CViewerStage& stage = capture.GetStage();
+        CModelView model( stage );
+        CORE::CString relative;
+
+        // the binary STL: three vertices a triangle, Z up and on the grid: its middle over the origin, its foot on the ground
+        CORE::CString group = mounter.GetResourceGroup( "/avprint/box.stl", relative );
+        ASSERT_TRUE( model.LoadMesh( group, relative ) );
+        ASSERT_TRUE( 12 == model.GetStatistics().triangleCount && 36 == model.GetStatistics().vertexCount );
+        ASSERT_TRUE( CModelView::UPAXIS_AUTOMATIC == model.GetUpAxis() && CModelView::UPAXIS_Z == model.GetEffectiveUpAxis() );
+        ASSERT_TRUE( CModelView::PLACEMENT_ON_GRID == model.GetEffectivePlacement() );
+        ASSERT_TRUE( CenterIs( model, 0.0f, 15.0f, 0.0f ) );
+        // the content node turns the file's Z into Y: the top of the box is 30 up
+        const Ogre::Vector3 top = stage.GetContentNode()->_getFullTransform() * Ogre::Vector3( 110.0f, 55.0f, 30.0f );
+        ASSERT_TRUE( Near( top.x, 0.0f ) && Near( top.y, 30.0f ) && Near( top.z, 0.0f ) );
+
+        // the size in the inspector is that of the file: 20 x 10 x 30, and the view says how the model stands
+        CORE::CDataNode data;
+        model.WriteInspectorData( data );
+        const CORE::CDataNode* bounds = data.FindChild( "Bounds" );
+        const CORE::CDataNode* view = data.FindChild( "View" );
+        ASSERT_TRUE( GUCEF_NULL != bounds && GUCEF_NULL != view );
+        if ( GUCEF_NULL != bounds && GUCEF_NULL != view )
+        {
+            const CORE::CString expected = GUI::CPropertyRowDescriptor::NumberToText( 20.0, 3 ) + " x " + GUI::CPropertyRowDescriptor::NumberToText( 10.0, 3 )
+                                           + " x " + GUI::CPropertyRowDescriptor::NumberToText( 30.0, 3 );
+            ASSERT_TRUE( expected == bounds->GetAttributeValue( "Size" ).AsString() );
+            ASSERT_TRUE( CORE::CString( CModelView::GetUpAxisName( CModelView::UPAXIS_Z ) ) == view->GetAttributeValue( "UpAxis" ).AsString() );
+            ASSERT_TRUE( CORE::CString( CModelView::GetPlacementName( CModelView::PLACEMENT_ON_GRID ) ) == view->GetAttributeValue( "Placement" ).AsString() );
+        }
+
+        // the settings: Y up as authored is the file as it is, Z up as authored turns it about X only
+        model.SetUpAxis( CModelView::UPAXIS_Y );
+        model.SetPlacement( CModelView::PLACEMENT_AS_AUTHORED );
+        ASSERT_TRUE( CenterIs( model, 110.0f, 55.0f, 15.0f ) );
+        ASSERT_TRUE( stage.GetContentNode()->getOrientation() == Ogre::Quaternion::IDENTITY && stage.GetContentNode()->getPosition() == Ogre::Vector3::ZERO );
+        model.SetUpAxis( CModelView::UPAXIS_Z );
+        ASSERT_TRUE( CenterIs( model, 110.0f, 15.0f, -55.0f ) );
+        // Y up on the grid: the file's lowest Y on the ground
+        model.SetUpAxis( CModelView::UPAXIS_Y );
+        model.SetPlacement( CModelView::PLACEMENT_ON_GRID );
+        ASSERT_TRUE( CenterIs( model, 0.0f, 5.0f, 0.0f ) );
+        model.SetUpAxis( CModelView::UPAXIS_AUTOMATIC );
+        model.SetPlacement( CModelView::PLACEMENT_AUTOMATIC );
+
+        // the ASCII STL of the upper case name: a flat triangle that lies on the ground
+        group = mounter.GetResourceGroup( "/avprint/TRI.STL", relative );
+        ASSERT_TRUE( model.LoadMesh( group, relative ) );
+        ASSERT_TRUE( 1 == model.GetStatistics().triangleCount && CModelView::UPAXIS_Z == model.GetEffectiveUpAxis() );
+        ASSERT_TRUE( CenterIs( model, 0.0f, 0.0f, 0.0f ) );
+
+        // the 3MF, a zip that the reader seeks in from its end: four triangles, 20 high
+        group = mounter.GetResourceGroup( "/avprint/tetra.3mf", relative );
+        ASSERT_TRUE( model.LoadMesh( group, relative ) );
+        ASSERT_TRUE( 4 == model.GetStatistics().triangleCount && CModelView::UPAXIS_Z == model.GetEffectiveUpAxis() );
+        ASSERT_TRUE( CenterIs( model, 0.0f, 10.0f, 0.0f ) );
+
+        // a glTF is shown as authored and Y up, from the coordinates of the stage
+        group = mounter.GetResourceGroup( "/avprint/model.gltf", relative );
+        ASSERT_TRUE( model.LoadMesh( group, relative ) );
+        ASSERT_TRUE( CModelView::UPAXIS_Y == model.GetEffectiveUpAxis() && CModelView::PLACEMENT_AS_AUTHORED == model.GetEffectivePlacement() );
+        ASSERT_TRUE( stage.GetContentNode()->getOrientation() == Ogre::Quaternion::IDENTITY && stage.GetContentNode()->getPosition() == Ogre::Vector3::ZERO );
+
+        // a file the importer cannot read is a failure, not an empty model, and leaves the stage as it was
+        group = mounter.GetResourceGroup( "/avprint/broken.stl", relative );
+        ASSERT_FALSE( model.LoadMesh( group, relative ) );
+        ASSERT_FALSE( model.IsLoaded() );
+        ASSERT_TRUE( stage.GetContentNode()->getOrientation() == Ogre::Quaternion::IDENTITY && stage.GetContentNode()->getPosition() == Ogre::Vector3::ZERO );
+
+        // a Z up model that is let go of leaves the stage in its own coordinates
+        group = mounter.GetResourceGroup( "/avprint/box.stl", relative );
+        ASSERT_TRUE( model.LoadMesh( group, relative ) );
+        ASSERT_FALSE( stage.GetContentNode()->getOrientation() == Ogre::Quaternion::IDENTITY );
+        model.Unload();
+        ASSERT_TRUE( stage.GetContentNode()->getOrientation() == Ogre::Quaternion::IDENTITY && stage.GetContentNode()->getPosition() == Ogre::Vector3::ZERO );
+
+        // the contact sheet of the box: the middle of the front view is the box, lit (its file has zero normals, which the reader
+        // makes from the facets: with zero normals it would be black)
+        IMAGE::TPixelMapPtr sheet;
+        ASSERT_TRUE( capture.CaptureContactSheet( mounter, "/avprint/box.stl", sheet ) );
+        DumpPicture( sheet, "print_box_" + CORE::CString( GetTestRenderer() ) );
+        UInt32 originX = 0, originY = 0;
+        CAssetCapture::GetTileOrigin( TileSize, 0, originX, originY );
+        UInt8 middle[ 4 ];
+        GetPixel( sheet, (Int32) ( originX + TileSize / 2 ), (Int32) ( originY + TileSize / 2 ), middle );
+        ASSERT_TRUE( (UInt32) middle[ 0 ] + middle[ 1 ] + middle[ 2 ] > 3 * 90 );
+    }
+    catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformAssetViewerRenderTests( void )
 {GUCEF_TRACE;
@@ -1053,6 +1303,7 @@ PerformAssetViewerRenderTests( void )
     TestMaterialView();
     TestSceneView();
     TestThumbnails();
+    TestPrintFormats();
 
     if ( Ogre::ResourceGroupManager::getSingletonPtr() && Ogre::ResourceGroupManager::getSingleton().resourceGroupExists( TestGroup ) )
         Ogre::ResourceGroupManager::getSingleton().destroyResourceGroup( TestGroup );

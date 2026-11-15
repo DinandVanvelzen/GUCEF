@@ -94,6 +94,7 @@ CAssetMounter::SMount::SMount( void )
     , archiveName()
     , groupName()
     , groupReady( false )
+    , adopted( false )
 {GUCEF_TRACE;
 
 }
@@ -243,6 +244,154 @@ CAssetMounter::Mount( const CORE::CString& mountPointText, const CORE::CString& 
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CAssetMounter::NormalizeDiskPath( const CORE::CString& diskPath )
+{GUCEF_TRACE;
+
+    CORE::CString path = CORE::RelativePath( diskPath ).ReplaceChar( '\\', '/' );
+    while ( path.Length() > 1 && '/' == path[ path.Length()-1 ] )
+        path = path.CutChars( 1, false );
+    return path;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetMounter::MakeMountPointName( const CORE::CString& diskPath ) const
+{GUCEF_TRACE;
+
+    const CORE::CString path = NormalizeDiskPath( diskPath );
+    const Int32 slash = path.HasChar( '/', false );
+    CORE::CString name = slash < 0 ? path : path.SubstrFromRange( (UInt32) slash+1, path.Length() );
+
+    // an archive is named without its extension
+    const CORE::CString archiveType = GetArchiveType( path );
+    if ( !archiveType.IsNULLOrEmpty() && name.Length() > archiveType.Length()+1 )
+        name = name.CutChars( archiveType.Length()+1, false );
+
+    // letters, digits and '_': anything else, in runs, is one '_'
+    CORE::CString base;
+    bool pendingSeparator = false;
+    for ( UInt32 i=0; i<name.Length(); ++i )
+    {
+        const char c = name[ i ];
+        const bool valid = ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' );
+        if ( valid )
+        {
+            if ( pendingSeparator && !base.IsNULLOrEmpty() )
+                base += "_";
+            pendingSeparator = false;
+            base += c;
+        }
+        else
+            pendingSeparator = true;
+    }
+    if ( base.IsNULLOrEmpty() )
+        base = "mount";
+
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    for ( UInt32 attempt=1; attempt<100000; ++attempt )
+    {
+        const CORE::CString candidate = 1 == attempt ? base : base + "_" + CORE::UInt32ToString( attempt );
+        bool taken = false;
+        for ( size_t m=0; m<m_mounts.size() && !taken; ++m )
+            taken = m_mounts[ m ].mountPoint.Equals( candidate, false );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
+        taken = taken || CORE::DirExists( "/" + candidate );
+        #endif
+        if ( !taken && !vfs.DirExists( candidate ) && !vfs.FileExists( candidate ) )
+            return candidate;
+    }
+    return base;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CAssetMounter::FindMountBySource( const CORE::CString& diskPath ) const
+{GUCEF_TRACE;
+
+    const CORE::CString path = NormalizeDiskPath( diskPath );
+    for ( size_t i=0; i<m_mounts.size(); ++i )
+        if ( !m_mounts[ i ].adopted && NormalizeDiskPath( m_mounts[ i ].source ) == path )
+            return (Int32) i;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CAssetMounter::FindMountOfDiskPath( const CORE::CString& diskPath, CORE::CString& relativePath ) const
+{GUCEF_TRACE;
+
+    const CORE::CString path = NormalizeDiskPath( diskPath );
+    Int32 best = -1;
+    UInt32 bestLength = 0;
+    for ( size_t i=0; i<m_mounts.size(); ++i )
+    {
+        if ( m_mounts[ i ].adopted || VFS::CVFS::FileSystemArchiveTypeName != m_mounts[ i ].archiveType )
+            continue;
+        const CORE::CString folder = NormalizeDiskPath( m_mounts[ i ].source );
+        if ( !CORE::DirExists( folder ) || path.Length() < folder.Length() || path.SubstrFromRange( 0, folder.Length() ) != folder )
+            continue;
+        const bool isRoot = folder.Length() > 0 && '/' == folder[ folder.Length()-1 ];
+        if ( path.Length() > folder.Length() && !isRoot && '/' != path[ folder.Length() ] )
+            continue;
+        if ( best < 0 || folder.Length() > bestLength )
+        {
+            best = (Int32) i;
+            bestLength = folder.Length();
+            relativePath = path.Length() > folder.Length() ? path.CutChars( isRoot ? folder.Length() : folder.Length()+1, true ) : CORE::CString::Empty;
+        }
+    }
+    return best;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetMounter::MountUnique( const CORE::CString& diskPath, CORE::CString& mountPoint )
+{GUCEF_TRACE;
+
+    const Int32 existing = FindMountBySource( diskPath );
+    if ( existing >= 0 )
+    {
+        mountPoint = m_mounts[ existing ].mountPoint;
+        return true;
+    }
+    const CORE::CString name = MakeMountPointName( diskPath );
+    if ( !Mount( name, NormalizeDiskPath( diskPath ) ) )
+        return false;
+    mountPoint = name;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetMounter::Adopt( const CORE::CString& vfsFolder )
+{GUCEF_TRACE;
+
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString mountPoint = NormalizePath( vfsFolder );
+    if ( mountPoint.IsNULLOrEmpty() || !vfs.DirExists( mountPoint ) )
+        return false;
+    for ( size_t i=0; i<m_mounts.size(); ++i )
+        if ( m_mounts[ i ].mountPoint == mountPoint )
+            return false;
+    SMount mount;
+    mount.mountPoint = mountPoint;
+    mount.source = mountPoint;
+    mount.archiveType = VFS::CVFS::FileSystemArchiveTypeName;
+    mount.groupName = "AssetViewer/" + mountPoint;
+    mount.adopted = true;
+    m_mounts.push_back( mount );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetMounter: Adopted the mounted folder " << mountPoint );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CAssetMounter::MountAll( const CORE::CString::StringVector& specs )
 {GUCEF_TRACE;
@@ -296,7 +445,8 @@ CAssetMounter::UnmountAll( void )
     {
         SMount& mount = m_mounts.back();
         DropResourceGroup( mount );
-        vfs.UnmountArchiveByName( mount.archiveName );
+        if ( !mount.adopted )
+            vfs.UnmountArchiveByName( mount.archiveName );
         m_mounts.pop_back();
     }
 }

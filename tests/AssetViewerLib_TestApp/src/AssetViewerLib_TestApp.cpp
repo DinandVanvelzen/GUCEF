@@ -54,6 +54,16 @@
 #define GUCEF_GUI_H
 #endif /* GUCEF_GUI_H ? */
 
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#include "gucefASSETSTORE_CAssetStoreGlobal.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H ? */
+
 
 using namespace GUCEF;
 
@@ -61,6 +71,11 @@ using namespace GUCEF;
 #include "TestAssetViewerBasic.h"
 #include "TestAssetViewerRender.h"
 #include "TestAssetViewerShell.h"
+#include "TestAssetViewerSources.h"
+#include "TestAssetViewerSignIn.h"
+#include "TestAssetViewerOpen.h"
+#include "TestAssetViewerParticles.h"
+#include "TestAssetViewerServiceAdapters.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,6 +105,8 @@ GUCEF_OSMAIN_BEGIN
         VFS::CVfsGlobal::Instance();
         IMAGE::CImageGlobal::Instance();
         GUI::CGuiGlobal::Instance();
+        COMCORE::CComCoreGlobal::Instance();
+        ASSETSTORE::CAssetStoreGlobal::Instance();
 
         GUCEF_TESTFW_INIT( "AssetViewerLib_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
@@ -112,6 +129,11 @@ GUCEF_OSMAIN_BEGIN
         PerformAssetViewerBasicTests();
         PerformAssetViewerRenderTests();
         PerformAssetViewerShellTests();
+        PerformAssetViewerParticleTests();
+        PerformAssetViewerServiceAdapterTests();
+        PerformAssetViewerSourcesTests();
+        PerformAssetViewerSignInTests();
+        PerformAssetViewerOpenTests();
         TearDownViewerTests();
 
 

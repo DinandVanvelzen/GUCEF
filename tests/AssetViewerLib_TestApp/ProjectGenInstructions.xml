@@ -1,0 +1,9 @@
+<PROJECTGENERATOR>
+    <!-- the fake login site, the test double of the browser of the web session sign in tests and the fake asset store service are shared from gucefASSETSTORE_TestApp: their sources here,
+         their headers through the files of the same name in include/ (an include folder of the other test application would shadow the headers of this one that have the same names) -->
+    <INCLUDES PLATFORM="All">
+        <ITEM NAME="../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

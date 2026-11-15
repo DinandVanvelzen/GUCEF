@@ -292,6 +292,16 @@ CThumbnailProvider::Update( UInt32 budgetInMs )
             continue;
         }
 
+        // a file of the computer that is not in a mount (the content browser lists those too) is not read for a picture
+        CAssetMounter::SMount mount;
+        CORE::CString mountRelative;
+        if ( !m_mounter.FindMount( request.path, mount, mountRelative ) )
+        {
+            Answer( request, IMAGE::TPixelMapPtr() );
+            ++answered;
+            continue;
+        }
+
         const CORE::CString hash = HashContent( request.path );
         IMAGE::TPixelMapPtr pixels;
         CORE::CString cacheFile;

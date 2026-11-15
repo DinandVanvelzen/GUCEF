@@ -230,7 +230,10 @@ CMeshInspector::GetStatistics( const Ogre::MeshPtr& mesh, SMeshStatistics& stati
         statistics.animationCount = skeleton->getNumAnimations();
     }
 
-    const Ogre::AxisAlignedBox& bounds = mesh->getBounds();
+    // the bounds of the vertices when they can be read, else those of the mesh (with Ogre's padding)
+    Ogre::AxisAlignedBox bounds;
+    if ( !GetGeometryBounds( mesh, bounds ) )
+        bounds = mesh->getBounds();
     if ( bounds.isFinite() )
     {
         statistics.boundsMin[ 0 ] = bounds.getMinimum().x;
@@ -297,6 +300,50 @@ CMeshInspector::GetStatistics( const Ogre::MeshPtr& mesh, SMeshStatistics& stati
         ++t;
     }
     statistics.textureCount = (UInt32) statistics.textureNames.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMeshInspector::GetGeometryBounds( const Ogre::MeshPtr& mesh, Ogre::AxisAlignedBox& bounds )
+{GUCEF_TRACE;
+
+    bounds.setNull();
+    // only from copies in memory, which a mesh has when it was loaded with shadow buffers (CModelView does). A buffer read back
+    // from the GPU right after it was made can still be undefined (Vulkan), and the "shadow" of a Vulkan buffer can be its
+    // staging buffer, so the buffers themselves do not tell
+    if ( !mesh || !mesh->isVertexBufferShadowed() )
+        return false;
+    try
+    {
+        // sub meshes on the shared vertex data of the mesh read it once
+        GUCEF::set< const Ogre::VertexData* > done;
+        GUCEF::vector< Float32 > positions;
+        for ( UInt32 i=0; i<(UInt32) mesh->getNumSubMeshes(); ++i )
+        {
+            const Ogre::VertexData* vertices = GetVertexData( mesh, i );
+            if ( GUCEF_NULL == vertices || 0 == vertices->vertexCount || !done.insert( vertices ).second )
+                continue;
+            positions.clear();
+            if ( !ReadFloatElement( *vertices, Ogre::VES_POSITION, 0, 3, positions ) )
+                continue;
+            Ogre::Vector3 low( positions[ 0 ], positions[ 1 ], positions[ 2 ] );
+            Ogre::Vector3 high = low;
+            for ( size_t v=3; v+2<positions.size(); v+=3 )
+            {
+                const Ogre::Vector3 position( positions[ v ], positions[ v+1 ], positions[ v+2 ] );
+                low.makeFloor( position );
+                high.makeCeil( position );
+            }
+            bounds.merge( Ogre::AxisAlignedBox( low, high ) );
+        }
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CMeshInspector: The vertex positions of " << mesh->getName() << " cannot be read: " << e.getDescription() );
+        bounds.setNull();
+    }
+    return !bounds.isNull();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -428,6 +475,8 @@ CMeshInspector::WriteToDataNode( const SMeshStatistics& statistics, CORE::CDataN
     CORE::CDataNode* bounds = node.AddChild( "Bounds" );
     bounds->SetAttribute( "Minimum", Number( statistics.boundsMin[ 0 ], 3 ) + ", " + Number( statistics.boundsMin[ 1 ], 3 ) + ", " + Number( statistics.boundsMin[ 2 ], 3 ) );
     bounds->SetAttribute( "Maximum", Number( statistics.boundsMax[ 0 ], 3 ) + ", " + Number( statistics.boundsMax[ 1 ], 3 ) + ", " + Number( statistics.boundsMax[ 2 ], 3 ) );
+    bounds->SetAttribute( "Size", Number( statistics.boundsMax[ 0 ] - statistics.boundsMin[ 0 ], 3 ) + " x " + Number( statistics.boundsMax[ 1 ] - statistics.boundsMin[ 1 ], 3 )
+        + " x " + Number( statistics.boundsMax[ 2 ] - statistics.boundsMin[ 2 ], 3 ) );
     bounds->SetAttribute( "Radius", Number( statistics.boundingRadius, 3 ) );
 }
 

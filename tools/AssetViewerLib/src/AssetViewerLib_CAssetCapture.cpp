@@ -48,6 +48,7 @@
 
 #ifndef ASSETVIEWERLIB_CSCENEVIEW_H
 #include "AssetViewerLib_CSceneView.h"
+#include "AssetViewerLib_CParticlePreview.h"
 #define ASSETVIEWERLIB_CSCENEVIEW_H
 #endif /* ASSETVIEWERLIB_CSCENEVIEW_H ? */
 
@@ -79,6 +80,9 @@ namespace ASSETVIEWER {
 //-------------------------------------------------------------------------*/
 
 namespace {
+
+/** How long particle systems run before a capture: long enough for most effects to fill */
+const Float32 CaptureParticleTime = 3.0f;
 
 const UInt8 SheetRed = 20;
 const UInt8 SheetGreen = 21;
@@ -383,6 +387,7 @@ CAssetCapture::CaptureNonTexture( CAssetMounter& mounter, const CORE::CString& v
     CModelView model( m_stage );
     CMaterialView material( m_stage );
     CSceneView scene( m_stage );
+    CParticlePreview particles;
     CModelView* shown = GUCEF_NULL;
     switch ( kind )
     {
@@ -406,9 +411,25 @@ CAssetCapture::CaptureNonTexture( CAssetMounter& mounter, const CORE::CString& v
         {
             if ( !scene.Load( group, relative ) )
                 return false;
+            // particle systems are shown after they have run a while
+            if ( particles.Collect( scene.GetRoot() ) > 0 )
+                particles.SetTime( CaptureParticleTime );
             COrbitController::SVector3 center;
             Float32 radius = 1.0f;
             scene.GetBoundingSphere( center, radius );
+            controller.SetBounds( center, radius );
+            break;
+        }
+        case ASSETKIND_PARTICLE:
+        {
+            CORE::CString::StringVector templates;
+            if ( !CParticlePreview::ParseParticleScript( group, relative, templates ) ||
+                 0 == particles.CreateFromTemplates( m_stage.GetSceneManager(), m_stage.GetContentNode(), templates ) )
+                return false;
+            particles.SetTime( CaptureParticleTime );
+            COrbitController::SVector3 center;
+            Float32 radius = 1.0f;
+            particles.GetBoundingSphere( center, radius );
             controller.SetBounds( center, radius );
             break;
         }

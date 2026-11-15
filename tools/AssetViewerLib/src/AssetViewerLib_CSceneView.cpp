@@ -42,6 +42,7 @@
 #define GUCEF_GUI_CPROPERTYROWDESCRIPTOR_H
 #endif /* GUCEF_GUI_CPROPERTYROWDESCRIPTOR_H ? */
 
+#include "AssetViewerLib_CParticlePreview.h"
 #include "AssetViewerLib_CSceneView.h"
 
 /*-------------------------------------------------------------------------//
@@ -129,6 +130,8 @@ CSceneView::GetObjectKind( const Ogre::MovableObject& object )
         return "light";
     if ( "Camera" == type )
         return "camera";
+    if ( "ParticleSystem" == type )
+        return "particles";
     return "object";
 }
 
@@ -199,6 +202,15 @@ CSceneView::IsLoaded( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NULL != m_root;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Ogre::SceneNode*
+CSceneView::GetRoot( void ) const
+{GUCEF_TRACE;
+
+    return m_root;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -274,6 +286,8 @@ CSceneView::Load( const CORE::CString& groupName, const CORE::CString& sceneName
     try
     {
         Ogre::DataStreamPtr stream = groups.openResource( sceneName.STL_String(), groupName.STL_String() );
+        // the scripts of a cooked scene with particles: the materials and templates must exist before the scene
+        CParticlePreview::ParseScriptsNear( groupName, sceneName );
         m_root = m_stage.GetContentNode()->createChildSceneNode();
         // the codec looks the meshes up in the world resource group
         groups.setWorldResourceGroupName( groupName.STL_String() );
@@ -504,6 +518,16 @@ CSceneView::WriteInspectorData( CORE::CDataNode& root ) const
         const Ogre::ColourValue& diffuse = light->getDiffuseColour();
         properties->SetAttribute( "Diffuse", Number( diffuse.r ) + ", " + Number( diffuse.g ) + ", " + Number( diffuse.b ) );
         properties->SetAttribute( "Range", Number( light->getAttenuationRange() ) );
+    }
+    else
+    if ( "ParticleSystem" == object->getMovableType() )
+    {
+        Ogre::ParticleSystem* system = static_cast< Ogre::ParticleSystem* >( object );
+        properties->SetAttribute( "Particles", CORE::UInt32ToString( (UInt32) system->getNumParticles() ) );
+        properties->SetAttribute( "Quota", CORE::UInt32ToString( (UInt32) system->getParticleQuota() ) );
+        properties->SetAttribute( "Emitters", CORE::UInt32ToString( (UInt32) system->getNumEmitters() ) );
+        properties->SetAttribute( "Affectors", CORE::UInt32ToString( (UInt32) system->getNumAffectors() ) );
+        properties->SetAttribute( "Material", CORE::CString( system->getMaterialName() ) );
     }
 }
 

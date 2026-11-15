@@ -67,40 +67,40 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 configuration( { "LINUX32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( { "LINUX32" } )
 defines( { "ASSETVIEWER_BUILD_MODULE", "MODULE_NAME=AssetViewer", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "LINUX64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 configuration( { "LINUX64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( { "LINUX64" } )
 defines( { "ASSETVIEWER_BUILD_MODULE", "MODULE_NAME=AssetViewer", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 configuration( { "WIN32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( { "WIN32" } )
 defines( { "ASSETVIEWER_BUILD_MODULE", "MODULE_NAME=AssetViewer", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 configuration( { "WIN64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTHGUI", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( { "WIN64" } )
@@ -139,16 +139,16 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api" } )
+includedirs( { "../../common/include", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefAUTH/include", "../../platform/gucefAUTHGUI/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include", "../AssetConverterLib/include", "../AssetStoreConverterHook/include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "../AssetViewerLib/include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../AssetViewerLib/include" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "../AssetViewerLib/include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../AssetViewerLib/include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../AssetViewerLib/include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../AssetViewerLib/include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../AssetViewerLib/include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../AssetViewerLib/include" } )

@@ -20,6 +20,11 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
             <Dependency Name="AssetViewerLib" />
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />
@@ -31,6 +36,11 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
             <Dependency Name="AssetViewerLib" />
             <Dependency Name="Ogre" />
         </Linker>
@@ -40,11 +50,18 @@
         <Compiler MinCppStandard="14" />
         <RuntimeDependencies>
             <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
             <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
             <RuntimeDependency Name="fontpluginFREETYPE" />
             <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetpluginFBX" />
+            <RuntimeDependency Name="assetpluginUNITY" />
+            <RuntimeDependency Name="assetpluginGODOT" />
             <RuntimeDependency Name="pluginglueOGRE" />
             <RuntimeDependency Name="guidriverOgre" />
             <RuntimeDependency Name="guidriverImGuiOgre" />
@@ -52,6 +69,7 @@
             <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
             <RuntimeDependency Name="OgreCodec_Assimp" />
             <RuntimeDependency Name="OgrePlugin_DotScene" />
+            <RuntimeDependency Name="OgrePlugin_ParticleFX" />
             <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
             <RuntimeDependency Name="OgreRenderSystem_Vulkan" />
             <RuntimeDependency Name="OgrePlugin_GLSLangProgramManager" />

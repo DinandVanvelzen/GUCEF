@@ -59,7 +59,8 @@ enum EAssetKind
     ASSETKIND_MATERIAL  ,   /**< an Ogre .material script */
     ASSETKIND_SCENE     ,   /**< a DotScene .scene */
     ASSETKIND_SKELETON  ,   /**< an Ogre .skeleton */
-    ASSETKIND_FOLDER        /**< a directory, for the type column */
+    ASSETKIND_FOLDER    ,   /**< a directory, for the type column */
+    ASSETKIND_PARTICLE      /**< an Ogre .particle script: its templates are played side by side */
 };
 
 /*-------------------------------------------------------------------------//
@@ -90,6 +91,9 @@ class ASSETVIEWERLIB_PUBLIC_CPP CAssetTypeResolver : public GUI::CIContentTypeRe
 
     /** The name of a kind, as the type column shows it */
     static CORE::CString GetKindName( EAssetKind kind );
+
+    /** The extensions (lower case, without the dot) of the files of a kind, in the order of the table of the resolver */
+    static void GetExtensions( EAssetKind kind, CORE::CString::StringVector& extensions );
 
     /** The extension of a path without the dot, in lower case; empty without one */
     static CORE::CString GetExtension( const CORE::CString& path );

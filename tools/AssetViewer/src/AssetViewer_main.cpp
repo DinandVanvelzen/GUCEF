@@ -47,6 +47,16 @@
 #define GUCEF_GUI_CGUIGLOBAL_H
 #endif /* GUCEF_GUI_CGUIGLOBAL_H ? */
 
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#include "gucefASSETSTORE_CAssetStoreGlobal.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H ? */
+
 #ifndef GUCEF_OSMAIN_H
 #include "gucef_osmain.h"
 #define GUCEF_OSMAIN_H
@@ -103,10 +113,16 @@ GUCEF_OSMAIN_BEGIN
     GUCEF::IMAGE::CImageGlobal::Instance();
     GUCEF::GUI::CGuiGlobal::Instance();
     GUCEF::INPUT::CInputGlobal::Instance();
+    GUCEF::COMCORE::CComCoreGlobal::Instance();
+    GUCEF::ASSETSTORE::CAssetStoreGlobal::Instance();
 
     GUCEF::ASSETVIEWER::CViewerApp viewer( argc, argv );
     if ( !viewer.ParseCommandLine() )
     {
+        // the settings are not loaded yet and the console log is off in them: the person who asked for the usage gets it on the console of the terminal
+        GUCEF::CORE::CLogManager& logManager = GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager();
+        logManager.SetNativeConsoleLoggerInOwnWindow( false );
+        logManager.SetNativeConsoleLoggerEnabled( true );
         GUCEF::ASSETVIEWER::CViewerApp::LogUsage();
         return 1;
     }

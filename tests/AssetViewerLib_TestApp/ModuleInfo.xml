@@ -8,6 +8,14 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
             <Dependency Name="pluginglueOGRECOMMON" />
             <Dependency Name="pluginglueOGRE" />
             <Dependency Name="guidriverOgre" />
@@ -23,6 +31,14 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
             <Dependency Name="pluginglueOGRE" />
             <Dependency Name="guidriverOgre" />
             <Dependency Name="guidriverImGuiOgre" />
@@ -34,6 +50,9 @@
         </Preprocessor>
         <Compiler MinCppStandard="14" />
         <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
             <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
             <RuntimeDependency Name="OgreRenderSystem_Vulkan" />
             <RuntimeDependency Name="OgrePlugin_GLSLangProgramManager" />
@@ -41,9 +60,11 @@
             <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
             <RuntimeDependency Name="OgreCodec_Assimp" />
             <RuntimeDependency Name="OgrePlugin_DotScene" />
+            <RuntimeDependency Name="OgrePlugin_ParticleFX" />
             <RuntimeDependency Name="fontpluginFREETYPE" />
             <RuntimeDependency Name="imgpluginFreeImage" />
             <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
         </RuntimeDependencies>

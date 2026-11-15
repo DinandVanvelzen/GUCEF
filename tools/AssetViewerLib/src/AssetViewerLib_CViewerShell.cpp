@@ -49,6 +49,26 @@
 #define GUCEF_CORE_CLONEABLES_H
 #endif /* GUCEF_CORE_CLONEABLES_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
+#ifndef GUCEF_CORE_CNATIVEFILESYSTEMACCESS_H
+#include "gucefCORE_CNativeFileSystemAccess.h"
+#define GUCEF_CORE_CNATIVEFILESYSTEMACCESS_H
+#endif /* GUCEF_CORE_CNATIVEFILESYSTEMACCESS_H ? */
+
+#ifndef GUCEF_GUI_CFILEOPENDIALOGFORM_H
+#include "gucefGUI_CFileOpenDialogForm.h"
+#define GUCEF_GUI_CFILEOPENDIALOGFORM_H
+#endif /* GUCEF_GUI_CFILEOPENDIALOGFORM_H ? */
+
+#ifndef GUCEF_GUI_CDIRECTORYOPENDIALOGFORM_H
+#include "gucefGUI_CDirectoryOpenDialogForm.h"
+#define GUCEF_GUI_CDIRECTORYOPENDIALOGFORM_H
+#endif /* GUCEF_GUI_CDIRECTORYOPENDIALOGFORM_H ? */
+
 #ifndef GUCEF_VFS_CVFSFILESYSTEMACCESS_H
 #include "gucefVFS_CVfsFileSystemAccess.h"
 #define GUCEF_VFS_CVFSFILESYSTEMACCESS_H
@@ -68,6 +88,16 @@
 #include "guidriverImGuiOgre_CImGuiOgreRenderContext.h"
 #define GUIDRIVERIMGUIOGRE_CIMGUIOGRERENDERCONTEXT_H
 #endif /* GUIDRIVERIMGUIOGRE_CIMGUIOGRERENDERCONTEXT_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#include "gucefASSETSTORE_CAssetStoreGlobal.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
+#include "gucefASSETSTORE_CWebSessionSignIn.h"
+#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
+#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H ? */
 
 #include "AssetViewerLib_CViewerShell.h"
 
@@ -108,6 +138,10 @@ namespace {
 
 const UInt32 TimelineHeight = 120;
 
+const char* const FolderDialogKind = "folder";
+const char* const ArchiveDialogKind = "archive";
+const char* const FileDialogKind = "file";
+
 enum ECenterTab
 {
     CENTERTAB_3D = 0 ,
@@ -124,6 +158,8 @@ const char* const ToggleBounds = "bounds";
 const char* const ToggleBones = "bones";
 const char* const ToggleUv = "uv";
 const char* const ToggleShape = "shape";
+const char* const ToggleUpAxis = "up";
+const char* const TogglePlacement = "place";
 
 GUI::CWidget*
 MakePanel( GUI::CGUIContext& context, const CORE::CString& name, GUI::CWidget* parent, const char* position, const char* size )
@@ -146,12 +182,26 @@ MakeTabs( GUI::CGUIContext& context, const CORE::CString& name, GUI::CWidget* pa
     tabs->SetProperty( GUI::EWidgetProperty_Position, position );
     tabs->SetProperty( GUI::EWidgetProperty_Size, size );
     tabs->SetProperty( GUI::EWidgetProperty_Tabs, titles );
+    // a title wider than its tab (a narrow window, a larger font) is shortened with "...", its tooltip the whole title
+    tabs->SetProperty( GUI::EWidgetProperty_TextOverflow, "Ellipsis" );
     for ( UInt32 i=0; i<pageCount; ++i )
         pages[ i ] = context.CreateWidget( "TabContentPane", name + "Page" + CORE::UInt32ToString( i ), tabs );
     return tabs;
 }
 
 }
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const CORE::CString CViewerShell::LocalFilesRootName = "Local files";
+const CORE::CString CViewerShell::VfsRootName = "VFS";
+const CORE::CString CViewerShell::ActionOpenFolder = "folder";
+const CORE::CString CViewerShell::ActionOpenArchive = "archive";
+const CORE::CString CViewerShell::ActionOpenFile = "file";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -171,6 +221,10 @@ CViewerShell::CViewerShell( CAssetMounter& mounter )
     , m_material( m_stage )
     , m_texture()
     , m_scene( m_stage )
+    , m_particles()
+    , m_particleClip( false )
+    , m_particleTimeInMs( 0 )
+    , m_particleInspectorMs( 0 )
     , m_thumbnails( GUCEF_NULL )
     , m_frameListener( GUCEF_NULL )
     , m_root( GUCEF_NULL )
@@ -184,6 +238,21 @@ CViewerShell::CViewerShell( CAssetMounter& mounter )
     , m_imageView( GUCEF_NULL )
     , m_uvView( GUCEF_NULL )
     , m_report( GUCEF_NULL )
+    , m_transfers( GUCEF_NULL )
+    , m_sourcesHost( GUCEF_NULL )
+    , m_sources( GUCEF_NULL )
+    , m_signIn( GUCEF_NULL )
+    , m_credentials( GUCEF_NULL )
+    , m_authManager( GUCEF_NULL )
+    , m_openStrip( GUCEF_NULL )
+    , m_emptyState( GUCEF_NULL )
+    , m_folderDialog( GUCEF_NULL )
+    , m_archiveDialog( GUCEF_NULL )
+    , m_fileDialog( GUCEF_NULL )
+    , m_ownRecent()
+    , m_recent( &m_ownRecent )
+    , m_anythingOpened( false )
+    , m_browserRoot()
     , m_uvImage()
     , m_shownKind( ASSETKIND_OTHER )
     , m_shownPath()
@@ -218,15 +287,19 @@ CViewerShell::BuildLayout( void )
     m_root->SetProperty( GUI::EWidgetProperty_BackgroundColour, "30,32,40,255" );
 
     // left: the browsers of the files and of the nodes of a scene
-    GUI::CWidget* leftPages[ 2 ] = { GUCEF_NULL, GUCEF_NULL };
-    m_leftTabs = MakeTabs( *m_context, "LeftTabs", m_root, "0,0 0,0", "0.2,0 0.74,0", "Content\nScene", 2, leftPages );
+    GUI::CWidget* leftPages[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
+    m_leftTabs = MakeTabs( *m_context, "LeftTabs", m_root, "0,0 0,0", "0.28,0 0.74,0", "Content\nScene\nSources", 3, leftPages );
     // middle: the 3D view with its time line, the texture, and the UV layout
     GUI::CWidget* centerPages[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
-    m_centerTabs = MakeTabs( *m_context, "CenterTabs", m_root, "0.2,0 0,0", "0.56,0 0.74,0", "3D\nTexture\nUV layout", 3, centerPages );
+    m_centerTabs = MakeTabs( *m_context, "CenterTabs", m_root, "0.28,0 0,0", "0.48,0 0.74,0", "3D\nTexture\nUV layout", 3, centerPages );
     GUI::CWidget* inspectorHost = MakePanel( *m_context, "InspectorHost", m_root, "0.76,0 0,0", "0.24,0 0.74,0" );
-    GUI::CWidget* reportHost = MakePanel( *m_context, "ReportHost", m_root, "0,0 0.74,0", "1,0 0.26,0" );
-    if ( GUCEF_NULL == m_leftTabs || GUCEF_NULL == m_centerTabs || GUCEF_NULL == inspectorHost || GUCEF_NULL == reportHost )
+    GUI::CWidget* reportHost = MakePanel( *m_context, "ReportHost", m_root, "0,0 0.74,0", "0.62,0 0.26,0" );
+    GUI::CWidget* transferHost = MakePanel( *m_context, "TransferHost", m_root, "0.62,0 0.74,0", "0.38,0 0.26,0" );
+    if ( GUCEF_NULL == m_leftTabs || GUCEF_NULL == m_centerTabs || GUCEF_NULL == inspectorHost || GUCEF_NULL == reportHost || GUCEF_NULL == transferHost )
         return false;
+    for ( UInt32 i=0; i<3; ++i )
+        if ( GUCEF_NULL == leftPages[ i ] )
+            return false;
     for ( UInt32 i=0; i<2; ++i )
         if ( GUCEF_NULL == leftPages[ i ] )
             return false;
@@ -241,9 +314,16 @@ CViewerShell::BuildLayout( void )
     GUI::CWidget* timelineHost = MakePanel( *m_context, "TimelineHost", centerPages[ CENTERTAB_3D ], timelinePosition.C_String(), timelineSize.C_String() );
     GUI::CWidget* imageHost = MakePanel( *m_context, "ImageHost", centerPages[ CENTERTAB_IMAGE ], "0,0 0,0", "1,0 1,0" );
     GUI::CWidget* uvHost = MakePanel( *m_context, "UvHost", centerPages[ CENTERTAB_UV ], "0,0 0,0", "1,0 1,0" );
-    GUI::CWidget* browserHost = MakePanel( *m_context, "BrowserHost", leftPages[ 0 ], "0,0 0,0", "1,0 1,0" );
+    // the content tab: the strip with the ways to open something, and the browser below it
+    const CORE::CString stripHeight = CORE::UInt32ToString( GUI::COpenActionStripForm::GetPreferredHeight() );
+    const CORE::CString stripSize = "1,0 0," + stripHeight;
+    const CORE::CString browserPosition = "0,0 0," + stripHeight;
+    const CORE::CString browserSize = "1,0 1,-" + stripHeight;
+    GUI::CWidget* openHost = MakePanel( *m_context, "OpenStripHost", leftPages[ 0 ], "0,0 0,0", stripSize.C_String() );
+    GUI::CWidget* browserHost = MakePanel( *m_context, "BrowserHost", leftPages[ 0 ], browserPosition.C_String(), browserSize.C_String() );
     GUI::CWidget* sceneHost = MakePanel( *m_context, "SceneHost", leftPages[ 1 ], "0,0 0,0", "1,0 1,0" );
-    if ( GUCEF_NULL == viewportHost || GUCEF_NULL == timelineHost || GUCEF_NULL == imageHost || GUCEF_NULL == uvHost || GUCEF_NULL == browserHost || GUCEF_NULL == sceneHost )
+    m_sourcesHost = MakePanel( *m_context, "SourcesHost", leftPages[ 2 ], "0,0 0,0", "1,0 1,0" );
+    if ( GUCEF_NULL == openHost || GUCEF_NULL == m_sourcesHost || GUCEF_NULL == viewportHost || GUCEF_NULL == timelineHost || GUCEF_NULL == imageHost || GUCEF_NULL == uvHost || GUCEF_NULL == browserHost || GUCEF_NULL == sceneHost )
         return false;
 
     m_browser = GUCEF_NEW GUI::CContentBrowserForm( m_context );
@@ -254,13 +334,32 @@ CViewerShell::BuildLayout( void )
     m_imageView = GUCEF_NEW GUI::CImageViewForm( m_context );
     m_uvView = GUCEF_NEW GUI::CImageViewForm( m_context );
     m_report = GUCEF_NEW GUI::CReportViewForm( m_context );
-    const bool built = m_browser->Build( browserHost ) && m_sceneBrowser->Build( sceneHost ) && m_viewport->Build( viewportHost ) &&
+    m_transfers = GUCEF_NEW GUI::CTransferQueueForm( m_context );
+    m_openStrip = GUCEF_NEW GUI::COpenActionStripForm( m_context );
+    m_openStrip->AddAction( ActionOpenFolder, "Open folder...", "Browse a folder of this computer or of the VFS (Ctrl+Shift+O)" );
+    m_openStrip->AddAction( ActionOpenArchive, "Open archive or pack...", "Browse a zip, 7z, rar, tar or Unity package as a folder" );
+    m_openStrip->AddAction( ActionOpenFile, "Open file...", "Show a model, scene or picture; an archive is browsed (Ctrl+O)" );
+    const bool built = m_openStrip->Build( openHost ) && m_browser->Build( browserHost ) && m_sceneBrowser->Build( sceneHost ) && m_viewport->Build( viewportHost ) &&
                        m_timeline->Build( timelineHost ) && m_inspector->Build( inspectorHost ) && m_imageView->Build( imageHost ) &&
-                       m_uvView->Build( uvHost ) && m_report->Build( reportHost );
+                       m_uvView->Build( uvHost ) && m_report->Build( reportHost ) && m_transfers->Build( transferHost );
     if ( !built )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CViewerShell: The forms of the viewer cannot be built" );
         return false;
+    }
+
+    // what the 3D view says while nothing is open, over the viewport
+    m_emptyState = m_context->CreateWidget( "Label", "EmptyState", viewportHost );
+    if ( GUCEF_NULL != m_emptyState )
+    {
+        m_emptyState->SetProperty( GUI::EWidgetProperty_Position, "0,0 0,0" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_Size, "1,0 1,0" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_BackgroundColour, "0,0,0,0" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_TextColour, "176,182,196,255" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_HTextAlign, "Center" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_VTextAlign, "Center" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_WordWrap, "true" );
+        m_emptyState->SetProperty( GUI::EWidgetProperty_Text, GetEmptyStateText() );
     }
     return m_context->ShowRoot( m_root, false );
 }
@@ -285,21 +384,41 @@ CViewerShell::Initialize( GUI::CGUIContext& context, CAssetCapture* capture, con
     }
 
     m_browser->SetContentTypeResolver( &m_resolver );
-    m_browser->AddRoot( "VFS", CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( "VFS" ) ) );
+
+    // the files of the computer are where the viewer starts, with the folder of the user as the first folder; the mounts are the second root
+    CORE::CString home;
+    if ( !CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, home ) )
+        home.Clear();
+    m_browser->AddRoot( LocalFilesRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW CORE::CNativeFileSystemAccess( LocalFilesRootName ) ), home );
+    m_browser->AddRoot( VfsRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( VfsRootName ) ) );
+    if ( m_mounter.GetMountCount() > 0 )
+    {
+        // something was mounted before the viewer started (--mount): that is what is shown
+        m_anythingOpened = true;
+        m_browser->NavigateTo( VfsRootName, "/" );
+    }
+    m_openStrip->SetRecentLocations( m_recent );
     if ( GUCEF_NULL != capture )
     {
         m_thumbnails = GUCEF_NEW CThumbnailProvider( m_mounter, *capture );
         m_thumbnails->SetCacheFolder( thumbnailCacheFolder );
         m_browser->SetThumbnailProvider( m_thumbnails );
-        m_browser->SetViewMode( GUI::CContentBrowserForm::VIEWMODE_THUMBNAILS );
     }
+    // the files of the computer are a list (name, type, size, date), the mounts show thumbnails when they can be made
+    m_browserRoot = m_browser->GetCurrentRootName();
+    m_browser->SetViewMode( LocalFilesRootName != m_browserRoot && GUCEF_NULL != m_thumbnails ? GUI::CContentBrowserForm::VIEWMODE_THUMBNAILS : GUI::CContentBrowserForm::VIEWMODE_DETAILS );
     m_sceneBrowser->AddRoot( "Scene", m_scene.GetFileSystem() );
 
     // the reports that came before the report view did
     m_report->AddEntry( GUI::CReportViewForm::SEVERITY_INFO, CORE::CString::Empty, "Asset viewer started", "Renderer: " + CORE::CString( Ogre::Root::getSingleton().getRenderSystem()->getName() ) );
+    if ( !m_anythingOpened )
+        m_report->AddEntry( GUI::CReportViewForm::SEVERITY_INFO, CORE::CString::Empty, "Nothing is open", GetEmptyStateText() );
+    UpdateEmptyState();
 
     TEventCallback selectionCallback( this, &CViewerShell::OnBrowserSelectionChanged );
     SubscribeTo( m_browser, GUI::CContentBrowserForm::SelectionChangedEvent, selectionCallback );
+    TEventCallback folderCallback( this, &CViewerShell::OnBrowserFolderChanged );
+    SubscribeTo( m_browser, GUI::CContentBrowserForm::FolderChangedEvent, folderCallback );
     TEventCallback activatedCallback( this, &CViewerShell::OnBrowserItemActivated );
     SubscribeTo( m_browser, GUI::CContentBrowserForm::ItemActivatedEvent, activatedCallback );
     TEventCallback sceneFolderCallback( this, &CViewerShell::OnSceneFolderChanged );
@@ -314,8 +433,16 @@ CViewerShell::Initialize( GUI::CGUIContext& context, CAssetCapture* capture, con
     SubscribeTo( m_timeline, GUI::CTimelineForm::ClipSelectedEvent, clipCallback );
     TEventCallback timeCallback( this, &CViewerShell::OnTimeChanged );
     SubscribeTo( m_timeline, GUI::CTimelineForm::TimeChangedEvent, timeCallback );
+    TEventCallback playCallback( this, &CViewerShell::OnPlayStateChanged );
+    SubscribeTo( m_timeline, GUI::CTimelineForm::PlayStateChangedEvent, playCallback );
     TEventCallback propertyCallback( this, &CViewerShell::OnPropertyChanged );
     SubscribeTo( m_inspector, GUI::CPropertyInspectorForm::PropertyChangedEvent, propertyCallback );
+    TEventCallback actionCallback( this, &CViewerShell::OnOpenActionRequested );
+    SubscribeTo( m_openStrip, GUI::COpenActionStripForm::ActionRequestedEvent, actionCallback );
+    TEventCallback recentCallback( this, &CViewerShell::OnOpenRecentChosen );
+    SubscribeTo( m_openStrip, GUI::COpenActionStripForm::RecentChosenEvent, recentCallback );
+    TEventCallback keyCallback( this, &CViewerShell::OnRootKeyDown );
+    SubscribeTo( m_root, GUI::CWidget::KeyDownEvent, keyCallback );
 
     m_viewport->SetController( &m_controller );
     m_controller.SetBounds( COrbitController::SVector3(), 1.0f );
@@ -357,6 +484,15 @@ CViewerShell::Shutdown( void )
         GUIDRIVERIMGUIOGRE::CImGuiOgreRenderContext::ClearOgreTexture( *m_viewport->GetSurface() );
     m_stageBound = false;
 
+    GUCEF_DELETE m_signIn;          m_signIn = GUCEF_NULL;
+    GUCEF_DELETE m_sources;         m_sources = GUCEF_NULL;
+    GUCEF_DELETE m_folderDialog;    m_folderDialog = GUCEF_NULL;
+    GUCEF_DELETE m_archiveDialog;   m_archiveDialog = GUCEF_NULL;
+    GUCEF_DELETE m_fileDialog;      m_fileDialog = GUCEF_NULL;
+    GUCEF_DELETE m_openStrip;       m_openStrip = GUCEF_NULL;
+    m_emptyState = GUCEF_NULL;
+    GUCEF_DELETE m_transfers;       m_transfers = GUCEF_NULL;
+    m_sourcesHost = GUCEF_NULL;
     GUCEF_DELETE m_report;          m_report = GUCEF_NULL;
     GUCEF_DELETE m_uvView;          m_uvView = GUCEF_NULL;
     GUCEF_DELETE m_imageView;       m_imageView = GUCEF_NULL;
@@ -408,6 +544,8 @@ void
 CViewerShell::UnloadViews( void )
 {GUCEF_TRACE;
 
+    m_particles.Clear();
+    m_particleClip = false;
     m_model.Unload();
     m_material.Unload();
     m_scene.Unload();
@@ -500,6 +638,14 @@ CViewerShell::RefreshInspector( void )
         case ASSETKIND_SCENE:
         {
             m_scene.WriteInspectorData( data );
+            m_particles.WriteInspectorData( data );
+            break;
+        }
+        case ASSETKIND_PARTICLE:
+        {
+            data.SetName( "Particles" );
+            data.SetAttribute( "Name", m_shownPath );
+            m_particles.WriteInspectorData( data );
             break;
         }
         case ASSETKIND_TEXTURE:
@@ -534,6 +680,27 @@ CViewerShell::GetCenterTab( void ) const
 
     GUI::CTabControl* tabs = GUI::CWidget::As< GUI::CTabControl >( m_centerTabs );
     return GUCEF_NULL != tabs ? tabs->GetActiveTab() : -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CViewerShell::GetLeftTab( void ) const
+{GUCEF_TRACE;
+
+    GUI::CTabControl* tabs = GUI::CWidget::As< GUI::CTabControl >( m_leftTabs );
+    return GUCEF_NULL != tabs ? tabs->GetActiveTab() : -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::ShowLeftTab( Int32 tab )
+{GUCEF_TRACE;
+
+    GUI::CTabControl* tabs = GUI::CWidget::As< GUI::CTabControl >( m_leftTabs );
+    if ( GUCEF_NULL != tabs && tab >= 0 )
+        tabs->SetActiveTab( (UInt32) tab );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -580,6 +747,32 @@ CViewerShell::SetModelToggles( bool forMaterial )
     if ( !forMaterial )
     {
         toggles.push_back( GUI::CViewportForm::TToggle( ToggleBones, "Bones", "The bones of the skeleton", false ) );
+
+        // automatic says what the format of the file gave
+        GUI::CViewportForm::TToggle up( ToggleUpAxis, "Up", "The axis of the file that points up; automatic: Z for 3D printing files (stl, 3mf, amf), Y for the others" );
+        for ( UInt32 i=0; i<(UInt32) CModelView::UPAXIS_COUNT; ++i )
+        {
+            const CModelView::EUpAxis upAxis = static_cast< CModelView::EUpAxis >( i );
+            CORE::CString name = CModelView::GetUpAxisName( upAxis );
+            if ( CModelView::UPAXIS_AUTOMATIC == upAxis && m_model.IsLoaded() )
+                name += CORE::CString( " (" ) + CModelView::GetUpAxisName( m_model.GetEffectiveUpAxis() ) + ")";
+            up.choices.push_back( name );
+        }
+        up.choice = (Int32) m_model.GetUpAxis();
+        toggles.push_back( up );
+
+        GUI::CViewportForm::TToggle place( TogglePlacement, "Place", "Where the model stands; automatic: 3D printing files on the grid, the others as authored" );
+        for ( UInt32 i=0; i<(UInt32) CModelView::PLACEMENT_COUNT; ++i )
+        {
+            const CModelView::EPlacement placement = static_cast< CModelView::EPlacement >( i );
+            CORE::CString name = CModelView::GetPlacementName( placement );
+            if ( CModelView::PLACEMENT_AUTOMATIC == placement && m_model.IsLoaded() )
+                name += CORE::CString( " (" ) + CModelView::GetPlacementName( m_model.GetEffectivePlacement() ) + ")";
+            place.choices.push_back( name );
+        }
+        place.choice = (Int32) m_model.GetPlacement();
+        toggles.push_back( place );
+
         GUI::CViewportForm::TToggle uv( ToggleUv, "UV", "The texture coordinates of a sub mesh" );
         uv.choices.push_back( "Off" );
         for ( UInt32 i=0; i<m_model.GetSubMeshCount(); ++i )
@@ -625,6 +818,7 @@ CViewerShell::OpenAsset( const CORE::CString& vfsPath )
         case ASSETKIND_MATERIAL:    { shown = ShowMaterial( path ); break; }
         case ASSETKIND_SCENE:       { shown = ShowScene( path ); break; }
         case ASSETKIND_SKELETON:    { shown = ShowSkeleton( path ); break; }
+        case ASSETKIND_PARTICLE:    { shown = ShowParticles( path ); break; }
         default:
         {
             ReportProblem( path, "There is no view for this kind of file" );
@@ -635,8 +829,10 @@ CViewerShell::OpenAsset( const CORE::CString& vfsPath )
     {
         m_shownKind = kind;
         m_shownPath = path;
+        m_anythingOpened = true;
         m_report->AddEntry( GUI::CReportViewForm::SEVERITY_INFO, path, "Opened as " + CAssetTypeResolver::GetKindName( kind ) );
     }
+    UpdateEmptyState();
     m_stage.MarkDirty();
     return shown;
 }
@@ -715,6 +911,8 @@ CViewerShell::ShowScene( const CORE::CString& path )
     m_stage.ApplyController( m_controller );
     SetModelToggles( true );
     m_timeline->ClearClips();
+    if ( m_particles.Collect( m_scene.GetRoot() ) > 0 )
+        StartParticleClip();
     m_sceneBrowser->Refresh();
     m_sceneBrowser->NavigateTo( "Scene", "/" );
     m_scene.Select( "/" );
@@ -823,6 +1021,9 @@ void
 CViewerShell::OnBrowserSelectionChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    // the files of the computer are opened by a double click: a click on one of them does not mount its folder
+    if ( LocalFilesRootName == m_browser->GetCurrentRootName() )
+        return;
     const GUI::CContentBrowserForm::TInt32Vector selection = m_browser->GetSelection();
     if ( 1 != selection.size() )
         return;
@@ -837,11 +1038,32 @@ CViewerShell::OnBrowserSelectionChanged( CORE::CNotifier* notifier, const CORE::
 /*-------------------------------------------------------------------------*/
 
 void
+CViewerShell::OnBrowserFolderChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // going from the files of the computer to the mounts or back changes how the files are listed; within a root the choice of the user stays
+    if ( m_browserRoot == m_browser->GetCurrentRootName() )
+        return;
+    m_browserRoot = m_browser->GetCurrentRootName();
+    m_browser->SetViewMode( LocalFilesRootName != m_browserRoot && GUCEF_NULL != m_thumbnails ? GUI::CContentBrowserForm::VIEWMODE_THUMBNAILS : GUI::CContentBrowserForm::VIEWMODE_DETAILS );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CViewerShell::OnBrowserItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     const CORE::TCloneableString* path = static_cast< const CORE::TCloneableString* >( eventData );
-    if ( GUCEF_NULL == path || CAssetMounter::NormalizePath( path->GetData() ) == m_shownPath )
+    if ( GUCEF_NULL == path )
+        return;
+    if ( LocalFilesRootName == m_browser->GetCurrentRootName() )
+    {
+        // an archive or pack is entered like a folder, an asset is shown where the browser is
+        OpenLocation( path->GetData(), CAssetOpener::OPENKIND_ARCHIVE == CAssetOpener::Classify( path->GetData() ) );
+        return;
+    }
+    if ( CAssetMounter::NormalizePath( path->GetData() ) == m_shownPath )
         return;
     OpenAsset( path->GetData() );
 }
@@ -912,6 +1134,18 @@ CViewerShell::OnToggleChanged( CORE::CNotifier* notifier, const CORE::CEvent& ev
     if ( ToggleBones == toggle.id )
         m_model.SetSkeletonVisible( toggle.checked );
     else
+    if ( ToggleUpAxis == toggle.id || TogglePlacement == toggle.id )
+    {
+        if ( ToggleUpAxis == toggle.id )
+            m_model.SetUpAxis( static_cast< CModelView::EUpAxis >( toggle.choice ) );
+        else
+            m_model.SetPlacement( static_cast< CModelView::EPlacement >( toggle.choice ) );
+        // the model moved: look at it again
+        m_model.FrameInController( m_controller );
+        m_model.Update( m_controller );
+        m_stage.ApplyController( m_controller );
+    }
+    else
     if ( ToggleUv == toggle.id )
         ShowUvLayout( toggle.choice - 1 );
     else
@@ -951,8 +1185,95 @@ CViewerShell::OnTimeChanged( CORE::CNotifier* notifier, const CORE::CEvent& even
 {GUCEF_TRACE;
 
     const GUI::CTimelineForm::TTimeChangedEventData* change = static_cast< const GUI::CTimelineForm::TTimeChangedEventData* >( eventData );
+    if ( GUCEF_NULL != change && m_particleClip )
+    {
+        // the particles follow the time line: on while it plays (also across a loop), from the start after a scrub or a
+        // change while it does not play
+        const UInt32 timeInMs = change->GetData().timeInMs;
+        if ( change->GetData().scrubbed || !m_timeline->IsPlaying() )
+            m_particles.SetTime( 0.001f * (Float32) timeInMs );
+        else
+        if ( timeInMs >= m_particleTimeInMs )
+            m_particles.Advance( 0.001f * (Float32) ( timeInMs - m_particleTimeInMs ) );
+        else
+            m_particles.Advance( 0.001f * (Float32) ( m_timeline->GetClipLength() - m_particleTimeInMs + timeInMs ) );
+        m_particleTimeInMs = timeInMs;
+        m_stage.MarkDirty();
+        if ( timeInMs < m_particleInspectorMs || timeInMs >= m_particleInspectorMs + 500 )
+        {
+            m_particleInspectorMs = timeInMs;
+            RefreshInspector();
+        }
+        return;
+    }
     if ( GUCEF_NULL != change && ASSETKIND_MODEL == m_shownKind )
         m_model.SetClipTime( change->GetData().timeInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnPlayStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableBool* playing = static_cast< const CORE::TCloneableBool* >( eventData );
+    if ( GUCEF_NULL != playing && m_particleClip )
+        m_particles.SetPlaying( playing->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::StartParticleClip( void )
+{GUCEF_TRACE;
+
+    GUI::CTimelineForm::TClipVector clips;
+    clips.push_back( GUI::CTimelineForm::TClip( "particles", m_particles.GetLengthInMs() ) );
+    m_timeline->SetClips( clips );
+    m_timeline->SelectClip( 0 );
+    m_timeline->SetLooping( true );
+    m_particleClip = true;
+    m_particleTimeInMs = 0;
+    m_particleInspectorMs = 0;
+    m_timeline->Play();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::ShowParticles( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    CORE::CString relative;
+    const CORE::CString group = m_mounter.GetResourceGroup( path, relative );
+    CORE::CString::StringVector templates;
+    if ( group.IsNULLOrEmpty() || !CParticlePreview::ParseParticleScript( group, relative, templates ) )
+    {
+        ReportProblem( path, "The particle script cannot be loaded (is the Ogre plugin OgrePlugin_ParticleFX loaded?)" );
+        return false;
+    }
+    if ( 0 == m_particles.CreateFromTemplates( m_stage.GetSceneManager(), m_stage.GetContentNode(), templates ) )
+    {
+        ReportProblem( path, "No particle system of the script can be made" );
+        return false;
+    }
+    m_particles.Advance( 2.0f );
+    COrbitController::SVector3 center;
+    Float32 radius = 1.0f;
+    if ( !m_particles.GetBoundingSphere( center, radius ) )
+        center = COrbitController::SVector3();
+    m_controller.SetBounds( center, radius );
+    m_stage.SetGridUnit( radius > 0.0f ? radius / 4.0f : 0.2f );
+    m_stage.ApplyController( m_controller );
+    SetModelToggles( true );
+    m_timeline->ClearClips();
+    StartParticleClip();
+    m_particles.SetTime( 0.0f );
+    m_shownKind = ASSETKIND_PARTICLE;
+    m_shownPath = path;
+    RefreshInspector();
+    ShowCenterTab( CENTERTAB_3D );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -975,6 +1296,474 @@ CViewerShell::OnPropertyChanged( CORE::CNotifier* notifier, const CORE::CEvent& 
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CViewerShell::InitializeSources( const CAssetSourcesSettings& settings )
+{GUCEF_TRACE;
+
+    if ( !m_initialized || GUCEF_NULL != m_sources )
+        return false;
+    m_sources = GUCEF_NEW CAssetSourcesPane( m_mounter );
+    const bool opened = m_sources->Open( settings );
+    if ( !m_sources->Initialize( *m_context, m_sourcesHost, m_inspector, m_transfers, m_thumbnails ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CViewerShell: The asset sources cannot be shown" );
+        GUCEF_DELETE m_sources;
+        m_sources = GUCEF_NULL;
+        return false;
+    }
+    TEventCallback assetCallback( this, &CViewerShell::OnSourcesAssetOpenRequested );
+    SubscribeTo( m_sources, CAssetSourcesPane::AssetOpenRequestedEvent, assetCallback );
+    TEventCallback folderCallback( this, &CViewerShell::OnSourcesFolderOpenRequested );
+    SubscribeTo( m_sources, CAssetSourcesPane::FolderOpenRequestedEvent, folderCallback );
+
+    // the sign in of the online stores: the forms and the routing of the buttons of the page
+    m_signIn = GUCEF_NEW CViewerSignIn();
+    if ( m_signIn->Initialize( *m_context, m_report, m_credentials ) )
+    {
+        m_signIn->SetAuthManager( m_authManager );
+        TEventCallback signInCallback( this, &CViewerShell::OnSourcesSignInRequested );
+        SubscribeTo( m_sources, CAssetSourcesPane::SignInRequestedEvent, signInCallback );
+        TEventCallback settingsCallback( this, &CViewerShell::OnSourcesSignInSettingsRequested );
+        SubscribeTo( m_sources, CAssetSourcesPane::SignInSettingsRequestedEvent, settingsCallback );
+        TEventCallback expiredCallback( this, &CViewerShell::OnSourcesSessionExpired );
+        SubscribeTo( m_sources, CAssetSourcesPane::SessionExpiredEvent, expiredCallback );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CViewerShell: The sign in of the online stores cannot be shown" );
+        GUCEF_DELETE m_signIn;
+        m_signIn = GUCEF_NULL;
+    }
+    return opened;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::SetCredentials( CViewerCredentials* credentials )
+{GUCEF_TRACE;
+
+    m_credentials = credentials;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::SetAuthManager( AUTH::CAuthManager* manager )
+{GUCEF_TRACE;
+
+    m_authManager = manager;
+    if ( GUCEF_NULL != m_signIn )
+        m_signIn->SetAuthManager( manager );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnSourcesAssetOpenRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* path = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != path )
+        OpenAsset( path->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnSourcesFolderOpenRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* path = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL == path || GUCEF_NULL == m_browser )
+        return;
+    m_anythingOpened = true;
+    UpdateEmptyState();
+    m_browser->Refresh();
+    m_browser->NavigateTo( VfsRootName, "/" + path->GetData() );
+    GUI::CTabControl* tabs = GUI::CWidget::As< GUI::CTabControl >( m_leftTabs );
+    if ( GUCEF_NULL != tabs )
+        tabs->SetActiveTab( 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnSourcesSignInRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the route of the kind of the store (a browser window for a web session, the sign in service of gucefAUTH) is the business of CViewerSignIn
+    const CORE::TCloneableString* storeId = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != storeId && GUCEF_NULL != m_signIn )
+        m_signIn->SignIn( storeId->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnSourcesSignInSettingsRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* storeId = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != storeId && GUCEF_NULL != m_signIn )
+        m_signIn->OpenSettings( storeId->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnSourcesSessionExpired( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* storeId = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != storeId && GUCEF_NULL != m_signIn )
+        m_signIn->OnSessionExpired( storeId->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CViewerShell::GetEmptyStateText( void )
+{GUCEF_TRACE;
+
+    static const CORE::CString text = "Open a folder, archive or pack to start: use the buttons on the Content tab, press Ctrl+O, or start the viewer with a path.";
+    return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::IsEmptyStateShown( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_emptyState && m_emptyState->IsVisible();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::UpdateEmptyState( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_emptyState )
+        m_emptyState->SetVisibility( !m_anythingOpened && ASSETKIND_OTHER == m_shownKind );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::SetRecentLocations( GUI::CRecentLocations* recent )
+{GUCEF_TRACE;
+
+    m_recent = GUCEF_NULL != recent ? recent : &m_ownRecent;
+    if ( GUCEF_NULL != m_openStrip )
+        m_openStrip->SetRecentLocations( m_recent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::CRecentLocations*
+CViewerShell::GetRecentLocations( void ) const
+{GUCEF_TRACE;
+
+    return m_recent;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::OpenLocation( const CORE::CString& diskPath, bool showInBrowser )
+{GUCEF_TRACE;
+
+    if ( !m_initialized )
+        return false;
+
+    CAssetOpener opener( m_mounter );
+    CAssetOpener::SOpenResult result;
+    if ( !opener.Open( diskPath, result ) )
+    {
+        ReportProblem( diskPath, result.problem );
+        // a place that is gone is not offered again
+        m_recent->Remove( diskPath );
+        return false;
+    }
+    m_recent->Add( result.diskPath );
+    m_anythingOpened = true;
+    UpdateEmptyState();
+
+    // folders and archives are shown in the VFS root of the browser, which lists the new mount
+    const bool isFile = CAssetOpener::OPENKIND_FILE == result.kind;
+    if ( showInBrowser || !isFile )
+    {
+        m_browser->Refresh();
+        m_browser->NavigateTo( VfsRootName, "/" + result.vfsFolder );
+        ShowLeftTab( 0 );
+    }
+    if ( isFile )
+        return OpenAsset( result.vfsAsset );
+    m_report->AddEntry( GUI::CReportViewForm::SEVERITY_INFO, result.diskPath, "Opened as " + result.mountPoint + " in the VFS" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::OpenVfsSelection( const CORE::CString& vfsPath )
+{GUCEF_TRACE;
+
+    // chosen in the VFS root of a dialog: it is mounted already
+    const CORE::CString path = CAssetMounter::NormalizePath( vfsPath );
+    if ( path.IsNULLOrEmpty() )
+        return false;
+    m_anythingOpened = true;
+    if ( ASSETKIND_OTHER != CAssetTypeResolver::GetKind( path ) )
+    {
+        const Int32 slash = path.HasChar( '/', false );
+        m_browser->NavigateTo( VfsRootName, slash > 0 ? "/" + path.SubstrFromRange( 0, (UInt32) slash ) : CORE::CString( "/" ) );
+        ShowLeftTab( 0 );
+        return OpenAsset( path );
+    }
+    m_browser->NavigateTo( VfsRootName, "/" + path );
+    ShowLeftTab( 0 );
+    UpdateEmptyState();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::IsOpenDialogShown( void ) const
+{GUCEF_TRACE;
+
+    return ( GUCEF_NULL != m_folderDialog && m_folderDialog->IsOpen() ) ||
+           ( GUCEF_NULL != m_archiveDialog && m_archiveDialog->IsOpen() ) ||
+           ( GUCEF_NULL != m_fileDialog && m_fileDialog->IsOpen() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::CFileSystemDialogForm*
+CViewerShell::MakeOpenDialog( const CORE::CString& kind )
+{GUCEF_TRACE;
+
+    GUI::CFileSystemDialogForm* dialog = GUCEF_NULL;
+    if ( FolderDialogKind == kind )
+        dialog = GUCEF_NEW GUI::CDirectoryOpenDialogForm( m_context );
+    else
+        dialog = GUCEF_NEW GUI::CFileOpenDialogForm( m_context );
+
+    // the files of the computer first, then the mounts; nothing is changed by what is chosen
+    CORE::CString home;
+    if ( !CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, home ) )
+        home.Clear();
+    dialog->AddRoot( LocalFilesRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW CORE::CNativeFileSystemAccess( LocalFilesRootName ) ), home );
+    dialog->AddRoot( VfsRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( VfsRootName ) ) );
+    GUI::CFileSystemDialogForm::TOptions& options = dialog->GetOptions();
+    options.readOnly = true;
+    options.mustExist = true;
+    options.multiSelect = false;
+    options.initialRoot = LocalFilesRootName;
+
+    if ( FolderDialogKind == kind )
+    {
+        options.title = "Open a folder";
+        options.acceptLabel = "Open folder";
+    }
+    else
+    if ( ArchiveDialogKind == kind )
+    {
+        options.title = "Open an archive or pack";
+        options.acceptLabel = "Open";
+        options.includeAllFilesType = true;
+        CORE::CString::StringVector archives;
+        CAssetOpener::GetArchivePatterns( archives );
+        dialog->AddFileType( "Archives and packs", archives );
+    }
+    else
+    {
+        options.title = "Open a file";
+        options.acceptLabel = "Open";
+        options.includeAllFilesType = true;
+        CORE::CString::StringVector supported, models, textures, archives;
+        CAssetOpener::GetSupportedPatterns( supported );
+        CAssetOpener::GetModelPatterns( models );
+        CAssetOpener::GetTexturePatterns( textures );
+        CAssetOpener::GetArchivePatterns( archives );
+        dialog->AddFileType( "All supported", supported );
+        dialog->AddFileType( "3D models, scenes and materials", models );
+        dialog->AddFileType( "Textures and images", textures );
+        dialog->AddFileType( "Archives and packs", archives );
+    }
+
+    if ( !dialog->Build() )
+    {
+        GUCEF_DELETE dialog;
+        return GUCEF_NULL;
+    }
+    TEventCallback acceptedCallback( this, &CViewerShell::OnOpenDialogAccepted );
+    SubscribeTo( dialog, GUI::CFileSystemDialogForm::AcceptedEvent, acceptedCallback );
+    return dialog;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::PrepareOpenDialog( GUI::CFileSystemDialogForm& dialog )
+{GUCEF_TRACE;
+
+    // the places pane: the folders of the user that are there, the mounts, and the folders of the places that were opened lately
+    dialog.ClearPlaces();
+    const struct { CORE::TSpecialDirs dir; const char* label; } userFolders[] =
+    {
+        { CORE::SPECIALDIR_HOME_DIR, "Home" }, { CORE::SPECIALDIR_DESKTOP_DIR, "Desktop" },
+        { CORE::SPECIALDIR_MY_DOCUMENTS_DIR, "Documents" }, { CORE::SPECIALDIR_MY_DOWNLOADS_DIR, "Downloads" }
+    };
+    CORE::CString::StringVector userPaths;
+    for ( size_t u=0; u<sizeof( userFolders ) / sizeof( userFolders[ 0 ] ); ++u )
+    {
+        CORE::CString userPath;
+        if ( !CORE::TryResolveSpecialDir( userFolders[ u ].dir, userPath ) )
+            continue;
+        userPath = CAssetMounter::NormalizeDiskPath( userPath );
+        bool known = userPath.IsNULLOrEmpty() || !CORE::DirExists( userPath );
+        for ( size_t k=0; k<userPaths.size() && !known; ++k )
+            known = userPaths[ k ] == userPath;
+        if ( known )
+            continue;
+        userPaths.push_back( userPath );
+        dialog.AddPlace( userFolders[ u ].label, LocalFilesRootName, userPath );
+    }
+    dialog.AddPlace( "Mounted (VFS)", VfsRootName, "/" );
+    CORE::CString::StringVector folders;
+    CORE::CString startFolder;
+    for ( UInt32 i=0; i<m_recent->GetCount(); ++i )
+    {
+        const CORE::CString path = CAssetMounter::NormalizeDiskPath( m_recent->Get( i ) );
+        const CORE::CString folder = CORE::DirExists( path ) ? path : CORE::StripLastSubDir( path ).ReplaceChar( '\\', '/' );
+        if ( folder.IsNULLOrEmpty() || !CORE::DirExists( folder ) )
+            continue;
+        bool known = false;
+        for ( size_t f=0; f<folders.size() && !known; ++f )
+            known = folders[ f ] == folder;
+        if ( known )
+            continue;
+        if ( folders.empty() )
+            startFolder = folder;
+        folders.push_back( folder );
+        dialog.AddPlace( "Recent: " + GUI::CRecentLocations::GetShortName( folder ), LocalFilesRootName, folder );
+    }
+
+    // it starts where the last place was, and else in the folder of the user
+    dialog.GetOptions().initialRoot = LocalFilesRootName;
+    dialog.GetOptions().initialDirectory = startFolder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::ShowOpenDialog( GUI::CFileSystemDialogForm*& dialog, const CORE::CString& kind )
+{GUCEF_TRACE;
+
+    if ( !m_initialized || IsOpenDialogShown() )
+        return false;
+    if ( GUCEF_NULL == dialog )
+        dialog = MakeOpenDialog( kind );
+    if ( GUCEF_NULL == dialog )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CViewerShell: The dialog to open something cannot be made" );
+        return false;
+    }
+    PrepareOpenDialog( *dialog );
+    return dialog->Open();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool CViewerShell::ShowOpenFolderDialog( void ) { return ShowOpenDialog( m_folderDialog, FolderDialogKind ); }
+bool CViewerShell::ShowOpenArchiveDialog( void ) { return ShowOpenDialog( m_archiveDialog, ArchiveDialogKind ); }
+bool CViewerShell::ShowOpenFileDialog( void ) { return ShowOpenDialog( m_fileDialog, FileDialogKind ); }
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewerShell::HandleKey( INPUT::KeyCode keyCode, UInt32 modifiers )
+{GUCEF_TRACE;
+
+    const bool ctrl = 0 != ( modifiers & INPUT::KEYMOD_CTRL );
+    const bool shift = 0 != ( modifiers & INPUT::KEYMOD_SHIFT );
+    const bool alt = 0 != ( modifiers & INPUT::KEYMOD_ALT );
+    if ( !ctrl || alt || INPUT::KEYCODE_O != keyCode )
+        return false;
+    if ( IsOpenDialogShown() )
+        return true;
+    if ( shift )
+        ShowOpenFolderDialog();
+    else
+        ShowOpenFileDialog();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnRootKeyDown( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    GUI::CKeyEventData* key = CORE::CICloneable::CloneableAs< GUI::CKeyEventData >( eventData );
+    if ( GUCEF_NULL == key || key->handled || GUI::EVENTPHASE_BUBBLE == key->phase )
+        return;
+    if ( HandleKey( key->keyCode, key->modifiers ) )
+        key->handled = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnOpenActionRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* action = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL == action )
+        return;
+    if ( ActionOpenFolder == action->GetData() )
+        ShowOpenFolderDialog();
+    else
+    if ( ActionOpenArchive == action->GetData() )
+        ShowOpenArchiveDialog();
+    else
+    if ( ActionOpenFile == action->GetData() )
+        ShowOpenFileDialog();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnOpenRecentChosen( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* path = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != path )
+        OpenLocation( path->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewerShell::OnOpenDialogAccepted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    GUI::CFileSystemDialogForm* dialog = static_cast< GUI::CFileSystemDialogForm* >( notifier );
+    if ( ( dialog != m_folderDialog && dialog != m_archiveDialog && dialog != m_fileDialog ) || dialog->GetSelection().empty() )
+        return;
+    const GUI::CFileSystemDialogForm::TSelection& selection = dialog->GetSelection().front();
+    if ( VfsRootName == selection.rootName )
+        OpenVfsSelection( selection.path );
+    else
+        OpenLocation( selection.path );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CViewerShell::Update( UInt32 thumbnailBudgetInMs )
 {GUCEF_TRACE;
@@ -984,6 +1773,8 @@ CViewerShell::Update( UInt32 thumbnailBudgetInMs )
     m_logger.Pump( m_report );
     if ( GUCEF_NULL != m_thumbnails )
         m_thumbnails->Update( thumbnailBudgetInMs );
+    if ( GUCEF_NULL != m_sources )
+        m_sources->Update( thumbnailBudgetInMs );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1040,6 +1831,13 @@ GUI::CPropertyInspectorForm* CViewerShell::GetInspector( void ) const { return m
 GUI::CImageViewForm* CViewerShell::GetImageView( void ) const { return m_imageView; }
 GUI::CImageViewForm* CViewerShell::GetUvView( void ) const { return m_uvView; }
 GUI::CReportViewForm* CViewerShell::GetReport( void ) const { return m_report; }
+GUI::CTransferQueueForm* CViewerShell::GetTransfers( void ) const { return m_transfers; }
+GUI::COpenActionStripForm* CViewerShell::GetOpenStrip( void ) const { return m_openStrip; }
+GUI::CFileSystemDialogForm* CViewerShell::GetFolderDialog( void ) const { return m_folderDialog; }
+GUI::CFileSystemDialogForm* CViewerShell::GetArchiveDialog( void ) const { return m_archiveDialog; }
+GUI::CFileSystemDialogForm* CViewerShell::GetFileDialog( void ) const { return m_fileDialog; }
+CAssetSourcesPane* CViewerShell::GetSources( void ) const { return m_sources; }
+CViewerSignIn* CViewerShell::GetSignIn( void ) const { return m_signIn; }
 CThumbnailProvider* CViewerShell::GetThumbnailProvider( void ) const { return m_thumbnails; }
 CViewerStage& CViewerShell::GetStage( void ) { return m_stage; }
 COrbitController& CViewerShell::GetController( void ) { return m_controller; }
@@ -1047,6 +1845,7 @@ CModelView& CViewerShell::GetModelView( void ) { return m_model; }
 CMaterialView& CViewerShell::GetMaterialView( void ) { return m_material; }
 CTextureView& CViewerShell::GetTextureView( void ) { return m_texture; }
 CSceneView& CViewerShell::GetSceneView( void ) { return m_scene; }
+CParticlePreview& CViewerShell::GetParticlePreview( void ) { return m_particles; }
 bool CViewerShell::IsStageBound( void ) const { return m_stageBound; }
 
 /*-------------------------------------------------------------------------//

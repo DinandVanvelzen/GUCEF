@@ -27,6 +27,8 @@
 
 #include <OgreEntity.h>
 #include <OgreMesh.h>
+#include <OgreQuaternion.h>
+#include <OgreVector.h>
 
 #ifndef GUCEF_IMAGE_CPIXELMAP_H
 #include "gucefIMAGE_CPixelMap.h"
@@ -92,6 +94,27 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
         DISPLAYMODE_COUNT
     };
 
+    /** The axis of the file that points up. Automatic follows the convention of the format (see IsPrintFormat()) */
+    enum EUpAxis
+    {
+        UPAXIS_AUTOMATIC = 0    ,
+        UPAXIS_Y                ,
+        UPAXIS_Z                ,
+        UPAXIS_COUNT
+    };
+
+    /**
+     *  Where the model stands. As authored keeps the coordinates of the file; on the grid puts the middle of the model on
+     *  the origin and its lowest point on the ground. Automatic follows the convention of the format (see IsPrintFormat())
+     */
+    enum EPlacement
+    {
+        PLACEMENT_AUTOMATIC = 0     ,
+        PLACEMENT_AS_AUTHORED       ,
+        PLACEMENT_ON_GRID           ,
+        PLACEMENT_COUNT
+    };
+
     struct SClip
     {
         CORE::CString name;
@@ -103,7 +126,10 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
 
     ~CModelView();
 
-    /** Loads a mesh of a resource group and puts it in the stage; the mesh of a name that is loaded already is loaded again */
+    /**
+     *  Loads a mesh of a resource group and puts it in the stage; the mesh of a name that is loaded already is loaded again.
+     *  A mesh without geometry (an importer that read nothing) is a failure
+     */
     bool LoadMesh( const CORE::CString& groupName, const CORE::CString& meshName );
 
     /** Takes the mesh and what was drawn for it out of the stage, and out of Ogre */
@@ -115,7 +141,7 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
     const SMeshStatistics& GetStatistics( void ) const;
     const CORE::CString& GetMeshName( void ) const;
 
-    /** The bounding sphere of the mesh: the center and the radius */
+    /** The bounding sphere of the mesh as it stands in the stage, after the up axis and the placement: the center and the radius */
     void GetBoundingSphere( COrbitController::SVector3& center, Float32& radius ) const;
 
     /** Points the controller at the mesh and sets the grid to a size that suits it */
@@ -134,6 +160,34 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
 
     void SetSkeletonVisible( bool visible );
     bool IsSkeletonVisible( void ) const;
+
+    /*
+     *  Orientation and placement: set on the content node of the stage, so the overlays (bounds, bones, normals) follow
+     */
+
+    void SetUpAxis( EUpAxis upAxis );
+    EUpAxis GetUpAxis( void ) const;
+
+    /** UPAXIS_Y or UPAXIS_Z: the setting, or for automatic the convention of the format of the loaded mesh */
+    EUpAxis GetEffectiveUpAxis( void ) const;
+    static const char* GetUpAxisName( EUpAxis upAxis );
+
+    void SetPlacement( EPlacement placement );
+    EPlacement GetPlacement( void ) const;
+
+    /** PLACEMENT_AS_AUTHORED or PLACEMENT_ON_GRID: the setting, or for automatic the convention of the format of the loaded mesh */
+    EPlacement GetEffectivePlacement( void ) const;
+    static const char* GetPlacementName( EPlacement placement );
+
+    /**
+     *  Whether files of the extension (without the dot, in any case) are made for 3D printing: stl, 3mf and amf. Their Z axis
+     *  points up and their coordinates are those of the build plate, so automatic turns them Z up and puts them on the grid
+     */
+    static bool IsPrintFormat( const CORE::CString& extension );
+
+    /** The rotation and the offset from the coordinates of the mesh to those of the stage */
+    const Ogre::Quaternion& GetPresentationOrientation( void ) const;
+    const Ogre::Vector3& GetPresentationOffset( void ) const;
 
     /*
      *  Sub meshes
@@ -219,6 +273,8 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
     void CollectClips( void );
     void ClearLines( void );
     void RemoveMissingTextures( void );
+    void ApplyPresentation( void );
+    bool IsPrintFormatMesh( void ) const;
 
     private:
 
@@ -241,6 +297,11 @@ class ASSETVIEWERLIB_PUBLIC_CPP CModelView
     GUCEF::vector< bool > m_subMeshVisible;
     CORE::CString::StringVector m_ownedMaterials;
     bool m_meshIsManual;
+    EUpAxis m_upAxis;
+    EPlacement m_placement;
+    Ogre::Quaternion m_presentationOrientation;
+    Ogre::Vector3 m_presentationOffset;
+    Ogre::AxisAlignedBox m_geometryBounds;
 };
 
 /*-------------------------------------------------------------------------//

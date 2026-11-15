@@ -69,7 +69,8 @@ const SExtensionKind ExtensionKinds[] =
     { "astc", ASSETKIND_TEXTURE }, { "pcx", ASSETKIND_TEXTURE },
     { "material", ASSETKIND_MATERIAL },
     { "scene", ASSETKIND_SCENE },
-    { "skeleton", ASSETKIND_SKELETON }
+    { "skeleton", ASSETKIND_SKELETON },
+    { "particle", ASSETKIND_PARTICLE }
 };
 
 }
@@ -124,6 +125,17 @@ CAssetTypeResolver::GetKind( const CORE::CString& path )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CAssetTypeResolver::GetExtensions( EAssetKind kind, CORE::CString::StringVector& extensions )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<sizeof( ExtensionKinds ) / sizeof( ExtensionKinds[ 0 ] ); ++i )
+        if ( kind == ExtensionKinds[ i ].kind )
+            extensions.push_back( ExtensionKinds[ i ].extension );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CAssetTypeResolver::GetKindName( EAssetKind kind )
 {GUCEF_TRACE;
@@ -136,6 +148,7 @@ CAssetTypeResolver::GetKindName( EAssetKind kind )
         case ASSETKIND_SCENE:       return "Scene";
         case ASSETKIND_SKELETON:    return "Skeleton";
         case ASSETKIND_FOLDER:      return "Folder";
+        case ASSETKIND_PARTICLE:    return "Particles";
         default:                    return "Other";
     }
 }

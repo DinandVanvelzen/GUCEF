@@ -18,20 +18,30 @@ if (LINUX32)
     include/AssetViewerLib.h
     include/AssetViewerLib_CAssetCapture.h
     include/AssetViewerLib_CAssetMounter.h
+    include/AssetViewerLib_CAssetOpener.h
+    include/AssetViewerLib_CAssetSourcesPane.h
+    include/AssetViewerLib_CAssetSourcesSettings.h
+    include/AssetViewerLib_CAssetStoreInspectorData.h
+    include/AssetViewerLib_CAssetStoreThumbnailProvider.h
+    include/AssetViewerLib_CAssetStoreTransferModel.h
     include/AssetViewerLib_CAssetTypeResolver.h
     include/AssetViewerLib_CBlockDecoder.h
     include/AssetViewerLib_CMaterialView.h
     include/AssetViewerLib_CMeshInspector.h
     include/AssetViewerLib_CModelView.h
     include/AssetViewerLib_COrbitController.h
+    include/AssetViewerLib_CParticlePreview.h
+    include/AssetViewerLib_CPrimaryStoreSearchModel.h
     include/AssetViewerLib_CReportLogger.h
     include/AssetViewerLib_CSceneTreeFileSystemAccess.h
     include/AssetViewerLib_CSceneView.h
     include/AssetViewerLib_CTextureView.h
     include/AssetViewerLib_CThumbnailProvider.h
     include/AssetViewerLib_CViewerApp.h
+    include/AssetViewerLib_CViewerCredentials.h
     include/AssetViewerLib_CViewerMaterials.h
     include/AssetViewerLib_CViewerShell.h
+    include/AssetViewerLib_CViewerSignIn.h
     include/AssetViewerLib_CViewerStage.h
     include/AssetViewerLib_config.h
     include/AssetViewerLib_macros.h
@@ -43,20 +53,30 @@ if (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     src/AssetViewerLib_CAssetCapture.cpp
     src/AssetViewerLib_CAssetMounter.cpp
+    src/AssetViewerLib_CAssetOpener.cpp
+    src/AssetViewerLib_CAssetSourcesPane.cpp
+    src/AssetViewerLib_CAssetSourcesSettings.cpp
+    src/AssetViewerLib_CAssetStoreInspectorData.cpp
+    src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp
+    src/AssetViewerLib_CAssetStoreTransferModel.cpp
     src/AssetViewerLib_CAssetTypeResolver.cpp
     src/AssetViewerLib_CBlockDecoder.cpp
     src/AssetViewerLib_CMaterialView.cpp
     src/AssetViewerLib_CMeshInspector.cpp
     src/AssetViewerLib_CModelView.cpp
     src/AssetViewerLib_COrbitController.cpp
+    src/AssetViewerLib_CParticlePreview.cpp
+    src/AssetViewerLib_CPrimaryStoreSearchModel.cpp
     src/AssetViewerLib_CReportLogger.cpp
     src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp
     src/AssetViewerLib_CSceneView.cpp
     src/AssetViewerLib_CTextureView.cpp
     src/AssetViewerLib_CThumbnailProvider.cpp
     src/AssetViewerLib_CViewerApp.cpp
+    src/AssetViewerLib_CViewerCredentials.cpp
     src/AssetViewerLib_CViewerMaterials.cpp
     src/AssetViewerLib_CViewerShell.cpp
+    src/AssetViewerLib_CViewerSignIn.cpp
     src/AssetViewerLib_CViewerStage.cpp
   )
 
@@ -68,20 +88,30 @@ elseif (LINUX64)
     include/AssetViewerLib.h
     include/AssetViewerLib_CAssetCapture.h
     include/AssetViewerLib_CAssetMounter.h
+    include/AssetViewerLib_CAssetOpener.h
+    include/AssetViewerLib_CAssetSourcesPane.h
+    include/AssetViewerLib_CAssetSourcesSettings.h
+    include/AssetViewerLib_CAssetStoreInspectorData.h
+    include/AssetViewerLib_CAssetStoreThumbnailProvider.h
+    include/AssetViewerLib_CAssetStoreTransferModel.h
     include/AssetViewerLib_CAssetTypeResolver.h
     include/AssetViewerLib_CBlockDecoder.h
     include/AssetViewerLib_CMaterialView.h
     include/AssetViewerLib_CMeshInspector.h
     include/AssetViewerLib_CModelView.h
     include/AssetViewerLib_COrbitController.h
+    include/AssetViewerLib_CParticlePreview.h
+    include/AssetViewerLib_CPrimaryStoreSearchModel.h
     include/AssetViewerLib_CReportLogger.h
     include/AssetViewerLib_CSceneTreeFileSystemAccess.h
     include/AssetViewerLib_CSceneView.h
     include/AssetViewerLib_CTextureView.h
     include/AssetViewerLib_CThumbnailProvider.h
     include/AssetViewerLib_CViewerApp.h
+    include/AssetViewerLib_CViewerCredentials.h
     include/AssetViewerLib_CViewerMaterials.h
     include/AssetViewerLib_CViewerShell.h
+    include/AssetViewerLib_CViewerSignIn.h
     include/AssetViewerLib_CViewerStage.h
     include/AssetViewerLib_config.h
     include/AssetViewerLib_macros.h
@@ -93,20 +123,30 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     src/AssetViewerLib_CAssetCapture.cpp
     src/AssetViewerLib_CAssetMounter.cpp
+    src/AssetViewerLib_CAssetOpener.cpp
+    src/AssetViewerLib_CAssetSourcesPane.cpp
+    src/AssetViewerLib_CAssetSourcesSettings.cpp
+    src/AssetViewerLib_CAssetStoreInspectorData.cpp
+    src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp
+    src/AssetViewerLib_CAssetStoreTransferModel.cpp
     src/AssetViewerLib_CAssetTypeResolver.cpp
     src/AssetViewerLib_CBlockDecoder.cpp
     src/AssetViewerLib_CMaterialView.cpp
     src/AssetViewerLib_CMeshInspector.cpp
     src/AssetViewerLib_CModelView.cpp
     src/AssetViewerLib_COrbitController.cpp
+    src/AssetViewerLib_CParticlePreview.cpp
+    src/AssetViewerLib_CPrimaryStoreSearchModel.cpp
     src/AssetViewerLib_CReportLogger.cpp
     src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp
     src/AssetViewerLib_CSceneView.cpp
     src/AssetViewerLib_CTextureView.cpp
     src/AssetViewerLib_CThumbnailProvider.cpp
     src/AssetViewerLib_CViewerApp.cpp
+    src/AssetViewerLib_CViewerCredentials.cpp
     src/AssetViewerLib_CViewerMaterials.cpp
     src/AssetViewerLib_CViewerShell.cpp
+    src/AssetViewerLib_CViewerSignIn.cpp
     src/AssetViewerLib_CViewerStage.cpp
   )
 
@@ -118,20 +158,30 @@ elseif (WIN32)
     include/AssetViewerLib.h
     include/AssetViewerLib_CAssetCapture.h
     include/AssetViewerLib_CAssetMounter.h
+    include/AssetViewerLib_CAssetOpener.h
+    include/AssetViewerLib_CAssetSourcesPane.h
+    include/AssetViewerLib_CAssetSourcesSettings.h
+    include/AssetViewerLib_CAssetStoreInspectorData.h
+    include/AssetViewerLib_CAssetStoreThumbnailProvider.h
+    include/AssetViewerLib_CAssetStoreTransferModel.h
     include/AssetViewerLib_CAssetTypeResolver.h
     include/AssetViewerLib_CBlockDecoder.h
     include/AssetViewerLib_CMaterialView.h
     include/AssetViewerLib_CMeshInspector.h
     include/AssetViewerLib_CModelView.h
     include/AssetViewerLib_COrbitController.h
+    include/AssetViewerLib_CParticlePreview.h
+    include/AssetViewerLib_CPrimaryStoreSearchModel.h
     include/AssetViewerLib_CReportLogger.h
     include/AssetViewerLib_CSceneTreeFileSystemAccess.h
     include/AssetViewerLib_CSceneView.h
     include/AssetViewerLib_CTextureView.h
     include/AssetViewerLib_CThumbnailProvider.h
     include/AssetViewerLib_CViewerApp.h
+    include/AssetViewerLib_CViewerCredentials.h
     include/AssetViewerLib_CViewerMaterials.h
     include/AssetViewerLib_CViewerShell.h
+    include/AssetViewerLib_CViewerSignIn.h
     include/AssetViewerLib_CViewerStage.h
     include/AssetViewerLib_config.h
     include/AssetViewerLib_macros.h
@@ -143,20 +193,30 @@ elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     src/AssetViewerLib_CAssetCapture.cpp
     src/AssetViewerLib_CAssetMounter.cpp
+    src/AssetViewerLib_CAssetOpener.cpp
+    src/AssetViewerLib_CAssetSourcesPane.cpp
+    src/AssetViewerLib_CAssetSourcesSettings.cpp
+    src/AssetViewerLib_CAssetStoreInspectorData.cpp
+    src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp
+    src/AssetViewerLib_CAssetStoreTransferModel.cpp
     src/AssetViewerLib_CAssetTypeResolver.cpp
     src/AssetViewerLib_CBlockDecoder.cpp
     src/AssetViewerLib_CMaterialView.cpp
     src/AssetViewerLib_CMeshInspector.cpp
     src/AssetViewerLib_CModelView.cpp
     src/AssetViewerLib_COrbitController.cpp
+    src/AssetViewerLib_CParticlePreview.cpp
+    src/AssetViewerLib_CPrimaryStoreSearchModel.cpp
     src/AssetViewerLib_CReportLogger.cpp
     src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp
     src/AssetViewerLib_CSceneView.cpp
     src/AssetViewerLib_CTextureView.cpp
     src/AssetViewerLib_CThumbnailProvider.cpp
     src/AssetViewerLib_CViewerApp.cpp
+    src/AssetViewerLib_CViewerCredentials.cpp
     src/AssetViewerLib_CViewerMaterials.cpp
     src/AssetViewerLib_CViewerShell.cpp
+    src/AssetViewerLib_CViewerSignIn.cpp
     src/AssetViewerLib_CViewerStage.cpp
   )
 
@@ -168,20 +228,30 @@ elseif (WIN64)
     include/AssetViewerLib.h
     include/AssetViewerLib_CAssetCapture.h
     include/AssetViewerLib_CAssetMounter.h
+    include/AssetViewerLib_CAssetOpener.h
+    include/AssetViewerLib_CAssetSourcesPane.h
+    include/AssetViewerLib_CAssetSourcesSettings.h
+    include/AssetViewerLib_CAssetStoreInspectorData.h
+    include/AssetViewerLib_CAssetStoreThumbnailProvider.h
+    include/AssetViewerLib_CAssetStoreTransferModel.h
     include/AssetViewerLib_CAssetTypeResolver.h
     include/AssetViewerLib_CBlockDecoder.h
     include/AssetViewerLib_CMaterialView.h
     include/AssetViewerLib_CMeshInspector.h
     include/AssetViewerLib_CModelView.h
     include/AssetViewerLib_COrbitController.h
+    include/AssetViewerLib_CParticlePreview.h
+    include/AssetViewerLib_CPrimaryStoreSearchModel.h
     include/AssetViewerLib_CReportLogger.h
     include/AssetViewerLib_CSceneTreeFileSystemAccess.h
     include/AssetViewerLib_CSceneView.h
     include/AssetViewerLib_CTextureView.h
     include/AssetViewerLib_CThumbnailProvider.h
     include/AssetViewerLib_CViewerApp.h
+    include/AssetViewerLib_CViewerCredentials.h
     include/AssetViewerLib_CViewerMaterials.h
     include/AssetViewerLib_CViewerShell.h
+    include/AssetViewerLib_CViewerSignIn.h
     include/AssetViewerLib_CViewerStage.h
     include/AssetViewerLib_config.h
     include/AssetViewerLib_macros.h
@@ -193,20 +263,30 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_FILES 
     src/AssetViewerLib_CAssetCapture.cpp
     src/AssetViewerLib_CAssetMounter.cpp
+    src/AssetViewerLib_CAssetOpener.cpp
+    src/AssetViewerLib_CAssetSourcesPane.cpp
+    src/AssetViewerLib_CAssetSourcesSettings.cpp
+    src/AssetViewerLib_CAssetStoreInspectorData.cpp
+    src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp
+    src/AssetViewerLib_CAssetStoreTransferModel.cpp
     src/AssetViewerLib_CAssetTypeResolver.cpp
     src/AssetViewerLib_CBlockDecoder.cpp
     src/AssetViewerLib_CMaterialView.cpp
     src/AssetViewerLib_CMeshInspector.cpp
     src/AssetViewerLib_CModelView.cpp
     src/AssetViewerLib_COrbitController.cpp
+    src/AssetViewerLib_CParticlePreview.cpp
+    src/AssetViewerLib_CPrimaryStoreSearchModel.cpp
     src/AssetViewerLib_CReportLogger.cpp
     src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp
     src/AssetViewerLib_CSceneView.cpp
     src/AssetViewerLib_CTextureView.cpp
     src/AssetViewerLib_CThumbnailProvider.cpp
     src/AssetViewerLib_CViewerApp.cpp
+    src/AssetViewerLib_CViewerCredentials.cpp
     src/AssetViewerLib_CViewerMaterials.cpp
     src/AssetViewerLib_CViewerShell.cpp
+    src/AssetViewerLib_CViewerSignIn.cpp
     src/AssetViewerLib_CViewerStage.cpp
   )
 
@@ -258,47 +338,47 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_BUILD_MODULE;MODULE_NAME=AssetViewerLib;MODULE_SEMVER=0_1_0_0" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_BUILD_MODULE;MODULE_NAME=AssetViewerLib;MODULE_SEMVER=0_1_0_0" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_BUILD_MODULE;MODULE_NAME=AssetViewerLib;MODULE_SEMVER=0_1_0_0" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
-  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  add_dependencies( ${MODULE_NAME} AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConverterHook Ogre OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ASSETVIEWERLIB_BUILD_MODULE;MODULE_NAME=AssetViewerLib;MODULE_SEMVER=0_1_0_0" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include include )
+  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../AssetConverterLib/include ../AssetStoreConverterHook/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include include )
+  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../AssetConverterLib/include ../AssetStoreConverterHook/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include include )
+  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../AssetConverterLib/include ../AssetStoreConverterHook/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include include )
+  include_directories( ../../common/include ../../dependencies/Ogre/Components/RTShaderSystem/include ../../dependencies/Ogre/Components/RTShaderSystem/src ../../dependencies/Ogre/OgreMain/include ../../dependencies/Ogre/OgreMain/include/Threading ../../dependencies/Ogre/OgreMain/src ../../dependencies/Ogre/OgreMain/src/zip ../../dependencies/Ogre/include ../../dependencies/imgui ../../platform/gucefASSETSTORE/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefAUTHGUI/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/GUI/guidriverImGui/include ../../plugins/GUI/guidriverImGuiOgre/include ../../plugins/GUI/guidriverOgre/include ../../plugins/SHARED/pluginglueOGRE/include ../../plugins/SHARED/pluginglueOGRECOMMON ../../plugins/SHARED/pluginglueOGRECOMMON/include ../AssetConverterLib/include ../AssetStoreConverterHook/include include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

@@ -67,40 +67,40 @@ configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 configuration( { "LINUX32" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 configuration( { "LINUX32" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 
 configuration( { "LINUX32" } )
 defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "LINUX64" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 configuration( { "LINUX64" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 
 configuration( { "LINUX64" } )
 defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN32" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 configuration( { "WIN32" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 
 configuration( { "WIN32" } )
 defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN64" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 configuration( { "WIN64" } )
-links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 
 configuration( { "WIN64" } )
@@ -113,20 +113,30 @@ configuration( { "LINUX32" } )
       "include/AssetViewerLib.h",
       "include/AssetViewerLib_CAssetCapture.h",
       "include/AssetViewerLib_CAssetMounter.h",
+      "include/AssetViewerLib_CAssetOpener.h",
+      "include/AssetViewerLib_CAssetSourcesPane.h",
+      "include/AssetViewerLib_CAssetSourcesSettings.h",
+      "include/AssetViewerLib_CAssetStoreInspectorData.h",
+      "include/AssetViewerLib_CAssetStoreThumbnailProvider.h",
+      "include/AssetViewerLib_CAssetStoreTransferModel.h",
       "include/AssetViewerLib_CAssetTypeResolver.h",
       "include/AssetViewerLib_CBlockDecoder.h",
       "include/AssetViewerLib_CMaterialView.h",
       "include/AssetViewerLib_CMeshInspector.h",
       "include/AssetViewerLib_CModelView.h",
       "include/AssetViewerLib_COrbitController.h",
+      "include/AssetViewerLib_CParticlePreview.h",
+      "include/AssetViewerLib_CPrimaryStoreSearchModel.h",
       "include/AssetViewerLib_CReportLogger.h",
       "include/AssetViewerLib_CSceneTreeFileSystemAccess.h",
       "include/AssetViewerLib_CSceneView.h",
       "include/AssetViewerLib_CTextureView.h",
       "include/AssetViewerLib_CThumbnailProvider.h",
       "include/AssetViewerLib_CViewerApp.h",
+      "include/AssetViewerLib_CViewerCredentials.h",
       "include/AssetViewerLib_CViewerMaterials.h",
       "include/AssetViewerLib_CViewerShell.h",
+      "include/AssetViewerLib_CViewerSignIn.h",
       "include/AssetViewerLib_CViewerStage.h",
       "include/AssetViewerLib_config.h",
       "include/AssetViewerLib_macros.h"
@@ -136,20 +146,30 @@ configuration( { "LINUX32" } )
     files( {
       "src/AssetViewerLib_CAssetCapture.cpp",
       "src/AssetViewerLib_CAssetMounter.cpp",
+      "src/AssetViewerLib_CAssetOpener.cpp",
+      "src/AssetViewerLib_CAssetSourcesPane.cpp",
+      "src/AssetViewerLib_CAssetSourcesSettings.cpp",
+      "src/AssetViewerLib_CAssetStoreInspectorData.cpp",
+      "src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp",
+      "src/AssetViewerLib_CAssetStoreTransferModel.cpp",
       "src/AssetViewerLib_CAssetTypeResolver.cpp",
       "src/AssetViewerLib_CBlockDecoder.cpp",
       "src/AssetViewerLib_CMaterialView.cpp",
       "src/AssetViewerLib_CMeshInspector.cpp",
       "src/AssetViewerLib_CModelView.cpp",
       "src/AssetViewerLib_COrbitController.cpp",
+      "src/AssetViewerLib_CParticlePreview.cpp",
+      "src/AssetViewerLib_CPrimaryStoreSearchModel.cpp",
       "src/AssetViewerLib_CReportLogger.cpp",
       "src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp",
       "src/AssetViewerLib_CSceneView.cpp",
       "src/AssetViewerLib_CTextureView.cpp",
       "src/AssetViewerLib_CThumbnailProvider.cpp",
       "src/AssetViewerLib_CViewerApp.cpp",
+      "src/AssetViewerLib_CViewerCredentials.cpp",
       "src/AssetViewerLib_CViewerMaterials.cpp",
       "src/AssetViewerLib_CViewerShell.cpp",
+      "src/AssetViewerLib_CViewerSignIn.cpp",
       "src/AssetViewerLib_CViewerStage.cpp"
     } )
 
@@ -161,20 +181,30 @@ configuration( { "LINUX64" } )
       "include/AssetViewerLib.h",
       "include/AssetViewerLib_CAssetCapture.h",
       "include/AssetViewerLib_CAssetMounter.h",
+      "include/AssetViewerLib_CAssetOpener.h",
+      "include/AssetViewerLib_CAssetSourcesPane.h",
+      "include/AssetViewerLib_CAssetSourcesSettings.h",
+      "include/AssetViewerLib_CAssetStoreInspectorData.h",
+      "include/AssetViewerLib_CAssetStoreThumbnailProvider.h",
+      "include/AssetViewerLib_CAssetStoreTransferModel.h",
       "include/AssetViewerLib_CAssetTypeResolver.h",
       "include/AssetViewerLib_CBlockDecoder.h",
       "include/AssetViewerLib_CMaterialView.h",
       "include/AssetViewerLib_CMeshInspector.h",
       "include/AssetViewerLib_CModelView.h",
       "include/AssetViewerLib_COrbitController.h",
+      "include/AssetViewerLib_CParticlePreview.h",
+      "include/AssetViewerLib_CPrimaryStoreSearchModel.h",
       "include/AssetViewerLib_CReportLogger.h",
       "include/AssetViewerLib_CSceneTreeFileSystemAccess.h",
       "include/AssetViewerLib_CSceneView.h",
       "include/AssetViewerLib_CTextureView.h",
       "include/AssetViewerLib_CThumbnailProvider.h",
       "include/AssetViewerLib_CViewerApp.h",
+      "include/AssetViewerLib_CViewerCredentials.h",
       "include/AssetViewerLib_CViewerMaterials.h",
       "include/AssetViewerLib_CViewerShell.h",
+      "include/AssetViewerLib_CViewerSignIn.h",
       "include/AssetViewerLib_CViewerStage.h",
       "include/AssetViewerLib_config.h",
       "include/AssetViewerLib_macros.h"
@@ -184,20 +214,30 @@ configuration( { "LINUX64" } )
     files( {
       "src/AssetViewerLib_CAssetCapture.cpp",
       "src/AssetViewerLib_CAssetMounter.cpp",
+      "src/AssetViewerLib_CAssetOpener.cpp",
+      "src/AssetViewerLib_CAssetSourcesPane.cpp",
+      "src/AssetViewerLib_CAssetSourcesSettings.cpp",
+      "src/AssetViewerLib_CAssetStoreInspectorData.cpp",
+      "src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp",
+      "src/AssetViewerLib_CAssetStoreTransferModel.cpp",
       "src/AssetViewerLib_CAssetTypeResolver.cpp",
       "src/AssetViewerLib_CBlockDecoder.cpp",
       "src/AssetViewerLib_CMaterialView.cpp",
       "src/AssetViewerLib_CMeshInspector.cpp",
       "src/AssetViewerLib_CModelView.cpp",
       "src/AssetViewerLib_COrbitController.cpp",
+      "src/AssetViewerLib_CParticlePreview.cpp",
+      "src/AssetViewerLib_CPrimaryStoreSearchModel.cpp",
       "src/AssetViewerLib_CReportLogger.cpp",
       "src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp",
       "src/AssetViewerLib_CSceneView.cpp",
       "src/AssetViewerLib_CTextureView.cpp",
       "src/AssetViewerLib_CThumbnailProvider.cpp",
       "src/AssetViewerLib_CViewerApp.cpp",
+      "src/AssetViewerLib_CViewerCredentials.cpp",
       "src/AssetViewerLib_CViewerMaterials.cpp",
       "src/AssetViewerLib_CViewerShell.cpp",
+      "src/AssetViewerLib_CViewerSignIn.cpp",
       "src/AssetViewerLib_CViewerStage.cpp"
     } )
 
@@ -209,20 +249,30 @@ configuration( { "WIN32" } )
       "include/AssetViewerLib.h",
       "include/AssetViewerLib_CAssetCapture.h",
       "include/AssetViewerLib_CAssetMounter.h",
+      "include/AssetViewerLib_CAssetOpener.h",
+      "include/AssetViewerLib_CAssetSourcesPane.h",
+      "include/AssetViewerLib_CAssetSourcesSettings.h",
+      "include/AssetViewerLib_CAssetStoreInspectorData.h",
+      "include/AssetViewerLib_CAssetStoreThumbnailProvider.h",
+      "include/AssetViewerLib_CAssetStoreTransferModel.h",
       "include/AssetViewerLib_CAssetTypeResolver.h",
       "include/AssetViewerLib_CBlockDecoder.h",
       "include/AssetViewerLib_CMaterialView.h",
       "include/AssetViewerLib_CMeshInspector.h",
       "include/AssetViewerLib_CModelView.h",
       "include/AssetViewerLib_COrbitController.h",
+      "include/AssetViewerLib_CParticlePreview.h",
+      "include/AssetViewerLib_CPrimaryStoreSearchModel.h",
       "include/AssetViewerLib_CReportLogger.h",
       "include/AssetViewerLib_CSceneTreeFileSystemAccess.h",
       "include/AssetViewerLib_CSceneView.h",
       "include/AssetViewerLib_CTextureView.h",
       "include/AssetViewerLib_CThumbnailProvider.h",
       "include/AssetViewerLib_CViewerApp.h",
+      "include/AssetViewerLib_CViewerCredentials.h",
       "include/AssetViewerLib_CViewerMaterials.h",
       "include/AssetViewerLib_CViewerShell.h",
+      "include/AssetViewerLib_CViewerSignIn.h",
       "include/AssetViewerLib_CViewerStage.h",
       "include/AssetViewerLib_config.h",
       "include/AssetViewerLib_macros.h"
@@ -232,20 +282,30 @@ configuration( { "WIN32" } )
     files( {
       "src/AssetViewerLib_CAssetCapture.cpp",
       "src/AssetViewerLib_CAssetMounter.cpp",
+      "src/AssetViewerLib_CAssetOpener.cpp",
+      "src/AssetViewerLib_CAssetSourcesPane.cpp",
+      "src/AssetViewerLib_CAssetSourcesSettings.cpp",
+      "src/AssetViewerLib_CAssetStoreInspectorData.cpp",
+      "src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp",
+      "src/AssetViewerLib_CAssetStoreTransferModel.cpp",
       "src/AssetViewerLib_CAssetTypeResolver.cpp",
       "src/AssetViewerLib_CBlockDecoder.cpp",
       "src/AssetViewerLib_CMaterialView.cpp",
       "src/AssetViewerLib_CMeshInspector.cpp",
       "src/AssetViewerLib_CModelView.cpp",
       "src/AssetViewerLib_COrbitController.cpp",
+      "src/AssetViewerLib_CParticlePreview.cpp",
+      "src/AssetViewerLib_CPrimaryStoreSearchModel.cpp",
       "src/AssetViewerLib_CReportLogger.cpp",
       "src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp",
       "src/AssetViewerLib_CSceneView.cpp",
       "src/AssetViewerLib_CTextureView.cpp",
       "src/AssetViewerLib_CThumbnailProvider.cpp",
       "src/AssetViewerLib_CViewerApp.cpp",
+      "src/AssetViewerLib_CViewerCredentials.cpp",
       "src/AssetViewerLib_CViewerMaterials.cpp",
       "src/AssetViewerLib_CViewerShell.cpp",
+      "src/AssetViewerLib_CViewerSignIn.cpp",
       "src/AssetViewerLib_CViewerStage.cpp"
     } )
 
@@ -257,20 +317,30 @@ configuration( { "WIN64" } )
       "include/AssetViewerLib.h",
       "include/AssetViewerLib_CAssetCapture.h",
       "include/AssetViewerLib_CAssetMounter.h",
+      "include/AssetViewerLib_CAssetOpener.h",
+      "include/AssetViewerLib_CAssetSourcesPane.h",
+      "include/AssetViewerLib_CAssetSourcesSettings.h",
+      "include/AssetViewerLib_CAssetStoreInspectorData.h",
+      "include/AssetViewerLib_CAssetStoreThumbnailProvider.h",
+      "include/AssetViewerLib_CAssetStoreTransferModel.h",
       "include/AssetViewerLib_CAssetTypeResolver.h",
       "include/AssetViewerLib_CBlockDecoder.h",
       "include/AssetViewerLib_CMaterialView.h",
       "include/AssetViewerLib_CMeshInspector.h",
       "include/AssetViewerLib_CModelView.h",
       "include/AssetViewerLib_COrbitController.h",
+      "include/AssetViewerLib_CParticlePreview.h",
+      "include/AssetViewerLib_CPrimaryStoreSearchModel.h",
       "include/AssetViewerLib_CReportLogger.h",
       "include/AssetViewerLib_CSceneTreeFileSystemAccess.h",
       "include/AssetViewerLib_CSceneView.h",
       "include/AssetViewerLib_CTextureView.h",
       "include/AssetViewerLib_CThumbnailProvider.h",
       "include/AssetViewerLib_CViewerApp.h",
+      "include/AssetViewerLib_CViewerCredentials.h",
       "include/AssetViewerLib_CViewerMaterials.h",
       "include/AssetViewerLib_CViewerShell.h",
+      "include/AssetViewerLib_CViewerSignIn.h",
       "include/AssetViewerLib_CViewerStage.h",
       "include/AssetViewerLib_config.h",
       "include/AssetViewerLib_macros.h"
@@ -280,35 +350,45 @@ configuration( { "WIN64" } )
     files( {
       "src/AssetViewerLib_CAssetCapture.cpp",
       "src/AssetViewerLib_CAssetMounter.cpp",
+      "src/AssetViewerLib_CAssetOpener.cpp",
+      "src/AssetViewerLib_CAssetSourcesPane.cpp",
+      "src/AssetViewerLib_CAssetSourcesSettings.cpp",
+      "src/AssetViewerLib_CAssetStoreInspectorData.cpp",
+      "src/AssetViewerLib_CAssetStoreThumbnailProvider.cpp",
+      "src/AssetViewerLib_CAssetStoreTransferModel.cpp",
       "src/AssetViewerLib_CAssetTypeResolver.cpp",
       "src/AssetViewerLib_CBlockDecoder.cpp",
       "src/AssetViewerLib_CMaterialView.cpp",
       "src/AssetViewerLib_CMeshInspector.cpp",
       "src/AssetViewerLib_CModelView.cpp",
       "src/AssetViewerLib_COrbitController.cpp",
+      "src/AssetViewerLib_CParticlePreview.cpp",
+      "src/AssetViewerLib_CPrimaryStoreSearchModel.cpp",
       "src/AssetViewerLib_CReportLogger.cpp",
       "src/AssetViewerLib_CSceneTreeFileSystemAccess.cpp",
       "src/AssetViewerLib_CSceneView.cpp",
       "src/AssetViewerLib_CTextureView.cpp",
       "src/AssetViewerLib_CThumbnailProvider.cpp",
       "src/AssetViewerLib_CViewerApp.cpp",
+      "src/AssetViewerLib_CViewerCredentials.cpp",
       "src/AssetViewerLib_CViewerMaterials.cpp",
       "src/AssetViewerLib_CViewerShell.cpp",
+      "src/AssetViewerLib_CViewerSignIn.cpp",
       "src/AssetViewerLib_CViewerStage.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../dependencies/Ogre/Components/RTShaderSystem/include", "../../dependencies/Ogre/Components/RTShaderSystem/src", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../dependencies/imgui", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/guidriverImGui/include", "../../plugins/GUI/guidriverImGuiOgre/include", "../../plugins/GUI/guidriverOgre/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include" } )
+includedirs( { "../../common/include", "../../dependencies/Ogre/Components/RTShaderSystem/include", "../../dependencies/Ogre/Components/RTShaderSystem/src", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../dependencies/imgui", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefAUTH/include", "../../platform/gucefAUTHGUI/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include", "../../plugins/GUI/guidriverImGui/include", "../../plugins/GUI/guidriverImGuiOgre/include", "../../plugins/GUI/guidriverOgre/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include", "../AssetConverterLib/include", "../AssetStoreConverterHook/include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )

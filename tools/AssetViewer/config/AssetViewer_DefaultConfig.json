@@ -3,6 +3,24 @@
         "thumbnailCache": "$CACHEDIR$/AssetViewer/thumbnails",
         "captureTileSize": 256
     },
+    "AssetSources": {
+        "downloadRoot": "",
+        "formatPreference": "gltf,glb,fbx,obj,usd",
+        "mountOnCompletion": true,
+        "conversionEnabled": true,
+        "keyringIdleLockInSeconds": 900,
+        "credentialFolder": "",
+        "conversion": {
+            "cookProfile": { "name": "desktop" },
+            "cookTarget": "",
+            "importer": "auto",
+            "exporter": "gltf"
+        },
+        "downloads": {
+            "maxConcurrentJobs": 4,
+            "maxConcurrentJobsPerProvider": 2
+        }
+    },
     "Ogre": {
         "renderSystems": [ "OpenGL 3+ Rendering Subsystem", "Vulkan Rendering Subsystem", "Direct3D11 Rendering Subsystem" ],
         "workQueue": "Gucef",

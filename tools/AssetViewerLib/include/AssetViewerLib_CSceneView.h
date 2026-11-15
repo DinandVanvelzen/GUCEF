@@ -74,6 +74,9 @@ class ASSETVIEWERLIB_PUBLIC_CPP CSceneView
 
     bool IsLoaded( void ) const;
 
+    /** The node the scene hangs on; NULL when nothing is loaded */
+    Ogre::SceneNode* GetRoot( void ) const;
+
     /** How many nodes the scene has, not counting the one the stage gives it */
     UInt32 GetNodeCount( void ) const;
     UInt32 GetObjectCount( void ) const;

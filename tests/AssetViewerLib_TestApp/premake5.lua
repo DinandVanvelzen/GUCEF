@@ -33,16 +33,88 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "ANDROID" } )
+language( "C++" )
+
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "ARDUINO" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN32" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN64" } )
+language( "C++" )
+
+configuration( { "GLX" } )
+language( "C++" )
+
+configuration( { "GTK" } )
+language( "C++" )
+
+configuration( { "IOS" } )
+language( "C++" )
+
+configuration( { "IPHONE" } )
+language( "C++" )
+
+configuration( { "IPHONEOS" } )
+language( "C++" )
+
+configuration( { "LINUX" } )
+language( "C++" )
+
 configuration( { "LINUX32" } )
 language( "C++" )
 
 configuration( { "LINUX64" } )
 language( "C++" )
 
+configuration( { "MAC" } )
+language( "C++" )
+
+configuration( { "MACOS" } )
+language( "C++" )
+
+configuration( { "MACOSX" } )
+language( "C++" )
+
+configuration( { "MSWIN" } )
+language( "C++" )
+
+configuration( { "NACL" } )
+language( "C++" )
+
+configuration( { "OSX" } )
+language( "C++" )
+
+configuration( { "POSIX" } )
+language( "C++" )
+
+configuration( { "SDL" } )
+language( "C++" )
+
+configuration( { "SYMBIAN" } )
+language( "C++" )
+
+configuration( { "UNIX" } )
+language( "C++" )
+
 configuration( { "WIN32" } )
 language( "C++" )
 
 configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "WINDOWS" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -67,64 +139,214 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 configuration( { "LINUX32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-
-configuration( { "LINUX32" } )
-defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
-
-configuration( { "LINUX64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-configuration( { "LINUX64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-
-configuration( { "LINUX64" } )
-defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
-
-configuration( { "WIN32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-configuration( { "WIN32" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-
-configuration( { "WIN32" } )
-defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
-
-configuration( { "WIN64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-configuration( { "WIN64" } )
-links( { "AssetViewerLib", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
-
-
-configuration( { "WIN64" } )
-defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
 
 
 configuration( { "LINUX32" } )
+defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
+
+configuration( { "LINUX64" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+configuration( { "LINUX64" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
+
+configuration( { "WIN32" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+configuration( { "WIN32" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+
+configuration( { "WIN32" } )
+defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
+
+configuration( { "WIN64" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+configuration( { "WIN64" } )
+links( { "AssetConverterLib", "AssetStoreConverterHook", "AssetViewerLib", "Ogre", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
+
+
+configuration( { "WIN64" } )
+defines( { "ASSETVIEWERLIB_TESTAPP_BUILD_MODULE", "MODULE_NAME=AssetViewerLib_TestApp" } )
+
+
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ARDUINO" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "GLX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "GTK" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestAssetViewerAssets.h",
       "include/TestAssetViewerBasic.h",
+      "include/TestAssetViewerOpen.h",
+      "include/TestAssetViewerParticles.h",
       "include/TestAssetViewerRender.h",
+      "include/TestAssetViewerServiceAdapters.h",
       "include/TestAssetViewerShell.h",
-      "include/TestAssetViewerSupport.h"
+      "include/TestAssetViewerSignIn.h",
+      "include/TestAssetViewerSources.h",
+      "include/TestAssetViewerSupport.h",
+      "include/TestFakeAssetStoreService.h",
+      "include/TestFakeConverterHook.h",
+      "include/TestFakeLoginSite.h",
+      "include/TestFakeSignInBrowser.h",
+      "include/TestFakeSourceStore.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp",
       "src/AssetViewerLib_TestApp.cpp",
       "src/TestAssetViewerAssets.cpp",
       "src/TestAssetViewerBasic.cpp",
+      "src/TestAssetViewerOpen.cpp",
+      "src/TestAssetViewerParticles.cpp",
       "src/TestAssetViewerRender.cpp",
+      "src/TestAssetViewerServiceAdapters.cpp",
       "src/TestAssetViewerShell.cpp",
-      "src/TestAssetViewerSupport.cpp"
+      "src/TestAssetViewerSignIn.cpp",
+      "src/TestAssetViewerSources.cpp",
+      "src/TestAssetViewerSupport.cpp",
+      "src/TestFakeConverterHook.cpp",
+      "src/TestFakeSourceStore.cpp"
     } )
 
 
@@ -134,19 +356,139 @@ configuration( { "LINUX64" } )
     files( {
       "include/TestAssetViewerAssets.h",
       "include/TestAssetViewerBasic.h",
+      "include/TestAssetViewerOpen.h",
+      "include/TestAssetViewerParticles.h",
       "include/TestAssetViewerRender.h",
+      "include/TestAssetViewerServiceAdapters.h",
       "include/TestAssetViewerShell.h",
-      "include/TestAssetViewerSupport.h"
+      "include/TestAssetViewerSignIn.h",
+      "include/TestAssetViewerSources.h",
+      "include/TestAssetViewerSupport.h",
+      "include/TestFakeAssetStoreService.h",
+      "include/TestFakeConverterHook.h",
+      "include/TestFakeLoginSite.h",
+      "include/TestFakeSignInBrowser.h",
+      "include/TestFakeSourceStore.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp",
       "src/AssetViewerLib_TestApp.cpp",
       "src/TestAssetViewerAssets.cpp",
       "src/TestAssetViewerBasic.cpp",
+      "src/TestAssetViewerOpen.cpp",
+      "src/TestAssetViewerParticles.cpp",
       "src/TestAssetViewerRender.cpp",
+      "src/TestAssetViewerServiceAdapters.cpp",
       "src/TestAssetViewerShell.cpp",
-      "src/TestAssetViewerSupport.cpp"
+      "src/TestAssetViewerSignIn.cpp",
+      "src/TestAssetViewerSources.cpp",
+      "src/TestAssetViewerSupport.cpp",
+      "src/TestFakeConverterHook.cpp",
+      "src/TestFakeSourceStore.cpp"
+    } )
+
+
+
+configuration( { "MAC" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MSWIN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "NACL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "OSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "POSIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "SDL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "SYMBIAN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "UNIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
     } )
 
 
@@ -156,19 +498,39 @@ configuration( { "WIN32" } )
     files( {
       "include/TestAssetViewerAssets.h",
       "include/TestAssetViewerBasic.h",
+      "include/TestAssetViewerOpen.h",
+      "include/TestAssetViewerParticles.h",
       "include/TestAssetViewerRender.h",
+      "include/TestAssetViewerServiceAdapters.h",
       "include/TestAssetViewerShell.h",
-      "include/TestAssetViewerSupport.h"
+      "include/TestAssetViewerSignIn.h",
+      "include/TestAssetViewerSources.h",
+      "include/TestAssetViewerSupport.h",
+      "include/TestFakeAssetStoreService.h",
+      "include/TestFakeConverterHook.h",
+      "include/TestFakeLoginSite.h",
+      "include/TestFakeSignInBrowser.h",
+      "include/TestFakeSourceStore.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp",
       "src/AssetViewerLib_TestApp.cpp",
       "src/TestAssetViewerAssets.cpp",
       "src/TestAssetViewerBasic.cpp",
+      "src/TestAssetViewerOpen.cpp",
+      "src/TestAssetViewerParticles.cpp",
       "src/TestAssetViewerRender.cpp",
+      "src/TestAssetViewerServiceAdapters.cpp",
       "src/TestAssetViewerShell.cpp",
-      "src/TestAssetViewerSupport.cpp"
+      "src/TestAssetViewerSignIn.cpp",
+      "src/TestAssetViewerSources.cpp",
+      "src/TestAssetViewerSupport.cpp",
+      "src/TestFakeConverterHook.cpp",
+      "src/TestFakeSourceStore.cpp"
     } )
 
 
@@ -178,33 +540,63 @@ configuration( { "WIN64" } )
     files( {
       "include/TestAssetViewerAssets.h",
       "include/TestAssetViewerBasic.h",
+      "include/TestAssetViewerOpen.h",
+      "include/TestAssetViewerParticles.h",
       "include/TestAssetViewerRender.h",
+      "include/TestAssetViewerServiceAdapters.h",
       "include/TestAssetViewerShell.h",
-      "include/TestAssetViewerSupport.h"
+      "include/TestAssetViewerSignIn.h",
+      "include/TestAssetViewerSources.h",
+      "include/TestAssetViewerSupport.h",
+      "include/TestFakeAssetStoreService.h",
+      "include/TestFakeConverterHook.h",
+      "include/TestFakeLoginSite.h",
+      "include/TestFakeSignInBrowser.h",
+      "include/TestFakeSourceStore.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp",
       "src/AssetViewerLib_TestApp.cpp",
       "src/TestAssetViewerAssets.cpp",
       "src/TestAssetViewerBasic.cpp",
+      "src/TestAssetViewerOpen.cpp",
+      "src/TestAssetViewerParticles.cpp",
       "src/TestAssetViewerRender.cpp",
+      "src/TestAssetViewerServiceAdapters.cpp",
       "src/TestAssetViewerShell.cpp",
-      "src/TestAssetViewerSupport.cpp"
+      "src/TestAssetViewerSignIn.cpp",
+      "src/TestAssetViewerSources.cpp",
+      "src/TestAssetViewerSupport.cpp",
+      "src/TestFakeConverterHook.cpp",
+      "src/TestFakeSourceStore.cpp"
+    } )
+
+
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefASSETSTORE_TestApp/src/TestFakeAssetStoreService.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefASSETSTORE_TestApp/src/TestFakeSignInBrowser.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/Ogre/Components/RTShaderSystem/include", "../../dependencies/Ogre/Components/RTShaderSystem/src", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../dependencies/imgui", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/guidriverImGui/include", "../../plugins/GUI/guidriverImGuiOgre/include", "../../plugins/GUI/guidriverOgre/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/Ogre/Components/RTShaderSystem/include", "../../dependencies/Ogre/Components/RTShaderSystem/src", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../dependencies/imgui", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefAUTH/include", "../../platform/gucefAUTHGUI/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include", "../../plugins/GUI/guidriverImGui/include", "../../plugins/GUI/guidriverImGuiOgre/include", "../../plugins/GUI/guidriverOgre/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include", "../../tools/AssetConverterLib/include", "../../tools/AssetStoreConverterHook/include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "../../tools/AssetViewerLib/include", "include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../tools/AssetViewerLib/include", "include" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "../../tools/AssetViewerLib/include", "include" } )
+includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../tools/AssetViewerLib/include", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../tools/AssetViewerLib/include", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../../tools/AssetViewerLib/include", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../tools/AssetViewerLib/include", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../../tools/AssetViewerLib/include", "include" } )

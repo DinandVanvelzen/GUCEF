@@ -79,6 +79,7 @@ class ASSETVIEWERLIB_PUBLIC_CPP CAssetMounter
         CORE::CString archiveName;      /**< the name the VFS knows the mount by */
         CORE::CString groupName;        /**< the resource group of Ogre of this mount */
         bool groupReady;
+        bool adopted;                   /**< the folder is mounted by someone else; it is not unmounted with the others */
         SMount( void );
     };
     typedef GUCEF::vector< SMount > TMountVector;
@@ -98,6 +99,39 @@ class ASSETVIEWERLIB_PUBLIC_CPP CAssetMounter
 
     /** Mounts a folder, an archive or an archive of a mount; false with a logged reason when that is not possible */
     bool Mount( const CORE::CString& mountPoint, const CORE::CString& source );
+
+    /** The spelling of the mounter for a path of the disk: '/' separators, no '/' at the end, variables of the path resolved */
+    static CORE::CString NormalizeDiskPath( const CORE::CString& diskPath );
+
+    /**
+     *  A mount point for a folder or archive of the disk, made of its name (the extension of an archive is left out, anything
+     *  but letters, digits and '_' becomes '_'): not used by a mount or the VFS, and not the name of a folder of the root of the
+     *  native file system, so a path of the disk is never taken for a path of a mount. "Shops Pack" gives "Shops_Pack",
+     *  and "Shops_Pack_2" when that is taken
+     */
+    CORE::CString MakeMountPointName( const CORE::CString& diskPath ) const;
+
+    /** The index of the mount that was made of this folder or archive of the disk; -1 when there is none */
+    Int32 FindMountBySource( const CORE::CString& diskPath ) const;
+
+    /**
+     *  The index of the mount of a folder that holds the path of the disk (the path itself or something below it), with the path
+     *  below the mount ("" for the mount itself); -1 when there is none. Archives are not looked in, only folders
+     */
+    Int32 FindMountOfDiskPath( const CORE::CString& diskPath, CORE::CString& relativePath ) const;
+
+    /**
+     *  Mounts a folder or archive of the disk at a mount point of MakeMountPointName(), or finds the mount that holds it already
+     *  (the same source); 'mountPoint' tells which. False with a logged reason when it cannot be mounted
+     */
+    bool MountUnique( const CORE::CString& diskPath, CORE::CString& mountPoint );
+
+    /**
+     *  Takes a folder of the VFS that something else mounted (a storage location of a store) in as a mount of the viewer, under the
+     *  VFS path it already has: its files can be opened like those of the other mounts. It is not unmounted by UnmountAll(); false
+     *  when the path is a mount point already or no folder
+     */
+    bool Adopt( const CORE::CString& vfsFolder );
 
     /** Mounts what a list of "mountPoint=source" texts names; the number that was mounted */
     UInt32 MountAll( const CORE::CString::StringVector& specs );

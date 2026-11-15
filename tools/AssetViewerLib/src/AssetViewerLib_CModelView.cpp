@@ -141,6 +141,11 @@ CModelView::CModelView( CViewerStage& stage )
     , m_subMeshVisible()
     , m_ownedMaterials()
     , m_meshIsManual( false )
+    , m_upAxis( UPAXIS_AUTOMATIC )
+    , m_placement( PLACEMENT_AUTOMATIC )
+    , m_presentationOrientation( Ogre::Quaternion::IDENTITY )
+    , m_presentationOffset( Ogre::Vector3::ZERO )
+    , m_geometryBounds()
 {GUCEF_TRACE;
 
 }
@@ -184,7 +189,9 @@ CModelView::LoadMesh( const CORE::CString& groupName, const CORE::CString& meshN
         {
             if ( existing )
                 meshes.remove( existing );
-            m_mesh = meshes.load( meshName.STL_String(), groupName.STL_String() );
+            // with copies of the buffers in memory: the inspection reads the geometry back, which a render system without them
+            // (Vulkan) cannot do reliably
+            m_mesh = meshes.load( meshName.STL_String(), groupName.STL_String(), Ogre::HBU_GPU_ONLY, Ogre::HBU_GPU_ONLY, true, true );
         }
         if ( !m_mesh )
             return false;
@@ -215,6 +222,17 @@ CModelView::LoadMesh( const CORE::CString& groupName, const CORE::CString& meshN
 
         RemoveMissingTextures();
         CMeshInspector::GetStatistics( m_mesh, m_statistics );
+        if ( 0 == m_statistics.subMeshCount || 0 == m_statistics.vertexCount )
+        {
+            // an importer that failed leaves an empty mesh behind (its reason is in the log of Ogre)
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CModelView: The model " << meshName << " has no geometry: it was not read" );
+            Unload();
+            return false;
+        }
+        // the bounds of the vertices, without the padding Ogre adds to those of the mesh: placement and sizes are exact
+        if ( !CMeshInspector::GetGeometryBounds( m_mesh, m_geometryBounds ) )
+            m_geometryBounds = m_mesh->getBounds();
+        ApplyPresentation();
         CollectClips();
         m_forcedLod = -1;
         m_selectedClip = -1;
@@ -300,6 +318,11 @@ CModelView::Unload( void )
                 m_node->detachObject( m_entity );
                 m_stage.GetSceneManager()->destroyEntity( m_entity );
                 m_stage.GetContentNode()->removeAndDestroyChild( m_node );
+
+                // what is shown next starts from the coordinates of the stage
+                m_stage.GetContentNode()->setOrientation( Ogre::Quaternion::IDENTITY );
+                m_stage.GetContentNode()->setPosition( Ogre::Vector3::ZERO );
+                m_stage.MarkDirty();
             }
             m_entity = GUCEF_NULL;
             m_node = GUCEF_NULL;
@@ -339,6 +362,9 @@ CModelView::Unload( void )
     m_ownedMaterials.clear();
     m_selectedClip = -1;
     m_forcedLod = -1;
+    m_presentationOrientation = Ogre::Quaternion::IDENTITY;
+    m_presentationOffset = Ogre::Vector3::ZERO;
+    m_geometryBounds.setNull();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -396,10 +422,10 @@ CModelView::GetBoundingSphere( COrbitController::SVector3& center, Float32& radi
     radius = 1.0f;
     if ( !m_mesh )
         return;
-    const Ogre::AxisAlignedBox& bounds = m_mesh->getBounds();
+    const Ogre::AxisAlignedBox& bounds = m_geometryBounds;
     if ( !bounds.isFinite() || bounds.isNull() )
         return;
-    const Ogre::Vector3 middle = bounds.getCenter();
+    const Ogre::Vector3 middle = m_presentationOrientation * bounds.getCenter() + m_presentationOffset;
     center = COrbitController::SVector3( middle.x, middle.y, middle.z );
     radius = 0.5f * bounds.getSize().length();
     if ( radius < 1e-6f )
@@ -558,7 +584,7 @@ CModelView::RebuildBoundsLines( void )
         return;
     CViewerStage::TLineVertexVector lines;
     if ( m_boundsVisible && m_mesh )
-        CViewerStage::AddBoxLines( lines, m_mesh->getBounds(), 1.0f, 0.85f, 0.2f );
+        CViewerStage::AddBoxLines( lines, m_geometryBounds, 1.0f, 0.85f, 0.2f );
     CViewerStage::FillLineObject( *object, lines );
     m_stage.MarkDirty();
 }
@@ -632,6 +658,173 @@ CModelView::IsSkeletonVisible( void ) const
 {GUCEF_TRACE;
 
     return m_skeletonVisible;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModelView::SetUpAxis( EUpAxis upAxis )
+{GUCEF_TRACE;
+
+    m_upAxis = upAxis < UPAXIS_COUNT ? upAxis : UPAXIS_AUTOMATIC;
+    ApplyPresentation();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CModelView::EUpAxis
+CModelView::GetUpAxis( void ) const
+{GUCEF_TRACE;
+
+    return m_upAxis;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CModelView::EUpAxis
+CModelView::GetEffectiveUpAxis( void ) const
+{GUCEF_TRACE;
+
+    if ( UPAXIS_AUTOMATIC != m_upAxis )
+        return m_upAxis;
+    return IsPrintFormatMesh() ? UPAXIS_Z : UPAXIS_Y;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CModelView::GetUpAxisName( EUpAxis upAxis )
+{GUCEF_TRACE;
+
+    switch ( upAxis )
+    {
+        case UPAXIS_Y:  return "Y up";
+        case UPAXIS_Z:  return "Z up";
+        default:        return "Automatic";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModelView::SetPlacement( EPlacement placement )
+{GUCEF_TRACE;
+
+    m_placement = placement < PLACEMENT_COUNT ? placement : PLACEMENT_AUTOMATIC;
+    ApplyPresentation();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CModelView::EPlacement
+CModelView::GetPlacement( void ) const
+{GUCEF_TRACE;
+
+    return m_placement;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CModelView::EPlacement
+CModelView::GetEffectivePlacement( void ) const
+{GUCEF_TRACE;
+
+    if ( PLACEMENT_AUTOMATIC != m_placement )
+        return m_placement;
+    return IsPrintFormatMesh() ? PLACEMENT_ON_GRID : PLACEMENT_AS_AUTHORED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CModelView::GetPlacementName( EPlacement placement )
+{GUCEF_TRACE;
+
+    switch ( placement )
+    {
+        case PLACEMENT_AS_AUTHORED: return "As authored";
+        case PLACEMENT_ON_GRID:     return "On the grid";
+        default:                    return "Automatic";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModelView::IsPrintFormat( const CORE::CString& extension )
+{GUCEF_TRACE;
+
+    const CORE::CString lowercase = extension.Lowercase();
+    return "stl" == lowercase || "3mf" == lowercase || "amf" == lowercase;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModelView::IsPrintFormatMesh( void ) const
+{GUCEF_TRACE;
+
+    // a mesh the application made has no format
+    if ( !m_mesh || m_meshIsManual )
+        return false;
+    const Int32 dot = m_meshName.HasChar( '.', false );
+    if ( dot < 0 )
+        return false;
+    return IsPrintFormat( m_meshName.SubstrFromRange( (UInt32) dot+1, m_meshName.Length() ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const Ogre::Quaternion&
+CModelView::GetPresentationOrientation( void ) const
+{GUCEF_TRACE;
+
+    return m_presentationOrientation;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const Ogre::Vector3&
+CModelView::GetPresentationOffset( void ) const
+{GUCEF_TRACE;
+
+    return m_presentationOffset;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModelView::ApplyPresentation( void )
+{GUCEF_TRACE;
+
+    m_presentationOrientation = Ogre::Quaternion::IDENTITY;
+    m_presentationOffset = Ogre::Vector3::ZERO;
+    if ( !m_mesh || GUCEF_NULL == m_entity || !m_stage.IsInitialized() )
+        return;
+
+    // Z up turns about X by -90 degrees: Z becomes Y, and the front of the model (towards -Y) faces the front view (+Z)
+    if ( UPAXIS_Z == GetEffectiveUpAxis() )
+        m_presentationOrientation = Ogre::Quaternion( Ogre::Degree( -90.0f ), Ogre::Vector3::UNIT_X );
+
+    if ( PLACEMENT_ON_GRID == GetEffectivePlacement() )
+    {
+        const Ogre::AxisAlignedBox& bounds = m_geometryBounds;
+        if ( bounds.isFinite() && !bounds.isNull() )
+        {
+            // the bounds as the model stands after the turn: its middle over the origin, its lowest point on the ground
+            Ogre::AxisAlignedBox turned;
+            const Ogre::AxisAlignedBox::Corners& corners = bounds.getAllCorners();
+            for ( size_t i=0; i<8; ++i )
+                turned.merge( m_presentationOrientation * corners[ i ] );
+            const Ogre::Vector3 middle = turned.getCenter();
+            m_presentationOffset = Ogre::Vector3( -middle.x, -turned.getMinimum().y, -middle.z );
+        }
+    }
+
+    Ogre::SceneNode* content = m_stage.GetContentNode();
+    content->setOrientation( m_presentationOrientation );
+    content->setPosition( m_presentationOffset );
+    m_stage.MarkDirty();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -915,6 +1108,8 @@ CModelView::WriteInspectorData( CORE::CDataNode& root ) const
     view->SetAttribute( "Lod", m_forcedLod < 0 ? CORE::CString( "Auto" ) : CORE::Int32ToString( m_forcedLod ) );
     view->SetAttribute( "CurrentLod", CORE::UInt32ToString( GetCurrentLod() ) );
     view->SetAttribute( "CameraDistance", Number( m_cameraDistance, 3 ) );
+    view->SetAttribute( "UpAxis", GetUpAxisName( GetEffectiveUpAxis() ) );
+    view->SetAttribute( "Placement", GetPlacementName( GetEffectivePlacement() ) );
 
     CMeshInspector::WriteToDataNode( m_statistics, root );
 
