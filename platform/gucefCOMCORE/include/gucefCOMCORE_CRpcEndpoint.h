@@ -125,6 +125,11 @@
 #define GUCEF_COMCORE_CIRPCSTREAM_H
 #endif /* GUCEF_COMCORE_CIRPCSTREAM_H ? */
 
+#ifndef GUCEF_COMCORE_CRPCRELEASECOURIER_H
+#include "gucefCOMCORE_CRpcReleaseCourier.h"
+#define GUCEF_COMCORE_CRPCRELEASECOURIER_H
+#endif /* GUCEF_COMCORE_CRPCRELEASECOURIER_H ? */
+
 #ifndef GUCEF_COMCORE_CRPCENDPOINTLINK_H
 #include "gucefCOMCORE_CRpcEndpointLink.h"
 #define GUCEF_COMCORE_CRPCENDPOINTLINK_H
@@ -345,7 +350,6 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     void OnProtocolPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnDispatchToNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnLinkOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
-    void OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     /* the session sink */
     bool SessionTransmit( const UInt8* frame, UInt32 size, TRpcProtectionClass protection );
@@ -462,6 +466,14 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     bool IsNotificationThread( void ) const;
     void ReleaseClientCall( SClientCall* call );
     void ReleaseDeferredReferences( GUCEF::vector< SDeferredEvent* >& batch );
+
+    /**
+     *  The last references of objects linked to the notification pulse generator go there: kept by this endpoint and
+     *  let go of in the delivery of its own mail (behind the events it raises for them), once the objects have no mail
+     *  of their own (OnReleaseOnNotificationThread())
+     */
+    void QueueRelease( GUCEF::vector< CIRpcStreamPtr >& streams, GUCEF::vector< CRpcServerCallPtr >& calls );
+    void OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     TRpcProtectionClass ProtectionForFrame( UInt8 type, const CRpcMethodDescriptor* method, bool responder ) const;
     bool CheckProtection( const CRpcMethodDescriptor* method, bool providerFrame, TRpcProtectionClass arrivedWith );
 
@@ -469,7 +481,7 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     static UInt64 WallClockMs( void );
 
     static const CORE::CEvent DispatchToNotificationThreadEvent;
-    static const CORE::CEvent ReleaseOnNotificationThreadEvent;    /**< its data holds references: the last ones go on that thread */
+    static const CORE::CEvent ReleaseOnNotificationThreadEvent;    /**< no data: the references of m_releaseStreams / m_releaseCalls go on that thread */
     static const CORE::CEvent LinkOnNotificationThreadEvent;       /**< CRpcCallTaskData: the call is linked to its event thread there */
 
     typedef GUCEF::map< UInt64, SClientCall* > TClientCallMap;
@@ -493,6 +505,12 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     mutable TPendingHandlerVector m_pendingHandlers;    /**< RPC_EXECUTION_CALLING_THREAD handlers, run by the thread that dispatched them once it released the lock */
     CRpcEndpointSettings m_settings;
     CRpcEndpointLinkPtr m_link;
+    CRpcReleaseCourierPtr m_releaseCourier;                 /**< of the notification pulse generator; takes what is still to go when this endpoint goes */
+    MT::CMutex m_releaseLock;                               /**< leaf lock of the references still to go */
+    GUCEF::vector< CIRpcStreamPtr > m_releaseStreams;
+    GUCEF::vector< CRpcServerCallPtr > m_releaseCalls;
+    UInt32 m_releaseRounds;                                 /**< the pulses the references waited for their objects' mail */
+    bool m_releaseMailed;
     CSessionSink* m_sink;
     CRpcSession m_session;
     CIRpcTransportPtr m_transport;

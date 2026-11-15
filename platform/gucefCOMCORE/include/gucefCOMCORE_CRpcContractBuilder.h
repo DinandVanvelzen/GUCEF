@@ -82,6 +82,18 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcContractBuilder
                                    UInt32 since = 0, UInt32 fieldFlags = 0 );
     CRpcContractBuilder& AddReservedFieldNumber( const CORE::CString& typeName, UInt32 number );
 
+    /** A field name of the type that is never used again (a removed or deferred field) */
+    CRpcContractBuilder& AddReservedFieldName( const CORE::CString& typeName, const CORE::CString& fieldName );
+
+    /** A value number of the enum that is never used again */
+    CRpcContractBuilder& AddReservedEnumNumber( const CORE::CString& enumName, Int32 number );
+
+    /** A value name of the enum that is never used again */
+    CRpcContractBuilder& AddReservedEnumName( const CORE::CString& enumName, const CORE::CString& valueName );
+
+    /** A method number of the service that is never used again */
+    CRpcContractBuilder& AddReservedMethodNumber( const CORE::CString& serviceName, UInt32 number );
+
     CRpcContractBuilder& AddService( const CORE::CString& serviceName, UInt32 number, UInt32 since = 0 );
     CRpcContractBuilder& AddMethod( const CORE::CString& serviceName, UInt32 number, const CORE::CString& methodName,
                                     TRpcMethodKind kind, const CORE::CString& requestType, const CORE::CString& responseType,
@@ -100,6 +112,7 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcContractBuilder
 
     CORE::CDataNode* FindNamed( const CORE::CString& listName, const CORE::CString& name );
     CORE::CDataNode* FindMethod( const CORE::CString& serviceName, const CORE::CString& methodName );
+    void AddReservedEntry( const CORE::CString& listName, const CORE::CString& itemName, const char* entryListName, const CORE::CVariant& entry );
 
     CRpcContractBuilder( const CRpcContractBuilder& src );                /**< not implemented */
     CRpcContractBuilder& operator=( const CRpcContractBuilder& src );     /**< not implemented */

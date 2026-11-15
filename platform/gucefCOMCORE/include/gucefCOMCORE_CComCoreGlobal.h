@@ -55,6 +55,11 @@
 #define GUCEF_COMCORE_CIPORTMAPPER_H
 #endif /* GUCEF_COMCORE_CIPORTMAPPER_H ? */
 
+#ifndef GUCEF_COMCORE_CRPCRELEASECOURIERREGISTRY_H
+#include "gucefCOMCORE_CRpcReleaseCourierRegistry.h"
+#define GUCEF_COMCORE_CRPCRELEASECOURIERREGISTRY_H
+#endif /* GUCEF_COMCORE_CRPCRELEASECOURIERREGISTRY_H ? */
+
 #ifndef GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
 #include "gucefCOMCORE_CTlsProviderRegistry.h"
 #define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
@@ -145,6 +150,12 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
      */
     CSocketReadinessWaiterPtr GetSocketReadinessWaiter( void );
 
+    /**
+     *  The release courier of the pulse generator (CRpcReleaseCourier): the endpoints hand it the last references of
+     *  their server calls and streams. NULL for a NULL pulse generator and after the module shut down
+     */
+    CRpcReleaseCourierPtr GetRpcReleaseCourier( const CORE::PulseGeneratorPtr& pulseGenerator );
+
     private:
     friend class CModule;
 
@@ -174,6 +185,7 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CGeoLocationLookupService* m_geoLocationLookupService;
     CTlsProviderRegistry* m_tlsProviderRegistry;
     CSocketReadinessWaiterPtr m_socketReadinessWaiter;
+    CRpcReleaseCourierRegistry* m_rpcReleaseCourierRegistry;
 
     static MT::CMutex g_dataLock;
     static CComCoreGlobal* g_instance;

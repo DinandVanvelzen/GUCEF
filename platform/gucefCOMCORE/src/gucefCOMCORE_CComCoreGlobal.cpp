@@ -212,6 +212,7 @@ CComCoreGlobal::CComCoreGlobal( void )
     , m_geoLocationLookupService( GUCEF_NULL )
     , m_tlsProviderRegistry( GUCEF_NULL )
     , m_socketReadinessWaiter()
+    , m_rpcReleaseCourierRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -271,6 +272,7 @@ CComCoreGlobal::Initialize( void )
 
     m_com = GUCEF_NEW CCom();
     m_socketReadinessWaiter = CSocketReadinessWaiter::CreateSharedObj();
+    m_rpcReleaseCourierRegistry = GUCEF_NEW CRpcReleaseCourierRegistry();
     m_dnsCache = ( GUCEF_NEW CGlobalDnsCache() )->CreateSharedPtr();
     m_discoveryClientFactory = GUCEF_NEW CDiscoveryClientFactory();
     m_rttProbeFactory = GUCEF_NEW CRttProbeFactory();
@@ -311,6 +313,10 @@ CComCoreGlobal::Shutdown( void )
     if ( !m_socketReadinessWaiter.IsNULL() )
         m_socketReadinessWaiter->Shutdown();
     m_socketReadinessWaiter.Unlink();
+
+    // the last references the couriers still hold go here, before the task manager and the pulse generators
+    GUCEF_DELETE m_rpcReleaseCourierRegistry;
+    m_rpcReleaseCourierRegistry = GUCEF_NULL;
 
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );
@@ -407,6 +413,17 @@ CComCoreGlobal::GetSocketReadinessWaiter( void )
 {GUCEF_TRACE;
 
     return m_socketReadinessWaiter;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcReleaseCourierPtr
+CComCoreGlobal::GetRpcReleaseCourier( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_rpcReleaseCourierRegistry )
+        return CRpcReleaseCourierPtr();
+    return m_rpcReleaseCourierRegistry->GetCourier( pulseGenerator );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -177,13 +177,63 @@ CRpcContractBuilder::AddField( const CORE::CString& typeName, UInt32 number, con
 
 /*-------------------------------------------------------------------------*/
 
+void
+CRpcContractBuilder::AddReservedEntry( const CORE::CString& listName, const CORE::CString& itemName, const char* entryListName, const CORE::CVariant& entry )
+{GUCEF_TRACE;
+
+    // an item that was not added yet is ignored, as for AddReservedFieldNumber(): Build() then shows what is missing
+    CORE::CDataNode* node = FindNamed( listName, itemName );
+    if ( GUCEF_NULL != node )
+        node->FindOrAddChild( "reserved", GUCEF_DATATYPE_OBJECT )->FindOrAddChild( entryListName, GUCEF_DATATYPE_ARRAY )->AddValueAsChild( entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CRpcContractBuilder&
 CRpcContractBuilder::AddReservedFieldNumber( const CORE::CString& typeName, UInt32 number )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* node = FindNamed( "types", typeName );
-    if ( GUCEF_NULL != node )
-        node->FindOrAddChild( "reserved", GUCEF_DATATYPE_OBJECT )->FindOrAddChild( "numbers", GUCEF_DATATYPE_ARRAY )->AddValueAsChild( CORE::CVariant( (Int64) number ) );
+    AddReservedEntry( "types", typeName, "numbers", CORE::CVariant( (Int64) number ) );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcContractBuilder&
+CRpcContractBuilder::AddReservedFieldName( const CORE::CString& typeName, const CORE::CString& fieldName )
+{GUCEF_TRACE;
+
+    AddReservedEntry( "types", typeName, "names", CORE::CVariant( fieldName ) );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcContractBuilder&
+CRpcContractBuilder::AddReservedEnumNumber( const CORE::CString& enumName, Int32 number )
+{GUCEF_TRACE;
+
+    AddReservedEntry( "enums", enumName, "numbers", CORE::CVariant( (Int64) number ) );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcContractBuilder&
+CRpcContractBuilder::AddReservedEnumName( const CORE::CString& enumName, const CORE::CString& valueName )
+{GUCEF_TRACE;
+
+    AddReservedEntry( "enums", enumName, "names", CORE::CVariant( valueName ) );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcContractBuilder&
+CRpcContractBuilder::AddReservedMethodNumber( const CORE::CString& serviceName, UInt32 number )
+{GUCEF_TRACE;
+
+    AddReservedEntry( "services", serviceName, "numbers", CORE::CVariant( (Int64) number ) );
     return *this;
 }
 

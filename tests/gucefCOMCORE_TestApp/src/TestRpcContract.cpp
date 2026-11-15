@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <exception>
 
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
@@ -82,6 +83,7 @@
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
+#define REQUIRE_TRUE(t) do { if ( !(t) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( #t, __FILE__, __LINE__ ); throw std::exception(); } } while ( 0 )
 
 using namespace GUCEF;
 
@@ -336,6 +338,81 @@ PerformRpcContractTests( void )
             const UInt8 badMagic[] = { 'X', 'U', 'C', 'R', 1 };
             ASSERT_TRUE( COMCORE::CRpcContract::FromSchema( badMagic, sizeof( badMagic ), error ).IsNULL() );
         }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "rpc_contract: the builder adds reserved enum numbers and names, field names and method numbers; the hash equals that of the JSON source" )
+    try
+    {
+        const char* json =
+            "{\"contract\":\"gucef.test.reserved\",\"version\":\"1.0\","
+            "\"enums\":[{\"name\":\"Level\",\"values\":[{\"name\":\"LEVEL_LOW\",\"number\":0},{\"name\":\"LEVEL_HIGH\",\"number\":3}],"
+                       "\"reserved\":{\"numbers\":[1,2],\"names\":[\"LEVEL_PAUSED\",\"LEVEL_PARKED\"]}}],"
+            "\"types\":[{\"name\":\"Item\",\"fields\":[{\"number\":1,\"name\":\"id\",\"type\":\"uint32\"},{\"number\":2,\"name\":\"level\",\"type\":\"Level\"}],"
+                       "\"reserved\":{\"numbers\":[5,6],\"names\":[\"pausedBy\"]}}],"
+            "\"services\":[{\"name\":\"Store\",\"number\":1,\"methods\":[{\"number\":1,\"name\":\"Get\",\"kind\":\"unary\",\"request\":\"Item\",\"response\":\"Item\"}],"
+                          "\"reserved\":{\"numbers\":[2]}}]}";
+        CORE::CDataNode tree;
+        REQUIRE_TRUE( RpcTestParseJson( json, tree ) );
+        CORE::CString error;
+        COMCORE::CRpcContractPtr fromJson = COMCORE::CRpcContract::LoadFromDataNode( tree, error );
+        if ( fromJson.IsNULL() )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcContract: the reserved sample does not load: " << error );
+        REQUIRE_TRUE( !fromJson.IsNULL() );
+
+        COMCORE::CRpcContractBuilder builder( "gucef.test.reserved", 1, 0 );
+        builder.AddEnum( "Level" );
+        builder.AddEnumValue( "Level", 0, "LEVEL_LOW" );
+        builder.AddEnumValue( "Level", 3, "LEVEL_HIGH" );
+        builder.AddType( "Item" );
+        builder.AddField( "Item", 1, "id", "uint32" );
+        builder.AddField( "Item", 2, "level", "Level" );
+        builder.AddService( "Store", 1 );
+        builder.AddMethod( "Store", 1, "Get", COMCORE::RPC_METHODKIND_UNARY, "Item", "Item" );
+        COMCORE::CRpcContractPtr withoutReserved = builder.Build( error );
+        REQUIRE_TRUE( !withoutReserved.IsNULL() );
+        ASSERT_FALSE( withoutReserved->GetHash() == fromJson->GetHash() );
+
+        builder.AddReservedEnumNumber( "Level", 1 ).AddReservedEnumNumber( "Level", 2 );
+        builder.AddReservedEnumName( "Level", "LEVEL_PAUSED" ).AddReservedEnumName( "Level", "LEVEL_PARKED" );
+        builder.AddReservedFieldNumber( "Item", 5 ).AddReservedFieldNumber( "Item", 6 ).AddReservedFieldName( "Item", "pausedBy" );
+        builder.AddReservedMethodNumber( "Store", 2 );
+        COMCORE::CRpcContractPtr built = builder.Build( error );
+        if ( built.IsNULL() )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcContract: the built reserved sample is refused: " << error );
+        REQUIRE_TRUE( !built.IsNULL() );
+        ASSERT_TRUE( built->GetHash() == fromJson->GetHash() );
+
+        // an item that is not there yet is ignored; the reserved entries are enforced by validation
+        builder.AddReservedEnumNumber( "NoSuchEnum", 1 ).AddReservedFieldName( "NoSuchType", "x" ).AddReservedMethodNumber( "NoSuchService", 3 );
+        built = builder.Build( error );
+        ASSERT_TRUE( !built.IsNULL() && built->GetHash() == fromJson->GetHash() );
+        builder.AddEnumValue( "Level", 2, "LEVEL_REUSED" );
+        ASSERT_TRUE( builder.Build( error ).IsNULL() && error.HasSubstr( "reserved" ) >= 0 );
+
+        COMCORE::CRpcContractBuilder reusedName( "gucef.test.reserved", 1, 0 );
+        reusedName.AddEnum( "Level" );
+        reusedName.AddEnumValue( "Level", 0, "LEVEL_LOW" );
+        reusedName.AddEnumValue( "Level", 4, "LEVEL_PAUSED" );
+        reusedName.AddReservedEnumName( "Level", "LEVEL_PAUSED" );
+        reusedName.AddType( "Item" );
+        reusedName.AddField( "Item", 1, "pausedBy", "string" );
+        ASSERT_TRUE( reusedName.Build( error ).IsNULL() );
+        reusedName.AddReservedFieldName( "Item", "pausedBy" );
+        ASSERT_TRUE( reusedName.Build( error ).IsNULL() );
+
+        COMCORE::CRpcContractBuilder reusedMethod( "gucef.test.reserved", 1, 0 );
+        reusedMethod.AddType( "Item" );
+        reusedMethod.AddField( "Item", 1, "id", "uint32" );
+        reusedMethod.AddService( "Store", 1 );
+        reusedMethod.AddMethod( "Store", 2, "Put", COMCORE::RPC_METHODKIND_UNARY, "Item", "Item" );
+        ASSERT_FALSE( reusedMethod.Build( error ).IsNULL() );
+        reusedMethod.AddReservedMethodNumber( "Store", 2 );
+        ASSERT_TRUE( reusedMethod.Build( error ).IsNULL() );
     }
     catch ( ... )
     {

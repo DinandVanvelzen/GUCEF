@@ -358,9 +358,8 @@ struct CRpcEndpoint::SPendingHandler
 namespace {
 
 /**
- *  The last references of streams and server calls of the notification thread, mailed there: they go when the mail
- *  is delivered (ReleaseOnNotificationThreadEvent), on the thread whose pulse generator they are linked to, once the
- *  object has no mail of its own waiting or in delivery (OnReleaseOnNotificationThread())
+ *  The last references of streams and server calls of the notification thread, collected for QueueRelease(): they go
+ *  on that thread once the object has no mail of its own waiting or in delivery
  */
 class CRpcReleasedReferences : public CORE::CICloneable
 {
@@ -549,6 +548,12 @@ CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGene
     , m_pendingHandlers()
     , m_settings( settings )
     , m_link()
+    , m_releaseCourier()
+    , m_releaseLock()
+    , m_releaseStreams()
+    , m_releaseCalls()
+    , m_releaseRounds( 0 )
+    , m_releaseMailed( false )
     , m_sink( GUCEF_NEW CSessionSink( *this ) )
     , m_session( *m_sink )
     , m_transport()
@@ -630,6 +635,8 @@ CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGene
     memset( m_resumeToken, 0, sizeof( m_resumeToken ) );
     memset( m_pendingNonce, 0, sizeof( m_pendingNonce ) );
     m_link = CRpcEndpointLink::Create( this );
+    // the courier of the notification pulse generator is linked to it here, on the thread that makes the endpoint
+    m_releaseCourier = CComCoreGlobal::Instance()->GetRpcReleaseCourier( notificationPulseGenerator );
     m_durable = CRpcDurableRequestTable::Create( settings.durableResultRetentionMs, settings.maxDurableRequestsPerSubject );
 
     // handlers in the notification thread mode run when this internal event reaches the notification pulse generator
@@ -715,15 +722,44 @@ CRpcEndpoint::~CRpcEndpoint()
     m_orphanResults.clear();
     m_session.Reset();
     m_pendingHandlers.clear();     // the calls were cancelled above, their handlers do not run any more
+    GUCEF::vector< CRpcServerCallPtr > retired;
+    retired.swap( m_retiredServerCalls );
     lock.EarlyUnlock();
+
+    // The calls and streams of the notification thread may have mail of their own waiting (the CancelledEvent raised
+    // before): their references go through the release courier, which outlives this endpoint, never here, where a
+    // handler of such an event would be left with the last reference inside that event (B-7)
+    GUCEF::vector< CIRpcStreamPtr > courierStreams;
+    GUCEF::vector< CRpcServerCallPtr > courierCalls;
+    for ( UInt32 i=0; i<retired.size(); ++i )
+        if ( !retired[ i ].IsNULL() && retired[ i ]->GetEventPulseGenerator() == m_notificationPulseGenerator )
+            courierCalls.push_back( retired[ i ] );
     for ( UInt32 i=0; i<m_deferredEvents.size(); ++i )
     {
         // events nobody can get any more; the stop of the periodic pulses still has to reach the pulse generator
-        if ( SDeferredEvent::KIND_PULSES_STOP == m_deferredEvents[ i ]->kind )
-            RunPulseRequest( *m_deferredEvents[ i ] );
-        GUCEF_DELETE m_deferredEvents[ i ];
+        SDeferredEvent* deferred = m_deferredEvents[ i ];
+        if ( SDeferredEvent::KIND_PULSES_STOP == deferred->kind )
+            RunPulseRequest( *deferred );
+        if ( !deferred->stream.IsNULL() && deferred->stream->GetPulseGenerator() == m_notificationPulseGenerator )
+            courierStreams.push_back( deferred->stream );
+        if ( !deferred->call.IsNULL() && deferred->call->GetEventPulseGenerator() == m_notificationPulseGenerator )
+            courierCalls.push_back( deferred->call );
+        GUCEF_DELETE deferred;
     }
     m_deferredEvents.clear();
+    retired.clear();
+    {
+        // what was still to go in the endpoint's own mail, which goes with the endpoint
+        MT::CScopeMutex releaseLock( m_releaseLock );
+        courierStreams.insert( courierStreams.end(), m_releaseStreams.begin(), m_releaseStreams.end() );
+        courierCalls.insert( courierCalls.end(), m_releaseCalls.begin(), m_releaseCalls.end() );
+        m_releaseStreams.clear();
+        m_releaseCalls.clear();
+    }
+    if ( !m_releaseCourier.IsNULL() )
+        m_releaseCourier->Hold( courierStreams, courierCalls );
+    courierStreams.clear();
+    courierCalls.clear();
     if ( !m_protocolTask.IsNULL() )
         m_protocolTask->Stop();
     GUCEF_DELETE m_reflection;
@@ -960,7 +996,76 @@ CRpcEndpoint::ReleaseDeferredReferences( TDeferredEventVector& batch )
     }
     batch.clear();
     if ( !released.IsEmpty() )
-        NotifyObserversFromThread( ReleaseOnNotificationThreadEvent, &released );
+        QueueRelease( released.streams, released.calls );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::QueueRelease( GUCEF::vector< CIRpcStreamPtr >& streams, GUCEF::vector< CRpcServerCallPtr >& calls )
+{GUCEF_TRACE;
+
+    // Kept here, not in the mail: the mail is the endpoint's own, behind the events it raises for these objects, and
+    // when the endpoint goes before it is delivered the references go to the release courier, which outlives the
+    // endpoint (finding B-7: purged with the mail, they left a handler of a call's CancelledEvent with the last
+    // reference inside that event)
+    bool mail = false;
+    {
+        MT::CScopeMutex lock( m_releaseLock );
+        m_releaseStreams.insert( m_releaseStreams.end(), streams.begin(), streams.end() );
+        m_releaseCalls.insert( m_releaseCalls.end(), calls.begin(), calls.end() );
+        if ( !m_releaseMailed && ( !m_releaseStreams.empty() || !m_releaseCalls.empty() ) )
+        {
+            m_releaseMailed = true;
+            mail = true;
+        }
+    }
+    streams.clear();
+    calls.clear();
+    if ( mail )
+        NotifyObserversFromThread( ReleaseOnNotificationThreadEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // On the notification thread, in the delivery of the endpoint's own mail. A reference whose object has no mail of
+    // its own goes now; one whose object still has mail, waiting or in delivery, waits for the next pulse: its handlers
+    // may let go of their references of it (the last one would then be theirs, inside the delivery of the object's own
+    // mail). A bounded number of pulses, as other threads may keep mailing it
+    static const UInt32 maxRounds = 1000;
+    GUCEF::vector< CIRpcStreamPtr > streams;
+    GUCEF::vector< CRpcServerCallPtr > calls;
+    bool giveUp = false;
+    {
+        MT::CScopeMutex lock( m_releaseLock );
+        streams.swap( m_releaseStreams );
+        calls.swap( m_releaseCalls );
+        m_releaseMailed = false;
+        ++m_releaseRounds;
+        giveUp = m_releaseRounds > maxRounds;
+    }
+    GUCEF::vector< CIRpcStreamPtr > laterStreams;
+    GUCEF::vector< CRpcServerCallPtr > laterCalls;
+    for ( UInt32 i=0; i<streams.size(); ++i )
+        if ( !giveUp && !streams[ i ].IsNULL() && streams[ i ]->HasMail() )
+            laterStreams.push_back( streams[ i ] );
+    for ( UInt32 i=0; i<calls.size(); ++i )
+        if ( !giveUp && !calls[ i ].IsNULL() && calls[ i ]->HasMail() )
+            laterCalls.push_back( calls[ i ] );
+    streams.clear();
+    calls.clear();
+    if ( laterStreams.empty() && laterCalls.empty() )
+    {
+        MT::CScopeMutex lock( m_releaseLock );
+        if ( m_releaseStreams.empty() && m_releaseCalls.empty() )
+            m_releaseRounds = 0;
+        return;
+    }
+    QueueRelease( laterStreams, laterCalls );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1009,44 +1114,6 @@ CRpcEndpoint::OnLinkOnNotificationThread( CORE::CNotifier* notifier, const CORE:
     CRpcServerCallPtr call = static_cast< CRpcCallTaskData* >( eventData )->call;
     if ( !call.IsNULL() )
         call->LinkEventThreadNow();
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CRpcEndpoint::OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
-{GUCEF_TRACE;
-
-    // On the notification thread, in the delivery of the endpoint's own mail. The references in the mail go when it
-    // is let go of, right after this. One whose object still has mail of its own, waiting or in delivery, waits for
-    // the next pulse: its handlers may let go of their references of it (the last one would then be theirs, inside
-    // the delivery of the object's own mail). A bounded number of pulses, as other threads may keep mailing it
-    if ( GUCEF_NULL == eventData )
-        return;
-    static const UInt32 maxRounds = 1000;
-    CRpcReleasedReferences* released = static_cast< CRpcReleasedReferences* >( eventData );
-    if ( released->rounds >= maxRounds )
-        return;
-    CRpcReleasedReferences later;
-    later.rounds = released->rounds + 1;
-    for ( UInt32 i=0; i<released->streams.size(); ++i )
-    {
-        if ( !released->streams[ i ].IsNULL() && released->streams[ i ]->HasMail() )
-        {
-            later.streams.push_back( released->streams[ i ] );
-            released->streams[ i ].Unlink();
-        }
-    }
-    for ( UInt32 i=0; i<released->calls.size(); ++i )
-    {
-        if ( !released->calls[ i ].IsNULL() && released->calls[ i ]->HasMail() )
-        {
-            later.calls.push_back( released->calls[ i ] );
-            released->calls[ i ].Unlink();
-        }
-    }
-    if ( !later.IsEmpty() )
-        NotifyObserversFromThread( ReleaseOnNotificationThreadEvent, &later );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1593,6 +1660,7 @@ CRpcEndpoint::OnProtocolPulse( CORE::CNotifier* notifier, const CORE::CEvent& ev
     GUCEF::vector< CIRpcTransportPtr > stale;
     bool reconnect = false;
     CORE::CUri reconnectUri;
+    CRpcReleasedReferences released;
     {
         CLockScope lock( *this );
         Tick( NowMs() );
@@ -1605,22 +1673,32 @@ CRpcEndpoint::OnProtocolPulse( CORE::CNotifier* notifier, const CORE::CEvent& ev
 
         // a call whose events go to another thread may be in the delivery of one of them there right now: its last
         // reference is handed to that thread, which lets go of it once the call has no mail of its own left
-        // (OnReleaseOnNotificationThread())
-        CRpcReleasedReferences released;
+        // (QueueRelease(), after the endpoint lock)
+        // A call of the notification thread goes behind the endpoint's own mail as well (QueueRelease()), also when that
+        // is this thread: its CancelledEvent may still be on the way (B-7). A call of the protocol thread that still has
+        // mail of its own waits for the next protocol pulse, never going here, where a handler of that mail would be left
+        // with the last reference
         for ( UInt32 i=0; i<retired.size(); )
         {
             CORE::PulseGeneratorPtr eventPulseGenerator = retired[ i ]->GetEventPulseGenerator();
-            if ( !eventPulseGenerator.IsNULL() && eventPulseGenerator != m_protocolPulseGenerator )
+            if ( !eventPulseGenerator.IsNULL() && ( eventPulseGenerator != m_protocolPulseGenerator ||
+                                                    eventPulseGenerator == m_notificationPulseGenerator ) )
             {
                 released.calls.push_back( retired[ i ] );
                 retired.erase( retired.begin() + i );
             }
             else
+            if ( retired[ i ]->HasMail() )
+            {
+                m_retiredServerCalls.push_back( retired[ i ] );
+                retired.erase( retired.begin() + i );
+            }
+            else
                 ++i;
         }
-        if ( !released.IsEmpty() )
-            RaiseEvent( ReleaseOnNotificationThreadEvent, &released );
     }
+    if ( !released.IsEmpty() )
+        QueueRelease( released.streams, released.calls );
     // outside the endpoint lock: the last references of ended server calls (not inside their own events) and the
     // subscriptions to detached transports (unless one of them is current again)
     retired.clear();

@@ -324,6 +324,7 @@ class CCancelWatchService : public COMCORE::CRpcServiceImpl ,
     CCancelWatchService( void ) : COMCORE::CRpcServiceImpl(), CORE::CObserver(), handled( 0 ), cancelled( 0 ), lastReferenceInOwnEvent( 0 ), kept(), graveyard(), lock()
     {
         BindMethod( "Import", GUCEF_NEW COMCORE::CTRpcMethodHandler< CCancelWatchService >( this, &CCancelWatchService::OnImport ) );
+        BindMethod( "Watch", GUCEF_NEW COMCORE::CTRpcMethodHandler< CCancelWatchService >( this, &CCancelWatchService::OnImport ) );
     }
 
     virtual ~CCancelWatchService() { UnsubscribeAllFromObserver(); }
@@ -883,6 +884,65 @@ TestEndedCallReleasedAfterItsOwnMail( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+TestEndedServerStreamReleasedAfterItsOwnMailOnOneThread( void )
+{
+    // gucefDRNUTILS finding B-7: a host keeps the calls of its server streams and lets go of a call in the call's own
+    // CancelledEvent. Everything on one pulse generator driven by this thread (transports, endpoints, events), as the
+    // DRNUTILS tests do: the session ends with Close() on both sides, the endpoints go (with and without a pulse in
+    // between), and the handler of the cancellation must never hold the last reference of the call (it notes it and
+    // keeps the reference instead of freeing the call inside its own notification)
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !notes.IsNULL() );
+    for ( UInt32 variant=0; variant<4; ++variant )
+    {
+        const bool pumpBeforeRelease = 0 == ( variant & 1 );
+        const COMCORE::TRpcExecutionMode mode = 0 == ( variant & 2 ) ? COMCORE::RPC_EXECUTION_NOTIFICATION_THREAD : COMCORE::RPC_EXECUTION_CALLING_THREAD;
+        CRpcEndpointFixture f;
+        CCancelWatchService service;
+        REQUIRE_TRUE( f.MakeLoopbackTransports() );
+        f.clientRegistry.Register( notes, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_FILE );
+        f.server = COMCORE::CRpcEndpoint::Create( f.pulseGenerator, f.serverSettings );
+        f.client = COMCORE::CRpcEndpoint::Create( f.pulseGenerator, f.clientSettings );
+        REQUIRE_TRUE( f.server->RegisterService( notes, "Notes", &service, mode ) );
+        f.client->AddWantedContract( "gucef.sample.notes", 1 );
+        REQUIRE_TRUE( f.server->Start( f.serverTransport, false ) && f.client->Start( f.clientTransport, true ) );
+        REQUIRE_TRUE( f.PumpUntilBound( "gucef.sample.notes", 1, 3000 ) );
+
+        COMCORE::CRpcMethodRef ref;
+        COMCORE::CRpcStatus status;
+        REQUIRE_TRUE( f.client->ResolveMethod( "gucef.sample.notes.Notes/Watch", ref, status ) );
+        COMCORE::CRpcMessage request = f.client->NewRequest( ref );
+        COMCORE::CIRpcStreamPtr stream = f.client->OpenStream( ref, &request );
+        REQUIRE_TRUE( !stream.IsNULL() );
+        UInt32 waited = 0;
+        while ( 0 == service.handled.Load() && waited++ < 3000 )
+            RpcTestPump( 1 );
+        ASSERT_TRUE( 1 == service.handled.Load() );
+
+        f.client->Close( false );
+        f.server->Close( false );
+        if ( pumpBeforeRelease )
+            RpcTestPump( 20 );
+        f.client.Unlink();
+        f.server.Unlink();
+        RpcTestPump( 50 );
+        ASSERT_TRUE( 1 == service.cancelled.Load() );
+        if ( 0 != service.lastReferenceInOwnEvent.Load() )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcLifecycle test: variant " << variant << ": the handler of CancelledEvent held the last reference of its server stream call" );
+        ASSERT_TRUE( 0 == service.lastReferenceInOwnEvent.Load() );
+        stream.Unlink();
+        {
+            MT::CScopeMutex scope( service.lock );
+            service.graveyard.clear();
+            service.kept.clear();
+        }
+        RpcTestPump( 5 );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 #define RUN_RPC_CASE( name, call )                                  \
     GUCEF_TESTFW_TESTCASE( "rpc_lifecycle: " name )                 \
     try                                                             \
@@ -908,6 +968,7 @@ PerformRpcLifecycleTests( void )
     RUN_RPC_CASE( "a server call nobody observes is not linked to its event thread for its events", TestUnobservedServerCallsStayUnlinked() );
     RUN_RPC_CASE( "an endpoint destroyed on another thread while its protocol pulse lets go of a detached transport calls nothing of that transport afterwards", TestEndpointDestroyedWhileItsPulseReleasesATransport() );
     RUN_RPC_CASE( "an ended server call is let go of by the endpoint after its own mail was delivered, never so that a handler of its events holds the last reference", TestEndedCallReleasedAfterItsOwnMail() );
+    RUN_RPC_CASE( "a server stream call ended with its session on one thread is let go of after its CancelledEvent was delivered: a handler that lets go of its reference there never holds the last one (B-7)", TestEndedServerStreamReleasedAfterItsOwnMailOnOneThread() );
 }
 
 /*-------------------------------------------------------------------------*/
