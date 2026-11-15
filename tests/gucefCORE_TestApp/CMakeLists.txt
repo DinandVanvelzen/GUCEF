@@ -27,6 +27,7 @@ set( HEADER_FILES
   include/TestCodecPlugins.h
   include/TestConfigStore.h
   include/TestCoreGlobalTeardown.h
+  include/TestCpuIsaFeatures.h
   include/TestCronSchedule.h
   include/TestCryptoCodecs.h
   include/TestCsvTableCodec.h
@@ -144,6 +145,7 @@ set( SOURCE_FILES
   src/TestCodecPlugins.cpp
   src/TestConfigStore.cpp
   src/TestCoreGlobalTeardown.cpp
+  src/TestCpuIsaFeatures.cpp
   src/TestCronSchedule.cpp
   src/TestCryptoCodecs.cpp
   src/TestCsvTableCodec.cpp

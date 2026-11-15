@@ -60,6 +60,7 @@ set( HEADER_FILES
   include/TestQuaternionPacking.h
   include/TestRandomFpContraction.h
   include/TestRandomGenerators.h
+  include/TestRandomStatistics.h
   include/TestRandomStream.h
   include/TestRotationSerialization.h
   include/TestSampling.h

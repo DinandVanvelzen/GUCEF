@@ -23,10 +23,15 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN } )
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -35,6 +40,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "Ogre" } )
+
+configuration( {} )
 links( { "Ogre" } )
 
 
@@ -134,10 +141,16 @@ files( {
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include", "include", "src" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../OgreMain/src" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../OgreMain/src" } )
 
 configuration( { "LINUX32" } )

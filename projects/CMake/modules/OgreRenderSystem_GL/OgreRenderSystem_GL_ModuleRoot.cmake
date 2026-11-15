@@ -10,7 +10,35 @@
 #
 
 # Packages of the modules OgreRenderSystem_GL depends on
-set( MODULE_DEPENDENCIES Ogre Ogre.CommonInclude gucefHeaders )
+set( MODULE_DEPENDENCIES gucefHeaders )
+if ( LINUX32 )
+  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreGLSupport )
+endif( LINUX32 )
+if ( LINUX64 )
+  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreGLSupport )
+endif( LINUX64 )
+if ( WIN32 )
+  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreGLSupport )
+endif( WIN32 )
+if ( WIN64 )
+  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreGLSupport )
+endif( WIN64 )
+
+# The minimum C++ standard of OgreRenderSystem_GL and the modules it depends on
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_check_min_cpp_standard( OgreRenderSystem_GL "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

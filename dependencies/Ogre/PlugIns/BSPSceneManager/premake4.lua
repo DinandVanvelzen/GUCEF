@@ -12,7 +12,10 @@
 -- Configuration for module: OgrePlugin_BSPSceneManager
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "OgrePlugin_BSPSceneManager" )
+
+configuration( { "ANDROID64" } )
   project( "OgrePlugin_BSPSceneManager" )
 
 configuration( { "LINUX32" } )
@@ -36,7 +39,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -51,74 +57,129 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
-  
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
-  
-configuration( { LINUX64 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreBspLevel.h",
+      "include/OgreBspNode.h",
+      "include/OgreBspSceneManager.h",
+      "include/OgreBspSceneManagerPlugin.h",
+      "include/OgreBspSceneNode.h",
+      "include/OgreQuake3Level.h",
+      "include/OgreQuake3Shader.h",
+      "include/OgreQuake3ShaderManager.h",
+      "include/OgreQuake3Types.h",
+      "include/OgreStaticFaceGroup.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreBspLevel.cpp",
+      "src/OgreBspNode.cpp",
+      "src/OgreBspSceneManager.cpp",
+      "src/OgreBspSceneManagerDll.cpp",
+      "src/OgreBspSceneManagerPlugin.cpp",
+      "src/OgreBspSceneNode.cpp",
+      "src/OgreQuake3Level.cpp",
+      "src/OgreQuake3Shader.cpp",
+      "src/OgreQuake3ShaderManager.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreBspLevel.h",
@@ -270,7 +331,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include" } )
 
 configuration( { "LINUX32" } )

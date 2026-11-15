@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_tag_ogre" )
 
-  platforms( { "ALL", "ANDROID", "ARDUINO", "EMSCRIPTEN", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
   location( "projects/premake5/targets" )
 
@@ -32,6 +32,16 @@ filter "ALL"
   include( "dependencies/freetype" )
 
 filter "ANDROID"
+
+filter "ANDROID32"
+  include( "dependencies/Ogre/Components/Paging" )
+  include( "dependencies/Ogre/Components/Terrain" )
+  include( "dependencies/Ogre/Components/Volume" )
+  include( "dependencies/Ogre/PlugIns/BSPSceneManager" )
+  include( "dependencies/Ogre/RenderSystems/GLES2" )
+  include( "dependencies/Ogre/RenderSystems/GLSupport" )
+
+filter "ANDROID64"
   include( "dependencies/Ogre/Components/Paging" )
   include( "dependencies/Ogre/Components/Terrain" )
   include( "dependencies/Ogre/Components/Volume" )
@@ -42,6 +52,13 @@ filter "ANDROID"
 filter "ARDUINO"
 
 filter "EMSCRIPTEN"
+
+filter "EMSCRIPTEN32"
+  include( "dependencies/Ogre/RenderSystems/GLES2" )
+  include( "dependencies/Ogre/RenderSystems/GLSupport" )
+  include( "dependencies/zlib" )
+
+filter "EMSCRIPTEN64"
   include( "dependencies/Ogre/RenderSystems/GLES2" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
   include( "dependencies/zlib" )

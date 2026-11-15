@@ -36,6 +36,7 @@ LOCAL_SRC_FILES := \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
   src/TestCoreGlobalTeardown.cpp \
+  src/TestCpuIsaFeatures.cpp \
   src/TestCronSchedule.cpp \
   src/TestCryptoCodecs.cpp \
   src/TestCsvTableCodec.cpp \

@@ -12,10 +12,16 @@
 -- Configuration for module: OgreRenderSystem_GLES2
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
   project( "OgreRenderSystem_GLES2" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+  project( "OgreRenderSystem_GLES2" )
+
+configuration( { "EMSCRIPTEN32" } )
+  project( "OgreRenderSystem_GLES2" )
+
+configuration( { "EMSCRIPTEN64" } )
   project( "OgreRenderSystem_GLES2" )
 
 configuration( { "LINUX32" } )
@@ -33,10 +39,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 language( "C++" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN32" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -45,61 +57,99 @@ language( "C++" )
 configuration( { "LINUX64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
 
 
-configuration( { EMSCRIPTEN } )
+configuration( { "ANDROID64" } )
+kind( "SharedLib" )
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+kind( "SharedLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
-  
-configuration( { EMSCRIPTEN } )
+configuration( { "ANDROID32" } )
 links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
 
-configuration( { EMSCRIPTEN } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
-  
-configuration( { LINUX32 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
+configuration( { "ANDROID32" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
-  
-configuration( { LINUX64 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
+configuration( { "ANDROID64" } )
+links( { "Ogre", "OgreGLSupport" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+
+
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreGLES2FBORenderTexture.h",
@@ -160,7 +210,129 @@ configuration( { "ANDROID" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGLES2FBORenderTexture.h",
+      "include/OgreGLES2FrameBufferObject.h",
+      "include/OgreGLES2HardwareBuffer.h",
+      "include/OgreGLES2HardwareBufferManager.h",
+      "include/OgreGLES2HardwareOcclusionQuery.h",
+      "include/OgreGLES2HardwarePixelBuffer.h",
+      "include/OgreGLES2ManagedResource.h",
+      "include/OgreGLES2ManagedResourceManager.h",
+      "include/OgreGLES2PixelFormat.h",
+      "include/OgreGLES2Plugin.h",
+      "include/OgreGLES2Prerequisites.h",
+      "include/OgreGLES2RenderSystem.h",
+      "include/OgreGLES2RenderToVertexBuffer.h",
+      "include/OgreGLES2StateCacheManager.h",
+      "include/OgreGLES2Texture.h",
+      "include/OgreGLES2TextureManager.h",
+      "include/GLES2/gl2ext.h",
+      "include/GLES3/gl3.h",
+      "include/GLES3/gl3platform.h",
+      "include/GLES3/glesw.h",
+      "include/KHR/khrplatform.h",
+      "src/GLSLES/include/OgreGLSLESExtSupport.h",
+      "src/GLSLES/include/OgreGLSLESLinkProgram.h",
+      "src/GLSLES/include/OgreGLSLESProgram.h",
+      "src/GLSLES/include/OgreGLSLESProgramCommon.h",
+      "src/GLSLES/include/OgreGLSLESProgramManager.h",
+      "src/GLSLES/include/OgreGLSLESProgramPipeline.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGLES2EngineDll.cpp",
+      "src/OgreGLES2FBORenderTexture.cpp",
+      "src/OgreGLES2FrameBufferObject.cpp",
+      "src/OgreGLES2HardwareBuffer.cpp",
+      "src/OgreGLES2HardwareBufferManager.cpp",
+      "src/OgreGLES2HardwareOcclusionQuery.cpp",
+      "src/OgreGLES2HardwarePixelBuffer.cpp",
+      "src/OgreGLES2ManagedResource.cpp",
+      "src/OgreGLES2ManagedResourceManager.cpp",
+      "src/OgreGLES2PixelFormat.cpp",
+      "src/OgreGLES2Plugin.cpp",
+      "src/OgreGLES2RenderSystem.cpp",
+      "src/OgreGLES2RenderToVertexBuffer.cpp",
+      "src/OgreGLES2StateCacheManager.cpp",
+      "src/OgreGLES2Texture.cpp",
+      "src/OgreGLES2TextureManager.cpp",
+      "src/glesw.c",
+      "src/GLSLES/src/OgreGLSLESExtSupport.cpp",
+      "src/GLSLES/src/OgreGLSLESLinkProgram.cpp",
+      "src/GLSLES/src/OgreGLSLESProgram.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramCommon.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramManager.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramPipeline.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGLES2FBORenderTexture.h",
+      "include/OgreGLES2FrameBufferObject.h",
+      "include/OgreGLES2HardwareBuffer.h",
+      "include/OgreGLES2HardwareBufferManager.h",
+      "include/OgreGLES2HardwareOcclusionQuery.h",
+      "include/OgreGLES2HardwarePixelBuffer.h",
+      "include/OgreGLES2ManagedResource.h",
+      "include/OgreGLES2ManagedResourceManager.h",
+      "include/OgreGLES2PixelFormat.h",
+      "include/OgreGLES2Plugin.h",
+      "include/OgreGLES2Prerequisites.h",
+      "include/OgreGLES2RenderSystem.h",
+      "include/OgreGLES2RenderToVertexBuffer.h",
+      "include/OgreGLES2StateCacheManager.h",
+      "include/OgreGLES2Texture.h",
+      "include/OgreGLES2TextureManager.h",
+      "include/GLES2/gl2ext.h",
+      "include/GLES3/gl3.h",
+      "include/GLES3/gl3platform.h",
+      "include/GLES3/glesw.h",
+      "include/KHR/khrplatform.h",
+      "src/GLSLES/include/OgreGLSLESExtSupport.h",
+      "src/GLSLES/include/OgreGLSLESLinkProgram.h",
+      "src/GLSLES/include/OgreGLSLESProgram.h",
+      "src/GLSLES/include/OgreGLSLESProgramCommon.h",
+      "src/GLSLES/include/OgreGLSLESProgramManager.h",
+      "src/GLSLES/include/OgreGLSLESProgramPipeline.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGLES2EngineDll.cpp",
+      "src/OgreGLES2FBORenderTexture.cpp",
+      "src/OgreGLES2FrameBufferObject.cpp",
+      "src/OgreGLES2HardwareBuffer.cpp",
+      "src/OgreGLES2HardwareBufferManager.cpp",
+      "src/OgreGLES2HardwareOcclusionQuery.cpp",
+      "src/OgreGLES2HardwarePixelBuffer.cpp",
+      "src/OgreGLES2ManagedResource.cpp",
+      "src/OgreGLES2ManagedResourceManager.cpp",
+      "src/OgreGLES2PixelFormat.cpp",
+      "src/OgreGLES2Plugin.cpp",
+      "src/OgreGLES2RenderSystem.cpp",
+      "src/OgreGLES2RenderToVertexBuffer.cpp",
+      "src/OgreGLES2StateCacheManager.cpp",
+      "src/OgreGLES2Texture.cpp",
+      "src/OgreGLES2TextureManager.cpp",
+      "src/glesw.c",
+      "src/GLSLES/src/OgreGLSLESExtSupport.cpp",
+      "src/GLSLES/src/OgreGLSLESLinkProgram.cpp",
+      "src/GLSLES/src/OgreGLSLESProgram.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramCommon.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramManager.cpp",
+      "src/GLSLES/src/OgreGLSLESProgramPipeline.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreGLES2FBORenderTexture.h",
@@ -345,11 +517,17 @@ configuration( { "LINUX64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID" } )
-includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Android/", "../GLSupport/include/EGL/Emscripten/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Android/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
 
-configuration( { "EMSCRIPTEN" } )
-includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Android/", "../GLSupport/include/EGL/Emscripten/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Android/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Emscripten/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/Emscripten/", "../GLSupport/include/GLSL", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../OgreMain/src", "../GLSupport/include", "../GLSupport/include/EGL", "../GLSupport/include/EGL/X11/", "../GLSupport/include/GLSL", "../GLSupport/src/X11", "include", "include/GLES2", "include/GLES3", "include/KHR", "src/GLSLES/include" } )

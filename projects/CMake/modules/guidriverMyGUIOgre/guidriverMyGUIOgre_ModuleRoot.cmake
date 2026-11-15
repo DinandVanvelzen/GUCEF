@@ -11,6 +11,11 @@
 
 # Packages of the modules guidriverMyGUIOgre depends on
 set( MODULE_DEPENDENCIES MyGUI.Engine Ogre freetype gucefCORE gucefGUI gucefHeaders gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
+
+# The minimum C++ standard of guidriverMyGUIOgre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_check_min_cpp_standard( guidriverMyGUIOgre "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

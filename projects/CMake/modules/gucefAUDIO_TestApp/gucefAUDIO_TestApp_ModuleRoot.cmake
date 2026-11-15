@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefAUDIO_TestApp depends on
-set( MODULE_DEPENDENCIES gucefAUDIO gucefCORE gucefHeaders gucefMT gucefTestHeaders )
+set( MODULE_DEPENDENCIES gucefAUDIO gucefCORE gucefGEOMETRY gucefHeaders gucefMATH gucefMT gucefTestHeaders )
 if ( EMSCRIPTEN32 )
   list( APPEND MODULE_DEPENDENCIES audiodriverWEBAUDIO )
 endif( EMSCRIPTEN32 )

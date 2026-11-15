@@ -35,10 +35,10 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGEOMETRY", "gucefMATH", "gucefMT" } )
 
 configuration( {} )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGEOMETRY", "gucefMATH", "gucefMT" } )
 
 
 configuration( {} )
@@ -87,6 +87,7 @@ files( {
   "include/TestAudioEngineReopen.h",
   "include/TestAudioEqualizer.h",
   "include/TestAudioFormat.h",
+  "include/TestAudioGeoSpace.h",
   "include/TestAudioHalfDuplex.h",
   "include/TestAudioIntercomHardware.h",
   "include/TestAudioIntercomScenario.h",
@@ -103,6 +104,8 @@ files( {
   "include/TestAudioSettings.h",
   "include/TestAudioSimulatedVoiceLink.h",
   "include/TestAudioSincResampler.h",
+  "include/TestAudioSpatial.h",
+  "include/TestAudioSpatialVoice.h",
   "include/TestAudioStream.h",
   "include/TestAudioStreaming.h",
   "include/TestAudioTestEffect.h",
@@ -150,6 +153,7 @@ files( {
   "src/TestAudioEngineReopen.cpp",
   "src/TestAudioEqualizer.cpp",
   "src/TestAudioFormat.cpp",
+  "src/TestAudioGeoSpace.cpp",
   "src/TestAudioHalfDuplex.cpp",
   "src/TestAudioIntercomHardware.cpp",
   "src/TestAudioLimiter.cpp",
@@ -162,6 +166,8 @@ files( {
   "src/TestAudioRouting.cpp",
   "src/TestAudioSettings.cpp",
   "src/TestAudioSincResampler.cpp",
+  "src/TestAudioSpatial.cpp",
+  "src/TestAudioSpatialVoice.cpp",
   "src/TestAudioStream.cpp",
   "src/TestAudioStreaming.cpp",
   "src/TestAudioTestSignals.cpp",
@@ -180,7 +186,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

@@ -60,7 +60,7 @@ add_dependencies( ${MODULE_NAME} gucefCOMPUTE gucefCORE gucefMATH gucefMT gucefV
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMPUTE gucefCORE gucefMATH gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COMPUTE_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOMPUTE_TestApp;MODULE_NAME=gucefCOMPUTE_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMPUTE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/src ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMPUTE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

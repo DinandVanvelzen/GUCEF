@@ -158,7 +158,6 @@ LOCAL_SRC_FILES := \
   src/OgreScriptLexer.cpp \
   src/OgreScriptParser.cpp \
   src/OgreScriptTranslator.cpp \
-  src/OgreSearchOps.cpp \
   src/OgreSerializer.cpp \
   src/OgreShadowCameraSetup.cpp \
   src/OgreShadowCameraSetupFocused.cpp \
@@ -199,30 +198,18 @@ LOCAL_SRC_FILES := \
   src/OgreWireBoundingBox.cpp \
   src/OgreWorkQueue.cpp \
   src/OgreZip.cpp \
-  src/Android/OgreAPKFileSystemArchive.cpp \
-  src/Android/OgreAPKZipArchive.cpp \
-  src/Android/OgreAndroidLogListener.cpp \
-  src/Android/OgreFileSystemLayer.cpp \
   src/zip/zip.c
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/include/Threading \
   $(MY_MODULE_PATH)/src \
-  $(MY_MODULE_PATH)/src/Android \
   $(MY_MODULE_PATH)/src/zip \
   $(MY_MODULE_PATH)/../include
 
 LOCAL_CFLAGS := -DMINIZ_NO_STDIO -DMODULE_CONSENSUS_NAME=Ogre -DMODULE_NAME=Ogre -DMODULE_SEMVER=14_6_3_0 -DOgreMain_EXPORTS
 
-LOCAL_CPPFLAGS +=-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math
-
-
-LOCAL_LDLIBS := \
-  -landroid \
-  -latomic \
-  -ldl \
-  -llog
+LOCAL_CPPFLAGS +=-fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math
 
 include $(BUILD_SHARED_LIBRARY)
 

@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
+
+configuration( {} )
 links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
 
 
@@ -63,12 +65,18 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefCORE/src", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../../dependencies/Ogre/OgreMain/src" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src" } )
 
 configuration( { "LINUX32" } )

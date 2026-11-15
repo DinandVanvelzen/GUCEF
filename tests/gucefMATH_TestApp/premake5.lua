@@ -96,6 +96,7 @@ files( {
   "include/TestQuaternionPacking.h",
   "include/TestRandomFpContraction.h",
   "include/TestRandomGenerators.h",
+  "include/TestRandomStatistics.h",
   "include/TestRandomStream.h",
   "include/TestRotationSerialization.h",
   "include/TestSampling.h",
@@ -114,7 +115,7 @@ files( {
   "include/TestVectorConversions.h",
   "include/TestVectorSerialization.h",
   "include/TestVectors.h"
-} )
+ } )
 
 
 
@@ -186,7 +187,7 @@ files( {
   "src/TestVectorSerialization.cpp",
   "src/TestVectors.cpp",
   "src/gucefMATH_TestApp.cpp"
-} )
+ } )
 
 
 configuration( {} )

@@ -18,7 +18,6 @@ set( HEADER_FILES
   include/gucefGEOMETRY_BoundingVolumeFitting.h
   include/gucefGEOMETRY_CGeometryGlobal.h
   include/gucefGEOMETRY_CModule.h
-  include/gucefGEOMETRY_ConvexDecomposition2D.h
   include/gucefGEOMETRY_CQuickHull3DCore.h
   include/gucefGEOMETRY_CTAudioOcclusionEstimator.h
   include/gucefGEOMETRY_CTAxisAlignedBox3D.h
@@ -35,8 +34,6 @@ set( HEADER_FILES
   include/gucefGEOMETRY_CTDynamicAabbTree.h
   include/gucefGEOMETRY_CTEpa.h
   include/gucefGEOMETRY_CTFrustum.h
-  include/gucefGEOMETRY_CTGeometry2D.h
-  include/gucefGEOMETRY_CTGeometry3D.h
   include/gucefGEOMETRY_CTGeoObject.h
   include/gucefGEOMETRY_CTGeoObject2D.h
   include/gucefGEOMETRY_CTGeoObjectBase.h
@@ -47,6 +44,8 @@ set( HEADER_FILES
   include/gucefGEOMETRY_CTGeoSpaceSnapshot.h
   include/gucefGEOMETRY_CTGeoSpaceSnapshotSet.h
   include/gucefGEOMETRY_CTGeoTriangleMesh.h
+  include/gucefGEOMETRY_CTGeometry2D.h
+  include/gucefGEOMETRY_CTGeometry3D.h
   include/gucefGEOMETRY_CTGeometryTolerance.h
   include/gucefGEOMETRY_CTGjk.h
   include/gucefGEOMETRY_CTGridTraversal2D.h
@@ -93,6 +92,7 @@ set( HEADER_FILES
   include/gucefGEOMETRY_CTUniformGrid2D.h
   include/gucefGEOMETRY_CTUniformGrid3D.h
   include/gucefGEOMETRY_CapsuleQueries.h
+  include/gucefGEOMETRY_ConvexDecomposition2D.h
   include/gucefGEOMETRY_ConvexHull2D.h
   include/gucefGEOMETRY_ConvexQueries.h
   include/gucefGEOMETRY_CoreStructInterop.h
@@ -115,6 +115,7 @@ set( HEADER_FILES
   include/gucefGEOMETRY_SegmentQueries.h
   include/gucefGEOMETRY_SpatialQueryRegions.h
   include/gucefGEOMETRY_SphereQueries.h
+  include/gucefGEOMETRY_SupportFunctions.h
   include/gucefGEOMETRY_SupportMappings.h
   include/gucefGEOMETRY_SweepQueries.h
   include/gucefGEOMETRY_TimeOfImpact.h
@@ -128,7 +129,6 @@ set( HEADER_FILES
   include/gucefGEOMETRY_queries.h
   include/gucefGEOMETRY_shapes.h
   include/gucefGEOMETRY_volumeshapes.h
-  include/gucefGEOMETRY_SupportFunctions.h
 )
 
 set( SOURCE_FILES 

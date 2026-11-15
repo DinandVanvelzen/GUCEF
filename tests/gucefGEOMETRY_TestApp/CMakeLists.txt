@@ -53,8 +53,8 @@ set( HEADER_FILES
   include/TestQueries2D.h
   include/TestQueryFpContraction.h
   include/TestQueryReference.h
-  include/TestRayCasts.h
   include/TestRayCaster.h
+  include/TestRayCasts.h
   include/TestSatManifold.h
   include/TestShapeFpContraction.h
   include/TestShapeSerialization.h
@@ -106,8 +106,8 @@ set( SOURCE_FILES
   src/TestPredicates.cpp
   src/TestQueries2D.cpp
   src/TestQueryFpContraction.cpp
-  src/TestRayCasts.cpp
   src/TestRayCaster.cpp
+  src/TestRayCasts.cpp
   src/TestSatManifold.cpp
   src/TestShapeFpContraction.cpp
   src/TestShapeSerialization.cpp

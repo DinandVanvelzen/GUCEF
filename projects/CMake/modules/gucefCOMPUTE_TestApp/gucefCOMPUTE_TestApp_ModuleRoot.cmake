@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefCOMPUTE_TestApp depends on
-set( MODULE_DEPENDENCIES gucefCOMPUTE gucefCORE gucefHeaders gucefMT gucefTestHeaders )
+set( MODULE_DEPENDENCIES gucefCOMPUTE gucefCORE gucefHeaders gucefMATH gucefMT gucefTestHeaders gucefVFS )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

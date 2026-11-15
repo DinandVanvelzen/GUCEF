@@ -56,8 +56,8 @@ LOCAL_SRC_FILES := \
   src/TestPredicates.cpp \
   src/TestQueries2D.cpp \
   src/TestQueryFpContraction.cpp \
-  src/TestRayCasts.cpp \
   src/TestRayCaster.cpp \
+  src/TestRayCasts.cpp \
   src/TestSatManifold.cpp \
   src/TestShapeFpContraction.cpp \
   src/TestShapeSerialization.cpp \

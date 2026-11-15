@@ -89,8 +89,8 @@ files( {
   "include/TestQueries2D.h",
   "include/TestQueryFpContraction.h",
   "include/TestQueryReference.h",
-  "include/TestRayCasts.h",
   "include/TestRayCaster.h",
+  "include/TestRayCasts.h",
   "include/TestSatManifold.h",
   "include/TestShapeFpContraction.h",
   "include/TestShapeSerialization.h",
@@ -104,7 +104,7 @@ files( {
   "include/TestTriangleMesh.h",
   "include/TestTriangulation.h",
   "include/TestVolumeShapes.h"
-} )
+ } )
 
 
 
@@ -146,8 +146,8 @@ files( {
   "src/TestPredicates.cpp",
   "src/TestQueries2D.cpp",
   "src/TestQueryFpContraction.cpp",
-  "src/TestRayCasts.cpp",
   "src/TestRayCaster.cpp",
+  "src/TestRayCasts.cpp",
   "src/TestSatManifold.cpp",
   "src/TestShapeFpContraction.cpp",
   "src/TestShapeSerialization.cpp",
@@ -161,7 +161,7 @@ files( {
   "src/TestTriangulation.cpp",
   "src/TestVolumeShapes.cpp",
   "src/gucefGEOMETRY_TestApp.cpp"
-} )
+ } )
 
 
 configuration( {} )

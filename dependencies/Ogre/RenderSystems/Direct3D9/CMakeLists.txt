@@ -164,6 +164,19 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of OgreRenderSystem_Direct3D9 and the modules it depends on
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( OgreRenderSystem_Direct3D9 "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 
 if( WIN32 )
   set( MODULE_NAME "OgreRenderSystem_Direct3D9" )

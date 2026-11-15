@@ -13,17 +13,91 @@
 
 set( HEADER_FILES 
   include/gucefCOMPUTE.h
+  include/gucefCOMPUTE_AlignedMemory.h
+  include/gucefCOMPUTE_CComputeArguments.h
+  include/gucefCOMPUTE_CComputeBackend.h
+  include/gucefCOMPUTE_CComputeBackendRegistry.h
+  include/gucefCOMPUTE_CComputeBuffer.h
+  include/gucefCOMPUTE_CComputeBufferDesc.h
+  include/gucefCOMPUTE_CComputeBufferMapScope.h
+  include/gucefCOMPUTE_CComputeCommandList.h
+  include/gucefCOMPUTE_CComputeCompletionTaskConsumer.h
+  include/gucefCOMPUTE_CComputeDevice.h
+  include/gucefCOMPUTE_CComputeDeviceCapabilities.h
+  include/gucefCOMPUTE_CComputeDeviceInfo.h
+  include/gucefCOMPUTE_CComputeDeviceParams.h
+  include/gucefCOMPUTE_CComputeDeviceRequirements.h
+  include/gucefCOMPUTE_CComputeDispatchSize.h
+  include/gucefCOMPUTE_CComputeFence.h
   include/gucefCOMPUTE_CComputeGlobal.h
+  include/gucefCOMPUTE_CComputeHostBatch.h
+  include/gucefCOMPUTE_CComputeKernel.h
+  include/gucefCOMPUTE_CComputeKernelArtefact.h
+  include/gucefCOMPUTE_CComputeKernelDecl.h
+  include/gucefCOMPUTE_CComputeKernelRegistry.h
+  include/gucefCOMPUTE_CComputeKernelSignature.h
+  include/gucefCOMPUTE_CComputePendingWork.h
+  include/gucefCOMPUTE_CComputeQueue.h
+  include/gucefCOMPUTE_CComputeSettings.h
+  include/gucefCOMPUTE_CComputeTolerance.h
+  include/gucefCOMPUTE_CCpuComputeBackend.h
+  include/gucefCOMPUTE_CCpuComputeBuffer.h
+  include/gucefCOMPUTE_CCpuComputeDevice.h
+  include/gucefCOMPUTE_CCpuComputeFence.h
+  include/gucefCOMPUTE_CCpuComputeKernel.h
+  include/gucefCOMPUTE_CCpuComputeQueue.h
+  include/gucefCOMPUTE_CCpuDispatchContext.h
+  include/gucefCOMPUTE_CCpuParallelFor.h
+  include/gucefCOMPUTE_CCpuTestKernels.h
+  include/gucefCOMPUTE_CCpuWorkerTaskConsumer.h
   include/gucefCOMPUTE_CModule.h
   include/gucefCOMPUTE_ETypes.h
+  include/gucefCOMPUTE_TypeFunctions.h
   include/gucefCOMPUTE_config.h
   include/gucefCOMPUTE_macros.h
 )
 
 set( SOURCE_FILES 
   src/gucefCOMPUTE.cpp
+  src/gucefCOMPUTE_AlignedMemory.cpp
+  src/gucefCOMPUTE_CComputeArguments.cpp
+  src/gucefCOMPUTE_CComputeBackend.cpp
+  src/gucefCOMPUTE_CComputeBackendRegistry.cpp
+  src/gucefCOMPUTE_CComputeBuffer.cpp
+  src/gucefCOMPUTE_CComputeBufferDesc.cpp
+  src/gucefCOMPUTE_CComputeBufferMapScope.cpp
+  src/gucefCOMPUTE_CComputeCommandList.cpp
+  src/gucefCOMPUTE_CComputeCompletionTaskConsumer.cpp
+  src/gucefCOMPUTE_CComputeDevice.cpp
+  src/gucefCOMPUTE_CComputeDeviceCapabilities.cpp
+  src/gucefCOMPUTE_CComputeDeviceInfo.cpp
+  src/gucefCOMPUTE_CComputeDeviceParams.cpp
+  src/gucefCOMPUTE_CComputeDeviceRequirements.cpp
+  src/gucefCOMPUTE_CComputeDispatchSize.cpp
+  src/gucefCOMPUTE_CComputeFence.cpp
   src/gucefCOMPUTE_CComputeGlobal.cpp
+  src/gucefCOMPUTE_CComputeHostBatch.cpp
+  src/gucefCOMPUTE_CComputeKernel.cpp
+  src/gucefCOMPUTE_CComputeKernelArtefact.cpp
+  src/gucefCOMPUTE_CComputeKernelDecl.cpp
+  src/gucefCOMPUTE_CComputeKernelRegistry.cpp
+  src/gucefCOMPUTE_CComputeKernelSignature.cpp
+  src/gucefCOMPUTE_CComputePendingWork.cpp
+  src/gucefCOMPUTE_CComputeQueue.cpp
+  src/gucefCOMPUTE_CComputeSettings.cpp
+  src/gucefCOMPUTE_CComputeTolerance.cpp
+  src/gucefCOMPUTE_CCpuComputeBackend.cpp
+  src/gucefCOMPUTE_CCpuComputeBuffer.cpp
+  src/gucefCOMPUTE_CCpuComputeDevice.cpp
+  src/gucefCOMPUTE_CCpuComputeFence.cpp
+  src/gucefCOMPUTE_CCpuComputeKernel.cpp
+  src/gucefCOMPUTE_CCpuComputeQueue.cpp
+  src/gucefCOMPUTE_CCpuDispatchContext.cpp
+  src/gucefCOMPUTE_CCpuParallelFor.cpp
+  src/gucefCOMPUTE_CCpuTestKernels.cpp
+  src/gucefCOMPUTE_CCpuWorkerTaskConsumer.cpp
   src/gucefCOMPUTE_CModule.cpp
+  src/gucefCOMPUTE_TypeFunctions.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -37,13 +111,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefCOMPUTE" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+add_dependencies( ${MODULE_NAME} gucefCORE gucefMT gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COMPUTE_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOMPUTE;MODULE_NAME=gucefCOMPUTE;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )

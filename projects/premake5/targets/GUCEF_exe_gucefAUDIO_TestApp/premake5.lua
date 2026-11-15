@@ -23,6 +23,7 @@ workspace( "GUCEF_exe_gucefAUDIO_TestApp" )
 filter "ALL"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -34,6 +35,7 @@ filter "ALL"
 filter "ANDROID"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -49,6 +51,7 @@ filter "ANDROID32"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -66,6 +69,7 @@ filter "ANDROID64"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -79,6 +83,7 @@ filter "ANDROID64"
 filter "ARDUINO"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -90,6 +95,7 @@ filter "ARDUINO"
 filter "EMSCRIPTEN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -101,6 +107,7 @@ filter "EMSCRIPTEN"
 filter "EMSCRIPTEN32"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -113,6 +120,7 @@ filter "EMSCRIPTEN32"
 filter "EMSCRIPTEN64"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -125,6 +133,7 @@ filter "EMSCRIPTEN64"
 filter "IOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -136,6 +145,7 @@ filter "IOS"
 filter "IPHONE"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -147,6 +157,7 @@ filter "IPHONE"
 filter "IPHONEOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -158,6 +169,7 @@ filter "IPHONEOS"
 filter "LINUX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -173,6 +185,7 @@ filter "LINUX32"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -191,6 +204,7 @@ filter "LINUX64"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -205,6 +219,7 @@ filter "LINUX64"
 filter "MAC"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -216,6 +231,7 @@ filter "MAC"
 filter "MACOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -227,6 +243,7 @@ filter "MACOS"
 filter "MACOSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -238,6 +255,7 @@ filter "MACOSX"
 filter "MSWIN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -249,6 +267,7 @@ filter "MSWIN"
 filter "OSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -264,6 +283,7 @@ filter "WIN32"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -281,6 +301,7 @@ filter "WIN64"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
@@ -294,6 +315,7 @@ filter "WIN64"
 filter "WINDOWS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefGEOMETRY" )
   include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )

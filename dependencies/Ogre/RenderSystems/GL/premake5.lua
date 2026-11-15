@@ -48,54 +48,62 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
-  
-configuration( { LINUX64 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport", "dl" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgreGLSupport", "dl" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre", "OgreGLSupport" } )
-  links( { "Ogre", "OgreGLSupport" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre", "OgreGLSupport" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=OgreRenderSystem_GL", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_GLPLUGIN_EXPORTS", "YY_NEVER_INTERACTIVE" } )
 
 

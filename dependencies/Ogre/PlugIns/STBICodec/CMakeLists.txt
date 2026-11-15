@@ -30,8 +30,18 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of OgreCodec_STBI and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( OgreCodec_STBI "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "OgreCodec_STBI" )
-if( EMSCRIPTEN )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -39,8 +49,9 @@ endif()
 add_dependencies( ${MODULE_NAME} Ogre )
 target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "Codec_STBI_EXPORTS;MODULE_CONSENSUS_NAME=OgreCodec_STBI;MODULE_NAME=OgreCodec_STBI;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -53,9 +64,21 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 14.6.3.0 )
 
 include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include src src/stbi )
 
-if ( EMSCRIPTEN )
+if ( ANDROID32 )
+  include_directories( ../../OgreMain/src ../../OgreMain/src/Android )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../OgreMain/src ../../OgreMain/src/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../OgreMain/src )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../OgreMain/src )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../OgreMain/src )
@@ -64,6 +87,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../OgreMain/src )
 endif( LINUX64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src/stbi )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
 
 
 

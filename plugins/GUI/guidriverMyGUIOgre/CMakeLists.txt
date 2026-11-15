@@ -38,25 +38,38 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of guidriverMyGUIOgre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( guidriverMyGUIOgre "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "guidriverMyGUIOgre" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} MyGUI.Engine MyGUI.OgrePlatform Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
 target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
 target_link_libraries( ${MODULE_NAME} PRIVATE MyGUI.OgrePlatform )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOgre" )
-if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> )
-endif()
 
-include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
+include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
@@ -73,6 +86,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 
 
 

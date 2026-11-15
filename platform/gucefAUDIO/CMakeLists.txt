@@ -91,7 +91,6 @@ set( HEADER_FILES
   include/gucefAUDIO_CRtpHeader.h
   include/gucefAUDIO_CRtpVoicePacketCodec.h
   include/gucefAUDIO_CSincResampler.h
-  include/gucefAUDIO_SpatialSnapshotAdapters.h
   include/gucefAUDIO_CSlidingMinimum.h
   include/gucefAUDIO_CSlidingQuantile.h
   include/gucefAUDIO_CSpectralSuppressor.h
@@ -125,6 +124,7 @@ set( HEADER_FILES
   include/gucefAUDIO_IAudioResampler.h
   include/gucefAUDIO_IAudioSource.h
   include/gucefAUDIO_IAudioSpatializer.h
+  include/gucefAUDIO_SpatialSnapshotAdapters.h
   include/gucefAUDIO_config.h
   include/gucefAUDIO_macros.h
   include/c_api/gucefAUDIO_c_audiocodec_plugin_api.h

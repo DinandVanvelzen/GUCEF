@@ -12,10 +12,16 @@
 -- Configuration for module: OgreGLSupport
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
   project( "OgreGLSupport" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+  project( "OgreGLSupport" )
+
+configuration( { "EMSCRIPTEN32" } )
+  project( "OgreGLSupport" )
+
+configuration( { "EMSCRIPTEN64" } )
   project( "OgreGLSupport" )
 
 configuration( { "LINUX32" } )
@@ -39,10 +45,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 language( "C++" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN32" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -57,83 +69,117 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
 kind( "StaticLib" )
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
 
 
-configuration( { EMSCRIPTEN } )
+configuration( { "ANDROID64" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
-configuration( { ANDROID } )
+
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "EGL", "GLESv2", "Ogre", "android" } )
-  
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+links( { "EGL", "GLESv2", "Ogre", "android" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
-  
 
-configuration( { EMSCRIPTEN } )
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
+
+configuration( { "ANDROID64" } )
+links( { "EGL", "GLESv2", "Ogre", "android" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_SEMVER=14_6_3_0" } )
-  
-configuration( { LINUX32 } )
-links( { "Ogre" } )
-  links( { "EGL", "Ogre", "X11", "Xrandr" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
-  
-configuration( { LINUX64 } )
-links( { "Ogre" } )
-  links( { "EGL", "Ogre", "X11", "Xrandr" } )
-  
 
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre" } )
-  links( { "Ogre", "opengl32.lib" } )
-  
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_SEMVER=14_6_3_0" } )
 
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
-  
-configuration( { WIN64 } )
+configuration( { "LINUX32" } )
 links( { "Ogre" } )
-  links( { "Ogre", "opengl32.lib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "LINUX32" } )
+links( { "EGL", "Ogre", "X11", "Xrandr" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
 
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
 
-configuration( { "ANDROID" } )
+configuration( { "LINUX64" } )
+links( { "EGL", "Ogre", "X11", "Xrandr" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre", "opengl32.lib" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre", "opengl32.lib" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=OgreGLSupport", "MODULE_SEMVER=14_6_3_0" } )
+
+
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreGLContext.h",
@@ -190,7 +236,121 @@ configuration( { "ANDROID" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGLContext.h",
+      "include/OgreGLDepthBufferCommon.h",
+      "include/OgreGLHardwarePixelBufferCommon.h",
+      "include/OgreGLMultiRenderTarget.h",
+      "include/OgreGLNativeSupport.h",
+      "include/OgreGLPBuffer.h",
+      "include/OgreGLRenderSystemCommon.h",
+      "include/OgreGLRenderTarget.h",
+      "include/OgreGLRenderTexture.h",
+      "include/OgreGLRenderToVertexBufferCommon.h",
+      "include/OgreGLStateCacheManagerCommon.h",
+      "include/OgreGLTextureCommon.h",
+      "include/OgreGLUniformCache.h",
+      "include/OgreGLUtil.h",
+      "include/OgreGLVertexArrayObject.h",
+      "include/OgreGLWindow.h",
+      "include/EGL/OgreEGLContext.h",
+      "include/EGL/OgreEGLRenderTexture.h",
+      "include/EGL/OgreEGLSupport.h",
+      "include/EGL/OgreEGLWindow.h",
+      "include/EGL/Android/OgreAndroidEGLSupport.h",
+      "include/EGL/Android/OgreAndroidEGLWindow.h",
+      "include/GLSL/OgreGLSLPreprocessor.h",
+      "include/GLSL/OgreGLSLProgramCommon.h",
+      "include/GLSL/OgreGLSLProgramManagerCommon.h",
+      "include/GLSL/OgreGLSLShaderCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGLDepthBufferCommon.cpp",
+      "src/OgreGLHardwarePixelBufferCommon.cpp",
+      "src/OgreGLMultiRenderTarget.cpp",
+      "src/OgreGLRenderSystemCommon.cpp",
+      "src/OgreGLRenderTexture.cpp",
+      "src/OgreGLRenderToVertexBufferCommon.cpp",
+      "src/OgreGLTextureCommon.cpp",
+      "src/OgreGLUniformCache.cpp",
+      "src/OgreGLVertexArrayObject.cpp",
+      "src/OgreGLWindow.cpp",
+      "src/EGL/OgreEGLContext.cpp",
+      "src/EGL/OgreEGLRenderTexture.cpp",
+      "src/EGL/OgreEGLSupport.cpp",
+      "src/EGL/OgreEGLWindow.cpp",
+      "src/EGL/Android/OgreAndroidEGLSupport.cpp",
+      "src/EGL/Android/OgreAndroidEGLWindow.cpp",
+      "src/GLSL/OgreGLSLPreprocessor.cpp",
+      "src/GLSL/OgreGLSLProgramCommon.cpp",
+      "src/GLSL/OgreGLSLProgramManagerCommon.cpp",
+      "src/GLSL/OgreGLSLShaderCommon.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGLContext.h",
+      "include/OgreGLDepthBufferCommon.h",
+      "include/OgreGLHardwarePixelBufferCommon.h",
+      "include/OgreGLMultiRenderTarget.h",
+      "include/OgreGLNativeSupport.h",
+      "include/OgreGLPBuffer.h",
+      "include/OgreGLRenderSystemCommon.h",
+      "include/OgreGLRenderTarget.h",
+      "include/OgreGLRenderTexture.h",
+      "include/OgreGLRenderToVertexBufferCommon.h",
+      "include/OgreGLStateCacheManagerCommon.h",
+      "include/OgreGLTextureCommon.h",
+      "include/OgreGLUniformCache.h",
+      "include/OgreGLUtil.h",
+      "include/OgreGLVertexArrayObject.h",
+      "include/OgreGLWindow.h",
+      "include/EGL/OgreEGLContext.h",
+      "include/EGL/OgreEGLRenderTexture.h",
+      "include/EGL/OgreEGLSupport.h",
+      "include/EGL/OgreEGLWindow.h",
+      "include/EGL/Emscripten/OgreEmscriptenEGLSupport.h",
+      "include/EGL/Emscripten/OgreEmscriptenEGLWindow.h",
+      "include/GLSL/OgreGLSLPreprocessor.h",
+      "include/GLSL/OgreGLSLProgramCommon.h",
+      "include/GLSL/OgreGLSLProgramManagerCommon.h",
+      "include/GLSL/OgreGLSLShaderCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGLDepthBufferCommon.cpp",
+      "src/OgreGLHardwarePixelBufferCommon.cpp",
+      "src/OgreGLMultiRenderTarget.cpp",
+      "src/OgreGLRenderSystemCommon.cpp",
+      "src/OgreGLRenderTexture.cpp",
+      "src/OgreGLRenderToVertexBufferCommon.cpp",
+      "src/OgreGLTextureCommon.cpp",
+      "src/OgreGLUniformCache.cpp",
+      "src/OgreGLVertexArrayObject.cpp",
+      "src/OgreGLWindow.cpp",
+      "src/EGL/OgreEGLContext.cpp",
+      "src/EGL/OgreEGLRenderTexture.cpp",
+      "src/EGL/OgreEGLSupport.cpp",
+      "src/EGL/OgreEGLWindow.cpp",
+      "src/EGL/Emscripten/OgreEmscriptenEGLSupport.cpp",
+      "src/EGL/Emscripten/OgreEmscriptenEGLWindow.cpp",
+      "src/GLSL/OgreGLSLPreprocessor.cpp",
+      "src/GLSL/OgreGLSLProgramCommon.cpp",
+      "src/GLSL/OgreGLSLProgramManagerCommon.cpp",
+      "src/GLSL/OgreGLSLShaderCommon.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreGLContext.h",
@@ -467,10 +627,16 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include", "include/EGL", "include/EGL/Android/", "include/GLSL" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include", "include/EGL", "include/EGL/Android/", "include/GLSL" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "include", "include/EGL", "include/EGL/Emscripten/", "include/GLSL" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "include", "include/EGL", "include/EGL/Emscripten/", "include/GLSL" } )
 
 configuration( { "LINUX32" } )

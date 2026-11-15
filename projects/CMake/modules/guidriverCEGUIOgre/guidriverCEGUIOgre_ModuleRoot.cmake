@@ -11,6 +11,11 @@
 
 # Packages of the modules guidriverCEGUIOgre depends on
 set( MODULE_DEPENDENCIES CEGUI CEGUI.Includes CEGUI.RendererModule.Ogre Ogre gucefCORE gucefGUI gucefHeaders gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverCEGUI )
+
+# The minimum C++ standard of guidriverCEGUIOgre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_check_min_cpp_standard( guidriverCEGUIOgre "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

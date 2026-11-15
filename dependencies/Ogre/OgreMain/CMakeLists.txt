@@ -442,13 +442,13 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     src/OgreSearchOps.h
     src/Android/OgreAndroidLogListener.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -459,15 +459,35 @@ if (ANDROID)
     src/Android/OgreFileSystemLayer.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    src/OgreSearchOps.h
+    src/Android/OgreAndroidLogListener.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreSearchOps.cpp
+    src/Android/OgreAPKFileSystemArchive.cpp
+    src/Android/OgreAPKZipArchive.cpp
+    src/Android/OgreAndroidLogListener.cpp
+    src/Android/OgreFileSystemLayer.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     src/OgreSearchOps.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -475,7 +495,23 @@ elseif (EMSCRIPTEN)
     src/OgreSearchOps.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    src/OgreSearchOps.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreFileSystemLayerNoOp.cpp
+    src/OgreSearchOps.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -523,15 +559,26 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of Ogre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( Ogre "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "Ogre" )
-if( EMSCRIPTEN )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MINIZ_NO_STDIO;MODULE_CONSENSUS_NAME=Ogre;MODULE_NAME=Ogre;MODULE_SEMVER=14_6_3_0;OgreMain_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -542,9 +589,13 @@ endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 14.6.3.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 14.6.3.0 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE android atomic dl log )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE android atomic dl log )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl pthread )
@@ -556,13 +607,21 @@ endif( LINUX64 )
 
 include_directories( ../include include include/Threading src src/zip )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( src src/Android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( src src/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( src )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( src )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( src )
@@ -573,35 +632,26 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
-GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/Hash include/Threading src src/nedmalloc src/stbi )
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/Threading src src/zip )
 GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
 if ( ANDROID32 )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/Android )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src src/Android )
 endif( ANDROID32 )
 if ( ANDROID64 )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/Android )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src src/Android )
 endif( ANDROID64 )
 if ( EMSCRIPTEN32 )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/Emscripten )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src )
 endif( EMSCRIPTEN32 )
 if ( EMSCRIPTEN64 )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/Emscripten )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src )
 endif( EMSCRIPTEN64 )
-if ( GLX )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src/GLX )
-endif( GLX )
-if ( GTK )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/gtk src/gtk )
-endif( GTK )
-if ( IOS )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/iOS )
-endif( IOS )
-if ( OSX )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/OSX )
-endif( OSX )
-if ( WIN32 )
-  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/WIN32 src/WIN32 )
-endif( WIN32 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src )
+endif( LINUX64 )
 
 
 

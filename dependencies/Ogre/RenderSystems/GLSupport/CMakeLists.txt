@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/OgreGLContext.h
     include/OgreGLDepthBufferCommon.h
@@ -43,7 +43,7 @@ if (ANDROID)
     include/GLSL/OgreGLSLShaderCommon.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -69,10 +69,69 @@ if (ANDROID)
     src/GLSL/OgreGLSLShaderCommon.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/OgreGLContext.h
+    include/OgreGLDepthBufferCommon.h
+    include/OgreGLHardwarePixelBufferCommon.h
+    include/OgreGLMultiRenderTarget.h
+    include/OgreGLNativeSupport.h
+    include/OgreGLPBuffer.h
+    include/OgreGLRenderSystemCommon.h
+    include/OgreGLRenderTarget.h
+    include/OgreGLRenderTexture.h
+    include/OgreGLRenderToVertexBufferCommon.h
+    include/OgreGLStateCacheManagerCommon.h
+    include/OgreGLTextureCommon.h
+    include/OgreGLUniformCache.h
+    include/OgreGLUtil.h
+    include/OgreGLVertexArrayObject.h
+    include/OgreGLWindow.h
+    include/EGL/OgreEGLContext.h
+    include/EGL/OgreEGLRenderTexture.h
+    include/EGL/OgreEGLSupport.h
+    include/EGL/OgreEGLWindow.h
+    include/EGL/Android/OgreAndroidEGLSupport.h
+    include/EGL/Android/OgreAndroidEGLWindow.h
+    include/GLSL/OgreGLSLPreprocessor.h
+    include/GLSL/OgreGLSLProgramCommon.h
+    include/GLSL/OgreGLSLProgramManagerCommon.h
+    include/GLSL/OgreGLSLShaderCommon.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreGLDepthBufferCommon.cpp
+    src/OgreGLHardwarePixelBufferCommon.cpp
+    src/OgreGLMultiRenderTarget.cpp
+    src/OgreGLRenderSystemCommon.cpp
+    src/OgreGLRenderTexture.cpp
+    src/OgreGLRenderToVertexBufferCommon.cpp
+    src/OgreGLTextureCommon.cpp
+    src/OgreGLUniformCache.cpp
+    src/OgreGLVertexArrayObject.cpp
+    src/OgreGLWindow.cpp
+    src/EGL/OgreEGLContext.cpp
+    src/EGL/OgreEGLRenderTexture.cpp
+    src/EGL/OgreEGLSupport.cpp
+    src/EGL/OgreEGLWindow.cpp
+    src/EGL/Android/OgreAndroidEGLSupport.cpp
+    src/EGL/Android/OgreAndroidEGLWindow.cpp
+    src/GLSL/OgreGLSLPreprocessor.cpp
+    src/GLSL/OgreGLSLProgramCommon.cpp
+    src/GLSL/OgreGLSLProgramManagerCommon.cpp
+    src/GLSL/OgreGLSLShaderCommon.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     include/OgreGLContext.h
     include/OgreGLDepthBufferCommon.h
@@ -102,7 +161,7 @@ elseif (EMSCRIPTEN)
     include/GLSL/OgreGLSLShaderCommon.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -128,7 +187,66 @@ elseif (EMSCRIPTEN)
     src/GLSL/OgreGLSLShaderCommon.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    include/OgreGLContext.h
+    include/OgreGLDepthBufferCommon.h
+    include/OgreGLHardwarePixelBufferCommon.h
+    include/OgreGLMultiRenderTarget.h
+    include/OgreGLNativeSupport.h
+    include/OgreGLPBuffer.h
+    include/OgreGLRenderSystemCommon.h
+    include/OgreGLRenderTarget.h
+    include/OgreGLRenderTexture.h
+    include/OgreGLRenderToVertexBufferCommon.h
+    include/OgreGLStateCacheManagerCommon.h
+    include/OgreGLTextureCommon.h
+    include/OgreGLUniformCache.h
+    include/OgreGLUtil.h
+    include/OgreGLVertexArrayObject.h
+    include/OgreGLWindow.h
+    include/EGL/OgreEGLContext.h
+    include/EGL/OgreEGLRenderTexture.h
+    include/EGL/OgreEGLSupport.h
+    include/EGL/OgreEGLWindow.h
+    include/EGL/Emscripten/OgreEmscriptenEGLSupport.h
+    include/EGL/Emscripten/OgreEmscriptenEGLWindow.h
+    include/GLSL/OgreGLSLPreprocessor.h
+    include/GLSL/OgreGLSLProgramCommon.h
+    include/GLSL/OgreGLSLProgramManagerCommon.h
+    include/GLSL/OgreGLSLShaderCommon.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreGLDepthBufferCommon.cpp
+    src/OgreGLHardwarePixelBufferCommon.cpp
+    src/OgreGLMultiRenderTarget.cpp
+    src/OgreGLRenderSystemCommon.cpp
+    src/OgreGLRenderTexture.cpp
+    src/OgreGLRenderToVertexBufferCommon.cpp
+    src/OgreGLTextureCommon.cpp
+    src/OgreGLUniformCache.cpp
+    src/OgreGLVertexArrayObject.cpp
+    src/OgreGLWindow.cpp
+    src/EGL/OgreEGLContext.cpp
+    src/EGL/OgreEGLRenderTexture.cpp
+    src/EGL/OgreEGLSupport.cpp
+    src/EGL/OgreEGLWindow.cpp
+    src/EGL/Emscripten/OgreEmscriptenEGLSupport.cpp
+    src/EGL/Emscripten/OgreEmscriptenEGLWindow.cpp
+    src/GLSL/OgreGLSLPreprocessor.cpp
+    src/GLSL/OgreGLSLProgramCommon.cpp
+    src/GLSL/OgreGLSLProgramManagerCommon.cpp
+    src/GLSL/OgreGLSLShaderCommon.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -362,10 +480,39 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of OgreGLSupport and the modules it depends on
+if ( ANDROID32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( ANDROID64 )
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( OgreGLSupport "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
 
-if( ANDROID )
+
+if( ANDROID32 )
   set( MODULE_NAME "OgreGLSupport" )
-elseif( EMSCRIPTEN )
+elseif( ANDROID64 )
+  set( MODULE_NAME "OgreGLSupport" )
+elseif( EMSCRIPTEN32 )
+  set( MODULE_NAME "OgreGLSupport" )
+elseif( EMSCRIPTEN64 )
   set( MODULE_NAME "OgreGLSupport" )
 elseif( LINUX32 )
   set( MODULE_NAME "OgreGLSupport" )
@@ -376,9 +523,13 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "OgreGLSupport" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
-elseif( EMSCRIPTEN )
+elseif( ANDROID64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
@@ -390,13 +541,14 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv2 android )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -404,19 +556,41 @@ endif()
 if ( MSVC )
   target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} Ogre )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv2 android )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj )
+endif()
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_SEMVER=14_6_3_0" )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_SEMVER=14_6_3_0" )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 target_link_libraries( ${MODULE_NAME} PRIVATE EGL X11 Xrandr )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -431,8 +605,9 @@ if ( LINUX64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 target_link_libraries( ${MODULE_NAME} PRIVATE EGL X11 Xrandr )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -447,8 +622,9 @@ if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 target_link_libraries( ${MODULE_NAME} PRIVATE opengl32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -463,8 +639,9 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 target_link_libraries( ${MODULE_NAME} PRIVATE opengl32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreGLSupport;MODULE_SEMVER=14_6_3_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -474,13 +651,21 @@ if ( MSVC )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/Android ../../OgreMain/src/zip ../../include include include/EGL include/EGL/Android/ include/GLSL )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/Android ../../OgreMain/src/zip ../../include include include/EGL include/EGL/Android/ include/GLSL )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include include/EGL include/EGL/Emscripten/ include/GLSL )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include include/EGL include/EGL/Emscripten/ include/GLSL )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include include/EGL include/EGL/X11/ include/GLSL src/X11 )
@@ -498,6 +683,38 @@ if ( WIN64 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include include/GLSL )
 endif( WIN64 )
 
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/Android include/GLSL )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/Android include/GLSL )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( ANDROID64 )
+if ( EMSCRIPTEN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/Emscripten include/GLSL )
+endif( EMSCRIPTEN32 )
+if ( EMSCRIPTEN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/Emscripten include/GLSL )
+endif( EMSCRIPTEN64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/X11 include/GLSL src/X11 )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/EGL include/EGL/X11 include/GLSL src/X11 )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/GLSL include/win32 include/win32/GL )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/GLSL )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( WIN64 )
+
 
 
 #******** START OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
@@ -505,7 +722,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

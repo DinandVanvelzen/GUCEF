@@ -12,7 +12,10 @@
 -- Configuration for module: OgrePaging
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "OgrePaging" )
+
+configuration( { "ANDROID64" } )
   project( "OgrePaging" )
 
 configuration( { "LINUX32" } )
@@ -36,7 +39,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -51,74 +57,135 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
-  
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
-  
-configuration( { LINUX64 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
 
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=OgrePaging", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_PAGING_EXPORTS" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreGrid2DPageStrategy.h",
+      "include/OgreGrid3DPageStrategy.h",
+      "include/OgrePage.h",
+      "include/OgrePageConnection.h",
+      "include/OgrePageContent.h",
+      "include/OgrePageContentCollection.h",
+      "include/OgrePageContentCollectionFactory.h",
+      "include/OgrePageContentFactory.h",
+      "include/OgrePageFileFormats.h",
+      "include/OgrePageManager.h",
+      "include/OgrePageStrategy.h",
+      "include/OgrePagedWorld.h",
+      "include/OgrePagedWorldSection.h",
+      "include/OgrePaging.h",
+      "include/OgrePagingPrerequisites.h",
+      "include/OgreSimplePageContentCollection.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreGrid2DPageStrategy.cpp",
+      "src/OgreGrid3DPageStrategy.cpp",
+      "src/OgrePage.cpp",
+      "src/OgrePageContent.cpp",
+      "src/OgrePageContentCollection.cpp",
+      "src/OgrePageManager.cpp",
+      "src/OgrePagedWorld.cpp",
+      "src/OgrePagedWorldSection.cpp",
+      "src/OgreSimplePageContentCollection.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreGrid2DPageStrategy.h",
@@ -300,7 +367,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include" } )
 
 configuration( { "LINUX32" } )

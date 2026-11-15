@@ -11,6 +11,11 @@
 
 # Packages of the modules CEGUI.RendererModule.Ogre depends on
 set( MODULE_DEPENDENCIES CEGUI CEGUI.Includes Ogre gucefHeaders )
+
+# The minimum C++ standard of CEGUI.RendererModule.Ogre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_check_min_cpp_standard( CEGUI.RendererModule.Ogre "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

@@ -48,13 +48,12 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../OgreMain/include \
   $(MY_MODULE_PATH)/../../OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../OgreMain/src \
-  $(MY_MODULE_PATH)/../../OgreMain/src/Android \
   $(MY_MODULE_PATH)/../../OgreMain/src/zip \
   $(MY_MODULE_PATH)/../../include
 
 LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX -DMODULE_NAME=OgrePlugin_ParticleFX -DMODULE_SEMVER=14_6_3_0 -DPlugin_ParticleFX_EXPORTS
 
-LOCAL_CPPFLAGS +=-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden
+LOCAL_CPPFLAGS +=-fvisibility=hidden -fvisibility-inlines-hidden
 
 
 LOCAL_SHARED_LIBRARIES := \

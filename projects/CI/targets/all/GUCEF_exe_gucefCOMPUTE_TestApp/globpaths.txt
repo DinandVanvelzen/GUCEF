@@ -2,5 +2,8 @@ common/include/*
 common/test/include/*
 platform/gucefCOMPUTE/*
 platform/gucefCORE/*
+platform/gucefMATH/*
 platform/gucefMT/*
+platform/gucefVFS/*
+plugins/COMPUTE/computebridgeMATH/*
 tests/gucefCOMPUTE_TestApp/*

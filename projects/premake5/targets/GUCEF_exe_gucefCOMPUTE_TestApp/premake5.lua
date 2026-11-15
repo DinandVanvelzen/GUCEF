@@ -23,131 +23,197 @@ workspace( "GUCEF_exe_gucefCOMPUTE_TestApp" )
 filter "ALL"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "ANDROID"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "ANDROID32"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "ANDROID64"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "ARDUINO"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "EMSCRIPTEN"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "EMSCRIPTEN32"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "EMSCRIPTEN64"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "IOS"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "IPHONE"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "IPHONEOS"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "LINUX"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "LINUX32"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "LINUX64"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "MAC"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "MACOS"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "MACOSX"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "MSWIN"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "OSX"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "WIN32"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "WIN64"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )
 
 filter "WINDOWS"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "tests/gucefCOMPUTE_TestApp" )

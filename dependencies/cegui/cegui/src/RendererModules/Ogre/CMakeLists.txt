@@ -30,24 +30,37 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of CEGUI.RendererModule.Ogre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( CEGUI.RendererModule.Ogre "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "CEGUI.RendererModule.Ogre" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} CEGUI Ogre )
 target_link_libraries( ${MODULE_NAME} PUBLIC CEGUI Ogre )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIOGRERENDERER_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI_RendererModule_Ogre;MODULE_NAME=CEGUI_RendererModule_Ogre" )
-if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> )
-endif()
 
 include_directories( ../../../../../Ogre/OgreMain/include ../../../../../Ogre/OgreMain/include/Threading ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/zip ../../../../../Ogre/include ../../../include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/Android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../../../../Ogre/OgreMain/src )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../../../Ogre/OgreMain/src )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../../../../Ogre/OgreMain/src )

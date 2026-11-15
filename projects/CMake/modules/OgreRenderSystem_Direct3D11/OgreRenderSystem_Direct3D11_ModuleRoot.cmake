@@ -17,6 +17,16 @@ endif( WIN32 )
 if ( WIN64 )
   list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude )
 endif( WIN64 )
+
+# The minimum C++ standard of OgreRenderSystem_Direct3D11 and the modules it depends on
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_check_min_cpp_standard( OgreRenderSystem_Direct3D11 "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

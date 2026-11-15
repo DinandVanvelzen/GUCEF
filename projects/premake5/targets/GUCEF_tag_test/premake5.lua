@@ -79,6 +79,7 @@ filter "ALL"
   include( "plugins/AUTH/authpluginSTEAM" )
   include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "plugins/COMCORE/dbpluginVFSTABLES" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
   include( "plugins/CORE/codecspluginZLIB" )

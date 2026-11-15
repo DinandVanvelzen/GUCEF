@@ -36,7 +36,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := -DCodec_STBI_EXPORTS -DMODULE_CONSENSUS_NAME=OgreCodec_STBI -DMODULE_NAME=OgreCodec_STBI -DMODULE_SEMVER=14_6_3_0
 
-LOCAL_CPPFLAGS +=-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden
+LOCAL_CPPFLAGS +=-fvisibility=hidden -fvisibility-inlines-hidden
 
 
 LOCAL_SHARED_LIBRARIES := \

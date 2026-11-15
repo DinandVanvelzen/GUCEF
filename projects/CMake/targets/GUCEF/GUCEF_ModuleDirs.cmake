@@ -155,6 +155,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcor
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginGEOOSM ${CMAKE_BINARY_DIR}/comcorepluginGEOOSM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginUPNP ${CMAKE_BINARY_DIR}/comcorepluginUPNP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/dbpluginVFSTABLES ${CMAKE_BINARY_DIR}/dbpluginVFSTABLES )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMPUTE/computebridgeMATH ${CMAKE_BINARY_DIR}/computebridgeMATH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginMONOCYPHER ${CMAKE_BINARY_DIR}/codecspluginMONOCYPHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginOPENSSL ${CMAKE_BINARY_DIR}/codecspluginOPENSSL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginSTBRUMMEHASH ${CMAKE_BINARY_DIR}/codecspluginSTBRUMMEHASH )

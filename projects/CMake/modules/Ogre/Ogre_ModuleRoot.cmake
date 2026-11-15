@@ -10,7 +10,12 @@
 #
 
 # Packages of the modules Ogre depends on
-set( MODULE_DEPENDENCIES Ogre.CommonInclude freetype gucefHeaders )
+set( MODULE_DEPENDENCIES Ogre.CommonInclude gucefHeaders )
+
+# The minimum C++ standard of Ogre and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_check_min_cpp_standard( Ogre "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

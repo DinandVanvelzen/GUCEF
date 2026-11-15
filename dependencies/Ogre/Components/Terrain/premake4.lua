@@ -12,7 +12,10 @@
 -- Configuration for module: OgreTerrain
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "OgreTerrain" )
+
+configuration( { "ANDROID64" } )
   project( "OgreTerrain" )
 
 configuration( { "LINUX32" } )
@@ -36,7 +39,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -51,74 +57,133 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
-  
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
-  
-configuration( { LINUX64 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  
 
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  
 
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
 
+configuration( { "ANDROID64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre", "OgrePaging", "OgreRTShaderSystem" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=OgreTerrain", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "OGRE_TERRAIN_EXPORTS" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreTerrain.h",
+      "include/OgreTerrainAutoUpdateLod.h",
+      "include/OgreTerrainGroup.h",
+      "include/OgreTerrainLayerBlendMap.h",
+      "include/OgreTerrainLodManager.h",
+      "include/OgreTerrainMaterialGenerator.h",
+      "include/OgreTerrainMaterialGeneratorA.h",
+      "include/OgreTerrainPagedWorldSection.h",
+      "include/OgreTerrainPaging.h",
+      "include/OgreTerrainPrerequisites.h",
+      "include/OgreTerrainQuadTreeNode.h",
+      "src/OgreTerrainRTShaderSRS.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreTerrain.cpp",
+      "src/OgreTerrainAutoUpdateLod.cpp",
+      "src/OgreTerrainGroup.cpp",
+      "src/OgreTerrainLayerBlendMap.cpp",
+      "src/OgreTerrainLodManager.cpp",
+      "src/OgreTerrainMaterialGenerator.cpp",
+      "src/OgreTerrainMaterialGeneratorA.cpp",
+      "src/OgreTerrainPagedWorldSection.cpp",
+      "src/OgreTerrainPaging.cpp",
+      "src/OgreTerrainQuadTreeNode.cpp",
+      "src/OgreTerrainRTShaderSRS.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreTerrain.h",
@@ -290,7 +355,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include", "../RTShaderSystem/include", "../RTShaderSystem/src" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../Paging/include", "include", "src" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "../Paging/include", "include", "src" } )
 
 configuration( { "LINUX32" } )

@@ -168,6 +168,7 @@ filter "ALL"
   include( "plugins/COMCORE/comcorepluginGEOOSM" )
   include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "plugins/COMCORE/dbpluginVFSTABLES" )
+  include( "plugins/COMPUTE/computebridgeMATH" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/codecspluginOPENSSL" )
   include( "plugins/CORE/codecspluginSTBRUMMEHASH" )

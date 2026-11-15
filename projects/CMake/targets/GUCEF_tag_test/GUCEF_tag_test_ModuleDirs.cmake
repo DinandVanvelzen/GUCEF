@@ -66,6 +66,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authplugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginSTEAM ${CMAKE_BINARY_DIR}/authpluginSTEAM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginUPNP ${CMAKE_BINARY_DIR}/comcorepluginUPNP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/dbpluginVFSTABLES ${CMAKE_BINARY_DIR}/dbpluginVFSTABLES )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMPUTE/computebridgeMATH ${CMAKE_BINARY_DIR}/computebridgeMATH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginMONOCYPHER ${CMAKE_BINARY_DIR}/codecspluginMONOCYPHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginSTBRUMMEHASH ${CMAKE_BINARY_DIR}/codecspluginSTBRUMMEHASH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginZLIB ${CMAKE_BINARY_DIR}/codecspluginZLIB )

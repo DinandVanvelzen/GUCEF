@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefCOMPUTE depends on
-set( MODULE_DEPENDENCIES gucefCORE gucefHeaders gucefMT )
+set( MODULE_DEPENDENCIES gucefCORE gucefHeaders gucefMT gucefVFS )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

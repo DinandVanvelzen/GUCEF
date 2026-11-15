@@ -3,6 +3,7 @@ common/test/include/*
 dependencies/dr_libs/*
 platform/gucefAUDIO/*
 platform/gucefCORE/*
+platform/gucefGEOMETRY/*
 platform/gucefMATH/*
 platform/gucefMT/*
 plugins/AUDIO/audiocodecpluginAU/*

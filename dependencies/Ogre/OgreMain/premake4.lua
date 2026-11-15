@@ -23,10 +23,15 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN } )
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -36,9 +41,18 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "MINIZ_NO_STDIO", "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "MODULE_SEMVER=14_6_3_0", "OgreMain_EXPORTS" } )
-  links( { "android", "atomic", "dl", "log" } )
-  links( { "atomic", "dl", "pthread" } )
-  links( { "atomic", "dl", "pthread" } )
+
+configuration( { "ANDROID32" } )
+links( { "android", "atomic", "dl", "log" } )
+
+configuration( { "ANDROID64" } )
+links( { "android", "atomic", "dl", "log" } )
+
+configuration( { "LINUX32" } )
+links( { "atomic", "dl", "pthread" } )
+
+configuration( { "LINUX64" } )
+links( { "atomic", "dl", "pthread" } )
 
 
 configuration( {} )
@@ -478,7 +492,7 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/OgreSearchOps.h",
@@ -496,7 +510,39 @@ configuration( { "ANDROID" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/OgreSearchOps.h",
+      "src/Android/OgreAndroidLogListener.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreSearchOps.cpp",
+      "src/Android/OgreAPKFileSystemArchive.cpp",
+      "src/Android/OgreAPKZipArchive.cpp",
+      "src/Android/OgreAndroidLogListener.cpp",
+      "src/Android/OgreFileSystemLayer.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/OgreSearchOps.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreFileSystemLayerNoOp.cpp",
+      "src/OgreSearchOps.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/OgreSearchOps.h"
@@ -548,10 +594,16 @@ configuration( { "WIN32" } )
 configuration( {} )
 includedirs( { "../include", "include", "include/Threading", "src", "src/zip" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "src", "src/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "src", "src/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "src" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "src" } )
 
 configuration( { "LINUX32" } )

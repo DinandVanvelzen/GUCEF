@@ -55,10 +55,16 @@ files( {
 configuration( {} )
 includedirs( { "../../../../../Ogre/OgreMain/include", "../../../../../Ogre/OgreMain/include/Threading", "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/zip", "../../../../../Ogre/include", "../../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../../../../Ogre/OgreMain/src" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../../../../Ogre/OgreMain/src" } )
 
 configuration( { "LINUX32" } )

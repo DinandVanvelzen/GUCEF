@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/OgreVolumeCSGSource.h
     include/OgreVolumeCacheSource.h
@@ -32,7 +32,7 @@ if (ANDROID)
     src/OgreVolumeIsoSurfaceTablesMC.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -52,7 +52,49 @@ if (ANDROID)
     src/OgreVolumeTextureSource.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/OgreVolumeCSGSource.h
+    include/OgreVolumeCacheSource.h
+    include/OgreVolumeChunk.h
+    include/OgreVolumeDualGridGenerator.h
+    include/OgreVolumeGridSource.h
+    include/OgreVolumeHalfFloatGridSource.h
+    include/OgreVolumeIsoSurface.h
+    include/OgreVolumeIsoSurfaceMC.h
+    include/OgreVolumeMeshBuilder.h
+    include/OgreVolumeOctreeNode.h
+    include/OgreVolumeOctreeNodeSplitPolicy.h
+    include/OgreVolumeSimplexNoise.h
+    include/OgreVolumeSource.h
+    include/OgreVolumeTextureSource.h
+    src/OgreVolumeIsoSurfaceTablesMC.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/OgreVolumeCSGSource.cpp
+    src/OgreVolumeCacheSource.cpp
+    src/OgreVolumeChunk.cpp
+    src/OgreVolumeDualGridGenerator.cpp
+    src/OgreVolumeGridSource.cpp
+    src/OgreVolumeHalfFloatGridSource.cpp
+    src/OgreVolumeIsoSurface.cpp
+    src/OgreVolumeIsoSurfaceMC.cpp
+    src/OgreVolumeMeshBuilder.cpp
+    src/OgreVolumeOctreeNode.cpp
+    src/OgreVolumeOctreeNodeSplitPolicy.cpp
+    src/OgreVolumeSimplexNoise.cpp
+    src/OgreVolumeSource.cpp
+    src/OgreVolumeTextureSource.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -228,8 +270,35 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of OgreVolume and the modules it depends on
+if ( ANDROID32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( ANDROID64 )
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( OgreVolume "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
 
-if( ANDROID )
+
+if( ANDROID32 )
+  set( MODULE_NAME "OgreVolume" )
+elseif( ANDROID64 )
   set( MODULE_NAME "OgreVolume" )
 elseif( LINUX32 )
   set( MODULE_NAME "OgreVolume" )
@@ -240,7 +309,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "OgreVolume" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -252,12 +323,13 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -265,14 +337,31 @@ endif()
 if ( MSVC )
   target_compile_options( ${MODULE_NAME} PRIVATE /bigobj;/fp:contract )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} Ogre )
+  target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+endif()
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /bigobj;/fp:contract )
+endif()
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -286,8 +375,9 @@ if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -301,8 +391,9 @@ if ( WIN32 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -316,8 +407,9 @@ if ( WIN64 )
   add_dependencies( ${MODULE_NAME} Ogre )
   target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OgreVolume;MODULE_SEMVER=14_6_3_0;OgreVolume_EXPORTS" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
-  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-math-errno;-ffp-contract=fast;-fno-trapping-math> )
 endif()
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden> )
@@ -327,9 +419,13 @@ if ( MSVC )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/Android ../../OgreMain/src/zip ../../include include src )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/Android ../../OgreMain/src/zip ../../include include src )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include src )
@@ -345,6 +441,32 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include src )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
 endif( WIN64 )
 
 
@@ -354,7 +476,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

@@ -12,7 +12,10 @@
 -- Configuration for module: OgreVolume
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "OgreVolume" )
+
+configuration( { "ANDROID64" } )
   project( "OgreVolume" )
 
 configuration( { "LINUX32" } )
@@ -36,7 +39,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -51,74 +57,139 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
-  
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
-  
-configuration( { LINUX64 } )
+configuration( { "ANDROID32" } )
 links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
-  
-configuration( { WIN32 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
 
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre" } )
-  links( { "Ogre" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
 
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "Ogre" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX32" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+configuration( { "LINUX64" } )
+links( { "Ogre" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=OgreVolume", "MODULE_SEMVER=14_6_3_0", "OgreVolume_EXPORTS" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/OgreVolumeCSGSource.h",
+      "include/OgreVolumeCacheSource.h",
+      "include/OgreVolumeChunk.h",
+      "include/OgreVolumeDualGridGenerator.h",
+      "include/OgreVolumeGridSource.h",
+      "include/OgreVolumeHalfFloatGridSource.h",
+      "include/OgreVolumeIsoSurface.h",
+      "include/OgreVolumeIsoSurfaceMC.h",
+      "include/OgreVolumeMeshBuilder.h",
+      "include/OgreVolumeOctreeNode.h",
+      "include/OgreVolumeOctreeNodeSplitPolicy.h",
+      "include/OgreVolumeSimplexNoise.h",
+      "include/OgreVolumeSource.h",
+      "include/OgreVolumeTextureSource.h",
+      "src/OgreVolumeIsoSurfaceTablesMC.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/OgreVolumeCSGSource.cpp",
+      "src/OgreVolumeCacheSource.cpp",
+      "src/OgreVolumeChunk.cpp",
+      "src/OgreVolumeDualGridGenerator.cpp",
+      "src/OgreVolumeGridSource.cpp",
+      "src/OgreVolumeHalfFloatGridSource.cpp",
+      "src/OgreVolumeIsoSurface.cpp",
+      "src/OgreVolumeIsoSurfaceMC.cpp",
+      "src/OgreVolumeMeshBuilder.cpp",
+      "src/OgreVolumeOctreeNode.cpp",
+      "src/OgreVolumeOctreeNodeSplitPolicy.cpp",
+      "src/OgreVolumeSimplexNoise.cpp",
+      "src/OgreVolumeSource.cpp",
+      "src/OgreVolumeTextureSource.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/OgreVolumeCSGSource.h",
@@ -320,7 +391,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../OgreMain/include", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/zip", "../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include", "src" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/src", "../../OgreMain/src/Android", "include", "src" } )
 
 configuration( { "LINUX32" } )
