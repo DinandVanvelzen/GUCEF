@@ -105,6 +105,12 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiGridClipboardTests();
         PerformGuiGridEditRenderTests();
         PerformGuiFileDialogTests();
+        PerformGuiTimelineFormTests();
+        PerformGuiReportViewFormTests();
+        PerformGuiViewportFormTests();
+        PerformGuiPropertyInspectorFormTests();
+        PerformGuiContentBrowserFormTests();
+        PerformGuiImageViewFormTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

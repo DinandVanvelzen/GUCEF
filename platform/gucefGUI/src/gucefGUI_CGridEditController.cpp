@@ -160,7 +160,7 @@ CGridEditController::IsToggleCell( Int32 row, Int32 column ) const
 
     if ( m_grid.m_model.IsNULL() || row < 0 || column < 0 )
         return false;
-    const CTableViewColumn& definition = m_grid.m_model->GetColumn( (UInt32) column );
+    const CTableViewColumn& definition = m_grid.m_model->GetCellColumn( (UInt32) row, (UInt32) column );
     return CORE::DATATABLE_TYPE_BOOL == definition.type && definition.choices.empty();
 }
 
@@ -183,7 +183,7 @@ CGridEditController::Open( Int32 row, Int32 column, EOpenMode mode, const CStrin
             Report( CGridView::CellEditRefusedEvent, CGridEditReport::OPERATION_EDIT, row, column, "The cell is read only" );
         return false;
     }
-    const CTableViewColumn& definition = model.GetColumn( (UInt32) column );
+    const CTableViewColumn& definition = model.GetCellColumn( (UInt32) row, (UInt32) column );
     if ( !CTableCellParser::IsEditableType( definition ) )
     {
         if ( report )
@@ -282,7 +282,7 @@ CGridEditController::Revalidate( void )
     const bool haveCurrent = model.GetCellValue( row, column, current );
     CORE::CVariant value;
     CString error;
-    if ( !CTableCellParser::Parse( m_editor.GetText(), model.GetColumn( column ), haveCurrent ? &current : GUCEF_NULL, value, error ) )
+    if ( !CTableCellParser::Parse( m_editor.GetText(), model.GetCellColumn( row, column ), haveCurrent ? &current : GUCEF_NULL, value, error ) )
     {
         m_editor.SetError( error );
         return;
@@ -322,7 +322,7 @@ CGridEditController::Commit( void )
     const bool haveCurrent = model.GetCellValue( (UInt32) row, (UInt32) column, current );
     CORE::CVariant value;
     CString error;
-    if ( !CTableCellParser::Parse( m_editor.GetText(), model.GetColumn( (UInt32) column ), haveCurrent ? &current : GUCEF_NULL, value, error ) )
+    if ( !CTableCellParser::Parse( m_editor.GetText(), model.GetCellColumn( (UInt32) row, (UInt32) column ), haveCurrent ? &current : GUCEF_NULL, value, error ) )
     {
         m_editor.SetError( error );
         Report( CGridView::CellEditRefusedEvent, CGridEditReport::OPERATION_EDIT, row, column, error );

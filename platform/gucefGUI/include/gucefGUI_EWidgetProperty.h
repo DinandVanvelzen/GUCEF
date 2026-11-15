@@ -164,6 +164,7 @@ enum EWidgetProperty
     EWidgetProperty_Position,
     EWidgetProperty_PositionInMs,
     EWidgetProperty_PushedImage,
+    EWidgetProperty_RangeSelectable,
     EWidgetProperty_ReadOnly,
     EWidgetProperty_ResizableColumns,
     EWidgetProperty_Revision,

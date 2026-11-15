@@ -73,6 +73,10 @@ namespace GUI {
  *      ImageUpscaler   "Art upscaler": an upscaler for the pictures of the application (made once), "None" first
  *      MovieUpscaling  "Movies": as they are, an upscaling filter while they play, or upscaled copies made once;
  *                      only the ways the application offers (SetAvailableMovieUpscaling())
+ *      Renderer        the renderer the game draws with: "Automatic" first (the choice of the window manager
+ *                      backend), then the renderers the application says are available (SetAvailableRenderers(),
+ *                      from CWindowManagerBackend::GetAvailableRenderers())
+ *      RendererNote    shown while the renderer picked is not the one in use: it is used from the next start
  *      Progress        with ProgressText: how far work after Apply is (ShowProgress()), hidden otherwise
  *      StopProgress    a button with the progress that asks to stop that work (ProgressStoppedEvent)
  *
@@ -88,6 +92,8 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettingsForm : public CSettingsPageForm
     typedef GUCEF::vector< CString > TStringVector;
 
     static const CString NoneChoice;
+    static const CString AutomaticChoice;   /**< "Automatic": the first renderer choice, no renderer in the settings */
+    static const CString RendererNoteText;  /**< the text of RendererNote */
 
     /** The texts of the Movies choices */
     static const CString MoviesAsTheyAreChoice;
@@ -120,6 +126,13 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettingsForm : public CSettingsPageForm
 
     /** Which ways of upscaling movies the application has: a filter while they play, upscaled copies */
     void SetAvailableMovieUpscaling( bool filter, bool copies );
+
+    /**
+     *  The renderers that can be picked, by name, and the one the windows draw with now (the property "RENDERER"
+     *  of the window, empty when it is not known). Without renderers the row is disabled and Apply keeps the
+     *  renderer of the settings as it is
+     */
+    void SetAvailableRenderers( const TStringVector& rendererNames, const CString& rendererInUse );
 
     /** The window Apply resizes, switches to full screen and sets the vsync of, through the window manager backend; held weakly */
     void SetWindow( const CString& windowManagerBackendName, TWindowContextPtr window );
@@ -165,6 +178,8 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettingsForm : public CSettingsPageForm
     void FillResolutions( bool fullscreen, UInt32 width, UInt32 height );
 
     void FillChoices( const CString& widgetName, const TStringVector& choices, const CString& selected );
+    void FillChoices( const CString& widgetName, const CString& firstChoice, const TStringVector& choices, const CString& selected );
+    void UpdateRendererNote( void );
 
     void UpdateEnabledRows( void );
 
@@ -182,6 +197,8 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettingsForm : public CSettingsPageForm
     TStringVector m_imageUpscalers;
     bool m_movieFilterAvailable;
     bool m_movieCopiesAvailable;
+    TStringVector m_renderers;
+    CString m_rendererInUse;
     CString m_backendName;
     CORE::CTWeakPtr< CWindowContext, MT::CMutex > m_window;
 };

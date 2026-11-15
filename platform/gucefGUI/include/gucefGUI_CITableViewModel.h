@@ -149,6 +149,13 @@ class GUCEF_GUI_PUBLIC_CPP CITableViewModel : public CORE::CObservingNotifier
     virtual const CTableViewColumn& GetColumn( UInt32 column ) const = 0;
 
     /**
+     *  The definition of a cell: the type of its value, how it is shown and edited. The default is the definition of its
+     *  column, which is what every table has. A model whose rows are values of different types (a list of properties,
+     *  each with a type of its own) answers per cell, and the grid shows, edits and parses the cell by that definition
+     */
+    virtual const CTableViewColumn& GetCellColumn( UInt32 row, UInt32 column ) const;
+
+    /**
      *  The value of a cell. False when the model has no value for it (an index out of range): the cell is then empty,
      *  not null. A null cell gives true and a variant of type GUCEF_DATATYPE_NULL
      */

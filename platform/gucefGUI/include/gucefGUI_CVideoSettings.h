@@ -155,6 +155,17 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettings : public CORE::CIConfigurable
 
     UInt32 GetRenderScale( void ) const;
 
+    /**
+     *  The renderer the windows draw with, by the name the window manager backend gives it in its list
+     *  (CWindowManagerBackend::GetAvailableRenderers()), like "Vulkan" or "OpenGL"; empty for the choice of the
+     *  backend. A backend that has no choice of renderer ignores it. A backend picks its renderer when it starts,
+     *  with its first window, so a change takes effect at the next start of the application; when the renderer
+     *  is not available there the backend takes the one it prefers and logs why.
+     */
+    void SetRenderer( const CString& rendererName );
+
+    const CString& GetRenderer( void ) const;
+
     static CString PresentModeToString( TPresentMode presentMode );
 
     /** "nearest", "linear", "integer" or "stretch"; anything else gives 'defaultMode' */
@@ -183,6 +194,7 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettings : public CORE::CIConfigurable
     CString m_imageUpscaler;
     CString m_movieUpscaling;
     UInt32 m_renderScale;
+    CString m_renderer;
 };
 
 /*-------------------------------------------------------------------------//

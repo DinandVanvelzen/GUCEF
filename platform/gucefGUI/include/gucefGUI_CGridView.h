@@ -301,6 +301,9 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     /** Only the model decides: its answer for the row, false without a model */
     bool IsRowEmphasizedByModel( Int32 row ) const;
 
+    /** The colour ItemColours gives the row (a marker at its left and its text in that colour); false for a plain row */
+    bool GetRowColour( Int32 row, CColour& colour ) const;
+
     bool IsRowSelected( Int32 row ) const;
 
     /** How many rows fit below the header (and above the footer); a part of a row is not counted */

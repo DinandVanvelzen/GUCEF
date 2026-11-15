@@ -100,6 +100,13 @@ void PerformGuiGridEditRenderTests( void );
 
 void PerformGuiFileDialogTests( void );
 
+void PerformGuiTimelineFormTests( void );
+void PerformGuiReportViewFormTests( void );
+void PerformGuiViewportFormTests( void );
+void PerformGuiPropertyInspectorFormTests( void );
+void PerformGuiContentBrowserFormTests( void );
+void PerformGuiImageViewFormTests( void );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_GUI_TESTCOMMON_H ? */

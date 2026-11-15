@@ -70,6 +70,8 @@ namespace GUI {
 //-------------------------------------------------------------------------*/
 
 const CString CVideoSettingsForm::NoneChoice = "None";
+const CString CVideoSettingsForm::AutomaticChoice = "Automatic";
+const CString CVideoSettingsForm::RendererNoteText = "Takes effect after a restart";
 const CString CVideoSettingsForm::MoviesAsTheyAreChoice = "As they are";
 const CString CVideoSettingsForm::MoviesFilterChoice = "Upscaling filter while playing";
 const CString CVideoSettingsForm::MoviesCopiesChoice = "Upscaled copies, made once";
@@ -126,6 +128,8 @@ CVideoSettingsForm::CVideoSettingsForm( void )
     , m_imageUpscalers()
     , m_movieFilterAvailable( false )
     , m_movieCopiesAvailable( false )
+    , m_renderers()
+    , m_rendererInUse()
     , m_backendName()
     , m_window()
 {GUCEF_TRACE;
@@ -209,6 +213,16 @@ CVideoSettingsForm::SetAvailableMovieUpscaling( bool filter, bool copies )
 /*-------------------------------------------------------------------------*/
 
 void
+CVideoSettingsForm::SetAvailableRenderers( const TStringVector& rendererNames, const CString& rendererInUse )
+{GUCEF_TRACE;
+
+    m_renderers = rendererNames;
+    m_rendererInUse = rendererInUse;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CVideoSettingsForm::SetWindow( const CString& windowManagerBackendName, TWindowContextPtr window )
 {GUCEF_TRACE;
 
@@ -250,7 +264,8 @@ CVideoSettingsForm::BuildLayout( CORE::CDataNode& layout )
                                  { "Screen filter", "Combobox", "PresentFilter" },
                                  { "Sharpness", "Slider", "Sharpness" },
                                  { "Art upscaler", "Combobox", "ImageUpscaler" },
-                                 { "Movies", "Combobox", "MovieUpscaling" } };
+                                 { "Movies", "Combobox", "MovieUpscaling" },
+                                 { "Renderer", "Combobox", "Renderer" } };
     for ( Int32 r=0; r<(Int32)( sizeof( rows ) / sizeof( rows[ 0 ] ) ); ++r )
     {
         if ( '\0' != rows[ r ].label[ 0 ] )
@@ -285,6 +300,12 @@ CVideoSettingsForm::BuildLayout( CORE::CDataNode& layout )
             CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Step, "5" );
         }
     }
+
+    // under the renderer: the renderer picked is used from the next start
+    const Int32 noteRow = (Int32)( sizeof( rows ) / sizeof( rows[ 0 ] ) );
+    CORE::CDataNode* rendererNote = CFormLayout::AddWidgetNode( *page, "Label", "RendererNote", "0,260 0," + CORE::Int32ToString( RowTop + noteRow * RowStep ), "0,380 0,28" );
+    CFormLayout::SetWidgetNodeProperty( *rendererNote, EWidgetProperty_Text, RendererNoteText );
+    CFormLayout::SetWidgetNodeProperty( *rendererNote, EWidgetProperty_Visible, "false" );
 
     CORE::CDataNode* progressText = CFormLayout::AddWidgetNode( *page, "Label", "ProgressText", "0,24 1,-84", "1,-48 0,28" );
     CFormLayout::SetWidgetNodeProperty( *progressText, EWidgetProperty_Visible, "false" );
@@ -366,11 +387,20 @@ void
 CVideoSettingsForm::FillChoices( const CString& widgetName, const TStringVector& choices, const CString& selected )
 {GUCEF_TRACE;
 
+    FillChoices( widgetName, NoneChoice, choices, selected );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettingsForm::FillChoices( const CString& widgetName, const CString& firstChoice, const TStringVector& choices, const CString& selected )
+{GUCEF_TRACE;
+
     CCombobox* list = GetWidgetAs< CCombobox >( widgetName );
     if ( GUCEF_NULL == list )
         return;
     CCombobox::TStringVector items;
-    items.push_back( NoneChoice );
+    items.push_back( firstChoice );
     Int32 selectedIndex = 0;
     for ( UInt32 i=0; i<(UInt32)choices.size(); ++i )
     {
@@ -423,6 +453,32 @@ CVideoSettingsForm::UpdateEnabledRows( void )
     for ( UInt32 i=0; i<2; ++i )
         if ( GUCEF_NULL != GetWidget( movieRow[ i ] ) )
             GetWidget( movieRow[ i ] )->SetEnabled( m_movieFilterAvailable || m_movieCopiesAvailable );
+    const char* rendererRow[] = { "Renderer", "RendererLabel" };
+    for ( UInt32 i=0; i<2; ++i )
+        if ( GUCEF_NULL != GetWidget( rendererRow[ i ] ) )
+            GetWidget( rendererRow[ i ] )->SetEnabled( !m_renderers.empty() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettingsForm::UpdateRendererNote( void )
+{GUCEF_TRACE;
+
+    CWidget* note = GetWidget( "RendererNote" );
+    if ( GUCEF_NULL == note )
+        return;
+
+    // "Automatic" is the renderer the backend prefers: the first of the list
+    bool show = false;
+    if ( !m_renderers.empty() && !m_rendererInUse.IsNULLOrEmpty() )
+    {
+        CString picked = GetChoice( "Renderer" );
+        if ( picked == AutomaticChoice )
+            picked = m_renderers.front();
+        show = !picked.IsNULLOrEmpty() && picked != m_rendererInUse;
+    }
+    note->SetVisibility( show );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -455,6 +511,7 @@ CVideoSettingsForm::ReadSettings( void )
         sharpnessSlider->SetFloatProperty( EWidgetProperty_Value, sharpness * 100.0f );
 
     FillChoices( "ImageUpscaler", m_imageUpscalers, m_settings.GetImageUpscaler() );
+    FillChoices( "Renderer", AutomaticChoice, m_renderers, m_settings.GetRenderer() );
 
     // the ways of upscaling movies the application has; a way it does not have shows as "as they are"
     CCombobox* movies = GetWidgetAs< CCombobox >( "MovieUpscaling" );
@@ -479,6 +536,7 @@ CVideoSettingsForm::ReadSettings( void )
         movies->SetSelectedIndex( selected );
     }
     UpdateEnabledRows();
+    UpdateRendererNote();
 
     SetReadingSettings( false );
     SetHasChanges( false );
@@ -514,6 +572,11 @@ CVideoSettingsForm::OnValueChanged( CWidget& widget )
     if ( widget.GetName() == "PresentFilter" )
     {
         UpdateEnabledRows();
+    }
+    else
+    if ( widget.GetName() == "Renderer" )
+    {
+        UpdateRendererNote();
     }
 }
 
@@ -566,6 +629,13 @@ CVideoSettingsForm::GetSettingsFromWidgets( void )
     else
     if ( GUCEF_NULL != GetWidget( "MovieUpscaling" ) && ( m_movieFilterAvailable || m_movieCopiesAvailable ) )
         settings.SetMovieUpscaling( CString::Empty );
+
+    // without renderers to pick from the renderer of the settings stays as it is
+    if ( !m_renderers.empty() && GUCEF_NULL != GetWidget( "Renderer" ) )
+    {
+        const CString renderer = GetChoice( "Renderer" );
+        settings.SetRenderer( renderer == AutomaticChoice ? CString::Empty : renderer );
+    }
     return settings;
 }
 

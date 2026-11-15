@@ -79,10 +79,17 @@ namespace GUI {
  *  drawn with the chart, hit tested, have a tooltip, are activated by a click or by Enter (MarkerActivatedEvent)
  *  and are selected with the arrow keys, Home and End while a chart with Focusable set has the keyboard focus.
  *
+ *  A range of x is chosen by a drag with the left button over the plot while RangeSelectable is set: the band of
+ *  the drag is drawn while the button is held and while the range stays chosen; the release raises
+ *  RangeSelectedEvent (GetSelectedRange()). A drag shorter than RangeDragThreshold pixels is a click, so a marker
+ *  under it is still activated; a drag that chose a range activates no marker. Escape or a lost capture ends a drag
+ *  without a range. What a range does (zoom the x axis, filter data) is up to the application.
+ *
  *  Properties (beyond those of DrawSurface): Title, Font, TextColour, AxisTextColour, BackgroundColour,
  *  AxisColour, GridColour, CrosshairColour, TooltipColour, SeriesColours, CrosshairVisible, LegendVisible,
  *  LegendPosition, XAxisType, LogScale, IncludeZero, ValuePrefix, ValueSuffix, Decimals, EmphasisColour
- *  (markers without a colour), SelectionColour (the selected marker, the frame of the focus).
+ *  (markers without a colour), SelectionColour (the selected marker, the frame of the focus, the band of a range),
+ *  RangeSelectable.
  */
 class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 {
@@ -96,6 +103,12 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 
     /** The selected marker changed; not routed, no data: read GetSelectedMarker() */
     static const CORE::CEvent MarkerSelectionChangedEvent;
+
+    /** A drag over the plot (RangeSelectable) or SelectRange() chose a range of x; not routed, no data: read GetSelectedRange() */
+    static const CORE::CEvent RangeSelectedEvent;
+
+    /** The pixels a drag over the plot moves before it chooses a range; a shorter one is a click */
+    static const Int32 RangeDragThreshold;
 
     /** The width and height of a marker shape, and the pixels around it that still hit it */
     static const Int32 MarkerSize;
@@ -267,6 +280,21 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     /** The marker under the pointer, -1 when none */
     Int32 GetHoveredMarker( void ) const;
 
+    /**
+     *  The range of x of the drag in progress, else the range chosen last, low to high; false when there is neither.
+     *  The ends of a drag are the x of its pixel columns (PixelToX()), within the x range of the last rebuild
+     */
+    bool GetSelectedRange( Int64& fromX, Int64& toX ) const;
+
+    /** Whether a drag over the plot is choosing a range now */
+    bool IsSelectingRange( void ) const;
+
+    /** Chooses a range of x as a drag does and raises RangeSelectedEvent; the ends in any order, false when they are equal */
+    bool SelectRange( Int64 fromX, Int64 toX );
+
+    /** Forgets the chosen range and ends a drag in progress, without an event */
+    void ClearSelectedRange( void );
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** The name this widget type is registered under: what GetType() of the widgets of this class says */
@@ -369,6 +397,15 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 
     void SetHoveredMarker( Int32 index );
 
+    /** The pixel column of a drag kept inside the plot of the last rebuild */
+    Int32 ClampToPlot( Int32 localX ) const;
+
+    /** Ends a drag in progress without choosing a range; true when there was one */
+    bool CancelRangeDrag( void );
+
+    /** The band of the chosen range or of the drag in progress, inside the plot */
+    void DrawSelectedRange( void );
+
     /** Fills m_keep with the indexes of a series to draw: the visible ones, reduced when there are many */
     void CollectDrawnPoints( const CChartSeries& series );
 
@@ -421,6 +458,14 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     Int32 m_selectedMarker;
     Int32 m_hoveredMarker;
     bool m_focused;
+    bool m_rangePressed;                    /**< the left button went down on the plot, RangeSelectable set */
+    bool m_rangeDragging;                   /**< that press moved RangeDragThreshold pixels or more: a drag that chooses a range */
+    bool m_rangeSwallowClick;               /**< the click after the release of a drag (or of an Escape) activates no marker */
+    Int32 m_rangeAnchorPixel;               /**< the pixel column of the press, inside the plot */
+    Int32 m_rangeCurrentPixel;              /**< the pixel column of the pointer during the drag, inside the plot */
+    bool m_hasSelectedRange;
+    Int64 m_selectedRangeFrom;
+    Int64 m_selectedRangeTo;
 };
 
 /*-------------------------------------------------------------------------//

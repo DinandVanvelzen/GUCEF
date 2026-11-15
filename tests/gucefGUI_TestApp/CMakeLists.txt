@@ -15,6 +15,7 @@
 
 if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -27,9 +28,11 @@ if (ANDROID32)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -42,16 +45,21 @@ if (ANDROID32)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -62,6 +70,7 @@ if (ANDROID32)
 
 elseif (ANDROID64)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -74,9 +83,11 @@ elseif (ANDROID64)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -89,16 +100,21 @@ elseif (ANDROID64)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -109,6 +125,7 @@ elseif (ANDROID64)
 
 elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -121,9 +138,11 @@ elseif (EMSCRIPTEN32)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -136,16 +155,21 @@ elseif (EMSCRIPTEN32)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -156,6 +180,7 @@ elseif (EMSCRIPTEN32)
 
 elseif (EMSCRIPTEN64)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -168,9 +193,11 @@ elseif (EMSCRIPTEN64)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -183,16 +210,21 @@ elseif (EMSCRIPTEN64)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -203,6 +235,7 @@ elseif (EMSCRIPTEN64)
 
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -215,9 +248,11 @@ elseif (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -230,16 +265,21 @@ elseif (LINUX32)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -250,6 +290,7 @@ elseif (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -262,9 +303,11 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -277,16 +320,21 @@ elseif (LINUX64)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -297,6 +345,7 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -309,9 +358,11 @@ elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -324,16 +375,21 @@ elseif (WIN32)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
@@ -344,6 +400,7 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestAssetFormSupport.h
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
@@ -356,9 +413,11 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
     src/TestGuiArbitration.cpp
+    src/TestGuiAssetFormRender.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
+    src/TestGuiContentBrowserForm.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -371,16 +430,21 @@ elseif (WIN64)
     src/TestGuiGridModel.cpp
     src/TestGuiGridRender.cpp
     src/TestGuiGridSelection.cpp
+    src/TestGuiImageViewForm.cpp
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
     src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
+    src/TestGuiPropertyInspectorForm.cpp
     src/TestGuiRender.cpp
+    src/TestGuiReportViewForm.cpp
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiTimelineForm.cpp
     src/TestGuiUserActionLog.cpp
+    src/TestGuiViewportForm.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp

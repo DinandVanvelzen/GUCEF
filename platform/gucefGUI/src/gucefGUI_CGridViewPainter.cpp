@@ -244,6 +244,7 @@ class CGridPaint
         , m_footerTop( grid.GetFooterTop() )
         , m_rowHeaderWidth( m_layout.GetRowHeaderWidth() )
         , m_emphasizedRows( grid.GetEmphasizedRows() )
+        , m_itemColours( grid.GetStringListProperty( EWidgetProperty_ItemColours ) )
         , m_selectedRows()
     {
         const CString& lines = grid.GetPropertyRef( EWidgetProperty_GridLines );
@@ -418,7 +419,13 @@ class CGridPaint
         return column < (Int32) cells.size();
     }
 
-    void PaintCell( Int32 row, Int32 position, Int32 y, bool emphasized, const CGridView::TStringVector& cells )
+    /** The colour ItemColours gives a row; false for a plain row */
+    bool RowColour( Int32 row, CColour& colour ) const
+    {
+        return row >= 0 && row < (Int32) m_itemColours.size() && !m_itemColours[ row ].IsNULLOrEmpty() && CColour::FromString( m_itemColours[ row ], colour );
+    }
+
+    void PaintCell( Int32 row, Int32 position, Int32 y, bool emphasized, const CColour* rowColour, const CGridView::TStringVector& cells )
     {
         const Int32 column = m_layout.GetColumn( position );
         const Int32 x = m_area.left + m_layout.GetScreenLeft( position );
@@ -435,7 +442,7 @@ class CGridPaint
         if ( SCellContent::KIND_CHECK_ON == content.kind || SCellContent::KIND_CHECK_OFF == content.kind )
         {
             CClipScope clipScope( m_commands, CellClip( cell, position, row ) );
-            CheckMark( m_commands, cell, SCellContent::KIND_CHECK_ON == content.kind, emphasized ? m_emphasisColour : m_textColour );
+            CheckMark( m_commands, cell, SCellContent::KIND_CHECK_ON == content.kind, GUCEF_NULL != rowColour ? *rowColour : ( emphasized ? m_emphasisColour : m_textColour ) );
             return;
         }
         if ( content.text.IsNULLOrEmpty() )
@@ -443,7 +450,7 @@ class CGridPaint
 
         const Int32 padLeft = CGridView::CELL_PADDING_LEFT;
         const Int32 padRight = CGridView::CELL_PADDING_RIGHT;
-        const Int32 indent = emphasized && 0 == position ? (Int32) CGridView::EMPHASIS_INDENT : 0;
+        const Int32 indent = ( emphasized || GUCEF_NULL != rowColour ) && 0 == position ? (Int32) CGridView::EMPHASIS_INDENT : 0;
         CString text = content.text;
         if ( m_ellipsis )
         {
@@ -459,7 +466,7 @@ class CGridPaint
             textX = CWidgetPainter::AlignText( x + indent, width - indent, textWidth, alignment, padLeft, padRight );
         }
         CClipScope clipScope( m_commands, CellClip( cell, position, row ) );
-        const CColour& colour = SCellContent::KIND_NULL == content.kind ? DisabledTextColour : ( emphasized ? m_emphasisColour : m_textColour );
+        const CColour& colour = SCellContent::KIND_NULL == content.kind ? DisabledTextColour : ( GUCEF_NULL != rowColour ? *rowColour : ( emphasized ? m_emphasisColour : m_textColour ) );
         Text( m_commands, m_font, text, textX, y, colour );
     }
 
@@ -535,6 +542,12 @@ class CGridPaint
         else
         if ( IsSelectedRow( row ) )
             Fill( m_commands, rowRect, m_selectionColour );
+
+        // a row with a colour of its own: a marker of the colour at its left edge and its text in the colour
+        CColour rowColour;
+        const bool coloured = RowColour( row, rowColour );
+        if ( coloured )
+            Fill( m_commands, CRect( m_area.left, y, 4, m_rowHeight ), rowColour );
         if ( m_rowHeaderWidth > 0 )
             PaintRowHeaderCell( row, y );
 
@@ -542,7 +555,7 @@ class CGridPaint
         if ( !m_grid.HasModel() )
             cells = m_grid.GetRowCells( (UInt32) row );
         for ( size_t i=0; i<m_positions.size(); ++i )
-            PaintCell( row, m_positions[ i ], y, emphasized, cells );
+            PaintCell( row, m_positions[ i ], y, emphasized, coloured ? &rowColour : GUCEF_NULL, cells );
         if ( row == m_hoverIndex )
             Stroke( m_commands, rowRect, m_hoverColour, 1 );
     }
@@ -827,6 +840,7 @@ class CGridPaint
     const Int32 m_footerTop;
     const Int32 m_rowHeaderWidth;
     const CGridView::TInt32Vector m_emphasizedRows;
+    const CGridView::TStringVector m_itemColours;      /**< ItemColours: a colour per row, empty for a plain row */
     CGridView::TInt32Vector m_selectedRows;
     bool m_horizontalLines;
     bool m_verticalLines;

@@ -141,6 +141,15 @@ CWindowManagerBackend::IsGraphicsApiSupported( const CString& graphicsApi ) cons
 
 /*-------------------------------------------------------------------------*/
 
+void
+CWindowManagerBackend::GetAvailableRenderers( CString::StringVector& rendererNames ) const
+{GUCEF_TRACE;
+
+    rendererNames.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWindowManagerBackend::IsRequestedGraphicsApiSupported( const CString& backendName      ,
                                                         const CORE::CValueList* params ) const

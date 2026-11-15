@@ -124,6 +124,37 @@ class CMarkerEventLog : public CORE::CObserver
     }
 };
 
+/** Counts the RangeSelectedEvent of one chart and keeps the range each one read */
+class CRangeEventLog : public CORE::CObserver
+{
+    public:
+
+    UInt32 selections;
+    Int64 lastFrom;
+    Int64 lastTo;
+
+    explicit CRangeEventLog( GUI::CChartView* chart )
+        : CORE::CObserver(), selections( 0 ), lastFrom( 0 ), lastTo( 0 ), m_chart( chart )
+    {
+        TCallback selected( this, &CRangeEventLog::OnRangeSelected );
+        SubscribeTo( chart, GUI::CChartView::RangeSelectedEvent, selected );
+    }
+
+    virtual ~CRangeEventLog() { UnsubscribeAllFromObserver(); }
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CRangeEventLog > TCallback;
+
+    void OnRangeSelected( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++selections;
+        m_chart->GetSelectedRange( lastFrom, lastTo );
+    }
+
+    GUI::CChartView* m_chart;
+};
+
 GUI::CGUIContext*
 ContextOf( GUI::TGuiContextPtr& contextPtr )
 {
@@ -560,6 +591,191 @@ PerformGuiChartMarkerTests( void )
                 chart->SetMarkerLayerVisible( "dividends", true );
                 ASSERT_TRUE( Capture( context, pixels ) );
                 ASSERT_TRUE( CountInRect( pixels, GUI::CRect( hiddenX - size, oy + box.top, 2 * size, size ), green ) >= size * size );
+            }
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Chart range: without RangeSelectable a drag chooses nothing; with it a drag over the plot raises RangeSelectedEvent once with the x of its columns low to high, the band shows while dragging and while the range is chosen" )
+    try
+    {
+        ASSERT_TRUE( GUI::EWidgetProperty_RangeSelectable == GUI::StringToWidgetProperty( "RangeSelectable" ) );
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            context->RegisterFont( "Test", MakeTestFont( 6, 10 ) );
+            GUI::CWidget* screen = MakeScreen( context );
+            GUI::CChartView* chart = MakeChart( context, screen, "Chart", 20, 20, 600, 320 );
+            ASSERT_TRUE( GUCEF_NULL != chart );
+            if ( GUCEF_NULL != chart )
+            {
+                chart->SetProperty( GUI::EWidgetProperty_Font, "Test" );
+                chart->SetBoolProperty( GUI::EWidgetProperty_CrosshairVisible, false );
+                ASSERT_FALSE( chart->GetBoolProperty( GUI::EWidgetProperty_RangeSelectable ) );
+                const Int64 start = GUI::CChartAxis::MakeTime( 2024, 6, 1 );
+                AddPriceLine( *chart, start );
+                CRangeEventLog log( chart );
+                IMAGE::TPixelMapPtr before;
+                ASSERT_TRUE( Capture( context, before ) );
+                const Int32 ox = chart->GetRect().left;
+                const Int32 oy = chart->GetRect().top;
+                const GUI::CRect plot = chart->GetPlotRect();
+                const Int32 y = oy + plot.Bottom() - 3;
+                const Int32 from = chart->XToPixel( start + 5 * Day );
+                const Int32 to = chart->XToPixel( start + 20 * Day );
+                const Int32 inside = chart->XToPixel( start + 12 * Day );
+                const Int32 outside = chart->XToPixel( start + 25 * Day );
+
+                // off: the same drag chooses nothing
+                context->InjectMouseMove( ox + from, y );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( ox + to, y );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                Int64 low = 0, high = 0;
+                ASSERT_TRUE( 0 == log.selections && !chart->GetSelectedRange( low, high ) && !chart->IsSelectingRange() );
+
+                // on: during the drag the range follows the pointer and the band is drawn over it, not beside it
+                chart->SetBoolProperty( GUI::EWidgetProperty_RangeSelectable, true );
+                ASSERT_TRUE( Capture( context, before ) );
+                context->InjectMouseMove( ox + from, y );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( ox + from + 2, y );
+                ASSERT_FALSE( chart->IsSelectingRange() );
+                context->InjectMouseMove( ox + ( from + to ) / 2, y );
+                context->InjectMouseMove( ox + to, y );
+                ASSERT_TRUE( chart->IsSelectingRange() && 0 == log.selections );
+                ASSERT_TRUE( chart->GetSelectedRange( low, high ) && chart->PixelToX( from ) == low && chart->PixelToX( to ) == high );
+                IMAGE::TPixelMapPtr during;
+                ASSERT_TRUE( Capture( context, during ) );
+                ASSERT_FALSE( SameRgb( PixelAt( before, ox + inside, y ), PixelAt( during, ox + inside, y ) ) );
+                ASSERT_TRUE( SameRgb( PixelAt( before, ox + outside, y ), PixelAt( during, ox + outside, y ) ) );
+
+                // the release: one event with the range, which stays chosen and drawn
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 1 == log.selections && chart->PixelToX( from ) == log.lastFrom && chart->PixelToX( to ) == log.lastTo );
+                ASSERT_TRUE( !chart->IsSelectingRange() && chart->GetSelectedRange( low, high ) && low == log.lastFrom && high == log.lastTo );
+                IMAGE::TPixelMapPtr after;
+                ASSERT_TRUE( Capture( context, after ) );
+                ASSERT_TRUE( SameRgb( PixelAt( during, ox + inside, y ), PixelAt( after, ox + inside, y ) ) );
+
+                // right to left: low to high all the same; past the plot: its edge
+                context->InjectMouseMove( ox + to, y );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( ox + from, y );
+                context->InjectMouseMove( ox - 15, y );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 2 == log.selections && chart->PixelToX( plot.left ) == log.lastFrom && chart->PixelToX( to ) == log.lastTo );
+
+                // cleared: no range, no band; SelectRange() chooses one in any order and says so
+                chart->ClearSelectedRange();
+                ASSERT_FALSE( chart->GetSelectedRange( low, high ) );
+                IMAGE::TPixelMapPtr cleared;
+                ASSERT_TRUE( Capture( context, cleared ) );
+                ASSERT_TRUE( SameRgb( PixelAt( before, ox + inside, y ), PixelAt( cleared, ox + inside, y ) ) );
+                ASSERT_FALSE( chart->SelectRange( start, start ) );
+                ASSERT_TRUE( chart->SelectRange( start + 9 * Day, start + 3 * Day ) && 3 == log.selections );
+                ASSERT_TRUE( start + 3 * Day == log.lastFrom && start + 9 * Day == log.lastTo );
+                // switched off: the range is forgotten
+                chart->SetBoolProperty( GUI::EWidgetProperty_RangeSelectable, false );
+                ASSERT_FALSE( chart->GetSelectedRange( low, high ) );
+            }
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Chart range: a click on a marker still activates it; a drag that starts on a marker chooses a range and activates nothing; a move under RangeDragThreshold is a click; Escape and a lost capture end a drag without a range" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            context->RegisterFont( "Test", MakeTestFont( 6, 10 ) );
+            GUI::CWidget* screen = MakeScreen( context );
+            GUI::CChartView* chart = MakeChart( context, screen, "Chart", 20, 20, 600, 320 );
+            ASSERT_TRUE( GUCEF_NULL != chart );
+            if ( GUCEF_NULL != chart )
+            {
+                chart->SetProperty( GUI::EWidgetProperty_Font, "Test" );
+                chart->SetBoolProperty( GUI::EWidgetProperty_RangeSelectable, true );
+                chart->SetBoolProperty( GUI::EWidgetProperty_Focusable, true );
+                const Int64 start = GUI::CChartAxis::MakeTime( 2024, 6, 1 );
+                const UInt32 price = AddPriceLine( *chart, start );
+                chart->AddMarker( Marker( "split:2024-06-11", start + 10 * Day, (Int32) price, "", "", "", "Split" ) );
+                CMarkerEventLog markers( chart );
+                CRangeEventLog ranges( chart );
+                IMAGE::TPixelMapPtr pixels;
+                ASSERT_TRUE( Capture( context, pixels ) );
+                const Int32 ox = chart->GetRect().left;
+                const Int32 oy = chart->GetRect().top;
+                GUI::CRect split;
+                ASSERT_TRUE( chart->GetMarkerRect( 0, split ) );
+                const Int32 mx = ox + split.left + split.width / 2;
+                const Int32 my = oy + split.top + split.height / 2;
+
+                // a click on the marker, and a press on it that moves less than the threshold: both activate it, no range
+                context->InjectMouseMove( mx, my );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 1 == markers.activations && 0 == ranges.selections );
+                context->RenderFrame( 600 );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( mx + GUI::CChartView::RangeDragThreshold - 1, my );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 2 == markers.activations && 0 == ranges.selections );
+                context->RenderFrame( 600 );
+
+                // a drag from the marker, released back on it: a range, no activation; the next click activates again
+                context->InjectMouseMove( mx, my );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( mx + 60, my );
+                context->InjectMouseMove( mx, my );
+                ASSERT_TRUE( chart->IsSelectingRange() );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 2 == markers.activations && 1 == ranges.selections );
+                context->RenderFrame( 600 );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                ASSERT_TRUE( 3 == markers.activations && 1 == ranges.selections );
+                context->RenderFrame( 600 );
+                chart->ClearSelectedRange();
+
+                // Escape during a drag: no range, and the release on the marker is no click on it
+                ASSERT_TRUE( context->GetFocus() == chart );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( mx + 80, my );
+                ASSERT_TRUE( chart->IsSelectingRange() );
+                context->InjectKey( INPUT::KEYCODE_ESCAPE, true, 0 );
+                context->InjectKey( INPUT::KEYCODE_ESCAPE, false, 0 );
+                ASSERT_FALSE( chart->IsSelectingRange() );
+                context->InjectMouseMove( mx, my );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                Int64 low = 0, high = 0;
+                ASSERT_TRUE( 3 == markers.activations && 1 == ranges.selections && !chart->GetSelectedRange( low, high ) );
+                context->RenderFrame( 600 );
+
+                // the chart hidden during a drag: the capture is lost, the drag ends without a range
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, true );
+                context->InjectMouseMove( mx + 80, my );
+                ASSERT_TRUE( chart->IsSelectingRange() );
+                chart->SetVisibility( false );
+                context->RenderFrame( 16 );
+                ASSERT_FALSE( chart->IsSelectingRange() );
+                context->InjectMouseButton( GUI::MOUSEBUTTON_LEFT, false );
+                chart->SetVisibility( true );
+                context->RenderFrame( 16 );
+                ASSERT_TRUE( 3 == markers.activations && 1 == ranges.selections && !chart->GetSelectedRange( low, high ) );
             }
         }
     }

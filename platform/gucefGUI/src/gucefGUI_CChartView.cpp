@@ -69,6 +69,9 @@ const Int32 LegendEntryGap = 16;
 /** Alpha of the fill of an area series */
 const UInt8 AreaAlpha = 72;
 
+/** Alpha of the band of a chosen range */
+const UInt8 RangeBandAlpha = 48;
+
 /** Part of its share of the bar slot a bar fills */
 const Float64 BarFill = 0.8;
 
@@ -137,9 +140,11 @@ ClipLine( Float64& x0, Float64& y0, Float64& x1, Float64& y1, Float64 left, Floa
 const CORE::CEvent CChartView::CrosshairChangedEvent = "GUCEF::GUI::CChartView::CrosshairChangedEvent";
 const CORE::CEvent CChartView::MarkerActivatedEvent = "GUCEF::GUI::CChartView::MarkerActivatedEvent";
 const CORE::CEvent CChartView::MarkerSelectionChangedEvent = "GUCEF::GUI::CChartView::MarkerSelectionChangedEvent";
+const CORE::CEvent CChartView::RangeSelectedEvent = "GUCEF::GUI::CChartView::RangeSelectedEvent";
 
 const Int32 CChartView::MarkerSize = 11;
 const Int32 CChartView::MarkerHitSlop = 4;
+const Int32 CChartView::RangeDragThreshold = 4;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -154,6 +159,7 @@ CChartView::RegisterEvents( void )
     CrosshairChangedEvent.Initialize();
     MarkerActivatedEvent.Initialize();
     MarkerSelectionChangedEvent.Initialize();
+    RangeSelectedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -188,6 +194,14 @@ CChartView::CChartView( void )
     , m_selectedMarker( -1 )
     , m_hoveredMarker( -1 )
     , m_focused( false )
+    , m_rangePressed( false )
+    , m_rangeDragging( false )
+    , m_rangeSwallowClick( false )
+    , m_rangeAnchorPixel( 0 )
+    , m_rangeCurrentPixel( 0 )
+    , m_hasSelectedRange( false )
+    , m_selectedRangeFrom( 0 )
+    , m_selectedRangeTo( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -1074,6 +1088,12 @@ CChartView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue
             Invalidate();
             break;
         }
+        case EWidgetProperty_RangeSelectable:
+        {
+            if ( !GetBoolProperty( EWidgetProperty_RangeSelectable ) )
+                ClearSelectedRange();
+            break;
+        }
         case EWidgetProperty_Title:
         case EWidgetProperty_Font:
         case EWidgetProperty_TextColour:
@@ -1108,10 +1128,64 @@ bool
 CChartView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData )
 {GUCEF_TRACE;
 
+    if ( MouseDownEvent == eventId )
+    {
+        // a press of the left button on the plot may start the drag of a range
+        const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
+        m_rangeSwallowClick = false;
+        if ( MOUSEBUTTON_LEFT != pointer->button || !GetBoolProperty( EWidgetProperty_RangeSelectable ) )
+            return false;
+        EnsureBuilt();
+        if ( !m_plotRect.Contains( pointer->localX, pointer->localY ) )
+            return false;
+        m_rangePressed = true;
+        m_rangeDragging = false;
+        m_rangeAnchorPixel = ClampToPlot( pointer->localX );
+        m_rangeCurrentPixel = m_rangeAnchorPixel;
+        return true;
+    }
+    if ( MouseUpEvent == eventId )
+    {
+        const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
+        if ( MOUSEBUTTON_LEFT != pointer->button || !m_rangePressed )
+            return false;
+        const bool dragged = m_rangeDragging;
+        m_rangePressed = false;
+        m_rangeDragging = false;
+        if ( !dragged )
+            return false;
+        // the drag chose a range: the click that follows the release is not one on a marker
+        m_rangeSwallowClick = true;
+        const Int32 low = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeAnchorPixel : m_rangeCurrentPixel;
+        const Int32 high = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeCurrentPixel : m_rangeAnchorPixel;
+        m_hasSelectedRange = true;
+        m_selectedRangeFrom = PixelToX( low );
+        m_selectedRangeTo = PixelToX( high );
+        Invalidate();
+        NotifyObservers( RangeSelectedEvent );
+        return true;
+    }
+    if ( MouseCaptureLostEvent == eventId )
+    {
+        CancelRangeDrag();
+        return false;
+    }
     if ( MouseMoveEvent == eventId )
     {
         const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
-        SetHoveredMarker( HitTestMarker( pointer->localX, pointer->localY ) );
+        if ( m_rangePressed )
+        {
+            const Int32 pixel = ClampToPlot( pointer->localX );
+            const Int32 distance = pixel > m_rangeAnchorPixel ? pixel - m_rangeAnchorPixel : m_rangeAnchorPixel - pixel;
+            if ( !m_rangeDragging && distance >= RangeDragThreshold )
+                m_rangeDragging = true;
+            if ( m_rangeDragging && pixel != m_rangeCurrentPixel )
+            {
+                m_rangeCurrentPixel = pixel;
+                Invalidate();
+            }
+        }
+        SetHoveredMarker( m_rangeDragging ? -1 : HitTestMarker( pointer->localX, pointer->localY ) );
         if ( !GetBoolProperty( EWidgetProperty_CrosshairVisible ) )
             return m_hoveredMarker >= 0;
         if ( m_plotRect.Contains( pointer->localX, pointer->localY ) )
@@ -1131,6 +1205,11 @@ CChartView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
         const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
         if ( MOUSEBUTTON_LEFT != pointer->button )
             return false;
+        if ( m_rangeSwallowClick )
+        {
+            m_rangeSwallowClick = false;
+            return true;
+        }
         const Int32 hit = HitTestMarker( pointer->localX, pointer->localY );
         return hit >= 0 && ActivateMarker( (UInt32) hit );
     }
@@ -1143,6 +1222,13 @@ CChartView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
     {
         // the keys of the markers, before the context makes navigation or scrolling of them
         const CKeyEventData* key = static_cast< const CKeyEventData* >( &eventData );
+        // Escape ends a drag without a range; the release that follows is no click either
+        if ( INPUT::KEYCODE_ESCAPE == key->keyCode && m_rangePressed )
+        {
+            m_rangeSwallowClick = m_rangeDragging;
+            CancelRangeDrag();
+            return true;
+        }
         if ( 0 != ( key->modifiers & ( INPUT::KEYMOD_CTRL | INPUT::KEYMOD_ALT | INPUT::KEYMOD_META | INPUT::KEYMOD_SHIFT ) ) )
             return false;
         EnsureBuilt();
@@ -1696,6 +1782,7 @@ CChartView::Rebuild( Int32 width, Int32 height )
             DrawSeriesLine( i, GetSeriesColour( i ) );
         }
     }
+    DrawSelectedRange();
     DrawMarkers();
     PopClip();
 
@@ -2161,6 +2248,128 @@ CChartView::SetHoveredMarker( Int32 index )
         return;
     m_hoveredMarker = index;
     Invalidate();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CChartView::ClampToPlot( Int32 localX ) const
+{GUCEF_TRACE;
+
+    if ( localX < m_plotRect.left )
+        return m_plotRect.left;
+    if ( localX >= m_plotRect.Right() )
+        return m_plotRect.Right() - 1;
+    return localX;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::CancelRangeDrag( void )
+{GUCEF_TRACE;
+
+    if ( !m_rangePressed )
+        return false;
+    const bool dragged = m_rangeDragging;
+    m_rangePressed = false;
+    m_rangeDragging = false;
+    if ( dragged )
+        Invalidate();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::GetSelectedRange( Int64& fromX, Int64& toX ) const
+{GUCEF_TRACE;
+
+    if ( m_rangeDragging )
+    {
+        const Int32 low = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeAnchorPixel : m_rangeCurrentPixel;
+        const Int32 high = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeCurrentPixel : m_rangeAnchorPixel;
+        fromX = PixelToX( low );
+        toX = PixelToX( high );
+        return true;
+    }
+    if ( !m_hasSelectedRange )
+        return false;
+    fromX = m_selectedRangeFrom;
+    toX = m_selectedRangeTo;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::IsSelectingRange( void ) const
+{GUCEF_TRACE;
+
+    return m_rangeDragging;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::SelectRange( Int64 fromX, Int64 toX )
+{GUCEF_TRACE;
+
+    if ( fromX == toX )
+        return false;
+    CancelRangeDrag();
+    m_hasSelectedRange = true;
+    m_selectedRangeFrom = fromX < toX ? fromX : toX;
+    m_selectedRangeTo = fromX < toX ? toX : fromX;
+    Invalidate();
+    NotifyObservers( RangeSelectedEvent );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::ClearSelectedRange( void )
+{GUCEF_TRACE;
+
+    const bool shown = m_hasSelectedRange || m_rangeDragging;
+    CancelRangeDrag();
+    m_hasSelectedRange = false;
+    if ( shown )
+        Invalidate();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::DrawSelectedRange( void )
+{GUCEF_TRACE;
+
+    Int32 left = 0, right = 0;
+    if ( m_rangeDragging )
+    {
+        left = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeAnchorPixel : m_rangeCurrentPixel;
+        right = m_rangeAnchorPixel < m_rangeCurrentPixel ? m_rangeCurrentPixel : m_rangeAnchorPixel;
+    }
+    else
+    if ( m_hasSelectedRange )
+    {
+        // the chosen range in the x range of this rebuild; nothing when it lies outside
+        if ( (Float64) m_selectedRangeTo < m_xAxis.GetMin() || (Float64) m_selectedRangeFrom > m_xAxis.GetMax() )
+            return;
+        left = ClampToPlot( XToPixel( m_selectedRangeFrom ) );
+        right = ClampToPlot( XToPixel( m_selectedRangeTo ) );
+    }
+    else
+    {
+        return;
+    }
+    CColour band = GetColourProperty( EWidgetProperty_SelectionColour );
+    const CColour edge = band;
+    band.a = RangeBandAlpha;
+    FillRect( CRect( left, m_plotRect.top, right - left + 1, m_plotRect.height ), band );
+    DrawLine( left, m_plotRect.top, left, m_plotRect.Bottom() - 1, edge, 1 );
+    DrawLine( right, m_plotRect.top, right, m_plotRect.Bottom() - 1, edge, 1 );
 }
 
 /*-------------------------------------------------------------------------*/

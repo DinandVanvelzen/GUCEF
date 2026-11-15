@@ -429,6 +429,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     gridview.AddProperty( Prop( EWidgetProperty_SelectedRows, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "The selected rows when MultiSelect is on" ) );
     gridview.AddProperty( Prop( EWidgetProperty_EmphasizedRows, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "The rows that stand out because they need the player, such as the games where it is the player's turn" ) );
     gridview.AddProperty( Prop( EWidgetProperty_EmphasisColour, PD::VALUETYPE_COLOUR, "150,198,255,255", DEFAULTFLAGS, "Rows", "Text colour of the rows that stand out" ) );
+    gridview.AddProperty( PD( EWidgetProperty_ItemColours, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Rows", "Per row an \"r,g,b,a\" colour: the row gets a marker of that colour at its left and its text in it; an empty entry is a plain row" ) );
     gridview.AddProperty( Prop( EWidgetProperty_AnchorRow, PD::VALUETYPE_INT, "-1", RUNTIMEFLAGS, "State", "Where a Shift selection starts" ) );
     gridview.AddProperty( Prop( EWidgetProperty_Sortable, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Items", "Whether a click on a column title sorts the rows by that column" ) );
     gridview.AddProperty( Prop( EWidgetProperty_SortColumn, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Items", "The column the rows are sorted by, -1 for none (shows the arrow in the header)" ) );
@@ -481,6 +482,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     chart.AddProperty( Prop( EWidgetProperty_TooltipColour, PD::VALUETYPE_COLOUR, "38,38,36,245", DEFAULTFLAGS, "Look", "The box of the tooltip" ) );
     chart.AddProperty( PD( EWidgetProperty_SeriesColours, PD::VALUETYPE_STRINGLIST, seriesColours, DEFAULTFLAGS, "Look", "The colours of the series in their order, one \"r,g,b,a\" per entry; a series with a colour of its own keeps it" ) );
     chart.AddProperty( Prop( EWidgetProperty_CrosshairVisible, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The pointer moves a crosshair with a tooltip over the plot" ) );
+    chart.AddProperty( Prop( EWidgetProperty_RangeSelectable, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Chart", "A drag with the left button over the plot chooses a range of x (RangeSelectedEvent); a click still activates a marker" ) );
     chart.AddProperty( Prop( EWidgetProperty_LegendVisible, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The legend, shown when two or more series are visible" ) );
     chart.AddProperty( EnumProp( EWidgetProperty_LegendPosition, "Top", "Top,Bottom", DEFAULTFLAGS, "Chart", "Where the legend is" ) );
     chart.AddProperty( EnumProp( EWidgetProperty_XAxisType, "Time", "Time,Numeric", DEFAULTFLAGS, "Chart", "Time: x values are milliseconds since the Unix epoch in UTC; Numeric: plain integers" ) );

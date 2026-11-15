@@ -159,6 +159,14 @@ class GUCEF_GUI_PUBLIC_CPP CWindowManagerBackend : public CORE::CObservingNotifi
      */
     virtual bool IsGraphicsApiSupported( const CString& graphicsApi ) const;
 
+    /**
+     *  The renderers the windows of this backend can draw with on this system, by name, in the order the backend
+     *  prefers them: the choices for CVideoSettings::SetRenderer(), like "Vulkan", "OpenGL" or "Direct3D 11". The
+     *  default is none: a backend without a choice of renderer (an OpenGL window driver always draws with OpenGL).
+     *  Window contexts of a backend with a choice report the renderer they draw with as the property "RENDERER".
+     */
+    virtual void GetAvailableRenderers( CString::StringVector& rendererNames ) const;
+
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;

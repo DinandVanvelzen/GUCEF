@@ -141,6 +141,7 @@ const char* const g_propertyNames[ EWidgetProperty_Count ] =
     "Position",
     "PositionInMs",
     "PushedImage",
+    "RangeSelectable",
     "ReadOnly",
     "ResizableColumns",
     "Revision",

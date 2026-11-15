@@ -35,6 +35,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CChartView.cpp \
   src/gucefGUI_CCheckbox.cpp \
   src/gucefGUI_CCombobox.cpp \
+  src/gucefGUI_CContentBrowserForm.cpp \
   src/gucefGUI_CDataTableViewModel.cpp \
   src/gucefGUI_CDeveloperConsoleForm.cpp \
   src/gucefGUI_CDirectoryOpenDialogForm.cpp \
@@ -68,9 +69,13 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CGridViewPainter.cpp \
   src/gucefGUI_CGroupBox.cpp \
   src/gucefGUI_CGuiGlobal.cpp \
+  src/gucefGUI_CIContentTypeResolver.cpp \
   src/gucefGUI_CIGUIContext.cpp \
   src/gucefGUI_CITableViewModel.cpp \
+  src/gucefGUI_CIThumbnailProvider.cpp \
+  src/gucefGUI_CIViewportController.cpp \
   src/gucefGUI_CImageFrame.cpp \
+  src/gucefGUI_CImageViewForm.cpp \
   src/gucefGUI_CKeyboardLayout.cpp \
   src/gucefGUI_CKeyboardLayoutRegistry.cpp \
   src/gucefGUI_CLabel.cpp \
@@ -83,8 +88,11 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CPathFieldForm.cpp \
   src/gucefGUI_CPopupMenu.cpp \
   src/gucefGUI_CProgressBar.cpp \
+  src/gucefGUI_CPropertyInspectorForm.cpp \
+  src/gucefGUI_CPropertyRowDescriptor.cpp \
   src/gucefGUI_CPushButton.cpp \
   src/gucefGUI_CRenderContext.cpp \
+  src/gucefGUI_CReportViewForm.cpp \
   src/gucefGUI_CRoutedEventData.cpp \
   src/gucefGUI_CScrollPanel.cpp \
   src/gucefGUI_CSecretInput.cpp \
@@ -104,6 +112,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CTableViewRange.cpp \
   src/gucefGUI_CTabularText.cpp \
   src/gucefGUI_CTextbox.cpp \
+  src/gucefGUI_CTimelineForm.cpp \
   src/gucefGUI_CTreeview.cpp \
   src/gucefGUI_CUDim.cpp \
   src/gucefGUI_CUVector.cpp \
@@ -111,6 +120,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CVideoSettings.cpp \
   src/gucefGUI_CVideoSettingsForm.cpp \
   src/gucefGUI_CVideoView.cpp \
+  src/gucefGUI_CViewportForm.cpp \
   src/gucefGUI_CWidget.cpp \
   src/gucefGUI_CWidgetFactory.cpp \
   src/gucefGUI_CWidgetHandler.cpp \

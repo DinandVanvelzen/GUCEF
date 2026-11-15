@@ -67,7 +67,8 @@ CVideoSettings::CVideoSettings( void )
       m_presentFilterParameters()          ,
       m_imageUpscaler()                    ,
       m_movieUpscaling()                   ,
-      m_renderScale( 1 )
+      m_renderScale( 1 )                   ,
+      m_renderer()
 {GUCEF_TRACE;
 
     m_displayMode.depthInBits = 32;
@@ -89,7 +90,8 @@ CVideoSettings::CVideoSettings( const CVideoSettings& src )
       m_presentFilterParameters( src.m_presentFilterParameters ) ,
       m_imageUpscaler( src.m_imageUpscaler )           ,
       m_movieUpscaling( src.m_movieUpscaling )         ,
-      m_renderScale( src.m_renderScale )
+      m_renderScale( src.m_renderScale )               ,
+      m_renderer( src.m_renderer )
 {GUCEF_TRACE;
 
 }
@@ -119,6 +121,7 @@ CVideoSettings::operator=( const CVideoSettings& src )
         m_imageUpscaler = src.m_imageUpscaler;
         m_movieUpscaling = src.m_movieUpscaling;
         m_renderScale = src.m_renderScale;
+        m_renderer = src.m_renderer;
     }
     return *this;
 }
@@ -385,6 +388,24 @@ CVideoSettings::GetRenderScale( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CVideoSettings::SetRenderer( const CString& rendererName )
+{GUCEF_TRACE;
+
+    m_renderer = rendererName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CVideoSettings::GetRenderer( void ) const
+{GUCEF_TRACE;
+
+    return m_renderer;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 CVideoSettings::PresentModeToString( TPresentMode presentMode )
 {GUCEF_TRACE;
@@ -439,6 +460,7 @@ CVideoSettings::SaveConfig( GUCEF::CORE::CDataNode& tree ) const
     section->SetAttribute( "imageUpscaler", m_imageUpscaler );
     section->SetAttribute( "movieUpscaling", m_movieUpscaling );
     section->SetAttribute( "renderScale", m_renderScale );
+    section->SetAttribute( "renderer", m_renderer );
 
     section->DelChild( "PresentFilterParameters" );
     if ( !m_presentFilterParameters.empty() )
@@ -478,6 +500,7 @@ CVideoSettings::LoadConfig( const GUCEF::CORE::CDataNode& treeroot )
     m_imageUpscaler = section->GetAttributeValueOrChildValueByName( "imageUpscaler" ).AsString( m_imageUpscaler, true );
     m_movieUpscaling = section->GetAttributeValueOrChildValueByName( "movieUpscaling" ).AsString( m_movieUpscaling, true );
     m_renderScale = section->GetAttributeValueOrChildValueByName( "renderScale" ).AsUInt32( m_renderScale, true );
+    m_renderer = section->GetAttributeValueOrChildValueByName( "renderer" ).AsString( m_renderer, true );
 
     const CORE::CDataNode* parameters = section->FindChild( "PresentFilterParameters" );
     if ( GUCEF_NULL != parameters )

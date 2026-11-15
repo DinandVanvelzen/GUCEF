@@ -640,6 +640,20 @@ CGridView::IsRowEmphasizedByModel( Int32 row ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CGridView::GetRowColour( Int32 row, CColour& colour ) const
+{GUCEF_TRACE;
+
+    if ( row < 0 )
+        return false;
+    const TStringVector colours = GetStringListProperty( EWidgetProperty_ItemColours );
+    if ( row >= (Int32) colours.size() || colours[ row ].IsNULLOrEmpty() )
+        return false;
+    return CColour::FromString( colours[ row ], colour );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CGridView::IsRowSelected( Int32 row ) const
 {GUCEF_TRACE;
 
@@ -814,7 +828,8 @@ CGridView::GetCellTextRoom( UInt32 column, Int32 row ) const
     if ( column >= (UInt32) widths.size() )
         return 0;
     Int32 room = widths[ column ] - CELL_PADDING_LEFT - CELL_PADDING_RIGHT;
-    if ( 0 == column && row >= 0 && IsRowEmphasized( row ) )
+    CColour rowColour;
+    if ( 0 == column && row >= 0 && ( IsRowEmphasized( row ) || GetRowColour( row, rowColour ) ) )
         room -= EMPHASIS_INDENT;
     return room > 0 ? room : 0;
 }

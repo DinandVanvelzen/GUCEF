@@ -92,6 +92,15 @@ CITableViewModel::~CITableViewModel()
 
 /*-------------------------------------------------------------------------*/
 
+const CTableViewColumn&
+CITableViewModel::GetCellColumn( UInt32 row, UInt32 column ) const
+{GUCEF_TRACE;
+
+    return GetColumn( column );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CITableViewModel::GetCellContent( UInt32 row, UInt32 column, SCellContent& content ) const
 {GUCEF_TRACE;
@@ -104,7 +113,7 @@ CITableViewModel::GetCellContent( UInt32 row, UInt32 column, SCellContent& conte
         content.isNumber = false;
         return false;
     }
-    CTableCellFormatter::Format( value, GetColumn( column ), content );
+    CTableCellFormatter::Format( value, GetCellColumn( row, column ), content );
     return true;
 }
 
@@ -268,7 +277,7 @@ bool
 CITableViewModel::IsCellReadOnly( UInt32 row, UInt32 column ) const
 {GUCEF_TRACE;
 
-    return GetColumn( column ).readOnly;
+    return GetCellColumn( row, column ).readOnly;
 }
 
 /*-------------------------------------------------------------------------*/

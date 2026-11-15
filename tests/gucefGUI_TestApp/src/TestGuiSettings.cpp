@@ -89,6 +89,7 @@ MakeChangedVideoSettings( void )
     settings.SetImageUpscaler( "mmpx" );
     settings.SetMovieUpscaling( GUI::CVideoSettings::MovieUpscalingConverted );
     settings.SetRenderScale( 0 );
+    settings.SetRenderer( "Vulkan" );
     return settings;
 }
 
@@ -301,7 +302,8 @@ SameVideoSettings( const GUI::CVideoSettings& a, const GUI::CVideoSettings& b )
            a.GetResolutionDepthInBits() == b.GetResolutionDepthInBits() && a.GetFrequency() == b.GetFrequency() &&
            a.GetAntiAliasingFactor() == b.GetAntiAliasingFactor() && a.GetPresentMode() == b.GetPresentMode() &&
            a.GetPresentFilter() == b.GetPresentFilter() && a.GetPresentFilterParameters() == b.GetPresentFilterParameters() &&
-           a.GetImageUpscaler() == b.GetImageUpscaler() && a.GetMovieUpscaling() == b.GetMovieUpscaling() && a.GetRenderScale() == b.GetRenderScale();
+           a.GetImageUpscaler() == b.GetImageUpscaler() && a.GetMovieUpscaling() == b.GetMovieUpscaling() && a.GetRenderScale() == b.GetRenderScale() &&
+           a.GetRenderer() == b.GetRenderer();
 }
 
 }
@@ -709,6 +711,91 @@ PerformGuiSettingsTests( void )
             ASSERT_TRUE( PickItem( context, bothVideo->GetWidget( "MovieUpscaling" ), 0 ) );
             ASSERT_TRUE( bothVideo->GetSettingsFromWidgets().GetMovieUpscaling().IsNULLOrEmpty() );
             both.Cancel();
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Settings: The Renderer row offers Automatic and the renderers of the application, and says a renderer other than the one in use takes effect after a restart" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateSettingsContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            // the renderer is in the settings section, empty by default
+            ASSERT_TRUE( GUI::CVideoSettings().GetRenderer().IsNULLOrEmpty() );
+            CORE::CDataNode config( "Config" );
+            GUI::CVideoSettings vulkan;
+            vulkan.SetRenderer( "Vulkan" );
+            ASSERT_TRUE( vulkan.SaveConfig( config ) );
+            ASSERT_TRUE( "Vulkan" == config.FindChild( GUI::CVideoSettings::ConfigSectionName )->GetAttributeValue( "renderer" ).AsString() );
+
+            // no renderers: the row is disabled and Apply keeps the renderer of the settings
+            GUI::CSettingsForm none( context );
+            GUI::CVideoSettingsForm* noneVideo = static_cast< GUI::CVideoSettingsForm* >( none.AddPage( "Video" ) );
+            noneVideo->SetVideoSettings( vulkan );
+            ASSERT_TRUE( none.Open() );
+            ASSERT_FALSE( IsEnabled( noneVideo, "Renderer" ) );
+            ASSERT_TRUE( GUI::CVideoSettingsForm::AutomaticChoice == ComboboxText( noneVideo, "Renderer" ) );
+            ASSERT_FALSE( noneVideo->GetWidget( "RendererNote" )->IsVisible() );
+            ASSERT_TRUE( "Vulkan" == noneVideo->GetSettingsFromWidgets().GetRenderer() );
+            none.Cancel();
+
+            // the renderers the backend has, in its order, OpenGL in use: Vulkan in the settings is picked and is not the one in use
+            GUI::CSettingsForm form( context );
+            GUI::CVideoSettingsForm* video = static_cast< GUI::CVideoSettingsForm* >( form.AddPage( "Video" ) );
+            video->SetVideoSettings( vulkan );
+            GUI::CVideoSettingsForm::TStringVector renderers;
+            renderers.push_back( "OpenGL" );
+            renderers.push_back( "Vulkan" );
+            video->SetAvailableRenderers( renderers, "OpenGL" );
+            ASSERT_TRUE( form.Open() );
+            ASSERT_TRUE( IsEnabled( video, "Renderer" ) );
+            ASSERT_TRUE( ComboboxHas( video, "Renderer", GUI::CVideoSettingsForm::AutomaticChoice ) && ComboboxHas( video, "Renderer", "OpenGL" ) );
+            ASSERT_TRUE( "Vulkan" == ComboboxText( video, "Renderer" ) );
+            ASSERT_TRUE( video->GetWidget( "RendererNote" )->IsVisible() );
+            ASSERT_TRUE( GUI::CVideoSettingsForm::RendererNoteText == video->GetWidget( "RendererNote" )->GetProperty( "Text" ) );
+            ASSERT_FALSE( video->HasChanges() );
+
+            // Automatic is the first renderer of the list, the one in use: no note, and no renderer in the settings
+            ASSERT_TRUE( PickItem( context, video->GetWidget( "Renderer" ), 0 ) );
+            ASSERT_TRUE( GUI::CVideoSettingsForm::AutomaticChoice == ComboboxText( video, "Renderer" ) );
+            ASSERT_FALSE( video->GetWidget( "RendererNote" )->IsVisible() );
+            ASSERT_TRUE( video->HasChanges() );
+            ASSERT_TRUE( video->GetSettingsFromWidgets().GetRenderer().IsNULLOrEmpty() );
+
+            // OpenGL by name: the one in use, no note; Vulkan again: the note, and Apply keeps it in the settings
+            ASSERT_TRUE( PickItem( context, video->GetWidget( "Renderer" ), 1 ) );
+            ASSERT_FALSE( video->GetWidget( "RendererNote" )->IsVisible() );
+            ASSERT_TRUE( "OpenGL" == video->GetSettingsFromWidgets().GetRenderer() );
+            ASSERT_TRUE( PickItem( context, video->GetWidget( "Renderer" ), 2 ) );
+            ASSERT_TRUE( video->GetWidget( "RendererNote" )->IsVisible() );
+            ASSERT_TRUE( video->ApplySettings() );
+            ASSERT_TRUE( "Vulkan" == video->GetVideoSettings().GetRenderer() );
+            form.Cancel();
+
+            // a renderer of the settings that is not available here shows as Automatic, without a note for the one the backend prefers
+            GUI::CSettingsForm other( context );
+            GUI::CVideoSettingsForm* otherVideo = static_cast< GUI::CVideoSettingsForm* >( other.AddPage( "Video" ) );
+            GUI::CVideoSettings direct3d;
+            direct3d.SetRenderer( "Direct3D 11" );
+            otherVideo->SetVideoSettings( direct3d );
+            otherVideo->SetAvailableRenderers( renderers, "OpenGL" );
+            ASSERT_TRUE( other.Open() );
+            ASSERT_TRUE( GUI::CVideoSettingsForm::AutomaticChoice == ComboboxText( otherVideo, "Renderer" ) );
+            ASSERT_FALSE( otherVideo->GetWidget( "RendererNote" )->IsVisible() );
+            other.Cancel();
+
+            // the layout with the new row is valid
+            CORE::CDataNode layout;
+            ASSERT_TRUE( form.SaveLayout( layout ) );
+            GUI::CFormLayout::TStringVector problems;
+            ASSERT_TRUE( GUI::CFormLayout::Validate( *GUI::CFormLayout::FindLayoutRoot( layout ), problems ) );
         }
     }
     catch ( ... )

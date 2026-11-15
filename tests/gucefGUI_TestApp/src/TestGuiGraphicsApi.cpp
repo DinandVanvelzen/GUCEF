@@ -278,6 +278,58 @@ PerformGuiGraphicsApiTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "GraphicsApi: an XWinGL window draws at most one frame a pulse however many expose events a resize brings, so a drag of its edge cannot keep the event loop drawing" )
+    if ( !X11WindowsAllowed() )
+        GUCEF_TESTFW_SKIP( "X11 windows are made only when GUCEF_TEST_X11_WINDOWS=1 and DISPLAY name a server for tests (Xvfb)" );
+    if ( windows.GetBackend( "XWinGL" ).IsNULL() )
+        LoadTestPlugin( "guidriverXWinGL", "guidriver" );
+    if ( windows.GetBackend( "XWinGL" ).IsNULL() )
+        GUCEF_TESTFW_SKIP( "the XWinGL window backend is not there" );
+    try
+    {
+        GUI::TWindowManagerBackendPtr backend = windows.GetBackend( "XWinGL" );
+        CORE::CValueList none = GraphicsApiParams( "None" );
+        GUI::TWindowContextPtr window = backend->CreateWindowContext( "Test", 200, 150, false, none );
+        ASSERT_TRUE( !window.IsNULL() );
+        if ( !window.IsNULL() )
+        {
+            CWindowEventCounter counter;
+            counter.SubscribeTo( window.GetPointerAlways() );
+            ASSERT_TRUE( PulseUntil( SHasRedraws( counter ) ) );
+            CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+            for ( UInt32 i=0; i<5; ++i )
+                pulseGenerator->ForceDirectPulse();
+
+            // twelve steps of a growing window between two pulses, as a drag of its edge gives them: every step exposes the window again
+            GUI::CVideoSettings settings;
+            settings.SetFullscreenState( false );
+            for ( UInt32 i=1; i<=12; ++i )
+            {
+                settings.SetResolution( 200 + 20 * i, 150 + 15 * i, 24 );
+                ASSERT_TRUE( backend->ApplyVideoSettings( window, settings ) );
+            }
+            counter.redraws = 0;
+            counter.sizes = 0;
+            pulseGenerator->ForceDirectPulse();
+            // the pulse took the events of the steps and drew one frame, not one per expose event
+            ASSERT_TRUE( counter.sizes > 0 );
+            ASSERT_TRUE( counter.redraws <= 1 );
+            ASSERT_TRUE( PulseUntil( SHasWidth( window, 440 ) ) );
+            // the next pulses draw a frame each, as before
+            counter.redraws = 0;
+            pulseGenerator->ForceDirectPulse();
+            pulseGenerator->ForceDirectPulse();
+            ASSERT_TRUE( 2 == counter.redraws );
+            counter.UnsubscribeAllFromObserver();
+            backend->DestroyWindowContext( window );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     #endif
 }
 
