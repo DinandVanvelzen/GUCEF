@@ -39,6 +39,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefINPUT/include \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefPATCHER/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
