@@ -1,0 +1,22 @@
+<ModuleInfoEntry>
+    <Module Name="vfspluginUNITYPACKAGE_TestApp" Type="Executable" Platform="All" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_VFSPLUGIN_UNITYPACKAGE_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
