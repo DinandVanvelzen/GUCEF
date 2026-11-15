@@ -83,10 +83,14 @@ class GUCEF_COM_PUBLIC_CPP CUdpDiscoveryCodec
     static const UInt32 MaxBeaconSizeInBytes;
 
     /**
-     *  Writes a query for the given service type, replacing the content of the buffer
+     *  Writes a query for the given service type, replacing the content of the buffer. With padToBytes the query is
+     *  filled with zero bytes up to that size (at most MaxBeaconSizeInBytes): an advertiser answers a query with no
+     *  more bytes than the query holds, so the padding makes room for the answer. Readers ignore what follows the
+     *  fields they know, so a padded query is read as any other.
      */
     static bool EncodeQuery( const CORE::CString& serviceType ,
-                             CORE::CDynamicBuffer& beacon     );
+                             CORE::CDynamicBuffer& beacon     ,
+                             UInt32 padToBytes = 0            );
 
     /**
      *  Writes an announcement or goodbye for the given entry, replacing the content of the buffer.

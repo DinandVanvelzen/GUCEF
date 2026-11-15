@@ -554,6 +554,15 @@ CMdnsDiscoveryClient::OnBrowseStopped( const CORE::CString& serviceType )
 /*-------------------------------------------------------------------------*/
 
 void
+CMdnsDiscoveryClient::OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    m_socket.SetPulseGenerator( pulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CMdnsDiscoveryClient::OnIdle( void )
 {GUCEF_TRACE;
 
@@ -790,6 +799,13 @@ CMdnsDiscoveryClient::OnQuery( const COMCORE::CIPv4Address& source, const CDnsMe
 
     if ( response.answers.empty() )
         return true;
+
+    // Per source and per process limits: a forged query must not turn this client into a reflector or a flood
+    if ( !GetAnswerLimiter().AdmitQuery( source, GetTimeInMs() ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "MdnsDiscoveryClient(" << GetDiscoveryClientName() << "): Not answering a query from " << source.AddressAndPortAsString() );
+        return true;
+    }
 
     // A query from another port than the mDNS port is a simple resolver: it gets a unicast answer the classic way
     if ( source.GetPortInHostByteOrder() != m_port )

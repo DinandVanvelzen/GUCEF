@@ -59,7 +59,9 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CIEMailSaslMechanism.cpp \
   src/gucefCOM_CIEMailTransport.cpp \
   src/gucefCOM_CIIrcTransport.cpp \
+  src/gucefCOM_CIMcpJobResultBuilder.cpp \
   src/gucefCOM_CIMcpTransport.cpp \
+  src/gucefCOM_CIServiceAdminHandler.cpp \
   src/gucefCOM_CIcmpRttProbe.cpp \
   src/gucefCOM_CImapBodyStructure.cpp \
   src/gucefCOM_CImapClient.cpp \
@@ -84,11 +86,17 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CIrcTcpTransport.cpp \
   src/gucefCOM_CJsonRpcEndpoint.cpp \
   src/gucefCOM_CMcpAuditRecord.cpp \
+  src/gucefCOM_CMcpCallGate.cpp \
+  src/gucefCOM_CMcpCallScope.cpp \
   src/gucefCOM_CMcpChannel.cpp \
   src/gucefCOM_CMcpConfigurableAccessPolicy.cpp \
   src/gucefCOM_CMcpContent.cpp \
   src/gucefCOM_CMcpImplementationInfo.cpp \
   src/gucefCOM_CMcpInputRequired.cpp \
+  src/gucefCOM_CMcpJobBridge.cpp \
+  src/gucefCOM_CMcpJobBridgeSettings.cpp \
+  src/gucefCOM_CMcpJobInfo.cpp \
+  src/gucefCOM_CMcpJobWaiter.cpp \
   src/gucefCOM_CMcpJsonLinesAuditLog.cpp \
   src/gucefCOM_CMcpLegacySession.cpp \
   src/gucefCOM_CMcpOperationTask.cpp \
@@ -105,6 +113,7 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CMcpResourceRegistry.cpp \
   src/gucefCOM_CMcpRpcRelay.cpp \
   src/gucefCOM_CMcpRpcTransport.cpp \
+  src/gucefCOM_CMcpSchemaBuilder.cpp \
   src/gucefCOM_CMcpServer.cpp \
   src/gucefCOM_CMcpServerSettings.cpp \
   src/gucefCOM_CMcpStdioTransport.cpp \
@@ -129,6 +138,9 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CPop3FetchResult.cpp \
   src/gucefCOM_CRpcTcpTransport.cpp \
   src/gucefCOM_CRpcTcpTransportListener.cpp \
+  src/gucefCOM_CServiceAdminClient.cpp \
+  src/gucefCOM_CServiceAdminContracts.cpp \
+  src/gucefCOM_CServiceAdminEndpoint.cpp \
   src/gucefCOM_CSmtpClient.cpp \
   src/gucefCOM_CSmtpClientSettings.cpp \
   src/gucefCOM_CSmtpReply.cpp \

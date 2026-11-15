@@ -165,6 +165,18 @@ CUdpMulticastDiscoveryClient::OpenSocket( COMCORE::CUDPSocket& socket, UInt16 po
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CUdpMulticastDiscoveryClient::OpenQuerySocket( COMCORE::CUDPSocket& socket )
+{GUCEF_TRACE;
+
+    // Queries go to the group with the same reach as the rest; the answers come back by unicast, no join needed
+    socket.SetMulticastTTL( m_multicastTtl );
+    socket.SetAllowMulticastLoopback( m_allowLoopback );
+    return socket.Open( (UInt16) 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CUdpMulticastDiscoveryClient::OnIdle( void )
 {GUCEF_TRACE;

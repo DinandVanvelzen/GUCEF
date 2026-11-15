@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <stdlib.h>
 
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
@@ -680,10 +681,22 @@ TestPerfOverTcp( bool ownThreads )
     ASSERT_TRUE( RpcPerfUnary( transports, RpcPerfCalls( 2000 ), RpcPerfCalls( 10000 ), figures ) );
     ASSERT_TRUE( figures.medianUs > 0.0 && figures.callsPerSecond > 0.0 );
 
+    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "RpcTcp: unary over tcp, " << ( ownThreads ? "protocol on tasks of its own" : "protocol on the test thread" )
+               << ": median " << figures.medianUs << " us, p99 " << figures.p99Us << " us, " << figures.callsPerSecond << " calls per second" );
+
     #if !defined( __SANITIZE_THREAD__ ) && !defined( __SANITIZE_ADDRESS__ )
-    // bytes that arrive wake the protocol task of their socket: no wait for its next periodic pulse per hop
     if ( ownThreads )
-        ASSERT_TRUE( figures.medianUs < 500.0 );
+    {
+        // Bytes that arrive wake the protocol task of their socket: no wait for its next periodic pulse (5 ms) per hop.
+        // Without that wake a round trip waits for about one periodic pulse per hop, a median of milliseconds, which
+        // the bound of 2000 us catches also on a machine that is busy with other work. The performance target of
+        // 500 us is checked only in performance runs (GUCEF_TEST_PERF set), on a machine that is otherwise idle.
+        const char* perfRun = getenv( "GUCEF_TEST_PERF" );
+        if ( GUCEF_NULL != perfRun && '\0' != *perfRun )
+            ASSERT_TRUE( figures.medianUs < 500.0 );
+        else
+            ASSERT_TRUE( figures.medianUs < 2000.0 );
+    }
     #endif
 }
 

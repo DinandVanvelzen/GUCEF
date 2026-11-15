@@ -110,7 +110,8 @@ CUdpDiscoveryCodec::IsBeacon( const void* data, UInt32 dataSize )
 
 bool
 CUdpDiscoveryCodec::EncodeQuery( const CORE::CString& serviceType ,
-                                 CORE::CDynamicBuffer& beacon     )
+                                 CORE::CDynamicBuffer& beacon     ,
+                                 UInt32 padToBytes                )
 {GUCEF_TRACE;
 
     beacon.SetDataSize( 0 );
@@ -125,6 +126,11 @@ CUdpDiscoveryCodec::EncodeQuery( const CORE::CString& serviceType ,
     writer.WriteUInt16( 0 );    // ttl
     writer.WriteUInt16( 0 );    // endpoints
     writer.WriteUInt16( 0 );    // attributes
+
+    if ( padToBytes > MaxBeaconSizeInBytes )
+        padToBytes = MaxBeaconSizeInBytes;
+    while ( writer.GetSize() < padToBytes )
+        writer.WriteUInt8( 0 );
     return writer.GetSize() <= MaxBeaconSizeInBytes;
 }
 

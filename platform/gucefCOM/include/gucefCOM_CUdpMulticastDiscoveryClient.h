@@ -88,6 +88,7 @@ class GUCEF_COM_PUBLIC_CPP CUdpMulticastDiscoveryClient : public CUdpDiscoveryCl
     protected:
 
     virtual bool OpenSocket( COMCORE::CUDPSocket& socket, UInt16 port ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OpenQuerySocket( COMCORE::CUDPSocket& socket ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void GetDestinations( TIPv4AddressVector& destinations ) const GUCEF_VIRTUAL_OVERRIDE;
 

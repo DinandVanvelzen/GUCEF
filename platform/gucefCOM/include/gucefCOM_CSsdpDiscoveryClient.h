@@ -129,6 +129,9 @@ class GUCEF_COM_PUBLIC_CPP CSsdpDiscoveryClient : public COMCORE::CDiscoveryClie
     /** Nothing is browsed or advertised: both sockets are closed, which also leaves the SSDP group */
     virtual void OnIdle( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Moves both sockets to the new pulse generator */
+    virtual void OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     typedef CORE::CTEventHandlerFunctor< CSsdpDiscoveryClient > TEventCallback;

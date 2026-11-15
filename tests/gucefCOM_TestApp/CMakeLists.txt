@@ -22,17 +22,21 @@ set( HEADER_FILES
   include/TestMailShared.h
   include/TestMcpClientSupport.h
   include/TestMcpCore.h
+  include/TestMcpJobs.h
   include/TestMcpLegacy.h
   include/TestMcpPolicy.h
   include/TestMcpRegistry.h
   include/TestMcpStdio.h
   include/TestMcpSupport.h
   include/TestMcpTcp.h
+  include/TestMcpToolKit.h
   include/TestMime.h
   include/TestNatTraversal.h
   include/TestPop3Client.h
   include/TestRpcTcp.h
   include/TestRttProbes.h
+  include/TestServiceAdmin.h
+  include/TestServiceDiscoveryNetwork.h
   include/TestSmtpClient.h
   include/TestStatsDClient.h
 )
@@ -45,16 +49,20 @@ set( SOURCE_FILES
   src/TestMailParsers.cpp
   src/TestMailSetup.cpp
   src/TestMcpCore.cpp
+  src/TestMcpJobs.cpp
   src/TestMcpLegacy.cpp
   src/TestMcpPolicy.cpp
   src/TestMcpRegistry.cpp
   src/TestMcpStdio.cpp
   src/TestMcpTcp.cpp
+  src/TestMcpToolKit.cpp
   src/TestMime.cpp
   src/TestNatTraversal.cpp
   src/TestPop3Client.cpp
   src/TestRpcTcp.cpp
   src/TestRttProbes.cpp
+  src/TestServiceAdmin.cpp
+  src/TestServiceDiscoveryNetwork.cpp
   src/TestSmtpClient.cpp
   src/TestStatsDClient.cpp
   src/gucefCOM_TestApp_main.cpp

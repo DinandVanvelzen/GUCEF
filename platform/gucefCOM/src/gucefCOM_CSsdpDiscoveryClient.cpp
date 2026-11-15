@@ -438,6 +438,16 @@ CSsdpDiscoveryClient::OnBrowseStopped( const CORE::CString& serviceType )
 /*-------------------------------------------------------------------------*/
 
 void
+CSsdpDiscoveryClient::OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    m_groupSocket.SetPulseGenerator( pulseGenerator );
+    m_searchSocket.SetPulseGenerator( pulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CSsdpDiscoveryClient::OnIdle( void )
 {GUCEF_TRACE;
 
@@ -590,11 +600,24 @@ CSsdpDiscoveryClient::OnSearch( const COMCORE::CIPv4Address& source, const THead
     bool all = (*st) == SearchAll;
     TIDiscoveryEntryPtrVector advertised;
     GetAdvertisedEntries( advertised );
+    TIDiscoveryEntryPtrVector matching;
     for ( size_t i=0; i<advertised.size(); ++i )
     {
         if ( all || advertised[ i ]->GetServiceType() == (*st) )
-            SendSearchResponse( *advertised[ i ], source );
+            matching.push_back( advertised[ i ] );
     }
+    if ( matching.empty() )
+        return true;
+
+    // A search response goes by unicast to whoever the search says it is: per source and per process limits keep a
+    // forged search from turning this client into a reflector (SSDP answers are larger than searches by design)
+    if ( !GetAnswerLimiter().AdmitQuery( source, GetTimeInMs() ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "SsdpDiscoveryClient(" << GetDiscoveryClientName() << "): Not answering a search from " << source.AddressAndPortAsString() );
+        return true;
+    }
+    for ( size_t i=0; i<matching.size(); ++i )
+        SendSearchResponse( *matching[ i ], source );
     return true;
 }
 

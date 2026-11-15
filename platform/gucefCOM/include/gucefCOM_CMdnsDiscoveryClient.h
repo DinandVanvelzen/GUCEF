@@ -136,6 +136,9 @@ class GUCEF_COM_PUBLIC_CPP CMdnsDiscoveryClient : public COMCORE::CDiscoveryClie
     /** Nothing is browsed or advertised: the socket is closed, which also leaves the mDNS group */
     virtual void OnIdle( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Moves the socket to the new pulse generator */
+    virtual void OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     typedef CORE::CTEventHandlerFunctor< CMdnsDiscoveryClient > TEventCallback;

@@ -28,16 +28,20 @@ LOCAL_SRC_FILES := \
   src/TestMailParsers.cpp \
   src/TestMailSetup.cpp \
   src/TestMcpCore.cpp \
+  src/TestMcpJobs.cpp \
   src/TestMcpLegacy.cpp \
   src/TestMcpPolicy.cpp \
   src/TestMcpRegistry.cpp \
   src/TestMcpStdio.cpp \
   src/TestMcpTcp.cpp \
+  src/TestMcpToolKit.cpp \
   src/TestMime.cpp \
   src/TestNatTraversal.cpp \
   src/TestPop3Client.cpp \
   src/TestRpcTcp.cpp \
   src/TestRttProbes.cpp \
+  src/TestServiceAdmin.cpp \
+  src/TestServiceDiscoveryNetwork.cpp \
   src/TestSmtpClient.cpp \
   src/TestStatsDClient.cpp \
   src/gucefCOM_TestApp_main.cpp

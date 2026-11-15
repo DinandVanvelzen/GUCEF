@@ -113,6 +113,9 @@ CUdpDiscoveryClientBase::CUdpDiscoveryClientBase( const CORE::CString& defaultCl
                                                   const CORE::PulseGeneratorPtr& pulseGenerator )
     : COMCORE::CDiscoveryClientBase( defaultClientName, pulseGenerator )
     , m_socket( GetPulseGenerator(), false )
+    , m_querySocket( GetPulseGenerator(), false )
+    , m_queryPaddingBytes( CUdpDiscoveryCodec::MaxBeaconSizeInBytes )
+    , m_answerWildcardQueries( true )
     , m_port( DefaultPort )
     , m_extraTargets()
     , m_destinations()
@@ -122,6 +125,7 @@ CUdpDiscoveryClientBase::CUdpDiscoveryClientBase( const CORE::CString& defaultCl
 {GUCEF_TRACE;
 
     m_socket.SetNrOfReceiveBuffers( 4, 2048 );
+    m_querySocket.SetNrOfReceiveBuffers( 4, 2048 );
     RegisterSocketEventHandlers();
 }
 
@@ -135,6 +139,10 @@ CUdpDiscoveryClientBase::RegisterSocketEventHandlers( void )
     SubscribeTo( &m_socket                                ,
                  COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
                  callback                                 );
+    TEventCallback queryCallback( this, &CUdpDiscoveryClientBase::OnQuerySocketPackets );
+    SubscribeTo( &m_querySocket                           ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 queryCallback                            );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -143,7 +151,9 @@ CUdpDiscoveryClientBase::~CUdpDiscoveryClientBase()
 {GUCEF_TRACE;
 
     UnsubscribeFrom( &m_socket );
+    UnsubscribeFrom( &m_querySocket );
     m_socket.Close();
+    m_querySocket.Close();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -154,6 +164,7 @@ CUdpDiscoveryClientBase::Shutdown( void )
 
     StopAll();
     m_socket.Close();
+    m_querySocket.Close();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -237,6 +248,126 @@ CUdpDiscoveryClientBase::IsActive( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CUdpDiscoveryClientBase::IsQuerySocketActive( void ) const
+{GUCEF_TRACE;
+
+    return m_querySocket.IsActive();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt16
+CUdpDiscoveryClientBase::GetQuerySocketPort( void ) const
+{GUCEF_TRACE;
+
+    return m_querySocket.IsActive() ? m_querySocket.GetPort() : (UInt16) 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::SetQueryPaddingBytes( UInt32 queryPaddingBytes )
+{GUCEF_TRACE;
+
+    m_queryPaddingBytes = queryPaddingBytes > CUdpDiscoveryCodec::MaxBeaconSizeInBytes ? CUdpDiscoveryCodec::MaxBeaconSizeInBytes : queryPaddingBytes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CUdpDiscoveryClientBase::GetQueryPaddingBytes( void ) const
+{GUCEF_TRACE;
+
+    return m_queryPaddingBytes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::SetAnswerWildcardQueries( bool answerWildcardQueries )
+{GUCEF_TRACE;
+
+    m_answerWildcardQueries = answerWildcardQueries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::GetAnswerWildcardQueries( void ) const
+{GUCEF_TRACE;
+
+    return m_answerWildcardQueries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::OpenQuerySocket( COMCORE::CUDPSocket& socket )
+{GUCEF_TRACE;
+
+    socket.SetAllowBroadcast( true );
+    return socket.Open( (UInt16) 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::EnsureQuerySocketIsOpen( void )
+{GUCEF_TRACE;
+
+    if ( m_querySocket.IsActive() )
+        return true;
+    if ( !OpenQuerySocket( m_querySocket ) )
+    {
+        ReportDiscoveryError( "Unable to open the socket for discovery queries" );
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    m_socket.SetPulseGenerator( pulseGenerator );
+    m_querySocket.SetPulseGenerator( pulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::IsVerifiedSource( const COMCORE::CIPv4Address& source ) const
+{GUCEF_TRACE;
+
+    // The configuration names the extra targets: answers to them can only reach a host the operator chose
+    for ( size_t i=0; i<m_extraTargets.size(); ++i )
+    {
+        if ( m_extraTargets[ i ].GetAddress() == source.GetAddress() )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::IsOwnDestination( const COMCORE::CIPv4Address& source ) const
+{GUCEF_TRACE;
+
+    // A broadcast or group address as the source is forged: no single host sends from it
+    for ( size_t i=0; i<m_destinations.size(); ++i )
+    {
+        if ( m_destinations[ i ].GetAddress() == source.GetAddress() && !IsVerifiedSource( source ) )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CUdpDiscoveryClientBase::EnsureSocketIsOpen( void )
 {GUCEF_TRACE;
 
@@ -263,6 +394,14 @@ CUdpDiscoveryClientBase::SendBeacon( const CORE::CDynamicBuffer& beacon )
 
     if ( !EnsureSocketIsOpen() )
         return false;
+    return SendBeaconFrom( m_socket, beacon );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::SendBeaconFrom( COMCORE::CUDPSocket& socket, const CORE::CDynamicBuffer& beacon )
+{GUCEF_TRACE;
 
     UInt32 sent = 0;
     UInt32 attempts = 0;
@@ -272,7 +411,7 @@ CUdpDiscoveryClientBase::SendBeacon( const CORE::CDynamicBuffer& beacon )
         for ( size_t i=0; i<targets.size(); ++i )
         {
             ++attempts;
-            Int32 result = m_socket.SendPacketTo( targets[ i ], beacon.GetConstBufferPtr(), (UInt16) beacon.GetDataSize() );
+            Int32 result = socket.SendPacketTo( targets[ i ], beacon.GetConstBufferPtr(), (UInt16) beacon.GetDataSize() );
             if ( result == (Int32) beacon.GetDataSize() )
                 ++sent;
             else
@@ -315,9 +454,24 @@ bool
 CUdpDiscoveryClientBase::OnBrowseStarted( const CORE::CString& serviceType )
 {GUCEF_TRACE;
 
-    if ( !CUdpDiscoveryCodec::EncodeQuery( serviceType, m_sendBuffer ) )
+    // The main socket hears the announcements, the query socket the answers to our own queries
+    if ( !EnsureSocketIsOpen() || !EnsureQuerySocketIsOpen() )
         return false;
-    return SendBeacon( m_sendBuffer );
+    if ( !CUdpDiscoveryCodec::EncodeQuery( serviceType, m_sendBuffer, m_queryPaddingBytes ) )
+        return false;
+    return SendBeaconFrom( m_querySocket, m_sendBuffer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::OnBrowseStopped( const CORE::CString& serviceType )
+{GUCEF_TRACE;
+
+    CORE::CString::StringSet browsed;
+    GetBrowsedServiceTypes( browsed );
+    if ( browsed.empty() )
+        m_querySocket.Close();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -354,6 +508,7 @@ CUdpDiscoveryClientBase::OnIdle( void )
 {GUCEF_TRACE;
 
     m_socket.Close();
+    m_querySocket.Close();
     m_destinations.clear();
     m_nextAnnounceTimes.clear();
     m_sendErrorReported = false;
@@ -378,11 +533,68 @@ CUdpDiscoveryClientBase::OnHousekeeping( UInt64 nowInMs )
 /*-------------------------------------------------------------------------*/
 
 bool
-CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CORE::CDynamicBuffer& packet )
+CUdpDiscoveryClientBase::OnQuery( const COMCORE::CIPv4Address& source, UInt32 querySizeInBytes, const CORE::CString& serviceType )
+{GUCEF_TRACE;
+
+    bool anyServiceType = serviceType == COMCORE::CIDiscoveryClient::AnyServiceType;
+    if ( anyServiceType && !m_answerWildcardQueries )
+        return true;
+
+    // Only for what we advertise: a query for anything else costs nothing, not even a token of the asker
+    TIDiscoveryEntryPtrVector advertised;
+    GetAdvertisedEntries( advertised );
+    TIDiscoveryEntryPtrVector matching;
+    for ( size_t i=0; i<advertised.size(); ++i )
+    {
+        if ( anyServiceType || advertised[ i ]->GetServiceType() == serviceType )
+            matching.push_back( advertised[ i ] );
+    }
+    if ( matching.empty() )
+        return true;
+
+    COMCORE::CDiscoveryAnswerLimiter& limiter = GetAnswerLimiter();
+    if ( IsOwnDestination( source ) || !limiter.AdmitQuery( source, GetTimeInMs() ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Not answering a query from " << source.AddressAndPortAsString() );
+        return true;
+    }
+
+    // The answers go to the asker alone, and together they are no larger than the query unless the asker is verified
+    UInt32 budget = limiter.GetAnswerBudget( querySizeInBytes, IsVerifiedSource( source ) );
+    for ( size_t i=0; i<matching.size(); ++i )
+    {
+        if ( !CUdpDiscoveryCodec::EncodeEntry( CUdpDiscoveryCodec::BEACONKIND_ANNOUNCE, *matching[ i ], m_sendBuffer ) )
+            continue;
+        UInt32 size = m_sendBuffer.GetDataSize();
+        if ( size > budget )
+        {
+            limiter.CountAnswerWithheld();
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): The answer " << matching[ i ]->GetEntryKey()
+                << " of " << size << " bytes does not fit the budget of the query from " << source.AddressAndPortAsString() );
+            continue;
+        }
+        budget -= size;
+        if ( m_socket.SendPacketTo( source, m_sendBuffer.GetConstBufferPtr(), (UInt16) size ) != (Int32) size )
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to answer " << source.AddressAndPortAsString() );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CORE::CDynamicBuffer& packet, bool fromQuerySocket )
 {GUCEF_TRACE;
 
     if ( !CUdpDiscoveryCodec::IsBeacon( packet.GetConstBufferPtr(), packet.GetDataSize() ) )
         return true;
+
+    // Nothing we send is larger, what is larger is not ours
+    if ( packet.GetDataSize() > CUdpDiscoveryCodec::MaxBeaconSizeInBytes )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Ignoring an oversized beacon from " << source.AddressAndPortAsString() );
+        return true;
+    }
 
     CUdpDiscoveryCodec::TBeaconKind kind = CUdpDiscoveryCodec::BEACONKIND_QUERY;
     COMCORE::CDiscoveryEntry entry;
@@ -392,22 +604,15 @@ CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CO
         return true;
     }
 
+    // The query socket only takes the answers to our own queries
+    if ( fromQuerySocket && CUdpDiscoveryCodec::BEACONKIND_ANNOUNCE != kind )
+        return true;
+
     switch ( kind )
     {
         case CUdpDiscoveryCodec::BEACONKIND_QUERY:
         {
-            // Everyone browsing hears the answer, it goes to the same destinations as the rest
-            const CORE::CString& serviceType = entry.GetServiceType();
-            bool anyServiceType = serviceType == COMCORE::CIDiscoveryClient::AnyServiceType;
-            UInt64 nowInMs = GetTimeInMs();
-            TIDiscoveryEntryPtrVector advertised;
-            GetAdvertisedEntries( advertised );
-            for ( size_t i=0; i<advertised.size(); ++i )
-            {
-                if ( anyServiceType || advertised[ i ]->GetServiceType() == serviceType )
-                    Announce( *advertised[ i ], nowInMs );
-            }
-            return true;
+            return OnQuery( source, packet.GetDataSize(), entry.GetServiceType() );
         }
         case CUdpDiscoveryCodec::BEACONKIND_ANNOUNCE:
         {
@@ -432,9 +637,7 @@ CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CO
 /*-------------------------------------------------------------------------*/
 
 void
-CUdpDiscoveryClientBase::OnSocketPackets( CORE::CNotifier* notifier    ,
-                                          const CORE::CEvent& eventId  ,
-                                          CORE::CICloneable* eventData )
+CUdpDiscoveryClientBase::ProcessPackets( CORE::CICloneable* eventData, bool fromQuerySocket )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == eventData )
@@ -444,9 +647,31 @@ CUdpDiscoveryClientBase::OnSocketPackets( CORE::CNotifier* notifier    ,
     for ( UInt32 i=0; i<data.packetsReceived; ++i )
     {
         const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
-        if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData() ) )
+        if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData(), fromQuerySocket ) )
             return;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::OnSocketPackets( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ProcessPackets( eventData, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::OnQuerySocketPackets( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ProcessPackets( eventData, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -459,6 +684,8 @@ CUdpDiscoveryClientBase::LoadConfig( const CORE::CDataNode& config )
         return false;
 
     SetPort( config.GetAttributeValueOrChildValueByName( "port" ).AsUInt16( m_port, true ) );
+    SetQueryPaddingBytes( config.GetAttributeValueOrChildValueByName( "queryPaddingBytes" ).AsUInt32( m_queryPaddingBytes, true ) );
+    SetAnswerWildcardQueries( config.GetAttributeValueOrChildValueByName( "answerWildcardQueries" ).AsBool( m_answerWildcardQueries, true ) );
 
     CORE::CString extraTargets = config.GetAttributeValueOrChildValueByName( "extraTargets" ).AsString( CORE::CString::Empty, true );
     if ( !extraTargets.IsNULLOrEmpty() )
@@ -489,6 +716,8 @@ CUdpDiscoveryClientBase::SaveConfig( CORE::CDataNode& config ) const
         return false;
 
     config.SetAttribute( "port", m_port );
+    config.SetAttribute( "queryPaddingBytes", m_queryPaddingBytes );
+    config.SetAttribute( "answerWildcardQueries", m_answerWildcardQueries );
 
     CORE::CString extraTargets;
     for ( size_t i=0; i<m_extraTargets.size(); ++i )

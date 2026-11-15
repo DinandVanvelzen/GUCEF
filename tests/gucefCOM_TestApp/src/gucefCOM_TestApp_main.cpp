@@ -65,6 +65,7 @@
 #endif /* GUCEF_COM_CCOMGLOBAL_H ? */
 
 #include "TestDiscovery.h"
+#include "TestServiceDiscoveryNetwork.h"
 #include "TestRttProbes.h"
 #include "TestNatTraversal.h"
 #include "TestIrc.h"
@@ -75,7 +76,10 @@
 #include "TestMcpStdio.h"
 #include "TestMcpTcp.h"
 #include "TestRpcTcp.h"
+#include "TestServiceAdmin.h"
 #include "TestMcpLegacy.h"
+#include "TestMcpJobs.h"
+#include "TestMcpToolKit.h"
 #include "TestStatsDClient.h"
 #include "TestMime.h"
 #include "TestMailParsers.h"
@@ -145,6 +149,7 @@ GUCEF_OSMAIN_BEGIN
         RUN_SUITE( PerformUdpDiscoveryTests );
         RUN_SUITE( PerformMdnsDiscoveryTests );
         RUN_SUITE( PerformSsdpDiscoveryTests );
+        RUN_SUITE( PerformServiceDiscoveryNetworkTests );
         RUN_SUITE( PerformRttProbeTests );
         RUN_SUITE( PerformNatPmpTests );
         RUN_SUITE( PerformStunTests );
@@ -158,7 +163,10 @@ GUCEF_OSMAIN_BEGIN
         RUN_SUITE( PerformMcpPolicyTests );
         RUN_SUITE( PerformMcpStdioTests );
         RUN_SUITE( PerformMcpTcpTests );
+        RUN_SUITE( PerformMcpToolKitTests );
+        RUN_SUITE( PerformMcpJobBridgeTests );
         RUN_SUITE( PerformRpcTcpTests );
+        RUN_SUITE( PerformServiceAdminTests );
         RUN_SUITE( PerformStatsDClientTests );
         RUN_SUITE( PerformMimeCodecTests );
         RUN_SUITE( PerformMimeParserTests );
