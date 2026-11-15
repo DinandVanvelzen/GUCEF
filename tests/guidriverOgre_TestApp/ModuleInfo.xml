@@ -1,0 +1,49 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverOgre_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVEROGRE_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+        <RuntimeDependencies>
+            <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
+            <RuntimeDependency Name="OgrePlugin_GucefVFS" />
+            <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux">
+        <Linker>
+            <Dependency Name="X11" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverXWinGL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverWin32" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

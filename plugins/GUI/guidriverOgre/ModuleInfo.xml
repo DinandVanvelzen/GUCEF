@@ -1,19 +1,42 @@
 <ModuleInfoEntry>
-    <Module Name="guidriverOgre" Type="SharedLibrary" Tags="plugin" Platform="All">
+    <Module Name="guidriverOgre" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.2.0.0</SemVer>
+            <DescriptionHeadline>gucefGUI window backend Ogre: Ogre render windows on the windows of the platform window backends</DescriptionHeadline>
+            <DescriptionDetails>Registers the window backend "Ogre". Its windows are Ogre render windows made from the native handles of a window of a platform window backend that is made without a graphics context (window parameter GraphicsApi None), or headless render windows of Ogre. Frames are paced by the platform window and drawn in a fixed order: the frame listeners, the GUI contexts, the viewports of the application, the overlays of the GUI drivers on Ogre (CIOgreWindowOverlay), presentation. Also the GUI material and programs that the GUI drivers on Ogre draw with (COgreGuiMaterial).</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
+            <Dependency Name="pluginglueOGRE" />
             <Dependency Name="Ogre" />
         </Linker>
         <Preprocessor>
             <Define String="GUIDRIVEROGRE_BUILD_MODULE" />
         </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
     </Module>
 </ModuleInfoEntry>

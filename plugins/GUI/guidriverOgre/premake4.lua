@@ -23,29 +23,46 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+kind( "StaticLib" )
 
 
 configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "Ogre", "gucefCORE", "gucefGUI", "gucefMT" } )
+links( { "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS", "pluginglueOGRE" } )
 
 configuration( {} )
-links( { "Ogre", "gucefCORE", "gucefGUI", "gucefMT" } )
+links( { "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS", "pluginglueOGRE" } )
 
 
 configuration( {} )
-defines( { "GUIDRIVEROGRE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverOgre", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverOgre" } )
+defines( { "GUIDRIVEROGRE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverOgre", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverOgre", "MODULE_SEMVER=0_2_0_0" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "MODULE_API_PREFIX=guidriverOgre" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_API_PREFIX=guidriverOgre" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/guidriverOgre.h",
-  "include/guidriverOgre_COgreLogAdapter.h",
-  "include/guidriverOgre_COgrePluginAdapter.h",
-  "include/guidriverOgre_COgrePluginManager.h",
+  "include/guidriverOgre_CIOgreWindowOverlay.h",
+  "include/guidriverOgre_COgreGuiMaterial.h",
   "include/guidriverOgre_COgreWindowContext.h",
   "include/guidriverOgre_COgreWindowManagerImp.h",
   "include/guidriverOgre_config.h",
@@ -58,9 +75,8 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
-  "src/guidriverOgre_COgreLogAdapter.cpp",
-  "src/guidriverOgre_COgrePluginAdapter.cpp",
-  "src/guidriverOgre_COgrePluginManager.cpp",
+  "src/guidriverOgre_CIOgreWindowOverlay.cpp",
+  "src/guidriverOgre_COgreGuiMaterial.cpp",
   "src/guidriverOgre_COgreWindowContext.cpp",
   "src/guidriverOgre_COgreWindowManagerImp.cpp",
   "src/guidriverOgre_pluginAPI.cpp"
@@ -68,7 +84,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../../SHARED/pluginglueOGRE/include", "../../SHARED/pluginglueOGRECOMMON", "../../SHARED/pluginglueOGRECOMMON/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )

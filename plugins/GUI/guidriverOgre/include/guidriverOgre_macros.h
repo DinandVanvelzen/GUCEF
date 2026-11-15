@@ -1,29 +1,23 @@
 /*
- *  guidriverWin32GL: module implementing GL based window management for Win32
- *  Copyright (C) 2002 - 2011.  Dinand Vanvelzen
+ *  guidriverOgre: gucefGUI window backend that gives Ogre render windows on the platform windows
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUIDRIVEROGRE_MACROS_H
 #define GUIDRIVEROGRE_MACROS_H
-
-/*
- *      Build configuration specific macros.
- *      Also includes the generic macros which are build config independant.
- */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -47,11 +41,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/*
- *      Macros for dynamic linking or static linking. Use the switches in the
- *      config file to control the export type.
- */
-
 #undef GUIDRIVEROGRE_EXPORTSPEC
 #ifdef GUIDRIVEROGRE_BUILD_MODULE
   #define GUIDRIVEROGRE_EXPORTSPEC GUCEF_EXPORT
@@ -64,7 +53,7 @@
   #define GUIDRIVEROGRE_PUBLIC_CPP GUIDRIVEROGRE_EXPORTSPEC
 #else
   #define GUIDRIVEROGRE_PUBLIC_CPP GUCEF_HIDDEN
-#endif /* GUIDRIVEROGRE_EXPORT_CPP_CODE */
+#endif /* GUIDRIVEROGRE_PUBLIC_CPP_CODE ? */
 
 #define GUIDRIVEROGRE_PRIVATE_CPP GUCEF_HIDDEN
 
@@ -73,21 +62,10 @@
   #define GUIDRIVEROGRE_PUBLIC_C GUIDRIVEROGRE_EXPORTSPEC
 #else
   #define GUIDRIVEROGRE_PUBLIC_C GUCEF_HIDDEN
-#endif /* GUIDRIVEROGRE_PUBLIC_C_CODE */
+#endif /* GUIDRIVEROGRE_PUBLIC_C_CODE ? */
 
 #define GUIDRIVEROGRE_PRIVATE_C GUCEF_HIDDEN
 
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUIDRIVEROGRE_MACROS_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 02-03-2007 :
-        - Dinand: re-added this header
-
----------------------------------------------------------------------------*/

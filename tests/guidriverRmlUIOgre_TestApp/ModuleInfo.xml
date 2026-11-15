@@ -1,0 +1,55 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverRmlUIOgre_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverRmlUIOgre" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverRmlUIOgre" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERRMLUIOGRE_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+        <RuntimeDependencies>
+            <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
+            <RuntimeDependency Name="OgrePlugin_GucefVFS" />
+            <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
+            <RuntimeDependency Name="guidriverNull" />
+            <RuntimeDependency Name="guidriverRmlUIOpenGL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverXWinGL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverWin32" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

@@ -13,9 +13,8 @@
 
 set( HEADER_FILES 
   include/guidriverOgre.h
-  include/guidriverOgre_COgreLogAdapter.h
-  include/guidriverOgre_COgrePluginAdapter.h
-  include/guidriverOgre_COgrePluginManager.h
+  include/guidriverOgre_CIOgreWindowOverlay.h
+  include/guidriverOgre_COgreGuiMaterial.h
   include/guidriverOgre_COgreWindowContext.h
   include/guidriverOgre_COgreWindowManagerImp.h
   include/guidriverOgre_config.h
@@ -24,9 +23,8 @@ set( HEADER_FILES
 )
 
 set( SOURCE_FILES 
-  src/guidriverOgre_COgreLogAdapter.cpp
-  src/guidriverOgre_COgrePluginAdapter.cpp
-  src/guidriverOgre_COgrePluginManager.cpp
+  src/guidriverOgre_CIOgreWindowOverlay.cpp
+  src/guidriverOgre_COgreGuiMaterial.cpp
   src/guidriverOgre_COgreWindowContext.cpp
   src/guidriverOgre_COgreWindowManagerImp.cpp
   src/guidriverOgre_pluginAPI.cpp
@@ -50,12 +48,29 @@ if ( MODULE_CPP_STANDARD_TOO_LOW )
 endif()
 
 set( MODULE_NAME "guidriverOgre" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} Ogre gucefCORE gucefGUI gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC Ogre gucefCORE gucefGUI gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVEROGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverOgre" )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
+add_dependencies( ${MODULE_NAME} Ogre gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS pluginglueOGRE )
+target_link_libraries( ${MODULE_NAME} PUBLIC Ogre gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS pluginglueOGRE )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVEROGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverOgre;MODULE_SEMVER=0_2_0_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.2.0.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.2.0.0 )
 
-include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=guidriverOgre" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=guidriverOgre" )
+endif( EMSCRIPTEN64 )
+
+include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../../SHARED/pluginglueOGRE/include ../../SHARED/pluginglueOGRECOMMON ../../SHARED/pluginglueOGRECOMMON/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
@@ -91,6 +106,7 @@ endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
 GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES Ogre.CommonInclude )
 
 
 

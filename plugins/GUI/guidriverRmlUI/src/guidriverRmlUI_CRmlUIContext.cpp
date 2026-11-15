@@ -516,16 +516,35 @@ CRmlUIContext::FindTexture( const CString& reference, bool isFont )
             {
                 self->ResolveImage( name, source, sourceRevision );
             }
-            Rml::Vector< Rml::byte > data;
-            if ( source.IsNULL() || !MakePremultiplied( *source, data ) )
+            if ( source.IsNULL() )
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RmlUIContext: No RGBA pixels for the texture of \"" << name << "\"" );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RmlUIContext: No pixels for the texture of \"" << name << "\"" );
                 return false;
             }
+            if ( !self->GenerateImageTexture( name, isFont, *source, textureInterface ) )
+                return false;
             ++self->m_textureCreations;
-            return textureInterface.GenerateTexture( data, Rml::Vector2i( (int) source->GetWidthInPixels(), (int) source->GetHeightInPixels() ) );
+            return true;
         } );
     return &entry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRmlUIContext::GenerateImageTexture( const CString& reference                             ,
+                                     bool isFont                                          ,
+                                     const IMAGE::CPixelMap& pixels                       ,
+                                     const Rml::CallbackTextureInterface& textureInterface )
+{GUCEF_TRACE;
+
+    Rml::Vector< Rml::byte > data;
+    if ( !MakePremultiplied( pixels, data ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RmlUIContext: No RGBA pixels for the texture of \"" << reference << "\"" );
+        return false;
+    }
+    return textureInterface.GenerateTexture( data, Rml::Vector2i( (int) pixels.GetWidthInPixels(), (int) pixels.GetHeightInPixels() ) );
 }
 
 /*-------------------------------------------------------------------------*/

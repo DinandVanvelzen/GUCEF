@@ -1,20 +1,19 @@
 /*
- *  guidriverWin32GL: module implementing GL based window management for Win32
- *  Copyright (C) 2002 - 2011.  Dinand Vanvelzen
+ *  guidriverOgre: gucefGUI window backend that gives Ogre render windows on the platform windows
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -23,40 +22,51 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef _Ogre_H__
-#include "Ogre.h"
-#define _Ogre_H__
-#endif /* _Ogre_H__ ? */ 
+#include <stdlib.h>
+
+#include <Ogre.h>
+#include <OgreRenderWindow.h>
+#include <OgreHardwarePixelBuffer.h>
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
-#ifndef GUCEF_CORE_CGUCEFAPPLICATION_H
-#include "CGUCEFApplication.h"
-#define GUCEF_CORE_CGUCEFAPPLICATION_H
-#endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
-
-#ifndef GUCEF_CORE_CPULSEGENERATOR_H
-#include "gucefCORE_CPulseGenerator.h"
-#define GUCEF_CORE_CPULSEGENERATOR_H
-#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
-#ifndef GUCEF_CORE_CPLUGINCONTROL_H
-#include "CPluginControl.h"
-#define GUCEF_CORE_CPLUGINCONTROL_H
-#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
 
-#ifndef GUCEF_GUI_CWINDOWCONTEXT_H
-#include "gucefGUI_CWindowContext.h"
-#define GUCEF_GUI_CWINDOWCONTEXT_H
-#endif /* GUCEF_GUI_CWINDOWCONTEXT_H ? */
+#ifndef GUCEF_GUI_CGUIGLOBAL_H
+#include "gucefGUI_CGuiGlobal.h"
+#define GUCEF_GUI_CGUIGLOBAL_H
+#endif /* GUCEF_GUI_CGUIGLOBAL_H ? */
+
+#ifndef GUCEF_GUI_CWINDOWMANAGER_H
+#include "gucefGUI_CWindowManager.h"
+#define GUCEF_GUI_CWINDOWMANAGER_H
+#endif /* GUCEF_GUI_CWINDOWMANAGER_H ? */
+
+#ifndef GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H
+#include "pluginglueOGRE_COgreGlobal.h"
+#define GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H ? */
+
+#ifndef GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#include "pluginglueOGRE_COgreRootSetup.h"
+#define GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H ? */
 
 #include "guidriverOgre_COgreWindowContext.h"
 
@@ -71,22 +81,79 @@ namespace GUIDRIVEROGRE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const CORE::CString COgreWindowContext::ClassTypeName = "GUCEF::GUIDRIVEROGRE::COgreWindowContext";
+const CORE::CString COgreWindowContext::PlatformBackendParameterName = "PlatformBackend";
+const CORE::CString COgreWindowContext::OffscreenPlatformBackend = "Offscreen";
+const CORE::CString COgreWindowContext::GraphicsApiName = "Ogre";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+namespace {
+
+/** Every render window of Ogre needs a name of its own */
+UInt32 g_windowCounter = 0;
+
+/** The platform backend when the parameters name none: the one window driver per platform that makes windows without a graphics context */
+CORE::CString
+DefaultPlatformBackend( void )
+{
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+    return "XWinGL";
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    return "Win32";
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    return "AndroidGLES";
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    return "Emscripten";
+    #else
+    return COgreWindowContext::OffscreenPlatformBackend;
+    #endif
+}
+
+/** Ogre takes window handles as decimal numbers in a string */
+Ogre::String
+PointerPropertyToHandle( const GUI::CString& pointerProperty )
+{
+    void* pointer = CORE::StringToPointer( pointerProperty );
+    return Ogre::StringConverter::toString( (size_t) pointer );
+}
+
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
 COgreWindowContext::COgreWindowContext( void )
-    : CWindowContext()         ,
-      m_guiContext()           ,
-      m_id()                   ,
-      m_name()                 ,
-      m_osWindow( 0 )          ,
-      m_renderWindow( 0 )      ,
-      m_initialized( false )
+    : GUI::CWindowContext()
+    , Ogre::RenderTargetListener()
+    , m_guiContext()
+    , m_id( ++g_windowCounter )
+    , m_name()
+    , m_platformBackendName()
+    , m_platformBackend()
+    , m_platformWindow()
+    , m_renderWindow( GUCEF_NULL )
+    , m_overlayViewport( GUCEF_NULL )
+    , m_captureTexture()
+    , m_captureViewport( GUCEF_NULL )
+    , m_overlays()
+    , m_overlaySequence( 0 )
+    , m_frameCount( 0 )
+    , m_inFrame( false )
+    , m_videoSettings()
 {GUCEF_TRACE;
 
-    m_osWindow = CORE::COSWindow::Create();
-    SubscribeTo( m_osWindow );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -95,11 +162,16 @@ COgreWindowContext::~COgreWindowContext()
 {GUCEF_TRACE;
 
     Shutdown();
-    if ( GUCEF_NULL != m_osWindow )
-    {
-        CORE::COSWindow::Destroy( m_osWindow );
-        m_osWindow = 0;
-    }
+    UnsubscribeAllFromObserver();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+COgreWindowContext::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    return ClassTypeName;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -131,15 +203,6 @@ COgreWindowContext::GetID( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-bool
-COgreWindowContext::IsActive( void ) const
-{GUCEF_TRACE;
-
-    return false;
-}
-
-/*-------------------------------------------------------------------------*/
-
 GUI::CString
 COgreWindowContext::GetName( void ) const
 {GUCEF_TRACE;
@@ -149,23 +212,11 @@ COgreWindowContext::GetName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-void
-COgreWindowContext::Shutdown( void )
+bool
+COgreWindowContext::IsActive( void ) const
 {GUCEF_TRACE;
-    
-    if ( m_initialized )
-	{
-        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-        pulseGenerator->RequestStopOfPeriodicUpdates( this );
-        UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
 
-        if ( GUCEF_NULL != m_osWindow )
-        {
-            m_osWindow->WindowDestroy();
-        }
-
-        m_initialized = false;
-    }
+    return !m_platformWindow.IsNULL() && m_platformWindow->IsActive();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -174,13 +225,9 @@ GUI::UInt32
 COgreWindowContext::GetWidth( void ) const
 {GUCEF_TRACE;
 
-    int dummy;
-    int width;
-    if ( m_osWindow->GetClientArea( dummy, dummy, width, dummy ) )
-    {
-        return (GUI::UInt32) width;
-    }
-    return 0;
+    if ( !m_platformWindow.IsNULL() )
+        return m_platformWindow->GetWidth();
+    return GUCEF_NULL != m_renderWindow ? (GUI::UInt32) m_renderWindow->getWidth() : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -188,14 +235,10 @@ COgreWindowContext::GetWidth( void ) const
 GUI::UInt32
 COgreWindowContext::GetHeight( void ) const
 {GUCEF_TRACE;
-    
-    int dummy;
-    int height;
-    if ( m_osWindow->GetClientArea( dummy, dummy, dummy, height ) )
-    {
-        return (GUI::UInt32) height;
-    }
-    return 0;
+
+    if ( !m_platformWindow.IsNULL() )
+        return m_platformWindow->GetHeight();
+    return GUCEF_NULL != m_renderWindow ? (GUI::UInt32) m_renderWindow->getHeight() : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -204,20 +247,96 @@ GUI::CString
 COgreWindowContext::GetProperty( const GUI::CString& propertyName ) const
 {GUCEF_TRACE;
 
+    if ( "GRAPHICS_API" == propertyName )
+        return GraphicsApiName;
+    if ( propertyName.StartsWith( "GL_" ) )
+        return GUI::CString::Empty;
+    if ( "PLATFORM_BACKEND" == propertyName )
+        return m_platformBackendName;
     if ( "Ogre::RenderWindow" == propertyName )
-    {
         return CORE::PointerToString( m_renderWindow );
-    }
-    if ( "Ogre::RenderTarget" == propertyName )
-    {
-        Ogre::RenderTarget* renderTaget = static_cast< Ogre::RenderTarget* >( m_renderWindow );
-        return CORE::PointerToString( renderTaget );
-    }
     if ( "Ogre::SceneManager" == propertyName )
     {
-        return CORE::PointerToString( m_sceneManager );
+        // the scene manager of the camera of the last viewport of the window, the one the overlays draw over
+        Ogre::SceneManager* sceneManager = GUCEF_NULL;
+        if ( GUCEF_NULL != m_renderWindow && m_renderWindow->getNumViewports() > 0 )
+        {
+            Ogre::Viewport* last = m_renderWindow->getViewport( m_renderWindow->getNumViewports() - 1 );
+            if ( GUCEF_NULL != last && GUCEF_NULL != last->getCamera() )
+                sceneManager = last->getCamera()->getSceneManager();
+        }
+        return CORE::PointerToString( sceneManager );
     }
-    return m_osWindow->GetProperty( propertyName );
+    if ( !m_platformWindow.IsNULL() )
+        return m_platformWindow->GetProperty( propertyName );
+    return GUI::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::SetSystemCursorVisible( bool visible )
+{GUCEF_TRACE;
+
+    if ( m_platformWindow.IsNULL() )
+        return false;
+    return m_platformWindow->SetSystemCursorVisible( visible );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::SetSystemCursorShape( GUI::TCursorShape shape )
+{GUCEF_TRACE;
+
+    if ( m_platformWindow.IsNULL() )
+        return false;
+    return m_platformWindow->SetSystemCursorShape( shape );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Ogre::RenderWindow*
+COgreWindowContext::GetOgreRenderWindow( void ) const
+{GUCEF_TRACE;
+
+    return m_renderWindow;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Ogre::Root*
+COgreWindowContext::GetOgreRoot( void ) const
+{GUCEF_TRACE;
+
+    return Ogre::Root::getSingletonPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::TWindowContextPtr
+COgreWindowContext::GetPlatformWindowContext( void ) const
+{GUCEF_TRACE;
+
+    return m_platformWindow;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+COgreWindowContext::GetPlatformBackendName( void ) const
+{GUCEF_TRACE;
+
+    return m_platformBackendName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+COgreWindowContext::GetFrameCount( void ) const
+{GUCEF_TRACE;
+
+    return m_frameCount;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -225,157 +344,593 @@ COgreWindowContext::GetProperty( const GUI::CString& propertyName ) const
 bool
 COgreWindowContext::Initialize( const GUI::CString& title                ,
                                 const GUI::CVideoSettings& videoSettings ,
-                                const GUI::CString& ogreRenderSystem     )
+                                const CORE::CValueList* params           )
 {GUCEF_TRACE;
 
-    // Do not initialize twice
     Shutdown();
 
-    // First create a regular O/S window
-    if ( m_osWindow->WindowCreate( title                                       ,
-                                   0                                           ,
-                                   0                                           ,
-                                   videoSettings.GetResolutionWidthInPixels()  ,
-                                   videoSettings.GetResolutionHeightInPixels() ) )
+    m_name = title;
+    m_videoSettings = videoSettings;
+    m_platformBackendName = DefaultPlatformBackend();
+    if ( GUCEF_NULL != params && params->HasKey( PlatformBackendParameterName ) )
+        m_platformBackendName = params->GetValueAlways( PlatformBackendParameterName ).AsString( m_platformBackendName, true );
+
+    // the Root of the support library, initialised with the render system of its configuration
+    PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
+    if ( !rootSetup.CreateRoot() || !rootSetup.InitialiseRoot() )
     {
-	    // Now proceed with setting up the Ogre specifics
-        
-        // We grab the O/S window identifier 'the handle' 
-        // This is passed to Ogre to tie things together
-        CORE::Int64 windowRef = 0; 
-        CORE::CString windowIntStr = m_osWindow->GetProperty( "WINDOWINT" );
-        if ( !windowIntStr.IsNULLOrEmpty() )
-        {
-            windowRef = CORE::StringToInt64( windowIntStr );
-        }
-        Ogre::NameValuePairList options;         
-        options[ "externalWindowHandle" ] = Ogre::StringConverter::toString( (size_t) windowRef ); 
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: There is no initialised Ogre Root with a render system, no window is made" );
+        return false;
+    }
 
-        Ogre::Root* ogreRoot = Ogre::Root::getSingletonPtr();
-        if ( ogreRoot == GUCEF_NULL )
-        {            
-            ogreRoot = OGRE_NEW Ogre::Root( "", "", "" ); 
-        }
-
-        if ( !ogreRoot->isInitialised() )
+    if ( m_platformBackendName.Equals( OffscreenPlatformBackend, false ) )
+    {
+        m_platformBackendName = OffscreenPlatformBackend;
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+        // with a display server Ogre's EGL support makes a top level X11 window of its own instead of a headless surface
+        const char* display = ::getenv( "DISPLAY" );
+        if ( GUCEF_NULL != display && '\0' != display[ 0 ] )
         {
-            // Load any Ogre plugins not loaded yet from the bootstrap group
-            CORE::CCoreGlobal::Instance()->GetPluginControl().LoadPluginGroup( "Ogre" );
-            
-            const Ogre::RenderSystemList& rsList = ogreRoot->getAvailableRenderers();
-            if ( rsList.size() == 0 )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: An offscreen Ogre window needs a process without an X11 display "
+                "(DISPLAY is " << display << "): Ogre would show a window of its own. Use the platform backend XWinGL" );
+            return false;
+        }
+        #endif
+    }
+    else
+    if ( !CreatePlatformWindow( title, videoSettings, params ) )
+    {
+        Shutdown();
+        return false;
+    }
+
+    if ( !CreateRenderWindow( title, videoSettings ) )
+    {
+        Shutdown();
+        return false;
+    }
+
+    if ( m_platformWindow.IsNULL() && videoSettings.GetFrequency() > 0 )
+    {
+        // without a platform window the window paces its own frames
+        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
+        TEventCallback pulse( this, &COgreWindowContext::OnPulse );
+        SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, pulse );
+    }
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Made the Ogre render window \"" << m_renderWindow->getName() << "\" of "
+        << m_renderWindow->getWidth() << " x " << m_renderWindow->getHeight() << " on the platform backend " << m_platformBackendName
+        << " with " << GetOgreRoot()->getRenderSystem()->getName() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::CreatePlatformWindow( const GUI::CString& title                ,
+                                          const GUI::CVideoSettings& videoSettings ,
+                                          const CORE::CValueList* params           )
+{GUCEF_TRACE;
+
+    m_platformBackend = GUI::CGuiGlobal::Instance()->GetWindowManager().GetBackend( m_platformBackendName );
+    if ( m_platformBackend.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The platform window backend \"" << m_platformBackendName
+            << "\" is not there: load its window driver plugin first" );
+        return false;
+    }
+    if ( !m_platformBackend->IsGraphicsApiSupported( GUI::CWindowManagerBackend::GraphicsApiNone ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The platform window backend \"" << m_platformBackendName
+            << "\" cannot make windows without a graphics context (GraphicsApi None), which an Ogre render window needs" );
+        return false;
+    }
+
+    // the window without a GL context of its own: Ogre makes the surface
+    CORE::CValueList platformParams;
+    if ( GUCEF_NULL != params )
+        platformParams = *params;
+    platformParams.Delete( PlatformBackendParameterName );
+    platformParams.Set( GUI::CWindowManagerBackend::GraphicsApiParameterName, GUI::CWindowManagerBackend::GraphicsApiNone );
+    m_platformWindow = m_platformBackend->CreateWindowContext( title, videoSettings, &platformParams );
+    if ( m_platformWindow.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The platform window backend \"" << m_platformBackendName << "\" made no window" );
+        return false;
+    }
+
+    TEventCallback redraw( this, &COgreWindowContext::OnPlatformRedraw );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextRedrawEvent, redraw );
+    TEventCallback size( this, &COgreWindowContext::OnPlatformSize );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextSizeEvent, size );
+    TEventCallback activate( this, &COgreWindowContext::OnPlatformActivate );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextActivateEvent, activate );
+    TEventCallback closeRequest( this, &COgreWindowContext::OnPlatformCloseRequest );
+    SubscribeTo( m_platformWindow.GetPointerAlways(), GUI::CWindowContext::WindowContextCloseRequestEvent, closeRequest );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::CreateRenderWindow( const GUI::CString& title                ,
+                                        const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    Ogre::Root* root = GetOgreRoot();
+    Ogre::NameValuePairList miscParams;
+    miscParams[ "title" ] = title.C_String();
+    miscParams[ "vsync" ] = videoSettings.GetVSyncState() ? "true" : "false";
+    if ( videoSettings.GetAntiAliasingFactor() > 1 )
+        miscParams[ "FSAA" ] = Ogre::StringConverter::toString( videoSettings.GetAntiAliasingFactor() );
+    if ( videoSettings.GetFrequency() > 0 )
+        miscParams[ "displayFrequency" ] = Ogre::StringConverter::toString( videoSettings.GetFrequency() );
+
+    UInt32 width = videoSettings.GetResolutionWidthInPixels();
+    UInt32 height = videoSettings.GetResolutionHeightInPixels();
+    bool fullscreen = false;
+    if ( !m_platformWindow.IsNULL() )
+    {
+        // the native handles of the platform window, as its properties give them
+        if ( "XWinGL" == m_platformBackendName )
+        {
+            const UInt32 window = CORE::StringToUInt32( m_platformWindow->GetProperty( "WINDOW" ), 0 );
+            if ( 0 == window )
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "OgreWindowContext: No Ogre render systems are available, cannot initialize" );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The XWinGL window has no X11 window" );
                 return false;
             }
+            miscParams[ "externalWindowHandle" ] = Ogre::StringConverter::toString( window );
+        }
+        else
+        if ( "Win32" == m_platformBackendName || "AndroidGLES" == m_platformBackendName )
+        {
+            // the HWND, the ANativeWindow*
+            miscParams[ "externalWindowHandle" ] = PointerPropertyToHandle( m_platformWindow->GetProperty( "WINDOW" ) );
+        }
+        else
+        if ( "Emscripten" == m_platformBackendName )
+        {
+            // the CSS selector of the canvas
+            miscParams[ "externalWindowHandle" ] = m_platformWindow->GetProperty( "WINDOW" ).C_String();
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre render windows on platform windows of the backend \""
+                << m_platformBackendName << "\" are not supported" );
+            return false;
+        }
+        width = m_platformWindow->GetWidth();
+        height = m_platformWindow->GetHeight();
+    }
+    if ( 0 == width || 0 == height )
+    {
+        width = width > 0 ? width : 1;
+        height = height > 0 ? height : 1;
+    }
 
-            Ogre::RenderSystem* renderSystem = GUCEF_NULL;
-            Ogre::RenderSystemList::const_iterator i = rsList.begin();
-            while ( i != rsList.end() )
-            {
-                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Available Ogre render system: " << (*i)->getName() );
-                if ( ogreRenderSystem == (*i)->getName() )
-                {
-                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Found desired/preferred Ogre render system: " << (*i)->getName() );
-                    renderSystem = (*i); 
-                }
-                ++i;
-            }
-            if ( renderSystem == GUCEF_NULL )
-            {
-                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "OgreWindowContext: Preferred Ogre render systems not available, using first available alternative: " << (*rsList.begin())->getName() );
-                renderSystem = *rsList.begin();
-            }
+    try
+    {
+        const Ogre::String name = ( title + " #" + CORE::UInt32ToString( m_id ) ).C_String();
+        m_renderWindow = root->createRenderWindow( name, width, height, fullscreen, &miscParams );
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Ogre made no render window: " << e.getFullDescription() );
+        m_renderWindow = GUCEF_NULL;
+        return false;
+    }
+    if ( GUCEF_NULL == m_renderWindow )
+        return false;
 
-            ogreRoot->setRenderSystem( renderSystem );
-            m_sceneManager = ogreRoot->createSceneManager( "DefaultSceneManager" );
+    // the window is drawn by this context in the order of its frames, never by Root::renderOneFrame()
+    m_renderWindow->setAutoUpdated( false );
+    m_renderWindow->addListener( this );
+    m_overlayViewport = OGRE_NEW Ogre::Viewport( GUCEF_NULL, m_renderWindow, 0.0f, 0.0f, 1.0f, 1.0f, 0 );
+    return true;
+}
 
-            //renderSystem->setConfigOption( "Full Screen", "False" );
-            m_renderWindow = ogreRoot->initialise( false, title );
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::Shutdown( void )
+{GUCEF_TRACE;
+
+    CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+    pulseGenerator->RequestStopOfPeriodicUpdates( this );
+    UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
+
+    Ogre::Root* root = GetOgreRoot();
+    if ( GUCEF_NULL != root )
+    {
+        if ( !m_captureTexture.isNull() )
+        {
+            Ogre::RenderTarget* target = m_captureTexture->getBuffer()->getRenderTarget();
+            if ( GUCEF_NULL != target )
+                target->removeAllViewports();
+            Ogre::TextureManager::getSingleton().remove( m_captureTexture );
+            // the last reference goes while the GL context of the render window is still there
+            m_captureTexture.reset();
+        }
+        if ( GUCEF_NULL != m_overlayViewport )
+            OGRE_DELETE m_overlayViewport;
+        if ( GUCEF_NULL != m_renderWindow )
+        {
+            m_renderWindow->removeListener( this );
+            root->destroyRenderTarget( m_renderWindow );
+        }
+    }
+    m_captureTexture.reset();
+    m_captureViewport = GUCEF_NULL;
+    m_overlayViewport = GUCEF_NULL;
+    m_renderWindow = GUCEF_NULL;
+
+    if ( !m_platformWindow.IsNULL() )
+    {
+        UnsubscribeFrom( m_platformWindow.GetPointerAlways() );
+        if ( !m_platformBackend.IsNULL() )
+            m_platformBackend->DestroyWindowContext( m_platformWindow );
+    }
+    m_platformWindow.Unlink();
+    m_platformBackend.Unlink();
+    m_frameCount = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_renderWindow )
+        return false;
+    bool success = true;
+    if ( !m_platformWindow.IsNULL() )
+        success = m_platformBackend->ApplyVideoSettings( m_platformWindow, videoSettings );
+    else
+        m_renderWindow->resize( videoSettings.GetResolutionWidthInPixels(), videoSettings.GetResolutionHeightInPixels() );
+    m_renderWindow->setVSyncEnabled( videoSettings.GetVSyncState() );
+    if ( videoSettings.GetAntiAliasingFactor() != m_videoSettings.GetAntiAliasingFactor() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The anti aliasing of a render window is chosen when it is made, "
+            "the new factor applies to windows made from now on" );
+    }
+    if ( m_platformWindow.IsNULL() && videoSettings.GetFrequency() != m_videoSettings.GetFrequency() )
+    {
+        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+        pulseGenerator->RequestStopOfPeriodicUpdates( this );
+        if ( videoSettings.GetFrequency() > 0 )
+            pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
+    }
+    m_videoSettings = videoSettings;
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::CVideoSettings
+COgreWindowContext::GetVideoSettings( void ) const
+{GUCEF_TRACE;
+
+    GUI::CVideoSettings settings( m_videoSettings );
+    if ( GUCEF_NULL != m_renderWindow )
+    {
+        settings.SetResolution( GetWidth(), GetHeight(), m_videoSettings.GetResolutionDepthInBits() );
+        settings.SetVSyncState( m_renderWindow->isVSyncEnabled() );
+        settings.SetAntiAliasingFactor( m_renderWindow->getFSAA() );
+    }
+    return settings;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::RegisterOverlay( CIOgreWindowOverlay* overlay )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == overlay )
+        return;
+    for ( TOverlayVector::iterator i=m_overlays.begin(); i!=m_overlays.end(); ++i )
+        if ( (*i).overlay == overlay )
+            return;
+    SOverlayEntry entry;
+    entry.overlay = overlay;
+    entry.sequence = ++m_overlaySequence;
+    m_overlays.push_back( entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::UnregisterOverlay( CIOgreWindowOverlay* overlay )
+{GUCEF_TRACE;
+
+    for ( TOverlayVector::iterator i=m_overlays.begin(); i!=m_overlays.end(); ++i )
+    {
+        if ( (*i).overlay == overlay )
+        {
+            m_overlays.erase( i );
+            return;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+COgreWindowContext::GetOverlayCount( void ) const
+{GUCEF_TRACE;
+
+    return (UInt32) m_overlays.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::SortOverlays( void )
+{GUCEF_TRACE;
+
+    // insertion sort on order, then sequence: few overlays, and their order seldom changes
+    for ( size_t i=1; i<m_overlays.size(); ++i )
+    {
+        SOverlayEntry entry = m_overlays[ i ];
+        const Int32 order = entry.overlay->GetOverlayOrder();
+        size_t j = i;
+        while ( j > 0 )
+        {
+            const SOverlayEntry& previous = m_overlays[ j-1 ];
+            const Int32 previousOrder = previous.overlay->GetOverlayOrder();
+            if ( previousOrder < order || ( previousOrder == order && previous.sequence < entry.sequence ) )
+                break;
+            m_overlays[ j ] = previous;
+            --j;
+        }
+        m_overlays[ j ] = entry;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::DrawOverlays( Ogre::Viewport& viewport, Ogre::SceneManager* sceneManager, bool isCapture )
+{GUCEF_TRACE;
+
+    SortOverlays();
+    Ogre::RenderSystem* renderSystem = GetOgreRoot()->getRenderSystem();
+    // a copy: an overlay may unregister while it draws
+    TOverlayVector overlays( m_overlays );
+    for ( TOverlayVector::iterator i=overlays.begin(); i!=overlays.end(); ++i )
+    {
+        try
+        {
+            (*i).overlay->RenderOverlay( *renderSystem, viewport, sceneManager, isCapture );
+        }
+        catch ( const Ogre::Exception& e )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: An overlay failed to draw: " << e.getFullDescription() );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::postRenderTargetUpdate( const Ogre::RenderTargetEvent& evt )
+{GUCEF_TRACE;
+
+    if ( evt.source != m_renderWindow || GUCEF_NULL == m_overlayViewport )
+        return;
+
+    Ogre::RenderSystem* renderSystem = GetOgreRoot()->getRenderSystem();
+    Ogre::SceneManager* sceneManager = GUCEF_NULL;
+    const unsigned short viewportCount = m_renderWindow->getNumViewports();
+    if ( viewportCount > 0 )
+    {
+        Ogre::Viewport* last = m_renderWindow->getViewport( viewportCount - 1 );
+        if ( GUCEF_NULL != last && GUCEF_NULL != last->getCamera() )
+            sceneManager = last->getCamera()->getSceneManager();
+    }
+
+    m_overlayViewport->_updateDimensions();
+    renderSystem->_setViewport( m_overlayViewport );
+    renderSystem->_beginFrame();
+    if ( 0 == viewportCount )
+    {
+        // nothing of the application drew in the window: the overlays draw on black
+        renderSystem->clearFrameBuffer( Ogre::FBT_COLOUR | Ogre::FBT_DEPTH | Ogre::FBT_STENCIL, Ogre::ColourValue::Black );
+    }
+    DrawOverlays( *m_overlayViewport, sceneManager, false );
+    renderSystem->_endFrame();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreWindowContext::RenderFrame( IMAGE::TPixelMapPtr* capture )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_renderWindow || m_inFrame )
+        return false;
+    Ogre::Root* root = GetOgreRoot();
+    if ( GUCEF_NULL == root || GUCEF_NULL == root->getRenderSystem() )
+        return false;
+
+    m_inFrame = true;
+    bool success = true;
+    try
+    {
+        // 1. the frame listeners of the application
+        root->_fireFrameStarted();
+
+        // 2. the GUI contexts of the window update and prepare
+        NotifyObservers( WindowContextRedrawEvent );
+
+        if ( GUCEF_NULL != m_renderWindow )
+        {
+            // 3. the viewports of the application, then the overlays (postRenderTargetUpdate)
+            m_renderWindow->update( false );
+            if ( GUCEF_NULL != capture )
+                success = ReadPixels( *m_renderWindow, (UInt32) m_renderWindow->getWidth(), (UInt32) m_renderWindow->getHeight(), *capture );
+
+            // 4. present
+            root->_fireFrameRenderingQueued();
+            m_renderWindow->swapBuffers();
+            const Ogre::SceneManagerInstanceMap& sceneManagers = root->getSceneManagers();
+            for ( Ogre::SceneManagerInstanceMap::const_iterator i=sceneManagers.begin(); i!=sceneManagers.end(); ++i )
+                (*i).second->_handleLodEvents();
+        }
+        else
+        {
+            success = false;
         }
 
-        // Display the new window
-        m_osWindow->Show();
-        m_osWindow->SendToForegound();
-        m_osWindow->GrabFocus();
+        // 5. the end of the frame, with the main thread tasks of Ogre's work queue
+        root->_fireFrameEnded();
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The frame failed: " << e.getFullDescription() );
+        success = false;
+    }
+    ++m_frameCount;
+    m_inFrame = false;
+    return success;
+}
 
-        m_renderWindow = ogreRoot->createRenderWindow( title, 
-                                                       videoSettings.GetResolutionWidthInPixels(), 
-                                                       videoSettings.GetResolutionHeightInPixels(), 
-                                                       videoSettings.GetFullscreenState(),
-                                                       &options ); 
+/*-------------------------------------------------------------------------*/
 
-        // Grab the main app pulse generator and set the update interval for the context to the desired refresh rate
-        CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator(); 
-        pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
-        SubscribeTo( pulseGenerator.GetPointerAlways() );
+bool
+COgreWindowContext::ReadPixels( Ogre::RenderTarget& target, UInt32 width, UInt32 height, IMAGE::TPixelMapPtr& pixels )
+{GUCEF_TRACE;
 
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Succesfully created Ogre rendering context" );
-        m_initialized = true;
+    if ( 0 == width || 0 == height )
+        return false;
+    if ( pixels.IsNULL() || pixels->GetWidthInPixels() != width || pixels->GetHeightInPixels() != height ||
+         IMAGE::PSF_RGBA != pixels->GetPixelStorageFormat() || GUCEF::DATATYPE_UINT8 != pixels->GetPixelComponentDataType() )
+    {
+        pixels = IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, width, height, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8 ) );
+    }
+    try
+    {
+        // PF_BYTE_RGBA: the bytes R, G, B, A in memory, as the pixel map has them; Ogre gives the rows from the top.
+        // The OpenGL render windows read through their first viewport: a window without viewports gets one for the
+        // reading, which draws nothing
+        Ogre::Viewport* readViewport = GUCEF_NULL;
+        if ( 0 == target.getNumViewports() )
+            readViewport = target.addViewport( GUCEF_NULL );
+        Ogre::PixelBox box( width, height, 1, Ogre::PF_BYTE_RGBA, pixels->GetDataPtr() );
+        target.copyContentsToMemory( Ogre::Box( 0, 0, width, height ), box, Ogre::RenderTarget::FB_AUTO );
+        if ( GUCEF_NULL != readViewport )
+            target.removeViewport( readViewport->getZOrder() );
         return true;
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The picture could not be read back: " << e.getFullDescription() );
     }
     return false;
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CORE::CString&
-COgreWindowContext::GetClassTypeName( void ) const
+bool
+COgreWindowContext::CaptureOverlay( CIOgreWindowOverlay& overlay ,
+                                    UInt32 width                 ,
+                                    UInt32 height                ,
+                                    bool opaque                  ,
+                                    IMAGE::TPixelMapPtr& pixels  )
 {GUCEF_TRACE;
 
-    static CORE::CString classTypeName = "GUCEF::GUIDRIVEROGRE::COgreWindowContext";
-    return classTypeName;
+    Ogre::Root* root = GetOgreRoot();
+    if ( GUCEF_NULL == m_renderWindow || GUCEF_NULL == root || 0 == width || 0 == height )
+        return false;
+    Ogre::RenderSystem* renderSystem = root->getRenderSystem();
+    try
+    {
+        if ( m_captureTexture.isNull() || m_captureTexture->getWidth() != width || m_captureTexture->getHeight() != height )
+        {
+            if ( !m_captureTexture.isNull() )
+            {
+                m_captureTexture->getBuffer()->getRenderTarget()->removeAllViewports();
+                Ogre::TextureManager::getSingleton().remove( m_captureTexture );
+                m_captureTexture.reset();
+                m_captureViewport = GUCEF_NULL;
+            }
+            const Ogre::String name = "GucefOgreWindow/Capture/" + Ogre::StringConverter::toString( m_id );
+            m_captureTexture = Ogre::TextureManager::getSingleton().createManual( name, Ogre::RGN_INTERNAL, Ogre::TEX_TYPE_2D, width, height, 0,
+                                                                                   Ogre::PF_BYTE_RGBA, Ogre::TU_RENDERTARGET );
+            Ogre::RenderTarget* target = m_captureTexture->getBuffer()->getRenderTarget();
+            target->setAutoUpdated( false );
+            m_captureViewport = target->addViewport( GUCEF_NULL );
+            m_captureViewport->setClearEveryFrame( false );
+        }
+        Ogre::RenderTarget* target = m_captureTexture->getBuffer()->getRenderTarget();
+        renderSystem->_setViewport( m_captureViewport );
+        renderSystem->_beginFrame();
+        renderSystem->clearFrameBuffer( Ogre::FBT_COLOUR | Ogre::FBT_DEPTH | Ogre::FBT_STENCIL, Ogre::ColourValue( 0.0f, 0.0f, 0.0f, opaque ? 1.0f : 0.0f ) );
+        overlay.RenderOverlay( *renderSystem, *m_captureViewport, GUCEF_NULL, true );
+        renderSystem->_endFrame();
+        return ReadPixels( *target, width, height, pixels );
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The overlay could not be captured: " << e.getFullDescription() );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
-                              const CORE::CEvent& eventID ,
-                              CORE::CICloneable* evenData )
+COgreWindowContext::OnPlatformRedraw( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( ( eventID == CORE::CPulseGenerator::PulseEvent ) ||
-         ( eventID == CORE::COSWindow::WindowPaintEvent ) )
-    {
-        // Notify that we are going to redraw the window
-        Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( GUCEF_NULL != root )
-        {   
-            root->renderOneFrame();
-        }
-        NotifyObservers( WindowContextRedrawEvent );        
-    }
-    else
-    if ( eventID == CORE::COSWindow::WindowResizeEvent )
-    {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window resize event received" );
-        if ( GUCEF_NULL != m_renderWindow )
-            m_renderWindow->windowMovedOrResized();
-        NotifyObservers( WindowContextSizeEvent );
-    }
-    else
-    if ( eventID == CORE::COSWindow::WindowActivationEvent )
-    {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window activation event received" );
-        Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( GUCEF_NULL != root )
-        {   
-            root->renderOneFrame();
-        }
-        NotifyObservers( WindowContextActivateEvent );
-    }
-    else
-    if ( ( eventID == CORE::COSWindow::WindowCloseEvent )   ||
-         ( eventID == CORE::COSWindow::WindowDestroyEvent ) )
-    {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window close/destroy event received" );
-        if ( GUCEF_NULL != m_renderWindow )
-            m_renderWindow->destroy(); // cleanup and call DestroyWindow 
-        Shutdown();
-    }
+    RenderFrame( GUCEF_NULL );
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    RenderFrame( GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPlatformSize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_renderWindow && !m_platformWindow.IsNULL() )
+    {
+        const UInt32 width = m_platformWindow->GetWidth();
+        const UInt32 height = m_platformWindow->GetHeight();
+        if ( width > 0 && height > 0 )
+            m_renderWindow->resize( width, height );
+    }
+    NotifyObservers( WindowContextSizeEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPlatformActivate( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    NotifyObservers( WindowContextActivateEvent, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowContext::OnPlatformCloseRequest( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    NotifyObservers( WindowContextCloseRequestEvent, eventData );
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -383,7 +938,7 @@ COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-} /* namespace GUIDRIVEROGRE */
-} /* namespace GUCEF */
+}; /* namespace GUIDRIVEROGRE */
+}; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/

@@ -22,9 +22,8 @@ LOCAL_MODULE_FILENAME := libguidriverOgre
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/guidriverOgre_COgreLogAdapter.cpp \
-  src/guidriverOgre_COgrePluginAdapter.cpp \
-  src/guidriverOgre_COgrePluginManager.cpp \
+  src/guidriverOgre_CIOgreWindowOverlay.cpp \
+  src/guidriverOgre_COgreGuiMaterial.cpp \
   src/guidriverOgre_COgreWindowContext.cpp \
   src/guidriverOgre_COgreWindowManagerImp.cpp \
   src/guidriverOgre_pluginAPI.cpp
@@ -49,16 +48,22 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRE/include \
+  $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRECOMMON \
+  $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRECOMMON/include
 
-LOCAL_CFLAGS := -DGUIDRIVEROGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverOgre
+LOCAL_CFLAGS := -DGUIDRIVEROGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverOgre -DMODULE_SEMVER=0_2_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
   Ogre \
   gucefCORE \
   gucefGUI \
-  gucefMT
+  gucefIMAGE \
+  gucefMT \
+  gucefVFS \
+  pluginglueOGRE
 
 include $(BUILD_SHARED_LIBRARY)
 

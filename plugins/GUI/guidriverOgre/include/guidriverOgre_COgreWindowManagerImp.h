@@ -1,35 +1,29 @@
 /*
- *  guidriverWin32GL: module implementing GL based window management for Win32
- *  Copyright (C) 2002 - 2011.  Dinand Vanvelzen
+ *  guidriverOgre: gucefGUI window backend that gives Ogre render windows on the platform windows
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
- 
+
 #ifndef GUIDRIVEROGRE_COGREWINDOWMANAGERIMP_H
-#define GUIDRIVEROGRE_COGREWINDOWMANAGERIMP_H 
+#define GUIDRIVEROGRE_COGREWINDOWMANAGERIMP_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-#ifndef GUCEF_CORE_CTSHAREDPTR_H
-#include "CTSharedPtr.h"
-#define GUCEF_CORE_CTSHAREDPTR_H
-#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
 #ifndef GUCEF_GUI_CWINDOWMANAGERBACKEND_H
 #include "gucefGUI_CWindowManagerBackend.h"
@@ -49,49 +43,58 @@
 
 namespace GUCEF {
 namespace GUIDRIVEROGRE {
-         
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  The window backend "Ogre": windows with an Ogre render window (COgreWindowContext) on a window of a platform
+ *  backend. Window parameter "PlatformBackend" (XWinGL on Linux, Win32, AndroidGLES, Emscripten, or Offscreen);
+ *  the parameter GraphicsApi is not taken, the windows are drawn with Ogre
+ */
 class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowManagerImp : public GUI::CWindowManagerBackend
 {
     public:
-    
+
+    /** "Ogre" */
+    static const CORE::CString BackendName;
+
     COgreWindowManagerImp( void );
-    
+
     virtual ~COgreWindowManagerImp();
-    
+
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title ,
                                                         const GUI::UInt32 width   ,
                                                         const GUI::UInt32 height  ,
-                                                        const bool fullscreen     );
+                                                        const bool fullscreen     ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title             ,
                                                         const GUI::CVideoSettings& settings   ,
-                                                        const CORE::CValueList* params = GUCEF_NULL );
+                                                        const CORE::CValueList* params = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title      ,
                                                         const GUI::UInt32 width        ,
                                                         const GUI::UInt32 height       ,
                                                         const bool fullscreen          ,
-                                                        const CORE::CValueList& params );
-    
-    virtual void DestroyWindowContext( GUI::TWindowContextPtr& windowContext );
-    
+                                                        const CORE::CValueList& params ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void DestroyWindowContext( GUI::TWindowContextPtr& windowContext ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
-                                     const GUI::CVideoSettings& settings   );
+                                     const GUI::CVideoSettings& settings   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool SaveConfig( CORE::CDataNode& config ) const;
+    /** None of the values: the windows are drawn by Ogre, which makes its own surface */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool LoadConfig( const CORE::CDataNode& config );
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
-    COgreWindowManagerImp( const COgreWindowManagerImp& src );
-    COgreWindowManagerImp& operator=( const COgreWindowManagerImp& src );        
+    COgreWindowManagerImp( const COgreWindowManagerImp& src );              /**< not implemented */
+    COgreWindowManagerImp& operator=( const COgreWindowManagerImp& src );   /**< not implemented */
 };
 
 /*-------------------------------------------------------------------------*/
@@ -104,20 +107,9 @@ typedef CORE::CTSharedPtr< COgreWindowManagerImp, MT::CMutex > TOgreWindowManage
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-} /* namespace GUIDRIVEROGRE */
-} /* namespace GUCEF */
+}; /* namespace GUIDRIVEROGRE */
+}; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUIDRIVEROGRE_COGREWINDOWMANAGERIMP_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 02-04-2005 :
-       - Initial version of this file.
-
----------------------------------------------------------------------------*/

@@ -93,8 +93,9 @@ CRmlUIGuiDriver::CreateGUIContext( GUI::TWindowContextPtr windowContext )
 
     if ( !IsRmlUiReady() )
         return GUI::TGuiContextPtr();
-    if ( windowContext.IsNULL() )
+    if ( windowContext.IsNULL() || windowContext->GetProperty( "GL_GETPROCADDRESS" ).IsNULLOrEmpty() )
     {
+        // also windows made without a GL context (GraphicsApi None) and windows drawn by another renderer (Ogre)
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RmlUIGuiDriver: A context needs a window with an OpenGL context" );
         return GUI::TGuiContextPtr();
     }

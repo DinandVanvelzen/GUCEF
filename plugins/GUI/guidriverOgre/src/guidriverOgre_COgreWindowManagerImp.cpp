@@ -1,20 +1,19 @@
 /*
- *  guidriverWin32GL: module implementing GL based window management for Win32
- *  Copyright (C) 2002 - 2011.  Dinand Vanvelzen
+ *  guidriverOgre: gucefGUI window backend that gives Ogre render windows on the platform windows
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -23,10 +22,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef _Ogre_H__
-#include "Ogre.h"
-#define _Ogre_H__
-#endif /* _Ogre_H__ ? */ 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_GUI_CVIDEOSETTINGS_H
+#include "gucefGUI_CVideoSettings.h"
+#define GUCEF_GUI_CVIDEOSETTINGS_H
+#endif /* GUCEF_GUI_CVIDEOSETTINGS_H ? */
 
 #ifndef GUIDRIVEROGRE_COGREWINDOWCONTEXT_H
 #include "guidriverOgre_COgreWindowContext.h"
@@ -46,11 +50,20 @@ namespace GUIDRIVEROGRE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const CORE::CString COgreWindowManagerImp::BackendName = "Ogre";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 COgreWindowManagerImp::COgreWindowManagerImp( void )
+    : GUI::CWindowManagerBackend()
 {GUCEF_TRACE;
 
 }
@@ -73,11 +86,8 @@ COgreWindowManagerImp::CreateWindowContext( const GUI::CString& title ,
 
     GUI::CVideoSettings videoSettings;
     videoSettings.SetFullscreenState( fullscreen );
-    videoSettings.SetResolution( width, height, 24 );
-
-    return CreateWindowContext( title         ,
-                                videoSettings ,
-                                GUCEF_NULL          );
+    videoSettings.SetResolution( width, height, 32 );
+    return CreateWindowContext( title, videoSettings, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -88,12 +98,12 @@ COgreWindowManagerImp::CreateWindowContext( const GUI::CString& title           
                                             const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
-    TOgreWindowContextPtr windowContext = TOgreWindowContextPtr( new COgreWindowContext() );
-    if ( windowContext->Initialize( title    ,
-                                    settings ) )
-    {
+    if ( !IsRequestedGraphicsApiSupported( BackendName, params ) )
+        return GUI::TWindowContextPtr();
+
+    TOgreWindowContextPtr windowContext( GUCEF_NEW COgreWindowContext() );
+    if ( windowContext->Initialize( title, settings, params ) )
         return windowContext;
-    }
     return GUI::TWindowContextPtr();
 }
 
@@ -109,11 +119,8 @@ COgreWindowManagerImp::CreateWindowContext( const GUI::CString& title      ,
 
     GUI::CVideoSettings videoSettings;
     videoSettings.SetFullscreenState( fullscreen );
-    videoSettings.SetResolution( width, height, 24 );
-
-    return CreateWindowContext( title         ,
-                                videoSettings ,
-                                &params       );
+    videoSettings.SetResolution( width, height, 32 );
+    return CreateWindowContext( title, videoSettings, &params );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -122,11 +129,9 @@ void
 COgreWindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowContext )
 {GUCEF_TRACE;
 
-    COgreWindowContext* ogreContext = static_cast<COgreWindowContext*>( windowContext.GetPointerAlways() );
-    if ( GUCEF_NULL != ogreContext )
-    {
-        ogreContext->Shutdown();
-    }
+    if ( windowContext.IsNULL() || COgreWindowContext::ClassTypeName != windowContext->GetClassTypeName() )
+        return;
+    static_cast< COgreWindowContext* >( windowContext.GetPointerAlways() )->Shutdown();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -136,13 +141,15 @@ COgreWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowContext
                                            const GUI::CVideoSettings& settings   )
 {GUCEF_TRACE;
 
-    return false;
+    if ( windowContext.IsNULL() || COgreWindowContext::ClassTypeName != windowContext->GetClassTypeName() )
+        return false;
+    return static_cast< COgreWindowContext* >( windowContext.GetPointerAlways() )->ApplyVideoSettings( settings );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-COgreWindowManagerImp::SaveConfig( CORE::CDataNode& config ) const
+COgreWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
 {GUCEF_TRACE;
 
     return false;
@@ -150,21 +157,12 @@ COgreWindowManagerImp::SaveConfig( CORE::CDataNode& config ) const
 
 /*-------------------------------------------------------------------------*/
 
-bool
-COgreWindowManagerImp::LoadConfig( const CORE::CDataNode& config )
+const CORE::CString&
+COgreWindowManagerImp::GetClassTypeName( void ) const
 {GUCEF_TRACE;
-      
-    const CORE::CDataNode* n = config.Find( "OgreWindowManager" );
-    if ( GUCEF_NULL != n )
-    {
-        Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( GUCEF_NULL == root )
-        {
-            // No plugins file or config file specified
-            root = new Ogre::Root( "", "", "ogre.log" );
-        }        
-    }
-    return true;
+
+    static const CORE::CString classTypeName = "GUCEF::GUIDRIVEROGRE::COgreWindowManagerImp";
+    return classTypeName;
 }
 
 /*-------------------------------------------------------------------------//
@@ -173,7 +171,7 @@ COgreWindowManagerImp::LoadConfig( const CORE::CDataNode& config )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-} /* namespace GUIDRIVEROGRE */
-} /* namespace GUCEF */
+}; /* namespace GUIDRIVEROGRE */
+}; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/

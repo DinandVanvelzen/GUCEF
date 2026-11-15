@@ -143,6 +143,16 @@ class GUCEF_guidriverRmlUI_PUBLIC_CPP CRmlUIContext : public GUI::CGUIContext
      */
     void ReleaseRml( void );
 
+    /**
+     *  Makes the texture of an image or a font atlas when RmlUi first draws with it. The default uploads the pixels,
+     *  premultiplied, with textureInterface.GenerateTexture(). A renderer context overrides it for images that stand
+     *  for a texture of its own renderer, which it hands to its render interface without a copy
+     */
+    virtual bool GenerateImageTexture( const CString& reference                             ,
+                                       bool isFont                                          ,
+                                       const IMAGE::CPixelMap& pixels                       ,
+                                       const Rml::CallbackTextureInterface& textureInterface );
+
     virtual void OnRootOrderChanged( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void OnImageChanged( const CString& alias ) GUCEF_VIRTUAL_OVERRIDE;

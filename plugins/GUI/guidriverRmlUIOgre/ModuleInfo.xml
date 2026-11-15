@@ -1,0 +1,48 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverRmlUIOgre" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefGUI driver RmlUiOgre: RmlUi drawn through Ogre over the 3D scene of an Ogre window</DescriptionHeadline>
+            <DescriptionDetails>Registers the GUI driver "RmlUiOgre". Its contexts are RmlUi contexts of guidriverRmlUI in windows of the window backend Ogre (guidriverOgre); they draw as overlays of the window after the viewports of the application, through an Rml::RenderInterface on the Ogre render system with the GUI material of guidriverOgre (premultiplied alpha). Ogre textures of the application are shown in RenderContext widgets without a copy.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERRMLUIOGRE_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>
