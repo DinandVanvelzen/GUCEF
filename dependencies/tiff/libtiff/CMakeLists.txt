@@ -90,6 +90,14 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (OSX)
+  set( PLATFORM_SOURCE_FILES 
+    tif_unix.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "OSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     tif_win32.c
@@ -138,6 +146,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../zlib )
 endif( LINUX64 )
+
+if ( OSX )
+  include_directories( ../../zlib )
+endif( OSX )
 
 if ( WIN32 )
   include_directories( ../../zlib )

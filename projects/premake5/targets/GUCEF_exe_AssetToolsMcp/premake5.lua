@@ -553,6 +553,7 @@ filter "OSX"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libarchive" )
+  include( "dependencies/zlib" )
   include( "platform/gucefASSETSTORE" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )

@@ -111,6 +111,24 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (OSX)
+  set( PLATFORM_SOURCE_FILES 
+    source/posix/clock.c
+    source/posix/condition_variable.c
+    source/posix/device_random.c
+    source/posix/environment.c
+    source/posix/file.c
+    source/posix/mutex.c
+    source/posix/process.c
+    source/posix/rw_lock.c
+    source/posix/system_info.c
+    source/posix/thread.c
+    source/posix/time.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "OSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     source/windows/clock.c
@@ -166,6 +184,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR;PLATFORM_LINUX;_POSIX_C_SOURCE=200809L;_XOPEN_SOURCE=500" )
 endif( LINUX64 )
+
+if ( OSX )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_NONE" )
+endif( OSX )
 
 include_directories( include )
 

@@ -351,6 +351,7 @@ filter "OSX"
   include( "dependencies/json-parser" )
   include( "dependencies/libarchive" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

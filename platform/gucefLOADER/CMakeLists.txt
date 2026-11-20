@@ -3539,7 +3539,7 @@ if ( NACL )
 endif( NACL )
 
 if ( OSX )
-  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/osx ../gucefMT/include/ )
 endif( OSX )
 
 if ( POSIX )

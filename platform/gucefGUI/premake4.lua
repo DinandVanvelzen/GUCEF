@@ -441,6 +441,9 @@ includedirs( { "../gucefCORE/include/linux" } )
 configuration( { "LINUX64" } )
 includedirs( { "../gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "../gucefWEB/include/mswin" } )
 

@@ -125,6 +125,9 @@ includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/guce
 configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../../platform/gucefCOMCORE/include/osx", "../../platform/gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
 

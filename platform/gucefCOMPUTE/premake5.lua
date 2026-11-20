@@ -150,6 +150,9 @@ includedirs( { "../gucefCORE/include/linux" } )
 configuration( { "LINUX64" } )
 includedirs( { "../gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
 

@@ -24,6 +24,9 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
   project( "zlib" )
 
+configuration( { "OSX" } )
+  project( "zlib" )
+
 configuration( { "WIN32" } )
   project( "zlib" )
 
@@ -48,6 +51,9 @@ language( "C" )
 configuration( { "LINUX64" } )
 language( "C" )
 
+configuration( { "OSX" } )
+language( "C" )
+
 configuration( { "WIN32" } )
 language( "C" )
 
@@ -74,6 +80,11 @@ configuration( { "LINUX64" } )
 
 configuration( { "LINUX64" } )
 kind( "SharedLib" )
+configuration( { "OSX" } )
+
+
+configuration( { "OSX" } )
+kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
@@ -91,6 +102,10 @@ defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
 
 
 configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
+
+
+configuration( { "OSX" } )
 defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
 
 
@@ -214,6 +229,43 @@ configuration( { "LINUX32" } )
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "crc32.h",
+      "deflate.h",
+      "gzguts.h",
+      "inffast.h",
+      "inffixed.h",
+      "inflate.h",
+      "inftrees.h",
+      "trees.h",
+      "zconf.h",
+      "zlib.h",
+      "zutil.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "adler32.c",
+      "compress.c",
+      "crc32.c",
+      "deflate.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
+      "infback.c",
+      "inffast.c",
+      "inflate.c",
+      "inftrees.c",
+      "trees.c",
+      "uncompr.c",
+      "zutil.c"
+    } )
+
+
+
+configuration( { "OSX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "crc32.h",

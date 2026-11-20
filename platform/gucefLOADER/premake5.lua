@@ -3476,7 +3476,7 @@ configuration( { "NACL" } )
 includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
 
 configuration( { "OSX" } )
-includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
+includedirs( { "../gucefCORE/include/osx", "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
 
 configuration( { "POSIX" } )
 includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )

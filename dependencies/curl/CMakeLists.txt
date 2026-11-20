@@ -50,6 +50,7 @@ set( HEADER_FILES
   lib/cshutdn.h
   lib/curl_addrinfo.h
   lib/curl_config.h
+  lib/curl_config_macos.h
   lib/curl_ctype.h
   lib/curl_ed25519.h
   lib/curl_endian.h
@@ -442,6 +443,13 @@ target_link_libraries( ${MODULE_NAME} PRIVATE crypto ssl )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_HIDDEN_SYMBOLS;HAVE_CONFIG_H;_GNU_SOURCE" )
 endif( LINUX64 )
 
+if ( OSX )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+target_link_libraries( ${MODULE_NAME} PRIVATE -Wl,-framework,CoreFoundation -Wl,-framework,SystemConfiguration )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_HIDDEN_SYMBOLS;HAVE_CONFIG_H" )
+endif( OSX )
+
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
@@ -465,6 +473,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../zlib )
 endif( LINUX64 )
+
+if ( OSX )
+  include_directories( ../zlib )
+endif( OSX )
 
 if ( WIN32 )
   include_directories( ../zlib )

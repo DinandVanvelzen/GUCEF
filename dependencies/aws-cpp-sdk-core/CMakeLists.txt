@@ -393,6 +393,13 @@ elseif (LINUX64)
 
 elseif (OSX)
   set( PLATFORM_SOURCE_FILES 
+    source/net/linux-shared/Net.cpp
+    source/net/linux-shared/SimpleUDP.cpp
+    source/platform/linux-shared/Environment.cpp
+    source/platform/linux-shared/FileSystem.cpp
+    source/platform/linux-shared/OSVersionInfo.cpp
+    source/platform/linux-shared/Security.cpp
+    source/platform/linux-shared/Time.cpp
     source/utils/crypto/commoncrypto/CryptoImpl.cpp
   )
 

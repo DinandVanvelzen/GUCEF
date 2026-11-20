@@ -77,6 +77,12 @@ links( { "zlib" } )
 configuration( { "LINUX64" } )
 links( { "zlib" } )
 
+configuration( { "OSX" } )
+links( { "zlib" } )
+
+configuration( { "OSX" } )
+links( { "zlib" } )
+
 configuration( { "WIN32" } )
 links( { "zlib" } )
 
@@ -127,6 +133,9 @@ includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/includ
 
 configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/linux" } )
+
+configuration( { "OSX" } )
+includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/osx" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

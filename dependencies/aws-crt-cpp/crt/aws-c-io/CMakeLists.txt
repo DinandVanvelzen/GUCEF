@@ -65,8 +65,13 @@ elseif (LINUX64)
 
 elseif (OSX)
   set( PLATFORM_SOURCE_FILES 
+    source/bsd/kqueue_event_loop.c
     source/darwin/darwin_pki_utils.c
     source/darwin/secure_transport_tls_channel_handler.c
+    source/posix/host_resolver.c
+    source/posix/pipe.c
+    source/posix/shared_library.c
+    source/posix/socket.c
   )
 
   set( PLATFORM_SOURCE_INSTALL "OSX" )
@@ -123,6 +128,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
 endif( LINUX64 )
+
+if ( OSX )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -Wl,-framework,CoreFoundation -Wl,-framework,Security )
+endif( OSX )
 
 if ( WIN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_USE_IO_COMPLETION_PORTS" )

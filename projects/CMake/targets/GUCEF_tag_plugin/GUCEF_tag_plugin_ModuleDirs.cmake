@@ -340,6 +340,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/INPUT/inputdri
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/MULTIPLAY/notifysinkpluginDESKTOP ${CMAKE_BINARY_DIR}/notifysinkpluginDESKTOP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/SHARED/pluginglueWAYLAND ${CMAKE_BINARY_DIR}/pluginglueWAYLAND )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VIDEO/videocodecpluginWEBM ${CMAKE_BINARY_DIR}/videocodecpluginWEBM )
+elseif (OSX)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 elseif (WIN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DevIL/DevIL ${CMAKE_BINARY_DIR}/DevIL2 )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/FreeImage ${CMAKE_BINARY_DIR}/FreeImage )

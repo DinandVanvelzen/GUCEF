@@ -223,6 +223,10 @@ if ( LINUX64 )
   include_directories( ../../zlib include/IL/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( ../../zlib )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../../zlib include/IL/mswin )
 endif( WIN32 )

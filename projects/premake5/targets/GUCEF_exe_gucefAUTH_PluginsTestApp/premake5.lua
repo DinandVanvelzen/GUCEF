@@ -443,6 +443,7 @@ filter "OSX"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/monocypher" )
+  include( "dependencies/zlib" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )

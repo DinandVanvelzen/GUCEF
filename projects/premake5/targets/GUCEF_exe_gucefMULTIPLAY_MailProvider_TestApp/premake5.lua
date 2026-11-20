@@ -425,6 +425,7 @@ filter "OSX"
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
   include( "dependencies/monocypher" )
+  include( "dependencies/zlib" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )

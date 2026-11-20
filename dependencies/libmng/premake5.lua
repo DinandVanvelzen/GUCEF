@@ -109,6 +109,9 @@ includedirs( { "../zlib" } )
 configuration( { "LINUX64" } )
 includedirs( { "../zlib" } )
 
+configuration( { "OSX" } )
+includedirs( { "../zlib" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../zlib" } )
 

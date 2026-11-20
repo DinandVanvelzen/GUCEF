@@ -977,8 +977,21 @@ elseif (LINUX64)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (OSX)
+  set( PLATFORM_HEADER_FILES 
+    src/osx/gucefCORE_CTerminalConsoleLogger.h
+    src/osx/gucefCORE_CTextLineConsoleLogger.h
+    src/osx/gucefCORE_MacClipboard.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "OSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
     src/osx/gucefCORE_CCommonCryptoCodecs.cpp
+    src/osx/gucefCORE_CDesktopTerminalConsoleLogger.cpp
+    src/osx/gucefCORE_CTerminalConsoleLogger.cpp
+    src/osx/gucefCORE_CTextLineConsoleLogger.cpp
+    src/osx/gucefCORE_MacClipboard.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "OSX" )
@@ -1073,6 +1086,10 @@ if ( LINUX64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE X11 dl rt )
 endif( LINUX64 )
 
+if ( OSX )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -Wl,-framework,ApplicationServices -Wl,-framework,CoreFoundation -Wl,-framework,CoreServices -Wl,-framework,Security )
+endif( OSX )
+
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Bcrypt.lib PowrProf.lib Shlwapi.lib Ws2_32.lib )
 endif( WIN32 )
@@ -1099,6 +1116,10 @@ if ( LINUX64 )
   include_directories( include/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( src/osx )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../gucefMT/include/mswin include/mswin )
 endif( WIN32 )
@@ -1121,6 +1142,9 @@ endif( LINUX32 )
 if ( LINUX64 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/linux )
 endif( LINUX64 )
+if ( OSX )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS src/osx )
+endif( OSX )
 if ( WIN32 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/mswin )
 endif( WIN32 )

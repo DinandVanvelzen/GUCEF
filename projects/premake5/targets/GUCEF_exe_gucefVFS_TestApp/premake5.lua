@@ -655,6 +655,7 @@ filter "OSX"
   include( "dependencies/curl" )
   include( "dependencies/libarchive" )
   include( "dependencies/minizip" )
+  include( "dependencies/zlib" )
   include( "dependencies/zziplib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

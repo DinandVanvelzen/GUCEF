@@ -234,6 +234,10 @@ if ( LINUX64 )
   include_directories( ../gucefCOMCORE/include/linux ../gucefCORE/include/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( ../gucefCOMCORE/include/osx ../gucefCORE/include/osx )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN32 )

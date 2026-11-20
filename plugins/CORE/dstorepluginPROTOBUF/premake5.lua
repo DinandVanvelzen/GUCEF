@@ -88,6 +88,9 @@ includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/includ
 configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../../../platform/gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 

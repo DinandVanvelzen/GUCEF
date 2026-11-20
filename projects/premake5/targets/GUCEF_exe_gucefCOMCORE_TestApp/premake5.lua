@@ -281,6 +281,7 @@ filter "OSX"
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

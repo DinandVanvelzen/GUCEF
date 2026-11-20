@@ -67,6 +67,10 @@ if ( LINUX64 )
   include_directories( ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( ../../platform/gucefCOMCORE/include/osx ../../platform/gucefCORE/include/osx )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../../common/include ../../platform ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
 endif( WIN32 )

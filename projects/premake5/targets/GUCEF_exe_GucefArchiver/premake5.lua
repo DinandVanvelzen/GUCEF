@@ -822,6 +822,7 @@ filter "OSX"
   include( "dependencies/minizip" )
   include( "dependencies/protobuf/src" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "dependencies/zziplib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefKAITAI" )

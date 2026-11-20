@@ -127,7 +127,7 @@ configuration( { "MSWIN" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
 configuration( { "OSX" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/osx" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

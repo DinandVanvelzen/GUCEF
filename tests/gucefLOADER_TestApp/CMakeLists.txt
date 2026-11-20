@@ -105,7 +105,7 @@ if ( MSWIN )
 endif( MSWIN )
 
 if ( OSX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/osx ../../platform/gucefMT/include/ )
 endif( OSX )
 
 if ( WIN32 )
