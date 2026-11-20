@@ -10,4 +10,7 @@
     <INCLUDES PLATFORM="linux">
         <ITEM NAME="tif_unix.c" TYPE="FILE" />
     </INCLUDES>
+    <INCLUDES PLATFORM="osx">
+        <ITEM NAME="tif_unix.c" TYPE="FILE" />
+    </INCLUDES>
 </PROJECTGENERATOR>

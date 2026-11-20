@@ -23,7 +23,11 @@
 
 #include <algorithm>
 #if ( defined( __GLIBC__ ) )
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #endif
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H

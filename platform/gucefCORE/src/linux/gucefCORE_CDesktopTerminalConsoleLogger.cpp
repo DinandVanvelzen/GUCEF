@@ -63,7 +63,15 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H
 #include "gucefCORE_CDesktopTerminalConsoleLogger.h"
+#define GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H
+#endif /* GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H ? */
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+  #include <Security/AuthSession.h>     /* tells whether this session has the window server, see IsDesktopSessionAvailable() */
+  #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif /* GUCEF_PLATFORM_MACOS ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -160,10 +168,16 @@ class CSigPipeGuard
             sigpending( &pending );
             if ( 0 != sigismember( &pending, SIGPIPE ) )
             {
+                #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+                // there is no sigtimedwait(): the signal is pending, so waiting for it returns at once
+                int caught = 0;
+                sigwait( &m_pipeSet, &caught );
+                #else
                 struct timespec noWait;
                 noWait.tv_sec = 0;
                 noWait.tv_nsec = 0;
                 sigtimedwait( &m_pipeSet, GUCEF_NULL, &noWait );
+                #endif
             }
         }
         pthread_sigmask( SIG_SETMASK, &m_oldMask, GUCEF_NULL );
@@ -242,6 +256,17 @@ bool
 CDesktopTerminalConsoleLogger::IsDesktopSessionAvailable( void )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // A session which has access to the window server is a desktop session: not so for ssh, a daemon or a service
+    SecuritySessionId sessionId = 0;
+    SessionAttributeBits attributes = 0;
+    if ( noErr != ::SessionGetInfo( callerSecuritySession, &sessionId, &attributes ) )
+        return false;
+    return 0 != ( attributes & sessionHasGraphicAccess );
+
+    #else
+
     const char* wayland = getenv( "WAYLAND_DISPLAY" );
     if ( GUCEF_NULL != wayland && '\0' != wayland[ 0 ] )
         return true;
@@ -252,6 +277,8 @@ CDesktopTerminalConsoleLogger::IsDesktopSessionAvailable( void )
     if ( GUCEF_NULL != sessionType && ( 0 == strcmp( sessionType, "x11" ) || 0 == strcmp( sessionType, "wayland" ) ) )
         return true;
     return false;
+
+    #endif /* GUCEF_PLATFORM_MACOS ? */
 }
 
 /*-------------------------------------------------------------------------*/
@@ -312,6 +339,39 @@ CDesktopTerminalConsoleLogger::DiscoverTerminal( const CString& preferredTermina
                                                  CProcess::TStringVector& args            ,
                                                  CString& terminalName                    )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // The Terminal application of the system does not take a command on its command line, it is told by AppleScript to open a
+    // window which runs it. A terminal that was asked for by name or by $TERMINAL is used the way the others are, below
+    const char* macTerminalEnv = getenv( "TERMINAL" );
+    if ( preferredTerminal.IsNULLOrEmpty() && ( GUCEF_NULL == macTerminalEnv || '\0' == macTerminalEnv[ 0 ] ) )
+    {
+        CString osascript;
+        if ( FindExecutableInPath( "/usr/bin/osascript", osascript ) )
+        {
+            // The command as one line of shell text, with every argument in single quotes
+            CString shellLine;
+            for ( CProcess::TStringVector::const_iterator i = command.begin(); i != command.end(); ++i )
+            {
+                if ( !shellLine.IsNULLOrEmpty() )
+                    shellLine += " ";
+                shellLine += "'" + (*i).ReplaceSubstr( "'", "'\\''" ) + "'";
+            }
+            // ... in a string of AppleScript
+            CString script = "tell application \"Terminal\" to do script \"exec " + shellLine.ReplaceSubstr( "\\", "\\\\" ).ReplaceSubstr( "\"", "\\\"" ) + "\"";
+            args.clear();
+            args.push_back( "-e" );
+            args.push_back( script );
+            args.push_back( "-e" );
+            args.push_back( "tell application \"Terminal\" to activate" );
+            exePath = osascript;
+            terminalName = "Terminal";
+            return true;
+        }
+    }
+
+    #endif /* GUCEF_PLATFORM_MACOS ? */
 
     // The terminals which were explicitly asked for, using the generic -e convention if we do not know them
     CString::StringVector explicitTerminals;
@@ -459,7 +519,12 @@ CDesktopTerminalConsoleLogger::InitializeImp( void )
 
     // The FIFO is private to this user
     CString fifoDir;
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    // the temporary directory of the user: private to the user, unlike /tmp
+    const char* runtimeDir = getenv( "TMPDIR" );
+    #else
     const char* runtimeDir = getenv( "XDG_RUNTIME_DIR" );
+    #endif /* GUCEF_PLATFORM_MACOS ? */
     if ( GUCEF_NULL != runtimeDir && '\0' != runtimeDir[ 0 ] && 0 == access( runtimeDir, W_OK ) )
         fifoDir = runtimeDir;
     else

@@ -54,7 +54,7 @@
   #include <Ws2tcpip.h>
   #include <Wspiapi.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     #include <unistd.h>
     #include <sys/socket.h>
@@ -144,7 +144,7 @@ UInt16
 CIPv4Address::HostByteOrderToNetworkByteOrder( UInt16 nrInHostByteOrder )
 {GUCEF_TRACE;
 
-    return ::htons( nrInHostByteOrder );
+    return htons( nrInHostByteOrder );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,7 +153,7 @@ UInt32
 CIPv4Address::HostByteOrderToNetworkByteOrder( UInt32 nrInHostByteOrder )
 {GUCEF_TRACE;
 
-    return ::htonl( nrInHostByteOrder );
+    return htonl( nrInHostByteOrder );
 }
 
 /*-------------------------------------------------------------------------*/

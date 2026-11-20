@@ -402,7 +402,7 @@ CTCPClientSocket::Connect( bool blocking )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     _data->serverinfo.sin_addr.S_un.S_addr = m_ipv4Target.GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     _data->serverinfo.sin_addr.s_addr = m_ipv4Target.GetAddress();
     #endif
 

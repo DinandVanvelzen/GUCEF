@@ -100,7 +100,7 @@
   #define GUCEF_CORE_MSWINUTILS_H
   #endif /* GUCEF_CORE_MSWINUTILS_H? */
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
   #include <sys/times.h>
   #include <sys/types.h>
@@ -111,6 +111,11 @@
   #include <unistd.h>
   #include <signal.h>                 /* kill() */
   #include <errno.h>
+  #if defined( __APPLE__ )
+    #include <libproc.h>              /* proc_pidpath(), proc_listallpids(), proc_pidinfo() */
+    #include <sys/sysctl.h>           /* sysctl(), sysctlbyname() */
+    #include <sys/proc_info.h>
+  #endif
   #define MAX_DIR_LENGTH PATH_MAX
 
 #endif
@@ -485,14 +490,14 @@ LoadModuleDynamiclyImp( const CString& filename, CString* failureReason )
         fName = filename + ".dll\0";
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
         fName = filename + ".so\0";
-        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE )
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
         fName = filename + ".dylib\0";
         #endif
     }
 
     const CString& theFilename = fName.IsNULLOrEmpty() ? filename : fName; 
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     modulePtr = (void*) ::dlopen( theFilename.C_String(), RTLD_NOW );
     if ( GUCEF_NULL == modulePtr )
@@ -611,7 +616,7 @@ GetModulePointer( const CString& moduleName )
 
     // If no module name is passed we get the pointer to the main process module
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // On linux the reference count is always incremented so we must decrement again right away to get
     // the same behaviour as the windows version
@@ -643,7 +648,7 @@ UnloadModuleDynamicly( void *sohandle )
     if ( GUCEF_NULL == sohandle )
         return;
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     ::dlclose( sohandle );
 
@@ -687,7 +692,7 @@ GetFunctionAddress( void* sohandle              ,
         return fptr;
     }
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     fptr.objPtr = dlsym( sohandle                ,
                          functionname.C_String() );
@@ -806,7 +811,7 @@ CString
 GetHostname( void )
 {GUCEF_TRACE;
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // Use the POSIX function gethostname()
     char nameBuffer[ 256 ];
@@ -1311,6 +1316,16 @@ IsProcessRunningAsService( TProcessId pid )
            IsRunningAsOpenRCService( pid ) ||
            IsRunningAsSupervisordService( pid );
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // The service manager of macOS is launchd, which is the parent of every job that it runs on its own account: the
+    // daemons and agents. Processes that a user starts from a shell or from the desktop have another parent
+    struct proc_bsdinfo bsdInfo;
+    ::memset( &bsdInfo, 0, sizeof( bsdInfo ) );
+    if ( (int) sizeof( bsdInfo ) != ::proc_pidinfo( pid, PROC_PIDTBSDINFO, 0, &bsdInfo, (int) sizeof( bsdInfo ) ) )
+        return false;
+    return 1 == bsdInfo.pbi_ppid;
+
     #else
 
     // platform not supported
@@ -1328,7 +1343,7 @@ IsRunningAsService( void )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     return IsProcessRunningAsService( ::GetCurrentProcessId() );
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     return IsProcessRunningAsService( ::getpid() );
     #else
     GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "IsRunningAsService: Platform has no supported implementation");
@@ -1374,6 +1389,9 @@ IsRunningAsElevatedAdmin( void )
 
     return 1 == g_isElevatedAdmin;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    // root is the elevated administrator of a Unix like system
+    return 0 == ::geteuid();
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "IsRunningAsElevatedAdmin: TODO" );
     return false;
@@ -1434,6 +1452,17 @@ GetExeImagePathForProcessId( TProcessId pid     ,
         ::CloseHandle( handle );
     }
     return false;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // The system tells the path of the executable of any process that we are allowed to look at
+    char pathBuffer[ PROC_PIDPATHINFO_MAXSIZE ];
+    const int pathLength = ::proc_pidpath( pid, pathBuffer, sizeof( pathBuffer ) );
+    if ( pathLength <= 0 )
+        return false;
+    pathBuffer[ pathLength < (int) sizeof( pathBuffer ) ? pathLength : (int) sizeof( pathBuffer ) - 1 ] = '\0';
+    imagePath = pathBuffer;
+    return true;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -1506,7 +1535,7 @@ GetExeNameForProcessId( TProcessId pid   ,
 
     return GetExeImagePathForProcessId( pid, exeName );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     CString symLinkPath;
     if ( GetExeImagePathForProcessId( pid, symLinkPath ) )
@@ -1697,6 +1726,34 @@ GetProcessList( TProcessIdVector& processList )
 
     return true;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // the number of processes can change between asking for it and getting the list: leave room for new ones and try again when it was not enough
+    int bufferSizeInBytes = ::proc_listallpids( GUCEF_NULL, 0 );
+    if ( bufferSizeInBytes <= 0 )
+        return false;
+    for ( int attempt=0; attempt<4; ++attempt )
+    {
+        const int capacity = ( bufferSizeInBytes / (int) sizeof( pid_t ) ) + 64;
+        std::vector< pid_t > pids( capacity, 0 );
+        const int bytesFilled = ::proc_listallpids( &pids[ 0 ], (int) ( capacity * sizeof( pid_t ) ) );
+        if ( bytesFilled <= 0 )
+            return false;
+        const int count = bytesFilled / (int) sizeof( pid_t );
+        if ( count < capacity )
+        {
+            processList.reserve( (size_t) count );
+            for ( int i=0; i<count; ++i )
+            {
+                if ( pids[ i ] > 0 )
+                    processList.push_back( pids[ i ] );
+            }
+            return true;
+        }
+        bufferSizeInBytes *= 2;
+    }
+    return false;
+
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     processList.reserve( 1024 );
@@ -1784,7 +1841,7 @@ CheckOnProcessAliveStatus( TProcessId pid, bool& status )
     ::CloseHandle( hProcess );
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // If sig is 0, then no signal is sent, but existence and permission
     // checks are still performed; this can be used to check for the
@@ -2030,6 +2087,62 @@ CProcessInformation::TryGetProcessInformation( TProcessId pid            ,
         }
 
         ::CloseHandle( hProcess );
+
+        return totalSuccess;
+
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+        bool totalSuccess = true;
+
+        CString exeImagePath;
+        if ( GetExeImagePathForProcessId( pid, exeImagePath ) )
+            info.SetImagePath( exeImagePath );
+        else
+            totalSuccess = false;
+
+        // KERN_PROCARGS2 gives: the argument count (an int), the path of the executable and its padding of null characters,
+        // then the arguments as null terminated strings (the first one is the program as it was started), then the environment
+        int mib[ 3 ] = { CTL_KERN, KERN_PROCARGS2, (int) pid };
+        size_t argsSize = 0;
+        if ( 0 == ::sysctl( mib, 3, GUCEF_NULL, &argsSize, GUCEF_NULL, 0 ) && argsSize > sizeof( int ) )
+        {
+            std::vector< char > args( argsSize, '\0' );
+            if ( 0 == ::sysctl( mib, 3, &args[ 0 ], &argsSize, GUCEF_NULL, 0 ) && argsSize > sizeof( int ) )
+            {
+                int argc = 0;
+                ::memcpy( &argc, &args[ 0 ], sizeof( int ) );
+                const char* pos = &args[ 0 ] + sizeof( int );
+                const char* end = &args[ 0 ] + argsSize;
+
+                // skip the path of the executable and the null characters behind it
+                while ( pos < end && '\0' != *pos )
+                    ++pos;
+                while ( pos < end && '\0' == *pos )
+                    ++pos;
+
+                CString::StringVector argVector;
+                for ( int a=0; a<argc && pos < end; ++a )
+                {
+                    const char* argStart = pos;
+                    while ( pos < end && '\0' != *pos )
+                        ++pos;
+                    argVector.push_back( CString( argStart, (UInt32) ( pos - argStart ) ) );
+                    if ( pos < end )
+                        ++pos;
+                }
+
+                // As on the other platforms we only give the 'extra' params passed to a program, not the program itself
+                if ( argVector.size() > 1 )
+                {
+                    argVector.erase( argVector.begin() );
+                    info.SetCommandLineArgs( ToString( argVector, ' ' ) );
+                }
+            }
+            else
+                totalSuccess = false;
+        }
+        else
+            totalSuccess = false;
 
         return totalSuccess;
 
@@ -2333,6 +2446,76 @@ GetLogicalCpuDescriptions( TLogicalCpuDescriptionVector& descriptions )
     fclose( procCpuInfoFile );
 
     return ParseProcCpuInfo( text.C_String(), text.Length(), descriptions );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // macOS has no table of text for this: what there is comes out of sysctl, per machine. Every logical cpu gets the same description
+    const UInt32 logicalCount = GetLogicalCPUCount();
+    if ( 0 == logicalCount )
+        return false;
+
+    CLogicalCpuDescription prototype;
+    char textValue[ 256 ];
+    size_t size = sizeof( textValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.vendor", textValue, &size, GUCEF_NULL, 0 ) )
+        prototype.vendorId = textValue;
+    size = sizeof( textValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.brand_string", textValue, &size, GUCEF_NULL, 0 ) )
+        prototype.modelName = textValue;
+
+    int intValue = 0;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.family", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.cpuFamily = (UInt32) intValue;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.model", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.model = (UInt32) intValue;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.stepping", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.stepping = (UInt32) intValue;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.cache.size", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.cacheSizeInBytes = (UInt32) intValue * 1024;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "hw.cachelinesize", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.cacheAlignment = prototype.clflushSize = (UInt32) intValue;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.core_count", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.cpuCores = (UInt32) intValue;
+    size = sizeof( intValue );
+    if ( 0 == ::sysctlbyname( "machdep.cpu.thread_count", &intValue, &size, GUCEF_NULL, 0 ) )
+        prototype.siblings = (UInt32) intValue;
+
+    // the frequency, in Hz: only Intel Macs tell it
+    UInt64 frequencyInHz = 0;
+    size = sizeof( frequencyInHz );
+    if ( 0 == ::sysctlbyname( "hw.cpufrequency", &frequencyInHz, &size, GUCEF_NULL, 0 ) )
+        prototype.cpuMhz = (Float32) ( frequencyInHz / 1000000.0 );
+
+    // the feature names: the instruction set, spelled in lower case as the other platforms spell them
+    static const char* const featureKeys[] = { "machdep.cpu.features", "machdep.cpu.leaf7_features", "machdep.cpu.extfeatures" };
+    for ( size_t k=0; k<sizeof( featureKeys ) / sizeof( featureKeys[ 0 ] ); ++k )
+    {
+        char featureText[ 2048 ];
+        size = sizeof( featureText );
+        if ( 0 == ::sysctlbyname( featureKeys[ k ], featureText, &size, GUCEF_NULL, 0 ) )
+        {
+            CString::StringVector features = CString( featureText ).Lowercase().ParseElements( ' ', false );
+            for ( size_t f=0; f<features.size(); ++f )
+            {
+                if ( !features[ f ].IsNULLOrEmpty() )
+                    prototype.flags.insert( features[ f ] );
+            }
+        }
+    }
+
+    for ( UInt32 i=0; i<logicalCount; ++i )
+    {
+        CLogicalCpuDescription description( prototype );
+        description.processor = i;
+        descriptions.push_back( description );
+    }
+    return true;
 
     #else
 

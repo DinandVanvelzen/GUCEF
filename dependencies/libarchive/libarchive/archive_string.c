@@ -1262,14 +1262,14 @@ create_sconv_object(const char *fc, const char *tc,
 	 */
 	if ((flag & SCONV_FROM_CHARSET) &&
 	    (flag & (SCONV_FROM_UTF16 | SCONV_FROM_UTF8))) {
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(GUCEF_LIBARCHIVE_NO_APPLE_NFD)
 		if (flag & SCONV_TO_UTF8)
 			flag |= SCONV_NORMALIZATION_D;
 		else
 #endif
 			flag |= SCONV_NORMALIZATION_C;
 	}
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(GUCEF_LIBARCHIVE_NO_APPLE_NFD)
 	/*
 	 * In case writing an archive file, make sure that a filename
 	 * going to be passed to iconv is a Unicode NFC string since

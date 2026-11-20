@@ -19,4 +19,9 @@
             <Dependency Name="dl" />
         </Linker>		
     </Module>
+    <Module Platform="osx">
+        <Preprocessor>
+            <Define String="WITH_LIBDL" />
+        </Preprocessor>
+    </Module>
 </ModuleInfoEntry>

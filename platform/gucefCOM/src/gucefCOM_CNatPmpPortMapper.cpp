@@ -76,6 +76,11 @@
   #include <winsock2.h>
   #include <windows.h>
   #include <iphlpapi.h>
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+  #ifndef GUCEF_COMCORE_CMACNETWORKINTERFACE_H
+  #include "gucefCOMCORE_CMacNetworkInterface.h"
+  #define GUCEF_COMCORE_CMACNETWORKINTERFACE_H
+  #endif /* GUCEF_COMCORE_CMACNETWORKINTERFACE_H ? */
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -295,6 +300,17 @@ CNatPmpPortMapper::GetDefaultGateway( COMCORE::CIPv4Address& gateway )
             gateway = COMCORE::CIPv4Address( gatewayAddress, COMCORE::CIPv4Address::HostByteOrderToNetworkByteOrder( GatewayPort ) );
             return true;
         }
+    }
+    return false;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // the routing table of the system, which the interface classes of the communication core read
+    COMCORE::CIPv4Address defaultGateway;
+    if ( COMCORE::CMacNetworkInterface::GetDefaultGateway( defaultGateway ) && 0 != defaultGateway.GetAddress() )
+    {
+        gateway = COMCORE::CIPv4Address( defaultGateway.GetAddress(), COMCORE::CIPv4Address::HostByteOrderToNetworkByteOrder( GatewayPort ) );
+        return true;
     }
     return false;
 
@@ -728,6 +744,11 @@ CNatPmpPortMapper::OnRequestSucceeded( size_t index )
 
     // A mapping was made or renewed: keep it alive from now on
     TMapping* mapping = FindMapping( request.protocol, request.internalPort );
+    if ( GUCEF_NULL == mapping && request.isRenewal )
+    {
+        // the renewal of a mapping that was removed while the renewal was under way: the removal wins, the mapping must not come back
+        return true;
+    }
     bool isNew = GUCEF_NULL == mapping;
     if ( isNew )
     {

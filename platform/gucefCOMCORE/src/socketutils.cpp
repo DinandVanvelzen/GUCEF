@@ -32,7 +32,7 @@
   #include <winsock2.h>
   #include <Ws2tcpip.h>
   #include <Wspiapi.h>
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
   #include <fcntl.h>
   #include <unistd.h>
   #include <sys/socket.h>
@@ -60,7 +60,7 @@ bool
 SetBlockingMode( SOCKET sock ,
                  bool block  )
 {
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
 	int opts = 0;
 

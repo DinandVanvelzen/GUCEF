@@ -394,7 +394,7 @@ CUDPSocket::SendPacketTo( const CIPv4Address& dest ,
         destAddr = CIPv4Address::Loopback.GetAddress();
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     remote.sin_addr.S_un.S_addr = destAddr;
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     remote.sin_addr.s_addr = destAddr;
     #endif
     remote.sin_port = dest.GetPort();
@@ -1361,7 +1361,7 @@ CUDPSocket::SetDefaultMulticastInterface( const CIPv4Address& multicastInterface
     memset( &interface_addr, 0, sizeof( interface_addr ) );
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     interface_addr.S_un.S_addr = multicastInterface.GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     interface_addr.s_addr = multicastInterface.GetAddress();
     #endif
 
@@ -1389,7 +1389,7 @@ CUDPSocket::Join( const CIPv4Address& multicastGroup ,
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.S_un.S_addr = srcAddr.GetAddress();
     imr.imr_interface.S_un.S_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.s_addr = srcAddr.GetAddress();
     imr.imr_interface.s_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
@@ -1456,7 +1456,7 @@ CUDPSocket::JoinOnInterface( const CIPv4Address& multicastGroup           ,
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_interface.S_un.S_addr = networkInterfaceToJoinOn.GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_interface.s_addr = networkInterfaceToJoinOn.GetAddress();
     #endif
@@ -1489,7 +1489,7 @@ CUDPSocket::Leave( const CIPv4Address& multicastGroup ,
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.S_un.S_addr = srcAddr.GetAddress();
     imr.imr_interface.S_un.S_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.s_addr = srcAddr.GetAddress();
     imr.imr_interface.s_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
@@ -1519,7 +1519,7 @@ CUDPSocket::Leave( const CIPv4Address& multicastGroup )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_interface.S_un.S_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_interface.s_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
     #endif
@@ -1550,7 +1550,7 @@ CUDPSocket::Block( const CIPv4Address& multicastGroup ,
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.S_un.S_addr = srcAddr.GetAddress();
     imr.imr_interface.S_un.S_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.s_addr = srcAddr.GetAddress();
     imr.imr_interface.s_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
@@ -1582,7 +1582,7 @@ CUDPSocket::Unblock( const CIPv4Address& multicastGroup ,
     imr.imr_multiaddr.S_un.S_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.S_un.S_addr = srcAddr.GetAddress();
     imr.imr_interface.S_un.S_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     imr.imr_multiaddr.s_addr = multicastGroup.GetAddress();
     imr.imr_sourceaddr.s_addr = srcAddr.GetAddress();
     imr.imr_interface.s_addr = m_hostAddress.GetFirstIPv4Address().GetAddress();

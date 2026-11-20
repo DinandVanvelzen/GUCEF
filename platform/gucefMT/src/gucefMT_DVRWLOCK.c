@@ -23,7 +23,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <assert.h>
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>                   /* memory management */
+#endif
 
 #ifndef GUCEF_MT_MUTEX_H
 #include "gucefMT_mutex.h"            /* O/S mutex wrapper */

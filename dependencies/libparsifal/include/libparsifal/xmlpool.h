@@ -30,7 +30,7 @@
 #if !( defined(PARSIFAL_LINUX_BUILD) || defined(PARSIFAL_MSWIN_BUILD) )
   #if defined( WIN32 ) || defined( _WIN32 )
     #define PARSIFAL_MSWIN_BUILD
-  #elif defined( linux ) || defined( __linux__ ) || defined( __EMSCRIPTEN__ )
+  #elif defined( linux ) || defined( __linux__ ) || defined( __EMSCRIPTEN__ ) || defined( __APPLE__ )
     #define PARSIFAL_LINUX_BUILD
   #else
     #error Cannot automaticly detect your operating system, please define

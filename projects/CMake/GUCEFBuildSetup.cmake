@@ -31,6 +31,28 @@ if ( GUCEF_SYSTEM_NAME STREQUAL "Linux" )
   endif()
 endif()
 
+if ( GUCEF_SYSTEM_NAME STREQUAL "Darwin" )
+  # The ProjectGenerator platform for macOS is named 'osx' (aliases: mac, macos, macosx), the generated
+  # files test for OSX. MACOSX is set as well since some generated platform blocks use that spelling.
+  set( OSX TRUE )
+  set( MACOSX TRUE )
+  set( GUCEF_TARGET_PLATFORM "OSX" )
+
+  # Apple clang defaults to C++98 where GCC on Linux defaults to a modern standard: the modules need C++11 to C++17,
+  # so unless a standard was asked for we ask for C++17
+  if ( NOT CMAKE_CXX_STANDARD )
+    set( CMAKE_CXX_STANDARD 17 )
+    set( CMAKE_CXX_STANDARD_REQUIRED ON )
+    message(STATUS "No CMAKE_CXX_STANDARD given: using C++17 on macOS")
+  endif()
+
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit macOS system")
+  else ()
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit macOS system")
+  endif()
+endif()
+
 if ( GUCEF_SYSTEM_NAME STREQUAL "Android" )
   if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     set( ANDROID64 TRUE )
@@ -210,14 +232,7 @@ if (GUCEF_BUILD_PLATFORM_IPHONE)
   add_definitions(-fno-regmove)
   remove_definitions(-msse)
 elseif (APPLE AND NOT GUCEF_BUILD_PLATFORM_IPHONE)
-  # Force gcc <= 4.0 on Mac OS X because 4.2 is not supported prior to Mac OS X 10.5
-  include(CMakeForceCompiler)
-  CMAKE_FORCE_C_COMPILER(gcc-4.0 GNU)
-  CMAKE_FORCE_CXX_COMPILER(gcc-4.0 GNU)
-
-  # Set 10.4 as the base SDK by default
-  set(XCODE_ATTRIBUTE_SDKROOT macosx10.4)
-  
+  # macOS: the compiler and SDK that CMake finds (Apple clang) are used as they are
 endif ()
 
 ######################################################################

@@ -34,7 +34,7 @@
 
 #include <winsock2.h>                  /* windows networking API */
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -106,7 +106,7 @@ static WSADATA wsadata;
 #define LastSocketError WSAGetLastError()
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
 #define LastSocketError errno
 #define closesocket close

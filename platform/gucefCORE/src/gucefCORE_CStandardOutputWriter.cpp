@@ -523,6 +523,13 @@ CStandardOutputWriter::Start( void )
     m_wakeRead = wakePipe[ 0 ];
     m_wakeWrite = wakePipe[ 1 ];
 
+    #if defined( __APPLE__ )
+    // On macOS a write to a pipe or socket of which the reader is gone raises SIGPIPE for the process, not for the writing thread as
+    // on Linux, so blocking it on the writer thread does not keep it from ending the process by being delivered to another thread.
+    // The system has a switch per descriptor for this: the write fails with EPIPE, which is what the writer reports as a broken pipe
+    fcntl( m_stream, F_SETNOSIGPIPE, 1 );
+    #endif
+
     #endif
 
     if ( !m_thread->Activate( GUCEF_NULL, 0, 0 ) )

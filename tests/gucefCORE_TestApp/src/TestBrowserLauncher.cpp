@@ -568,6 +568,9 @@ PerformBrowserLauncherTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // the activation token belongs to the Linux desktops (xdg-activation, the X11 startup id): there is no such token to log on macOS
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+
     GUCEF_TESTFW_TESTCASE( "Test: The activation token and the URL are not written to the log" )
         try
         {
@@ -604,6 +607,8 @@ PerformBrowserLauncherTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    #endif /* Linux ? */
+
     GUCEF_TESTFW_TESTCASE( "Test: A process that is isolated from this one has /dev/null for its standard streams, a session of its own and none of the descriptors of this process" )
         try
         {
@@ -619,12 +624,26 @@ PerformBrowserLauncherTests( void )
             // the child looks at its own descriptors and writes what it found to a file (its standard output is what is being tested)
             const CORE::CString report = CORE::CombinePath( CORE::TempDir(), "gucef-process-isolation-report.txt" );
             ::unlink( report.C_String() );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS )
+            // macOS has no /proc: the descriptors of the shell are looked at through /dev/fd, which an open descriptor shows as a file of its
+            // own that is the same file as what the descriptor is open on. A session leader is the leader of a process group of its own
+            // with the same id, which is what ps tells
+            const char* script =
+                "r=\"$$\"; out=\"$1\"; shift; "
+                "t0=other; t1=other; t2=other; "
+                "[ /dev/fd/0 -ef /dev/null ] && t0=/dev/null; [ /dev/fd/1 -ef /dev/null ] && t1=/dev/null; [ /dev/fd/2 -ef /dev/null ] && t2=/dev/null; "
+                "std=\"$t0|$t1|$t2\"; "
+                "sid=\"$(ps -o pgid= -p $$ | tr -d ' ')\"; "
+                "open=\"\"; for n in \"$@\"; do if [ -e /dev/fd/$n ]; then open=\"$open $n\"; fi; done; "
+                "printf '%s' \"$std;$sid;$r;$open\" > \"$out\"";
+            #else
             const char* script =
                 "r=\"$$\"; out=\"$1\"; shift; "
                 "std=\"$(readlink /proc/$$/fd/0)|$(readlink /proc/$$/fd/1)|$(readlink /proc/$$/fd/2)\"; "
                 "sid=\"$(cut -d' ' -f6 /proc/$$/stat)\"; "
                 "open=\"\"; for n in \"$@\"; do if [ -e /proc/$$/fd/$n ]; then open=\"$open $n\"; fi; done; "
                 "printf '%s' \"$std;$sid;$r;$open\" > \"$out\"";
+            #endif
 
             for ( int pass=0; pass<2; ++pass )
             {

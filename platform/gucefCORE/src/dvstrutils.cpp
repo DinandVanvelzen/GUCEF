@@ -25,7 +25,11 @@
 
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <string.h>      /* string handling */
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>      /* memory allocation */
+#endif
 #include "gucefCORE_ETypes.h"      /* simple types used */
 #include "dvstrutils.h"  /* this file's header */
 #include <stdio.h>       /* standard I/O handling */

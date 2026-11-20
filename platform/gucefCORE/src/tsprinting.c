@@ -24,7 +24,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdlib.h>
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>	     /* memory management */	
+#endif
 #include <stdarg.h>          /* needed for var argument list */
 #include <string.h>          /* standard string utils */
 

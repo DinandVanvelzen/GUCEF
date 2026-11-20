@@ -8,7 +8,7 @@
             <Define String="GUCEF_CODECPLUGIN_BUILD_MODULE" />
         </Preprocessor>
     </Module>
-    <Module Platform="linux;mswin">
+    <Module Platform="linux;mswin;osx">
         <Dependencies>
             <Dependency Name="zlib" />
         </Dependencies>

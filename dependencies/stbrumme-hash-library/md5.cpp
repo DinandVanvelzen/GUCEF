@@ -7,7 +7,15 @@
 #include "md5.h"
 
 #ifndef _MSC_VER
+#if defined(__APPLE__)
+  #include <machine/endian.h>
+  #ifndef __BYTE_ORDER
+    #define __BYTE_ORDER __DARWIN_BYTE_ORDER
+    #define __BIG_ENDIAN __DARWIN_BIG_ENDIAN
+  #endif
+#else
 #include <endian.h>
+#endif
 #endif
 
 

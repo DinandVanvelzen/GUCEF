@@ -431,7 +431,14 @@ PerformCounterTests( void )
         ASSERT_TRUE( MT::SetCurrentThreadName( "a-name-longer-than-fifteen" ) || GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX );
         char current[ 64 ];
         if ( MT::GetCurrentThreadName( current, sizeof( current ) ) )
+        {
+            // the kernel of Linux keeps 15 bytes of a thread name, macOS keeps 63
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+            ASSERT_TRUE( 0 == strcmp( current, "a-name-longer-than-fifteen" ) );
+            #else
             ASSERT_TRUE( 0 == strcmp( current, "a-name-longer-t" ) );
+            #endif
+        }
         MT::SetCurrentThreadName( "gucefCORE_TestA" );
         pool->SetDesiredMinNrOfWorkerThreads( 0 );
         pool->SetDesiredMaxTotalNrOfThreads( 0 );

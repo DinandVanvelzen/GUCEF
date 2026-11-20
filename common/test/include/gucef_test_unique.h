@@ -49,7 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined( __linux__ ) || defined( __ANDROID__ )
+#if defined( __linux__ ) || defined( __ANDROID__ ) || defined( __APPLE__ )
 
   #include <unistd.h>
   #include <sys/types.h>
@@ -101,7 +101,7 @@ namespace TESTFW {
 inline UInt32
 TestProcessId( void )
 {
-    #if defined( __linux__ ) || defined( __ANDROID__ )
+    #if defined( __linux__ ) || defined( __ANDROID__ ) || defined( __APPLE__ )
     return (UInt32) ::getpid();
     #elif defined( _WIN32 )
     return (UInt32) ::_getpid();
@@ -182,7 +182,7 @@ TestPortBase( void )
 inline UInt16
 TryBindTestPort( bool udp, UInt16 port )
 {
-    #if defined( __linux__ ) || defined( __ANDROID__ ) || defined( _WIN32 )
+    #if defined( __linux__ ) || defined( __ANDROID__ ) || defined( __APPLE__ ) || defined( _WIN32 )
 
     #if defined( _WIN32 )
     WSADATA wsaData;

@@ -58,6 +58,25 @@
 
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ? */
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    #include <CoreServices/CoreServices.h>      /* FSEvents */
+    #include <dispatch/dispatch.h>
+    #include <sys/stat.h>
+    #include <limits.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    #include <string>
+    #include <vector>
+    #include <set>
+
+    #ifndef GUCEF_MT_CSCOPEMUTEX_H
+    #include "gucefMT_CScopeMutex.h"
+    #define GUCEF_MT_CSCOPEMUTEX_H
+    #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
+#endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -938,6 +957,524 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
         {
             close( m_inotify_fd );
             m_inotify_fd = -1;
+        }
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+/*-------------------------------------------------------------------------*/
+
+#define FSEVENTS_POLLING_INTERVAL_IN_MS     25
+#define FSEVENTS_LATENCY_IN_SECONDS         0.025
+
+/**
+ *  macOS watches the file system with FSEvents. It has no inotify's view of a single directory: it reports what happens at
+ *  paths, for a whole tree, from a thread of its own. What it reports is made to look like what inotify gives: a watch is
+ *  of the files and directories directly in a directory (the whole tree when the options ask for the sub tree, then the names
+ *  are paths relative to the watched directory), and the events are handed over from the polling timer, in the thread of the
+ *  application, as for the other platforms.
+ *  FSEvents has no cookie to tie the 2 halves of a rename together: the old name (which is gone) and the new name (which is there)
+ *  are reported one after the other, and those are paired up.
+ */
+class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
+{
+    public:
+
+    typedef CTEventHandlerFunctor< OSSpecificDirectoryWatcher > TEventCallback;
+    typedef CIDirectoryWatcher::CDirWatchOptions CDirWatchOptions;
+
+    enum EChangeKind
+    {
+        CHANGE_FILE_CREATED ,
+        CHANGE_FILE_DELETED ,
+        CHANGE_FILE_MODIFIED ,
+        CHANGE_FILE_RENAMED ,
+        CHANGE_DIR_CREATED ,
+        CHANGE_DIR_DELETED ,
+        CHANGE_DIR_MODIFIED ,
+        CHANGE_DIR_RENAMED
+    };
+
+    struct SChange
+    {
+        EChangeKind kind;
+        CUtf8String name;           // what changed, for a rename the new name
+        CUtf8String oldName;        // for a rename the name it had
+        CUtf8String watchedDir;     // the watched directory the change was in, as it was given to AddDirToWatch()
+    };
+    typedef std::vector< SChange > TChangeVector;
+
+    class GUCEF_HIDDEN WatchEntry
+    {
+        public:
+
+        CDirWatchOptions m_options;
+        CUtf8String m_watchedDir;           // as given
+        std::string m_realPath;             // as the file system reports paths: no symbolic links and no trailing slash
+        FSEventStreamRef m_stream;
+        OSSpecificDirectoryWatcher* m_owner;
+        std::set< std::string > m_announcedPaths;   // paths whose creation was told: FSEvents keeps the 'created' flag on every later event of a path. Only used by the thread of FSEvents
+
+        WatchEntry( void )
+            : m_options()
+            , m_watchedDir()
+            , m_realPath()
+            , m_stream( NULL )
+            , m_owner( GUCEF_NULL )
+            , m_announcedPaths()
+        {GUCEF_TRACE;
+        }
+    };
+    typedef GUCEF::map< CUtf8String, WatchEntry* > TWatchEntryMap;
+
+    CTimer m_osPollingTimer;
+    CFileSystemDirectoryWatcher* m_wrapper;
+    TWatchEntryMap m_dirsToWatch;
+    dispatch_queue_t m_queue;
+    MT::CMutex m_pendingLock;
+    TChangeVector m_pendingChanges;
+
+    static bool PathExists( const std::string& path )
+    {GUCEF_TRACE;
+
+        struct stat info;
+        return 0 == ::lstat( path.c_str(), &info );
+    }
+
+    /** What FSEvents told, from its own thread: made into changes of the watched directory and queued for the polling timer */
+    static void StreamCallback( ConstFSEventStreamRef stream                 ,
+                                void* clientCallBackInfo                     ,
+                                size_t numEvents                             ,
+                                void* eventPaths                             ,
+                                const FSEventStreamEventFlags eventFlags[]   ,
+                                const FSEventStreamEventId eventIds[]        )
+    {
+        WatchEntry* entry = static_cast< WatchEntry* >( clientCallBackInfo );
+        if ( GUCEF_NULL == entry || GUCEF_NULL == entry->m_owner )
+            return;
+
+        const char* const* paths = static_cast< const char* const* >( eventPaths );
+        TChangeVector changes;
+        bool haveRenamedFrom = false;
+        std::string renamedFrom;
+        bool renamedFromIsDir = false;
+
+        for ( size_t i=0; i<numEvents; ++i )
+        {
+            const FSEventStreamEventFlags flags = eventFlags[ i ];
+            std::string path = paths[ i ];
+
+            if ( 0 != ( flags & ( kFSEventStreamEventFlagMustScanSubDirs | kFSEventStreamEventFlagUserDropped | kFSEventStreamEventFlagKernelDropped |
+                                  kFSEventStreamEventFlagRootChanged | kFSEventStreamEventFlagMount | kFSEventStreamEventFlagUnmount | kFSEventStreamEventFlagHistoryDone ) ) )
+                continue;
+
+            // what is in the watched directory: a path below it
+            const std::string& root = entry->m_realPath;
+            if ( path.size() <= root.size() + 1 || 0 != path.compare( 0, root.size(), root ) || '/' != path[ root.size() ] )
+                continue;
+            std::string relative = path.substr( root.size() + 1 );
+            if ( !entry->m_options.watchSubTree && std::string::npos != relative.find( '/' ) )
+                continue;
+
+            const bool isDir = 0 != ( flags & kFSEventStreamEventFlagItemIsDir );
+
+            // What FSEvents reports for a path is what has happened to it so far, and not only since the last report: the flags of
+            // an earlier create stay on the events of the path after it. What an event is about now is told by the file system:
+            // a path that is gone was deleted (or moved away), one that is there and has not been told about is new.
+            const bool exists = PathExists( path );
+            if ( !exists && 0 != ( flags & kFSEventStreamEventFlagItemRemoved ) )
+            {
+                // a path that is not there (any more) and was removed: deleted, also when it has been renamed before
+                SChange change;
+                change.kind = isDir ? CHANGE_DIR_DELETED : CHANGE_FILE_DELETED;
+                change.name = relative.c_str();
+                change.watchedDir = entry->m_watchedDir;
+                changes.push_back( change );
+                entry->m_announcedPaths.erase( path );
+                continue;
+            }
+            else
+            if ( 0 != ( flags & kFSEventStreamEventFlagItemRenamed ) )
+            {
+                entry->m_announcedPaths.erase( path );
+                if ( exists )
+                    entry->m_announcedPaths.insert( path );
+            }
+            else
+            if ( !exists )
+            {
+                entry->m_announcedPaths.erase( path );
+                continue;
+            }
+            else
+            if ( 0 != ( flags & kFSEventStreamEventFlagItemCreated ) )
+            {
+                if ( entry->m_announcedPaths.insert( path ).second )
+                {
+                    SChange change;
+                    change.kind = isDir ? CHANGE_DIR_CREATED : CHANGE_FILE_CREATED;
+                    change.name = relative.c_str();
+                    change.watchedDir = entry->m_watchedDir;
+                    changes.push_back( change );
+
+                    // creating a directory is not a change of it
+                    if ( isDir )
+                        continue;
+                }
+            }
+
+            if ( 0 != ( flags & kFSEventStreamEventFlagItemRenamed ) )
+            {
+                // the old name is not there any more, the new one is: they are reported one after the other
+                if ( !PathExists( path ) )
+                {
+                    haveRenamedFrom = true;
+                    renamedFrom = relative;
+                    renamedFromIsDir = isDir;
+                }
+                else
+                if ( haveRenamedFrom && renamedFromIsDir == isDir )
+                {
+                    SChange change;
+                    change.kind = isDir ? CHANGE_DIR_RENAMED : CHANGE_FILE_RENAMED;
+                    change.name = relative.c_str();
+                    change.oldName = renamedFrom.c_str();
+                    change.watchedDir = entry->m_watchedDir;
+                    changes.push_back( change );
+                    haveRenamedFrom = false;
+                }
+            }
+            // the rename of a path is told as that, whatever else the flags still say about it
+            if ( 0 == ( flags & kFSEventStreamEventFlagItemRenamed ) &&
+                 0 != ( flags & ( kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod | kFSEventStreamEventFlagItemXattrMod |
+                                  kFSEventStreamEventFlagItemChangeOwner | kFSEventStreamEventFlagItemFinderInfoMod ) ) )
+            {
+                SChange change;
+                change.kind = isDir ? CHANGE_DIR_MODIFIED : CHANGE_FILE_MODIFIED;
+                change.name = relative.c_str();
+                change.watchedDir = entry->m_watchedDir;
+                changes.push_back( change );
+            }
+        }
+
+        if ( !changes.empty() )
+        {
+            MT::CScopeMutex lock( entry->m_owner->m_pendingLock );
+            entry->m_owner->m_pendingChanges.insert( entry->m_owner->m_pendingChanges.end(), changes.begin(), changes.end() );
+        }
+    }
+
+    void RegisterEventHandlers( void )
+    {GUCEF_TRACE;
+
+        TEventCallback callback( this, &OSSpecificDirectoryWatcher::OnDirWatchPollingCycle );
+        SubscribeTo( &m_osPollingTimer              ,
+                     CORE::CTimer::TimerUpdateEvent ,
+                     callback                       );
+    }
+
+    bool AddDirToWatch( const CString& dirToWatch       ,
+                        const CDirWatchOptions& options )
+    {GUCEF_TRACE;
+
+        CUtf8String utfDirToWatch = ToUtf8String( dirToWatch );
+        if ( m_dirsToWatch.find( utfDirToWatch ) != m_dirsToWatch.end() )
+            return false;       // already watched
+
+        // FSEvents reports the paths the file system has: without symbolic links, as /private/var and not /var
+        char realPathBuffer[ PATH_MAX + 1 ];
+        if ( GUCEF_NULL == ::realpath( utfDirToWatch.C_String(), realPathBuffer ) )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AddDirToWatch: Failed to add watch to dir \"" + dirToWatch + "\": it does not exist" );
+            return false;
+        }
+        std::string realPath = realPathBuffer;
+        while ( realPath.size() > 1 && '/' == realPath[ realPath.size()-1 ] )
+            realPath.erase( realPath.size()-1 );
+
+        WatchEntry* entry = GUCEF_NEW WatchEntry();
+        entry->m_options = options;
+        entry->m_watchedDir = utfDirToWatch;
+        entry->m_realPath = realPath;
+        entry->m_owner = this;
+
+        CFStringRef cfPath = ::CFStringCreateWithCString( kCFAllocatorDefault, realPath.c_str(), kCFStringEncodingUTF8 );
+        CFArrayRef cfPaths = GUCEF_NULL != cfPath ? ::CFArrayCreate( kCFAllocatorDefault, (const void**) &cfPath, 1, &kCFTypeArrayCallBacks ) : NULL;
+        if ( NULL != cfPath )
+            ::CFRelease( cfPath );
+        if ( NULL == cfPaths )
+        {
+            GUCEF_DELETE entry;
+            return false;
+        }
+
+        FSEventStreamContext context;
+        memset( &context, 0, sizeof( context ) );
+        context.info = entry;
+        entry->m_stream = ::FSEventStreamCreate( kCFAllocatorDefault                                                   ,
+                                                 &OSSpecificDirectoryWatcher::StreamCallback                           ,
+                                                 &context                                                              ,
+                                                 cfPaths                                                               ,
+                                                 kFSEventStreamEventIdSinceNow                                         ,
+                                                 FSEVENTS_LATENCY_IN_SECONDS                                           ,
+                                                 kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer  );
+        ::CFRelease( cfPaths );
+        if ( NULL == entry->m_stream )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AddDirToWatch: Failed to add watch to dir \"" + dirToWatch + "\"" );
+            GUCEF_DELETE entry;
+            return false;
+        }
+
+        ::FSEventStreamSetDispatchQueue( entry->m_stream, m_queue );
+        if ( !::FSEventStreamStart( entry->m_stream ) )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AddDirToWatch: Failed to start the watch of dir \"" + dirToWatch + "\"" );
+            ::FSEventStreamInvalidate( entry->m_stream );
+            ::FSEventStreamRelease( entry->m_stream );
+            GUCEF_DELETE entry;
+            return false;
+        }
+
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "AddDirToWatch: Added watch of dir \"" + dirToWatch + "\"" );
+        m_dirsToWatch[ utfDirToWatch ] = entry;
+        m_osPollingTimer.SetEnabled( true );
+        return true;
+    }
+
+    /** Stops the stream: what it had in flight is delivered first, the callback is not called any more when this returns */
+    static void StopWatchEntry( WatchEntry* entry )
+    {GUCEF_TRACE;
+
+        if ( NULL != entry->m_stream )
+        {
+            ::FSEventStreamFlushSync( entry->m_stream );
+            ::FSEventStreamStop( entry->m_stream );
+            ::FSEventStreamInvalidate( entry->m_stream );
+            ::FSEventStreamRelease( entry->m_stream );
+            entry->m_stream = NULL;
+        }
+        entry->m_owner = GUCEF_NULL;
+    }
+
+    bool RemoveDirToWatch( const CString& dirToWatch )
+    {GUCEF_TRACE;
+
+        CUtf8String utfDirToWatch = ToUtf8String( dirToWatch );
+        TWatchEntryMap::iterator i = m_dirsToWatch.find( utfDirToWatch );
+        if ( i == m_dirsToWatch.end() )
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "RemoveDirToWatch: Request to remove watch of dir \"" + dirToWatch + "\" but we did not have any such watch" );
+            return false;
+        }
+
+        StopWatchEntry( (*i).second );
+        GUCEF_DELETE (*i).second;
+        m_dirsToWatch.erase( i );
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "RemoveDirToWatch: Removed watch of dir \"" + dirToWatch + "\"" );
+
+        if ( m_dirsToWatch.empty() )
+            m_osPollingTimer.SetEnabled( false );
+        return true;
+    }
+
+    bool RemoveAllWatches( void )
+    {GUCEF_TRACE;
+
+        m_osPollingTimer.SetEnabled( false );
+
+        TWatchEntryMap::iterator i = m_dirsToWatch.begin();
+        while ( i != m_dirsToWatch.end() )
+        {
+            StopWatchEntry( (*i).second );
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "RemoveAllWatches: Removed watch of dir \"" + ToString( (*i).first ) + "\"" );
+            GUCEF_DELETE (*i).second;
+            ++i;
+        }
+        m_dirsToWatch.clear();
+
+        // what was not handed over yet belongs to watches that are gone
+        MT::CScopeMutex lock( m_pendingLock );
+        m_pendingChanges.clear();
+        return true;
+    }
+
+    bool GetAllWatchedDirs( CString::StringSet& dirs ) const
+    {GUCEF_TRACE;
+
+        TWatchEntryMap::const_iterator i = m_dirsToWatch.begin();
+        while ( i != m_dirsToWatch.end() )
+        {
+            dirs.insert( ToString( (*i).first ) );
+            ++i;
+        }
+        return true;
+    }
+
+    void OnDirWatchPollingCycle( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        TChangeVector changes;
+        {
+            MT::CScopeMutex lock( m_pendingLock );
+            changes.swap( m_pendingChanges );
+        }
+
+        for ( size_t i=0; i<changes.size(); ++i )
+        {
+            const SChange& change = changes[ i ];
+            TWatchEntryMap::iterator n = m_dirsToWatch.find( change.watchedDir );
+            if ( n == m_dirsToWatch.end() )
+                continue;   // watch removed in the meantime
+            const CDirWatchOptions& options = (*n).second->m_options;
+
+            switch ( change.kind )
+            {
+                case CHANGE_FILE_CREATED:
+                {
+                    if ( options.watchForFileCreation )
+                    {
+                        CIDirectoryWatcher::TFileCreatedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::FileCreatedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_FILE_DELETED:
+                {
+                    if ( options.watchForFileDeletion )
+                    {
+                        CIDirectoryWatcher::TFileDeletedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::FileDeletedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_FILE_MODIFIED:
+                {
+                    if ( options.watchForFileModifications )
+                    {
+                        CIDirectoryWatcher::TFileModifiedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::FileModifiedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_FILE_RENAMED:
+                {
+                    if ( options.watchForFileRenames )
+                    {
+                        CIDirectoryWatcher::TFileRenamedEventData eData;
+                        eData.GetData().oldFilename = ToString( change.oldName );
+                        eData.GetData().newFilename = ToString( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::FileRenamedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_DIR_CREATED:
+                {
+                    if ( options.watchForDirCreation )
+                    {
+                        CIDirectoryWatcher::TDirCreatedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::DirCreatedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_DIR_DELETED:
+                {
+                    if ( options.watchForDirDeletion )
+                    {
+                        CIDirectoryWatcher::TDirDeletedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::DirDeletedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_DIR_MODIFIED:
+                {
+                    if ( options.watchForDirModifications )
+                    {
+                        CIDirectoryWatcher::TDirModifiedEventData eData( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::DirModifiedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+                case CHANGE_DIR_RENAMED:
+                {
+                    if ( options.watchForDirRenames )
+                    {
+                        CIDirectoryWatcher::TDirRenamedEventData eData;
+                        eData.GetData().oldDirName = ToString( change.oldName );
+                        eData.GetData().newDirName = ToString( change.name );
+                        if ( !m_wrapper->NotifyObservers( CIDirectoryWatcher::DirRenamedEvent, &eData ) ) return;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    void Init( void )
+    {GUCEF_TRACE;
+
+        m_queue = ::dispatch_queue_create( "gucef.core.fsevents", DISPATCH_QUEUE_SERIAL );
+        RegisterEventHandlers();
+        m_osPollingTimer.SetInterval( FSEVENTS_POLLING_INTERVAL_IN_MS );
+    }
+
+    OSSpecificDirectoryWatcher( CFileSystemDirectoryWatcher* wrapper )
+        : m_osPollingTimer()
+        , m_wrapper( wrapper )
+        , m_dirsToWatch()
+        , m_queue( NULL )
+        , m_pendingLock()
+        , m_pendingChanges()
+    {GUCEF_TRACE;
+
+        Init();
+    }
+
+    OSSpecificDirectoryWatcher( CFileSystemDirectoryWatcher* wrapper ,
+                                PulseGeneratorPtr pulseGenerator     )
+        : m_osPollingTimer( pulseGenerator )
+        , m_wrapper( wrapper )
+        , m_dirsToWatch()
+        , m_queue( NULL )
+        , m_pendingLock()
+        , m_pendingChanges()
+    {GUCEF_TRACE;
+
+        Init();
+    }
+
+    OSSpecificDirectoryWatcher( const OSSpecificDirectoryWatcher& src ,
+                                CFileSystemDirectoryWatcher* wrapper  )
+        : m_osPollingTimer( src.m_osPollingTimer )
+        , m_wrapper( wrapper )
+        , m_dirsToWatch()
+        , m_queue( NULL )
+        , m_pendingLock()
+        , m_pendingChanges()
+    {GUCEF_TRACE;
+
+        Init();
+        TWatchEntryMap::const_iterator i = src.m_dirsToWatch.begin();
+        while ( i != src.m_dirsToWatch.end() )
+        {
+            AddDirToWatch( ToString( (*i).first ), (*i).second->m_options );
+            ++i;
+        }
+    }
+
+    ~OSSpecificDirectoryWatcher()
+    {GUCEF_TRACE;
+
+        RemoveAllWatches();
+        if ( NULL != m_queue )
+        {
+            ::dispatch_release( m_queue );
+            m_queue = NULL;
         }
     }
 };

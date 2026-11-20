@@ -32,14 +32,16 @@
 
 #ifdef __cplusplus
 
-#if defined( __linux__ ) || defined( __ANDROID__ )
+#if defined( __linux__ ) || defined( __ANDROID__ ) || defined( __APPLE__ )
 
   #include <dirent.h>
   #include <unistd.h>
   #include <string.h>
   #include <stdlib.h>
+  #include <sys/types.h>
+  #include <sys/stat.h>
 
-#endif /* Linux ? */
+#endif /* Linux or macOS ? */
 
 namespace GUCEF {
 namespace TESTFW {
@@ -48,7 +50,30 @@ namespace TESTFW {
 inline int
 CountOpenSockets( void )
 {
-    #if defined( __linux__ ) || defined( __ANDROID__ )
+    #if defined( __APPLE__ )
+
+    // macOS has no /proc: the open descriptors are listed in /dev/fd, and the type of what a descriptor is open on is asked with fstat()
+    DIR* dir = opendir( "/dev/fd" );
+    if ( NULL == dir )
+        return -1;
+    int count = 0;
+    const int self = dirfd( dir );
+    struct dirent* entry = NULL;
+    while ( NULL != ( entry = readdir( dir ) ) )
+    {
+        if ( '.' == entry->d_name[ 0 ] )
+            continue;
+        const int fd = atoi( entry->d_name );
+        if ( fd == self )
+            continue;
+        struct stat info;
+        if ( 0 == fstat( fd, &info ) && S_ISSOCK( info.st_mode ) )
+            ++count;
+    }
+    closedir( dir );
+    return count;
+
+    #elif defined( __linux__ ) || defined( __ANDROID__ )
 
     DIR* dir = opendir( "/proc/self/fd" );
     if ( NULL == dir )
@@ -89,9 +114,13 @@ CountOpenSockets( void )
 inline int
 CountOpenDescriptors( void )
 {
-    #if defined( __linux__ ) || defined( __ANDROID__ )
+    #if defined( __linux__ ) || defined( __ANDROID__ ) || defined( __APPLE__ )
 
+    #if defined( __APPLE__ )
+    DIR* dir = opendir( "/dev/fd" );
+    #else
     DIR* dir = opendir( "/proc/self/fd" );
+    #endif
     if ( NULL == dir )
         return -1;
     int count = 0;

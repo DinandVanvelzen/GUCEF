@@ -109,7 +109,7 @@ GetMonotonicTimeInMs( void )
     const UInt64 ticksPerSecond = (UInt64) frequency.QuadPart;
     return ( ticks / ticksPerSecond ) * 1000 + ( ( ticks % ticksPerSecond ) * 1000 ) / ticksPerSecond;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct timespec now;
     ::clock_gettime( CLOCK_MONOTONIC, &now );

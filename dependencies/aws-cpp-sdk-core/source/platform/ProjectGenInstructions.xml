@@ -8,6 +8,9 @@
     <INCLUDES PLATFORM="linux">
 		<ITEM NAME="linux-shared" TYPE="DIR" />
 	</INCLUDES>
+    <INCLUDES PLATFORM="osx">
+		<ITEM NAME="linux-shared" TYPE="DIR" />
+	</INCLUDES>
     <INCLUDES PLATFORM="android">
 		<ITEM NAME="android" TYPE="DIR" />
 	</INCLUDES>

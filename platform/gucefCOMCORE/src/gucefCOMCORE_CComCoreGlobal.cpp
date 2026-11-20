@@ -112,6 +112,13 @@
 #define GUCEF_COMCORE_COPENSSLTLSPROVIDER_H
 #endif /* GUCEF_COMCORE_COPENSSLTLSPROVIDER_H ? */
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+#ifndef GUCEF_COMCORE_CSECURETRANSPORTTLSPROVIDER_H
+#include "osx/gucefCOMCORE_CSecureTransportTlsProvider.h"
+#define GUCEF_COMCORE_CSECURETRANSPORTTLSPROVIDER_H
+#endif /* GUCEF_COMCORE_CSECURETRANSPORTTLSPROVIDER_H ? */
+#endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ? */
+
 #ifndef GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
 #include "gucefCOMCORE_CDatabaseClientOperation.h"
 #define GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
@@ -304,6 +311,11 @@ CComCoreGlobal::Initialize( void )
     // Registering probes nothing: the libraries of the system are only looked for when TLS is first used
     m_tlsProviderRegistry = GUCEF_NEW CTlsProviderRegistry();
     m_tlsProviderRegistry->RegisterProvider( TITlsProviderPtr( GUCEF_NEW COpenSslTlsProvider() ), CTlsProviderRegistry::SystemLibraryTlsProviderPriority );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    // The TLS of the operating system itself: always there, TLS 1.2 at most. Behind OpenSSL, which has TLS 1.3 and resumption where it is installed
+    m_tlsProviderRegistry->RegisterProvider( TITlsProviderPtr( GUCEF_NEW CSecureTransportTlsProvider() ), CTlsProviderRegistry::SystemLibraryTlsProviderPriority - 10 );
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ? */
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOMCORE" );
 }

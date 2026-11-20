@@ -45,7 +45,7 @@
 
 #include "CTCPServerConnection.h"       /* header for this class */
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     #include <netinet/tcp.h>
 #endif
 
@@ -165,7 +165,7 @@ CTCPServerConnection::GetRemoteIP( void ) const
 
     return CIPv4Address( _data->clientaddr.sin_addr.S_un.S_addr, _data->clientaddr.sin_port );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return CIPv4Address( _data->clientaddr.sin_addr.s_addr, _data->clientaddr.sin_port );
 

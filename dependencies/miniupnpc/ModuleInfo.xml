@@ -15,4 +15,9 @@
             <Define String="__sun" />
         </Preprocessor>
     </Module>
+    <Module Platform="osx">
+        <Preprocessor>
+            <Define String="MACOSX" />
+        </Preprocessor>
+    </Module>
 </ModuleInfoEntry>

@@ -38,7 +38,7 @@
   #include <windows.h>
   #include <bcrypt.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
   #include <sys/types.h>
   #include <sys/random.h>
@@ -119,6 +119,21 @@ CRandom::GetRandomBytes( void* buffer, UInt32 byteCount )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     return 0 == BCryptGenRandom( GUCEF_NULL, (PUCHAR) buffer, (ULONG) byteCount, BCRYPT_USE_SYSTEM_PREFERRED_RNG );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // getentropy() is the system CSPRNG, it gives at most 256 bytes per call
+    UInt8* bytes = static_cast< UInt8* >( buffer );
+    UInt32 bytesLeft = byteCount;
+    while ( bytesLeft > 0 )
+    {
+        const size_t chunkSize = bytesLeft > 256 ? 256 : (size_t) bytesLeft;
+        if ( 0 != ::getentropy( bytes, chunkSize ) )
+            return false;
+        bytes += chunkSize;
+        bytesLeft -= (UInt32) chunkSize;
+    }
+    return true;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 

@@ -6,7 +6,7 @@
             <Define String="__LIBARCHIVE_BUILD" />
         </Preprocessor>
     </Module>
-    <Module Platform="mswin;linux">
+    <Module Platform="mswin;linux;osx">
         <Linker>
             <Dependency Name="zlib" />
         </Linker>
@@ -22,6 +22,11 @@
     <Module Platform="android">
         <Linker>
             <Dependency Name="z" />
+        </Linker>
+    </Module>
+    <Module Platform="osx">
+        <Linker>
+            <Dependency Name="iconv" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

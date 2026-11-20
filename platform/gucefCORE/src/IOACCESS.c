@@ -24,7 +24,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdio.h>         /* needed for the fseek() enums */ 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>     /* memory management */
+#endif
 
 #include "gucefCORE_c_ioaccess.h"   /* function prototypes and types we need */
 

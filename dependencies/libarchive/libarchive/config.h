@@ -17,6 +17,8 @@
   #include "../contrib/android/config/android.h"
 #elif defined( __linux__ )
   #include "config_linux.h"
+#elif defined( __APPLE__ )
+  #include "config_macos.h"
 #else
   #error "libarchive: no configuration available for this platform, see config.h"
 #endif

@@ -206,7 +206,7 @@
 #   define GUCEF_MSWIN_BUILD
 #elif defined( __EMSCRIPTEN__ )
 #   define GUCEF_PLATFORM GUCEF_PLATFORM_WASM_EMSCRIPTEN
-#elif defined( __APPLE_CC__)
+#elif defined( __APPLE_CC__ ) || ( defined( __APPLE__ ) && defined( __MACH__ ) )
 #   define GUCEF_PLATFORM GUCEF_PLATFORM_MACOS
 #elif defined( __ANDROID__ ) || defined( ANDROID )
 #   define GUCEF_PLATFORM GUCEF_PLATFORM_ANDROID

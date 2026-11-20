@@ -62,7 +62,11 @@
 
 #endif /* GUCEF_MEMCHECK_OLEAPI ? */
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include <stdlib.h> 
 
 /*-------------------------------------------------------------------------*/

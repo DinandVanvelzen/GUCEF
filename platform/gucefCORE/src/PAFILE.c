@@ -23,7 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>     /* memory management */
+#endif
 #include <string.h>     /* standard c string utils */
 #include <stdio.h>      /* standard I/O utils */
 

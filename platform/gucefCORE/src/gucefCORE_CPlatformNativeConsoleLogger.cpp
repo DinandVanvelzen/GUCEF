@@ -67,6 +67,20 @@
 
 #include <unistd.h>
 
+#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS
+
+#ifndef GUCEF_CORE_CTERMINALCONSOLELOGGER_H
+#include "osx/gucefCORE_CTerminalConsoleLogger.h"
+#define GUCEF_CORE_CTERMINALCONSOLELOGGER_H
+#endif /* GUCEF_CORE_CTERMINALCONSOLELOGGER_H ? */
+
+#ifndef GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H
+#include "../include/linux/gucefCORE_CDesktopTerminalConsoleLogger.h"
+#define GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H
+#endif /* GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H ? */
+
+#include <unistd.h>
+
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -181,6 +195,43 @@ CreateLinuxConsoleLogger( bool ownWindow )
 
 /*-------------------------------------------------------------------------*/
 
+#if GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS
+
+/**
+ *  macOS is like Linux in that there is no console that every application gets: it logs to the terminal it was started from
+ *  or, when stdout carries a protocol, to its standard error. An application that was not started from a terminal, for example
+ *  from the Finder, gets a window of the Terminal application in the desktop session, which shows the log. Without a desktop
+ *  session (ssh, a daemon) there is no window to be had, the same as a headless Linux
+ */
+static CIConsoleLogger*
+CreateMacConsoleLogger( bool ownWindow )
+{GUCEF_TRACE;
+
+    const bool runningInTerminal = CTerminalConsoleLogger::IsRunningInTerminal();
+    CPlatformNativeConsoleLogger::EConsoleKind kind =
+        CPlatformNativeConsoleLogger::ChooseConsoleKind( getenv( "GUCEF_CONSOLE_LOGGER" ), runningInTerminal, CDesktopTerminalConsoleLogger::IsDesktopSessionAvailable(), ownWindow, CStandardOutputWriter::IsClaimed() );
+
+    if ( CPlatformNativeConsoleLogger::CONSOLEKIND_DESKTOP_TERMINAL == kind )
+    {
+        CDesktopTerminalConsoleLogger* logger = GUCEF_NEW CDesktopTerminalConsoleLogger();
+        if ( logger->IsActive() )
+            return logger;
+
+        // no terminal application to be had or it is switched off: the terminal it was started from, if any
+        GUCEF_DELETE logger;
+        kind = runningInTerminal ? CPlatformNativeConsoleLogger::CONSOLEKIND_TERMINAL : CPlatformNativeConsoleLogger::CONSOLEKIND_NONE;
+    }
+    if ( CPlatformNativeConsoleLogger::CONSOLEKIND_TERMINAL == kind )
+        return GUCEF_NEW CTerminalConsoleLogger();
+    if ( CPlatformNativeConsoleLogger::CONSOLEKIND_STDERR == kind )
+        return GUCEF_NEW CTerminalConsoleLogger( STDERR_FILENO );
+    return GUCEF_NULL;
+}
+
+#endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ? */
+
+/*-------------------------------------------------------------------------*/
+
 CIConsoleLogger*
 CPlatformNativeConsoleLogger::GetLogger( void )
 {GUCEF_TRACE;
@@ -194,6 +245,8 @@ CPlatformNativeConsoleLogger::GetLogger( void )
             m_nativeConsoleLogger = GUCEF_NEW CMSWinConsoleLogger( m_ownWindow );
         #elif GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX
         m_nativeConsoleLogger = CreateLinuxConsoleLogger( m_ownWindow );
+        #elif GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS
+        m_nativeConsoleLogger = CreateMacConsoleLogger( m_ownWindow );
         #endif
     }
     return m_nativeConsoleLogger;

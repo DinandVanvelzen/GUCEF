@@ -268,6 +268,22 @@
 
 #endif
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+/*
+ *  Mach-O has no counterpart of DllMain(): dyld runs the initializers of a dylib in the order its object files were linked
+ *  and there is no way to ask for a function that runs after the C++ static initializers of every translation unit of the
+ *  dylib. The Load() of a module creates the singleton of the module, which depends on such statics, so calling it from a
+ *  constructor function crashes at load time. As such macOS does not declare entry points: the singleton of a module is
+ *  created on first use, which every user of the module does through Instance() anyway, and its cleanup is hooked
+ *  up with atexit() as part of that creation.
+ *  The declaration here is complete by itself: at some points of use a semicolon follows the macro and at some it does not.
+ */
+  #define GUCEF_DLL_INIT_FUNC( ns )          struct GUCEF_DLL_INIT_FUNC_NOT_NEEDED_ON_THIS_PLATFORM;
+  #define GUCEF_DLL_INIT_FUNC_BEG( ns )      struct GUCEF_DLL_INIT_FUNC_NOT_NEEDED_ON_THIS_PLATFORM;
+  #define GUCEF_DLL_INIT_FUNC_END( ns )      struct GUCEF_DLL_INIT_FUNC_NOT_NEEDED_ON_THIS_PLATFORM;
+  #define GUCEF_DLL_INIT_FUNC_BEG_END( ns )  struct GUCEF_DLL_INIT_FUNC_NOT_NEEDED_ON_THIS_PLATFORM;
+
 #else
   #error No DLL entry points available for the target platform
 #endif

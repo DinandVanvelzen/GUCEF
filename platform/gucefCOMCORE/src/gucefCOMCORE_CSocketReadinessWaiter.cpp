@@ -35,6 +35,14 @@
   #include <sys/epoll.h>
   #include <sys/eventfd.h>
   #define GUCEF_COMCORE_READINESS_EPOLL
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+  #include <errno.h>
+  #include <fcntl.h>
+  #include <unistd.h>
+  #include <sys/types.h>
+  #include <sys/event.h>
+  #include <sys/time.h>
+  #define GUCEF_COMCORE_READINESS_KQUEUE
 #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
   #ifndef GUCEF_COMCORE_DVSOCKET_H
   #include "dvwinsock.h"              /* winsock2.h: WSAPoll, Windows Vista and later */
@@ -121,6 +129,17 @@ struct CSocketReadinessWaiter::SBackend
     SBackend( void ) : epollFd( -1 ), wakeFd( -1 ) { memset( events, 0, sizeof( events ) ); }
 };
 
+#elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+/** kqueue with a user event at id 0 that ends a wait */
+struct CSocketReadinessWaiter::SBackend
+{
+    int kqueueFd;
+    struct kevent events[ 64 ];
+
+    SBackend( void ) : kqueueFd( -1 ) { memset( events, 0, sizeof( events ) ); }
+};
+
 #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
 
 /**
@@ -193,6 +212,28 @@ CSocketReadinessWaiter::CSocketReadinessWaiter( void )
         GUCEF_DELETE backend;
     }
 
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    SBackend* backend = GUCEF_NEW SBackend();
+    backend->kqueueFd = ::kqueue();
+    if ( backend->kqueueFd >= 0 )
+    {
+        ::fcntl( backend->kqueueFd, F_SETFD, FD_CLOEXEC );
+
+        // the user event that ends a wait: cleared again by the system once it was reported
+        struct kevent wakeEvent;
+        EV_SET( &wakeEvent, 0, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, GUCEF_NULL );
+        if ( 0 == ::kevent( backend->kqueueFd, &wakeEvent, 1, GUCEF_NULL, 0, GUCEF_NULL ) )
+            m_backend = backend;
+    }
+    if ( GUCEF_NULL == m_backend )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "SocketReadinessWaiter: cannot set up kqueue (errno " << errno << "), sockets are serviced at their periodic pulses only" );
+        if ( backend->kqueueFd >= 0 )
+            close( backend->kqueueFd );
+        GUCEF_DELETE backend;
+    }
+
     #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
 
     SBackend* backend = GUCEF_NEW SBackend();
@@ -245,6 +286,8 @@ CSocketReadinessWaiter::ReleaseBackend( void )
     #if defined( GUCEF_COMCORE_READINESS_EPOLL )
     close( m_backend->epollFd );
     close( m_backend->wakeFd );
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+    close( m_backend->kqueueFd );
     #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
     closesocket( m_backend->wakeSocket );
     #endif
@@ -331,6 +374,15 @@ CSocketReadinessWaiter::Register( UInt64 socketDescriptor, const CORE::PulseGene
         return 0;
     }
 
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    // a kqueue has nothing to register until a readiness is asked for (Arm()): it only checks that the descriptor is a valid one
+    if ( -1 == ::fcntl( (int) socketDescriptor, F_GETFD ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "SocketReadinessWaiter: cannot add socket " << socketDescriptor << " to the kqueue set (errno " << errno << ")" );
+        return 0;
+    }
+
     #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
 
     // disarmed entries are not in the poll set, nothing to rebuild yet
@@ -376,6 +428,23 @@ CSocketReadinessWaiter::Arm( TRegistrationId registrationId, UInt32 interest )
     registration->interest = interest;
     return true;
 
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    // every readiness asked for is added as a one shot filter, the other one is removed: as with epoll the interest
+    // that is given replaces the previous one. The system takes the change while the waiter waits and reports readiness
+    // that is there already at once
+    struct kevent changes[ 2 ];
+    EV_SET( &changes[ 0 ], (uintptr_t) registration->descriptor, EVFILT_READ, 0 != ( interest & ReadinessRead ) ? ( EV_ADD | EV_ONESHOT ) : EV_DELETE, 0, 0, (void*) (uintptr_t) registrationId );
+    EV_SET( &changes[ 1 ], (uintptr_t) registration->descriptor, EVFILT_WRITE, 0 != ( interest & ReadinessWrite ) ? ( EV_ADD | EV_ONESHOT ) : EV_DELETE, 0, 0, (void*) (uintptr_t) registrationId );
+    for ( int c=0; c<2; ++c )
+    {
+        const bool isDelete = 0 != ( changes[ c ].flags & EV_DELETE );
+        if ( 0 != ::kevent( m_backend->kqueueFd, &changes[ c ], 1, GUCEF_NULL, 0, GUCEF_NULL ) && !( isDelete && ENOENT == errno ) )
+            return false;
+    }
+    registration->interest = interest;
+    return true;
+
     #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
 
     if ( registration->interest == interest )
@@ -418,6 +487,20 @@ CSocketReadinessWaiter::Unregister( TRegistrationId registrationId )
         struct epoll_event socketEvent;
         memset( &socketEvent, 0, sizeof( socketEvent ) );
         epoll_ctl( m_backend->epollFd, EPOLL_CTL_DEL, (int) registration->descriptor, &socketEvent );
+    }
+    GUCEF_DELETE registration;
+
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    // the descriptor is still open: the owner closes it after this. An event of this id the waiter already took
+    // finds no registration and is dropped
+    if ( GUCEF_NULL != m_backend )
+    {
+        struct kevent changes[ 2 ];
+        EV_SET( &changes[ 0 ], (uintptr_t) registration->descriptor, EVFILT_READ, EV_DELETE, 0, 0, GUCEF_NULL );
+        EV_SET( &changes[ 1 ], (uintptr_t) registration->descriptor, EVFILT_WRITE, EV_DELETE, 0, 0, GUCEF_NULL );
+        ::kevent( m_backend->kqueueFd, &changes[ 0 ], 1, GUCEF_NULL, 0, GUCEF_NULL );
+        ::kevent( m_backend->kqueueFd, &changes[ 1 ], 1, GUCEF_NULL, 0, GUCEF_NULL );
     }
     GUCEF_DELETE registration;
 
@@ -503,6 +586,16 @@ CSocketReadinessWaiter::WakeWaiter( void )
         (void) written;     // a full counter already wakes the wait
     }
 
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    MT::CScopeMutex lock( m_registryLock );
+    if ( GUCEF_NULL != m_backend )
+    {
+        struct kevent wakeEvent;
+        EV_SET( &wakeEvent, 0, EVFILT_USER, 0, NOTE_TRIGGER, 0, GUCEF_NULL );
+        ::kevent( m_backend->kqueueFd, &wakeEvent, 1, GUCEF_NULL, 0, GUCEF_NULL );
+    }
+
     #elif defined( GUCEF_COMCORE_READINESS_WSAPOLL )
 
     MT::CScopeMutex lock( m_registryLock );
@@ -538,6 +631,15 @@ CSocketReadinessWaiter::Shutdown( void )
                 struct epoll_event socketEvent;
                 memset( &socketEvent, 0, sizeof( socketEvent ) );
                 epoll_ctl( m_backend->epollFd, EPOLL_CTL_DEL, (int) (*i).second->descriptor, &socketEvent );
+            }
+            #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+            if ( GUCEF_NULL != m_backend )
+            {
+                struct kevent changes[ 2 ];
+                EV_SET( &changes[ 0 ], (uintptr_t) (*i).second->descriptor, EVFILT_READ, EV_DELETE, 0, 0, GUCEF_NULL );
+                EV_SET( &changes[ 1 ], (uintptr_t) (*i).second->descriptor, EVFILT_WRITE, EV_DELETE, 0, 0, GUCEF_NULL );
+                ::kevent( m_backend->kqueueFd, &changes[ 0 ], 1, GUCEF_NULL, 0, GUCEF_NULL );
+                ::kevent( m_backend->kqueueFd, &changes[ 1 ], 1, GUCEF_NULL, 0, GUCEF_NULL );
             }
             #endif
             GUCEF_DELETE (*i).second;
@@ -626,6 +728,34 @@ CSocketReadinessWaiter::WaitOnce( UInt32 timeoutInMs )
             (void) readSize;
         }
         else
+            m_readyIds.push_back( readyId );
+    }
+
+    #elif defined( GUCEF_COMCORE_READINESS_KQUEUE )
+
+    // the backend lives as long as this object, only ReleaseBackend() in the destructor removes it
+    struct timespec timeout;
+    timeout.tv_sec = (time_t) ( timeoutInMs / 1000 );
+    timeout.tv_nsec = (long) ( ( timeoutInMs % 1000 ) * 1000000 );
+    int readyCount = ::kevent( m_backend->kqueueFd, GUCEF_NULL, 0, m_backend->events, 64, &timeout );
+    m_waitCount.FetchAdd( 1 );
+    if ( readyCount < 0 )
+    {
+        if ( EINTR != errno )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "SocketReadinessWaiter: kevent failed (errno " << errno << ")" );
+            MT::PrecisionDelay( timeoutInMs );
+        }
+        return;
+    }
+    for ( int n=0; n<readyCount; ++n )
+    {
+        // the wake event has no registration id, the user event is cleared by the system once it was reported
+        if ( EVFILT_USER == m_backend->events[ n ].filter )
+            continue;
+
+        TRegistrationId readyId = (TRegistrationId) (uintptr_t) m_backend->events[ n ].udata;
+        if ( 0 != readyId )
             m_readyIds.push_back( readyId );
     }
 

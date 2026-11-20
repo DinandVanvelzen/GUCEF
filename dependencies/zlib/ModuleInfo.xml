@@ -1,5 +1,5 @@
 <ModuleInfoEntry>
-    <Module Name="zlib" Type="SharedLibrary" Platform="linux;mswin">
+    <Module Name="zlib" Type="SharedLibrary" Platform="linux;mswin;osx">
         <Preprocessor>
             <Define String="ZLIB_DLL" />
             <Define String="ZZIP_HAVE_STDINT_H" />

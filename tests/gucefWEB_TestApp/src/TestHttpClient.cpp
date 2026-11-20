@@ -1728,11 +1728,13 @@ class CLocalTlsServer
         Stop();
     }
 
-    /** whether the tools needed are there: the openssl command line tool, a shell and timeout */
+    /** whether the tools needed are there: the openssl command line tool, a shell and timeout (macOS has no timeout, the server is stopped by its process group) */
     static bool ToolsAvailable( void )
     {
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         return RunTool( "openssl", "version" ) && RunTool( "sh", "-c true" ) && RunTool( "timeout", "--foreground 1 true" );
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+        return RunTool( "openssl", "version" ) && RunTool( "sh", "-c true" );
         #else
         return false;
         #endif
@@ -1741,13 +1743,28 @@ class CLocalTlsServer
     /** a self-signed certificate for localhost and 127.0.0.1, or for the given name only */
     static bool MakeCertificate( const CORE::CString& dir, const CORE::CString& baseName, const CORE::CString& commonName, bool withAlternativeNames )
     {
+        // The curve is given as a file of parameters: LibreSSL ignores the option that names it and then writes the whole curve into
+        // the key and the certificate, which not every TLS library can read. The digest is named as LibreSSL signs with SHA-1 otherwise
+        {
+            CORE::CProcess::TStringVector curveArgs;
+            curveArgs.push_back( "ecparam" );
+            curveArgs.push_back( "-name" );
+            curveArgs.push_back( "prime256v1" );
+            curveArgs.push_back( "-out" );
+            curveArgs.push_back( dir + "/ecparam.pem" );
+            CORE::CProcess curveProcess;
+            curveProcess.SetIsolateFromParent( true );
+            Int32 curveExitCode = -1;
+            if ( !curveProcess.Launch( "openssl", curveArgs ) || !curveProcess.WaitForExit( 30000, curveExitCode ) || 0 != curveExitCode )
+                return false;
+        }
+
         CORE::CProcess::TStringVector args;
         args.push_back( "req" );
         args.push_back( "-x509" );
+        args.push_back( "-sha256" );
         args.push_back( "-newkey" );
-        args.push_back( "ec" );
-        args.push_back( "-pkeyopt" );
-        args.push_back( "ec_paramgen_curve:prime256v1" );
+        args.push_back( "ec:" + dir + "/ecparam.pem" );
         args.push_back( "-nodes" );
         args.push_back( "-days" );
         args.push_back( "2" );
@@ -1785,9 +1802,14 @@ class CLocalTlsServer
 
         // The response is given to the client as soon as it is connected, the sleep keeps the input open until the client is done.
         // Stopping the script takes the whole group of processes down with it
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+        const CORE::CString timeoutCommand;     // there is no timeout tool, the sleep ends the input after 30 seconds and with it the server
+        #else
+        const CORE::CString timeoutCommand = "timeout --foreground 120 ";
+        #endif
         CORE::CString text = "#!/bin/sh\n"
                              "trap 'kill 0' TERM INT\n"
-                             "( cat \"" + responseFile + "\"; sleep 30 ) | timeout --foreground 120 openssl s_server -accept " + portText +
+                             "( cat \"" + responseFile + "\"; sleep 30 ) | " + timeoutCommand + "openssl s_server -accept " + portText +
                              " -cert \"" + dir + "/" + baseName + ".crt\" -key \"" + dir + "/" + baseName + ".key\""
                              " > \"" + m_requestLog + "\" 2> \"" + dir + "/" + portText + ".err\" &\n"
                              "wait\n";

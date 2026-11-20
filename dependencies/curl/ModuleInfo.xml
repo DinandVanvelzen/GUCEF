@@ -4,7 +4,7 @@
             <Define String="BUILDING_LIBCURL" />
         </Preprocessor>
     </Module>
-    <Module Platform="mswin;linux">
+    <Module Platform="mswin;linux;osx">
         <Dependencies>
             <Dependency Name="zlib" />
         </Dependencies>
@@ -41,6 +41,16 @@
         <Linker>
             <Dependency Name="ssl" />
             <Dependency Name="crypto" />
+        </Linker>
+    </Module>
+    <Module Platform="osx">
+        <Preprocessor>
+            <Define String="HAVE_CONFIG_H" />
+            <Define String="CURL_HIDDEN_SYMBOLS" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="-Wl,-framework,CoreFoundation" />
+            <Dependency Name="-Wl,-framework,SystemConfiguration" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

@@ -31,7 +31,7 @@
 
 #ifdef __cplusplus
 
-#if defined( __linux__ )
+#if ( defined( __linux__ ) || defined( __APPLE__ ) )
 
   #include <string.h>
   #include <stdlib.h>
@@ -43,6 +43,16 @@
   #include <netinet/in.h>
   #include <netinet/tcp.h>
   #include <arpa/inet.h>
+
+  // macOS has no MSG_NOSIGNAL: the sockets of the proxy get the socket option that makes a write to a closed connection fail instead
+  #if defined( __APPLE__ ) && !defined( MSG_NOSIGNAL )
+    #define MSG_NOSIGNAL 0
+  #endif
+  #if defined( __APPLE__ )
+    #define GUCEF_TEST_PROXY_NOSIGPIPE( fd ) do { int gucefProxyNoSigPipe = 1; ::setsockopt( (fd), SOL_SOCKET, SO_NOSIGPIPE, &gucefProxyNoSigPipe, sizeof( gucefProxyNoSigPipe ) ); } while ( 0 )
+  #else
+    #define GUCEF_TEST_PROXY_NOSIGPIPE( fd ) do {} while ( 0 )
+  #endif
 
 #endif /* Linux ? */
 
@@ -86,7 +96,7 @@ class CTestHttpProxy
     /** Listens on a free local port. CONNECTs are relayed to 127.0.0.1:upstreamPort, unless refuseStatus is not 0: then they get that status */
     bool Start( UInt16 upstreamPort, int refuseStatus = 0 )
     {
-        #if defined( __linux__ )
+        #if ( defined( __linux__ ) || defined( __APPLE__ ) )
         Stop();
         m_upstreamPort = upstreamPort;
         m_refuseStatus = refuseStatus;
@@ -123,7 +133,7 @@ class CTestHttpProxy
 
     void Stop( void )
     {
-        #if defined( __linux__ )
+        #if ( defined( __linux__ ) || defined( __APPLE__ ) )
         m_running = false;
         if ( m_threadStarted )
         {
@@ -157,7 +167,7 @@ class CTestHttpProxy
 
     UInt32 GetLive( void ) { MT::CScopeMutex lock( m_lock ); return m_liveConnections; }
 
-    #if defined( __linux__ )
+    #if ( defined( __linux__ ) || defined( __APPLE__ ) )
 
     struct SConnection
     {
@@ -177,6 +187,7 @@ class CTestHttpProxy
             if ( ::poll( &pfd, 1, 50 ) <= 0 || 0 == ( pfd.revents & POLLIN ) )
                 continue;
             int fd = ::accept( self->m_listenFd, GUCEF_NULL, GUCEF_NULL );
+            GUCEF_TEST_PROXY_NOSIGPIPE( fd );
             if ( fd < 0 )
                 continue;
             SConnection* connection = new SConnection;
@@ -280,6 +291,7 @@ class CTestHttpProxy
             }
 
             int upstream = ::socket( AF_INET, SOCK_STREAM, 0 );
+            GUCEF_TEST_PROXY_NOSIGPIPE( upstream );
             struct sockaddr_in addr;
             memset( &addr, 0, sizeof( addr ) );
             addr.sin_family = AF_INET;

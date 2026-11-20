@@ -77,6 +77,13 @@
   #define GUCEF_COMCORE_CLINUXNETWORKINTERFACE_H
   #endif /* GUCEF_COMCORE_CLINUXNETWORKINTERFACE_H ? */
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+  #ifndef GUCEF_COMCORE_CMACNETWORKINTERFACE_H
+  #include "gucefCOMCORE_CMacNetworkInterface.h"
+  #define GUCEF_COMCORE_CMACNETWORKINTERFACE_H
+  #endif /* GUCEF_COMCORE_CMACNETWORKINTERFACE_H ? */
+
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -603,6 +610,10 @@ CCom::LazyInitNetworkInterfaces( void ) const
 
         CLinuxNetworkInterface::EnumNetworkAdapters( m_nics );
 
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+        CMacNetworkInterface::EnumNetworkAdapters( m_nics );
+
         #else
 
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Com:LazyInitNetworkInterfaces: Platform has no supported implementation" );
@@ -697,6 +708,11 @@ CCom::GetGlobalNetworkMetrics( CNetworkInterfaceMetrics& metrics )
 
     // On Linux these stats are provided pre-aggregated by the system
     return GetProcNetNetstatInfo( metrics );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // macOS keeps the statistics per network interface: the sum of those is the global picture
+    return CMacNetworkInterface::GetGlobalMetrics( metrics );
 
     #else
 
