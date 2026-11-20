@@ -123,6 +123,36 @@ CSiteDiscoverySettings::GetDefaultSecretNamePatterns( void )
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString::StringVector
+CSiteDiscoverySettings::GetDefaultValueQueryNames( void )
+{GUCEF_TRACE;
+
+    static const char* const names[] = { "q", "query", "search", "searchterm", "term", "keyword", "keywords", "text", GUCEF_NULL };
+    return ToList( names );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringVector
+CSiteDiscoverySettings::GetDefaultValuePathSegmentsAfter( void )
+{GUCEF_TRACE;
+
+    static const char* const names[] = { "search", "lookup", "autocomplete", "suggest", "typeahead", GUCEF_NULL };
+    return ToList( names );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringVector
+CSiteDiscoverySettings::GetDefaultNonSensitiveValues( void )
+{GUCEF_TRACE;
+
+    static const char* const words[] = { "OK", "ID", "PDF", "CSV", "TXT", "XLS", "XLSX", "JSON", "XML", "HTML", "URL", "API", "FAQ", "AM", "PM", "UTC", "GMT", GUCEF_NULL };
+    return ToList( words );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CSiteDiscoverySettings::CSiteDiscoverySettings( void )
     : CORE::CIConfigurable()
     , hostFilter()
@@ -136,6 +166,20 @@ CSiteDiscoverySettings::CSiteDiscoverySettings( void )
     , recordEnumQueryValues( false )
     , knownSecretMinLength( 12 )
     , knownSecretMinEntropyBits( 32 )
+    , ignoredSecretFields()
+    , tripwireMaxLineShare( 20 )
+    , maskIdLikeMemberNames( true )
+    , maskTokenLikeParameterNames( true )
+    , maxParameterNameLength( 40 )
+    , valueQueryNames( GetDefaultValueQueryNames() )
+    , enumQueryNames()
+    , valuePathSegmentsAfter( GetDefaultValuePathSegmentsAfter() )
+    , maskUppercaseTokens( false )
+    , uppercaseTokenMaxLength( 5 )
+    , nonSensitiveValues( GetDefaultNonSensitiveValues() )
+    , sensitiveValues()
+    , sensitiveValuePatterns()
+    , maskFileNameWords( true )
     , recordResponseShapes( true )
     , saveResponseBodies( false )
     , maxResponseBodyBytes( 4ULL * 1024ULL * 1024ULL )
@@ -146,6 +190,7 @@ CSiteDiscoverySettings::CSiteDiscoverySettings( void )
     , bodiesDirectoryName( "bodies" )
     , continueJournal( true )
     , disableBrowserCache( false )
+    , reportTableCellControlNames( true )
     , captureClicks( false )
     , actionWindowMs( 3000 )
     , actionMaxDurationMs( 15000 )
@@ -185,6 +230,20 @@ CSiteDiscoverySettings::CSiteDiscoverySettings( const CSiteDiscoverySettings& sr
     , recordEnumQueryValues( src.recordEnumQueryValues )
     , knownSecretMinLength( src.knownSecretMinLength )
     , knownSecretMinEntropyBits( src.knownSecretMinEntropyBits )
+    , ignoredSecretFields( src.ignoredSecretFields )
+    , tripwireMaxLineShare( src.tripwireMaxLineShare )
+    , maskIdLikeMemberNames( src.maskIdLikeMemberNames )
+    , maskTokenLikeParameterNames( src.maskTokenLikeParameterNames )
+    , maxParameterNameLength( src.maxParameterNameLength )
+    , valueQueryNames( src.valueQueryNames )
+    , enumQueryNames( src.enumQueryNames )
+    , valuePathSegmentsAfter( src.valuePathSegmentsAfter )
+    , maskUppercaseTokens( src.maskUppercaseTokens )
+    , uppercaseTokenMaxLength( src.uppercaseTokenMaxLength )
+    , nonSensitiveValues( src.nonSensitiveValues )
+    , sensitiveValues( src.sensitiveValues )
+    , sensitiveValuePatterns( src.sensitiveValuePatterns )
+    , maskFileNameWords( src.maskFileNameWords )
     , recordResponseShapes( src.recordResponseShapes )
     , saveResponseBodies( src.saveResponseBodies )
     , maxResponseBodyBytes( src.maxResponseBodyBytes )
@@ -195,6 +254,7 @@ CSiteDiscoverySettings::CSiteDiscoverySettings( const CSiteDiscoverySettings& sr
     , bodiesDirectoryName( src.bodiesDirectoryName )
     , continueJournal( src.continueJournal )
     , disableBrowserCache( src.disableBrowserCache )
+    , reportTableCellControlNames( src.reportTableCellControlNames )
     , captureClicks( src.captureClicks )
     , actionWindowMs( src.actionWindowMs )
     , actionMaxDurationMs( src.actionMaxDurationMs )
@@ -243,6 +303,20 @@ CSiteDiscoverySettings::operator=( const CSiteDiscoverySettings& src )
         recordEnumQueryValues = src.recordEnumQueryValues;
         knownSecretMinLength = src.knownSecretMinLength;
         knownSecretMinEntropyBits = src.knownSecretMinEntropyBits;
+        ignoredSecretFields = src.ignoredSecretFields;
+        tripwireMaxLineShare = src.tripwireMaxLineShare;
+        maskIdLikeMemberNames = src.maskIdLikeMemberNames;
+        maskTokenLikeParameterNames = src.maskTokenLikeParameterNames;
+        maxParameterNameLength = src.maxParameterNameLength;
+        valueQueryNames = src.valueQueryNames;
+        enumQueryNames = src.enumQueryNames;
+        valuePathSegmentsAfter = src.valuePathSegmentsAfter;
+        maskUppercaseTokens = src.maskUppercaseTokens;
+        uppercaseTokenMaxLength = src.uppercaseTokenMaxLength;
+        nonSensitiveValues = src.nonSensitiveValues;
+        sensitiveValues = src.sensitiveValues;
+        sensitiveValuePatterns = src.sensitiveValuePatterns;
+        maskFileNameWords = src.maskFileNameWords;
         recordResponseShapes = src.recordResponseShapes;
         saveResponseBodies = src.saveResponseBodies;
         maxResponseBodyBytes = src.maxResponseBodyBytes;
@@ -253,6 +327,7 @@ CSiteDiscoverySettings::operator=( const CSiteDiscoverySettings& src )
         bodiesDirectoryName = src.bodiesDirectoryName;
         continueJournal = src.continueJournal;
         disableBrowserCache = src.disableBrowserCache;
+        reportTableCellControlNames = src.reportTableCellControlNames;
         captureClicks = src.captureClicks;
         actionWindowMs = src.actionWindowMs;
         actionMaxDurationMs = src.actionMaxDurationMs;
@@ -343,6 +418,20 @@ CSiteDiscoverySettings::SaveConfig( CORE::CDataNode& cfg ) const
     cfg.SetAttribute( "recordEnumQueryValues", recordEnumQueryValues );
     cfg.SetAttribute( "knownSecretMinLength", knownSecretMinLength );
     cfg.SetAttribute( "knownSecretMinEntropyBits", knownSecretMinEntropyBits );
+    SaveList( cfg, "ignoredSecretFields", ignoredSecretFields );
+    cfg.SetAttribute( "tripwireMaxLineShare", tripwireMaxLineShare );
+    cfg.SetAttribute( "maskIdLikeMemberNames", maskIdLikeMemberNames );
+    cfg.SetAttribute( "maskTokenLikeParameterNames", maskTokenLikeParameterNames );
+    cfg.SetAttribute( "maxParameterNameLength", maxParameterNameLength );
+    SaveList( cfg, "valueQueryNames", valueQueryNames );
+    SaveList( cfg, "enumQueryNames", enumQueryNames );
+    SaveList( cfg, "valuePathSegmentsAfter", valuePathSegmentsAfter );
+    cfg.SetAttribute( "maskUppercaseTokens", maskUppercaseTokens );
+    cfg.SetAttribute( "uppercaseTokenMaxLength", uppercaseTokenMaxLength );
+    SaveList( cfg, "nonSensitiveValues", nonSensitiveValues );
+    SaveList( cfg, "sensitiveValues", sensitiveValues );
+    SaveList( cfg, "sensitiveValuePatterns", sensitiveValuePatterns );
+    cfg.SetAttribute( "maskFileNameWords", maskFileNameWords );
     cfg.SetAttribute( "recordResponseShapes", recordResponseShapes );
     cfg.SetAttribute( "saveResponseBodies", saveResponseBodies );
     cfg.SetAttribute( "maxResponseBodyBytes", maxResponseBodyBytes );
@@ -353,6 +442,7 @@ CSiteDiscoverySettings::SaveConfig( CORE::CDataNode& cfg ) const
     cfg.SetAttribute( "bodiesDirectoryName", CORE::CVariant( bodiesDirectoryName ) );
     cfg.SetAttribute( "continueJournal", continueJournal );
     cfg.SetAttribute( "disableBrowserCache", disableBrowserCache );
+    cfg.SetAttribute( "reportTableCellControlNames", reportTableCellControlNames );
     cfg.SetAttribute( "captureClicks", captureClicks );
     cfg.SetAttribute( "actionWindowMs", actionWindowMs );
     cfg.SetAttribute( "actionMaxDurationMs", actionMaxDurationMs );
@@ -402,6 +492,30 @@ CSiteDiscoverySettings::LoadConfig( const CORE::CDataNode& cfg )
         return false;
     }
     knownSecretMinEntropyBits = cfg.GetAttributeValueOrChildValueByName( "knownSecretMinEntropyBits" ).AsUInt32( knownSecretMinEntropyBits, true );
+    LoadList( cfg, "ignoredSecretFields", ignoredSecretFields );
+    tripwireMaxLineShare = cfg.GetAttributeValueOrChildValueByName( "tripwireMaxLineShare" ).AsUInt32( tripwireMaxLineShare, true );
+    if ( tripwireMaxLineShare > 100 )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "SiteDiscoverySettings: tripwireMaxLineShare is a percentage, not " << tripwireMaxLineShare );
+        return false;
+    }
+    maskIdLikeMemberNames = cfg.GetAttributeValueOrChildValueByName( "maskIdLikeMemberNames" ).AsBool( maskIdLikeMemberNames, true );
+    maskTokenLikeParameterNames = cfg.GetAttributeValueOrChildValueByName( "maskTokenLikeParameterNames" ).AsBool( maskTokenLikeParameterNames, true );
+    maxParameterNameLength = cfg.GetAttributeValueOrChildValueByName( "maxParameterNameLength" ).AsUInt32( maxParameterNameLength, true );
+    if ( 0 == maxParameterNameLength )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "SiteDiscoverySettings: maxParameterNameLength must be at least 1" );
+        return false;
+    }
+    LoadList( cfg, "valueQueryNames", valueQueryNames );
+    LoadList( cfg, "enumQueryNames", enumQueryNames );
+    LoadList( cfg, "valuePathSegmentsAfter", valuePathSegmentsAfter );
+    maskUppercaseTokens = cfg.GetAttributeValueOrChildValueByName( "maskUppercaseTokens" ).AsBool( maskUppercaseTokens, true );
+    uppercaseTokenMaxLength = cfg.GetAttributeValueOrChildValueByName( "uppercaseTokenMaxLength" ).AsUInt32( uppercaseTokenMaxLength, true );
+    LoadList( cfg, "nonSensitiveValues", nonSensitiveValues );
+    LoadList( cfg, "sensitiveValues", sensitiveValues );
+    LoadList( cfg, "sensitiveValuePatterns", sensitiveValuePatterns );
+    maskFileNameWords = cfg.GetAttributeValueOrChildValueByName( "maskFileNameWords" ).AsBool( maskFileNameWords, true );
     recordResponseShapes = cfg.GetAttributeValueOrChildValueByName( "recordResponseShapes" ).AsBool( recordResponseShapes, true );
     saveResponseBodies = cfg.GetAttributeValueOrChildValueByName( "saveResponseBodies" ).AsBool( saveResponseBodies, true );
     maxResponseBodyBytes = cfg.GetAttributeValueOrChildValueByName( "maxResponseBodyBytes" ).AsUInt64( maxResponseBodyBytes, true );
@@ -412,6 +526,7 @@ CSiteDiscoverySettings::LoadConfig( const CORE::CDataNode& cfg )
     bodiesDirectoryName = cfg.GetAttributeValueOrChildValueByName( "bodiesDirectoryName" ).AsString( bodiesDirectoryName, true );
     continueJournal = cfg.GetAttributeValueOrChildValueByName( "continueJournal" ).AsBool( continueJournal, true );
     disableBrowserCache = cfg.GetAttributeValueOrChildValueByName( "disableBrowserCache" ).AsBool( disableBrowserCache, true );
+    reportTableCellControlNames = cfg.GetAttributeValueOrChildValueByName( "reportTableCellControlNames" ).AsBool( reportTableCellControlNames, true );
     captureClicks = cfg.GetAttributeValueOrChildValueByName( "captureClicks" ).AsBool( captureClicks, true );
     actionWindowMs = cfg.GetAttributeValueOrChildValueByName( "actionWindowMs" ).AsUInt32( actionWindowMs, true );
     actionMaxDurationMs = cfg.GetAttributeValueOrChildValueByName( "actionMaxDurationMs" ).AsUInt32( actionMaxDurationMs, true );

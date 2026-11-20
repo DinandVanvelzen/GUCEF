@@ -71,7 +71,8 @@ struct SIdentity
 
 /**
  *  The files of gucefLabLink in its state directory, each readable by its owner only: "secret" (the lab secret),
- *  "identity" (SIdentity as key=value lines), "approvals" (one tab separated SApproval per line). Files are replaced
+ *  "identity" (SIdentity as key=value lines), "approvals" (one tab separated SApproval per line), "users" (the users
+ *  of the website) and "ci-gateway-tokens" (the gateway tokens of the CI, per machine id). Files are replaced
  *  atomically; a file that others can read is refused.
  */
 class CStore
@@ -97,6 +98,10 @@ class CStore
     /** The text of "users", the users of the website (see CWebUserStore); missing is set when there is no such file */
     bool ReadUsers( GUCEF::CORE::CString& content, bool& missing, GUCEF::CORE::CString& problem ) const;
     bool WriteUsers( const GUCEF::CORE::CString& content, GUCEF::CORE::CString& problem ) const;
+
+    /** The text of "ci-gateway-tokens", the gateway tokens of the CI (see CCiGatewayTokens); missing is set when there is no such file */
+    bool ReadCiGatewayTokens( GUCEF::CORE::CString& content, bool& missing, GUCEF::CORE::CString& problem ) const;
+    bool WriteCiGatewayTokens( const GUCEF::CORE::CString& content, GUCEF::CORE::CString& problem ) const;
 
     /** A file of the state directory */
     GUCEF::CORE::CString GetPath( const char* fileName ) const;

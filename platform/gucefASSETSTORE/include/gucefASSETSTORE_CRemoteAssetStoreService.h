@@ -219,6 +219,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
     virtual TAssetStoreStatus BeginUploadFiles( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus AnswerPrompt( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual CORE::CFutureResult AnswerPromptAsync( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus ImportWebSession( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual CORE::CFutureResult ImportWebSessionAsync( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus WriteUploadBlock( const CORE::CString& uploadId, const CORE::CString& relativePath, UInt64 offset, const CORE::CDynamicBuffer& data, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual CORE::CFutureResult WriteUploadBlockAsync( const CORE::CString& uploadId, const CORE::CString& relativePath, UInt64 offset, const CORE::CDynamicBuffer& data ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus UnlockKeyring( const CORE::CString& commandId, const AUTH::CSecretString& code, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;

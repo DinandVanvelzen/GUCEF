@@ -364,10 +364,20 @@ CUnrealSkeletalMeshReader::ReadLod( CUnrealArchiveReader& reader, const SVariant
     for ( Int32 i=0; i<activeCount; ++i )
         lod.activeBones[ (size_t) i ] = reader.ReadUInt16();
 
-    // imported mesh infos: not supported, the layout of their entries is not verified
+    // the imported mesh infos: per part of the imported mesh its name, its vertex count and its first imported vertex (not needed)
     const Int32 importedInfoCount = reader.ReadInt32();
-    if ( reader.HasError() || 0 != importedInfoCount )
+    if ( reader.HasError() || importedInfoCount < 0 || importedInfoCount > MaxSections || !reader.CheckCount( (UInt64) importedInfoCount, 16, "imported mesh infos" ) )
         return Fail( reader, __LINE__ );
+    for ( Int32 i=0; i<importedInfoCount; ++i )
+    {
+        CORE::CString partName;
+        if ( !m_package->GetNames().ReadName( reader, partName ) )
+            return Fail( reader, __LINE__ );
+        const Int32 partVertices = reader.ReadInt32();
+        const Int32 partStart = reader.ReadInt32();
+        if ( reader.HasError() || partVertices < 0 || partStart < 0 )
+            return Fail( reader, __LINE__ );
+    }
 
     reader.ReadInt32();     // size
     reader.ReadInt32();     // vertex count

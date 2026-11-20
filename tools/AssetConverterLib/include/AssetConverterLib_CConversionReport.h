@@ -136,6 +136,13 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CConversionReport
     void AddWarning( const CORE::CString& source, const CORE::CString& subject, const CORE::CString& message );
     void AddError( const CORE::CString& source, const CORE::CString& subject, const CORE::CString& message );
 
+    /**
+     *  An importer declares that the current asset holds nothing it converts: every part of it is of a kind the importer does not
+     *  convert (or converts with other assets), each named with AddSkipped(). The asset is skipped, not failed, unless an error is
+     *  reported for it. Nothing happens without a current asset.
+     */
+    void SetCurrentAssetSkipped( void );
+
     /** A file written for the current asset: VFS paths; 'profile' is empty for a file of the intermediate */
     void AddOutputFile( const CORE::CString& path, const CORE::CString::StringVector& references, const CORE::CString& profile = CORE::CString::Empty );
 

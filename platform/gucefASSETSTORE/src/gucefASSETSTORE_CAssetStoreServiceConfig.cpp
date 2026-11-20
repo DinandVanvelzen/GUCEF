@@ -56,6 +56,7 @@ CAssetStoreServiceConfig::CAssetStoreServiceConfig( void )
     , implementationId( LocalImplementationId )
     , primaryStore()
     , downloads()
+    , reprocess()
     , imageCacheFolder()
     , threadPoolName( "AssetStoreService" )
     , loadDownloadQueue( true )
@@ -64,6 +65,7 @@ CAssetStoreServiceConfig::CAssetStoreServiceConfig( void )
     , thumbnailsDirectory()
     , resumeIngestsOnStart( true )
     , ingestResumeAttempts( 3 )
+    , downloadStagingKeepHours( 48 )
     , implementationSettings( "implementationSettings", GUCEF_DATATYPE_OBJECT )
     , pulseGenerator()
     , credentialStore( GUCEF_NULL )
@@ -98,6 +100,7 @@ CAssetStoreServiceConfig::Serialize( CORE::CDataNode& domRootNode               
     success = domRootNode.SetAttribute( "thumbnailsDirectory", thumbnailsDirectory ) && success;
     success = domRootNode.SetAttribute( "resumeIngestsOnStart", resumeIngestsOnStart ) && success;
     success = domRootNode.SetAttribute( "ingestResumeAttempts", ingestResumeAttempts ) && success;
+    success = domRootNode.SetAttribute( "downloadStagingKeepHours", downloadStagingKeepHours ) && success;
     success = domRootNode.SetAttribute( "signInPromptSeconds", signInPromptSeconds ) && success;
     CORE::CDataNode* store = domRootNode.AddChild( "primaryStore", GUCEF_DATATYPE_OBJECT );
     CORE::CDataNode* downloadNode = domRootNode.AddChild( "downloads", GUCEF_DATATYPE_OBJECT );
@@ -105,6 +108,9 @@ CAssetStoreServiceConfig::Serialize( CORE::CDataNode& domRootNode               
         return false;
     success = primaryStore.Serialize( *store, settings ) && success;
     success = downloads.Serialize( *downloadNode, settings ) && success;
+    CORE::CDataNode* reprocessNode = domRootNode.AddChild( "reprocess", GUCEF_DATATYPE_OBJECT );
+    if ( GUCEF_NULL != reprocessNode )
+        success = reprocess.Serialize( *reprocessNode, settings ) && success;
     CORE::CDataNode* implementation = domRootNode.AddChild( implementationSettings );
     if ( GUCEF_NULL != implementation )
         implementation->SetName( "implementationSettings" );
@@ -127,6 +133,7 @@ CAssetStoreServiceConfig::Deserialize( const CORE::CDataNode& domRootNode       
     thumbnailsDirectory = domRootNode.GetAttributeValueOrChildValueByName( "thumbnailsDirectory" ).AsString( thumbnailsDirectory, true );
     resumeIngestsOnStart = domRootNode.GetAttributeValueOrChildValueByName( "resumeIngestsOnStart" ).AsBool( resumeIngestsOnStart, true );
     ingestResumeAttempts = domRootNode.GetAttributeValueOrChildValueByName( "ingestResumeAttempts" ).AsUInt32( ingestResumeAttempts, true );
+    downloadStagingKeepHours = domRootNode.GetAttributeValueOrChildValueByName( "downloadStagingKeepHours" ).AsUInt32( downloadStagingKeepHours, true );
     signInPromptSeconds = domRootNode.GetAttributeValueOrChildValueByName( "signInPromptSeconds" ).AsUInt32( signInPromptSeconds, true );
     bool success = true;
     const CORE::CDataNode* store = domRootNode.FindChild( "primaryStore" );
@@ -135,6 +142,9 @@ CAssetStoreServiceConfig::Deserialize( const CORE::CDataNode& domRootNode       
     const CORE::CDataNode* downloadNode = domRootNode.FindChild( "downloads" );
     if ( GUCEF_NULL != downloadNode )
         success = downloads.Deserialize( *downloadNode, settings ) && success;
+    const CORE::CDataNode* reprocessNode = domRootNode.FindChild( "reprocess" );
+    if ( GUCEF_NULL != reprocessNode )
+        success = reprocess.Deserialize( *reprocessNode, settings ) && success;
     const CORE::CDataNode* implementation = domRootNode.FindChild( "implementationSettings" );
     if ( GUCEF_NULL != implementation )
     {

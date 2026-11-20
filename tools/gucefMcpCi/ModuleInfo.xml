@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefMcpCi" Platform="All" Type="Executable" Tags="tools" >
+        <Dependencies>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Linker>
+        <!-- the build log digest and the child process runner are shared with gucefMcpLocalLlm: their sources through
+             ProjectGenInstructions.xml, their headers from its include directory -->
+        <Includes Source="Dependency">
+            <Include Path="../../tools/gucefMcpLocalLlm/include" />
+        </Includes>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

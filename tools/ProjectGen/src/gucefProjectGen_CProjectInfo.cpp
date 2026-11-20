@@ -1209,10 +1209,11 @@ CProjectInfo::UpdateDependencyChains( bool okToUseCachedValuesWhereApplicable )
 /*---------------------------------------------------------------------------*/
 
 bool
-CProjectInfo::CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies   ,
-                                                      bool okIfNoSuchDependencyDefined       ,
-                                                      TModuleInfoEntryPtrSet& problemModules ,
-                                                      CORE::CStringSet& missingModules       ) const
+CProjectInfo::CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies     ,
+                                                      bool okIfNoSuchDependencyDefined         ,
+                                                      TModuleInfoEntryPtrSet& problemModules   ,
+                                                      CORE::CStringSet& missingModules         ,
+                                                      TModuleSustainabilityMap& checkedModules ) const
 {GUCEF_TRACE;
 
     bool canSustainAllPlatforms = true;
@@ -1224,7 +1225,7 @@ CProjectInfo::CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& de
         CModuleInfoEntryPtr dependencyModuleEntry = GetModuleInfoEntry( dependencyName );
         if ( !dependencyModuleEntry.IsNULL() )
         {
-            if ( !CanModuleSustainAllPlatformsDefinition( dependencyModuleEntry, problemModules, missingModules ) )
+            if ( !CanModuleSustainAllPlatformsDefinition( dependencyModuleEntry, problemModules, missingModules, checkedModules ) )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:CanModuleSustainAllPlatformsDefinition: Dependency module \"" + dependencyName + "\" cannot sustain an 'all' platforms definition" );
                 canSustainAllPlatforms = false;
@@ -1254,8 +1255,32 @@ CProjectInfo::CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr module
                                                       CORE::CStringSet& missingModules       ) const
 {GUCEF_TRACE;
 
+    TModuleSustainabilityMap checkedModules;
+    return CanModuleSustainAllPlatformsDefinition( moduleInfoEntry, problemModules, missingModules, checkedModules );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr moduleInfoEntry      ,
+                                                      TModuleInfoEntryPtrSet& problemModules   ,
+                                                      CORE::CStringSet& missingModules         ,
+                                                      TModuleSustainabilityMap& checkedModules ) const
+{GUCEF_TRACE;
+
     if ( moduleInfoEntry.IsNULL() )
         return false;
+
+    // Within one check the outcome for a module is always the same and its problem and missing modules were already
+    // added, so a module reached again through another dependency path is not checked again. Checking every path
+    // instead grows exponentially with the depth of the dependency tree.
+    // The entry is made before checking the dependencies so that a dependency cycle ends here
+    const CModuleInfoEntry* module = moduleInfoEntry.GetPointerAlways();
+    TModuleSustainabilityMap::iterator checked = checkedModules.find( module );
+    if ( checked != checkedModules.end() )
+        return (*checked).second;
+    checked = checkedModules.insert( TModuleSustainabilityMap::value_type( module, true ) ).first;
+
     bool canSustainAllPlatforms = true;
 
     const TModuleInfoPtrMap& modulesPerPlatform = moduleInfoEntry->GetModulesPerPlatform();
@@ -1267,7 +1292,7 @@ CProjectInfo::CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr module
         {              
             // Check the build dependencies, used for header include paths and such
             const CORE::CStringSet& dependencies = allPlatformsDefinition->GetNamesOfDependencies();
-            if ( !CanModuleSustainAllPlatformsDefinition( dependencies, false, problemModules, missingModules ) )
+            if ( !CanModuleSustainAllPlatformsDefinition( dependencies, false, problemModules, missingModules, checkedModules ) )
             {
                 canSustainAllPlatforms = false;
             }
@@ -1286,13 +1311,15 @@ CProjectInfo::CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr module
 
             CORE::CStringSet linkerDependencies;
             allPlatformsDefinition->linkerSettings.GetListOfLinkedLibraries( linkerDependencies );
-            if ( !CanModuleSustainAllPlatformsDefinition( linkerDependencies, true, problemModules, missingModules ) )
+            if ( !CanModuleSustainAllPlatformsDefinition( linkerDependencies, true, problemModules, missingModules, checkedModules ) )
             {
                 canSustainAllPlatforms = false;
             }
         }
         ++i;
     }
+
+    (*checked).second = canSustainAllPlatforms;
     return canSustainAllPlatforms;
 }
 

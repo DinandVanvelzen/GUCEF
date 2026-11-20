@@ -1139,6 +1139,30 @@ CIAssetStoreService::GetResourceStatusAsync(  )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
+CIAssetStoreService::ImportWebSession( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service does not take over web sessions";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::ImportWebSessionAsync( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session )
+{GUCEF_TRACE;
+
+    // a secret never goes into a call of ExecuteAsync(): the synchronous form, with an ended future
+    CAssetServiceResult* result = GUCEF_NEW CAssetServiceResult();
+    const TAssetStoreStatus status = ImportWebSession( commandId, storeId, session, *result );
+    return MakeEndedFuture( status, result, result->message );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
 CIAssetStoreService::GetSyncMarks( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries, CAssetSyncMarkPage& result )
 {GUCEF_TRACE;
 

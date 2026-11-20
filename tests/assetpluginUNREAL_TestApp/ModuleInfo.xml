@@ -28,6 +28,7 @@
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="vfspluginZIP" />
             <RuntimeDependency Name="assetpluginUNREAL" />
+            <RuntimeDependency Name="codecspluginZLIB" />
             <RuntimeDependency Name="ooz_extract" />
         </RuntimeDependencies>
     </Module>

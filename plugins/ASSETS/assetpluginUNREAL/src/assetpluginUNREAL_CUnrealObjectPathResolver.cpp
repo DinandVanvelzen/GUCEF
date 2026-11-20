@@ -135,9 +135,12 @@ CUnrealObjectPathResolver::AddPackagesOf( const CORE::CString& vfsFolder )
         if ( "uasset" != extension && "umap" != extension )
             continue;
         CUnrealPackage package;
-        if ( package.Open( files[ i ] ) && !package.GetSummary().packageName.IsNULLOrEmpty() )
+        if ( !package.Open( files[ i ] ) )
+            continue;
+        const CORE::CString packageName = PackageNameOfFile( package.GetSummary().packageName, files[ i ] );
+        if ( !packageName.IsNULLOrEmpty() )
         {
-            AddPackage( package.GetSummary().packageName, files[ i ] );
+            AddPackage( packageName, files[ i ] );
             ++added;
         }
     }
@@ -152,6 +155,37 @@ CUnrealObjectPathResolver::PackageNameOf( const CORE::CString& objectPath )
 
     const Int32 dot = objectPath.HasChar( '.' );
     return dot > 0 ? objectPath.SubstrFromRange( 0, (UInt32) dot ) : objectPath;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CUnrealObjectPathResolver::PackageNameOfFile( const CORE::CString& summaryPackageName, const CORE::CString& path )
+{GUCEF_TRACE;
+
+    if ( !summaryPackageName.IsNULLOrEmpty() && '/' == summaryPackageName[ 0 ] )
+        return summaryPackageName;
+
+    // the place of the file: <...>/Content/<rest> is /Game/<rest>, <...>/Plugins/<Name>/Content/<rest> is /<Name>/<rest>
+    const CORE::CString normalized = "/" + path.ReplaceChar( '\\', '/' );
+    const Int32 content = normalized.HasSubstr( "/Content/" );
+    if ( content < 0 )
+        return CORE::CString();
+    CORE::CString root = "/Game";
+    const CORE::CString before = normalized.SubstrFromRange( 0, (UInt32) content );
+    const Int32 plugins = before.HasSubstr( "/Plugins/" );
+    if ( plugins >= 0 )
+    {
+        const CORE::CString pluginPath = before.SubstrFromRange( (UInt32) plugins + 9, before.Length() );
+        const CORE::CString pluginName = pluginPath.HasChar( '/', false ) >= 0 ? pluginPath.SubstrFromRange( (UInt32) pluginPath.HasChar( '/', false ) + 1, pluginPath.Length() ) : pluginPath;
+        if ( !pluginName.IsNULLOrEmpty() )
+            root = "/" + pluginName;
+    }
+    CORE::CString rest = normalized.SubstrFromRange( (UInt32) content + 9, normalized.Length() );
+    const Int32 dot = rest.HasChar( '.', false );
+    if ( dot > 0 )
+        rest = rest.SubstrFromRange( 0, (UInt32) dot );
+    return rest.IsNULLOrEmpty() ? CORE::CString() : root + "/" + rest;
 }
 
 /*-------------------------------------------------------------------------*/

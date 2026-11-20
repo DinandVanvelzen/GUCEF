@@ -90,6 +90,11 @@
 #define GUCEF_TEST_LOG_CAPTURE_H
 #endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
 
+#ifndef GUCEF_AUTH_CWEBSESSION_H
+#include "gucefAUTH_CWebSession.h"
+#define GUCEF_AUTH_CWEBSESSION_H
+#endif /* GUCEF_AUTH_CWEBSESSION_H ? */
+
 #ifndef GUCEF_COMCORE_CSERVICEFINDER_H
 #include "gucefCOMCORE_CServiceFinder.h"
 #define GUCEF_COMCORE_CSERVICEFINDER_H
@@ -987,6 +992,9 @@ PerformAssetStoreRemoteSignInRoleTests( void )
     serverConfig.signIn.storeSettings.AddChild( "faultsign", GUCEF_DATATYPE_OBJECT )->SetAttribute( "clientIdFile", "/run/secrets/fake/clientId" );
     CRemoteAssetStoreWorld world( "roles" );
     world.bindingSettings.roles.insert( "mcp" );
+    // a curator may sign in here (signInRoles), but the hand over of a web session stays with the owner devices
+    world.bindingSettings.roles.insert( "curator" );
+    world.bindingSettings.signInRoles.insert( "curator" );
     CString error;
     const bool started = world.StartServer( serverConfig, error );
     if ( !started )
@@ -1095,6 +1103,70 @@ PerformAssetStoreRemoteSignInRoleTests( void )
             CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "faultsign" );
             CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "faultsign" );
             // the clients read the list of the stores again when it changes: that call ends before the next test
+            PumpFor( 500 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Remote sign in roles: the hand over of a web session (ImportWebSession) is for owner devices only: a device with the role mcp and one with a sign in role that is not owner are refused, a device with the role owner is accepted; the session is in no log" )
+        try
+        {
+            TESTFW::CLogTextCapture* capture = GUCEF_NEW TESTFW::CLogTextCapture();
+            CFakeSignInStoreProviderFactory webFactory( "faultweb", true );
+            CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "faultweb", &webFactory );
+            CAssetStoreGlobal::Instance()->GetRegistry().RefreshProviders();
+            PumpFor( 100 );
+
+            AUTH::CWebSession handed;
+            handed.storeId = "faultweb";
+            AUTH::CWebSessionCookie cookie;
+            cookie.name = "sid";
+            cookie.value.Set( "rolesWebSessionValue41" );
+            cookie.domain = "www.webstore.test";
+            cookie.path = "/";
+            handed.cookies.push_back( cookie );
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( handed.ToSecret( secret ) );
+
+            CString roleError;
+            CString::StringSet mcpRoles;
+            mcpRoles.insert( "mcp" );
+            TAssetStoreServicePtr mcpPtr = world.MakeClient( "roles-mcp2", roleError, &mcpRoles, false );
+            CString::StringSet curatorRoles;
+            curatorRoles.insert( "curator" );
+            TAssetStoreServicePtr curatorPtr = world.MakeClient( "roles-curator", roleError, &curatorRoles, false );
+            ASSERT_TRUE( !mcpPtr.IsNULL() && !curatorPtr.IsNULL() );
+            if ( !mcpPtr.IsNULL() && !curatorPtr.IsNULL() )
+            {
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == mcpPtr->Open() && ASSETSTORE_STATUS_OK == curatorPtr->Open() );
+                CAssetServiceResult refused;
+                ASSERT_TRUE( ASSETSTORE_STATUS_REFUSED == mcpPtr->ImportWebSession( CString::Empty, "faultweb", secret, refused ) && !refused.message.IsNULLOrEmpty() );
+                ASSERT_TRUE( ASSETSTORE_STATUS_REFUSED == curatorPtr->ImportWebSession( CString::Empty, "faultweb", secret, refused ) );
+                CFutureResult refusedAsync = curatorPtr->ImportWebSessionAsync( CString::Empty, "faultweb", secret );
+                ASSERT_TRUE( WaitForFuture( refusedAsync, 10000 ) && ASSETSTORE_STATUS_REFUSED == CIAssetStoreService::GetStatusOfFuture( refusedAsync ) );
+                TAssetStoreProviderPtr providerPtr;
+                ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( "faultweb", providerPtr ) && !providerPtr.IsNULL() );
+                const CFakeSignInStoreProvider* provider = static_cast< const CFakeSignInStoreProvider* >( providerPtr.GetPointerAlways() );
+                ASSERT_TRUE( 0 == provider->GetImportedCookieCount() && !provider->IsSignedIn() );
+
+                // the owner device hands it over
+                CAssetServiceResult imported;
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == client.ImportWebSession( "roles-import-1", "faultweb", secret, imported ) );
+                ASSERT_TRUE( 1 == provider->GetImportedCookieCount() && provider->IsSignedIn() );
+                providerPtr.Unlink();
+                mcpPtr->Close();
+                curatorPtr->Close();
+            }
+            PumpFor( 200 );
+            ASSERT_TRUE( capture->GetText().HasSubstr( "rolesWebSessionValue41" ) < 0 && capture->GetText().HasSubstr( "ImportSession refused for the device" ) >= 0 );
+            secret.Clear();
+            handed.Clear();
+            GUCEF_DELETE capture;
+            CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "faultweb" );
+            CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "faultweb" );
             PumpFor( 500 );
         }
         catch ( ... )

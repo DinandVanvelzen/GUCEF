@@ -28,6 +28,7 @@ set( HEADER_FILES
   include/assetpluginUNREAL_CUnrealHiddenFaceMap.h
   include/assetpluginUNREAL_CUnrealImporter.h
   include/assetpluginUNREAL_CUnrealLegacyBulkData.h
+  include/assetpluginUNREAL_CUnrealLegacyPayloadReader.h
   include/assetpluginUNREAL_CUnrealMaterialImporter.h
   include/assetpluginUNREAL_CUnrealMaterialInstanceReader.h
   include/assetpluginUNREAL_CUnrealMaterialMapper.h
@@ -90,6 +91,7 @@ set( SOURCE_FILES
   src/assetpluginUNREAL_CUnrealHiddenFaceMap.cpp
   src/assetpluginUNREAL_CUnrealImporter.cpp
   src/assetpluginUNREAL_CUnrealLegacyBulkData.cpp
+  src/assetpluginUNREAL_CUnrealLegacyPayloadReader.cpp
   src/assetpluginUNREAL_CUnrealMaterialImporter.cpp
   src/assetpluginUNREAL_CUnrealMaterialInstanceReader.cpp
   src/assetpluginUNREAL_CUnrealMaterialMapper.cpp

@@ -20,9 +20,11 @@ if (LINUX32)
     include/TestUnrealCorpusU8.h
     include/TestUnrealDeltaTexture.h
     include/TestUnrealImporter.h
+    include/TestUnrealLegacyForms.h
     include/TestUnrealMesh.h
     include/TestUnrealOodle.h
     include/TestUnrealPackRecogniser.h
+    include/TestUnrealPackTriage.h
     include/TestUnrealPackage.h
     include/TestUnrealProperties.h
     include/TestUnrealRobustness.h
@@ -40,9 +42,11 @@ if (LINUX32)
     src/TestUnrealCorpusU8.cpp
     src/TestUnrealDeltaTexture.cpp
     src/TestUnrealImporter.cpp
+    src/TestUnrealLegacyForms.cpp
     src/TestUnrealMesh.cpp
     src/TestUnrealOodle.cpp
     src/TestUnrealPackRecogniser.cpp
+    src/TestUnrealPackTriage.cpp
     src/TestUnrealPackage.cpp
     src/TestUnrealProperties.cpp
     src/TestUnrealRobustness.cpp
@@ -62,9 +66,11 @@ elseif (LINUX64)
     include/TestUnrealCorpusU8.h
     include/TestUnrealDeltaTexture.h
     include/TestUnrealImporter.h
+    include/TestUnrealLegacyForms.h
     include/TestUnrealMesh.h
     include/TestUnrealOodle.h
     include/TestUnrealPackRecogniser.h
+    include/TestUnrealPackTriage.h
     include/TestUnrealPackage.h
     include/TestUnrealProperties.h
     include/TestUnrealRobustness.h
@@ -82,9 +88,11 @@ elseif (LINUX64)
     src/TestUnrealCorpusU8.cpp
     src/TestUnrealDeltaTexture.cpp
     src/TestUnrealImporter.cpp
+    src/TestUnrealLegacyForms.cpp
     src/TestUnrealMesh.cpp
     src/TestUnrealOodle.cpp
     src/TestUnrealPackRecogniser.cpp
+    src/TestUnrealPackTriage.cpp
     src/TestUnrealPackage.cpp
     src/TestUnrealProperties.cpp
     src/TestUnrealRobustness.cpp
@@ -104,9 +112,11 @@ elseif (WIN32)
     include/TestUnrealCorpusU8.h
     include/TestUnrealDeltaTexture.h
     include/TestUnrealImporter.h
+    include/TestUnrealLegacyForms.h
     include/TestUnrealMesh.h
     include/TestUnrealOodle.h
     include/TestUnrealPackRecogniser.h
+    include/TestUnrealPackTriage.h
     include/TestUnrealPackage.h
     include/TestUnrealProperties.h
     include/TestUnrealRobustness.h
@@ -124,9 +134,11 @@ elseif (WIN32)
     src/TestUnrealCorpusU8.cpp
     src/TestUnrealDeltaTexture.cpp
     src/TestUnrealImporter.cpp
+    src/TestUnrealLegacyForms.cpp
     src/TestUnrealMesh.cpp
     src/TestUnrealOodle.cpp
     src/TestUnrealPackRecogniser.cpp
+    src/TestUnrealPackTriage.cpp
     src/TestUnrealPackage.cpp
     src/TestUnrealProperties.cpp
     src/TestUnrealRobustness.cpp
@@ -146,9 +158,11 @@ elseif (WIN64)
     include/TestUnrealCorpusU8.h
     include/TestUnrealDeltaTexture.h
     include/TestUnrealImporter.h
+    include/TestUnrealLegacyForms.h
     include/TestUnrealMesh.h
     include/TestUnrealOodle.h
     include/TestUnrealPackRecogniser.h
+    include/TestUnrealPackTriage.h
     include/TestUnrealPackage.h
     include/TestUnrealProperties.h
     include/TestUnrealRobustness.h
@@ -166,9 +180,11 @@ elseif (WIN64)
     src/TestUnrealCorpusU8.cpp
     src/TestUnrealDeltaTexture.cpp
     src/TestUnrealImporter.cpp
+    src/TestUnrealLegacyForms.cpp
     src/TestUnrealMesh.cpp
     src/TestUnrealOodle.cpp
     src/TestUnrealPackRecogniser.cpp
+    src/TestUnrealPackTriage.cpp
     src/TestUnrealPackage.cpp
     src/TestUnrealProperties.cpp
     src/TestUnrealRobustness.cpp

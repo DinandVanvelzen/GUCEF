@@ -153,6 +153,7 @@ static const UInt32 LinkTimeoutInMs = 15000;
 static const UInt32 CallTimeoutInMs = 90000;
 static const UInt32 JoinTimeoutInMs = 45 * 60 * 1000;
 static const char* ProfileMarker = "# gucef-lab";
+static const UInt64 CiUnsupportedRetryInMs = 3600 * 1000;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -270,8 +271,12 @@ class CRpcLink
         return m_endpoint->NewRequest( ref );
     }
 
-    bool Call( const char* path, const COMCORE::CRpcMessage& request, COMCORE::CRpcMessage& response, CORE::CString& problem )
+    /** @param code    when given: the status of the answer, RPC_STATUS_DEADLINE_EXCEEDED when there was none */
+    bool Call( const char* path, const COMCORE::CRpcMessage& request, COMCORE::CRpcMessage& response, CORE::CString& problem,
+               COMCORE::TRpcStatusCode* code = GUCEF_NULL )
     {
+        if ( GUCEF_NULL != code )
+            *code = COMCORE::RPC_STATUS_DEADLINE_EXCEEDED;
         CORE::CFutureResult future = m_endpoint->CallAsync( path, request );
         const UInt64 deadline = NowInMs() + CallTimeoutInMs;
         while ( !future.IsReady() && NowInMs() < deadline )
@@ -282,6 +287,8 @@ class CRpcLink
             problem = CORE::CString( path ) + " was not answered";
             return false;
         }
+        if ( GUCEF_NULL != code )
+            *code = result.status.code;
         if ( !result.status.IsOk() )
         {
             problem = CORE::CString( path ) + ": " + result.status.ToString();
@@ -352,6 +359,9 @@ CMachineRole::CMachineRole( const SSettings& settings, CStore& store )
     , m_reporter( GUCEF_NULL )
     , m_linkedSighting()
     , m_linked( false )
+    , m_ciFiles( CORE::CombinePath( settings.mcpDir, "ci" ), settings.claudeUser )
+    , m_ciUnsupportedUntilInMs( 0 )
+    , m_ciOutcome()
 {GUCEF_TRACE;
 
 }
@@ -379,6 +389,7 @@ CMachineRole::GetClassTypeName( void ) const
 const SClusterAnswers& CMachineRole::GetLastAnswers( void ) const { return m_lastAnswers; }
 const CORE::CString& CMachineRole::GetLastOutcome( void ) const { return m_lastOutcome; }
 const CNodeReporter* CMachineRole::GetReporter( void ) const { return m_reporter; }
+const CORE::CString& CMachineRole::GetCiOutcome( void ) const { return m_ciOutcome; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -643,6 +654,23 @@ CMachineRole::TalkToLab( const SClusterSighting& cluster, const CORE::CString& t
             answers.nodes.push_back( node.AsString() );
     }
 
+    // the CI configuration, for a machine with an approval; a cluster of an older minor answers that it does not know it
+    if ( WantsCiConfig( token ) )
+    {
+        COMCORE::TRpcStatusCode code = COMCORE::RPC_STATUS_OK;
+        CORE::CString ciProblem;
+        answers.ciAsked = true;
+        if ( link.Call( CiConfigPath, link.NewRequest( CiConfigPath ), response, ciProblem, &code ) )
+        {
+            answers.ciRegistry = response.GetString( 1 );
+            answers.ciGatewayToken = response.GetString( 2 );
+            answers.ciCaCertificate = response.GetString( 3 );
+            answers.ciGatewayUrl = response.GetString( 4 );
+        }
+        answers.ciStatus = (Int32) code;
+        answers.ciStatusText = ciProblem;
+    }
+
     const bool isNode = m_settings.nodeMarkerFile.IsNULLOrEmpty() || CORE::FileExists( m_settings.nodeMarkerFile );
     if ( m_settings.join && !isNode && !m_settings.joinScript.IsNULLOrEmpty() )
     {
@@ -901,6 +929,112 @@ CMachineRole::ConfigureClaude( const SClusterAnswers& answers )
 /*-------------------------------------------------------------------------*/
 
 bool
+CMachineRole::WantsCiConfig( const CORE::CString& token ) const
+{GUCEF_TRACE;
+
+    // a token of the lab secret is made by this machine itself: the cluster gives it no CI configuration
+    return m_settings.ci && m_secret.IsNULLOrEmpty() && !m_identity.token.IsNULLOrEmpty() && token == m_identity.token &&
+           NowInMs() >= m_ciUnsupportedUntilInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A gateway token as the cluster makes it: 64 hex digits */
+static bool
+IsGatewayToken( const CORE::CString& token )
+{
+    if ( 64 != token.Length() )
+        return false;
+    for ( UInt32 i=0; i<token.Length(); ++i )
+    {
+        const UInt32 c = token[ i ];
+        if ( !( ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' ) ) )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMachineRole::ApplyCiConfig( const SClusterAnswers& answers )
+{GUCEF_TRACE;
+
+    if ( !m_settings.ci )
+    {
+        m_ciOutcome = "switched off";
+        return;
+    }
+    if ( !answers.ciAsked )
+    {
+        if ( !m_secret.IsNULLOrEmpty() || m_identity.token.IsNULLOrEmpty() )
+            m_ciOutcome = "not asked: only a machine with an approval gets the CI configuration";
+        else
+            m_ciOutcome = "not asked: the cluster does not hand out the CI configuration";
+        return;
+    }
+
+    CORE::CString problem;
+    switch ( (COMCORE::TRpcStatusCode) answers.ciStatus )
+    {
+        case COMCORE::RPC_STATUS_OK:
+        {
+            const CORE::CString registry = StripText( answers.ciRegistry );
+            if ( registry.IsNULLOrEmpty() || '{' != registry[ 0 ] || !IsGatewayToken( StripText( answers.ciGatewayToken ) ) )
+            {
+                m_ciOutcome = "kept: the CI configuration of the cluster is not complete";
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The CI configuration of cluster " << answers.cluster << " is not complete: not used" );
+                return;
+            }
+            bool changed = false;
+            if ( !m_ciFiles.Write( answers.ciRegistry, answers.ciGatewayToken, answers.ciCaCertificate, changed, problem ) )
+            {
+                m_ciOutcome = "the CI files cannot be written: " + problem;
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: " << m_ciOutcome );
+                return;
+            }
+            m_ciOutcome = changed ? "written" : "unchanged";
+            if ( changed )
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The CI configuration of cluster " << answers.cluster << " (gateway " <<
+                                  answers.ciGatewayUrl << ") is in " << m_ciFiles.GetDirectory() );
+            return;
+        }
+        case COMCORE::RPC_STATUS_UNIMPLEMENTED:
+        {
+            // a cluster of the version before the CI configuration: nothing is wrong, the files stay as they are
+            m_ciUnsupportedUntilInMs = NowInMs() + CiUnsupportedRetryInMs;
+            m_ciOutcome = "kept: the cluster does not hand out the CI configuration";
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Cluster " << answers.cluster << " does not hand out the CI configuration; asked again in an hour" );
+            return;
+        }
+        case COMCORE::RPC_STATUS_NOT_FOUND:
+        case COMCORE::RPC_STATUS_PERMISSION_DENIED:
+        {
+            // no CI on the cluster, or none for this machine: what it had is no longer valid
+            bool removed = false;
+            if ( !m_ciFiles.Remove( removed, problem ) )
+            {
+                m_ciOutcome = "the CI files cannot be removed: " + problem;
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: " << m_ciOutcome );
+                return;
+            }
+            m_ciOutcome = "removed: " + answers.ciStatusText;
+            if ( removed )
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The CI files in " << m_ciFiles.GetDirectory() << " are removed: " << answers.ciStatusText );
+            return;
+        }
+        default:
+        {
+            m_ciOutcome = "kept: " + answers.ciStatusText;
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: No CI configuration from cluster " << answers.cluster << " now: " << answers.ciStatusText );
+            return;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CMachineRole::Visit( const SClusterSighting& cluster )
 {GUCEF_TRACE;
 
@@ -938,6 +1072,7 @@ CMachineRole::Visit( const SClusterSighting& cluster )
     if ( m_settings.report && GUCEF_NULL == m_reporter )
         m_reporter = GUCEF_NEW CNodeReporter( m_settings, m_identity );
     ConfigureClaude( answers );
+    ApplyCiConfig( answers );
     if ( answers.joinGiven )
         RunJoin( answers );
     m_lastOutcome = "linked to cluster " + answers.cluster;

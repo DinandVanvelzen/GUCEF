@@ -64,6 +64,7 @@ tools/HDFiller/*
 tools/ProjectGen/*
 tools/PubSubStorageTool/*
 tools/gucefLabLink/*
+tools/gucefMcpCi/*
 tools/gucefMcpEcho/*
 tools/gucefMcpLocalLlm/*
 tools/itvExporter/*

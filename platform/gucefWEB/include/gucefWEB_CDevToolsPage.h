@@ -103,10 +103,49 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     /** How long each command waits for its answer, 30 s by default */
     void SetCommandTimeout( UInt32 timeoutInMs );
 
-    /** Page.navigate; refused without sending anything when the guard does not allow the address */
+    /**
+     *  Whether ListControls() reports the accessible name (and the option labels of a select) of a control inside a table
+     *  cell, true by default. The plain text of a cell is never reported; false withholds the names as well.
+     */
+    void SetReportTableCellControlNames( bool report );
+
+    bool GetReportTableCellControlNames( void ) const;
+
+    /**
+     *  How long Navigate() waits for the new document, 30 s by default: the browser has to commit it (Page.frameNavigated
+     *  of the main frame) and load it within that time. 0: Navigate() returns as soon as the browser answers
+     *  Page.navigate, which is before the commit
+     */
+    void SetNavigationTimeout( UInt32 timeoutInMs );
+
+    UInt32 GetNavigationTimeout( void ) const;
+
+    /**
+     *  Page.navigate, then waits (see SetNavigationTimeout()) until the browser has committed the new document of the main
+     *  frame and loaded it. Refused without sending anything when the guard does not allow the address.
+     *
+     *  True: the new document is committed, so GetUrl() reports the new address. A document that did not load within the
+     *  time still gives true, with GetLastNavigationLoaded() false. A navigation within the document (a fragment) is
+     *  committed when the browser reports it (Page.navigatedWithinDocument), with nothing to load.
+     *  False: refused by the guard, the browser reports an error (errorText, for example net::ERR_ABORTED of a response
+     *  without content or a download), no commit within the time, or the connection or session ended. The reason is in
+     *  GetLastNavigationError()
+     */
     bool Navigate( const CORE::CString& url );
 
-    /** The address the tab shows (Page.getNavigationHistory), query included: the caller's to keep out of logs */
+    /**
+     *  Whether the latest Navigate() saw the new document load: its load event, or when the time ran out its
+     *  DOMContentLoaded (the DOM is complete, only sub resources are pending). False after a navigation timeout of 0
+     */
+    bool GetLastNavigationLoaded( void ) const;
+
+    /** Why the latest Navigate() gave false, empty when it gave true. Never holds the address */
+    const CORE::CString& GetLastNavigationError( void ) const;
+
+    /**
+     *  The address the tab shows (Page.getNavigationHistory), query included: the caller's to keep out of logs. After a
+     *  Navigate() that gave true this is the committed address of the new document
+     */
     bool GetUrl( CORE::CString& url );
 
     /** A trusted mouse click at the centre of the element, after scrolling it into view */
@@ -136,19 +175,39 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     /**
      *  The controls in the scope (a CSS selector; empty: the whole document) in document order, at most MaxControls:
      *  role, accessible label, visible, enabled, and for a select element the labels of its options. Never input
-     *  values, never password fields, and nothing of the text of table cells, see CControlInfo
+     *  values, never password fields, and nothing of the text of table cells, see CControlInfo.
+     *
+     *  A page that is still rendering can remove a control while it is listed: a control whose element is gone, or whose
+     *  description, options or boxes the browser no longer gives, is left out and counted, see
+     *  GetLastListSkippedCount(). When the scope itself is gone (the document changed, so its node ids are stale) the
+     *  listing starts once more on a fresh document. False: the scope is not there (also not on the fresh document), or
+     *  the connection or session ended
      */
     bool ListControls( const CORE::CString& scopeSelector, TControlInfoVector& result );
+
+    /** How many controls the latest ListControls() left out because they went away while it listed them */
+    UInt32 GetLastListSkippedCount( void ) const;
 
     private:
 
     CDevToolsPage( const CDevToolsPage& src );                  /**< not implemented */
     CDevToolsPage& operator=( const CDevToolsPage& src );       /**< not implemented */
 
-    bool Send( const CORE::CString& method, const CORE::CDataNode* params, CORE::CDataNode& result, bool logFailure = true );
-    bool GetDocumentRoot( Int64& rootNodeId );
-    bool Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing = true );
-    bool DescribeNode( Int64 nodeId, CORE::CString& nodeName, CORE::CString::StringMap& attributes );
+    enum EListOutcome
+    {
+        LIST_DONE   ,
+        LIST_STALE  ,   /**< the scope or the document went away: worth one more try on a fresh document */
+        LIST_FAILED
+    };
+
+    bool Send( const CORE::CString& method, const CORE::CDataNode* params, CORE::CDataNode& result, bool logFailure = true, COM::SJsonRpcError* error = GUCEF_NULL );
+    bool IsSessionLost( const COM::SJsonRpcError& error ) const;
+    EListOutcome ListControlsOnce( const CORE::CString& scopeSelector, TControlInfoVector& result, UInt32& skipped );
+    bool NavigateWithoutWait( const CORE::CString& url );
+    void SetNavigationError( const CORE::CString& url, const CORE::CString& reason );
+    bool GetDocumentRoot( Int64& rootNodeId, COM::SJsonRpcError* error = GUCEF_NULL );
+    bool Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing = true, COM::SJsonRpcError* error = GUCEF_NULL );
+    bool DescribeNode( Int64 nodeId, CORE::CString& nodeName, CORE::CString::StringMap& attributes, COM::SJsonRpcError* error = GUCEF_NULL );
     bool CallOnNode( Int64 nodeId, const CORE::CString& functionDeclaration, const CORE::CString* argument, CORE::CString& returned );
     bool WaitForDomChange( UInt32 timeoutInMs );
     bool GetIsolatedContext( Int64& contextId );
@@ -157,7 +216,13 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     CORE::CString m_sessionId;
     CNavigationGuard* m_guard;
     UInt32 m_commandTimeoutInMs;
+    bool m_reportTableCellControlNames;
     Int64 m_isolatedContextId;
+    UInt32 m_navigationTimeoutInMs;
+    bool m_pageEnabled;
+    bool m_lastNavigationLoaded;
+    CORE::CString m_lastNavigationError;
+    UInt32 m_lastListSkippedCount;
 };
 
 /*-------------------------------------------------------------------------//

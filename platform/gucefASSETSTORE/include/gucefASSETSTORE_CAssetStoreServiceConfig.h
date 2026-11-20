@@ -54,6 +54,11 @@
 #include "gucefASSETSTORE_CAssetStoreDownloadSettings.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREDOWNLOADSETTINGS_H
 #endif /* GUCEF_ASSETSTORE_CASSETSTOREDOWNLOADSETTINGS_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETREPROCESSSETTINGS_H
+#include "gucefASSETSTORE_CAssetReprocessSettings.h"
+#define GUCEF_ASSETSTORE_CASSETREPROCESSSETTINGS_H
+#endif /* GUCEF_ASSETSTORE_CASSETREPROCESSSETTINGS_H ? */
+
 #ifndef GUCEF_ASSETSTORE_MACROS_H
 #include "gucefASSETSTORE_macros.h"
 #define GUCEF_ASSETSTORE_MACROS_H
@@ -91,7 +96,7 @@ class CIAssetRenderHook;
  *
  *  The events of the service are raised on the thread of pulseGenerator (the global pulse generator when it is null).
  *  The settings serialise as an object with "implementationId", "imageCacheFolder", "threadPoolName", "loadDownloadQueue",
- *  "startDownloads", "stateDirectory", "thumbnailsDirectory", "resumeIngestsOnStart", "ingestResumeAttempts", the children "primaryStore", "downloads" and "implementationSettings"; the objects do not.
+ *  "startDownloads", "stateDirectory", "thumbnailsDirectory", "resumeIngestsOnStart", "ingestResumeAttempts", "downloadStagingKeepHours", the children "primaryStore", "downloads", "reprocess" and "implementationSettings"; the objects do not.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceConfig : public CORE::CIDataNodeSerializable
 {
@@ -107,6 +112,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceConfig : public CORE::CIData
     CORE::CString implementationId;
     CPrimaryAssetStoreSettings primaryStore;
     CAssetStoreDownloadSettings downloads;
+    CAssetReprocessSettings reprocess;                      /**< the limits of the reprocessing of packs (the child "reprocess") */
     CORE::CString imageCacheFolder;                         /**< VFS folder of the disk cache of the listing pictures, empty for none */
     CORE::CString threadPoolName;                           /**< of the asynchronous forms, default "AssetStoreService" */
     bool loadDownloadQueue;                                 /**< read the saved queue of the downloads when the service opens, default true */
@@ -115,6 +121,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceConfig : public CORE::CIData
     CORE::CString thumbnailsDirectory;                      /**< folder on the disk (environment variables are resolved) that holds the stored pictures of the assets, mounted at ThumbnailsVfsRoot; empty: the folder "thumbnails" in the storage location (the default location of the store) */
     bool resumeIngestsOnStart;                              /**< when the catalogue opens, resume the ingests that were left staged (a restart, a failed step), default true */
     UInt32 ingestResumeAttempts;                            /**< how many starts resume the same staged ingest (one that ends the process each time is not tried for ever), default 3 */
+    UInt32 downloadStagingKeepHours;                        /**< a download for the store that failed keeps its staging folder (its part files, for a retry) this long, then the staging sweep removes it with the download; a cancelled one goes at the next sweep, default 48 */
     CORE::CDataNode implementationSettings;                 /**< what an implementation other than the local one needs */
     CORE::PulseGeneratorPtr pulseGenerator;                 /**< of the events; null: the global pulse generator */
     AUTH::ICredentialStore* credentialStore;                /**< of the password of the catalogue, not owned */

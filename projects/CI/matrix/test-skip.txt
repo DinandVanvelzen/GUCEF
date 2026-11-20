@@ -1,0 +1,8 @@
+# Test applications that projects/CI/scripts/ci_cell.sh does not run in CI test mode (CELL_MODE=test).
+# One application name per line, without the debug suffix _d, for example: gucefFOO_TestApp
+# Text after '#' is a comment. Hand maintained, not written by ProjectGenerator.
+#
+# List an application here only when it cannot run on a CI runner at all (it hangs or fails without a display,
+# a GPU or a server that the runner does not have). The applications that use a display, a window or an LLM server
+# skip those test cases themselves when the runner has none (no DISPLAY / WAYLAND_DISPLAY, no server at
+# LOCAL_LLM_URL), so they are not listed.

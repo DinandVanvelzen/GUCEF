@@ -207,7 +207,7 @@ enum EActivityAction
     ACTIVITYACTION_CACHED      ,
     ACTIVITYACTION_FAILED      ,
     ACTIVITYACTION_REFUSED     ,
-    ACTIVITYACTION_SKIPPED     ,  /**< not converted in this run (a run that was cancelled before it got to the asset) */
+    ACTIVITYACTION_SKIPPED     ,  /**< not converted in this run (a run that was cancelled before it got to the asset, or an asset the importer finds nothing to convert in) */
 
     ACTIVITYACTION_COUNT
 };

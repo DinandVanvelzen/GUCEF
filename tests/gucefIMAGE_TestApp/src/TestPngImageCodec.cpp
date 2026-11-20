@@ -871,6 +871,23 @@ TestImagePluginTakesPrecedence( void )
             if ( !decodedPixels.IsNULL() )
                 ASSERT_TRUE( 9 == decodedPixels->GetWidthInPixels() && 4 == decodedPixels->GetHeightInPixels() );
 
+            // a greyscale PNG (colour type 0, 8 bits) is read as one grey channel with its values, not as an unknown format
+            IMAGE::TPixelMapPtr grey = MakePicture( 7, 5, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, 33 );
+            CORE::CDynamicBuffer greyPng;
+            ASSERT_TRUE( IMAGE::CPngImageCodec::EncodePixelMap( *grey, greyPng, problem ) );
+            CORE::CDynamicBufferAccess greyAccess( &greyPng, false );
+            IMAGE::CImage greyDecoded;
+            ASSERT_TRUE( greyDecoded.Load( greyAccess, "png", true, false ) );
+            IMAGE::TPixelMapPtr greyPixels;
+            ASSERT_TRUE( greyDecoded.TryGetPixelMap( 0, 0, greyPixels ) && !greyPixels.IsNULL() );
+            if ( !greyPixels.IsNULL() )
+            {
+                ASSERT_TRUE( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE == greyPixels->GetPixelStorageFormat() && GUCEF::DATATYPE_UINT8 == greyPixels->GetPixelComponentDataType() );
+                ASSERT_TRUE( 7 == greyPixels->GetWidthInPixels() && 5 == greyPixels->GetHeightInPixels() && greyPixels->GetTotalSizeInBytes() == grey->GetTotalSizeInBytes() );
+                if ( greyPixels->GetTotalSizeInBytes() == grey->GetTotalSizeInBytes() )
+                    ASSERT_TRUE( 0 == memcmp( greyPixels->GetDataPtr(), grey->GetDataPtr(), grey->GetTotalSizeInBytes() ) );
+            }
+
             // CImage saves through the plugin now
             IMAGE::CImage image( pixels );
             CORE::CDynamicBuffer saved;

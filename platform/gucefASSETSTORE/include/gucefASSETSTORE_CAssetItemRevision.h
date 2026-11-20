@@ -76,6 +76,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetItemRevision
     static const CORE::CString FormatBasis;         /**< "fmt" */
     static const CORE::CString ListingBasis;        /**< "lst" */
     static const CORE::CString UnknownBasis;        /**< "unk" */
+    static const CORE::CString EntryChangeHintAttribute;   /**< "entryChangeHint": a store attribute of a library entry that changes when the item does (ComputeEntryFingerprint()) */
 
     enum EComparison
     {
@@ -107,6 +108,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetItemRevision
 
     /** The SHA-256 fingerprint (hexadecimal) over the item id, title, version, the sorted format ids and the listing type; never images, addresses or counters */
     static CORE::CString ComputeListingFingerprint( const CAssetStoreItem& item );
+
+    /**
+     *  The SHA-256 fingerprint (hexadecimal) of what the library listing says of an item cheaply: the id, title, version, listing
+     *  type, revision token, change and acquisition times, whether it can be downloaded, the sorted format ids with their
+     *  names and file counts, and the store attribute EntryChangeHintAttribute a plugin sets from what its entries say that
+     *  changes with the item. The details of the item asked of the store are reused while it stays the same
+     */
+    static CORE::CString ComputeEntryFingerprint( const CAssetStoreItem& item );
 
     /** Compares a stored revision with a listed one */
     static TComparison Compare( const CORE::CString& stored, const CORE::CString& listed );

@@ -65,6 +65,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreItemNormalizer : public CIAssetMeta
 
     virtual TAssetStoreStatus Normalize( const CAssetNormalizationInput& input, const CAssetVocabulary& vocabulary, CAssetPackRecord& pack ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The licence as MapLicence() gives it to a pack, so a normaliser of a store that overrides MapLicence() plans with its own rules */
+    virtual void ClassifyItemLicence( const CAssetStoreItem& item, const CAssetVocabulary& vocabulary, CAssetLicence& licence ) GUCEF_VIRTUAL_OVERRIDE;
+
     protected:
 
     /** The fields of the item: title, seller, description, address, version, store categories and tags */

@@ -103,6 +103,7 @@ filter "ALL"
   include( "tools/ProjectGenerator" )
   include( "tools/PubSubStorageTool" )
   include( "tools/gucefLabLink" )
+  include( "tools/gucefMcpCi" )
   include( "tools/gucefMcpEcho" )
   include( "tools/gucefMcpLocalLlm" )
   include( "tools/itvExporter" )

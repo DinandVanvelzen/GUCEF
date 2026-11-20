@@ -79,6 +79,7 @@ CWebSession::CWebSession( void )
     : storeId()
     , capturedAtUtcInMs( 0 )
     , cookies()
+    , userAgent()
 {GUCEF_TRACE;
 
 }
@@ -140,6 +141,7 @@ CWebSession::Clear( void )
         cookies[ i ].value.Clear();
     cookies.clear();
     capturedAtUtcInMs = 0;
+    userAgent.Clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -175,6 +177,8 @@ CWebSession::ToSecret( AUTH::CSecretString& secret ) const
     tree.SetAttribute( "version", (UInt32) 1 );
     tree.SetAttribute( "storeId", storeId );
     tree.SetAttribute( "capturedAtMs", capturedAtUtcInMs );
+    if ( !userAgent.IsNULLOrEmpty() )
+        tree.SetAttribute( "userAgent", userAgent );
     CORE::CDataNode* list = tree.AddChild( "cookies", GUCEF_DATATYPE_ARRAY );
     for ( size_t i=0; i<cookies.size(); ++i )
     {
@@ -208,6 +212,7 @@ CWebSession::FromSecret( const AUTH::CSecretString& secret )
 
     storeId = root->GetAttributeValue( "storeId" ).AsString();
     capturedAtUtcInMs = root->GetAttributeValue( "capturedAtMs" ).AsUInt64( 0 );
+    userAgent = root->GetAttributeValue( "userAgent" ).AsString();
     const CORE::CDataNode* list = root->FindChild( "cookies" );
     if ( GUCEF_NULL != list )
     {

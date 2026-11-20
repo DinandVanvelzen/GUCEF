@@ -619,6 +619,27 @@ CRemoteAssetStoreService::AnswerPromptAsync( const CORE::CString& commandId, con
 /*-------------------------------------------------------------------------*/
 
 CORE::CFutureResult
+CRemoteAssetStoreService::ImportWebSessionAsync( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session )
+{GUCEF_TRACE;
+
+    if ( !m_open || GUCEF_NULL == m_connection )
+        return Refuse( CAssetServiceOperations::ImportWebSession, ASSETSTORE_STATUS_UNAVAILABLE, "the remote asset store service is not open" );
+    // the session travels in the sensitive field of the secret method only (encrypted link, never logged)
+    COMCORE::CRpcMessage request = NewMessage( CAssetStoreRemoteContracts::GetControlContract(), "SecretRequest" );
+    request.SetString( CAssetStoreRemoteContracts::SecretOperationField, CAssetServiceOperations::ImportWebSession );
+    request.SetString( CAssetStoreRemoteContracts::SecretCommandIdField, commandId );
+    request.SetString( CAssetStoreRemoteContracts::SecretTargetField, storeId );
+    request.SetString( CAssetStoreRemoteContracts::SecretValueField, session.Reveal() );
+    SPendingCall* pending = GUCEF_NEW SPendingCall();
+    pending->operation = CAssetServiceOperations::ImportWebSession;
+    pending->rpcFutures.push_back( m_connection->CallAsync( CAssetStoreRemoteContracts::SecretPath, request, MakeOptions( false ), 0 ) );
+    request.Clear( CAssetStoreRemoteContracts::SecretValueField );
+    return Track( pending );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
 CRemoteAssetStoreService::UnlockKeyringAsync( const CORE::CString& commandId, const AUTH::CSecretString& code )
 {GUCEF_TRACE;
 
@@ -1821,6 +1842,15 @@ CRemoteAssetStoreService::WriteUploadBlock( const CORE::CString& uploadId, const
 {GUCEF_TRACE;
 
     return Await( WriteUploadBlockAsync( uploadId, relativePath, offset, data ), result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CRemoteAssetStoreService::ImportWebSession( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    return Await( ImportWebSessionAsync( commandId, storeId, session ), result );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -80,6 +80,11 @@
 #define GUCEF_AUTH_CKEYRINGSESSION_H
 #endif /* GUCEF_AUTH_CKEYRINGSESSION_H ? */
 
+#ifndef GUCEF_AUTH_CWEBSESSION_H
+#include "gucefAUTH_CWebSession.h"
+#define GUCEF_AUTH_CWEBSESSION_H
+#endif /* GUCEF_AUTH_CWEBSESSION_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
 #include "gucefASSETSTORE_CAssetServiceNotice.h"
 #define GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
@@ -1468,6 +1473,82 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
             CAssetServiceResult web;
             ASSERT_TRUE( ASSETSTORE_STATUS_BROWSER_UNAVAILABLE == service.BeginSignIn( CString::Empty, "webstorefake", web ) && web.message.HasSubstr( "browser sidecar" ) >= 0 );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( none ) && none.entries.empty() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " service: the account holder hands over the session of their own browser (ImportWebSession): only the store's cookies count, the store is signed in; refusals say why; no cookie value in an event, an answer or the log" ).C_String() )
+        try
+        {
+            TESTFW::CLogTextCapture* capture = GUCEF_NEW TESTFW::CLogTextCapture();
+            CSignInEventRecorder recorder( service );
+            AUTH::CWebSession handed;
+            handed.storeId = "webstorefake";
+            handed.capturedAtUtcInMs = AUTH::CWebSession::NowUtcInMs();
+            handed.userAgent = "Mozilla/5.0 (X11; Linux x86_64) SuiteChrome/140.0";
+            AUTH::CWebSessionCookie cookie;
+            cookie.name = "sid";
+            cookie.value.Set( "suiteWebSessionValue31" );
+            cookie.domain = ".webstore.test";
+            cookie.path = "/";
+            cookie.secure = true;
+            cookie.httpOnly = true;
+            handed.cookies.push_back( cookie );
+            cookie.name = "elsewhere";
+            cookie.value.Set( "suiteForeignValue32" );
+            cookie.domain = "elsewhere.test";
+            handed.cookies.push_back( cookie );
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( handed.ToSecret( secret ) );
+
+            CAssetServiceResult imported;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ImportWebSession( "import-web-1", "webstorefake", secret, imported ) );
+            ASSERT_TRUE( "webstorefake" == imported.id && imported.message.HasSubstr( "1 cookies" ) >= 0 );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "webstorefake", ASSETSTORE_SIGNINSTATE_SIGNED_IN ) );
+            TAssetStoreProviderPtr providerPtr;
+            ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( "webstorefake", providerPtr ) && !providerPtr.IsNULL() );
+            const CFakeSignInStoreProvider* provider = static_cast< const CFakeSignInStoreProvider* >( providerPtr.GetPointerAlways() );
+            ASSERT_TRUE( 1 == provider->GetImportedCookieCount() && handed.userAgent == provider->GetImportedUserAgent() );
+
+            // the same command id again: the first outcome, not a second import
+            CAssetServiceResult again;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ImportWebSession( "import-web-1", "webstorefake", secret, again ) && again.replayed );
+
+            // refusals with the reason: an unknown store, a store that does not sign in on a web site, what is not a session, a session without a cookie of the store
+            CAssetServiceResult refused;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.ImportWebSession( CString::Empty, "nosuchstore", secret, refused ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == service.ImportWebSession( CString::Empty, "signstore", secret, refused ) && !refused.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.ImportWebSession( CString::Empty, "webstorefake", AUTH::CSecretString( CString( "{\"format\":\"nonsense\"}" ) ), refused ) );
+            AUTH::CWebSession foreign;
+            cookie.name = "elsewhere";
+            cookie.value.Set( "suiteForeignValue32" );
+            cookie.domain = "elsewhere.test";
+            foreign.cookies.push_back( cookie );
+            AUTH::CSecretString foreignSecret;
+            ASSERT_TRUE( foreign.ToSecret( foreignSecret ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.ImportWebSession( CString::Empty, "webstorefake", foreignSecret, refused ) && refused.message.HasSubstr( "no cookie" ) >= 0 );
+
+            // the asynchronous form
+            CFutureResult importing = service.ImportWebSessionAsync( CString::Empty, "webstorefake", secret );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, importing ) && ASSETSTORE_STATUS_OK == CIAssetStoreService::GetStatusOfFuture( importing ) );
+
+            // signed out again for the cases after this one; no value anywhere
+            CAssetServiceResult signedOut;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.SignOut( CString::Empty, "webstorefake", signedOut ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "webstorefake", ASSETSTORE_SIGNINSTATE_SIGNED_OUT ) );
+            target.Pump( 100 );
+            ASSERT_TRUE( recorder.StatesOf( "webstorefake" ).HasSubstr( "signedIn" ) >= 0 );
+            ASSERT_TRUE( recorder.dump.HasSubstr( "suiteWebSessionValue31" ) < 0 && recorder.dump.HasSubstr( "suiteForeignValue32" ) < 0 );
+            ASSERT_TRUE( capture->GetText().HasSubstr( "suiteWebSessionValue31" ) < 0 && capture->GetText().HasSubstr( "suiteForeignValue32" ) < 0 );
+            ASSERT_TRUE( imported.message.HasSubstr( "suiteWebSessionValue31" ) < 0 && refused.message.HasSubstr( "suiteForeignValue32" ) < 0 );
+            secret.Clear();
+            foreignSecret.Clear();
+            handed.Clear();
+            foreign.Clear();
+            GUCEF_DELETE capture;
         }
         catch ( ... )
         {

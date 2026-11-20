@@ -86,6 +86,7 @@ if (LINUX32)
     include/AssetWorkbenchLib_CWorkbenchPreferences.h
     include/AssetWorkbenchLib_CWorkbenchRedoActions.h
     include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h
+    include/AssetWorkbenchLib_CWorkbenchReprocessActions.h
     include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h
     include/AssetWorkbenchLib_CWorkbenchShell.h
     include/AssetWorkbenchLib_CWorkbenchSignIn.h
@@ -172,6 +173,7 @@ if (LINUX32)
     src/AssetWorkbenchLib_CWorkbenchPreferences.cpp
     src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp
     src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp
+    src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp
     src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp
     src/AssetWorkbenchLib_CWorkbenchShell.cpp
     src/AssetWorkbenchLib_CWorkbenchSignIn.cpp
@@ -259,6 +261,7 @@ elseif (LINUX64)
     include/AssetWorkbenchLib_CWorkbenchPreferences.h
     include/AssetWorkbenchLib_CWorkbenchRedoActions.h
     include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h
+    include/AssetWorkbenchLib_CWorkbenchReprocessActions.h
     include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h
     include/AssetWorkbenchLib_CWorkbenchShell.h
     include/AssetWorkbenchLib_CWorkbenchSignIn.h
@@ -345,6 +348,7 @@ elseif (LINUX64)
     src/AssetWorkbenchLib_CWorkbenchPreferences.cpp
     src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp
     src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp
+    src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp
     src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp
     src/AssetWorkbenchLib_CWorkbenchShell.cpp
     src/AssetWorkbenchLib_CWorkbenchSignIn.cpp
@@ -432,6 +436,7 @@ elseif (WIN32)
     include/AssetWorkbenchLib_CWorkbenchPreferences.h
     include/AssetWorkbenchLib_CWorkbenchRedoActions.h
     include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h
+    include/AssetWorkbenchLib_CWorkbenchReprocessActions.h
     include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h
     include/AssetWorkbenchLib_CWorkbenchShell.h
     include/AssetWorkbenchLib_CWorkbenchSignIn.h
@@ -518,6 +523,7 @@ elseif (WIN32)
     src/AssetWorkbenchLib_CWorkbenchPreferences.cpp
     src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp
     src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp
+    src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp
     src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp
     src/AssetWorkbenchLib_CWorkbenchShell.cpp
     src/AssetWorkbenchLib_CWorkbenchSignIn.cpp
@@ -605,6 +611,7 @@ elseif (WIN64)
     include/AssetWorkbenchLib_CWorkbenchPreferences.h
     include/AssetWorkbenchLib_CWorkbenchRedoActions.h
     include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h
+    include/AssetWorkbenchLib_CWorkbenchReprocessActions.h
     include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h
     include/AssetWorkbenchLib_CWorkbenchShell.h
     include/AssetWorkbenchLib_CWorkbenchSignIn.h
@@ -691,6 +698,7 @@ elseif (WIN64)
     src/AssetWorkbenchLib_CWorkbenchPreferences.cpp
     src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp
     src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp
+    src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp
     src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp
     src/AssetWorkbenchLib_CWorkbenchShell.cpp
     src/AssetWorkbenchLib_CWorkbenchSignIn.cpp

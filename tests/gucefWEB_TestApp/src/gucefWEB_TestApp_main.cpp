@@ -107,6 +107,11 @@
 #define GUCEF_WEB_TESTAPP_TESTREALBROWSER_H
 #endif /* GUCEF_WEB_TESTAPP_TESTREALBROWSER_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTWRITEREQUESTGUARD_H
+#include "TestWriteRequestGuard.h"
+#define GUCEF_WEB_TESTAPP_TESTWRITEREQUESTGUARD_H
+#endif /* GUCEF_WEB_TESTAPP_TESTWRITEREQUESTGUARD_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
 #include "TestHttpClient.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
@@ -161,6 +166,11 @@
 #include "TestWebLoginScript.h"
 #define GUCEF_WEB_TESTAPP_TESTWEBLOGINSCRIPT_H
 #endif /* GUCEF_WEB_TESTAPP_TESTWEBLOGINSCRIPT_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTREACTFLIGHTPAYLOAD_H
+#include "TestReactFlightPayload.h"
+#define GUCEF_WEB_TESTAPP_TESTREACTFLIGHTPAYLOAD_H
+#endif /* GUCEF_WEB_TESTAPP_TESTREACTFLIGHTPAYLOAD_H ? */
 
 #ifndef GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
 #include "TestWebViewSuites.h"
@@ -247,6 +257,7 @@ GUCEF_OSMAIN_BEGIN
         PerformChromeDevToolsTests();
         PerformSiteDiscoveryTests();
         PerformBrowserAutomationTests();
+        PerformWriteRequestGuardTests();
         PerformRealBrowserTests();
         PerformHttpRedactionTests();
         PerformHttpLogRedactionTests();
@@ -259,6 +270,7 @@ GUCEF_OSMAIN_BEGIN
         PerformIrcWebSocketTests();
         PerformServiceHealthHttpEndpointsTests();
         PerformWebLoginScriptTests();
+        PerformReactFlightPayloadTests();
 
         // the web views: the engines of the bootstrap of a real application, each allowed to be absent
         WEB::CWebViewGlobal::Instance()->SetApplicationName( "gucefWEB_TestApp" );

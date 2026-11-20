@@ -276,6 +276,25 @@ Connect( CFakeDevToolsBrowser& browser, WEB::CChromeDevToolsClient& client )
 
 /*-------------------------------------------------------------------------*/
 
+static UInt64
+NowInMs( void )
+{
+    return (UInt64) ( MT::PrecisionTickCount() / ( MT::PrecisionTimerResolution() / 1000.0 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+HasControl( const WEB::TControlInfoVector& controls, const char* label )
+{
+    for ( size_t i=0; i<controls.size(); ++i )
+        if ( controls[ i ].label == label )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static UInt32
 IndexOfCommand( const CFakeDevToolsBrowser& browser, const CORE::CString& entry )
 {
@@ -360,7 +379,7 @@ PerformClickListenerTests( void )
             ASSERT_TRUE( browser.WasCommandSent( "Page.addScriptToEvaluateOnNewDocument", "S-F1" ) );
             ASSERT_TRUE( recorder.GetSessionCount() == 2 );
 
-            // the tab navigates; a click in the frame is an action on the tab's page, with its label templated
+            // the tab navigates; a click in the frame is an action on the tab's page, with its label as reported (a report masks it)
             CFakeDevToolsBrowser::TStringMap none;
             browser.EmitRequest( "S-P1", "D1", "GET", "http://shop.example.test/orders/12345678", "Document", "P1", none, "", false, 1.0 );
             Pump( 10, &recorder );
@@ -368,20 +387,20 @@ PerformClickListenerTests( void )
                           Json( "{\"name\":\"__gucefSiteDiscoveryAction\",\"executionContextId\":3,"
                                 "\"payload\":\"{\\\"kind\\\":\\\"click\\\",\\\"tag\\\":\\\"button\\\",\\\"role\\\":\\\"button\\\",\\\"label\\\":\\\"Pay later 42\\\",\\\"inTable\\\":false}\"}" ) );
             Pump( 10, &recorder );
-            ASSERT_TRUE( collector.HasLabel( "Pay later {n}" ) );
+            ASSERT_TRUE( collector.HasLabel( "Pay later 42" ) );
             bool onPage = false;
             for ( size_t i=0; i<collector.actions.size(); ++i )
-                if ( collector.actions[ i ].label == "Pay later {n}" )
+                if ( collector.actions[ i ].label == "Pay later 42" )
                     onPage = collector.actions[ i ].page == "http://shop.example.test/orders/{n}" && collector.actions[ i ].kind == "click";
             ASSERT_TRUE( onPage );
 
-            // a control in a table cell: its role only, even if the page sent a label
+            // a control in a table cell: labelled with its own name by default
             browser.Emit( "S-P1", "Runtime.bindingCalled",
                           Json( "{\"name\":\"__gucefSiteDiscoveryAction\",\"executionContextId\":1,"
-                                "\"payload\":\"{\\\"kind\\\":\\\"click\\\",\\\"tag\\\":\\\"a\\\",\\\"role\\\":\\\"link\\\",\\\"label\\\":\\\"ACCT 9999\\\",\\\"inTable\\\":true}\"}" ) );
+                                "\"payload\":\"{\\\"kind\\\":\\\"click\\\",\\\"tag\\\":\\\"a\\\",\\\"role\\\":\\\"link\\\",\\\"label\\\":\\\"Row export 9999\\\",\\\"inTable\\\":true}\"}" ) );
             Pump( 10, &recorder );
-            ASSERT_TRUE( collector.HasLabel( "<link in table>" ) );
-            ASSERT_FALSE( collector.HasLabel( "ACCT {n}" ) );
+            ASSERT_TRUE( collector.HasLabel( "Row export 9999" ) );
+            ASSERT_FALSE( collector.HasLabel( "<link in table>" ) );
 
             // a role that is not a plain word is not shown
             browser.Emit( "S-P1", "Runtime.bindingCalled",
@@ -401,6 +420,47 @@ PerformClickListenerTests( void )
             ASSERT_TRUE( collector.actions.size() == actionsBefore );
             for ( size_t i=0; i<collector.requests.size(); ++i )
                 ASSERT_FALSE( Contains( collector.requests[ i ].url, "foreign" ) );
+            recorder.Stop();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The names of controls in table cells are withheld when the settings say so" )
+        try
+        {
+            browser.ForgetConnection();
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CSiteDiscoverySettings settings;
+            ASSERT_TRUE( settings.reportTableCellControlNames );
+            settings.hostFilter.push_back( "shop.example.test" );
+            settings.captureClicks = true;
+            settings.reportTableCellControlNames = false;
+            WEB::CSiteDiscoveryRedactor redactor( settings );
+            CActionCollector collector;
+            WEB::CChromeNetworkRecorder recorder( client );
+            recorder.SetRedactor( &redactor );
+            recorder.AddSink( &collector );
+            ASSERT_TRUE( recorder.Start() );
+            Pump( 50, &recorder );
+            browser.Emit( "S-P1", "Runtime.bindingCalled",
+                          Json( "{\"name\":\"__gucefSiteDiscoveryAction\",\"executionContextId\":1,"
+                                "\"payload\":\"{\\\"kind\\\":\\\"click\\\",\\\"tag\\\":\\\"a\\\",\\\"role\\\":\\\"link\\\",\\\"label\\\":\\\"Row export 9999\\\",\\\"inTable\\\":true}\"}" ) );
+            Pump( 10, &recorder );
+            ASSERT_TRUE( collector.HasLabel( "<link in table>" ) );
+            ASSERT_FALSE( collector.HasLabel( "Row export {n}" ) );
+            for ( size_t i=0; i<collector.actions.size(); ++i )
+                ASSERT_FALSE( Contains( collector.actions[ i ].label, "export" ) );
+
+            // the settings survive their round trip
+            CORE::CDataNode cfg;
+            ASSERT_TRUE( settings.SaveConfig( cfg ) );
+            WEB::CSiteDiscoverySettings loaded;
+            ASSERT_TRUE( loaded.LoadConfig( cfg ) );
+            ASSERT_FALSE( loaded.reportTableCellControlNames );
             recorder.Stop();
         }
         catch ( ... )
@@ -1206,10 +1266,10 @@ PerformPageDriverTests( void )
             ASSERT_TRUE( page.WaitForElement( "#late", 200 ) );
             ASSERT_TRUE( page.ElementExists( "#late" ) );
 
-            // the controls: by role, in document order, nothing of a table cell, options of a select
+            // the controls: by role, in document order, a control in a table cell with its own name (never the cell text), options of a select
             browser.SetCommandResult( "Accessibility.queryAXTree#button", Json(
                 "{\"nodes\":[{\"nodeId\":\"a1\",\"ignored\":false,\"role\":{\"value\":\"button\"},\"name\":{\"value\":\"Export   lots\"},\"backendDOMNodeId\":101,\"properties\":[]},"
-                "{\"nodeId\":\"a2\",\"ignored\":false,\"role\":{\"value\":\"button\"},\"name\":{\"value\":\"ACCT-9999\"},\"backendDOMNodeId\":102},"
+                "{\"nodeId\":\"a2\",\"ignored\":false,\"role\":{\"value\":\"button\"},\"name\":{\"value\":\"Row export\"},\"backendDOMNodeId\":102},"
                 "{\"nodeId\":\"a3\",\"ignored\":false,\"role\":{\"value\":\"button\"},\"name\":{\"value\":\"Disabled one\"},\"backendDOMNodeId\":103,"
                 "\"properties\":[{\"name\":\"disabled\",\"value\":{\"type\":\"boolean\",\"value\":true}}]}]}" ) );
             browser.SetCommandResult( "Accessibility.queryAXTree#link", Json(
@@ -1235,7 +1295,8 @@ PerformPageDriverTests( void )
             {
                 ASSERT_TRUE( controls[ 0 ].role == "checkbox" && controls[ 0 ].label == "Remember" && !controls[ 0 ].visible );
                 ASSERT_TRUE( controls[ 1 ].role == "button" && controls[ 1 ].label == "Export lots" && controls[ 1 ].visible && controls[ 1 ].enabled );
-                ASSERT_TRUE( controls[ 2 ].role == "button" && controls[ 2 ].label.IsNULLOrEmpty() && controls[ 2 ].inTableCell );
+                ASSERT_TRUE( controls[ 2 ].role == "button" && controls[ 2 ].label == "Row export" && controls[ 2 ].inTableCell );
+                ASSERT_FALSE( controls[ 1 ].inTableCell );
                 ASSERT_TRUE( controls[ 3 ].label == "Disabled one" && !controls[ 3 ].enabled );
                 ASSERT_TRUE( controls[ 4 ].role == "link" && controls[ 4 ].label == "Second page" );
                 ASSERT_TRUE( controls[ 5 ].role == "select" && controls[ 5 ].label == "Account" && controls[ 5 ].optionLabels.size() == 2 );
@@ -1245,9 +1306,311 @@ PerformPageDriverTests( void )
             for ( size_t i=0; i<controls.size(); ++i )
                 ASSERT_FALSE( Contains( controls[ i ].label, "9999" ) );
 
+            // the names of the controls in table cells can be withheld, the other controls are not affected
+            ASSERT_TRUE( page.GetReportTableCellControlNames() );
+            page.SetReportTableCellControlNames( false );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 6 );
+            if ( controls.size() == 6 )
+            {
+                ASSERT_TRUE( controls[ 2 ].role == "button" && controls[ 2 ].label.IsNULLOrEmpty() && controls[ 2 ].inTableCell );
+                ASSERT_TRUE( controls[ 1 ].label == "Export lots" && controls[ 4 ].label == "Second page" );
+            }
+            page.SetReportTableCellControlNames( true );
+
             // a scope that is not there
             browser.SetCommandResult( "DOM.querySelector##nowhere", Json( "{\"nodeId\":0}" ) );
             ASSERT_FALSE( page.ListControls( "#nowhere", controls ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: ListControls leaves out controls that go away, lists once more on a fresh document and fails only without scope or session" )
+        try
+        {
+            // the answers of the test case before still hold: six controls
+            browser.ForgetConnection();
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CDevToolsPage page( client, "S-P1" );
+            WEB::TControlInfoVector controls;
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 6 && page.GetLastListSkippedCount() == 0 );
+
+            // the select goes away while it is listed: the browser no longer finds it for its options, the others are listed
+            browser.SetCommandError( "Accessibility.queryAXTree#105", "Could not find node with given id" );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 5 && page.GetLastListSkippedCount() == 1 );
+            ASSERT_FALSE( HasControl( controls, "Account" ) );
+            ASSERT_TRUE( HasControl( controls, "Export lots" ) && HasControl( controls, "Second page" ) && HasControl( controls, "Remember" ) );
+            browser.ClearCommandScript( "Accessibility.queryAXTree#105" );
+
+            // the link is gone before its element id is asked for
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[201,202,203,0,205,206]}" ) );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 5 && page.GetLastListSkippedCount() == 1 );
+            ASSERT_FALSE( HasControl( controls, "Second page" ) );
+            ASSERT_TRUE( HasControl( controls, "Account" ) );
+
+            // the push of all ids fails: one by one, an id the browser no longer knows does not take the others with it
+            browser.QueueCommandError( "DOM.pushNodesByBackendIdsToFrontend", "No node found for given backend id" );
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[201]}" ) );
+            browser.QueueCommandError( "DOM.pushNodesByBackendIdsToFrontend", "No node found for given backend id" );
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[203]}" ) );
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[204]}" ) );
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[205]}" ) );
+            browser.QueueCommandResult( "DOM.pushNodesByBackendIdsToFrontend", Json( "{\"nodeIds\":[206]}" ) );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 5 && page.GetLastListSkippedCount() == 1 );
+            ASSERT_FALSE( HasControl( controls, "Row export" ) );
+
+            // a box the browser can no longer find is a control that went away; an element without a box is only not visible
+            browser.SetCommandError( "DOM.getContentQuads#101", "No node found for given backend id" );
+            browser.SetCommandError( "DOM.getContentQuads#102", "Could not compute content quads." );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 5 && page.GetLastListSkippedCount() == 1 );
+            ASSERT_FALSE( HasControl( controls, "Export lots" ) );
+            for ( size_t i=0; i<controls.size(); ++i )
+                if ( controls[ i ].label == "Row export" )
+                    ASSERT_FALSE( controls[ i ].visible );
+            browser.ClearCommandScript( "DOM.getContentQuads#101" );
+            browser.ClearCommandScript( "DOM.getContentQuads#102" );
+
+            // a stale document: the first scope is gone by the time it is asked about, the listing starts once more
+            UInt32 documents = browser.CountCommands( "DOM.getDocument", "S-P1" );
+            browser.QueueCommandResult( "DOM.getDocument", Json( "{\"root\":{\"nodeId\":40,\"backendNodeId\":1,\"nodeName\":\"#document\"}}" ) );
+            browser.SetCommandError( "Accessibility.queryAXTree#40", "Could not find node with given id" );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 6 && page.GetLastListSkippedCount() == 0 );
+            ASSERT_TRUE( browser.CountCommands( "DOM.getDocument", "S-P1" ) == documents + 2 );
+
+            // the same for a scope whose document changes between the first listing and the questions about the cells
+            documents = browser.CountCommands( "DOM.getDocument", "S-P1" );
+            browser.QueueCommandError( "DOM.querySelectorAll#*", "Could not find node with given id" );
+            ASSERT_TRUE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.size() == 6 && browser.CountCommands( "DOM.getDocument", "S-P1" ) == documents + 2 );
+
+            // a scope that is really gone: false after the second try on a fresh document
+            browser.SetCommandResult( "DOM.querySelector##gone", Json( "{\"nodeId\":50}" ) );
+            browser.SetCommandError( "Accessibility.queryAXTree#50", "Could not find node with given id" );
+            documents = browser.CountCommands( "DOM.getDocument", "S-P1" );
+            ASSERT_FALSE( page.ListControls( "#gone", controls ) );
+            ASSERT_TRUE( controls.empty() );
+            ASSERT_TRUE( browser.CountCommands( "DOM.getDocument", "S-P1" ) == documents + 2 );
+
+            // a session the browser no longer knows: false at once, without a second try
+            documents = browser.CountCommands( "DOM.getDocument", "S-P1" );
+            browser.QueueCommandError( "Accessibility.queryAXTree#button", "Session with given id not found" );
+            ASSERT_FALSE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_TRUE( controls.empty() );
+            ASSERT_TRUE( browser.CountCommands( "DOM.getDocument", "S-P1" ) == documents + 1 );
+
+            // and after the connection is gone
+            client.Disconnect();
+            Pump( 10 );
+            ASSERT_FALSE( page.ListControls( CORE::CString::Empty, controls ) );
+            ASSERT_FALSE( page.Navigate( "https://www.bank.test/app/home" ) );
+            ASSERT_FALSE( page.GetLastNavigationError().IsNULLOrEmpty() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+ScriptNavigation( CFakeDevToolsBrowser& browser, const char* answer )
+{
+    browser.ClearCommandScript( "Page.navigate" );
+    browser.SetCommandResult( "Page.navigate", Json( answer ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CDataNode
+FrameNavigated( const char* loaderId, const CORE::CString& url, const char* parentId = GUCEF_NULL )
+{
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    CORE::CDataNode* frame = params.AddChild( "frame", GUCEF_DATATYPE_OBJECT );
+    frame->SetAttribute( "id", CORE::CVariant( CORE::CString( GUCEF_NULL == parentId ? "P1" : "SUB1" ) ) );
+    if ( GUCEF_NULL != parentId )
+        frame->SetAttribute( "parentId", CORE::CVariant( CORE::CString( parentId ) ) );
+    frame->SetAttribute( "loaderId", CORE::CVariant( CORE::CString( loaderId ) ) );
+    frame->SetAttribute( "url", CORE::CVariant( url ) );
+    return params;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformPageNavigationTests( void )
+{
+    CFakeDevToolsBrowser browser;
+    const bool started = browser.Start();
+    browser.AddTarget( "P1", "page", "about:blank" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: Navigate returns after the commit and the load of the new document, so GetUrl() reports it" )
+        try
+        {
+            ASSERT_TRUE( started );
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CDevToolsPage page( client );
+            ASSERT_TRUE( page.AttachToTarget( "P1" ) );
+            ASSERT_TRUE( page.GetNavigationTimeout() == 30000 );
+
+            // a fresh tab at the blank start address
+            CORE::CString url;
+            ASSERT_TRUE( page.GetUrl( url ) && url == "about:blank" );
+
+            // the answer comes first, the commit and the load later, as Chrome sends them; an old load before the commit does not count
+            const CORE::CString home = "https://www.bank.test/app/home";
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L2\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameStartedLoading", Json( "{\"frameId\":\"P1\"}" ), false );
+            browser.AddCommandEvent( "Page.navigate", "Page.loadEventFired", Json( "{\"timestamp\":1.0}" ), false );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L9", "https://ads.test/frame", "P1" ), true, 100 );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L2", home ), true, 300 );
+            browser.AddCommandEvent( "Page.navigate", "Page.domContentEventFired", Json( "{\"timestamp\":2.0}" ), true, 350 );
+            browser.AddCommandEvent( "Page.navigate", "Page.loadEventFired", Json( "{\"timestamp\":3.0}" ), true, 400 );
+            UInt64 start = NowInMs();
+            ASSERT_TRUE( page.Navigate( home ) );
+            ASSERT_TRUE( NowInMs() - start >= 390 );
+            ASSERT_TRUE( page.GetLastNavigationLoaded() && page.GetLastNavigationError().IsNULLOrEmpty() );
+            ASSERT_TRUE( page.GetUrl( url ) && url == home );
+            ASSERT_TRUE( browser.WasCommandSent( "Page.enable", "S-P1" ) );
+            ASSERT_TRUE( IndexOfCommand( browser, "Page.enable@S-P1" ) < IndexOfCommand( browser, "Page.navigate@S-P1" ) );
+            CORE::CDataNode params;
+            ASSERT_TRUE( browser.GetLastCommandParams( "Page.navigate", "S-P1", params ) && params.GetAttributeValue( "url" ).AsString() == home );
+
+            // the Page domain is switched on once per session
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L3\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L3", home + "/2" ), true );
+            browser.AddCommandEvent( "Page.navigate", "Page.lifecycleEvent", Json( "{\"frameId\":\"P1\",\"loaderId\":\"L3\",\"name\":\"load\",\"timestamp\":4.0}" ), true );
+            ASSERT_TRUE( page.Navigate( home + "/2" ) );
+            ASSERT_TRUE( page.GetLastNavigationLoaded() );
+            ASSERT_TRUE( browser.CountCommands( "Page.enable", "S-P1" ) == 1 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Navigate gives true for a slow document, false without a commit, with an error or a lost session, and never hangs" )
+        try
+        {
+            browser.ForgetConnection();
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CDevToolsPage page( client, "S-P1" );
+            page.SetNavigationTimeout( 400 );
+            ASSERT_TRUE( page.GetNavigationTimeout() == 400 );
+            CORE::CString url;
+
+            // committed, the load never comes: true, not loaded
+            const CORE::CString slow = "https://www.bank.test/app/slow";
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L4\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L4", slow ), true, 50 );
+            UInt64 start = NowInMs();
+            ASSERT_TRUE( page.Navigate( slow ) );
+            ASSERT_TRUE( NowInMs() - start >= 390 && NowInMs() - start < 5000 );
+            ASSERT_FALSE( page.GetLastNavigationLoaded() );
+            ASSERT_TRUE( page.GetLastNavigationError().IsNULLOrEmpty() );
+            ASSERT_TRUE( page.GetUrl( url ) && url == slow );
+
+            // committed with its DOM complete but not loaded when the time is up: loaded, DOMContentLoaded as the fallback
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L5\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L5", slow + "/dom" ), true, 50 );
+            browser.AddCommandEvent( "Page.navigate", "Page.domContentEventFired", Json( "{\"timestamp\":5.0}" ), true, 60 );
+            ASSERT_TRUE( page.Navigate( slow + "/dom" ) );
+            ASSERT_TRUE( page.GetLastNavigationLoaded() );
+
+            // no commit at all, as for a response without content: false when the time is up, the tab stays where it was
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L6\"}" );
+            start = NowInMs();
+            ASSERT_FALSE( page.Navigate( "https://www.bank.test/app/nocontent?token=PLANTEDqueryTOKEN2" ) );
+            ASSERT_TRUE( NowInMs() - start >= 390 && NowInMs() - start < 5000 );
+            ASSERT_TRUE( Contains( page.GetLastNavigationError(), "no new document" ) );
+            ASSERT_FALSE( Contains( page.GetLastNavigationError(), "PLANTEDqueryTOKEN2" ) );
+            ASSERT_FALSE( page.GetLastNavigationLoaded() );
+            ASSERT_TRUE( page.GetUrl( url ) && url == slow + "/dom" );
+
+            // the browser reports an error: false at once, with its reason
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L7\",\"errorText\":\"net::ERR_ABORTED\"}" );
+            start = NowInMs();
+            ASSERT_FALSE( page.Navigate( "https://www.bank.test/app/aborted" ) );
+            ASSERT_TRUE( NowInMs() - start < 300 );
+            ASSERT_TRUE( page.GetLastNavigationError() == "net::ERR_ABORTED" );
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L8\",\"isDownload\":true}" );
+            ASSERT_FALSE( page.Navigate( "https://www.bank.test/app/export.csv" ) );
+            ASSERT_TRUE( Contains( page.GetLastNavigationError(), "download" ) );
+
+            // within the document: committed when the browser reports it, nothing to load
+            const CORE::CString fragment = slow + "/dom#lots";
+            ScriptNavigation( browser, "{\"frameId\":\"P1\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.navigatedWithinDocument",
+                                     Json( "{\"frameId\":\"P1\",\"url\":\"" + fragment + "\",\"navigationType\":\"fragment\"}" ), true, 50 );
+            ASSERT_TRUE( page.Navigate( fragment ) );
+            ASSERT_TRUE( page.GetLastNavigationLoaded() && page.GetLastNavigationError().IsNULLOrEmpty() );
+            ASSERT_TRUE( page.GetUrl( url ) && url == fragment );
+
+            // the session ends while it waits
+            page.SetNavigationTimeout( 10000 );
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L10\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Inspector.detached", Json( "{\"reason\":\"target_closed\"}" ), true, 50 );
+            start = NowInMs();
+            ASSERT_FALSE( page.Navigate( slow + "/closed" ) );
+            ASSERT_TRUE( NowInMs() - start < 5000 );
+            ASSERT_TRUE( Contains( page.GetLastNavigationError(), "session" ) );
+
+            // a timeout of 0: back when the browser answers, before the commit, so the tab still shows the old address
+            page.SetNavigationTimeout( 0 );
+            const UInt32 enables = browser.CountCommands( "Page.enable", "S-P1" );
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L11\"}" );
+            browser.AddCommandEvent( "Page.navigate", "Page.frameNavigated", FrameNavigated( "L11", slow + "/late" ), true, 1500 );
+            start = NowInMs();
+            ASSERT_TRUE( page.Navigate( slow + "/late" ) );
+            ASSERT_TRUE( NowInMs() - start < 1000 );
+            ASSERT_TRUE( page.GetUrl( url ) && url == fragment );
+            ASSERT_TRUE( browser.CountCommands( "Page.enable", "S-P1" ) == enables );
+            for ( UInt32 i=0; i<600 && !( page.GetUrl( url ) && url == slow + "/late" ); ++i )
+                Pump( 1 );
+            ASSERT_TRUE( url == slow + "/late" );
+            ScriptNavigation( browser, "{\"frameId\":\"P1\",\"loaderId\":\"L12\",\"errorText\":\"net::ERR_NAME_NOT_RESOLVED\"}" );
+            ASSERT_FALSE( page.Navigate( "https://nowhere.test/" ) );
+            ASSERT_TRUE( page.GetLastNavigationError() == "net::ERR_NAME_NOT_RESOLVED" );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Navigate sends nothing for an address the navigation guard refuses" )
+        try
+        {
+            browser.ForgetConnection();
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CNavigationGuardSettings settings;
+            settings.allow.push_back( "*.bank.test/app" );
+            settings.deny.push_back( "*.bank.test/app/trade" );
+            WEB::CNavigationGuard guard;
+            ASSERT_TRUE( guard.SetSettings( settings ) );
+            WEB::CDevToolsPage page( client, "S-P1" );
+            page.SetNavigationGuard( &guard );
+            const size_t sent = browser.commands.size();
+            ASSERT_FALSE( page.Navigate( "https://www.bank.test/app/trade/order" ) );
+            ASSERT_FALSE( page.Navigate( "https://evil.test/" ) );
+            ASSERT_TRUE( browser.commands.size() == sent );
+            ASSERT_TRUE( Contains( page.GetLastNavigationError(), "guard" ) );
+            ASSERT_FALSE( page.GetLastNavigationLoaded() );
         }
         catch ( ... )
         {
@@ -1276,6 +1639,7 @@ PerformBrowserAutomationTests( void )
     PerformDownloadCaptureTests();
     PerformResponseTapTests();
     PerformPageDriverTests();
+    PerformPageNavigationTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL browser automation TESTS COMPLETED" );

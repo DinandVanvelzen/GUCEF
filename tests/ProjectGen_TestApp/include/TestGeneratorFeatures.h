@@ -14,7 +14,9 @@
 
 /**
  *  Tests that modules can specify compiler flags, that processing instructions can exclude files with a wildcard
- *  and that the include dirs of a dependency which a module only has on certain platforms are only used on those platforms
+ *  and that the include dirs of a dependency which a module only has on certain platforms are only used on those platforms.
+ *  Also tests that the dependency closures and per platform targets of a deep dependency graph are complete and quickly
+ *  determined
  */
 void
 PerformGeneratorFeatureTests( void );

@@ -88,6 +88,7 @@ namespace ASSETSTORE {
 class CPrimaryAssetStore;
 class CAssetVocabulary;
 class CAssetSyncMarkStore;
+class CIAssetMetadataNormalizer;
 
 /**
  *  The diff of the library sync (library sync design, section 4): the listing of a store, reduced item by item to a small
@@ -113,7 +114,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
         CORE::CString title;
         CORE::CString formatId;
         CORE::CString expectedRevision;
-        UInt64 estimatedBytes;
+        UInt64 estimatedBytes;              /**< the size of the format; for one of unknown size what the admission assumes (sizeKnown false) */
+        bool sizeKnown;                     /**< whether the store gave the sizes of the files of the format */
         bool stale;
         Int64 changedAtMs;
         Int64 acquiredAtMs;
@@ -132,6 +134,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
     /** The vocabulary that classifies the licences of the items (may be GUCEF_NULL: every licence is "unknown"); not owned */
     void SetVocabulary( const CAssetVocabulary* vocabulary );
 
+    /**
+     *  The normaliser of the store (CIAssetStoreProvider::GetMetadataNormalizer()), whose licence rules classify the licences of the
+     *  items as the ingest of their packs will (GUCEF_NULL: the vocabulary alone); not owned. Set before the listing
+     */
+    void SetLicenceClassifier( CIAssetMetadataNormalizer* normalizer );
+
+    /** The size guard of the store plugin (CIAssetStoreProvider::GetMaxDownloadBytes()): a format of known larger size is "too-large"; 0 for none */
+    void SetMaxDownloadBytes( UInt64 maxDownloadBytes );
+
+    /** A size in words: "12.1 GB", "421.3 MB", "512 bytes" (decimal units) */
+    static CORE::CString DescribeBytes( UInt64 bytes );
+
     /** Reduces the items of a page to the records of the plan; an item seen before is skipped. Answers the number of new items */
     UInt32 AddListingPage( const CAssetStoreLibraryPage& page );
 
@@ -140,6 +154,39 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
 
     UInt32 GetListedCount( void ) const;
     UInt32 GetPageCount( void ) const;
+    bool IsListingComplete( void ) const;
+
+    /** The ids of the listed items */
+    void GetListedItemIds( CORE::CString::StringSet& itemIds ) const;
+
+    /** The fingerprint of the library entry of a listed item (CAssetItemRevision::ComputeEntryFingerprint()), empty when it is not listed */
+    CORE::CString GetEntryFingerprint( const CORE::CString& itemId ) const;
+
+    /**
+     *  The listing as the stored plan of the store keeps it: every listed item reduced to what the plan needs (with the details that
+     *  were applied), the pages, whether it was complete, when it was read and the item selection it was read for
+     */
+    void ExportListing( Int64 listedAtMs, CORE::CDataNode& listing ) const;
+
+    /**
+     *  Takes the listing of a stored plan instead of the pages of the store (after Reset() with the spec of the run): no listing and
+     *  no details are asked. False when the node is not a listing
+     */
+    bool ImportListing( const CORE::CDataNode& listing );
+
+    /** When the listing was read: that of the imported listing, 0 for one read now */
+    Int64 GetImportedListingTime( void ) const;
+
+    /**
+     *  Whether a stored plan (as the service keeps it: the listing and its members) can stand for the listing of a run of the spec at
+     *  the time: younger than the profile's planMaxAgeMinutes (0: never), made with the same plan fingerprint of the profile
+     *  (CAssetLibrarySyncProfile::GetPlanFingerprint()), for the whole library or a selection that holds the run's; the spec does
+     *  not ask to replan. The reason in words when not, the age in milliseconds when it is
+     */
+    static bool IsStoredPlanUsable( const CORE::CDataNode& storedPlan, const CAssetLibrarySyncSpec& spec, Int64 nowMs, Int64& ageMs, CORE::CString& reason );
+
+    /** An age in words: "40 seconds", "12 minutes", "3 hours 5 minutes", "2 days" */
+    static CORE::CString DescribeAge( Int64 ageMs );
 
     /** Reads the packs of the store, their store facts, the marks and the observations: one query per table */
     TAssetStoreStatus LoadStoreState( CPrimaryAssetStore& store );
@@ -192,6 +239,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
         Int64 acquiredAtMs;
         CORE::CString listingFingerprint;
         CORE::CString formatFingerprint;
+        CORE::CString entryFingerprint;
         UInt8 formatsLevel;
         UInt32 listIndex;
         UInt32 allFormatCount;
@@ -213,6 +261,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
     CORE::CString ClassifyLicence( const CAssetStoreItem& item ) const;
     void PlanItem( const SListed& listed, Int64 nowMs, UInt64 medianBytes, CAssetLibrarySyncItem& line, CORE::CString& skipReason );
     static CORE::CString Key( const CORE::CString& itemId, const CORE::CString& formatId );
+    static void SerializeListed( const SListed& listed, CORE::CDataNode& node );
+    static bool DeserializeListed( const CORE::CDataNode& node, SListed& listed );
 
     CAssetLibrarySyncPlanner( const CAssetLibrarySyncPlanner& src );              /**< not implemented */
     CAssetLibrarySyncPlanner& operator=( const CAssetLibrarySyncPlanner& src );   /**< not implemented */
@@ -221,6 +271,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlanner
 
     CAssetLibrarySyncSpec m_spec;
     const CAssetVocabulary* m_vocabulary;
+    CIAssetMetadataNormalizer* m_normalizer;
+    UInt64 m_maxDownloadBytes;
+    Int64 m_importedAtMs;                                            /**< the time of an imported listing, 0 for one read now */
     TListedVector m_listed;
     GUCEF::map< CORE::CString, size_t > m_listedIndex;
     UInt32 m_pages;

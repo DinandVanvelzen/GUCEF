@@ -27,6 +27,7 @@ done
 #   GIT_SERVER=forgejo|none              git server to install (default forgejo)
 #   CI_ENGINE=jenkins|forgejo|all|none   CI to install (default jenkins)
 #   LABLINK=true|false                   the lab link hub and its website on this node (default true)
+#   CI_GATEWAY=true|false|auto           the CI gateway of gucefMcpCi on this node (default auto: with Forgejo CI)
 if [ -f ./config.env ]; then
     set -a
     source <(sed 's/\r//' ./config.env)
@@ -34,6 +35,11 @@ if [ -f ./config.env ]; then
 fi
 GIT_SERVER="${GIT_SERVER:-forgejo}"
 LABLINK="${LABLINK:-true}"
+CI_GATEWAY="${CI_GATEWAY:-auto}"
+case "${CI_GATEWAY}" in
+    true|false|auto) ;;
+    *) echo "Unknown CI_GATEWAY: ${CI_GATEWAY} (use true, false or auto)"; exit 1 ;;
+esac
 CI_ENGINE="${CI_ENGINE:-jenkins}"
 case "${CI_ENGINE}" in
     jenkins|forgejo|all|none) ;;
@@ -233,6 +239,30 @@ if [ "${GIT_SERVER}" = "forgejo" ]; then
     cd ..
 else
     echo "Skipping Forgejo (GIT_SERVER=${GIT_SERVER})"
+fi
+
+# The CI gateway of gucefMcpCi (ci/mcp/install.sh --role gateway): the lab machines hand the build matrix of their
+# unpublished work to Forgejo Actions through it, next to the lab link hub. Needs Forgejo with its runner and sudo for
+# its systemd service; a failure does not stop the rest of the setup.
+FORGEJO_CI=false
+if [ "${GIT_SERVER}" = "forgejo" ] && { [ "${CI_ENGINE}" = "forgejo" ] || [ "${CI_ENGINE}" = "all" ]; }; then
+    FORGEJO_CI=true
+fi
+if [ "${CI_GATEWAY}" = "false" ]; then
+    echo "Skipping the CI gateway (CI_GATEWAY=false)"
+elif [ ! -f /etc/systemd/system/k3s.service ]; then
+    echo "Skipping the CI gateway (this is not a k3s server node)"
+elif [ "${FORGEJO_CI}" != "true" ]; then
+    if [ "${CI_GATEWAY}" = "true" ]; then
+        echo "WARNING: CI_GATEWAY=true needs Forgejo CI (GIT_SERVER=forgejo and CI_ENGINE=forgejo or all); the CI gateway is skipped"
+    else
+        echo "Skipping the CI gateway (Forgejo CI is not selected: GIT_SERVER=${GIT_SERVER}, CI_ENGINE=${CI_ENGINE})"
+    fi
+elif [ ! -f /etc/gucef-ci/ci.json ] && [ ! -f ./lablink/ci.json.example ]; then
+    echo "WARNING: there is no CI registry (/etc/gucef-ci/ci.json) and no lablink/ci.json.example to make one from; the CI gateway is skipped"
+else
+    sudo ./ci/mcp/install.sh --role gateway --skip-tests || \
+        echo "WARNING: the CI gateway was not installed, see above. Run later: sudo projects/k3s/ci/mcp/install.sh --role gateway"
 fi
 
 # Make the kubeconfig available without needing sudo for every kubectl/helm call

@@ -221,10 +221,90 @@ WriteConversionRows( CAssetCatalogue& catalogue, const SConversionRows& rows, CO
 //-------------------------------------------------------------------------*/
 
 CAssetPackConversion::CAssetPackConversion( CPrimaryAssetStore& store, const CORE::CFutureResultSource* cancel )
-    : m_store( store )
+    : m_jobId()
+    , m_historyOrigin( "conversion" )
+    , m_historyPolicy()
+    , m_observer( GUCEF_NULL )
+    , m_notifyEvents( true )
+    , m_removeOriginals( true )
+    , m_store( store )
     , m_cancel( cancel )
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAssetPackConversion::~CAssetPackConversion()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPrimaryAssetStore&
+CAssetPackConversion::GetStore( void ) const
+{GUCEF_TRACE;
+
+    return m_store;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CFutureResultSource*
+CAssetPackConversion::GetCancelSource( void ) const
+{GUCEF_TRACE;
+
+    return m_cancel;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetPackConversion::OnPrepare( const CAssetPackRecord& pack, const TAssetRecordVector& assets, const CORE::CString& locationRoot,
+                                 CAssetConversionRequest& request, CORE::CString& message )
+{GUCEF_TRACE;
+
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetPackConversion::OnConverted( const CAssetConversionRequest& request, TAssetStoreStatus& hookStatus, CAssetConversionOutcome& hookOutcome,
+                                   const TAssetRecordVector& assets, TAssetRecordVector& converted, CORE::CString& message )
+{GUCEF_TRACE;
+
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetPackConversion::OnCommit( const CAssetConversionRequest& request, TAssetStoreStatus hookStatus, const CAssetPackRecord& before,
+                                const TAssetRecordVector& beforeAssets, CORE::CString& message )
+{GUCEF_TRACE;
+
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetPackConversion::OnCommitted( bool persisted )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetPackConversion::RestoreState( const CAssetPackRecord& pack, const TAssetRecordVector& assets, const CAssetConversionOutcome& outcome,
+                                    Int64 startedAtMs, CORE::CString& message )
+{GUCEF_TRACE;
+
+    const CORE::CString::StringSet noRemovedOriginals;
+    return Persist( pack, assets, true, noRemovedOriginals, outcome, startedAtMs, message );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -400,8 +480,9 @@ CAssetPackConversion::Persist( const CAssetPackRecord& pack, const TAssetRecordV
         row[ "ingest_id" ] = CORE::CVariant( outcome.jobId );
         row[ "pack_id" ] = CORE::CVariant( pack.packId );
         row[ "source_id" ] = CORE::CVariant( pack.sourceId );
-        row[ "origin" ] = CORE::CVariant( CORE::CString( "conversion" ) );
-        row[ "policy" ] = CORE::CVariant( "keep=" + CORE::CString( AssetKeepPolicyToString( pack.keep ) ) + ";profile=" + outcome.record.profile );
+        row[ "origin" ] = CORE::CVariant( m_historyOrigin.IsNULLOrEmpty() ? CORE::CString( "conversion" ) : m_historyOrigin );
+        row[ "policy" ] = CORE::CVariant( "keep=" + CORE::CString( AssetKeepPolicyToString( pack.keep ) ) + ";profile=" + outcome.record.profile +
+                                          ( m_historyPolicy.IsNULLOrEmpty() ? CORE::CString::Empty : ";" + m_historyPolicy ) );
         row[ "started_ms" ] = CORE::CVariant( startedAtMs );
         row[ "duration_ms" ] = CORE::CVariant( NowUtcMs() - startedAtMs );
         row[ "outcome" ] = CORE::CVariant( outcomeName );
@@ -451,7 +532,7 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
 
     outcome = CAssetConversionOutcome();
     outcome.packId = packId;
-    outcome.jobId = MakeJobId();
+    outcome.jobId = m_jobId.IsNULLOrEmpty() ? MakeJobId() : m_jobId;
     const Int64 startedAtMs = NowUtcMs();
 
     CIAssetConverterHook* hook = m_store.GetConverterHook();
@@ -509,11 +590,20 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
         request.cookedPathPrefix = layout.GetCookedPrefix( profile );
     }
     CStoredPackObserver observer( m_store, outcome.jobId, packId, m_cancel );
-    request.observer = &observer;
+    request.observer = GUCEF_NULL != m_observer ? m_observer : &observer;
     request.reconvert = false;
+    {
+        CORE::CString prepareMessage;
+        const TAssetStoreStatus prepared = OnPrepare( pack, assets, locationRoot, request, prepareMessage );
+        if ( ASSETSTORE_STATUS_OK != prepared )
+            return FailOutcome( outcome, prepared, prepareMessage );
+    }
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetPackConversion: Converting pack " << packId << " \"" << pack.title << "\" with " << hook->GetName() << " for the profile " << profile );
-    m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionProgressEvent, outcome.jobId, packId, false, 0, (UInt32) assets.size(), CORE::CString::Empty, ASSETSTORE_STATUS_OK, "Starting" );
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetPackConversion: Converting pack " << packId << " \"" << pack.title << "\" with " << hook->GetName() << " for the profile " << profile
+                      << ( request.assetGlobs.empty() ? CORE::CString::Empty : ", " + CORE::ToString( (UInt32) request.assetGlobs.size() ) + " asset filter(s)" )
+                      << ( request.cookOnly ? ", cook only" : ( request.noCook ? ", no cook" : "" ) ) );
+    if ( m_notifyEvents )
+        m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionProgressEvent, outcome.jobId, packId, false, 0, (UInt32) assets.size(), CORE::CString::Empty, ASSETSTORE_STATUS_OK, "Starting" );
 
     TAssetRecordVector converted = assets;
     CAssetConversionOutcome hookOutcome;
@@ -530,6 +620,30 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
         hookOutcome.message = "an exception ended the conversion";
     }
 
+    // a run of a part of the pack leaves the converted paths of the other assets as they were
+    if ( !request.assetGlobs.empty() )
+    {
+        for ( size_t a=0; a<converted.size() && a<assets.size(); ++a )
+        {
+            const CORE::CString relative = request.GetSourceRelativePath( assets[ a ] );
+            if ( relative.IsNULLOrEmpty() || !request.IsInScope( relative ) )
+            {
+                converted[ a ].convertedPath = assets[ a ].convertedPath;
+                converted[ a ].convertedFormat = assets[ a ].convertedFormat;
+            }
+        }
+    }
+    {
+        CORE::CString convertedMessage;
+        const TAssetStoreStatus seen = OnConverted( request, hookStatus, hookOutcome, assets, converted, convertedMessage );
+        if ( ASSETSTORE_STATUS_OK != seen )
+        {
+            if ( m_notifyEvents )
+                m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, seen, convertedMessage );
+            return FailOutcome( outcome, seen, convertedMessage );
+        }
+    }
+
     // what the outcome does to the pack; an earlier conversion stays when this one is refused or fails
     const bool hadConverted = CAssetConversionRecord::OutcomeConverted == pack.conversion.outcome && !pack.formatsConverted.empty();
     CAssetPackRecord updated( pack );
@@ -541,7 +655,9 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
     {
         outcome.status = applied;
         outcome.message = message;
-        m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, applied, message );
+        if ( m_notifyEvents )
+            m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, applied, message );
+        OnCommitted( false );
         return applied;
     }
     if ( hadConverted && ASSETSTORE_STATUS_OK != hookStatus )
@@ -557,7 +673,7 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
     // the originals of what converted go when the keep policy is "converted", after the catalogue says so
     CORE::CString::StringSet removedAssetIds;
     CORE::CString::StringVector removedPaths;
-    if ( ASSETSTORE_STATUS_OK == hookStatus && ASSETKEEP_CONVERTED == pack.keep )
+    if ( ASSETSTORE_STATUS_OK == hookStatus && ASSETKEEP_CONVERTED == pack.keep && m_removeOriginals )
     {
         for ( size_t a=0; a<updatedAssets.size(); ++a )
         {
@@ -570,19 +686,40 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
         }
     }
 
+    {
+        CORE::CString commitMessage;
+        status = OnCommit( request, hookStatus, pack, assets, commitMessage );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            outcome.status = status;
+            outcome.message = commitMessage;
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AssetPackConversion: Pack " << packId << ": " << commitMessage );
+            if ( m_notifyEvents )
+                m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, status, commitMessage );
+            OnCommitted( false );
+            return status;
+        }
+    }
     CORE::CString persistMessage;
     status = Persist( updated, updatedAssets, ASSETSTORE_STATUS_OK == hookStatus, removedAssetIds, outcome, startedAtMs, persistMessage );
+    OnCommitted( ASSETSTORE_STATUS_OK == status );
     if ( ASSETSTORE_STATUS_OK != status )
     {
         outcome.status = status;
         outcome.message = persistMessage;
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AssetPackConversion: Pack " << packId << ": " << persistMessage );
-        m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, status, persistMessage );
+        if ( m_notifyEvents )
+            m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFailedEvent, outcome.jobId, packId, false, 0, 0, CORE::CString::Empty, status, persistMessage );
         return status;
     }
     for ( size_t p=0; p<removedPaths.size(); ++p )
         vfs.DeleteFile( removedPaths[ p ], true );
 
+    if ( !m_notifyEvents )
+    {
+        // the caller reports the end itself
+    }
+    else
     if ( ASSETSTORE_STATUS_OK == hookStatus || ASSETSTORE_STATUS_REFUSED == hookStatus )
     {
         m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionFinishedEvent, outcome.jobId, packId, false, (UInt32) assets.size(), (UInt32) assets.size(),

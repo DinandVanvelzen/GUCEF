@@ -322,6 +322,11 @@ ConvertToPSF( const FREE_IMAGE_TYPE imageType       ,
                     return PSF_RGBA;
                     #endif
                 }
+                case FIC_MINISBLACK :
+                {
+                    /* a greyscale picture: the loader turns every grey form into 8 bits with black at 0 */
+                    return PSF_SINGLE_CHANNEL_GRAYSCALE;
+                }
                 default :
                 {
                     return PSF_UNKNOWN;
@@ -376,6 +381,7 @@ GetChannelCountForFormat( const int pixelStorageFormat )
         {
             return 4;
         }
+        case PSF_SINGLE_CHANNEL_GRAYSCALE :
         case PSF_SINGLE_CHANNEL_RED :
         case PSF_SINGLE_CHANNEL_GREEN :
         case PSF_SINGLE_CHANNEL_BLUE :

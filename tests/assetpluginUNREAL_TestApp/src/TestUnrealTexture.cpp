@@ -267,7 +267,7 @@ AddInts( GUCEF::vector< UInt8 >& out, const Int32* values, UInt32 count )
 }
 
 /** A quad of two triangles in the plane z = 0 facing +Z (counter-clockwise seen from +Z), 6 vertex instances, one polygon group named group */
-static void
+void
 BuildQuadDescription( const char* group, GUCEF::vector< UInt8 >& bytes )
 {
     CMeshBytes m;

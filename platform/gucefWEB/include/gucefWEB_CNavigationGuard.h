@@ -56,6 +56,11 @@
 #define GUCEF_WEB_CNAVIGATIONREFUSAL_H
 #endif /* GUCEF_WEB_CNAVIGATIONREFUSAL_H ? */
 
+#ifndef GUCEF_WEB_CWRITEREQUESTGUARD_H
+#include "gucefWEB_CWriteRequestGuard.h"
+#define GUCEF_WEB_CWRITEREQUESTGUARD_H
+#endif /* GUCEF_WEB_CWRITEREQUESTGUARD_H ? */
+
 #ifndef GUCEF_WEB_MACROS_H
 #include "gucefWEB_macros.h"
 #define GUCEF_WEB_MACROS_H
@@ -86,6 +91,11 @@ namespace WEB {
  *  the guard answers, which it does from the event itself: Fetch.continueRequest, or Fetch.failRequest with "Aborted",
  *  which keeps the page where it was. Navigations within a document (history.pushState) make no request: an address
  *  outside the rules that a tab shows is reported with source "committed" and blocked false.
+ *
+ *  With a CWriteRequestGuard given (SetWriteRequestGuard()) the guard intercepts every request of every tab, frame and
+ *  worker instead of document requests only, and lets the write request guard decide first: a request other than GET,
+ *  HEAD or OPTIONS that no write rule names is failed with "BlockedByClient" and reported by that guard; what passes it
+ *  and is a document request is then checked against the navigation rules; every other request continues.
  *
  *  Every refusal is counted, kept (the latest 64) and sent as NavigationRefusedEvent (TNavigationRefusalEventData).
  *  The guard owns the Fetch domain of the browser target while it is started. Navigations wait while the thread that
@@ -128,6 +138,15 @@ class GUCEF_WEB_PUBLIC_CPP CNavigationGuard : public CORE::CObservingNotifier
      */
     bool CheckNavigate( const CORE::CString& url );
 
+    /**
+     *  Enforces a write request guard (see CWriteRequestGuard), or none with GUCEF_NULL. Before Start() it only takes
+     *  effect at the start; on a started guard the browser is told at once, and false (keeping the guard as it was) when
+     *  the browser does not accept the change. A write request guard serves one navigation guard at a time.
+     */
+    bool SetWriteRequestGuard( CWriteRequestGuard* writeGuard );
+
+    CWriteRequestGuard* GetWriteRequestGuard( void ) const;
+
     UInt32 GetRefusedCount( void ) const;
 
     UInt32 GetAllowedCount( void ) const;
@@ -141,6 +160,8 @@ class GUCEF_WEB_PUBLIC_CPP CNavigationGuard : public CORE::CObservingNotifier
 
     private:
 
+    friend class CWriteRequestGuard;
+
     CNavigationGuard( const CNavigationGuard& src );                /**< not implemented */
     CNavigationGuard& operator=( const CNavigationGuard& src );     /**< not implemented */
 
@@ -153,6 +174,8 @@ class GUCEF_WEB_PUBLIC_CPP CNavigationGuard : public CORE::CObservingNotifier
     void HandleTargetInfo( const SChromeProtocolEvent& event );
     void Report( const CORE::CString& url, const CORE::CString& frameId, bool isMainFrame, const CORE::CString& reason, const CORE::CString& source, bool blocked );
     bool IsNeverRecord( const CORE::CString& hostName, const CORE::CString& hostAndPort, const CORE::CString& path ) const;
+    bool EnableInterception( bool everyRequest, bool wait );
+    void ReleaseWriteRequestGuard( CWriteRequestGuard* writeGuard );
 
     CNavigationGuardSettings m_settings;
     TNavigationRuleVector m_allow;
@@ -163,6 +186,7 @@ class GUCEF_WEB_PUBLIC_CPP CNavigationGuard : public CORE::CObservingNotifier
     UInt32 m_refusedCount;
     UInt32 m_allowedCount;
     TNavigationRefusalVector m_recent;
+    CWriteRequestGuard* m_writeGuard;
 };
 
 /*-------------------------------------------------------------------------//

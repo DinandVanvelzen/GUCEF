@@ -479,6 +479,279 @@ CUnrealMeshDescription::Read( const UInt8* bytes, UInt64 size )
     return true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+/** A bit array of the UE 4 layout: the number of bits, then 32-bit words; the allocated ids and their number */
+static bool
+ReadUe4BitArray( CCursor& cursor, const char* what, GUCEF::vector< UInt8 >& allocated, UInt32& setCount )
+{GUCEF_TRACE;
+
+    setCount = 0;
+    const UInt32 bits = cursor.ReadUInt32();
+    if ( cursor.HasError() )
+        return false;
+    const UInt64 words = ( (UInt64) bits + 31 ) / 32;
+    if ( bits > 0x7FFFFFF || words * 4 > cursor.GetRemaining() )
+        return cursor.Fail( CORE::CString( "The " ) + what + " of the mesh description have more ids than the payload can hold" );
+    allocated.assign( bits, 0 );
+    for ( UInt64 w=0; w<words; ++w )
+    {
+        const UInt32 word = cursor.ReadUInt32();
+        for ( UInt32 bit=0; bit<32; ++bit )
+        {
+            const UInt64 slot = w * 32 + bit;
+            if ( slot < bits && ( word & ( 1U << bit ) ) )
+            {
+                allocated[ (size_t) slot ] = 1;
+                ++setCount;
+            }
+        }
+    }
+    return !cursor.HasError();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** An attribute of the UE 4 layout: name, type, id count, channels (size of a value, count, values; names as strings), default, flags */
+static bool
+ReadUe4Attribute( CCursor& cursor, UInt32 slotCount, CUnrealMeshDescription::SAttribute& attribute )
+{GUCEF_TRACE;
+
+    if ( !cursor.ReadString( attribute.name ) )
+        return false;
+    attribute.type = cursor.ReadUInt32();
+    const UInt32 count = cursor.ReadUInt32();
+    const UInt32 channelCount = cursor.ReadUInt32();
+    if ( cursor.HasError() )
+        return false;
+    if ( attribute.type > CUnrealMeshDescription::ATTRIBUTE_NAME || count != slotCount || channelCount > 64 )
+        return cursor.Fail( "The attribute " + attribute.name + " has a type, count or number of channels that is not known" );
+    const UInt32 typeBytes = BytesOfType( attribute.type );
+    attribute.valuesPerId = 1;
+    attribute.slotCount = slotCount;
+    attribute.bytesPerValue = typeBytes;
+    for ( UInt32 c=0; c<channelCount; ++c )
+    {
+        if ( CUnrealMeshDescription::ATTRIBUTE_NAME == attribute.type )
+        {
+            const UInt32 valueCount = cursor.ReadUInt32();
+            if ( cursor.HasError() )
+                return false;
+            if ( valueCount != slotCount || valueCount > cursor.GetRemaining() / 5 )
+                return cursor.Fail( "The attribute " + attribute.name + " has a number of names that does not fit its ids" );
+            GUCEF::vector< CORE::CString > values;
+            values.reserve( valueCount );
+            for ( UInt32 v=0; v<valueCount; ++v )
+            {
+                CORE::CString text;
+                if ( !cursor.ReadString( text ) )
+                    return false;
+                values.push_back( text );
+            }
+            attribute.names.push_back( values );
+            attribute.blocks.push_back( GUCEF::vector< UInt8 >() );
+            continue;
+        }
+        const UInt32 valueBytes = cursor.ReadUInt32();
+        const UInt32 valueCount = cursor.ReadUInt32();
+        if ( cursor.HasError() )
+            return false;
+        if ( valueBytes != typeBytes || valueCount != slotCount )
+            return cursor.Fail( "The attribute " + attribute.name + " has values of " + CORE::UInt32ToString( valueBytes ) + " bytes or a count that does not fit its type and ids" );
+        const UInt64 total = (UInt64) valueCount * valueBytes;
+        if ( total > cursor.GetRemaining() )
+            return cursor.Fail( "The attribute " + attribute.name + " holds more values than the payload" );
+        GUCEF::vector< UInt8 > data( (size_t) total );
+        if ( total > 0 && !cursor.ReadBytes( &data[ 0 ], total ) )
+            return false;
+        attribute.blocks.push_back( data );
+    }
+    // the default value (a boolean as 32 bits), then the flags
+    if ( CUnrealMeshDescription::ATTRIBUTE_NAME == attribute.type )
+    {
+        CORE::CString text;
+        if ( !cursor.ReadString( text ) )
+            return false;
+    }
+    else if ( !cursor.Skip( CUnrealMeshDescription::ATTRIBUTE_BOOL == attribute.type ? 4 : typeBytes ) )
+        return false;
+    cursor.ReadUInt32();
+    return !cursor.HasError();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** An attribute set of the UE 4 layout: the id count, the number of attributes, the attributes */
+static bool
+ReadUe4AttributeSet( CCursor& cursor, const char* what, CUnrealMeshDescription::SChannel& channel )
+{GUCEF_TRACE;
+
+    const UInt32 elementCount = cursor.ReadUInt32();
+    const UInt32 attributeCount = cursor.ReadUInt32();
+    if ( cursor.HasError() )
+        return false;
+    if ( elementCount != channel.slotCount || attributeCount > 256 )
+        return cursor.Fail( CORE::CString( "The attributes of the " ) + what + " are for " + CORE::UInt32ToString( elementCount ) + " ids where the element has " + CORE::UInt32ToString( channel.slotCount ) );
+    for ( UInt32 a=0; a<attributeCount; ++a )
+    {
+        CUnrealMeshDescription::SAttribute attribute;
+        if ( !ReadUe4Attribute( cursor, channel.slotCount, attribute ) )
+            return false;
+        channel.attributes.push_back( attribute );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** An int32 attribute with one value per id, all -1 until set */
+static void
+MakeIndexAttribute( const char* name, UInt32 slotCount, UInt32 valuesPerId, CUnrealMeshDescription::SAttribute& attribute )
+{GUCEF_TRACE;
+
+    attribute.name = name;
+    attribute.type = CUnrealMeshDescription::ATTRIBUTE_INT32;
+    attribute.valuesPerId = valuesPerId;
+    attribute.slotCount = slotCount;
+    attribute.bytesPerValue = 4;
+    attribute.blocks.assign( 1, GUCEF::vector< UInt8 >( (size_t) slotCount * valuesPerId * 4, 0xFF ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+SetIndexValue( CUnrealMeshDescription::SAttribute& attribute, UInt32 id, UInt32 index, UInt32 value )
+{
+    memcpy( &attribute.blocks[ 0 ][ ( (size_t) id * attribute.valuesPerId + index ) * 4 ], &value, 4 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnrealMeshDescription::ReadUe4Layout( const UInt8* bytes, UInt64 size )
+{GUCEF_TRACE;
+
+    m_elements.clear();
+    m_error.Clear();
+    CCursor cursor( bytes, size );
+    SElement vertices, instances, edges, polygons, triangles, groups;
+    vertices.name = "Vertices";
+    instances.name = "VertexInstances";
+    edges.name = "Edges";
+    polygons.name = "Polygons";
+    triangles.name = "Triangles";
+    groups.name = "PolygonGroups";
+    SChannel vertexChannel, instanceChannel, edgeChannel, polygonChannel, triangleChannel, groupChannel;
+    UInt32 setCount = 0;
+    bool ok = true;
+
+    // vertices: the allocated ids only
+    ok = ok && ReadUe4BitArray( cursor, "vertices", vertexChannel.allocated, setCount );
+    vertexChannel.slotCount = (UInt32) vertexChannel.allocated.size();
+
+    // vertex instances: the vertex of each
+    SAttribute vertexIndex;
+    if ( ok )
+        ok = ReadUe4BitArray( cursor, "vertex instances", instanceChannel.allocated, setCount );
+    if ( ok )
+    {
+        instanceChannel.slotCount = (UInt32) instanceChannel.allocated.size();
+        if ( (UInt64) setCount * 4 > cursor.GetRemaining() )
+            ok = cursor.Fail( "The vertex instances of the mesh description hold more vertices than the payload" );
+        MakeIndexAttribute( "VertexIndex", instanceChannel.slotCount, 1, vertexIndex );
+        for ( UInt32 id=0; ok && id<instanceChannel.slotCount; ++id )
+            if ( instanceChannel.IsAllocated( id ) )
+                SetIndexValue( vertexIndex, id, 0, cursor.ReadUInt32() );
+    }
+
+    // edges: the two vertices of each (not used by the readers of the meshes)
+    if ( ok )
+        ok = ReadUe4BitArray( cursor, "edges", edgeChannel.allocated, setCount ) && cursor.Skip( (UInt64) setCount * 8 );
+    edgeChannel.slotCount = (UInt32) edgeChannel.allocated.size();
+
+    // polygons: the perimeter (empty in the packages; its vertex instances are passed over) and the polygon group of each
+    GUCEF::vector< Int32 > groupOfPolygon;
+    if ( ok )
+        ok = ReadUe4BitArray( cursor, "polygons", polygonChannel.allocated, setCount );
+    polygonChannel.slotCount = (UInt32) polygonChannel.allocated.size();
+    if ( ok )
+    {
+        groupOfPolygon.assign( polygonChannel.slotCount, -1 );
+        for ( UInt32 id=0; ok && id<polygonChannel.slotCount; ++id )
+        {
+            if ( !polygonChannel.IsAllocated( id ) )
+                continue;
+            const UInt32 perimeter = cursor.ReadUInt32();
+            ok = !cursor.HasError() && ( (UInt64) perimeter * 4 <= cursor.GetRemaining() || cursor.Fail( "A polygon of the mesh description has a perimeter longer than the payload" ) );
+            ok = ok && cursor.Skip( (UInt64) perimeter * 4 );
+            groupOfPolygon[ id ] = (Int32) cursor.ReadUInt32();
+            ok = ok && !cursor.HasError();
+        }
+    }
+
+    // polygon groups: the allocated ids only
+    if ( ok )
+        ok = ReadUe4BitArray( cursor, "polygon groups", groupChannel.allocated, setCount );
+    groupChannel.slotCount = (UInt32) groupChannel.allocated.size();
+
+    // the attribute sets
+    ok = ok && ReadUe4AttributeSet( cursor, "vertices", vertexChannel );
+    ok = ok && ReadUe4AttributeSet( cursor, "vertex instances", instanceChannel );
+    ok = ok && ReadUe4AttributeSet( cursor, "edges", edgeChannel );
+    ok = ok && ReadUe4AttributeSet( cursor, "polygons", polygonChannel );
+    ok = ok && ReadUe4AttributeSet( cursor, "polygon groups", groupChannel );
+
+    // triangles: three vertex instances and the polygon of each; the polygon gives the group
+    if ( ok )
+        ok = ReadUe4BitArray( cursor, "triangles", triangleChannel.allocated, setCount );
+    if ( ok )
+    {
+        triangleChannel.slotCount = (UInt32) triangleChannel.allocated.size();
+        if ( (UInt64) setCount * 16 > cursor.GetRemaining() )
+            ok = cursor.Fail( "The triangles of the mesh description hold more corners than the payload" );
+        SAttribute corners, group;
+        MakeIndexAttribute( "VertexInstanceIndex", triangleChannel.slotCount, 3, corners );
+        MakeIndexAttribute( "PolygonGroupIndex", triangleChannel.slotCount, 1, group );
+        for ( UInt32 id=0; ok && id<triangleChannel.slotCount; ++id )
+        {
+            if ( !triangleChannel.IsAllocated( id ) )
+                continue;
+            for ( UInt32 c=0; c<3; ++c )
+                SetIndexValue( corners, id, c, cursor.ReadUInt32() );
+            const UInt32 polygon = cursor.ReadUInt32();
+            if ( polygon >= polygonChannel.slotCount || !polygonChannel.IsAllocated( polygon ) )
+                ok = cursor.Fail( "A triangle of the mesh description refers to a polygon that does not exist" );
+            else
+                SetIndexValue( group, id, 0, (UInt32) groupOfPolygon[ polygon ] );
+        }
+        triangleChannel.attributes.push_back( corners );
+        triangleChannel.attributes.push_back( group );
+    }
+    ok = ok && ReadUe4AttributeSet( cursor, "triangles", triangleChannel );
+    if ( ok && 0 != cursor.GetRemaining() )
+        ok = cursor.Fail( "The mesh description has " + CORE::UInt64ToString( cursor.GetRemaining() ) + " bytes behind the end of its layout" );
+    if ( !ok || cursor.HasError() )
+    {
+        m_error = cursor.GetError();
+        return false;
+    }
+
+    instanceChannel.attributes.insert( instanceChannel.attributes.begin(), vertexIndex );
+    vertices.channels.push_back( vertexChannel );
+    instances.channels.push_back( instanceChannel );
+    edges.channels.push_back( edgeChannel );
+    polygons.channels.push_back( polygonChannel );
+    triangles.channels.push_back( triangleChannel );
+    groups.channels.push_back( groupChannel );
+    m_elements.push_back( vertices );
+    m_elements.push_back( instances );
+    m_elements.push_back( edges );
+    m_elements.push_back( polygons );
+    m_elements.push_back( triangles );
+    m_elements.push_back( groups );
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

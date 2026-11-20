@@ -173,6 +173,27 @@ CAssetItemRevision::ComputeListingFingerprint( const CAssetStoreItem& item )
     return Sha256OfText( text );
 }
 
+const CORE::CString CAssetItemRevision::EntryChangeHintAttribute = "entryChangeHint";
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetItemRevision::ComputeEntryFingerprint( const CAssetStoreItem& item )
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector formats;
+    for ( size_t f=0; f<item.formats.size(); ++f )
+        formats.push_back( item.formats[ f ].formatId + "\t" + item.formats[ f ].name + "\t" + CORE::ToString( (UInt32) item.formats[ f ].files.size() ) );
+    SortTexts( formats );
+    CORE::CString text = item.itemId + "\n" + item.title + "\n" + item.version + "\n" + item.listingType + "\n" + item.revision + "\n" +
+                         CORE::ToString( item.changedAtMs ) + "\n" + CORE::ToString( item.acquiredAtMs ) + "\n" + CORE::ToString( item.downloadable ) + "\n";
+    for ( size_t f=0; f<formats.size(); ++f )
+        text += formats[ f ] + "\n";
+    // what a store plugin knows of its entries that changes with the item (the engine versions of a build, ...)
+    text += item.storeAttributes.GetAttributeValue( EntryChangeHintAttribute ).AsString() + "\n";
+    return Sha256OfText( text );
+}
+
 /*-------------------------------------------------------------------------*/
 
 CORE::CString

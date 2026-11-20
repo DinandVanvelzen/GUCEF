@@ -675,7 +675,7 @@ TestConsoleAndCommands( void )
         layer.GetConsole()->SetSlideTimeInMs( 0 );
         CWorkbenchConsoleCommands* commands = layer.GetCommands();
         GUI::CDeveloperConsoleForm* console = layer.GetConsole();
-        ASSERT_TRUE( GUCEF_NULL != commands && GUCEF_NULL != console && 19 == commands->GetCommandCount() );
+        ASSERT_TRUE( GUCEF_NULL != commands && GUCEF_NULL != console && 22 == commands->GetCommandCount() );
         ASSERT_TRUE( "help" == commands->GetCommandName( 0 ) && "open <path>" == commands->GetCommandUsage( 1 ) );
         fixture.TypeBackquote();
         ASSERT_TRUE( console->IsOpen() );
@@ -693,6 +693,14 @@ TestConsoleAndCommands( void )
         ASSERT_TRUE( commands->Run( "jobs finished" ) && ConsoleText( layer ).HasSubstr( "No jobs" ) >= 0 );
         ASSERT_TRUE( commands->Run( "redo reanalyse" ) && ConsoleText( layer ).HasSubstr( "There is no pack to do that for" ) >= 0 );
         ASSERT_TRUE( commands->Run( "redo nonsense" ) && ConsoleText( layer ).HasSubstr( "redo <reindex" ) >= 0 );
+
+        // the reprocessing of a pack of the store: no pack, a pack the store does not have, a wrong word or option
+        ASSERT_TRUE( commands->Run( "regen nonsense" ) && ConsoleText( layer ).HasSubstr( "Usage: regen <intermediate" ) >= 0 );
+        ASSERT_TRUE( commands->Run( "regen intermediate" ) && ConsoleText( layer ).HasSubstr( "There is no pack to do that for" ) >= 0 );
+        ASSERT_TRUE( commands->Run( "regen target pkNoSuchPack --failed" ) && ConsoleText( layer ).HasSubstr( "Regenerate target of pkNoSuchPack was refused" ) >= 0 );
+        ASSERT_TRUE( commands->Run( "reprocess plan pkNoSuchPack" ) && ConsoleText( layer ).HasSubstr( "The plan was refused" ) >= 0 );
+        ASSERT_TRUE( commands->Run( "redownload pkNoSuchPack --nonsense" ) && ConsoleText( layer ).HasSubstr( "the option --nonsense is not known" ) >= 0 );
+        ASSERT_TRUE( commands->Run( "reprocess rollback pkNoSuchPack" ) && ConsoleText( layer ).HasSubstr( "Roll back regeneration of pkNoSuchPack was refused" ) >= 0 );
         ASSERT_TRUE( commands->Run( "bulk plan" ) && commands->Run( "jobs open" ) );
 
         // the source of what is shown: nothing is shown here, and the setting is told and switched

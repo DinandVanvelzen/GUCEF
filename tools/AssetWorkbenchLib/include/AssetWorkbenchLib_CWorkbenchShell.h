@@ -170,6 +170,11 @@
 #define ASSETWORKBENCHLIB_CWORKBENCHREDOACTIONS_H
 #endif /* ASSETWORKBENCHLIB_CWORKBENCHREDOACTIONS_H ? */
 
+#ifndef ASSETWORKBENCHLIB_CWORKBENCHREPROCESSACTIONS_H
+#include "AssetWorkbenchLib_CWorkbenchReprocessActions.h"
+#define ASSETWORKBENCHLIB_CWORKBENCHREPROCESSACTIONS_H
+#endif /* ASSETWORKBENCHLIB_CWORKBENCHREPROCESSACTIONS_H ? */
+
 #ifndef GUCEF_GUI_CACTIVITYSERVICE_H
 #include "gucefGUI_CActivityService.h"
 #define GUCEF_GUI_CACTIVITYSERVICE_H
@@ -901,6 +906,14 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchShell : public CORE::CObservingNoti
 
     /** A redo action as a job of the service for a pack of the store, with the asset globs of its scope (empty: the whole pack) */
     bool RedoStorePack( CWorkbenchRedoActions::ERedoAction action, const CORE::CString& packId, const CORE::CString::StringVector& assetGlobs );
+
+    /**
+     *  A reprocessing of a pack of the store (CWorkbenchReprocessActions) as a job of the service, which the jobs view shows with the
+     *  counts before and after; the plan answers its summary in 'message' and starts nothing. The pack is 'packId', else the pack
+     *  selected in the sources tab; without assets in the options the assets selected in the browser are the scope of the actions
+     *  that have an asset form. False with the reason in 'message' when there is no pack or the service refused it
+     */
+    bool ReprocessPack( CWorkbenchReprocessActions::EReprocessAction action, const CORE::CString& packId, const ASSETSTORE::CAssetReprocessRequest& options, CORE::CString& message );
 
     /** A local index job on a folder of the VFS with the redo of the action, registered as a job */
     bool RedoFolder( CWorkbenchRedoActions::ERedoAction action, const CORE::CString& vfsFolder );

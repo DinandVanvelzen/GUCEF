@@ -57,6 +57,11 @@
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H
 #endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
+#include "gucefASSETSTORE_CAssetReprocessRequest.h"
+#define GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H ? */
+
 #include "gucefASSETSTORE_CAssetJobStartTool.h"
 
 /*-------------------------------------------------------------------------//
@@ -106,7 +111,7 @@ CAssetJobStartTool::GetLaneOfKind( const CORE::CString& kind )
 
     if ( CAssetPipelineOperations::ValidatePack == kind )
         return LaneValidation;
-    if ( "store_ingest" == kind || "store_ingest_resume" == kind || "sync_plan" == kind )
+    if ( "store_ingest" == kind || "store_ingest_resume" == kind || "sync_plan" == kind || CAssetPipelineOperations::PackRedownloadOriginal == kind )
         return LaneIngest;
     return LaneConversion;
 }
@@ -183,6 +188,23 @@ CAssetJobStartTool::Compute( COM::CMcpRequestContext& context      ,
         data.request.SetNodeType( GUCEF_DATATYPE_OBJECT );
         request.Serialize( data.request, serializerSettings );
         packId.Clear();
+    }
+    else
+    if ( CAssetPipelineOperations::IsReprocess( m_name ) )
+    {
+        // the reprocessing of a pack of the primary store: the service checks the pack, the scope and its limits when the job is asked
+        CAssetPipelineRequest request;
+        CAssetPipelineQueryTool::BuildRequest( m_context, m_name, arguments, principal, request );
+        const CAssetReprocessRequest spec = CAssetReprocessRequest::FromRequest( request );
+        if ( spec.HasStep( CAssetReprocessRequest::StepRedownload ) && !m_context.GetExposure().IsGroupEnabled( CAssetToolsExposure::GroupStore ) )
+        {
+            m_context.SetError( result, "not-enabled", "A download again of an original needs the tool group store, which is not enabled", false );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        packId = spec.packId;
+        data.request.Clear();
+        data.request.SetNodeType( GUCEF_DATATYPE_OBJECT );
+        request.Serialize( data.request, serializerSettings );
     }
     else
     {

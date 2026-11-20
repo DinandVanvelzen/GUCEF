@@ -58,6 +58,8 @@ namespace ASSETSTORE {
  *                                                   and the pack index
  *    <location>/gucef-ogre3d/<pack folder>/...      the cooked runtime files, one folder per cook profile
  *    <location>/staging/<job>/...                   not part of a pack: work in progress of the ingests and downloads
+ *    <location>/generations/<pack folder>/previous  the previous generation of the regenerated intermediate and cooked outputs of
+ *                                                   the pack, kept for a rollback (CAssetPackGenerations)
  *
  *  The pack folder is the name of the pack's source (the file or folder name including its extension) made safe for
  *  every file system, computed once when the pack is placed and kept in the root path of the pack record: after that
@@ -82,6 +84,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPackStorageLayout
     static const CORE::CString IntermediateArea;        /**< "intermediate" */
     static const CORE::CString CookedArea;              /**< "gucef-ogre3d" */
     static const CORE::CString StagingArea;             /**< "staging" */
+    static const CORE::CString GenerationsArea;         /**< "generations": the previous generation of the regenerated outputs of a pack (CAssetPackGenerations), not one of the three areas */
     static const CORE::CString RootPathMarker;          /**< "layout2:" */
 
     // naming of the pack folder
@@ -128,6 +131,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPackStorageLayout
     CORE::CString GetOriginalFolder( const CORE::CString& locationRoot ) const;
     CORE::CString GetIntermediateFolder( const CORE::CString& locationRoot, const CORE::CString& profile ) const;
     CORE::CString GetCookedFolder( const CORE::CString& locationRoot, const CORE::CString& profile ) const;
+
+    /** Version 2: the VFS folder "<location>/generations/<pack folder>" that holds the previous generation of the regenerated outputs; version 1: empty */
+    CORE::CString GetGenerationsFolder( const CORE::CString& locationRoot ) const;
 
     /** The logical path of the same folders: what 'Resolve' takes ("original", "intermediate", "converted/desktop") */
     CORE::CString GetOriginalPrefix( void ) const;

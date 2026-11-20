@@ -82,6 +82,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncSpec : public CORE::CIDataNod
     bool scheduled;                                 /**< started by a schedule, not by a person */
     bool manual;                                    /**< a download of items a person selected: no space reserve, an item that does not fit is refused instead of waited for */
     bool useStoreProfile;                           /**< the run takes the profile the service keeps for the store (SetSyncProfile()); 'profile' is then not used nor sent */
+    bool replan;                                    /**< a run lists the library afresh even when the stored plan of the store could be used */
+    bool refreshDetails;                            /**< the details of every item that needs them are asked of the store again, the cache of details is not used (and is renewed) */
+    bool allowLarge;                                /**< the items of itemIds go through the size guard of the store plugin (needs itemIds) */
     CAssetLibrarySyncProfile profile;
 
     CAssetLibrarySyncSpec( void );

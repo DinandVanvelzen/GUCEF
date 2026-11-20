@@ -139,6 +139,9 @@ class GUCEF_WEB_PUBLIC_CPP CChromeNetworkRecorder : public CORE::CObserver
 
     UInt32 GetSessionCount( void ) const;
 
+    /** Is the frame the main frame of the tab of a session this recorder watches: a Document request of it is a navigation of the tab */
+    bool IsMainFrameOf( const CORE::CString& sessionId, const CORE::CString& frameId ) const;
+
     UInt32 GetActionCount( void ) const;
 
     /** The script of the passive click and submit listener installed with captureClicks */

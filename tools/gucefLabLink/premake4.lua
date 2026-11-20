@@ -54,6 +54,10 @@ links( { "Advapi32.lib" } )
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/gucefLabLink_CiFiles.h",
+  "include/gucefLabLink_CiGatewayTokens.h",
+  "include/gucefLabLink_CiHub.h",
+  "include/gucefLabLink_CiRegistryFile.h",
   "include/gucefLabLink_Cluster.h",
   "include/gucefLabLink_ConfigFile.h",
   "include/gucefLabLink_HubStore.h",
@@ -87,6 +91,10 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/gucefLabLink_CiFiles.cpp",
+  "src/gucefLabLink_CiGatewayTokens.cpp",
+  "src/gucefLabLink_CiHub.cpp",
+  "src/gucefLabLink_CiRegistryFile.cpp",
   "src/gucefLabLink_Cluster.cpp",
   "src/gucefLabLink_ConfigFile.cpp",
   "src/gucefLabLink_HubStore.cpp",

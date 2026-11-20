@@ -22,6 +22,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREITEM_H
+#include "gucefASSETSTORE_CAssetStoreItem.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREITEM_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREITEM_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETVOCABULARY_H
+#include "gucefASSETSTORE_CAssetVocabulary.h"
+#define GUCEF_ASSETSTORE_CASSETVOCABULARY_H
+#endif /* GUCEF_ASSETSTORE_CASSETVOCABULARY_H ? */
+
 #include "gucefASSETSTORE_CIAssetMetadataNormalizer.h"
 
 /*-------------------------------------------------------------------------//
@@ -49,6 +58,20 @@ CIAssetMetadataNormalizer::CIAssetMetadataNormalizer( void )
 CIAssetMetadataNormalizer::~CIAssetMetadataNormalizer()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIAssetMetadataNormalizer::ClassifyItemLicence( const CAssetStoreItem& item, const CAssetVocabulary& vocabulary, CAssetLicence& licence )
+{GUCEF_TRACE;
+
+    licence = CAssetLicence();
+    licence.name = item.licenceName;
+    licence.url = item.licenceUrl;
+    licence.text = item.licenceText;
+    licence.restrictions = item.licenceRestrictions;
+    vocabulary.ClassifyLicence( licence );
 }
 
 /*-------------------------------------------------------------------------//

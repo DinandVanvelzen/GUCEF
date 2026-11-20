@@ -386,6 +386,96 @@ CAssetSyncMarkStore::GetSyncItems( const CORE::CString& sourceId, TAssetSyncItem
     return ASSETSTORE_STATUS_OK;
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSyncMarkStore::IsDetailsCacheAvailable( void ) const
+{GUCEF_TRACE;
+
+    return m_catalogue.IsOpen() && m_catalogue.GetSchemaVersion() >= 6;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetSyncMarkStore::WriteItemDetails( const CAssetSyncItemDetails& details )
+{GUCEF_TRACE;
+
+    if ( !IsDetailsCacheAvailable() )
+        return ASSETSTORE_STATUS_UNSUPPORTED;
+    if ( details.sourceId.IsNULLOrEmpty() || details.itemId.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    CAssetCatalogue::TRowVector rows( 1 );
+    rows[ 0 ][ "source_id" ] = CORE::CVariant( details.sourceId.Lowercase() );
+    rows[ 0 ][ "item_id" ] = CORE::CVariant( details.itemId );
+    rows[ 0 ][ "entry_fingerprint" ] = CORE::CVariant( details.entryFingerprint );
+    rows[ 0 ][ "fetched_ms" ] = CORE::CVariant( details.fetchedMs );
+    rows[ 0 ][ "details" ] = CORE::CVariant( details.details );
+    return m_catalogue.Write( "sync_item_details", rows );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetSyncMarkStore::GetItemDetailsOfStore( const CORE::CString& sourceId, TAssetSyncItemDetailsMap& details ) const
+{GUCEF_TRACE;
+
+    details.clear();
+    if ( !IsDetailsCacheAvailable() )
+        return ASSETSTORE_STATUS_UNSUPPORTED;
+    CORE::CDataTableQuery query;
+    query.WhereEquals( "source_id", CORE::CVariant( sourceId.Lowercase() ) );
+    CAssetCatalogue::TRowVector rows;
+    const TAssetStoreStatus status = m_catalogue.Select( "sync_item_details", query, rows );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    for ( size_t r=0; r<rows.size(); ++r )
+    {
+        CAssetSyncItemDetails entry;
+        entry.sourceId = CAssetCatalogue::GetText( rows[ r ], "source_id" );
+        entry.itemId = CAssetCatalogue::GetText( rows[ r ], "item_id" );
+        entry.entryFingerprint = CAssetCatalogue::GetText( rows[ r ], "entry_fingerprint" );
+        entry.fetchedMs = CAssetCatalogue::GetInt( rows[ r ], "fetched_ms" );
+        entry.details = CAssetCatalogue::GetText( rows[ r ], "details" );
+        if ( !entry.itemId.IsNULLOrEmpty() )
+            details[ entry.itemId ] = entry;
+    }
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetSyncMarkStore::PruneItemDetails( const CORE::CString& sourceId, const CORE::CString::StringSet& keep, UInt32& removed )
+{GUCEF_TRACE;
+
+    removed = 0;
+    if ( !IsDetailsCacheAvailable() )
+        return ASSETSTORE_STATUS_UNSUPPORTED;
+    const CORE::CString source = sourceId.Lowercase();
+    CORE::CDataTableQuery query;
+    query.Select( "item_id" );
+    query.WhereEquals( "source_id", CORE::CVariant( source ) );
+    CAssetCatalogue::TRowVector rows;
+    TAssetStoreStatus status = m_catalogue.Select( "sync_item_details", query, rows );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    for ( size_t r=0; r<rows.size(); ++r )
+    {
+        const CORE::CString itemId = CAssetCatalogue::GetText( rows[ r ], "item_id" );
+        if ( keep.end() != keep.find( itemId ) )
+            continue;
+        CORE::CDataTableQuery gone;
+        gone.WhereEquals( "source_id", CORE::CVariant( source ) );
+        gone.WhereEquals( "item_id", CORE::CVariant( itemId ) );
+        status = m_catalogue.Delete( "sync_item_details", gone );
+        if ( ASSETSTORE_STATUS_OK != status )
+            return status;
+        ++removed;
+    }
+    return ASSETSTORE_STATUS_OK;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

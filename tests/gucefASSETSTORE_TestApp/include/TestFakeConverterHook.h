@@ -59,8 +59,27 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
         MODE_REFUSE         ,
         MODE_FAIL           ,
         MODE_IO_ERROR       ,
-        MODE_WAIT_FOR_CANCEL
+        MODE_WAIT_FOR_CANCEL,
+        MODE_FAIL_MIDWAY        /**< writes the output of one asset, then the storage "refuses" a write */
     };
+
+    /** What the last conversion was asked */
+    struct SLastRequest
+    {
+        bool cookOnly;
+        bool noCook;
+        bool reconvert;
+        bool keepPartialResult;
+        GUCEF::CORE::CString::StringVector assetGlobs;
+        GUCEF::CORE::CString convertedVfsFolder;
+        GUCEF::CORE::CString cookedVfsFolder;
+        SLastRequest( void ) : cookOnly( false ), noCook( false ), reconvert( false ), keepPartialResult( false ), assetGlobs(), convertedVfsFolder(), cookedVfsFolder() {}
+    };
+
+    /** The models (asset names) that fail in a conversion: no output, the status failed in the report, the run FAILED */
+    void SetFailingAssets( const GUCEF::CORE::CString::StringSet& assetNames );
+
+    SLastRequest GetLastRequest( void ) const;
 
     CTestConverterHook( void );
     virtual ~CTestConverterHook();
@@ -104,6 +123,8 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
     EIndexMode m_indexMode;
     GUCEF::UInt32 m_indexCalls;
     GUCEF::UInt32 m_indexBuilds;
+    GUCEF::CORE::CString::StringSet m_failingAssets;
+    SLastRequest m_lastRequest;
     mutable GUCEF::MT::CMutex m_lock;
 };
 

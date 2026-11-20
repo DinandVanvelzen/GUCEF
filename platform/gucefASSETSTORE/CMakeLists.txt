@@ -30,6 +30,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetConversionJobRequest.h
   include/gucefASSETSTORE_CAssetConversionOutcome.h
   include/gucefASSETSTORE_CAssetConversionRecord.h
+  include/gucefASSETSTORE_CAssetConversionReportSummary.h
   include/gucefASSETSTORE_CAssetConversionRequest.h
   include/gucefASSETSTORE_CAssetDigest.h
   include/gucefASSETSTORE_CAssetDiskPackNormalizer.h
@@ -48,6 +49,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetIngestResult.h
   include/gucefASSETSTORE_CAssetItemRevision.h
   include/gucefASSETSTORE_CAssetJobEntry.h
+  include/gucefASSETSTORE_CAssetJobFollowLines.h
   include/gucefASSETSTORE_CAssetJobStartTool.h
   include/gucefASSETSTORE_CAssetJobTool.h
   include/gucefASSETSTORE_CAssetKeyword.h
@@ -71,6 +73,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetNormalizationInput.h
   include/gucefASSETSTORE_CAssetOnlineStoreTool.h
   include/gucefASSETSTORE_CAssetPackConversion.h
+  include/gucefASSETSTORE_CAssetPackGenerations.h
   include/gucefASSETSTORE_CAssetPackGroup.h
   include/gucefASSETSTORE_CAssetPackIndexInfo.h
   include/gucefASSETSTORE_CAssetPackIndexLoader.h
@@ -79,6 +82,8 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetPackIndexReport.h
   include/gucefASSETSTORE_CAssetPackIndexRequest.h
   include/gucefASSETSTORE_CAssetPackRecord.h
+  include/gucefASSETSTORE_CAssetPackRegeneration.h
+  include/gucefASSETSTORE_CAssetPackReprocessJob.h
   include/gucefASSETSTORE_CAssetPackResource.h
   include/gucefASSETSTORE_CAssetPackSourceRecord.h
   include/gucefASSETSTORE_CAssetPipelineChangeTool.h
@@ -88,6 +93,9 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetRecord.h
   include/gucefASSETSTORE_CAssetRelationRecord.h
   include/gucefASSETSTORE_CAssetRenderSheetTool.h
+  include/gucefASSETSTORE_CAssetReprocessGuard.h
+  include/gucefASSETSTORE_CAssetReprocessRequest.h
+  include/gucefASSETSTORE_CAssetReprocessSettings.h
   include/gucefASSETSTORE_CAssetRootedPath.h
   include/gucefASSETSTORE_CAssetSavedSearch.h
   include/gucefASSETSTORE_CAssetSearchEngine.h
@@ -142,6 +150,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetStoreTransferSink.h
   include/gucefASSETSTORE_CAssetStoreWriteTool.h
   include/gucefASSETSTORE_CAssetStrictConfigReader.h
+  include/gucefASSETSTORE_CAssetSyncItemDetails.h
   include/gucefASSETSTORE_CAssetSyncItemRecord.h
   include/gucefASSETSTORE_CAssetSyncMark.h
   include/gucefASSETSTORE_CAssetSyncMarkStore.h
@@ -246,6 +255,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetConversionJobRequest.cpp
   src/gucefASSETSTORE_CAssetConversionOutcome.cpp
   src/gucefASSETSTORE_CAssetConversionRecord.cpp
+  src/gucefASSETSTORE_CAssetConversionReportSummary.cpp
   src/gucefASSETSTORE_CAssetConversionRequest.cpp
   src/gucefASSETSTORE_CAssetDigest.cpp
   src/gucefASSETSTORE_CAssetDiskPackNormalizer.cpp
@@ -264,6 +274,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetIngestResult.cpp
   src/gucefASSETSTORE_CAssetItemRevision.cpp
   src/gucefASSETSTORE_CAssetJobEntry.cpp
+  src/gucefASSETSTORE_CAssetJobFollowLines.cpp
   src/gucefASSETSTORE_CAssetJobStartTool.cpp
   src/gucefASSETSTORE_CAssetJobTool.cpp
   src/gucefASSETSTORE_CAssetKeyword.cpp
@@ -287,6 +298,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetNormalizationInput.cpp
   src/gucefASSETSTORE_CAssetOnlineStoreTool.cpp
   src/gucefASSETSTORE_CAssetPackConversion.cpp
+  src/gucefASSETSTORE_CAssetPackGenerations.cpp
   src/gucefASSETSTORE_CAssetPackGroup.cpp
   src/gucefASSETSTORE_CAssetPackIndexInfo.cpp
   src/gucefASSETSTORE_CAssetPackIndexLoader.cpp
@@ -295,6 +307,8 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetPackIndexReport.cpp
   src/gucefASSETSTORE_CAssetPackIndexRequest.cpp
   src/gucefASSETSTORE_CAssetPackRecord.cpp
+  src/gucefASSETSTORE_CAssetPackRegeneration.cpp
+  src/gucefASSETSTORE_CAssetPackReprocessJob.cpp
   src/gucefASSETSTORE_CAssetPackResource.cpp
   src/gucefASSETSTORE_CAssetPackSourceRecord.cpp
   src/gucefASSETSTORE_CAssetPipelineChangeTool.cpp
@@ -304,6 +318,9 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetRecord.cpp
   src/gucefASSETSTORE_CAssetRelationRecord.cpp
   src/gucefASSETSTORE_CAssetRenderSheetTool.cpp
+  src/gucefASSETSTORE_CAssetReprocessGuard.cpp
+  src/gucefASSETSTORE_CAssetReprocessRequest.cpp
+  src/gucefASSETSTORE_CAssetReprocessSettings.cpp
   src/gucefASSETSTORE_CAssetRootedPath.cpp
   src/gucefASSETSTORE_CAssetSavedSearch.cpp
   src/gucefASSETSTORE_CAssetSearchEngine.cpp
@@ -358,6 +375,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetStoreTransferSink.cpp
   src/gucefASSETSTORE_CAssetStoreWriteTool.cpp
   src/gucefASSETSTORE_CAssetStrictConfigReader.cpp
+  src/gucefASSETSTORE_CAssetSyncItemDetails.cpp
   src/gucefASSETSTORE_CAssetSyncItemRecord.cpp
   src/gucefASSETSTORE_CAssetSyncMark.cpp
   src/gucefASSETSTORE_CAssetSyncMarkStore.cpp

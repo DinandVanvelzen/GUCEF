@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -182,6 +184,7 @@ CAssetLibrarySyncJob::RegisterEvents( void )
 CAssetLibrarySyncJob::SInFlight::SInFlight( void )
     : work()
     , downloaded( false )
+    , waitingForSignIn( false )
 {GUCEF_TRACE;
 
 }
@@ -221,6 +224,10 @@ CAssetLibrarySyncJob::CAssetLibrarySyncJob( CLocalAssetStoreService& service, co
     , m_restoredRun( false )
     , m_lastCheckpoint()
     , m_lastQueuedTitle()
+    , m_storedPlan()
+    , m_useStoredPlan( false )
+    , m_detailsCache()
+    , m_detailsCacheWarned( false )
     , m_phase( PHASE_CREATED )
     , m_wait( WAIT_NONE )
     , m_future( CORE::TASKSTATUS_UNDEFINED )
@@ -244,6 +251,13 @@ CAssetLibrarySyncJob::CAssetLibrarySyncJob( CLocalAssetStoreService& service, co
     , m_counts()
     , m_failures()
     , m_storageFreeBytes( 0 )
+    , m_planNote()
+    , m_planBuilt( false )
+    , m_listedSoFar( 0 )
+    , m_pagesSoFar( 0 )
+    , m_detailsNeeded( 0 )
+    , m_detailsAsked( 0 )
+    , m_detailsFromCache( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -318,6 +332,36 @@ CAssetLibrarySyncJob::Start( CORE::CString& problem )
     Checkpoint( true );
     m_wakeup->Wake();
     return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncJob::UseStoredPlan( const CORE::CDataNode& storedPlan )
+{GUCEF_TRACE;
+
+    m_storedPlan = storedPlan;
+    m_useStoredPlan = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncJob::SetPlanNote( const CORE::CString& note )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_dataLock );
+    m_planNote = note;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetLibrarySyncJob::GetPlanNote( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_dataLock );
+    return m_planNote;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -428,14 +472,51 @@ CAssetLibrarySyncJob::Begin( void )
                           << ( m_worklist.size() - m_next ) << " work item(s) to queue, " << m_inFlight.size() << " download(s) of the run to follow" );
         ReconcileInFlight();
         AdoptQueuedDownloads();
+        bool waiting = false;
+        for ( TInFlightMap::const_iterator i = m_inFlight.begin(); i != m_inFlight.end() && !waiting; ++i )
+            waiting = (*i).second.waitingForSignIn;
+        if ( waiting )
+        {
+            // downloads that the store refused before the restart: retried when the store is signed in
+            WaitForSignIn( "a download, before the restart" );
+            if ( !m_provider.IsNULL() && m_provider->IsSignedIn() )
+                ResumeAfterSignIn();
+            return;
+        }
         Fill();
         return;
     }
 
     m_planner.Reset( m_spec );
     m_planner.SetVocabulary( &m_store->GetVocabulary() );
+    m_planner.SetLicenceClassifier( m_provider->GetMetadataNormalizer() );
+    m_planner.SetMaxDownloadBytes( m_provider->GetMaxDownloadBytes() );
     ConfigureAdmission();
     Subscribe();
+
+    if ( m_useStoredPlan )
+    {
+        // the listing of the stored plan stands for the library: nothing is asked of the store before the downloads
+        m_useStoredPlan = false;
+        if ( m_planner.ImportListing( m_storedPlan ) )
+        {
+            m_storedPlan.Clear();
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " starts the sync of the library of store " << m_spec.storeId << " with the stored plan of "
+                              << CAssetLibrarySyncPlanner::DescribeAge( NowMs() - m_planner.GetImportedListingTime() ) << " ago (" << m_planner.GetListedCount() << " items): no listing, no details" );
+            {
+                MT::CScopeMutex lock( m_dataLock );
+                m_listedSoFar = m_planner.GetListedCount();
+                m_pagesSoFar = m_planner.GetPageCount();
+            }
+            m_phase = PHASE_LISTING;
+            Checkpoint( true );
+            BeginPlanning();
+            return;
+        }
+        m_storedPlan.Clear();
+        SetPlanNote( "planning first (the stored plan of the store could not be read)" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " cannot read the stored plan of store " << m_spec.storeId << ": it lists the library" );
+    }
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " starts the " << ( m_spec.IsPlanOnly() ? "plan" : "sync" ) << " of the library of store " << m_spec.storeId );
     m_phase = PHASE_LISTING;
@@ -602,7 +683,18 @@ CAssetLibrarySyncJob::OnTimer( CORE::CNotifier* notifier, const CORE::CEvent& ev
             {
                 CAssetStoreItem item;
                 if ( CIAssetStoreService::TryGetFutureResult( m_future, item ) )
+                {
                     m_planner.ApplyEnrichment( item );
+                    CacheDetails( m_enrichment[ m_nextEnrichment - 1 ], item, NowMs() );
+                }
+                else
+                if ( IsSessionStatus( CIAssetStoreProvider::GetStatusOfFuture( m_future ) ) )
+                {
+                    // the same item is asked again after the sign in
+                    --m_nextEnrichment;
+                    WaitForSignIn( "the details of the items" );
+                    break;
+                }
                 else
                 {
                     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " could not get the details of item " << m_enrichment[ m_nextEnrichment - 1 ] << ": " << AssetStoreStatusToString( CIAssetStoreProvider::GetStatusOfFuture( m_future ) ) );
@@ -620,13 +712,7 @@ CAssetLibrarySyncJob::OnTimer( CORE::CNotifier* notifier, const CORE::CEvent& ev
         {
             // the event of the store says when it is signed in; this slow look is for a store that does not tell
             if ( !m_provider.IsNULL() && m_provider->IsSignedIn() )
-            {
-                {
-                    MT::CScopeMutex lock( m_dataLock );
-                    m_status = ASSETSTORE_STATUS_OK;
-                }
-                RequestPage();
-            }
+                ResumeAfterSignIn();
             break;
         }
         default:
@@ -648,6 +734,11 @@ CAssetLibrarySyncJob::OnPageReady( void )
     {
         m_pageRetries = 0;
         m_planner.AddListingPage( page );
+        {
+            MT::CScopeMutex lock( m_dataLock );
+            m_listedSoFar = m_planner.GetListedCount();
+            m_pagesSoFar = m_planner.GetPageCount();
+        }
         if ( page.nextCursor.IsNULLOrEmpty() || page.nextCursor == m_cursor )
         {
             m_planner.SetListingComplete( !page.nextCursor.IsNULLOrEmpty() ? false : true );
@@ -661,19 +752,10 @@ CAssetLibrarySyncJob::OnPageReady( void )
 
     // a page that failed is asked again after a wait; after the retries the listing is partial
     const TAssetStoreStatus status = CIAssetStoreProvider::GetStatusOfFuture( m_future );
-    if ( ASSETSTORE_STATUS_NOT_SIGNED_IN == status || ASSETSTORE_STATUS_SESSION_EXPIRED == status )
+    if ( IsSessionStatus( status ) )
     {
         // the run waits for the sign in of the store (a person's step) and takes the listing up again at the page it was at
-        {
-            MT::CScopeMutex lock( m_dataLock );
-            m_status = ASSETSTORE_STATUS_OWNER_ACTION_NEEDED;
-            m_stateText = "waiting for sign in";
-            m_message = "The store " + m_spec.storeId + " needs a sign in before its library can be synced; the sync goes on after the sign in";
-        }
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " waits for the sign in of store " << m_spec.storeId );
-        SetWait( WAIT_SIGN_IN, SignInCheckIntervalMs );
-        Checkpoint( true );
-        Changed();
+        WaitForSignIn( "the listing" );
         return;
     }
     if ( m_pageRetries < MaxPageRetries )
@@ -711,8 +793,49 @@ CAssetLibrarySyncJob::BeginPlanning( void )
     TAssetStoreDownloadJobVector jobs;
     m_manager->GetJobs( jobs );
     m_planner.SetDownloadJobs( jobs );
-    m_planner.GetEnrichmentCandidates( m_enrichment );
+    m_enrichment.clear();
     m_nextEnrichment = 0;
+    if ( m_planner.GetImportedListingTime() > 0 )
+    {
+        // the stored plan holds the details that were applied when it was made
+        BuildPlan();
+        return;
+    }
+
+    // the details of an item whose library entry did not change since they were asked come from the cache of the service
+    CORE::CString::StringVector candidates;
+    m_planner.GetEnrichmentCandidates( candidates );
+    m_detailsCache.clear();
+    CAssetSyncMarkStore& syncStore = m_store->GetSyncStore();
+    if ( !candidates.empty() && !m_spec.refreshDetails && m_spec.profile.detailsMaxAgeDays > 0 && syncStore.IsDetailsCacheAvailable() )
+    {
+        const TAssetStoreStatus read = syncStore.GetItemDetailsOfStore( m_spec.storeId, m_detailsCache );
+        if ( ASSETSTORE_STATUS_OK != read )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " cannot read the cached details of the items of store " << m_spec.storeId << ": " << AssetStoreStatusToString( read ) << "; they are asked of the store" );
+        }
+    }
+    const Int64 now = NowMs();
+    UInt32 fromCache = 0;
+    for ( size_t c=0; c<candidates.size(); ++c )
+    {
+        if ( TakeCachedDetails( candidates[ c ], now ) )
+            ++fromCache;
+        else
+            m_enrichment.push_back( candidates[ c ] );
+    }
+    m_detailsCache.clear();
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        m_detailsNeeded = (UInt32) candidates.size();
+        m_detailsFromCache = fromCache;
+        m_detailsAsked = 0;
+    }
+    if ( !candidates.empty() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << ": " << candidates.size() << " item(s) of store " << m_spec.storeId << " need their details: "
+                          << fromCache << " from the cache, " << m_enrichment.size() << " asked of the store" << ( m_spec.refreshDetails ? " (the cache is not used: refresh of the details)" : "" ) );
+    }
     if ( m_enrichment.empty() )
     {
         BuildPlan();
@@ -736,7 +859,12 @@ CAssetLibrarySyncJob::RequestNextEnrichment( void )
     }
     m_future = m_provider->GetItemAsync( m_enrichment[ m_nextEnrichment ] );
     ++m_nextEnrichment;
-    SetStateText( "details of the items: " + CORE::ToString( (UInt32) m_nextEnrichment ) + " of " + CORE::ToString( (UInt32) m_enrichment.size() ) );
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        m_detailsAsked = (UInt32) m_nextEnrichment;
+        m_stateText = "details of the items: " + CORE::ToString( (UInt32) m_nextEnrichment ) + " of " + CORE::ToString( (UInt32) m_enrichment.size() ) + " asked of the store" +
+                      ( m_detailsFromCache > 0 ? ", " + CORE::ToString( m_detailsFromCache ) + " from the cache" : CORE::CString::Empty );
+    }
     SetWait( WAIT_ITEM, PollIntervalMs );
     Changed();
 }
@@ -751,6 +879,12 @@ CAssetLibrarySyncJob::BuildPlan( void )
     CAssetLibrarySyncPlan plan;
     m_planner.BuildPlan( now, plan, m_worklist );
     m_next = 0;
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        plan.detailsNeeded = m_detailsNeeded;
+        plan.detailsRequested = m_detailsAsked;
+        plan.detailsFromCache = m_detailsFromCache;
+    }
 
     // the storage: what the volume of the location has against what the plan needs
     UInt64 freeBytes = 0;
@@ -760,18 +894,54 @@ CAssetLibrarySyncJob::BuildPlan( void )
         plan.storageFreeBytes = freeBytes;
         plan.storageTotalBytes = totalBytes;
         plan.storageReserveBytes = m_admission.GetReserveBytes( totalBytes );
-        plan.storageVerdict = CAssetLibrarySyncAdmission::FitsOnDisk( freeBytes, 0, plan.estimatedBytes, m_spec.profile.diskFactor, plan.storageReserveBytes ) ? "fits" : "does-not-fit";
+        // the formats of unknown size count with what the admission assumes for them
+        plan.storageVerdict = CAssetLibrarySyncAdmission::FitsOnDisk( freeBytes, 0, plan.estimatedBytes + plan.unknownSizeAssumedBytes, m_spec.profile.diskFactor, plan.storageReserveBytes ) ? "fits" : "does-not-fit";
     }
     const TAssetStoreStatus observed = m_planner.WriteObservations( m_store->GetSyncStore(), now, !m_spec.IsPlanOnly() );
     if ( ASSETSTORE_STATUS_OK != observed && ASSETSTORE_STATUS_UNSUPPORTED != observed )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " could not write the observations of the items: " << AssetStoreStatusToString( observed ) );
     }
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " planned store " << m_spec.storeId << ": " << plan.Describe() << "; " << plan.queuedDownloads << " download(s) of about " << plan.estimatedBytes << " bytes" );
+    const bool fromStoredPlan = m_planner.GetImportedListingTime() > 0;
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " planned store " << m_spec.storeId << ": " << plan.Describe() << "; " << plan.queuedDownloads << " download(s), "
+                      << plan.estimatedBytes << " bytes known" << ( plan.sizeUnknownItems > 0 ? ", " + CORE::ToString( plan.sizeUnknownItems ) + " item(s) of unknown size" : CORE::CString::Empty )
+                      << "; asked of the store: " << ( fromStoredPlan ? CORE::CString( "nothing (the stored plan)" ) : CORE::ToString( plan.pages ) + " page(s) of the library, the details of " +
+                      CORE::ToString( plan.detailsRequested ) + " item(s) (" + CORE::ToString( plan.detailsFromCache ) + " from the cache)" ) );
     {
         MT::CScopeMutex lock( m_dataLock );
         m_plan = plan;
         m_storageFreeBytes = freeBytes;
+        m_planBuilt = true;
+    }
+
+    // the cache of the details keeps the items of the library only: those a complete listing does not have go
+    if ( !fromStoredPlan && m_planner.IsListingComplete() && m_spec.itemIds.empty() && m_store->GetSyncStore().IsDetailsCacheAvailable() )
+    {
+        CORE::CString::StringSet listedIds;
+        m_planner.GetListedItemIds( listedIds );
+        UInt32 removed = 0;
+        if ( ASSETSTORE_STATUS_OK == m_store->GetSyncStore().PruneItemDetails( m_spec.storeId, listedIds, removed ) && removed > 0 )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " removed the cached details of " << removed << " item(s) that left the library of store " << m_spec.storeId );
+        }
+    }
+
+    // a plan is kept for the runs that follow (the last plan of the store): only a complete listing
+    if ( m_spec.IsPlanOnly() && !fromStoredPlan )
+    {
+        if ( m_planner.IsListingComplete() )
+        {
+            CORE::CDataNode storedPlan;
+            m_planner.ExportListing( plan.listedAtMs, storedPlan );
+            if ( m_service.StoreSyncPlan( m_spec.storeId, storedPlan ) )
+                SetPlanNote( "the plan is kept: a sync start within " + CORE::ToString( m_spec.profile.planMaxAgeMinutes ) + " minutes uses it" );
+            else
+                SetPlanNote( "the plan could not be kept (the service keeps no state): a sync start plans again" );
+        }
+        else
+        {
+            SetPlanNote( "the listing was not complete: the plan is not kept, a sync start plans again" );
+        }
     }
     if ( m_spec.IsPlanOnly() )
     {
@@ -787,6 +957,62 @@ CAssetLibrarySyncJob::BuildPlan( void )
     AdoptQueuedDownloads();
     Checkpoint( true );
     Fill();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncJob::TakeCachedDetails( const CORE::CString& itemId, Int64 nowMs )
+{GUCEF_TRACE;
+
+    TAssetSyncItemDetailsMap::const_iterator cached = m_detailsCache.find( itemId );
+    if ( cached == m_detailsCache.end() )
+        return false;
+    const Int64 maxAgeMs = (Int64) m_spec.profile.detailsMaxAgeDays * 24 * 60 * 60 * 1000;
+    if ( !(*cached).second.IsUsable( m_planner.GetEntryFingerprint( itemId ), nowMs, maxAgeMs ) )
+        return false;
+    CAssetStoreItem item;
+    if ( !(*cached).second.GetItem( item ) )
+        return false;
+    m_planner.ApplyEnrichment( item );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncJob::CacheDetails( const CORE::CString& itemId, const CAssetStoreItem& item, Int64 nowMs )
+{GUCEF_TRACE;
+
+    CAssetSyncMarkStore& syncStore = m_store->GetSyncStore();
+    if ( 0 == m_spec.profile.detailsMaxAgeDays || !syncStore.IsDetailsCacheAvailable() )
+        return;
+    CAssetSyncItemDetails details;
+    if ( !details.SetItem( item ) )
+        return;
+    details.sourceId = m_spec.storeId;
+    details.itemId = itemId;
+    details.entryFingerprint = m_planner.GetEntryFingerprint( itemId );
+    details.fetchedMs = nowMs;
+    const TAssetStoreStatus written = syncStore.WriteItemDetails( details );
+    if ( ASSETSTORE_STATUS_OK != written && !m_detailsCacheWarned )
+    {
+        m_detailsCacheWarned = true;
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " cannot keep the details of the items in the cache: " << AssetStoreStatusToString( written ) << "; the next plan asks them again" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetLibrarySyncJob::DescribePlanningLocked( void ) const
+{GUCEF_TRACE;
+
+    CORE::CString text = "planning: " + CORE::ToString( m_listedSoFar ) + " item(s) listed in " + CORE::ToString( m_pagesSoFar ) + " page(s)";
+    if ( m_detailsNeeded > 0 )
+        text += "; details of " + CORE::ToString( m_detailsNeeded ) + " item(s) needed: " + CORE::ToString( m_detailsFromCache ) + " from the cache, " +
+                CORE::ToString( m_detailsAsked ) + " of " + CORE::ToString( m_detailsNeeded - m_detailsFromCache ) + " asked of the store";
+    return text;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -836,7 +1062,7 @@ CAssetLibrarySyncJob::Fill( void )
     for ( TInFlightMap::const_iterator i = m_inFlight.begin(); i != m_inFlight.end(); ++i )
         ownInFlight.insert( (*i).second.work.itemId + "\n" + (*i).second.work.formatId );
     CORE::CString waitReason;
-    while ( !m_paused && m_next < m_worklist.size() && 0 == m_cancelRequested.Load() )
+    while ( !m_paused && WAIT_SIGN_IN != m_wait && m_next < m_worklist.size() && 0 == m_cancelRequested.Load() )
     {
         const CAssetLibrarySyncPlanner::SWorkItem& work = m_worklist[ m_next ];
         if ( ownInFlight.end() != ownInFlight.find( work.itemId + "\n" + work.formatId ) )
@@ -874,6 +1100,10 @@ CAssetLibrarySyncJob::Fill( void )
             break;
         }
 
+        // the user lets the items named through the size guard of the store plugin
+        if ( m_spec.allowLarge && m_spec.itemIds.end() != std::find( m_spec.itemIds.begin(), m_spec.itemIds.end(), work.itemId ) )
+            m_provider->AllowLargeDownload( work.itemId );
+
         CAssetDownloadRequest request;
         request.providerId = m_spec.storeId;
         request.itemId = work.itemId;
@@ -881,7 +1111,7 @@ CAssetLibrarySyncJob::Fill( void )
         request.formatId = work.formatId;
         request.forIngest = true;
         request.expectedRevision = work.expectedRevision;
-        request.expectedBytes = work.estimatedBytes;
+        request.expectedBytes = work.sizeKnown ? work.estimatedBytes : 0;     // an assumed size is not an expectation
         request.syncJobId = m_jobId;
         CAssetServiceResult queued;
         const TAssetStoreStatus status = m_service.EnqueueDownload( CORE::CString::Empty, request, queued );
@@ -907,6 +1137,9 @@ CAssetLibrarySyncJob::Fill( void )
         Finish();
         return;
     }
+    if ( WAIT_SIGN_IN == m_wait )
+        SetStateText( "waiting for sign in" );
+    else
     if ( m_paused )
         SetStateText( "paused: " + DescribeRun() );
     else
@@ -1010,11 +1243,32 @@ CAssetLibrarySyncJob::OnDownloadJobEvent( CORE::CNotifier* notifier, const CORE:
         Changed();
         return;
     }
+    if ( ( CAssetStoreDownloadManager::JobFailedEvent == eventId || ASSETDOWNLOAD_STATE_FAILED == data->job.state ) && IsSessionStatus( data->job.status ) )
+    {
+        // not a failure of the item: the store refused the session. The download stays in the queue of the manager (its part files
+        // with it) and is retried after the sign in; nothing more is queued until then
+        if ( !(*i).second.waitingForSignIn )
+        {
+            (*i).second.waitingForSignIn = true;
+            if ( WAIT_SIGN_IN != m_wait )
+                WaitForSignIn( "a download" );
+            else
+            {
+                Checkpoint( true );
+                Changed();
+            }
+        }
+        return;
+    }
     if ( CAssetStoreDownloadManager::JobFailedEvent == eventId || ASSETDOWNLOAD_STATE_FAILED == data->job.state )
     {
         if ( ASSETSTORE_STATUS_RATE_LIMITED == data->job.status )
             m_admission.NoteRateLimited();
-        ItemEnded( data->job.jobId, data->job.status, data->job.message, false );
+        const CORE::CString downloadJobId = data->job.jobId;
+        ItemEnded( downloadJobId, data->job.status, data->job.message, false );
+        // a download that failed for good leaves the queue with its staging folder: a later run downloads the item again into a new
+        // one (the chunks of a build stay in the chunk cache of the plugin), nothing is left behind on the library's share
+        m_service.DiscardDownload( downloadJobId );
         return;
     }
     if ( ( ASSETDOWNLOAD_STATE_CANCELLED == data->job.state || CAssetStoreDownloadManager::JobRemovedEvent == eventId ) && !(*i).second.downloaded )
@@ -1038,13 +1292,90 @@ CAssetLibrarySyncJob::OnStoreStateChanged( CORE::CNotifier* notifier, const CORE
     const CAssetStoreInfo* info = CORE::CICloneable::CloneableAs< CAssetStoreInfo >( eventData );
     if ( GUCEF_NULL == info || WAIT_SIGN_IN != m_wait || PHASE_ENDED == m_phase || info->storeId.Lowercase() != m_spec.storeId || !info->signedIn )
         return;
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << ": store " << m_spec.storeId << " is signed in, the listing goes on" );
+    ResumeAfterSignIn();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncJob::IsSessionStatus( TAssetStoreStatus status )
+{GUCEF_TRACE;
+
+    return ASSETSTORE_STATUS_NOT_SIGNED_IN == status || ASSETSTORE_STATUS_SESSION_EXPIRED == status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncJob::WaitForSignIn( const CORE::CString& during )
+{GUCEF_TRACE;
+
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        m_status = ASSETSTORE_STATUS_OWNER_ACTION_NEEDED;
+        m_stateText = "waiting for sign in";
+        m_message = "The store " + m_spec.storeId + " refused the session during " + during + ": sign in again (or hand a new session over); the sync goes on after the sign in";
+    }
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << " waits for the sign in of store " << m_spec.storeId << " (the store refused the session during " << during << ")" );
+    SetWait( WAIT_SIGN_IN, SignInCheckIntervalMs );
+    Checkpoint( true );
+    Changed();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncJob::ResumeAfterSignIn( void )
+{GUCEF_TRACE;
+
+    if ( WAIT_SIGN_IN != m_wait || PHASE_ENDED == m_phase )
+        return;
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << ": store " << m_spec.storeId << " is signed in, the sync goes on" );
     {
         MT::CScopeMutex lock( m_dataLock );
         m_status = ASSETSTORE_STATUS_OK;
         m_message.Clear();
     }
-    RequestPage();
+    SetWait( WAIT_NONE, 0 );
+    if ( PHASE_LISTING == m_phase || PHASE_CREATED == m_phase )
+    {
+        RequestPage();
+        return;
+    }
+    if ( PHASE_ENRICHING == m_phase )
+    {
+        RequestNextEnrichment();
+        return;
+    }
+
+    // the downloads that the store refused are queued again by the manager (their part files are kept); one the manager no longer
+    // has goes back to the work list
+    UInt32 retried = 0;
+    CORE::CString::StringVector gone;
+    for ( TInFlightMap::iterator i = m_inFlight.begin(); i != m_inFlight.end(); ++i )
+    {
+        if ( !(*i).second.waitingForSignIn )
+            continue;
+        if ( ASSETSTORE_STATUS_OK == m_manager->Retry( (*i).first ) )
+        {
+            (*i).second.waitingForSignIn = false;
+            ++retried;
+        }
+        else
+            gone.push_back( (*i).first );
+    }
+    for ( size_t g=0; g<gone.size(); ++g )
+    {
+        TInFlightMap::iterator i = m_inFlight.find( gone[ g ] );
+        m_worklist.push_back( (*i).second.work );
+        m_inFlight.erase( i );
+    }
+    if ( retried > 0 || !gone.empty() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetLibrarySyncJob: " << m_jobId << ": " << retried << " download(s) that the store refused are retried, " << gone.size() << " queued again" );
+    }
+    Checkpoint( true );
+    Fill();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1209,12 +1540,15 @@ CAssetLibrarySyncJob::Restore( const CORE::CDataNode& checkpoint, CORE::CString&
                 SInFlight entry;
                 DeserializeWorkItem( *(*i), entry.work );
                 entry.downloaded = (*i)->GetAttributeValueOrChildValueByName( "downloaded" ).AsBool( false, true );
+                entry.waitingForSignIn = (*i)->GetAttributeValueOrChildValueByName( "waitingForSignIn" ).AsBool( false, true );
                 m_inFlight[ downloadJobId ] = entry;
             }
         }
         // the phase stays "created" until Begin() on the thread of the pulse generator has looked at the downloads again
         m_restoredRun = true;
         m_planner.SetVocabulary( &m_store->GetVocabulary() );
+        m_planner.SetLicenceClassifier( m_provider->GetMetadataNormalizer() );
+        m_planner.SetMaxDownloadBytes( m_provider->GetMaxDownloadBytes() );
         ConfigureAdmission();
     }
     else
@@ -1272,6 +1606,9 @@ CAssetLibrarySyncJob::ReconcileInFlight( void )
         if ( !known || ASSETDOWNLOAD_STATE_CANCELLED == job.state )
             requeue.push_back( (*i).first );
         else
+        if ( ASSETDOWNLOAD_STATE_FAILED == job.state && ( (*i).second.waitingForSignIn || IsSessionStatus( job.status ) ) )
+            (*i).second.waitingForSignIn = true;        // refused by the store for its session: retried after the sign in
+        else
         if ( ASSETDOWNLOAD_STATE_FAILED == job.state )
             failed.push_back( (*i).first );
         else
@@ -1306,6 +1643,7 @@ CAssetLibrarySyncJob::ReconcileInFlight( void )
         const CAssetLibrarySyncPlanner::SWorkItem work = (*i).second.work;
         m_inFlight.erase( i );
         RecordAttempt( work, job.status, job.message, false );
+        m_service.DiscardDownload( failed[ f ] );
     }
     if ( !finished.empty() || !requeue.empty() || !failed.empty() )
     {
@@ -1367,6 +1705,7 @@ CAssetLibrarySyncJob::SerializeWorkItem( const CAssetLibrarySyncPlanner::SWorkIt
     node.SetAttribute( "formatId", work.formatId );
     node.SetAttribute( "expectedRevision", work.expectedRevision );
     node.SetAttribute( "estimatedBytes", work.estimatedBytes );
+    node.SetAttribute( "sizeKnown", work.sizeKnown );
     node.SetAttribute( "stale", work.stale );
     node.SetAttribute( "changedAtMs", work.changedAtMs );
     node.SetAttribute( "acquiredAtMs", work.acquiredAtMs );
@@ -1384,6 +1723,7 @@ CAssetLibrarySyncJob::DeserializeWorkItem( const CORE::CDataNode& node, CAssetLi
     work.formatId = node.GetAttributeValueOrChildValueByName( "formatId" ).AsString();
     work.expectedRevision = node.GetAttributeValueOrChildValueByName( "expectedRevision" ).AsString();
     work.estimatedBytes = node.GetAttributeValueOrChildValueByName( "estimatedBytes" ).AsUInt64( 0, true );
+    work.sizeKnown = node.GetAttributeValueOrChildValueByName( "sizeKnown" ).AsBool( false, true );
     work.stale = node.GetAttributeValueOrChildValueByName( "stale" ).AsBool( false, true );
     work.changedAtMs = node.GetAttributeValueOrChildValueByName( "changedAtMs" ).AsInt64( 0, true );
     work.acquiredAtMs = node.GetAttributeValueOrChildValueByName( "acquiredAtMs" ).AsInt64( 0, true );
@@ -1467,6 +1807,7 @@ CAssetLibrarySyncJob::ReadWorklist( const CORE::CString& path )
     MT::CScopeMutex lock( m_dataLock );
     m_plan = plan;
     m_storageFreeBytes = plan.storageFreeBytes;
+    m_planBuilt = true;
     return true;
 }
 
@@ -1491,8 +1832,10 @@ CAssetLibrarySyncJob::Checkpoint( bool force )
         CORE::CDataNode* entry = inFlight->AddChild( "download", GUCEF_DATATYPE_OBJECT );
         entry->SetAttribute( "downloadJobId", (*i).first );
         entry->SetAttribute( "downloaded", (*i).second.downloaded );
+        if ( (*i).second.waitingForSignIn )
+            entry->SetAttribute( "waitingForSignIn", true );
         SerializeWorkItem( (*i).second.work, *entry );
-        signature += "|" + (*i).first + ( (*i).second.downloaded ? "+" : "-" );
+        signature += "|" + (*i).first + ( (*i).second.downloaded ? "+" : "-" ) + ( (*i).second.waitingForSignIn ? "s" : "" );
     }
     {
         MT::CScopeMutex lock( m_dataLock );
@@ -1580,6 +1923,8 @@ CORE::CString
 CAssetLibrarySyncJob::GetResultTextLocked( void ) const
 {GUCEF_TRACE;
 
+    if ( !m_planBuilt )
+        return DescribePlanningLocked();
     CORE::CString text = m_plan.Describe();
     if ( ASSETJOB_STATE_DONE != m_state && ASSETJOB_STATE_CANCELLED != m_state )
         return text;
@@ -1622,6 +1967,7 @@ CAssetLibrarySyncJob::FillEntry( CAssetJobEntry& entry ) const
     entry.status = m_status;
     entry.stateText = m_stateText;
     entry.message = m_message;
+    entry.detail = m_planNote;
     entry.itemsTotal = m_plan.queuedDownloads;
     entry.itemsDone = m_counts.ingested + m_counts.revalidated + m_counts.failed + m_counts.cancelled + m_counts.skippedInFlight;
     entry.totalBytes = m_plan.estimatedBytes;
@@ -1666,6 +2012,19 @@ CAssetLibrarySyncJob::GetResult( const CORE::CString& section, const CORE::CStri
     CORE::CDataNode* planNode = result.document.AddChild( "plan", GUCEF_DATATYPE_OBJECT );
     if ( GUCEF_NULL != planNode )
         m_plan.Serialize( *planNode, settings );
+    if ( !m_planNote.IsNULLOrEmpty() )
+        result.document.SetAttribute( "planNote", m_planNote );
+    CORE::CDataNode* planning = result.document.AddChild( "planning", GUCEF_DATATYPE_OBJECT );
+    if ( GUCEF_NULL != planning )
+    {
+        // the counts so far, also while the listing and the details are read
+        planning->SetAttribute( "planned", m_planBuilt );
+        planning->SetAttribute( "listed", m_listedSoFar );
+        planning->SetAttribute( "pages", m_pagesSoFar );
+        planning->SetAttribute( "detailsNeeded", m_detailsNeeded );
+        planning->SetAttribute( "detailsAsked", m_detailsAsked );
+        planning->SetAttribute( "detailsFromCache", m_detailsFromCache );
+    }
     CORE::CDataNode* run = result.document.AddChild( "run", GUCEF_DATATYPE_OBJECT );
     if ( GUCEF_NULL != run )
     {

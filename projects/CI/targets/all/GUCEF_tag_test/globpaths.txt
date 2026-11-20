@@ -25,6 +25,7 @@ tests/gucefMT_TestApp/*
 tests/gucefMULTIPLAY_EosTestApp/*
 tests/gucefMULTIPLAY_MailProvider_TestApp/*
 tests/gucefMULTIPLAY_TestApp/*
+tests/gucefMcpCi_TestApp/*
 tests/gucefMcpLocalLlm_TestApp/*
 tests/gucefPATCHERAPP_TestApp/*
 tests/gucefPRODMAN_TestApp/*

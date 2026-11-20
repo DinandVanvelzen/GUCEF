@@ -236,6 +236,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
      *  allowed, otherwise why not
      */
     CORE::CString GetSyncRefusal( const DRNUTILS::CRemoteServicePrincipal& principal, const CAssetServiceCall& call );
+
+    /**
+     *  The reprocessing of packs (the jobs of CAssetPipelineOperations::IsReprocess() and the query reprocess_plan): for the devices
+     *  with the owner role or the machine role ("mcp"), refused for the others. The host sets who asks in the arguments of the
+     *  request ("caller": "device:<id>", with what the client said after "via"; "machine": true for a device with the machine role,
+     *  whatever the client sent), so the limits and the audit of the service know the device. Answers the refusal, empty when allowed.
+     */
+    CORE::CString PrepareReprocessCall( const DRNUTILS::CRemoteServicePrincipal& principal, CAssetServiceCall& call );
     /** Whether the caller has one of the learning roles of the settings: a machine learning consumer */
     bool IsLearningPrincipal( const DRNUTILS::CRemoteServicePrincipal& principal ) const;
     /** The caller as the licence gate of the files and thumbnails sees it */

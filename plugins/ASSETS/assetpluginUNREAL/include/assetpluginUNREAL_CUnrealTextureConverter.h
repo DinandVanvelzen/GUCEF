@@ -106,7 +106,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureConverter
         bool reducedTo8Bit;
         bool greyAsOneChannel;          /**< four equal 8 bit channels with opaque alpha were written as one grey channel */
         bool unsupported;               /**< the source is a form this reader does not decode (see error) */
-        bool providerMissing;           /**< the oodle tool is not there (see error) */
+        bool providerMissing;           /**< the oodle tool or the zlib codec is not there (see error) */
         bool cancelled;
         Int32 toolCode;
         CORE::CString error;            /**< why no file was made */
@@ -138,6 +138,8 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureConverter
     /**
      *  Converts the texture and adds it to the scene, with the usage the settings of the texture say (normal map, linear mask, colour).
      *  Failures go to the report of the asset; the texture index is -1 then. The first Texture2D of the package is used when exportIndex is -1.
+     *  A source that cannot be read is a warning (a texture a material names), or an error with 'readFailureIsError' (the texture is
+     *  the asset itself); a source form that is not supported and a missing provider are skips either way.
      */
     static bool AddToScene( CUnrealPackage& package                    ,
                             Int32 exportIndex                          ,
@@ -145,7 +147,8 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureConverter
                             const CORE::CString& folder                ,
                             ASSETCONVERTER::CAssetScene& scene         ,
                             ASSETCONVERTER::CConversionReport& report  ,
-                            Int32& textureIndex                        );
+                            Int32& textureIndex                        ,
+                            bool readFailureIsError = false            );
 
     /**
      *  Gives the materials of the scene the textures their parameters name: every texture parameter that the material mapper recorded

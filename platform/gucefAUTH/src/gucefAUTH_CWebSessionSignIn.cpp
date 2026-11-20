@@ -1328,10 +1328,188 @@ CWebSessionSignIn::CheckResponse( const WEB::CHttpResponseData& response )
             return false;
         storeId = m_settings.storeId;
     }
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSessionSignIn(" << storeId << "): The store answered " << response.statusCode << ": the session ended" );
+    EndSession( "the store answered " + CORE::ToString( (Int32) response.statusCode ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSessionSignIn::EndSession( const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    const CORE::CString storeId = GetStoreId();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSessionSignIn(" << storeId << "): The session ended: " << reason );
     ForgetSession();
     CORE::TCloneableString eventData( storeId );
     Notify( SessionEndedEvent, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The domain of a cookie in lower case without a leading dot: what two cookies of the same domain share */
+CORE::CString
+PlainCookieDomain( const CORE::CString& domain )
+{
+    CORE::CString lower = domain.Lowercase();
+    if ( lower.StartsWith( "." ) )
+        lower = lower.CutChars( 1, true, 0 );
+    return lower;
+}
+
+/** Whether two cookies are the same cookie: name, domain and path */
+bool
+IsSameCookie( const CWebSessionCookie& a, const CWebSessionCookie& b )
+{
+    const CORE::CString pathA = a.path.IsNULLOrEmpty() ? CORE::CString( "/" ) : a.path;
+    const CORE::CString pathB = b.path.IsNULLOrEmpty() ? CORE::CString( "/" ) : b.path;
+    return a.name == b.name && pathA == pathB && PlainCookieDomain( a.domain ) == PlainCookieDomain( b.domain );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebSessionSignIn::AdoptSession( const CWebSession& session, UInt32& keptCookies, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    keptCookies = 0;
+    problem.Clear();
+    CWebSessionSignInSettings settings = GetSettings();
+    if ( settings.storeId.IsNULLOrEmpty() )
+    {
+        problem = "The sign in of the store has no store id";
+        return false;
+    }
+    if ( settings.script.cookieDomains.empty() )
+    {
+        problem = "The login script of " + settings.GetDisplayName() + " names no cookie domain, so no cookie can be taken as its session";
+        return false;
+    }
+    if ( IsSignInRunning() )
+    {
+        problem = "A sign in of " + settings.GetDisplayName() + " runs: the session is not taken while it does";
+        return false;
+    }
+
+    // only what belongs to the store: its domains, a value, not expired
+    CWebSession adopted;
+    adopted.storeId = settings.storeId;
+    adopted.capturedAtUtcInMs = 0 != session.capturedAtUtcInMs ? session.capturedAtUtcInMs : CWebSession::NowUtcInMs();
+    adopted.userAgent = session.userAgent;
+    const UInt64 now = CWebSession::NowUtcInMs();
+    UInt32 foreign = 0;
+    UInt32 expired = 0;
+    for ( size_t i=0; i<session.cookies.size(); ++i )
+    {
+        const CWebSessionCookie& cookie = session.cookies[ i ];
+        if ( cookie.name.IsNULLOrEmpty() || cookie.value.IsEmpty() || !settings.script.IsStoreCookieDomain( cookie.domain ) )
+        {
+            ++foreign;
+            continue;
+        }
+        if ( cookie.IsExpired( now ) )
+        {
+            ++expired;
+            continue;
+        }
+        adopted.cookies.push_back( cookie );
+    }
+    if ( adopted.IsEmpty() )
+    {
+        problem = "None of the " + CORE::ToString( (UInt32) session.cookies.size() ) + " cookies is a cookie of " + settings.GetDisplayName() +
+                  " that is still valid (" + CORE::ToString( foreign ) + " of other domains or without a value, " + CORE::ToString( expired ) + " expired)";
+        return false;
+    }
+
+    AUTH::ICredentialStore* sessionStore = GUCEF_NULL;
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        m_session = adopted;
+        m_clearBrowserCookies = false;
+        sessionStore = settings.saveSession ? m_sessionStore : GUCEF_NULL;
+    }
+    keptCookies = adopted.GetCookieCount();
+    WEB::CWebSignInResult result;
+    result.storeId = settings.storeId;
+    result.status = WEB::WEBSIGNIN_STATUS_OK;
+    result.cookieCount = keptCookies;
+    result.handedOver = true;
+    if ( GUCEF_NULL != sessionStore && !adopted.SaveTo( *sessionStore ) )
+    {
+        result.message = "The session is used, but it could not be saved: after a restart it has to be handed over again";
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "WebSessionSignIn(" << settings.storeId << "): The handed over session could not be saved in the session store" );
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSessionSignIn(" << settings.storeId << "): Took a handed over " << adopted << " (" << foreign << " cookies of other domains and " << expired << " expired ones left out)" );
+    adopted.Clear();
+    Notify( SignedInEvent, result );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebSessionSignIn::UpdateSessionCookies( const WEB::CHttpCookieJar& jar )
+{GUCEF_TRACE;
+
+    WEB::CHttpCookieJar::TCookieVector jarCookies;
+    jar.GetAllCookies( jarCookies );
+    CWebSession changed;
+    AUTH::ICredentialStore* sessionStore = GUCEF_NULL;
+    UInt32 renewed = 0;
+    UInt32 added = 0;
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        if ( m_session.IsEmpty() )
+        {
+            for ( size_t j=0; j<jarCookies.size(); ++j )
+                jarCookies[ j ].value.Clear();
+            return false;
+        }
+        for ( size_t j=0; j<jarCookies.size(); ++j )
+        {
+            CWebSessionCookie fresh = CWebSessionCookie::FromHttpCookie( jarCookies[ j ] );
+            jarCookies[ j ].value.Clear();
+            if ( fresh.value.IsEmpty() || !m_settings.script.IsStoreCookieDomain( fresh.domain ) )
+                continue;
+            bool known = false;
+            for ( size_t c=0; c<m_session.cookies.size(); ++c )
+            {
+                CWebSessionCookie& cookie = m_session.cookies[ c ];
+                if ( !IsSameCookie( cookie, fresh ) )
+                    continue;
+                known = true;
+                const Float64 expiryGap = cookie.expires > fresh.expires ? cookie.expires - fresh.expires : fresh.expires - cookie.expires;
+                if ( !( cookie.value == fresh.value ) || cookie.session != fresh.session || ( !fresh.session && expiryGap >= 1.0 ) )
+                {
+                    cookie.value = fresh.value;
+                    cookie.expires = fresh.expires;
+                    cookie.session = fresh.session;
+                    ++renewed;
+                }
+                break;
+            }
+            if ( !known )
+            {
+                m_session.cookies.push_back( fresh );
+                ++added;
+            }
+            fresh.value.Clear();
+        }
+        if ( 0 == renewed && 0 == added )
+            return false;
+        changed = m_session;
+        sessionStore = m_settings.saveSession ? m_sessionStore : GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != sessionStore && !changed.SaveTo( *sessionStore ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WebSessionSignIn(" << changed.storeId << "): The renewed cookies of the session could not be saved" );
+    }
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "WebSessionSignIn(" << changed.storeId << "): The store renewed " << renewed << " and set " << added << " cookies of the session" );
+    changed.Clear();
     return true;
 }
 

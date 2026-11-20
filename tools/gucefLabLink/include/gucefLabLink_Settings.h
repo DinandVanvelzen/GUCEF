@@ -57,7 +57,7 @@ struct SSettings
     // cluster
     GUCEF::CORE::CString joinCommand;           /**< agent-node/join-command.sh */
     GUCEF::CORE::CString k3sBin;
-    GUCEF::CORE::CString mcpDir;                /**< /var/lib/gucef-mcp: tls/ca.crt, lab-token, mcp-nodes */
+    GUCEF::CORE::CString mcpDir;                /**< /var/lib/gucef-mcp: tls/ca.crt, lab-token, mcp-nodes; machine: ci/ */
 
     // machine
     GUCEF::CORE::CString machineName;           /**< the name this machine gives itself; default the host name */
@@ -91,6 +91,14 @@ struct SSettings
 
     // the website of the hub (cluster), off unless enabled
     SWebSettings web;
+
+    // the CI configuration (gucefMcpCi): the hub hands it with a gateway token to approved machines
+    GUCEF::CORE::CString ciRegistryFile;        /**< cluster: the CI registry (JSON); empty: ci.json in the state directory. No file: no CI */
+    GUCEF::CORE::CString ciGatewayUrl;          /**< cluster: the URL of the CI gateway; empty: https://<cluster name>:8792 */
+    GUCEF::CORE::CString ciGatewayTokensFile;   /**< cluster: the hashes of the gateway tokens, for the gateway; empty: ci/gateway-tokens in the state directory */
+    GUCEF::CORE::CString ciGatewayUser;         /**< cluster: the user the gateway runs as, who gets that file (Linux); empty: the account of the hub */
+    bool ci;                                    /**< machine: ask the cluster for the CI configuration and write it to <mcp dir>/ci */
+    GUCEF::UInt32 offeredLabMinor;              /**< cluster: the minor of gucef.lab it offers; lower only to test machines against an older hub */
 
     SSettings( void )
         : stateDir( "/var/lib/gucef-lablink" )
@@ -129,6 +137,12 @@ struct SSettings
         , report( true )
         , reportIntervalInSecs( 20 )
         , web()
+        , ciRegistryFile()
+        , ciGatewayUrl()
+        , ciGatewayTokensFile()
+        , ciGatewayUser()
+        , ci( true )
+        , offeredLabMinor( LabContractMinor )
     {}
 };
 

@@ -294,6 +294,78 @@ MakeJpg( void )
     return TBytes( jpg, jpg + sizeof( jpg ) );
 }
 
+/** The CRC-32 of PNG chunks */
+UInt32
+PngCrc( const UInt8* bytes, size_t size )
+{
+    UInt32 crc = 0xFFFFFFFF;
+    for ( size_t i=0; i<size; ++i )
+    {
+        crc ^= bytes[ i ];
+        for ( UInt32 k=0; k<8; ++k )
+            crc = ( crc & 1 ) ? ( 0xEDB88320U ^ ( crc >> 1 ) ) : ( crc >> 1 );
+    }
+    return crc ^ 0xFFFFFFFF;
+}
+
+void
+PutPngChunk( TBytes& b, const char* type, const TBytes& data )
+{
+    PutU32BE( b, (UInt32) data.size() );
+    TBytes typed;
+    PutText( typed, type );
+    typed.insert( typed.end(), data.begin(), data.end() );
+    b.insert( b.end(), typed.begin(), typed.end() );
+    PutU32BE( b, PngCrc( &typed[ 0 ], typed.size() ) );
+}
+
+/** The grey value of the greyscale test picture at a texel */
+UInt8
+GreyTexel( UInt32 x, UInt32 y )
+{
+    return (UInt8) ( 30 + x * 40 + y * 9 );
+}
+
+/** A greyscale PNG (colour type 0) of FormatSize x FormatSize with 8 or 16 bits per texel, its data in one stored deflate block */
+TBytes
+MakeGreyPng( UInt32 bits )
+{
+    TBytes b;
+    const UInt8 signature[ 8 ] = { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A };
+    b.insert( b.end(), signature, signature + 8 );
+    TBytes header;
+    PutU32BE( header, FormatSize ); PutU32BE( header, FormatSize );
+    header.push_back( (UInt8) bits ); header.push_back( 0 ); header.push_back( 0 ); header.push_back( 0 ); header.push_back( 0 );
+    PutPngChunk( b, "IHDR", header );
+    TBytes scan;
+    for ( UInt32 y=0; y<FormatSize; ++y )
+    {
+        scan.push_back( 0 );
+        for ( UInt32 x=0; x<FormatSize; ++x )
+        {
+            const UInt8 grey = GreyTexel( x, y );
+            scan.push_back( grey );
+            if ( 16 == bits )
+                scan.push_back( grey );     // big endian: grey * 257
+        }
+    }
+    UInt32 a = 1, c = 0;
+    for ( size_t i=0; i<scan.size(); ++i )
+    {
+        a = ( a + scan[ i ] ) % 65521;
+        c = ( c + a ) % 65521;
+    }
+    TBytes zlib;
+    zlib.push_back( 0x78 ); zlib.push_back( 0x01 );
+    zlib.push_back( 1 );
+    PutU16( zlib, (UInt32) scan.size() ); PutU16( zlib, (UInt32) ( ~scan.size() & 0xFFFF ) );
+    zlib.insert( zlib.end(), scan.begin(), scan.end() );
+    PutU32BE( zlib, ( c << 16 ) | a );
+    PutPngChunk( b, "IDAT", zlib );
+    PutPngChunk( b, "IEND", TBytes() );
+    return b;
+}
+
 bool
 StoreBytes( const CORE::CString& vfsPath, const TBytes& bytes )
 {
@@ -1397,6 +1469,50 @@ PerformAssetConverterProcessingTests( void )
         broken.sources.push_back( "work/formats/src/broken.xyz" );
         ASSERT_FALSE( baker.Bake( broken, report ) );
         ASSERT_TRUE( broken.missing && CountItems( report, REPORTITEM_ERROR, "TextureBaker" ) >= 1 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Texture formats: greyscale PNG files of 8 and 16 bits (as the source pictures of masks are) are read as one grey channel and baked with their values" )
+    try
+    {
+        MakeWorkFolder( "greyformats" );
+        CConversionReport report;
+        report.SelectAsset( "grey.stub" );
+        CTextureBaker baker( "work/greyformats/textures" );
+        const UInt32 bitDepths[ 2 ] = { 8, 16 };
+        for ( UInt32 d=0; d<2; ++d )
+        {
+            const CORE::CString source = "work/greyformats/src/grey" + CORE::UInt32ToString( bitDepths[ d ] ) + ".png";
+            ASSERT_TRUE( StoreBytes( source, MakeGreyPng( bitDepths[ d ] ) ) );
+            IMAGE::TPixelMapPtr picture;
+            CORE::CString problem;
+            const bool read = CTextureBaker::LoadPicture( source, picture, problem );
+            if ( !read )
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grey PNG of " << bitDepths[ d ] << " bits: " << problem );
+            ASSERT_TRUE( read && !picture.IsNULL() );
+            if ( !read || picture.IsNULL() )
+                continue;
+            ASSERT_TRUE( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE == picture->GetPixelStorageFormat() && GUCEF::DATATYPE_UINT8 == picture->GetPixelComponentDataType() );
+            ASSERT_TRUE( FormatSize == picture->GetWidthInPixels() && FormatSize == picture->GetHeightInPixels() );
+            bool valuesRight = GUCEF::DATATYPE_UINT8 == picture->GetPixelComponentDataType();
+            for ( UInt32 y=0; y<FormatSize && valuesRight; ++y )
+                for ( UInt32 x=0; x<FormatSize && valuesRight; ++x )
+                    valuesRight = abs( (Int32) Texels( *picture )[ y * FormatSize + x ] - (Int32) GreyTexel( x, y ) ) <= 1;
+            ASSERT_TRUE( valuesRight );
+
+            // the baker writes it as a PNG that reads back the same
+            CAssetTexture texture;
+            texture.name = "grey" + CORE::UInt32ToString( bitDepths[ d ] );
+            texture.sources.push_back( source );
+            ASSERT_TRUE( baker.Bake( texture, report ) && !texture.missing );
+            IMAGE::TPixelMapPtr back;
+            ASSERT_TRUE( CTextureBaker::LoadPicture( texture.bakedPath, back ) && !back.IsNULL() && FormatSize == back->GetWidthInPixels() );
+        }
+        ASSERT_TRUE( 0 == CountItems( report, REPORTITEM_ERROR, "TextureBaker" ) );
     }
     catch ( ... )
     {

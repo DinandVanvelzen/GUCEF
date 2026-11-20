@@ -599,10 +599,22 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     bool ReduceAllPlatformsDefinitionToSustainablePlatforms( CModuleInfoEntryPtr moduleInfoEntry );
 
-    bool CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies   ,
-                                                 bool okIfNoSuchDependencyDefined       ,
-                                                 TModuleInfoEntryPtrSet& problemModules ,
-                                                 CORE::CStringSet& missingModules       ) const;
+    /**
+     *  The outcome per module of the CanModuleSustainAllPlatformsDefinition() checks already done during one check.
+     *  Modules are shared by many dependents, so without it every path to a module would be checked again.
+     */
+    typedef GUCEF::map< const CModuleInfoEntry*, bool >    TModuleSustainabilityMap;
+
+    bool CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr moduleInfoEntry      ,
+                                                 TModuleInfoEntryPtrSet& problemModules   ,
+                                                 CORE::CStringSet& missingModules         ,
+                                                 TModuleSustainabilityMap& checkedModules ) const;
+
+    bool CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies     ,
+                                                 bool okIfNoSuchDependencyDefined         ,
+                                                 TModuleInfoEntryPtrSet& problemModules   ,
+                                                 CORE::CStringSet& missingModules         ,
+                                                 TModuleSustainabilityMap& checkedModules ) const;
 
     bool SanitizeRuntimeDependenciesForPlatform( CModuleInfoEntryPtr moduleInfoEntry ,
                                                  const CORE::CString& targetPlatform );

@@ -243,6 +243,34 @@ class GUCEF_AUTH_EXPORT_CPP CWebSessionSignIn : public CORE::CTSGNotifier
     bool CheckResponse( const WEB::CHttpResponseData& response );
 
     /**
+     *  Ends the session the store no longer takes (what CheckResponse() does when an answer says so), for a caller that
+     *  found out in another way, for example a check of the store that a refused request was not a refusal of the item:
+     *  forgets the session and raises SessionEndedEvent. The reason is logged; it must hold no secret. Any thread
+     */
+    void EndSession( const CORE::CString& reason );
+
+    /**
+     *  Takes a session that was signed in somewhere else (the browser of the user on another machine handed its cookies
+     *  over) as the session of the store, in place of a sign in: only the cookies of the domains of the login script
+     *  (CWebLoginScript::IsStoreCookieDomain()) with a value and not expired are kept, the store id is that of the
+     *  settings, the user agent is kept with it; it is saved in the session store when the settings say so and
+     *  SignedInEvent is raised (CWebSignInResult, handedOver). Refused while a sign in runs, when the settings have no
+     *  store id or no cookie domain, and when no cookie is left. Nothing of a value is logged. Any thread
+     *  @param keptCookies   the cookies taken over
+     *  @param problem       why it was refused, for people; never a value
+     */
+    bool AdoptSession( const CWebSession& session, UInt32& keptCookies, CORE::CString& problem );
+
+    /**
+     *  Takes the cookies of the store's domains that the store renewed in its answers (Set-Cookie into the jar the
+     *  requests of the session use) into the session: a cookie of the session whose value or expiry changed, and a new
+     *  cookie of a domain of the login script. The session store is written only when something changed. Cookies are never
+     *  removed here (an ended session is CheckResponse()'s). Any thread
+     *  @return whether the session changed
+     */
+    bool UpdateSessionCookies( const WEB::CHttpCookieJar& jar );
+
+    /**
      *  After the store refused the session: forgets it and signs in again without the owner (unattended), when the
      *  settings allow it and credentials for every slot are given or saved; otherwise WEB::WEBSIGNIN_STATUS_NOT_SIGNED_IN:
      *  the owner has to sign in. When a sign in runs already it waits for that one and uses its session, so requests

@@ -521,6 +521,35 @@ PerformAssetConverterPipelineTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Pipeline: an asset the importer finds nothing to convert in is skipped with its reason, not failed; a declined import without the mark stays failed" )
+    try
+    {
+        const CORE::CString manifest = WriteStandardPack( "skipping", CORE::CString::Empty );
+        WriteWorkFile( "skipping/src/props/blueprint.stub", "{ \"skip\": \"Class Blueprint: not converted\" }" );
+        WriteWorkFile( "skipping/src/props/unmarked.stub", "{ \"skip\": \"Class Blueprint: not converted\", \"unmarked\": true }" );
+        CAssetPipeline pipeline;
+        CConversionReport report;
+        ASSERT_FALSE( RunPack( manifest, pipeline, report ) );
+        ASSERT_TRUE( 2 == report.GetAssetCount( ASSETSTATUS_CONVERTED ) && 1 == report.GetAssetCount( ASSETSTATUS_SKIPPED ) && 1 == report.GetAssetCount( ASSETSTATUS_FAILED ) );
+        ASSERT_TRUE( ASSETSTATUS_SKIPPED == StatusOf( report, "props/blueprint.stub" ) && ASSETSTATUS_FAILED == StatusOf( report, "props/unmarked.stub" ) );
+        ASSERT_TRUE( HasActivity( pipeline, "props/blueprint.stub", ACTIVITYACTION_SKIPPED, ACTIVITYREASON_NEW ) );
+        ASSERT_TRUE( HasActivity( pipeline, "props/unmarked.stub", ACTIVITYACTION_FAILED, ACTIVITYREASON_NEW ) );
+        const CConversionReportEntry* skipped = report.FindEntry( "props/blueprint.stub" );
+        ASSERT_TRUE( GUCEF_NULL != skipped && 0 == skipped->GetItemCount( REPORTITEM_ERROR ) && 1 == skipped->GetItemCount( REPORTITEM_SKIPPED ) );
+        const CConversionReportEntry* failed = report.FindEntry( "props/unmarked.stub" );
+        ASSERT_TRUE( GUCEF_NULL != failed && 1 == failed->GetItemCount( REPORTITEM_ERROR ) );
+        ASSERT_FALSE( VfsFileExists( "work/skipping/out/desktop/skipping/blueprint.mesh" ) );
+        // without a current asset the mark changes nothing
+        CConversionReport loose;
+        loose.SetCurrentAssetSkipped();
+        ASSERT_TRUE( loose.GetEntries().empty() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Pipeline: a failing import fails its asset only; an asynchronous conversion gives its job back through the future" )
     try
     {

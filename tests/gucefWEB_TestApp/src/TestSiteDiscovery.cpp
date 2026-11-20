@@ -588,7 +588,7 @@ PerformCatalogTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF_TESTFW_TESTCASE( "Test: A journal line or report part that would hold a secret value is replaced by a placeholder" )
+    GUCEF_TESTFW_TESTCASE( "Test: The journal keeps every line, a report part that would hold a registered value is replaced by a placeholder" )
         try
         {
             TESTFW::CScopedTestDir dir( "gucefWEB_SiteDiscovery_Refuse" );
@@ -600,18 +600,14 @@ PerformCatalogTests( void )
             WEB::CObservedWebRequest bad = MakeObservation( 1, "GET", "https://shop.example/api/x", "XHR", 0, "", 0 );
             bad.failed = true;
             bad.errorText = "net::ERR_FAILED for PLANTEDapiKEY9";
-            ASSERT_FALSE( journal.Append( bad ) );          // a stub was written in its place
-            ASSERT_TRUE( 1 == journal.GetRefusedCount() );
-            ASSERT_TRUE( journal.GetRefusedSummary() == "other: 1" );
+            ASSERT_TRUE( journal.Append( bad ) );           // written as observed: the registry is for the report
             ASSERT_TRUE( journal.Append( MakeObservation( 2, "GET", "https://shop.example/api/y", "XHR", 200, "application/json", 1 ) ) );
             ASSERT_TRUE( 3 == journal.GetNextSequence() );
             journal.Close();
             CORE::CString text;
             ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( journal.GetPath(), text ) );
-            ASSERT_FALSE( Contains( text, "PLANTEDapiKEY9" ) );
-            ASSERT_TRUE( Contains( text, "/api/y" ) );
-            ASSERT_TRUE( Contains( text, "{\"seq\":1," ) && Contains( text, "\"redacted\":\"other\"" ) && Contains( text, "\"url\":\"https://shop.example/\"" ) );
-            ASSERT_FALSE( Contains( text, "ERR_FAILED" ) || Contains( text, "/api/x" ) );     // the stub keeps the host only
+            ASSERT_TRUE( Contains( text, "/api/x" ) && Contains( text, "ERR_FAILED" ) && Contains( text, "/api/y" ) );
+            ASSERT_FALSE( Contains( text, "\"redacted\"" ) );
 
             WEB::CSiteEndpointCatalog catalog;
             catalog.SetRedactor( &redactor );
@@ -628,12 +624,12 @@ PerformCatalogTests( void )
             ASSERT_TRUE( catalog.RenderReport( report ) );
             ASSERT_TRUE( 0 == catalog.GetRedactedEntryCount() );
 
-            // the journal rebuilds: the stub is counted and the rest is catalogued
+            // the journal rebuilds whole
             WEB::CSiteEndpointCatalog rebuilt;
             rebuilt.SetRedactor( &redactor );
             ASSERT_TRUE( journal.Load( journal.GetPath(), rebuilt ) == 2 );
-            ASSERT_TRUE( 1 == rebuilt.GetStubCount() && rebuilt.GetStubSummary() == "other: 1" );
-            ASSERT_TRUE( 2 == rebuilt.GetRequestCount() && 1 == rebuilt.GetEntries().size() );
+            ASSERT_TRUE( 0 == rebuilt.GetStubCount() );
+            ASSERT_TRUE( 2 == rebuilt.GetRequestCount() && 2 == rebuilt.GetEntries().size() );
         }
         catch ( ... )
         {
@@ -769,6 +765,66 @@ PerformTripwireTests( void )
             registry.RegisterSecret( "Qz7HxK2mPw9LrT4vNb8yJc3DfGhA5sEu" );
             ASSERT_TRUE( registry.ContainsKnownSecret( "prefixQz7HxK2mPw9LrT4vNb8yJc3DfGhA5sEusuffix" ) );
             ASSERT_TRUE( registry.ScrubKnownSecrets( "aQz7HxK2mPw9LrT4vNb8yJc3DfGhA5sEub" ) == "a{secret}b" );
+
+            // addresses are never looked for as a whole: host names, cookie domains, URLs and paths; a token in one is
+            const UInt32 before = registry.GetKnownSecretCount();
+            registry.RegisterSecret( "www.shop-example.test", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "token" );
+            registry.RegisterSecret( ".shop-example.test", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "cookieDomain" );
+            registry.RegisterSecret( "shop-example.myshopify.com", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "shop_token" );
+            registry.RegisterSecret( "https://www.shop-example.test/collections/kits2026", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "auth_url" );
+            registry.RegisterSecret( "/collections/kits2026", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "session_path" );
+            ASSERT_TRUE( registry.GetKnownSecretCount() == before );           // the path segments are words or too short
+            ASSERT_FALSE( registry.ContainsKnownSecret( "{\"url\":\"https://www.shop-example.test/collections/all\"}" ) );
+            registry.RegisterSecret( "https://cdn.example.test/dl?sig=Zt8Qp3Lm9Xc2Vb7Nk4Hs&name=file", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "auth_url" );
+            ASSERT_TRUE( registry.ContainsKnownSecret( "x=Zt8Qp3Lm9Xc2Vb7Nk4Hs" ) );
+
+            // body field values only count as whole tokens, also long ones; credentials are found anywhere when long
+            registry.RegisterSecret( "AbCdEfGhIjKlMnOpQrStUvWx12", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "secret" );
+            ASSERT_FALSE( registry.ContainsKnownSecret( "blob=AbCdEfGhIjKlMnOpQrStUvWx12345xyz" ) );
+            ASSERT_TRUE( registry.ContainsKnownSecret( "blob=AbCdEfGhIjKlMnOpQrStUvWx12&x" ) );
+            registry.RegisterSecret( "Kq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Se", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_COOKIE, "sid" );
+            ASSERT_TRUE( registry.ContainsKnownSecret( "zzKq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Sezz" ) );
+
+            // a value seen in a request URL is public; a credential never is
+            registry.RegisterSecret( "c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "checkout_token" );
+            ASSERT_TRUE( registry.ContainsKnownSecret( "/cart/c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6/x" ) );
+            registry.NotePublicUrl( "https://shop.example.test/cart/c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6/update?sid=Kq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Se" );
+            ASSERT_FALSE( registry.ContainsKnownSecret( "/cart/c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6/x" ) );
+            registry.NotePublicUrl( "https://shop.example.test/x?k=Kq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Se" );
+            ASSERT_TRUE( registry.ContainsKnownSecret( "Kq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Se" ) );
+            registry.RegisterSecret( "pk_live_PUBLICw1dg3tKEY4567", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_RESPONSE_BODY_FIELD, "api_key" );
+            registry.NotePublicUrl( "https://tracker.widget.test/collect?k=pk_live_PUBLICw1dg3tKEY4567" );
+            ASSERT_FALSE( registry.ContainsKnownSecret( "?k=pk_live_PUBLICw1dg3tKEY4567" ) );
+
+            // the journal mode: credentials only, and the diagnostics name a value without showing it
+            registry.SetJournalMode( true );
+            ASSERT_FALSE( registry.ContainsKnownSecret( "blob=AbCdEfGhIjKlMnOpQrStUvWx12&x" ) );
+            ASSERT_TRUE( registry.ScrubKnownSecrets( "id=Kq3Wm8Zp2Lx7Rv5Tn9Yc4Hb6Jd1Fg0Se" ) == "id={secret}" );
+            registry.SetJournalMode( false );
+            UInt32 index = 0;
+            ASSERT_TRUE( registry.FindKnownSecretIndex( "blob=AbCdEfGhIjKlMnOpQrStUvWx12&x", index ) );
+            ASSERT_TRUE( registry.DescribeSecret( index ) == "class response-body-field, field `secret`, length 26, entropy " + CORE::UInt32ToString( registry.GetSecretInfo( index ).entropyBits ) + " bits" );
+            ASSERT_TRUE( 1 == registry.AssessJournal( "a AbCdEfGhIjKlMnOpQrStUvWx12 b\nc\nd\n" ) );     // one line of three: taken for public
+            ASSERT_TRUE( registry.GetSecretInfo( index ).suspectedPublic && 1 == registry.GetSecretInfo( index ).journalLines );
+            ASSERT_FALSE( registry.ContainsKnownSecret( "blob=AbCdEfGhIjKlMnOpQrStUvWx12&x" ) );
+            ASSERT_TRUE( Contains( registry.DescribeSecretUse( index ), "in 1 of 3 journal lines (lines 1)" ) && Contains( registry.DescribeSecretUse( index ), "probably not a secret" ) );
+            ASSERT_FALSE( Contains( registry.DescribeSecretUse( index ), "AbCdEf" ) );
+
+            // ignoredSecretFields: never looked for; a password field always is
+            WEB::CSiteDiscoverySettings ignoring;
+            ignoring.ignoredSecretFields.push_back( "storefront*" );
+            ignoring.ignoredSecretFields.push_back( "*password*" );
+            WEB::CSiteDiscoveryRedactor ignorer( ignoring );
+            ignorer.RegisterBodySecrets( "application/json", "{\"storefrontAccessToken\":\"Zt8Qp3Lm9Xc2Vb7Nk4Hs\",\"password\":\"Pw7Rt3Yx9Lk2Mn5Bq8\"}" );
+            ASSERT_FALSE( ignorer.ContainsKnownSecret( "Zt8Qp3Lm9Xc2Vb7Nk4Hs" ) );
+            ASSERT_TRUE( ignorer.ContainsKnownSecret( "Pw7Rt3Yx9Lk2Mn5Bq8" ) );
+            ASSERT_TRUE( WEB::CSiteDiscoveryRedactor::IsPasswordFieldName( "currentPassword" ) && !WEB::CSiteDiscoveryRedactor::IsPasswordFieldName( "token" ) );
+            CORE::CDataNode ignoreCfg( GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( ignoring.SaveConfig( ignoreCfg ) );
+            WEB::CSiteDiscoverySettings ignoreLoaded;
+            ASSERT_TRUE( ignoreLoaded.LoadConfig( ignoreCfg ) && 2 == ignoreLoaded.ignoredSecretFields.size() && 20 == ignoreLoaded.tripwireMaxLineShare );
+            ignoreCfg.SetAttribute( "tripwireMaxLineShare", (UInt32) 101 );
+            ASSERT_FALSE( ignoreLoaded.LoadConfig( ignoreCfg ) );
         }
         catch ( ... )
         {
@@ -797,7 +853,6 @@ PerformTripwireTests( void )
 
             // none of it holds a secret: nothing is replaced, and the report is written whole
             ASSERT_TRUE( 0 == journalRefused );
-            ASSERT_TRUE( 0 == journal.GetRefusedCount() );
             CORE::CString report;
             ASSERT_TRUE( catalog.RenderReport( report ) );
             ASSERT_TRUE( 0 == catalog.GetRedactedEntryCount() );
@@ -812,7 +867,7 @@ PerformTripwireTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF_TESTFW_TESTCASE( "Test: A real secret replaces only its own journal line and report entry, with its class and never its value" )
+    GUCEF_TESTFW_TESTCASE( "Test: The journal keeps every line with credential values masked, the report leaves out the parts with a registered value and names it without its value" )
         try
         {
             TESTFW::CScopedTestDir dir( "gucefWEB_SiteDiscovery_Degrade" );
@@ -854,16 +909,15 @@ PerformTripwireTests( void )
             journal.AppendAction( fine );
             journal.Close();
 
-            // the journal: a stub each for the two requests and the action, everything else as it was
-            ASSERT_TRUE( 3 == journal.GetRefusedCount() );
-            ASSERT_TRUE( journal.GetRefusedSummary() == "cookie: 2, query-value: 1" );
+            // the journal: every line, the cookie value masked where it stood, the rest as observed
             ASSERT_TRUE( 5 == journal.GetNextSequence() );
             CORE::CString text;
             ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( journalPath, text ) );
-            ASSERT_FALSE( ContainsAnyPlantedSecret( text ) );
-            ASSERT_TRUE( Contains( text, "/api/a" ) && Contains( text, "/api/d" ) && Contains( text, "\"label\":\"Export\"" ) );
-            ASSERT_FALSE( Contains( text, "/api/b" ) || Contains( text, "/api/c" ) );
-            ASSERT_TRUE( Contains( text, "{\"seq\":2," ) && Contains( text, "{\"seq\":3," ) && Contains( text, "\"redacted\":\"query-value\"" ) );
+            ASSERT_FALSE( Contains( text, "PLANTEDcookieVALUE2" ) );
+            ASSERT_TRUE( Contains( text, "application/x-{secret}" ) && Contains( text, "https://shop.example/{secret}/home" ) );
+            ASSERT_TRUE( Contains( text, "/api/a" ) && Contains( text, "/api/b" ) && Contains( text, "/api/c" ) && Contains( text, "/api/d" ) && Contains( text, "\"label\":\"Export\"" ) );
+            ASSERT_TRUE( Contains( text, "PLANTEDqueryTOKEN1.csv" ) );        // not a credential: for the report to decide
+            ASSERT_FALSE( Contains( text, "\"redacted\"" ) );
 
             // the report: the same two endpoints are replaced by a placeholder with their number and the class, the others are whole
             CORE::CString report;
@@ -872,20 +926,24 @@ PerformTripwireTests( void )
             ASSERT_TRUE( 2 == catalog.GetRedactedEntryCount() && catalog.GetRedactionSummary() == "cookie: 1, query-value: 1" );
             ASSERT_TRUE( Contains( report, "### Endpoint 2 of 4: left out" ) && Contains( report, "secret class cookie, left out 1" ) );
             ASSERT_TRUE( Contains( report, "### Endpoint 3 of 4: left out" ) && Contains( report, "secret class query-value, left out 2" ) );
+            ASSERT_TRUE( Contains( report, "Host `shop.example`, method GET" ) );
+            ASSERT_TRUE( Contains( report, "class cookie, field (unknown), length 19, entropy" ) && Contains( report, "class query-value, field (unknown), length 18" ) );
             ASSERT_TRUE( Contains( report, "### GET shop.example/api/a" ) && Contains( report, "### GET shop.example/api/d" ) );
             ASSERT_TRUE( Contains( report, "(cookie: 1, query-value: 1)" ) );
             ASSERT_FALSE( Contains( report, "/api/b" ) || Contains( report, "/api/c" ) );
 
-            // the journal rebuilds into a report with the stubs counted
+            // a report rebuilt from the journal, without a registry as a later run has it, has every endpoint
+            WEB::CSiteDiscoveryRedactor later;
             WEB::CSiteEndpointCatalog rebuilt;
-            rebuilt.SetRedactor( &redactor );
+            rebuilt.SetRedactor( &later );
             ASSERT_TRUE( journal.Load( journalPath, rebuilt ) == 4 );
-            ASSERT_TRUE( 2 == rebuilt.GetStubCount() && rebuilt.GetStubSummary() == "cookie: 1, query-value: 1" );
-            ASSERT_TRUE( 4 == rebuilt.GetRequestCount() && 2 == rebuilt.GetEntries().size() );
+            ASSERT_TRUE( 0 == rebuilt.GetStubCount() );
+            ASSERT_TRUE( 4 == rebuilt.GetRequestCount() && 4 == rebuilt.GetEntries().size() );
             CORE::CString rebuiltReport;
             ASSERT_TRUE( rebuilt.RenderReport( rebuiltReport ) );
-            ASSERT_TRUE( Contains( rebuiltReport, "Journal lines that were reduced to a stub" ) && Contains( rebuiltReport, "### GET shop.example/api/a" ) );
+            ASSERT_TRUE( Contains( rebuiltReport, "### GET shop.example/api/a" ) && Contains( rebuiltReport, "### GET shop.example/api/b" ) && Contains( rebuiltReport, "### GET shop.example/api/c" ) );
             ASSERT_TRUE( 0 == rebuilt.GetRedactedEntryCount() );
+            ASSERT_FALSE( Contains( rebuiltReport, "PLANTEDcookieVALUE2" ) );
         }
         catch ( ... )
         {
@@ -900,15 +958,23 @@ PerformTripwireTests( void )
             WEB::CSiteDiscoverySettings settings;
             settings.outputDirectory = dir.GetPath();
 
-            // a first session has a journal with a stub in it
+            // a first session has a journal, with a stub line that an older recorder wrote
             WEB::CSiteDiscoverySession writer;
             writer.SetSettings( settings );
             writer.GetRedactor().RegisterSecret( "PLANTEDcookieVALUE2", WEB::CSiteDiscoveryRedactor::SECRET_CLASS_COOKIE );
             ASSERT_TRUE( writer.GetJournal().Open( writer.GetJournalPath() ) );
-            writer.GetJournal().Append( MakeObservation( 1, "GET", "https://shop.example/api/a", "XHR", 200, "application/json", 10 ) );
-            writer.GetJournal().Append( MakeObservation( 2, "GET", "https://shop.example/api/b", "XHR", 200, "application/x-PLANTEDcookieVALUE2", 20 ) );
+            ASSERT_TRUE( writer.GetJournal().Append( MakeObservation( 1, "GET", "https://shop.example/api/a", "XHR", 200, "application/json", 10 ) ) );
+            ASSERT_TRUE( writer.GetJournal().Append( MakeObservation( 2, "GET", "https://shop.example/api/b", "XHR", 200, "application/x-PLANTEDcookieVALUE2", 20 ) ) );
             writer.GetJournal().Close();
-            ASSERT_TRUE( 1 == writer.GetJournal().GetRefusedCount() );
+            {
+                CORE::CString journalText;
+                ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( writer.GetJournalPath(), journalText ) );
+                ASSERT_TRUE( Contains( journalText, "/api/b" ) && !ContainsAnyPlantedSecret( journalText ) );
+                journalText += "{\"seq\":3,\"ts\":103,\"method\":\"\",\"url\":\"{redacted}\",\"redacted\":\"response-body-field\"}\n";
+                CORE::CString problem;
+                ASSERT_TRUE( CORE::DeleteFile( writer.GetJournalPath() ) );
+                ASSERT_TRUE( CORE::CreateOwnerOnlyFile( writer.GetJournalPath(), journalText.C_String(), journalText.ByteSize() - 1, problem ) );
+            }
 
             // a session that rebuilds knows no secret (they are not on disk) and reads the journal only
             CORE::CString journalBefore;
@@ -922,11 +988,12 @@ PerformTripwireTests( void )
             ASSERT_TRUE( journalBefore == journalAfter );
             CORE::CString report;
             ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( rebuild.GetReportPath(), report ) );
-            ASSERT_TRUE( Contains( report, "### GET shop.example/api/a" ) && Contains( report, "Journal lines that were reduced to a stub" ) );
+            ASSERT_TRUE( Contains( report, "### GET shop.example/api/a" ) && Contains( report, "### GET shop.example/api/b" ) );
+            ASSERT_TRUE( Contains( report, "an older recorder reduced to a stub" ) && Contains( report, "cannot be recovered" ) );
             ASSERT_FALSE( ContainsAnyPlantedSecret( report ) );
-            ASSERT_TRUE( 1 == rebuild.GetCatalog().GetStubCount() );
+            ASSERT_TRUE( 1 == rebuild.GetCatalog().GetStubCount() && 0 == rebuild.GetCatalog().GetRedactedEntryCount() );
             const CORE::CString notice = rebuild.GetRedactionNotice();
-            ASSERT_TRUE( Contains( notice, "1 stub line(s)" ) && Contains( notice, "cookie: 1" ) && !Contains( notice, "PLANTED" ) );
+            ASSERT_TRUE( Contains( notice, "1 journal line(s) are stubs" ) && Contains( notice, "response-body-field: 1" ) && Contains( notice, "cannot be recovered" ) && !Contains( notice, "PLANTED" ) );
             #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
             ASSERT_TRUE( 0600 == ModeOf( rebuild.GetReportPath() ) );
             #endif
@@ -940,6 +1007,7 @@ PerformTripwireTests( void )
             ASSERT_TRUE( live.WriteReport( problem ) );
             ASSERT_TRUE( 1 == live.GetCatalog().GetRedactedEntryCount() );
             ASSERT_TRUE( Contains( live.GetRedactionNotice(), "1 part(s) of the report were left out" ) && Contains( live.GetRedactionNotice(), "cookie: 1" ) );
+            ASSERT_TRUE( Contains( live.GetRedactionNotice(), "class cookie, field (unknown), length 19" ) && !Contains( live.GetRedactionNotice(), "PLANTED" ) );
 
             // no journal, nothing to rebuild; and a recording session is not rebuilt
             TESTFW::CScopedTestDir empty( "gucefWEB_SiteDiscovery_RebuildEmpty" );
@@ -1243,8 +1311,8 @@ PerformRecorderTests( void )
             ASSERT_FALSE( Contains( journalText, "Private Person Name" ) || Contains( report, "Private Person Name" ) );
             ASSERT_FALSE( Contains( journalText, "12345678" ) || Contains( report, "12345678" ) );
             ASSERT_FALSE( Contains( report, "tracker.other.test" ) || Contains( journalText, "tracker.other.test" ) );
-            ASSERT_TRUE( 0 == journal.GetRefusedCount() );
             ASSERT_TRUE( redactor.GetKnownSecretCount() >= 9 );
+            ASSERT_TRUE( Contains( journalText, "\"label\":\"Export 2026 to CSV\"" ) );     // as observed; the report applies the value rules
             ASSERT_TRUE( Contains( report, "### POST shop.example.test/api/orders/{n}/export" ) );
             ASSERT_TRUE( Contains( report, "Export {n} to CSV" ) );
 
@@ -1307,7 +1375,6 @@ PerformRecorderTests( void )
             ASSERT_TRUE( catalog.RenderReport( report ) );
             ASSERT_FALSE( ContainsAnyPlantedSecret( journalText ) );
             ASSERT_FALSE( ContainsAnyPlantedSecret( report ) );
-            ASSERT_TRUE( 0 == journal.GetRefusedCount() );
 
             // the examples are there, with the secrets in them replaced
             ASSERT_TRUE( Contains( report, "`page` e.g. `1`" ) );
@@ -1514,7 +1581,6 @@ PerformRecorderTests( void )
                                                    "PLANTEDgapPAYvalue21", "PLANTEDcursorABCD1234xyz", "Private Title", "private-name", "BINARYDATA", GUCEF_NULL };
             for ( UInt32 i=0; GUCEF_NULL != planted[ i ]; ++i )
                 ASSERT_FALSE( Contains( report, planted[ i ] ) || Contains( journalText, planted[ i ] ) );
-            ASSERT_TRUE( 0 == journal.GetRefusedCount() );
 
             // the report rebuilt from the journal is the same report
             WEB::CSiteEndpointCatalog rebuilt;
@@ -1601,6 +1667,148 @@ PerformRecorderTests( void )
             refused.SetPulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() );
             ASSERT_FALSE( refused.Open( problem ) );
             ASSERT_FALSE( refused.GetBrowser().WasLaunched() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A storefront session keeps every journal line; public values from secret looking fields are not looked for, real secrets are" )
+        try
+        {
+            ASSERT_TRUE( started );
+            browser.ForgetConnection();
+            TESTFW::CScopedTestDir dir( "gucefWEB_SiteDiscovery_Storefront" );
+
+            WEB::CChromeDevToolsClient client;
+            WEB::SChromeDiscoveryResult discovery;
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", browser.GetPort(), discovery ) );
+            ASSERT_TRUE( client.ConnectAndWait( discovery.browser.webSocketDebuggerUrl ) );
+
+            WEB::CSiteDiscoverySettings settings;
+            settings.hostFilter.push_back( "shop.example.test" );
+            settings.recordExampleValues = true;
+            WEB::CSiteDiscoveryRedactor redactor( settings );
+            WEB::CSiteDiscoveryJournal journal;
+            journal.SetRedactor( &redactor );
+            const CORE::CString journalPath = CORE::CombinePath( dir.GetPath(), "requests.jsonl" );
+            ASSERT_TRUE( journal.Open( journalPath ) );
+            WEB::CSiteEndpointCatalog catalog;
+            catalog.SetRedactor( &redactor );
+            WEB::CChromeNetworkRecorder recorder( client );
+            recorder.SetRedactor( &redactor );
+            recorder.AddSink( &journal );
+            recorder.AddSink( &catalog );
+            recorder.SetNextSequence( journal.GetNextSequence() );
+            ASSERT_TRUE( recorder.Start() );
+            Pump( 50, &recorder );
+
+            // every request of the store sends the session cookie and an analytics header
+            const CORE::CString session = "S-P1";
+            const char* const sessionCookie = "Sess9fK2mQ7xL4pR8tV3wZ6yB1nC5dH0";
+            const char* const analyticsId = "Sh0pAn4lyt1csId77";
+            const char* const publicKey = "pk_live_PUBLICw1dg3tKEY4567";
+            const char* const checkoutToken = "c1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6";
+            const char* const realToken = "Rk9vYmFyVG9rZW4xMjM0NTY3ODkwQWJj";
+            const char* const prefixValue = "AbCdEfGhIjKlMnOpQrStUvWx12";
+            CFakeDevToolsBrowser::TStringMap headers;
+            headers[ "Cookie" ] = CORE::CString( "_shopify_y=ab12; _secure_session_id=" ) + sessionCookie;
+            headers[ "X-Shop-Analytics" ] = analyticsId;
+            CFakeDevToolsBrowser::TStringMap jsonHeaders;
+            jsonHeaders[ "content-type" ] = "application/json";
+            CFakeDevToolsBrowser::TStringMap htmlHeaders;
+            htmlHeaders[ "content-type" ] = "text/html";
+
+            // the storefront configuration: values of fields with secret looking names, most of them public
+            CORE::CString config = "{\"token\":\"shop.example.test\",\"auth_url\":\"https://shop.example.test/collections/all-kits?from=nav\","
+                                   "\"api_key\":\"" + CORE::CString( publicKey ) + "\",\"session\":{\"path\":\"/collections/all-kits\",\"domain\":\".example.test\","
+                                   "\"shop\":\"shop-example.myshopify.com\",\"hint\":\"" + analyticsId + "\"},\"csrf\":\"collections-and-kits\","
+                                   "\"checkout_token\":\"" + checkoutToken + "\",\"secret_prefix\":\"" + prefixValue + "\","
+                                   "\"auth_token\":\"" + realToken + "\"}";
+            browser.SetResponseBody( "C1", config );
+            browser.EmitRequest( session, "D1", "GET", "https://shop.example.test/collections/all-kits", "Document", "P1", headers, "", false, 200.0 );
+            browser.EmitResponse( session, "D1", 200, "text/html", htmlHeaders, "Document" );
+            browser.EmitFinished( session, "D1", 5000 );
+            Pump( 20, &recorder );
+            browser.EmitRequest( session, "C1", "GET", "https://shop.example.test/api/storefront/config.json", "Fetch", "P1", headers, "", false, 200.5 );
+            browser.EmitResponse( session, "C1", 200, "application/json", jsonHeaders, "Fetch" );
+            browser.EmitFinished( session, "C1", 600 );
+            for ( UInt32 i=0; i<2000 && recorder.GetRecordedRequestCount() < 2; ++i )
+                Pump( 1, &recorder );
+            Pump( 20, &recorder );
+
+            // the public key in tracking requests, the checkout token in a path, the cookie name in a query, a payload that starts like a registered value
+            browser.EmitRequest( session, "T1", "GET", "https://tracker.widget.test/collect?k=" + CORE::CString( publicKey ), "Image", "P1", headers, "", false, 201.0 );
+            browser.EmitResponse( session, "T1", 200, "image/gif", htmlHeaders, "Image" );
+            browser.EmitFinished( session, "T1", 40 );
+            const char* const paths[] = { "/collections/all-kits/products/neo-city", "/apps/widget/load", "/cart/update", "/search/suggest", "/api/events", "/api/payload" };
+            for ( UInt32 i=0; i<6; ++i )
+            {
+                CORE::CString url = CORE::CString( "https://shop.example.test" ) + paths[ i ];
+                if ( 1 == i )
+                    url += "?k=" + CORE::CString( publicKey );
+                if ( 2 == i )
+                    url = "https://shop.example.test/cart/" + CORE::CString( checkoutToken ) + "/update";
+                if ( 3 == i )
+                    url += "?from=_secure_session_id";
+                if ( 5 == i )
+                    url += "?blob=" + CORE::CString( prefixValue ) + "345xyzPAYLOAD";
+                const CORE::CString id = "Q" + CORE::UInt32ToString( i );
+                browser.EmitRequest( session, id, "GET", url, "XHR", "P1", headers, "", false, 202.0 + i );
+                browser.EmitResponse( session, id, 204, "", htmlHeaders, "XHR" );
+                browser.EmitFinished( session, id, 0 );
+            }
+            // a download whose content type carries the real token: a place where a report cannot mask it in place
+            CFakeDevToolsBrowser::TStringMap fileHeaders;
+            fileHeaders[ "content-disposition" ] = "attachment; filename=\"Kit.zip\"";
+            browser.EmitRequest( session, "Z1", "GET", "https://shop.example.test/downloads/kit", "Document", "P1", headers, "", false, 209.0 );
+            browser.EmitResponse( session, "Z1", 200, "application/x-kit-" + CORE::CString( realToken ), fileHeaders, "Document" );
+            browser.EmitFinished( session, "Z1", 1000 );
+
+            // the real token goes back to the site in a body field whose name is not secret
+            CFakeDevToolsBrowser::TStringMap postHeaders( headers );
+            postHeaders[ "Content-Type" ] = "application/json";
+            browser.EmitRequest( session, "N1", "POST", "https://shop.example.test/api/notes", "Fetch", "P1", postHeaders,
+                                 "{\"note\":\"" + CORE::CString( realToken ) + "\"}", true, 210.0 );
+            browser.EmitResponse( session, "N1", 204, "", htmlHeaders, "Fetch" );
+            browser.EmitFinished( session, "N1", 0 );
+            for ( UInt32 i=0; i<3000 && recorder.GetRecordedRequestCount() < 10; ++i )
+                Pump( 1, &recorder );
+            Pump( 30, &recorder );
+            ASSERT_TRUE( recorder.GetRecordedRequestCount() == 10 );
+            recorder.Stop();
+            journal.Close();
+
+            // the journal: one complete line per request, only the cookie value masked
+            CORE::CString journalText;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( journalPath, journalText ) );
+            CORE::CString::StringVector lines = journalText.ParseElements( '\n', false );
+            UInt32 requestLines = 0;
+            for ( size_t i=0; i<lines.size(); ++i )
+                if ( Contains( lines[ i ], "{\"seq\":" ) )
+                    ++requestLines;
+            ASSERT_TRUE( 10 == requestLines );
+            ASSERT_FALSE( Contains( journalText, "\"redacted\"" ) );
+            ASSERT_FALSE( Contains( journalText, sessionCookie ) );
+            ASSERT_TRUE( Contains( journalText, "https://shop.example.test/collections/all-kits" ) );
+            ASSERT_TRUE( Contains( journalText, ( "/cart/" + CORE::CString( checkoutToken ) + "/update" ).C_String() ) );
+            ASSERT_TRUE( Contains( journalText, realToken ) );             // the journal is the user's record; the report decides
+
+            // the report: hosts and public values shown, the real token left out with its description, the analytics id suspected public
+            ASSERT_TRUE( 1 <= redactor.AssessJournal( journalText ) );
+            CORE::CString report;
+            ASSERT_TRUE( catalog.RenderReport( report ) );
+            ASSERT_TRUE( Contains( report, "| shop.example.test |" ) );
+            GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Storefront report:\n" << report );
+            ASSERT_TRUE( Contains( report, "/collections/all-kits" ) && Contains( report, "/apps/widget/load" ) && Contains( report, "/search/{value}" ) );
+            ASSERT_TRUE( Contains( report, "/api/payload" ) && Contains( report, "/cart/" ) && Contains( report, "/api/notes" ) );
+            ASSERT_TRUE( Contains( report, "{secret}" ) );              // the token in the body example is masked in place
+            ASSERT_TRUE( 1 == catalog.GetRedactedEntryCount() );       // the download whose content type holds it is left out
+            ASSERT_TRUE( Contains( report, "class response-body-field, field `auth_token`, length 32" ) );
+            ASSERT_TRUE( Contains( report, "Host `shop.example.test`, method GET" ) );
+            ASSERT_FALSE( Contains( report, realToken ) || Contains( report, sessionCookie ) );
+            ASSERT_TRUE( Contains( report, "taken for public values" ) && Contains( report, "field `session`" ) );
         }
         catch ( ... )
         {
@@ -2022,6 +2230,356 @@ PerformDiscoveryGapTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** Values of a user, as a site may put them where a report expects structure; none may reach a journal or report with the rules on */
+static const char* const UserValues[] = { "ZXQ", "YYW", "73021945", "Jane Doe", "Joint_Tenant", "red+shoes", "red shoes", "red%20shoes",
+                                          "aGVsbG8gd29ybGQgdGhpcyBpcw2Q", "acct12", "Rainy Day", GUCEF_NULL };
+
+static bool
+ContainsAnyUserValue( const CORE::CString& text )
+{
+    for ( UInt32 i=0; GUCEF_NULL != UserValues[ i ]; ++i )
+    {
+        if ( Contains( text, UserValues[ i ] ) )
+        {
+            // synthetic values only: the place is logged to tell which rule missed it
+            const char* at = strstr( text.C_String(), UserValues[ i ] );
+            const UInt32 offset = (UInt32) ( at - text.C_String() );
+            const UInt32 from = offset > 80 ? offset - 80 : 0;
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Value rules test: the text still holds the user value " << UserValues[ i ] << " in: " <<
+                             CORE::CString( text.C_String() + from, offset - from + 40 < text.Length() - from ? offset - from + 40 : text.Length() - from ) );
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The value rules as a site with codes and names of the user would configure them */
+static WEB::CSiteDiscoverySettings
+ValueRuleSettings( const CORE::CString& outputDirectory )
+{
+    WEB::CSiteDiscoverySettings settings;
+    settings.outputDirectory = outputDirectory;
+    settings.maskUppercaseTokens = true;
+    settings.sensitiveValues.push_back( "Jane Doe" );
+    settings.sensitiveValues.push_back( "Rainy Day" );
+    settings.sensitiveValuePatterns.push_back( "acct*" );
+    settings.valueQueryNames.push_back( "pick" );
+    settings.valueQueryNames.push_back( "picks" );
+    settings.recordEnumQueryValues = true;
+    return settings;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformValueRuleTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Test: The value rule settings have their defaults, and load and save" )
+        try
+        {
+            WEB::CSiteDiscoverySettings defaults;
+            ASSERT_TRUE( defaults.maskIdLikeMemberNames && defaults.maskTokenLikeParameterNames && defaults.maxParameterNameLength == 40 );
+            ASSERT_FALSE( defaults.maskUppercaseTokens );
+            ASSERT_TRUE( defaults.uppercaseTokenMaxLength == 5 && defaults.maskFileNameWords );
+            ASSERT_TRUE( defaults.sensitiveValues.empty() && defaults.sensitiveValuePatterns.empty() && defaults.enumQueryNames.empty() );
+            ASSERT_TRUE( JoinedContains( defaults.valueQueryNames, "query" ) && JoinedContains( defaults.valuePathSegmentsAfter, "search" ) );
+            ASSERT_TRUE( JoinedContains( defaults.nonSensitiveValues, "PDF" ) );
+
+            WEB::CSiteDiscoverySettings settings = ValueRuleSettings( "/out" );
+            settings.enumQueryNames.push_back( "view" );
+            settings.maxParameterNameLength = 33;
+            settings.maskFileNameWords = false;
+            CORE::CDataNode cfg;
+            ASSERT_TRUE( settings.SaveConfig( cfg ) );
+            WEB::CSiteDiscoverySettings again;
+            ASSERT_TRUE( again.LoadConfig( cfg ) );
+            ASSERT_TRUE( again.maskUppercaseTokens && again.maxParameterNameLength == 33 && !again.maskFileNameWords );
+            ASSERT_TRUE( again.sensitiveValues.size() == 2 && again.sensitiveValues[ 0 ] == "Jane Doe" && again.sensitiveValuePatterns.size() == 1 );
+            ASSERT_TRUE( again.enumQueryNames.size() == 1 && JoinedContains( again.valueQueryNames, "picks" ) );
+
+            CORE::CDataNode json;
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{\"maskUppercaseTokens\":true,\"uppercaseTokenMaxLength\":4,\"valuePathSegmentsAfter\":[],"
+                                                                 "\"nonSensitiveValues\":[\"ETA\"],\"maskIdLikeMemberNames\":false}", json ) );
+            WEB::CSiteDiscoverySettings fromJson;
+            ASSERT_TRUE( fromJson.LoadConfig( json ) );
+            ASSERT_TRUE( fromJson.maskUppercaseTokens && fromJson.uppercaseTokenMaxLength == 4 && fromJson.valuePathSegmentsAfter.empty() );
+            ASSERT_TRUE( fromJson.nonSensitiveValues.size() == 1 && !fromJson.maskIdLikeMemberNames );
+            CORE::CDataNode zero;
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{\"maxParameterNameLength\":0}", zero ) );
+            ASSERT_FALSE( fromJson.LoadConfig( zero ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The value rules mask member names, parameter names, path segments, query values, labels and file names" )
+        try
+        {
+            // the defaults: identifiers as member names, token-like parameter names, search terms
+            WEB::CSiteDiscoveryRedactor plain;
+            ASSERT_TRUE( plain.RedactMemberName( "73021945" ) == "{key}" );
+            ASSERT_TRUE( plain.RedactMemberName( "0f8fad5b-d9cb-469f-a165-70867728950e" ) == "{key}" );
+            ASSERT_TRUE( plain.RedactMemberName( "2026-01-31" ) == "{key}" );
+            ASSERT_TRUE( plain.RedactMemberName( "ZXQ" ) == "ZXQ" );
+            ASSERT_TRUE( plain.RedactMemberName( "unitPrice" ) == "unitPrice" && plain.RedactMemberName( "line2" ) == "line2" );
+            ASSERT_TRUE( plain.RedactMemberName( "{key}" ) == "{key}" );
+            ASSERT_TRUE( plain.IsTokenLikeParameterName( "aGVsbG8gd29ybGQgdGhpcyBpcw2Q" ) );
+            ASSERT_TRUE( plain.IsTokenLikeParameterName( "dGVzdA==" ) );
+            ASSERT_TRUE( plain.IsTokenLikeParameterName( "averyveryverylongparameternamethatnobodywouldwrite" ) );
+            ASSERT_FALSE( plain.IsTokenLikeParameterName( "sort" ) || plain.IsTokenLikeParameterName( "pageSize" ) || plain.IsTokenLikeParameterName( "include_totals" ) );
+            ASSERT_TRUE( plain.MaskUrl( "https://api.shop.test/v1/search/red%20shoes?q=red+shoes&page=2" ) == "https://api.shop.test/v1/search/{value}?q={value}&page=2" );
+            ASSERT_TRUE( plain.MaskUrl( "https://api.shop.test/v1/items?aGVsbG8gd29ybGQgdGhpcyBpcw2Q=1&sort=asc" ) == "https://api.shop.test/v1/items?{token-like name}=1&sort=asc" );
+            ASSERT_TRUE( plain.RedactPath( "/v1/quote/ZXQ" ) == "/v1/quote/ZXQ" );
+            ASSERT_TRUE( plain.RedactLabel( "Sell ZXQ" ) == "Sell ZXQ" );
+
+            // with the rules of a site that shows codes and names of the user
+            WEB::CSiteDiscoveryRedactor redactor( ValueRuleSettings( CORE::CString::Empty ) );
+            ASSERT_TRUE( redactor.RedactMemberName( "ZXQ" ) == "{key}" && redactor.RedactMemberName( "XY.Z" ) == "{key}" );
+            ASSERT_TRUE( redactor.RedactMemberName( "Jane Doe" ) == "{key}" && redactor.RedactMemberName( "acct12" ) == "{key}" );
+            ASSERT_TRUE( redactor.RedactMemberName( "ID" ) == "ID" && redactor.RedactMemberName( "price" ) == "price" );
+            ASSERT_TRUE( redactor.RedactMemberName( "TOOLONGCODE" ) == "TOOLONGCODE" );
+            ASSERT_TRUE( redactor.IsSensitiveToken( "ZXQ" ) && redactor.IsSensitiveToken( "acct99" ) && !redactor.IsSensitiveToken( "PDF" ) && !redactor.IsSensitiveToken( "Zxq" ) );
+
+            ASSERT_TRUE( redactor.RedactShapeLine( "holdings.ZXQ.quantity: number" ) == "holdings.{key}.quantity: number" );
+            ASSERT_TRUE( redactor.RedactShapeLine( "prefs.73021945.view: string" ) == "prefs.{key}.view: string" );
+            ASSERT_TRUE( redactor.RedactShapeLine( "byCode.ZXQ[]: null | string (optional)" ) == "byCode.{key}[]: null | string (optional)" );
+            ASSERT_TRUE( redactor.RedactShapeLine( "items[].name: string" ) == "items[].name: string" );
+            ASSERT_TRUE( redactor.RedactShapeLine( "links.ZXQ -> https://api.shop.test/v1/quote/ZXQ" ) == "links.{key} -> https://api.shop.test/v1/quote/{value}" );
+            ASSERT_TRUE( redactor.RedactShapeLine( "names.Jane Doe: string" ) == "names.{key}: string" );
+            WEB::CWebBodyShape shape;
+            shape.lines.push_back( "holdings.ZXQ.quantity: number" );
+            shape.lines.push_back( "holdings.YYW.quantity: number" );
+            shape.lines.push_back( "holdings.ZXQ.cost: number" );
+            shape.paginationHints.push_back( "pages.73021945.next" );
+            ASSERT_TRUE( redactor.RedactShape( shape ) );
+            ASSERT_TRUE( shape.lines.size() == 2 && shape.lines[ 0 ] == "holdings.{key}.quantity: number" && shape.lines[ 1 ] == "holdings.{key}.cost: number" );
+            ASSERT_TRUE( shape.paginationHints.size() == 1 && shape.paginationHints[ 0 ] == "pages.{key}.next" );
+            ASSERT_FALSE( redactor.RedactShape( shape ) );
+
+            ASSERT_TRUE( redactor.MaskUrl( "https://api.shop.test/v1/quote/ZXQ/detail?pick=ZXQ&type=ZXQ&page=2&q=red+shoes" ) ==
+                         "https://api.shop.test/v1/quote/{value}/detail?pick={value}&type={value}&page=2&q={value}" );
+            ASSERT_TRUE( redactor.MaskUrl( "https://api.shop.test/v1/API/items" ) == "https://api.shop.test/v1/API/items" );
+            ASSERT_TRUE( redactor.RedactPath( "/v1/lookup/abc/x" ) == "/v1/lookup/{value}/x" );
+            ASSERT_TRUE( redactor.RedactAddressTemplate( "www.shop.test/app/quote/ZXQ" ) == "www.shop.test/app/quote/{value}" );
+            ASSERT_TRUE( redactor.RedactAddressTemplate( "https://www.shop.test/app/search/abc" ) == "https://www.shop.test/app/search/{value}" );
+
+            ASSERT_TRUE( redactor.RedactLabel( "Sell 10 ZXQ for Jane Doe" ) == "Sell {n} {value} for {value}" );
+            ASSERT_TRUE( redactor.RedactLabel( "Download PDF" ) == "Download PDF" );
+            ASSERT_TRUE( redactor.RedactLabel( "Rainy Day account acct12" ) == "{value} account {value}" );
+            ASSERT_TRUE( redactor.RedactLabel( redactor.RedactLabel( "Sell 10 ZXQ for Jane Doe" ) ) == "Sell {n} {value} for {value}" );
+
+            ASSERT_TRUE( redactor.RedactFileName( "Positions_12345678_Joint_Tenant_Account_2026-01-31.csv" ) == "Positions_{n}_{text}_{n}-{n}-{n}.csv" );
+            ASSERT_TRUE( redactor.RedactFileName( "Lot-Details.csv" ) == "Lot-Details.csv" );
+            ASSERT_TRUE( redactor.RedactFileName( "Lot-Details 123.csv" ) == "Lot-Details {n}.csv" );
+            ASSERT_TRUE( redactor.RedactFileName( "Report_ZXQ_2026.pdf" ) == "Report_{value}_{n}.pdf" );
+            ASSERT_TRUE( redactor.RedactFileName( "Positions_{n}_{text}_{n}-{n}-{n}.csv" ) == "Positions_{n}_{text}_{n}-{n}-{n}.csv" );
+            WEB::CSiteDiscoverySettings keepWords = ValueRuleSettings( CORE::CString::Empty );
+            keepWords.maskFileNameWords = false;
+            WEB::CSiteDiscoveryRedactor wordsKept( keepWords );
+            ASSERT_TRUE( wordsKept.RedactFileName( "Positions_12345678_Joint_Tenant_Account_2026-01-31.csv" ) == "Positions_{n}_Joint_Tenant_Account_{n}-{n}-{n}.csv" );
+
+            // enum values: never of value names, codes masked, only the configured names when there are any
+            WEB::CUrlPathTemplate parsed;
+            ASSERT_TRUE( WEB::CUrlPathTemplate::Parse( "https://api.shop.test/v1/items?view=compact&pick=ZXQ&type=ZXQ&sort=asc&q=red", parsed ) );
+            GUCEF::vector< std::pair< CORE::CString, CORE::CString > > enums;
+            redactor.ExtractEnumQueryValues( parsed, enums );
+            ASSERT_TRUE( enums.size() == 3 && enums[ 0 ].first == "view" && enums[ 1 ].first == "type" && enums[ 1 ].second == "{value}" && enums[ 2 ].first == "sort" );
+            WEB::CSiteDiscoverySettings onlyView = ValueRuleSettings( CORE::CString::Empty );
+            onlyView.enumQueryNames.push_back( "view" );
+            WEB::CSiteDiscoveryRedactor viewOnly( onlyView );
+            viewOnly.ExtractEnumQueryValues( parsed, enums );
+            ASSERT_TRUE( enums.size() == 1 && enums[ 0 ].first == "view" && enums[ 0 ].second == "compact" );
+
+            // example values: the value names and the codes never, other values as they are
+            ASSERT_TRUE( redactor.RedactQueryValue( "q", "red+shoes" ) == "{value}" && redactor.RedactQueryValue( "type", "ZXQ" ) == "{value}" );
+            ASSERT_TRUE( redactor.RedactQueryValue( "page", "2" ) == "2" );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The value rules apply to the report only: the journal keeps the values, a rebuild with other settings gives another report" )
+        try
+        {
+            for ( UInt32 examples=0; examples<2; ++examples )
+            {
+                TESTFW::CScopedTestDir dir( "gucefWEB_SiteDiscovery_ValueRules" );
+                WEB::CSiteDiscoverySettings settings = ValueRuleSettings( dir.GetPath() );
+                settings.recordExampleValues = ( examples == 1 );
+                WEB::CSiteDiscoveryRedactor redactor( settings );
+                WEB::CSiteDiscoveryJournal journal;
+                journal.SetRedactor( &redactor );
+                WEB::CSiteEndpointCatalog catalog;
+                catalog.SetRedactor( &redactor );
+                const CORE::CString journalPath = CORE::CombinePath( dir.GetPath(), "requests.jsonl" );
+                ASSERT_TRUE( journal.Open( journalPath ) );
+
+                WEB::CObservedUserAction action;
+                action.id = 1;
+                action.timestamp = 100.5;
+                action.kind = WEB::CObservedUserAction::KindClick;
+                action.label = "Sell 10 ZXQ for Jane Doe";
+                action.page = "https://www.shop.test/app/quote/ZXQ";
+                journal.AppendAction( action );
+                catalog.AddAction( action );
+
+                WEB::CObservedWebRequest search = MakeObservation( 1, "GET", "https://api.shop.test/v1/search/red%20shoes?q=red+shoes&pick=ZXQ&type=YYW&aGVsbG8gd29ybGQgdGhpcyBpcw2Q=1&page=2",
+                                                                   "XHR", 200, "application/json", 100 );
+                search.actionId = 1;
+                search.requestHeaders[ "referer" ] = "https://www.shop.test/app/quote/ZXQ";
+                search.queryEnumValues.push_back( std::make_pair( CORE::CString( "type" ), CORE::CString( "YYW" ) ) );
+                search.queryEnumValues.push_back( std::make_pair( CORE::CString( "pick" ), CORE::CString( "ZXQ" ) ) );
+                search.hasResponseShape = true;
+                search.responseShape.lines.push_back( "holdings.ZXQ.quantity: number" );
+                search.responseShape.lines.push_back( "holdings.YYW.quantity: number" );
+                search.responseShape.lines.push_back( "prefs.73021945.view: string" );
+                search.responseShape.lines.push_back( "names.Jane Doe: string" );
+                search.responseShape.urlFields.push_back( "links.ZXQ -> https://api.shop.test/v1/quote/ZXQ" );
+
+                WEB::CObservedWebRequest post = MakeObservation( 2, "POST", "https://api.shop.test/v1/lists/acct12/items", "XHR", 201, "application/json", 10 );
+                post.requestContentType = "application/json";
+                post.requestBodyShape.lines.push_back( "symbols.ZXQ: boolean" );
+                post.postData = "{\"symbols\":{\"ZXQ\":true},\"owner\":\"Jane Doe\"}";
+
+                WEB::CObservedWebRequest download = MakeObservation( 3, "GET", "https://files.shop.test/export/positions", "Document", 200, "text/csv", 1000 );
+                download.isDownload = true;
+                download.contentDisposition = "attachment";
+                download.downloadFileName = "Positions_12345678_Joint_Tenant_Account_2026-01-31.csv";
+
+                WEB::CObservedWebRequest redirect = MakeObservation( 4, "GET", "https://www.shop.test/app/go", "Document", 302, "text/html", 0 );
+                redirect.redirectTarget = "www.shop.test/app/search/ZXQ";
+
+                WEB::CObservedWebRequest* all[] = { &search, &post, &download, &redirect };
+                for ( UInt32 i=0; i<4; ++i )
+                {
+                    ASSERT_TRUE( journal.Append( *all[ i ] ) );
+                    catalog.Add( *all[ i ] );
+                }
+                journal.Close();
+
+                CORE::CString journalText;
+                ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( journalPath, journalText ) );
+                CORE::CString report;
+                ASSERT_TRUE( catalog.RenderReport( report ) );
+                ASSERT_FALSE( ContainsAnyUserValue( report ) );
+                ASSERT_TRUE( Contains( journalText, "Sell 10 ZXQ for Jane Doe" ) && Contains( journalText, "holdings.ZXQ.quantity" ) && Contains( journalText, "prefs.73021945.view" ) );
+                ASSERT_TRUE( Contains( journalText, "Positions_12345678_Joint_Tenant_Account_2026-01-31.csv" ) && Contains( journalText, "aGVsbG8gd29ybGQgdGhpcyBpcw2Q" ) );
+                ASSERT_FALSE( Contains( journalText, "{key}" ) || Contains( journalText, "{text}" ) || Contains( journalText, "{token-like name}" ) );
+                ASSERT_TRUE( Contains( report, "holdings.{key}.quantity" ) && Contains( report, "prefs.{key}.view" ) );
+                ASSERT_TRUE( Contains( report, "/v1/search/{value}" ) && Contains( report, "{token-like name}" ) );
+                ASSERT_TRUE( Contains( report, "Positions_{n}_{text}_{n}-{n}-{n}.csv" ) );
+                ASSERT_TRUE( Contains( report, "Sell {n} {value} for {value}" ) );
+                ASSERT_TRUE( Contains( report, "/v1/lists/{value}/items" ) );
+                ASSERT_TRUE( GUCEF_NULL != catalog.FindEntry( "GET", "https://api.shop.test/v1/search/other?q=x" ) );
+
+                // the live catalog and one rebuilt from the journal render the same report
+                WEB::CSiteEndpointCatalog rebuilt;
+                rebuilt.SetRedactor( &redactor );
+                WEB::CSiteDiscoveryJournal reader;
+                reader.SetRedactor( &redactor );
+                ASSERT_TRUE( 4 == reader.Load( journalPath, rebuilt ) );
+                CORE::CString rebuiltReport;
+                ASSERT_TRUE( rebuilt.RenderReport( rebuiltReport ) );
+                ASSERT_TRUE( rebuiltReport == report );
+
+                // the same journal with other value rules: another report, without recording again
+                WEB::CSiteDiscoverySettings plain;
+                plain.outputDirectory = dir.GetPath();
+                plain.recordExampleValues = settings.recordExampleValues;
+                plain.maskFileNameWords = false;
+                WEB::CSiteDiscoveryRedactor plainRedactor( plain );
+                WEB::CSiteEndpointCatalog plainCatalog;
+                plainCatalog.SetRedactor( &plainRedactor );
+                WEB::CSiteDiscoveryJournal plainReader;
+                plainReader.SetRedactor( &plainRedactor );
+                ASSERT_TRUE( 4 == plainReader.Load( journalPath, plainCatalog ) );
+                CORE::CString plainReport;
+                ASSERT_TRUE( plainCatalog.RenderReport( plainReport ) );
+                ASSERT_TRUE( plainReport != report );
+                ASSERT_TRUE( Contains( plainReport, "holdings.ZXQ.quantity" ) && Contains( plainReport, "Sell {n} ZXQ for Jane Doe" ) );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A report rebuilt from an older journal, and a scrubbed journal, follow the value rules of today" )
+        try
+        {
+            TESTFW::CScopedTestDir dir( "gucefWEB_SiteDiscovery_ValueRulesRebuild" );
+            const WEB::CSiteDiscoverySettings settings = ValueRuleSettings( dir.GetPath() );
+
+            // a journal as a recorder without the value rules wrote it
+            const CORE::CString plainLine = "{\"seq\":3,\"ts\":103,\"method\":\"GET\",\"url\":\"https://api.shop.test/v1/items?page\",\"type\":\"XHR\",\"status\":200,"
+                                            "\"mime\":\"application/json\",\"size\":5,\"failed\":false,\"error\":\"\",\"bodyFile\":\"\",\"postData\":\"\",\"requestHeaders\":{},"
+                                            "\"action\":0,\"neverRecorded\":false}";
+            const CORE::CString older =
+                "{\"action\":1,\"ts\":100.5,\"kind\":\"click\",\"label\":\"Sell ZXQ for Jane Doe\",\"page\":\"https://www.shop.test/app/quote/ZXQ\"}\n"
+                "{\"seq\":1,\"ts\":101,\"method\":\"GET\",\"url\":\"https://api.shop.test/v1/quote/ZXQ?aGVsbG8gd29ybGQgdGhpcyBpcw2Q&q&type\",\"type\":\"XHR\",\"status\":200,"
+                "\"mime\":\"application/json\",\"size\":10,\"failed\":false,\"error\":\"\",\"bodyFile\":\"\",\"postData\":\"\",\"requestHeaders\":{\"accept\":\"application/json\"},"
+                "\"action\":1,\"queryValues\":[\"type\",\"YYW\",\"q\",\"red shoes\"],\"responseShape\":[\"holdings.ZXQ.quantity: number\",\"prefs.73021945.view: string\"],"
+                "\"responsePaging\":[],\"responseUrls\":[],\"responseShapeTruncated\":false,\"neverRecorded\":false}\n"
+                "{\"seq\":2,\"ts\":102,\"method\":\"GET\",\"url\":\"https://files.shop.test/export/positions\",\"type\":\"Document\",\"status\":200,\"mime\":\"text/csv\","
+                "\"size\":1000,\"failed\":false,\"error\":\"\",\"bodyFile\":\"\",\"postData\":\"\",\"requestHeaders\":{},\"action\":0,"
+                "\"download\":{\"disposition\":\"attachment\",\"fileName\":\"Positions_{n}_Joint_Tenant_Account_{n}.csv\",\"contentType\":\"text/csv\",\"size\":1000},"
+                "\"neverRecorded\":false}\n" + plainLine + "\n";
+
+            WEB::CSiteDiscoverySession session;
+            session.SetSettings( settings );
+            CORE::CString problem;
+            ASSERT_TRUE( CORE::CreateOwnerOnlyFile( session.GetJournalPath(), older.C_String(), older.ByteSize() - 1, problem ) );
+
+            // the rebuild only reads the journal, and its report follows the rules of today
+            ASSERT_TRUE( session.RebuildReportFromJournal( problem ) );
+            CORE::CString journalAfterRebuild;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( session.GetJournalPath(), journalAfterRebuild ) );
+            ASSERT_TRUE( journalAfterRebuild == older );
+            CORE::CString rebuiltReport;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( session.GetReportPath(), rebuiltReport ) );
+            ASSERT_FALSE( ContainsAnyUserValue( rebuiltReport ) );
+            ASSERT_TRUE( Contains( rebuiltReport, "holdings.{key}.quantity" ) && Contains( rebuiltReport, "/v1/quote/{value}" ) && Contains( rebuiltReport, "{token-like name}" ) );
+            ASSERT_TRUE( Contains( rebuiltReport, "Positions_{n}_{text}_{n}.csv" ) && Contains( rebuiltReport, "Sell {value} for {value}" ) );
+            ASSERT_TRUE( Contains( rebuiltReport, "### GET api.shop.test/v1/items" ) );
+
+            // the scrub rewrites the lines that held values, keeps the others byte for byte, and keeps the old journal as a backup
+            WEB::CSiteDiscoveryJournal::SScrubResult result;
+            ASSERT_TRUE( session.ScrubJournal( result, problem ) );
+            ASSERT_TRUE( result.lines == 4 && result.maskedRequests == 2 && result.maskedActions == 1 && result.stubbedRequests == 0 && result.unreadableLines == 0 );
+            ASSERT_TRUE( CORE::FileExists( result.backupPath ) );
+            CORE::CString scrubbed;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( session.GetJournalPath(), scrubbed ) );
+            ASSERT_FALSE( ContainsAnyUserValue( scrubbed ) );
+            ASSERT_TRUE( Contains( scrubbed, plainLine.C_String() ) );
+            ASSERT_TRUE( Contains( scrubbed, "\"seq\":1," ) && Contains( scrubbed, "\"seq\":2," ) );
+            CORE::CString scrubbedReport;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( session.GetReportPath(), scrubbedReport ) );
+            ASSERT_TRUE( scrubbedReport == rebuiltReport );
+
+            // a second scrub finds nothing more to mask
+            WEB::CSiteDiscoveryJournal::SScrubResult second;
+            ASSERT_TRUE( session.ScrubJournal( second, problem ) );
+            ASSERT_TRUE( second.maskedRequests == 0 && second.maskedActions == 0 );
+            CORE::CString scrubbedTwice;
+            ASSERT_TRUE( WEB::CSiteDiscoveryJournal::ReadWholeFile( session.GetJournalPath(), scrubbedTwice ) );
+            ASSERT_TRUE( scrubbedTwice == scrubbed );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformSiteDiscoveryTests( void )
 {
@@ -2044,6 +2602,7 @@ PerformSiteDiscoveryTests( void )
     PerformBrowserHelperTests();
     PerformRecorderTests();
     PerformDiscoveryGapTests();
+    PerformValueRuleTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL site discovery TESTS COMPLETED" );

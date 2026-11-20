@@ -46,6 +46,14 @@ static UInt16 g_fakeDevToolsPort = 0;
 
 /*-------------------------------------------------------------------------*/
 
+static UInt64
+NowInMs( void )
+{
+    return (UInt64) ( MT::PrecisionTickCount() / ( MT::PrecisionTimerResolution() / 1000.0 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** The discovery pages of the fake browser: the browser's own web socket, and no pages (the recorder asks over the socket) */
 class CFakeDevToolsHttpHandler : public WEB::CIHttpServerRequestHandler
 {
@@ -107,15 +115,48 @@ CFakeDevToolsBrowser::CFakeDevToolsBrowser( void )
     , m_postData()
     , m_results()
     , m_errors()
+    , m_queued()
+    , m_commandEvents()
+    , m_pendingEvents()
+    , m_tabUrls()
+    , m_pulseSink( GUCEF_NULL )
     , m_attached()
+    , m_emulateProbe( false )
+    , m_probeCount( 0 )
 {
+    m_pulseSink = GUCEF_NEW CPulseSink( *this );
+}
 
+/*-------------------------------------------------------------------------*/
+
+CFakeDevToolsBrowser::CPulseSink::CPulseSink( CFakeDevToolsBrowser& owner )
+    : CORE::CObserver()
+    , m_owner( owner )
+{
+    TEventCallback callback( this, &CPulseSink::OnPulse );
+    SubscribeTo( CORE::CCoreGlobal::Instance()->GetPulseGenerator().GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, callback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFakeDevToolsBrowser::CPulseSink::~CPulseSink()
+{
+    UnsubscribeAllFromObserver();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::CPulseSink::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{
+    m_owner.SendPendingEvents();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CFakeDevToolsBrowser::~CFakeDevToolsBrowser()
 {
+    GUCEF_DELETE m_pulseSink;
     GUCEF_DELETE m_rpcServer;
     GUCEF_DELETE m_webSocketServer;
     if ( GUCEF_NULL != m_httpServer )
@@ -218,6 +259,102 @@ CFakeDevToolsBrowser::SetCommandError( const CORE::CString& key, const CORE::CSt
 
 /*-------------------------------------------------------------------------*/
 
+void
+CFakeDevToolsBrowser::QueueCommandResult( const CORE::CString& key, const CORE::CDataNode& result )
+{
+    SScriptedAnswer answer;
+    answer.isError = false;
+    answer.result = result;
+    m_queued[ key ].push_back( answer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::QueueCommandError( const CORE::CString& key, const CORE::CString& message )
+{
+    SScriptedAnswer answer;
+    answer.isError = true;
+    answer.message = message;
+    m_queued[ key ].push_back( answer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::AddCommandEvent( const CORE::CString& key, const CORE::CString& method, const CORE::CDataNode& params, bool afterAnswer, UInt32 delayInMs )
+{
+    SScriptedEvent event;
+    event.method = method;
+    event.params = params;
+    event.afterAnswer = afterAnswer;
+    event.delayInMs = delayInMs;
+    event.dueInMs = 0;
+    m_commandEvents[ key ].push_back( event );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::ClearCommandScript( const CORE::CString& key )
+{
+    m_results.erase( key );
+    m_errors.erase( key );
+    m_queued.erase( key );
+    m_commandEvents.erase( key );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::EmitScripted( const SScriptedEvent& event )
+{
+    // the address of the tab follows the commits of its main frame
+    if ( event.method == "Page.frameNavigated" )
+    {
+        const CORE::CDataNode* frame = event.params.FindChild( "frame" );
+        if ( GUCEF_NULL != frame && frame->GetAttributeValue( "parentId" ).AsString().IsNULLOrEmpty() )
+            m_tabUrls[ event.sessionId ] = frame->GetAttributeValue( "url" ).AsString();
+    }
+    else
+    if ( event.method == "Page.navigatedWithinDocument" )
+        m_tabUrls[ event.sessionId ] = event.params.GetAttributeValue( "url" ).AsString();
+    Emit( event.sessionId, event.method, event.params );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::SendPendingEvents( void )
+{
+    if ( m_pendingEvents.empty() || GUCEF_NULL == m_connection )
+        return;
+    const UInt64 now = NowInMs();
+    while ( !m_pendingEvents.empty() )
+    {
+        // the first that is due, in the order of their due times
+        size_t first = 0;
+        for ( size_t i=1; i<m_pendingEvents.size(); ++i )
+            if ( m_pendingEvents[ i ].dueInMs < m_pendingEvents[ first ].dueInMs )
+                first = i;
+        if ( m_pendingEvents[ first ].dueInMs > now )
+            return;
+        const SScriptedEvent event = m_pendingEvents[ first ];
+        m_pendingEvents.erase( m_pendingEvents.begin() + first );
+        EmitScripted( event );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeDevToolsBrowser::SetEmulateProbeInterception( bool emulate )
+{
+    m_emulateProbe = emulate;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CFakeDevToolsBrowser::GetLastCommandParams( const CORE::CString& method, const CORE::CString& sessionId, CORE::CDataNode& params ) const
 {
@@ -252,6 +389,7 @@ void
 CFakeDevToolsBrowser::ForgetConnection( void )
 {
     m_connection = GUCEF_NULL;
+    m_pendingEvents.clear();
     commands.clear();
     commandParams.clear();
     m_attached.clear();
@@ -369,7 +507,7 @@ CFakeDevToolsBrowser::OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
     CORE::CDataNode& result = response.result;
 
     // scripted answers first: by a telling parameter, then by the method
-    static const char* const keyParams[] = { "role", "selector", "accessibleName", GUCEF_NULL };
+    static const char* const keyParams[] = { "backendNodeId", "nodeId", "role", "selector", "accessibleName", GUCEF_NULL };
     CORE::CString::StringVector keys;
     for ( UInt32 k=0; GUCEF_NULL != keyParams[ k ]; ++k )
     {
@@ -378,6 +516,44 @@ CFakeDevToolsBrowser::OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
             keys.push_back( method + "#" + value );
     }
     keys.push_back( method );
+
+    // the events of the command: those before the answer now, the others on the pulse after it
+    for ( size_t k=0; k<keys.size(); ++k )
+    {
+        GUCEF::map< CORE::CString, TScriptedEventVector >::const_iterator scripted = m_commandEvents.find( keys[ k ] );
+        if ( scripted == m_commandEvents.end() )
+            continue;
+        for ( size_t e=0; e<scripted->second.size(); ++e )
+        {
+            SScriptedEvent event = scripted->second[ e ];
+            event.sessionId = sessionId;
+            event.dueInMs = NowInMs() + event.delayInMs;
+            if ( event.afterAnswer )
+                m_pendingEvents.push_back( event );
+            else
+                EmitScripted( event );
+        }
+        break;
+    }
+
+    for ( size_t k=0; k<keys.size(); ++k )
+    {
+        GUCEF::map< CORE::CString, TScriptedAnswerVector >::iterator queued = m_queued.find( keys[ k ] );
+        if ( queued == m_queued.end() || queued->second.empty() )
+            continue;
+        const SScriptedAnswer answer = queued->second.front();
+        queued->second.erase( queued->second.begin() );
+        if ( answer.isError )
+        {
+            response.isError = true;
+            response.error.code = -32000;
+            response.error.message = answer.message;
+        }
+        else
+            response.result = answer.result;
+        return COM::JSONRPC_REQUEST_HANDLED;
+    }
+
     for ( size_t k=0; k<keys.size(); ++k )
     {
         TStringMap::const_iterator error = m_errors.find( keys[ k ] );
@@ -444,6 +620,22 @@ CFakeDevToolsBrowser::OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
         result.SetAttribute( "postData", CORE::CVariant( i->second ) );
         return COM::JSONRPC_REQUEST_HANDLED;
     }
+    if ( method == "Page.getNavigationHistory" )
+    {
+        CORE::CString url = "about:blank";
+        TStringMap::const_iterator tab = m_tabUrls.find( sessionId );
+        if ( tab != m_tabUrls.end() )
+            url = tab->second;
+        else
+            for ( size_t i=0; i<m_targets.size(); ++i )
+                if ( "S-" + m_targets[ i ].id == sessionId )
+                    url = m_targets[ i ].url;
+        result.SetAttribute( "currentIndex", (Int32) 0 );
+        CORE::CDataNode* entry = result.AddChild( "entries", GUCEF_DATATYPE_ARRAY )->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+        entry->SetAttribute( "id", (Int32) 1 );
+        entry->SetAttribute( "url", CORE::CVariant( url ) );
+        return COM::JSONRPC_REQUEST_HANDLED;
+    }
     if ( method == "Page.addScriptToEvaluateOnNewDocument" )
     {
         result.SetAttribute( "identifier", CORE::CVariant( CORE::CString( "1" ) ) );
@@ -451,7 +643,27 @@ CFakeDevToolsBrowser::OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
     }
     if ( method == "Runtime.evaluate" )
     {
+        const CORE::CString expression = request.params.GetAttributeValue( "expression" ).AsString();
+        const Int32 probe = expression.HasSubstr( "fetch('https://write-guard-probe.invalid/", true );
         CORE::CDataNode* evaluated = result.AddChild( "result", GUCEF_DATATYPE_OBJECT );
+        if ( m_emulateProbe && probe >= 0 )
+        {
+            // the browser pauses the page's request on the browser target before the page's promise settles
+            CORE::CString url = expression.CutChars( (UInt32) probe + 7, true );
+            url = url.SubstrToIndex( (UInt32) url.HasChar( '\'', true ), true );
+            ++m_probeCount;
+            CORE::CDataNode paused( GUCEF_DATATYPE_OBJECT );
+            paused.SetAttribute( "requestId", CORE::CVariant( "PROBE" + CORE::UInt32ToString( m_probeCount ) ) );
+            CORE::CDataNode* pausedRequest = paused.AddChild( "request", GUCEF_DATATYPE_OBJECT );
+            pausedRequest->SetAttribute( "url", CORE::CVariant( url ) );
+            pausedRequest->SetAttribute( "method", CORE::CVariant( CORE::CString( "POST" ) ) );
+            paused.SetAttribute( "frameId", CORE::CVariant( sessionId.CutChars( 2, true ) ) );
+            paused.SetAttribute( "resourceType", CORE::CVariant( CORE::CString( "Fetch" ) ) );
+            Emit( CORE::CString::Empty, "Fetch.requestPaused", paused );
+            evaluated->SetAttribute( "type", CORE::CVariant( CORE::CString( "string" ) ) );
+            evaluated->SetAttribute( "value", CORE::CVariant( CORE::CString( "refused" ) ) );
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
         evaluated->SetAttribute( "type", CORE::CVariant( CORE::CString( "undefined" ) ) );
         return COM::JSONRPC_REQUEST_HANDLED;
     }

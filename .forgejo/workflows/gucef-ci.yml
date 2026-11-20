@@ -3,6 +3,9 @@
 # Builds every enabled toolchain x C++ standard x build type cell for the products impacted by the changes:
 # on pushes (also commits fetched by a mirror sync) and nightly.
 # The cells come from projects/CI/matrix/matrix.json, the targets from projects/CI/matrix/products.json.
+# Manual runs (workflow_dispatch) select toolchains, C++ standards, products and the mode (build, or build and test);
+# on a branch other than the push branches (for example scratch/...) a manual run builds everything selected.
+# Every cell writes report.json and gzip compressed logs per product, see projects/CI/scripts/ci_cell.sh.
 name: gucef-ci
 
 on:
@@ -15,9 +18,9 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Build everything regardless of changes? (true/false)'
+        description: 'Build everything regardless of changes? (true/false; empty: false on the push branches, true on other branches)'
         required: false
-        default: 'false'
+        default: ''
       cppStandards:
         description: 'Only these C++ standards, comma separated (empty: all)'
         required: false
@@ -26,6 +29,14 @@ on:
         description: 'Only these toolchains, comma separated (empty: all enabled)'
         required: false
         default: ''
+      products:
+        description: 'Only these products, comma separated (empty: all)'
+        required: false
+        default: ''
+      mode:
+        description: 'build: build only; test: build and run the test applications'
+        required: false
+        default: 'build'
 
 jobs:
   plan:
@@ -43,6 +54,11 @@ jobs:
           CI_FORCE: ${{ inputs.force }}
           CI_CPP_STANDARDS: ${{ inputs.cppStandards }}
           CI_TOOLCHAINS: ${{ inputs.toolchains }}
+          CI_PRODUCTS: ${{ inputs.products }}
+          CI_MODE: ${{ inputs.mode }}
+          CI_EVENT: ${{ github.event_name }}
+          CI_REF: ${{ github.ref }}
+          CI_PUSH_BRANCHES: 'master,main'
           CI_SINCE_HOURS: '25'
           CI_MATRIX_DIR: projects/CI/matrix
         run: python3 projects/CI/scripts/ci_plan.py
@@ -67,5 +83,10 @@ jobs:
           CELL_BUILD_TYPE: ${{ matrix.cell.buildType }}
           CELL_CMAKE_ARGS: ${{ matrix.cell.cmakeArgs }}
           CELL_PRODUCTS: ${{ matrix.cell.products }}
+          CELL_MODE: ${{ matrix.cell.mode }}
+          CI_RUN_ID: ${{ github.run_id }}
+          CI_SERVER_URL: ${{ github.server_url }}
+          CI_REPORT_UPLOAD_URL: ${{ github.server_url }}/api/packages/ci-bot/generic
+          CI_REPORT_TOKEN: ${{ secrets.CI_REPORT_TOKEN }}
           CI_TOOL: FORGEJO-ACTIONS
         run: bash projects/CI/scripts/ci_cell.sh

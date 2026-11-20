@@ -78,14 +78,15 @@ class CAssetVocabulary;
  *  packs, assets, asset_model_props, asset_texture_props, asset_material_props, asset_animation_props,
  *  asset_audio_props, asset_files, relations, keywords, categories, category_map, synonyms, category_rules,
  *  licence_map, facets, saved_searches, licences, thumbnails, ingest_history, pack_conversions, pack_indexes, pack_groups,
- *  pack_resources, pack_sources, sync_marks, sync_items and schema_version. Every table of rows
+ *  pack_resources, pack_sources, sync_marks, sync_items, sync_item_details and schema_version. Every table of rows
  *  that belong to a pack has a pack_id column, so a pack is taken out with one delete per table. Times are INT64 UTC
  *  milliseconds since the Unix epoch; sets of names are text with the names joined by ','.
  *
  *  Migrations: schema_version holds a row per migration that ran. Version 1 makes the tables, version 2 writes the
  *  seed data of the vocabulary (CAssetVocabulary), version 3 adds the table pack_conversions (what the last conversion
  *  of a pack did, section 7.4), version 4 the tables of the pack index (pack_indexes, pack_groups, pack_resources) and
- *  version 5 the tables of the library sync (pack_sources, sync_marks, sync_items). Every migration adds tables only, so a
+ *  version 5 the tables of the library sync (pack_sources, sync_marks, sync_items), version 6 the cache of the details of the
+ *  items of a store (sync_item_details). Every migration adds tables only, so a
  *  catalogue of an earlier version keeps its rows. Open() runs those the database has not had up to the target
  *  version; a catalogue of a newer version than this build knows is refused.
  *
@@ -95,7 +96,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetCatalogue
 {
     public:
 
-    static const UInt32 CurrentSchemaVersion = 5;
+    static const UInt32 CurrentSchemaVersion = 6;
 
     typedef GUCEF::map< CORE::CString, CORE::CVariant > TRow;
     typedef GUCEF::vector< TRow > TRowVector;

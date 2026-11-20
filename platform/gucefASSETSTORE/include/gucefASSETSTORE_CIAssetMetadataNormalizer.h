@@ -53,6 +53,7 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 class CAssetVocabulary;
+class CAssetStoreItem;
 
 /**
  *  Maps the metadata of a pack onto the pack record of the primary store (section 7.2): its categories onto the
@@ -85,6 +86,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetMetadataNormalizer
     virtual CORE::CString GetVersion( void ) const = 0;
 
     virtual TAssetStoreStatus Normalize( const CAssetNormalizationInput& input, const CAssetVocabulary& vocabulary, CAssetPackRecord& pack ) = 0;
+
+    /**
+     *  The licence of a listed item classified as the ingest of its pack would classify it, without a pack: the library sync
+     *  plans with it (the licence filter, "needs-licence-review"). This default gives the name, address, text and restrictions
+     *  of the item to the vocabulary; a normaliser with licence rules of its store gives the class those rules give
+     */
+    virtual void ClassifyItemLicence( const CAssetStoreItem& item, const CAssetVocabulary& vocabulary, CAssetLicence& licence );
 
     private:
 

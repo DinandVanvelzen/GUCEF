@@ -37,6 +37,7 @@
 
 #include "gucefLabLink_Settings.h"
 #include "gucefLabLink_Store.h"
+#include "gucefLabLink_CiFiles.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -79,9 +80,17 @@ struct SClusterAnswers
     GUCEF::CORE::CString joinVersion;
     GUCEF::CORE::CString joinToken;
     bool joinEphemeral;
+    bool ciAsked;                               /**< whether CiConfig was called; then ciStatus is its answer */
+    GUCEF::Int32 ciStatus;                      /**< a GUCEF::COMCORE::TRpcStatusCode */
+    GUCEF::CORE::CString ciStatusText;
+    GUCEF::CORE::CString ciRegistry;
+    GUCEF::CORE::CString ciGatewayToken;
+    GUCEF::CORE::CString ciCaCertificate;
+    GUCEF::CORE::CString ciGatewayUrl;
 
     SClusterAnswers( void ) : cluster(), k3sVersion(), caCertificate(), mcpToken(), nodes(), joinGiven( false ), joinServer(), joinVersion(),
-                              joinToken(), joinEphemeral( false ) {}
+                              joinToken(), joinEphemeral( false ), ciAsked( false ), ciStatus( 0 ), ciStatusText(), ciRegistry(),
+                              ciGatewayToken(), ciCaCertificate(), ciGatewayUrl() {}
 };
 
 /**
@@ -89,6 +98,11 @@ struct SClusterAnswers
  *  or asks for access; checks the cluster, joins it as a node when allowed and sets up Claude Code. Visits the cluster
  *  again every refresh interval, and at once when the cluster is seen anew. Runs on the pulse generator of the
  *  application; a visit pumps it while it waits.
+ *
+ *  A machine that links with the token of its approval also asks for the CI configuration (CiConfig, gucef.lab 1.2)
+ *  on every visit, unless switched off (--no-ci), and keeps it as files for gucefMcpCi (CCiFiles). A cluster that does
+ *  not know the call is not asked again for an hour; the files stay as they are. A cluster that has no CI registry,
+ *  or that refuses this machine, makes it remove them.
  */
 class CMachineRole : public GUCEF::CORE::CObserver
 {
@@ -117,6 +131,9 @@ class CMachineRole : public GUCEF::CORE::CObserver
     /** The reports of this node to the cluster; NULL before Start() and when reporting is off */
     const CNodeReporter* GetReporter( void ) const;
 
+    /** What the last visit did with the CI configuration, for the log and tests */
+    const GUCEF::CORE::CString& GetCiOutcome( void ) const;
+
     virtual const GUCEF::CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     protected:
@@ -142,6 +159,12 @@ class CMachineRole : public GUCEF::CORE::CObserver
 
     void ConfigureClaude( const SClusterAnswers& answers );
 
+    /** Whether this visit asks for the CI configuration: with the token of the approval, unless switched off or not known by the cluster */
+    bool WantsCiConfig( const GUCEF::CORE::CString& token ) const;
+
+    /** Writes or removes the CI files after what CiConfig answered */
+    void ApplyCiConfig( const SClusterAnswers& answers );
+
     bool RunClaude( const GUCEF::CORE::CProcess::TStringVector& args, std::string& output );
 
     SSettings m_settings;
@@ -158,6 +181,9 @@ class CMachineRole : public GUCEF::CORE::CObserver
     CNodeReporter* m_reporter;
     SClusterSighting m_linkedSighting;          /**< the cluster the last successful visit was to: the one the reports go to */
     bool m_linked;
+    CCiFiles m_ciFiles;                         /**< <mcp dir>/ci */
+    GUCEF::UInt64 m_ciUnsupportedUntilInMs;     /**< a cluster that does not know CiConfig is not asked before then */
+    GUCEF::CORE::CString m_ciOutcome;
 };
 
 /*-------------------------------------------------------------------------//

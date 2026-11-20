@@ -82,7 +82,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace AUTH { class CWebSessionSignIn; }
+namespace AUTH { class CWebSessionSignIn; class CWebSession; }
 namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
@@ -187,6 +187,16 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
      */
     virtual bool RenewSession( void );
 
+    /**
+     *  Takes a web session that the account holder signed in to somewhere else (the cookies of their own browser, handed over to the
+     *  service) as the session of the store, for a store that signs in on its web site (ASSETSTORE_SIGNIN_WEB_SESSION):
+     *  only the cookies of the domains of the store are kept, sealed in the session store of the sign in. A store may
+     *  check the session with a cheap request of its own and refuse it (NOT_SIGNED_IN) when the store does not take it.
+     *  'message' says how many cookies were taken and what the store said, in words for people: never a value.
+     *  UNSUPPORTED by default
+     */
+    virtual TAssetStoreStatus ImportWebSession( const AUTH::CWebSession& session, CORE::CString& message );
+
     /** A page of the library of the signed in account */
     virtual TAssetStoreStatus QueryLibrary( const CAssetStoreQuery& query, CAssetStoreLibraryPage& page ) = 0;
 
@@ -211,6 +221,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
      *  the message of the download, so a sync records the reason. Empty by default: the status says it all
      */
     virtual CORE::CString GetPlanProblem( const CORE::CString& itemId, const CORE::CString& formatId ) const;
+
+    /**
+     *  The size guard of the store plugin: a download of a format larger than this is refused by PlanDownload() (REFUSED, the
+     *  reason in GetPlanProblem()). The library sync plans an item of known larger size as "too-large". 0 by default: no limit
+     */
+    virtual UInt64 GetMaxDownloadBytes( void ) const;
+
+    /**
+     *  An administrator lets the downloads of an item through the size guard (a sync of that item with allowLarge, the probe's
+     *  --listing <uid> --allow-large): kept by the plugin while it runs. Nothing by default
+     */
+    virtual void AllowLargeDownload( const CORE::CString& itemId );
 
     /** The normaliser of the metadata of the items of the store (section 7.2); GUCEF_NULL by default: the generic one is used */
     virtual CIAssetMetadataNormalizer* GetMetadataNormalizer( void );

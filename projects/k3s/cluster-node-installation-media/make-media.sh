@@ -27,8 +27,15 @@
 #     lablink.env with the settings of lablink/config.env of this checkout
 #     that apply to every machine (LAB_ALLOW and the like); with
 #     --with-secret also the lab secret
+#   - Windows: with --windows-bin DIR (the bin directory of a Windows build of
+#     gucefLabLink, which cannot be built here) also windows/ with the setup
+#     program gucefLabLink-<version>-setup.exe, an installer for the Windows
+#     service (CPack and NSIS, lablink/windows-installer). It needs makensis
+#     (Ubuntu: sudo apt-get install nsis); without it windows/ gets a ZIP of the
+#     same files. On Windows itself lablink/build-installer.ps1 makes the setup
+#     program from a checkout
 #
-# Usage: ./make-media.sh [TARGET] [--arch LIST] [--with-secret] [--skip-tests]
+# Usage: ./make-media.sh [TARGET] [--arch LIST] [--with-secret] [--skip-tests] [--windows-bin DIR]
 #   TARGET         the directory the medium goes in, e.g. the mount point of a
 #                  USB stick; default: common/bin/cluster-node-installation-media
 #                  of this checkout
@@ -39,6 +46,8 @@
 #                  gucefLabLink --init made it) on the medium: machines link
 #                  without approval. Whoever has the medium has the secret
 #   --skip-tests   make the medium without running the tests
+#   --windows-bin DIR  the directory with gucefLabLink.exe and its DLLs of a
+#                  Windows build: the medium gets the Windows setup program
 #
 # Internal: --packages-for ARCH --work-dir DIR --version VERSION builds,
 # tests and packages the programs for ARCH in the current environment.
@@ -54,6 +63,7 @@ TARGET=""
 ARCHES="amd64,arm64"
 WITH_SECRET=false
 SKIP_TESTS=false
+WINDOWS_BIN=""
 PACKAGES_FOR=""
 WORK_DIR=""
 VERSION=""
@@ -62,6 +72,7 @@ while [ $# -gt 0 ]; do
         --arch) ARCHES="$2"; shift ;;
         --with-secret) WITH_SECRET=true ;;
         --skip-tests) SKIP_TESTS=true ;;
+        --windows-bin) WINDOWS_BIN="$2"; shift ;;
         --packages-for) PACKAGES_FOR="$2"; shift ;;
         --work-dir) WORK_DIR="$2"; shift ;;
         --version) VERSION="$2"; shift ;;
@@ -251,6 +262,15 @@ for arch in ${ARCHES//,/ }; do
     ARCH_LIST+=("${arch}")
 done
 
+if [ -n "${WINDOWS_BIN}" ]; then
+    WINDOWS_BIN="$(cd "${WINDOWS_BIN}" 2> /dev/null && pwd)"
+    if [ -z "${WINDOWS_BIN}" ] || [ ! -f "${WINDOWS_BIN}/gucefLabLink.exe" ]; then
+        echo "ERROR: --windows-bin needs the directory with gucefLabLink.exe and its DLLs of a Windows build."
+        exit 1
+    fi
+    command -v makensis > /dev/null 2>&1 || echo "NOTE: makensis is not there, so windows/ gets a ZIP and no setup program (Ubuntu: sudo apt-get install nsis)."
+fi
+
 LAB_SECRET=""
 if [ "${WITH_SECRET}" = "true" ]; then
     LAB_SECRET="$(as_root cat "${LAB_STATE_DIR}/secret" 2>/dev/null | tr -d '[:space:]')"
@@ -334,6 +354,28 @@ if [ -f "${K3S_DIR}/lablink/config.env" ]; then
 fi
 if [ -n "${LAB_SECRET}" ]; then
     ( umask 077 && echo "${LAB_SECRET}" > "${MEDIUM_DIR}/lab-secret" )
+fi
+# the Windows setup program: the Windows build of the lab link packed with the installation scripts
+rm -f "${MEDIUM_DIR}"/windows/gucefLabLink-*-setup.exe "${MEDIUM_DIR}"/windows/gucefLabLink-*-setup.zip "${MEDIUM_DIR}/windows/setup-with-lab-secret.cmd"
+if [ -n "${WINDOWS_BIN}" ]; then
+    echo "Packaging the Windows setup program from ${WINDOWS_BIN}"
+    WINDOWS_WORK="${WORK_DIR}/package/windows"
+    as_builder rm -rf "${WINDOWS_WORK}" "${WORK_DIR}/windows-installer"
+    as_builder cmake -S "${K3S_DIR}/lablink/windows-installer" -B "${WINDOWS_WORK}" -DLABLINK_BIN_DIR="${WINDOWS_BIN}" \
+        > "${LOG_DIR}/package-windows.log" 2>&1 &&
+    as_builder cpack --config "${WINDOWS_WORK}/CPackConfig.cmake" -B "${WORK_DIR}/windows-installer" >> "${LOG_DIR}/package-windows.log" 2>&1
+    if [ $? -ne 0 ]; then
+        echo "ERROR: the Windows setup program could not be made, see ${LOG_DIR}/package-windows.log"
+        exit 1
+    fi
+    mkdir -p "${MEDIUM_DIR}/windows" || exit 1
+    cp "${WORK_DIR}"/windows-installer/gucefLabLink-*-setup.* "${MEDIUM_DIR}/windows/" || exit 1
+    # with the lab secret on the medium: a launcher that gives it to the setup program (run as an administrator)
+    if [ -n "${LAB_SECRET}" ]; then
+        printf '%s\r\n' '@echo off' 'rem Runs the setup program with the lab secret of this medium: the machine links without approval.' \
+            'set /p LAB_SECRET=<"%~dp0..\lab-secret"' \
+            'for %%f in ("%~dp0gucefLabLink-*-setup.exe") do "%%f" /SECRET=%LAB_SECRET%' > "${MEDIUM_DIR}/windows/setup-with-lab-secret.cmd"
+    fi
 fi
 ( cd "${MEDIUM_DIR}" && find . -type f ! -name SHA256SUMS -printf '%P\n' | sort | xargs sha256sum > SHA256SUMS )
 # one file to copy to another machine, named by its version and unpacking to gucef-lab-<version>; older ones next to it go

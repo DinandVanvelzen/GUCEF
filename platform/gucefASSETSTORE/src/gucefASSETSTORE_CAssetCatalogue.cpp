@@ -258,6 +258,13 @@ CAssetCatalogue::GetTableDefinitions( UInt32 schemaVersion, TDefinitionVector& d
                   "last_attempt_ms:int64,next_attempt_ms:int64,last_status:utf8,last_error:utf8",
                   "source_id,item_id", "sync_items_source=source_id" );
     }
+    if ( schemaVersion >= 6 )
+    {
+        // the library sync: the details of an item as the store gave them, reused while the cheap library entry stays the same
+        AddTable( definitions, "sync_item_details",
+                  "source_id:utf8!,item_id:utf8!,entry_fingerprint:utf8,fetched_ms:int64,details:utf8",
+                  "source_id,item_id", "sync_item_details_source=source_id" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -510,6 +517,12 @@ CAssetCatalogue::RunMigration( UInt32 version, CAssetVocabulary* seedSource )
         {
             description = "the tables of the library sync";
             status = EnsureTables( 5 );
+            break;
+        }
+        case 6:
+        {
+            description = "the cache of the details of the items of the library sync";
+            status = EnsureTables( 6 );
             break;
         }
         default:

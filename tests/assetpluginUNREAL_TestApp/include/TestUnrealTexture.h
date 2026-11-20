@@ -27,6 +27,9 @@
 
 void PerformUnrealTextureTests( void );
 
+/** A mesh description of the UE 5 layout: a quad of two triangles facing +Z, six vertex instances, one polygon group of the name */
+void BuildQuadDescription( const char* group, GUCEF::vector< GUCEF::UInt8 >& bytes );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_ASSETPLUGIN_UNREAL_TESTAPP_TESTUNREALTEXTURE_H ? */

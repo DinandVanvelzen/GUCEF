@@ -79,6 +79,7 @@ extern const char* HelloPath;
 extern const char* JoinPath;
 extern const char* ClientConfigPath;
 extern const char* ReportPath;
+extern const char* CiConfigPath;
 extern const char* RequestAccessPath;
 
 /** Attributes of the discovery entry */
@@ -106,6 +107,9 @@ GUCEF::UInt64 NowInMs( void );
 /** Seconds since 1970 of the wall clock */
 GUCEF::UInt64 NowInUnixSecs( void );
 
+/** The minor version of the contract gucef.lab this program offers and knows: 2 (CiConfig) */
+static const GUCEF::UInt32 LabContractMinor = 2;
+
 /** Seconds a token made with the lab secret is valid, a token of an approved machine */
 static const GUCEF::UInt64 LabTokenLifetimeInSecs = 600;
 static const GUCEF::UInt64 ApprovedTokenLifetimeInSecs = 365 * 24 * 3600;
@@ -117,14 +121,23 @@ static const GUCEF::UInt64 ApprovedTokenLifetimeInSecs = 365 * 24 * 3600;
 //-------------------------------------------------------------------------*/
 
 /**
- *  The contract of the lab endpoint, gucef.lab 1.1, service Lab:
+ *  The contract of the lab endpoint, gucef.lab 1.2, service Lab:
  *    Hello( HelloRequest{} ) -> HelloResponse{ 1 cluster, 2 k3sVersion, 3 proof }
  *    Join( JoinRequest{ 1 name, 2 os, 3 arch, 4 ephemeral } ) -> JoinResponse{ 1 server, 2 k3sVersion, 3 token, 4 ephemeral }
  *    ClientConfig( ClientConfigRequest{} ) -> ClientConfigResponse{ 1 caCertificate, 2 mcpToken, 3 nodes (repeated "name url") }
  *    Report( ReportRequest, see SNodeReport ) -> ReportResponse{ 1 hubTimeSecs, 2 verified, 3 reportIntervalSecs, 4 renewedToken }
- *  Report is new in minor 1; the other methods are those of minor 0.
+ *    CiConfig( CiConfigRequest{} ) -> CiConfigResponse{ 1 registry (the CI registry as JSON text, with the object "gateway"
+ *        of the hub), 2 gatewayToken (of the calling machine), 3 caCertificate, 4 gatewayUrl }
+ *  Report is new in minor 1, CiConfig in minor 2; the other methods are those of minor 0. CiConfig answers only a
+ *  token of an approval: PERMISSION_DENIED for a token of the lab secret, NOT_FOUND when the hub has no CI registry.
  */
 GUCEF::COMCORE::CRpcContractPtr BuildLabContract( GUCEF::CORE::CString& error );
+
+/**
+ *  The contract as a hub of an earlier minor offered it: the methods and types of that minor only. For the
+ *  compatibility of a machine with an older hub; minor is at most LabContractMinor
+ */
+GUCEF::COMCORE::CRpcContractPtr BuildLabContractOfMinor( GUCEF::UInt32 minor, GUCEF::CORE::CString& error );
 
 /**
  *  The contract of the access endpoint, gucef.lab.access 1.0, service Access:
@@ -149,6 +162,12 @@ bool EqualInConstantTime( const GUCEF::CORE::CString& a, const GUCEF::CORE::CStr
 
 /** A machine id: 16 random bytes as hex */
 GUCEF::CORE::CString MakeMachineId( void );
+
+/** A token of the CI gateway: 32 random bytes as hex. Empty without randomness */
+GUCEF::CORE::CString MakeGatewayToken( void );
+
+/** The SHA-256 of the text as lower case hex: the form the gateway compares tokens in */
+GUCEF::CORE::CString Sha256Hex( const GUCEF::CORE::CString& text );
 
 /** Address ranges in CIDR notation, "172.16.1.0/24". An empty list allows every address */
 class CAddressRanges

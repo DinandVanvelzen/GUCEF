@@ -39,6 +39,7 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetConversionJobRequest.cpp \
   src/gucefASSETSTORE_CAssetConversionOutcome.cpp \
   src/gucefASSETSTORE_CAssetConversionRecord.cpp \
+  src/gucefASSETSTORE_CAssetConversionReportSummary.cpp \
   src/gucefASSETSTORE_CAssetConversionRequest.cpp \
   src/gucefASSETSTORE_CAssetDigest.cpp \
   src/gucefASSETSTORE_CAssetDiskPackNormalizer.cpp \
@@ -57,6 +58,7 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetIngestResult.cpp \
   src/gucefASSETSTORE_CAssetItemRevision.cpp \
   src/gucefASSETSTORE_CAssetJobEntry.cpp \
+  src/gucefASSETSTORE_CAssetJobFollowLines.cpp \
   src/gucefASSETSTORE_CAssetJobStartTool.cpp \
   src/gucefASSETSTORE_CAssetJobTool.cpp \
   src/gucefASSETSTORE_CAssetKeyword.cpp \
@@ -80,6 +82,7 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetNormalizationInput.cpp \
   src/gucefASSETSTORE_CAssetOnlineStoreTool.cpp \
   src/gucefASSETSTORE_CAssetPackConversion.cpp \
+  src/gucefASSETSTORE_CAssetPackGenerations.cpp \
   src/gucefASSETSTORE_CAssetPackGroup.cpp \
   src/gucefASSETSTORE_CAssetPackIndexInfo.cpp \
   src/gucefASSETSTORE_CAssetPackIndexLoader.cpp \
@@ -88,6 +91,8 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetPackIndexReport.cpp \
   src/gucefASSETSTORE_CAssetPackIndexRequest.cpp \
   src/gucefASSETSTORE_CAssetPackRecord.cpp \
+  src/gucefASSETSTORE_CAssetPackRegeneration.cpp \
+  src/gucefASSETSTORE_CAssetPackReprocessJob.cpp \
   src/gucefASSETSTORE_CAssetPackResource.cpp \
   src/gucefASSETSTORE_CAssetPackSourceRecord.cpp \
   src/gucefASSETSTORE_CAssetPipelineChangeTool.cpp \
@@ -97,6 +102,9 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetRecord.cpp \
   src/gucefASSETSTORE_CAssetRelationRecord.cpp \
   src/gucefASSETSTORE_CAssetRenderSheetTool.cpp \
+  src/gucefASSETSTORE_CAssetReprocessGuard.cpp \
+  src/gucefASSETSTORE_CAssetReprocessRequest.cpp \
+  src/gucefASSETSTORE_CAssetReprocessSettings.cpp \
   src/gucefASSETSTORE_CAssetRootedPath.cpp \
   src/gucefASSETSTORE_CAssetSavedSearch.cpp \
   src/gucefASSETSTORE_CAssetSearchEngine.cpp \
@@ -151,6 +159,7 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetStoreTransferSink.cpp \
   src/gucefASSETSTORE_CAssetStoreWriteTool.cpp \
   src/gucefASSETSTORE_CAssetStrictConfigReader.cpp \
+  src/gucefASSETSTORE_CAssetSyncItemDetails.cpp \
   src/gucefASSETSTORE_CAssetSyncItemRecord.cpp \
   src/gucefASSETSTORE_CAssetSyncMark.cpp \
   src/gucefASSETSTORE_CAssetSyncMarkStore.cpp \

@@ -1,0 +1,7 @@
+<PROJECTGENERATOR>
+    <!-- shared with gucefMcpLocalLlm without a library of their own: the build log digest and the child process runner -->
+    <INCLUDES PLATFORM="All">
+        <ITEM NAME="../gucefMcpLocalLlm/src/gucefMcpLocalLlm_BuildLogDigest.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefMcpLocalLlm/src/gucefMcpLocalLlm_ProcessRun.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

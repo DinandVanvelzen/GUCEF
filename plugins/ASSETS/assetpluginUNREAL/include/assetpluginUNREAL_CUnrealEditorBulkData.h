@@ -79,7 +79,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealEditorBulkData
 
     CUnrealEditorBulkData( void );
 
-    /** Reads the record; packages older than UE5 version 1009 are refused with the reader error state set */
+    /** Reads the record; packages older than UE5 version 1002 (the payload table of the package trailer) are refused with the reader error state set */
     bool Read( CUnrealArchiveReader& reader, const CUnrealVersionContext& versions );
 
     /** Resolves the record into the place of the bytes; the trailer may be NULL for a package without one */

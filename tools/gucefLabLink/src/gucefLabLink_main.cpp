@@ -95,6 +95,7 @@
 #endif
 
 #include "gucefLabLink_Cluster.h"
+#include "gucefLabLink_CiGatewayTokens.h"
 #include "gucefLabLink_Machine.h"
 #include "gucefLabLink_PlatformDefaults.h"
 #include "gucefLabLink_ServiceHost.h"
@@ -122,8 +123,8 @@ using namespace GUCEFLabLink;
  *    --init                 cluster: makes the lab secret when there is none and prints it
  *    --set-secret SECRET    machine: keeps the lab secret of the cluster
  *    --approve NAME|ID      cluster: approves a machine that asked for access
- *    --revoke NAME|ID       cluster: takes an approval back; the machine's token is refused from then on
- *    --list                 cluster: the machines that asked for access
+ *    --revoke NAME|ID       cluster: takes an approval back; the machine's token is refused from then on, its CI gateway token is removed
+ *    --list                 cluster: the machines that asked for access; "ci-token" after those that have a CI gateway token
  *
  *  Service (without a command):
  *    --role cluster|machine default: cluster on a k3s server node (/etc/systemd/system/k3s.service), else machine
@@ -151,6 +152,13 @@ using namespace GUCEFLabLink;
  *    --history-days N, --history-max N   cluster: how long and how many of the events of the nodes are kept, default 30 and 20000
  *    --no-report            machine: do not report this node to the cluster
  *    --report-interval SECONDS   machine: how often it reports, default 20 (5 to 300); cluster: the interval its nodes are told
+ *    --ci-registry FILE     cluster: the CI registry approved machines get (JSON, at most 64 KiB); default ci.json in the state
+ *                           directory; without the file the hub hands out no CI configuration
+ *    --ci-gateway-url URL   cluster: the CI gateway the machines are told; default https://<cluster name>:8792
+ *    --ci-gateway-tokens FILE  cluster: the SHA-256 of every gateway token, for the gateway (mode 0600); default
+ *                           ci/gateway-tokens in the state directory. A directory outside the state directory has to exist
+ *    --ci-gateway-user NAME cluster: the user the gateway runs as, who is given that file; default the account of the hub
+ *    --no-ci                machine: do not ask the cluster for the CI configuration (<mcp dir>/ci)
  *    --web and its options, the user commands of the website: see gucefLabLink_WebCommands.h
  */
 struct SOptions
@@ -180,7 +188,7 @@ ParseOptions( int argc, char* argv[], SOptions& options )
             value = equals + 1;
             arg = CORE::CString( argv[ i ], (UInt32) ( equals - argv[ i ] ) );
         }
-        const bool flag = arg == "--init" || arg == "--list" || arg == "--no-mdns" || arg == "--no-broadcast" || arg == "--permanent" || arg == "--no-report" ||
+        const bool flag = arg == "--init" || arg == "--list" || arg == "--no-mdns" || arg == "--no-broadcast" || arg == "--permanent" || arg == "--no-report" || arg == "--no-ci" ||
                           arg == "--help" || arg == "--console" || CWebCommands::IsFlag( arg );
         if ( !flag && value.IsNULLOrEmpty() )
         {
@@ -227,6 +235,11 @@ ParseOptions( int argc, char* argv[], SOptions& options )
         else if ( arg == "--history-max" ) s.maxStoredEvents = CORE::StringToUInt32( value, 20000 );
         else if ( arg == "--no-report" ) s.report = false;
         else if ( arg == "--report-interval" ) s.reportIntervalInSecs = CORE::StringToUInt32( value, 20 );
+        else if ( arg == "--ci-registry" ) s.ciRegistryFile = value;
+        else if ( arg == "--ci-gateway-url" ) s.ciGatewayUrl = value;
+        else if ( arg == "--ci-gateway-tokens" ) s.ciGatewayTokensFile = value;
+        else if ( arg == "--ci-gateway-user" ) s.ciGatewayUser = value;
+        else if ( arg == "--no-ci" ) s.ci = false;
         else if ( CWebCommands::ParseOption( arg, value, s.web, options.command, options.commandArgument ) ) continue;
         else if ( arg == "--help" ) options.help = true;
         else if ( arg == "--console" ) continue;     // read by the entry point of the framework
@@ -247,7 +260,8 @@ PrintUsage( void )
                      "  --machine-name NAME, --join-script PATH, --permanent, --node-marker PATH, --claude-user NAME, --claude-command PATH, --claude-home DIR,\n"
                      "  --local-node NAME, --refresh SECONDS, --retry SECONDS, --no-report, --report-interval SECONDS,\n"
                      "  --db vfstables|postgresql|none, --db-dir DIR, --db-host HOST, --db-port N, --db-name NAME, --db-user NAME, --db-ssl-mode MODE,\n"
-                     "  --db-schema NAME, --db-password-file PATH, --history-days N, --history-max N\n" );
+                     "  --db-schema NAME, --db-password-file PATH, --history-days N, --history-max N,\n"
+                     "  --ci-registry FILE, --ci-gateway-url URL, --ci-gateway-tokens FILE, --ci-gateway-user NAME, --no-ci\n" );
     fprintf( stdout, "%s", CWebCommands::Usage() );
 }
 
@@ -295,7 +309,7 @@ LoadCryptography( void )
 
 /** The approvals command line: --list, --approve, --revoke. @return the exit code */
 static int
-ChangeApprovals( CStore& store, const CORE::CString& command, const CORE::CString& who )
+ChangeApprovals( CStore& store, const SSettings& settings, const CORE::CString& command, const CORE::CString& who )
 {
     CORE::CString problem;
     GUCEF::vector< SApproval > approvals;
@@ -304,22 +318,30 @@ ChangeApprovals( CStore& store, const CORE::CString& command, const CORE::CStrin
         fprintf( stderr, "gucefLabLink: %s\n", problem.C_String() );
         return 1;
     }
+    CCiGatewayTokens ciTokens( store, settings.ciGatewayTokensFile, settings.ciGatewayUser );
     if ( command == "--list" )
     {
+        // the machines that have a gateway token of the CI get "ci-token" after their id
+        CCiGatewayTokens::TTokenMap tokens;
+        if ( !ciTokens.Load( tokens, problem ) )
+            fprintf( stderr, "gucefLabLink: the gateway tokens of the CI cannot be read: %s\n", problem.C_String() );
         if ( approvals.empty() )
             fprintf( stdout, "No machine asked for access.\n" );
         for ( size_t i=0; i<approvals.size(); ++i )
-            fprintf( stdout, "%-9s %-24s %-16s %-8s %s\n", approvals[ i ].state.C_String(), approvals[ i ].name.C_String(),
-                     approvals[ i ].address.C_String(), approvals[ i ].os.C_String(), approvals[ i ].machineId.C_String() );
+            fprintf( stdout, "%-9s %-24s %-16s %-8s %s%s\n", approvals[ i ].state.C_String(), approvals[ i ].name.C_String(),
+                     approvals[ i ].address.C_String(), approvals[ i ].os.C_String(), approvals[ i ].machineId.C_String(),
+                     tokens.find( approvals[ i ].machineId ) != tokens.end() ? " ci-token" : "" );
         return 0;
     }
 
     UInt32 matches = 0;
+    CORE::CString::StringVector matchedIds;
     for ( size_t i=0; i<approvals.size(); ++i )
     {
         if ( approvals[ i ].name != who && approvals[ i ].machineId != who )
             continue;
         ++matches;
+        matchedIds.push_back( approvals[ i ].machineId );
         if ( command == "--approve" )
             approvals[ i ].state = AccessApproved;
         else
@@ -344,6 +366,18 @@ ChangeApprovals( CStore& store, const CORE::CString& command, const CORE::CStrin
         return 1;
     }
     fprintf( stdout, "%s %s. It is told on its next request.\n", who.C_String(), command == "--approve" ? "is approved" : "is refused from now on" );
+    if ( command == "--revoke" )
+    {
+        // its gateway token of the CI goes with it, so the gateway refuses it as well
+        UInt32 removed = 0;
+        if ( !ciTokens.Remove( matchedIds, removed, problem ) )
+        {
+            fprintf( stderr, "gucefLabLink: the CI gateway token cannot be removed: %s (the service removes it within a minute)\n", problem.C_String() );
+            return 1;
+        }
+        if ( removed > 0 )
+            fprintf( stdout, "Its CI gateway token is removed.\n" );
+    }
     return 0;
 }
 
@@ -463,7 +497,7 @@ GUCEF_OSMAIN_BEGIN
         return 0;
     }
     if ( options.command == "--approve" || options.command == "--revoke" || options.command == "--list" )
-        return ChangeApprovals( store, options.command, options.commandArgument );
+        return ChangeApprovals( store, options.settings, options.command, options.commandArgument );
     if ( CWebCommands::IsCommand( options.command ) )
         return CWebCommands::Run( store, options.settings.web, options.command, options.commandArgument, options.role );
 

@@ -200,6 +200,16 @@ CIAssetStoreProvider::RenewSession( void )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
+CIAssetStoreProvider::ImportWebSession( const AUTH::CWebSession& session, CORE::CString& message )
+{GUCEF_TRACE;
+
+    message = "The store " + GetProviderId() + " does not sign in with the session of a web browser";
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
 CIAssetStoreProvider::RenewPlan( CAssetStoreDownloadPlan& plan )
 {GUCEF_TRACE;
 
@@ -217,6 +227,23 @@ CIAssetStoreProvider::GetPlanProblem( const CORE::CString& itemId, const CORE::C
 {GUCEF_TRACE;
 
     return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CIAssetStoreProvider::GetMaxDownloadBytes( void ) const
+{GUCEF_TRACE;
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIAssetStoreProvider::AllowLargeDownload( const CORE::CString& itemId )
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/

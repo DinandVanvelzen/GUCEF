@@ -32,6 +32,15 @@
 #define GUCEF_CORE_CCRONSCHEDULE_H
 #endif /* GUCEF_CORE_CCRONSCHEDULE_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETDIGEST_H
+#include "gucefASSETSTORE_CAssetDigest.h"
+#define GUCEF_ASSETSTORE_CASSETDIGEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETDIGEST_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREJSON_H
+#include "gucefASSETSTORE_CAssetStoreJson.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREJSON_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREJSON_H ? */
+
 #include "gucefASSETSTORE_CAssetLibrarySyncProfile.h"
 
 /*-------------------------------------------------------------------------//
@@ -85,6 +94,8 @@ CAssetLibrarySyncProfile::CAssetLibrarySyncProfile( void )
     , maxPendingIngests( 8 )
     , enrichInFlight( 1 )
     , indexAfter( true )
+    , planMaxAgeMinutes( 1440 )
+    , detailsMaxAgeDays( 14 )
 {GUCEF_TRACE;
 
 }
@@ -126,6 +137,32 @@ CAssetLibrarySyncProfile::IsValid( CORE::CString& reason ) const
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CAssetLibrarySyncProfile::GetPlanFingerprint( void ) const
+{GUCEF_TRACE;
+
+    // the members that shape a plan, in a fixed order; the sets are ordered already
+    CORE::CDataNodeSerializableSettings settings;
+    CORE::CDataNode formatsNode( "formats", GUCEF_DATATYPE_OBJECT );
+    formats.Serialize( formatsNode, settings );
+    CORE::CString text;
+    CAssetStoreJson::ToText( formatsNode, text );
+    text += "\n";
+    for ( CORE::CString::StringSet::const_iterator i = listingTypes.begin(); i != listingTypes.end(); ++i )
+        text += (*i) + ",";
+    text += "\n";
+    for ( CORE::CString::StringSet::const_iterator i = licenceClasses.begin(); i != licenceClasses.end(); ++i )
+        text += (*i) + ",";
+    text += "\n" + CORE::ToString( maxItemBytes ) + "\n" + CORE::ToString( minItemBytes ) + "\n" + CORE::ToString( skipUnknownSize ) +
+            "\n" + onStale + "\n" + CORE::ToString( adoptExisting );
+    CAssetDigest digest( CAssetDigest::Sha256 );
+    const UInt32 size = text.ByteSize();
+    digest.Update( text.C_String(), size > 0 ? size - 1 : 0 );
+    return digest.FinalHex();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CAssetLibrarySyncProfile::Serialize( CORE::CDataNode& domRootNode                        ,
                                      const CORE::CDataNodeSerializableSettings& settings ) const
@@ -158,6 +195,8 @@ CAssetLibrarySyncProfile::Serialize( CORE::CDataNode& domRootNode               
     success = domRootNode.SetAttribute( "maxPendingIngests", maxPendingIngests ) && success;
     success = domRootNode.SetAttribute( "enrichInFlight", enrichInFlight ) && success;
     success = domRootNode.SetAttribute( "indexAfter", indexAfter ) && success;
+    success = domRootNode.SetAttribute( "planMaxAgeMinutes", planMaxAgeMinutes ) && success;
+    success = domRootNode.SetAttribute( "detailsMaxAgeDays", detailsMaxAgeDays ) && success;
     return success;
 }
 
@@ -203,6 +242,8 @@ CAssetLibrarySyncProfile::Deserialize( const CORE::CDataNode& domRootNode       
     maxPendingIngests = domRootNode.GetAttributeValueOrChildValueByName( "maxPendingIngests" ).AsUInt32( maxPendingIngests, true );
     enrichInFlight = domRootNode.GetAttributeValueOrChildValueByName( "enrichInFlight" ).AsUInt32( enrichInFlight, true );
     indexAfter = domRootNode.GetAttributeValueOrChildValueByName( "indexAfter" ).AsBool( indexAfter, true );
+    planMaxAgeMinutes = domRootNode.GetAttributeValueOrChildValueByName( "planMaxAgeMinutes" ).AsUInt32( planMaxAgeMinutes, true );
+    detailsMaxAgeDays = domRootNode.GetAttributeValueOrChildValueByName( "detailsMaxAgeDays" ).AsUInt32( detailsMaxAgeDays, true );
     return true;
 }
 

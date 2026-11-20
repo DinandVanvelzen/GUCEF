@@ -27,7 +27,7 @@ The service folder of `tools/AssetStoreService` for the scripts and templates of
 
 ## Deploy
 
-The coordinator works on the workstation with the GUCEF checkout; the owner imports the image on `worker-x299` (sudo).
+The coordinator works on the workstation with the GUCEF checkout; the image is imported on `worker-x299` by someone who has sudo there.
 `KUBECTL="ssh k3smaster kubectl"` reaches the cluster; `kubectl` is also needed locally for the offline kustomize build.
 
 1. Build the image (coordinator, docker; the build target `GUCEF_exe_AssetStoreService` must have generated build
@@ -37,14 +37,14 @@ The coordinator works on the workstation with the GUCEF checkout; the owner impo
    projects/k3s/gucef_service/scripts/build_image.sh --env projects/k3s/assetstore/service.env --tag dev --no-import --save <dir>/asset-store-service-dev.tar
    ```
 
-2. Import it on the node (owner):
+2. Import it on the node (needs sudo):
 
    ```
    scp <dir>/asset-store-service-dev.tar k3smaster:
    ssh -t k3smaster sudo k3s ctr images import asset-store-service-dev.tar
    ```
 
-3. Label the node once (owner or coordinator):
+3. Label the node once (coordinator, or whoever has the kubectl access):
 
    ```
    ssh k3smaster kubectl label node worker-x299 gucef-service-host=true
@@ -119,9 +119,9 @@ points its packs at the new folder, where their files must then be.
 
 ## Library sync: where the downloads go and the space rules
 
-Every download and every ingest ends up in the storage location of the library. For the owner's installation that is
-the share mounted on the node at `/mnt/mirror5/-== Assets ==-/AssetStore` (through "Use a share for the library"
-above, with that folder as `HOST_SHARE_HOST_PATH`); the claim holds no pack files.
+Every download and every ingest ends up in the storage location of the library. For an installation with a network share
+that is the share mounted on the node (through "Use a share for the library" above, with its library folder as
+`HOST_SHARE_HOST_PATH`); the claim holds no pack files.
 
 * **Staging.** A download is written to a staging folder first and moved into the pack when it is ingested. By default
   the staging folder is below the storage location itself (on the share). The primary store can take a local scratch
@@ -140,12 +140,20 @@ above, with that folder as `HOST_SHARE_HOST_PATH`); the claim holds no pack file
   free.
 * **Volume information that cannot be read.** When the operating system reports no size and no free space for the
   volume (some network file systems), the service admits the items and logs one warning per run; it does not refuse
-  and does not wait. On the workstation, a CIFS mount of the owner's share reported its sizes correctly
-  (16 000 344 911 872 bytes, 10 219 016 081 408 free, read through `GetFileSystemStorageVolumeInformationByDirPath()`).
+  and does not wait. A CIFS mount reported its sizes correctly when read through `GetFileSystemStorageVolumeInformationByDirPath()`.
 * **Downloads a person selects** ("Download selected" in the workbench, a sync with `manual` set) do not keep the
   reserve of the profile and use a factor of 1.0: an item is refused, and counted as failed with the reason "not
   enough free space on the library volume", only when it does not fit on the volume at all. Such a download never
   waits for space.
+
+* **Names and files on a share (CIFS).** A pack folder is the title of the item made safe for Windows and CIFS
+  (`: ? * < > | "` and control characters become `_`, no trailing dots or blanks, no device names, at most 120 bytes);
+  a name that is taken, compared without case, gets ` [<short id>]`, and so does a folder that exists on the share but is
+  not in the catalogue (the packs of another catalogue on the same folder, such as the probe's, are never taken over). A
+  download whose file names differ only in case is refused. Downloads are written as `.part` in the staging folder on the
+  share and renamed; a pack is moved into place with a rename; `pack-index.json` is written to a temporary file and
+  renamed. The node must present the share to uid 10001 (`uid=10001,gid=10001,file_mode=0664,dir_mode=0775`): the service
+  sets no file modes there.
 
 ## Conversion and restart
 
@@ -183,51 +191,29 @@ reaches it (the program opens the catalogue again every `catalogueRetrySeconds`)
 
 The sessions of the online stores live on the server: in the credential store of the program under `/data/credentials`
 (sealed, the directory and its files for the service user alone, the key made at the first start). A person drives a sign
-in from a paired device with the owner role; the steps come to the device as prompts (an address to open in the person's
+in from a paired device with the role `owner`; the steps come to the device as prompts (an address to open in the person's
 own browser, a field for a code) and the answer goes back sensitive and encrypted. Only devices with the role named in
 `AssetStoreHost.signInRoles` (default `owner`, never `mcp`) can begin, answer, cancel or sign out, list the prompts or use
 the keyring, and only their sessions receive the prompts.
 
-* **Stores that sign in with a code (Fab).** The plugin is private (`gucef-private`): it is not in the image of this kit
-  unless the image is built with that checkout (`EXTRA_CHECKOUTS`) and the https client plugin `httpclientpluginCURL`
-  (with `libcurl` and the CA bundle in `RUNTIME_EXTRA_PACKAGES`) is a runtime dependency of the image: image
-  composition for the coordinator, not changed by the kit files here. With the plugin in the image, name it in the site
-  settings, `"Plugins": [ "assetstoreFAB" ]`.
-* **The client credentials of the launcher** (the client id and its secret) are not in the plugin, its data or this
-  repository. They are two files of a Kubernetes Secret, mounted read-only, and named in the site settings:
-
-  ```
-  "Stores": { "fab": { "clientIdFile": "/secrets/assetstore-fab/clientId", "clientSecretFile": "/secrets/assetstore-fab/clientSecret" } }
-  ```
-
-  The program reads both at start, keeps them in its credential store and logs neither. The Secret is made from files or
-  pipes, so the values are in no argument and no file of a repository (the file names below are the keys):
-
-  ```
-  ( umask 077; cat <file with the id> | ssh k3smaster kubectl -n assetstore create secret generic assetstore-fab-client --from-file=clientId=/dev/stdin --from-file=clientSecret=<file with the secret> )
-  ```
-
-  The `secret-file` component of the kit mounts one key of one Secret and the database password uses it, so the second
-  mount is a local patch of the kit (the kit's README, "Local install configuration"), `patches/fab-client.yaml` in the
-  local directory outside every repository:
-
-  ```
-  - op: add
-    path: /spec/template/spec/containers/0/volumeMounts/-
-    value: { name: fab-client, mountPath: /secrets/assetstore-fab, readOnly: true }
-  - op: add
-    path: /spec/template/spec/volumes/-
-    value: { name: fab-client, secret: { secretName: assetstore-fab-client, defaultMode: 0440 } }
-  ```
-
-  (a JSON 6902 patch of the Deployment `assetstore`; deploy with `--local-dir`). A Secret that is replaced needs
-  `kubectl -n assetstore rollout restart deployment/assetstore`.
-* **Stores that sign in on their web site** (browser needed, three of the private stores) show as signed out with the
-  message that the browser sidecar is not available; their sign in answers `BROWSER_UNAVAILABLE`. A session that was
-  saved earlier is used.
+* **Stores whose sign in needs a person and a browser (captcha, second factor).** The service has no browser. The
+  person signs in to the store in their own browser and hands the session over to the service from their workstation
+  (`ImportWebSession`, a paired device with the role `owner`; the client tool is part of the store plugin). The service
+  keeps the cookies of the store's own domains sealed in `/data/credentials`, checks them once with the store, and a
+  library sync that waits for a sign in goes on. When the store ends the session the sync waits with the notice
+  `SYNC_SIGN_IN_NEEDED` until a new session is handed over (library sync design 13.20). Store plugins are loaded through
+  the bootstrap file like the other plugins and are named in the site settings (`"Plugins": [ ... ]`); the settings of a
+  store go in the section `Stores.<store id>` of the site settings. A plugin that downloads over https needs the https
+  client plugin `httpclientpluginCURL` (libcurl from `dependencies/curl`, the CA bundle of the `ca-certificates` package
+  of the runtime image) in the image, and the pod needs outbound https (443) to the hosts of the store; in lan mode that
+  is the egress of the node. A store may set a size guard per item and format (`maxDownloadBytes`, `0` is no limit) and
+  a cache directory for large downloads (`chunkCacheDirectory`), which belongs on the claim, not on the 2Gi `/tmp`.
+* **Other stores that sign in on their web site** show as signed out with the message that the service has no browser;
+  their sign in answers `BROWSER_UNAVAILABLE`. A session that was saved earlier or handed over (`ImportWebSession`,
+  devices with the role `owner`) is used.
 * **The keyring** holds saved store passwords sealed with a code the person knows (`/data/credentials/keyring.bin`). The
   code is never stored: after every start the keyring is locked until it is unlocked, and it locks again after
-  `Credentials.keyringIdleLockMinutes` (240) without use. An owner device sends it with `UnlockKeyring`, or on the node
+  `Credentials.keyringIdleLockMinutes` (240) without use. A device with the role `owner` sends it with `UnlockKeyring`, or on the node
   (the code on the standard input or in a file, never an argument, never in a log):
 
   ```
@@ -246,3 +232,26 @@ the keyring, and only their sessions receive the prompts.
 * the `longhorn-raid` volume of 500Gi is scheduled on a disk with the `raid` tag of `worker-x299` (Longhorn enforces
   the size: the disk needs the room);
 * the probes, LAN discovery and the endpoints as in the kit's "LAN discovery" checks.
+
+## Reprocessing packs: newer conversion, original downloaded again, rollback
+
+The service makes the outputs of a pack again with the converter of the running image: the intermediate resources
+(`library/main/intermediate/<pack>/`) and the engine target resources (`library/main/gucef-ogre3d/<pack>/`). A
+regeneration writes to `staging/regen-...` and swaps the result in; the replaced outputs are kept as
+`library/main/generations/<pack>/previous/` until the next successful regeneration, so `reprocess-rollback` undoes it.
+Originals are never changed. One job per pack at a time, one job runs at a time (the others wait in the job list); each
+step writes an audit entry in the ingest history of the pack. Plan first (read only), then the job, followed to its end
+(the answer has the counts before and after, the improved and regressed assets and the report path per pack):
+
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin reprocess-plan <pack id> [<pack id> ...] --steps intermediate
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin regen-intermediate <pack id> [<pack id> ...] --follow true
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin reprocess-status <job id> [<job id> ...]
+
+The commands: `regen-intermediate` (importers again, then the cook; `--no-cook true`: intermediate only), `regen-target`
+(the cook again from the intermediate), `redownload` (the original again from its store, verified; needs a signed in
+store; `--allow-large true` for the size guard), `reprocess` (`--steps redownload,intermediate,target`),
+`reprocess-rollback`, `reprocess-plan`, `reprocess-status`, `reprocess-cancel`. Options: `--failed true`, `--statuses a,b`,
+`--kinds a,b`, `--assets <paths or globs>`, `--targets ogre`, `--accept-errors true`, `--dry-run true`, `--follow true`.
+Limits for machine callers (MCP): the child `reprocess` of the service configuration (`maxJobsPerPackPerHour` 4,
+`maxMachineJobsPerHour` 20, `maxMachineRedownloadsPerDay` 6, `maxQueuedJobs` 8, `maxConcurrentJobs` 1). Design:
+`gucefASSETSTORE_RemoteService_Design.md` section 17.

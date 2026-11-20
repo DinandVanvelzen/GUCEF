@@ -1,0 +1,27 @@
+{
+  "ci": [
+    {
+      "id": "GUCEF",
+      "description": "GUCEF platform",
+      "backend": "forgejo",
+      "url": "http://172.16.1.125:32001",
+      "owner": "forgejo-admin",
+      "repo": "GUCEF",
+      "scratchOwner": "ci",
+      "scratchRepo": "GUCEF",
+      "workflow": "gucef-ci.yml",
+      "matrixDir": "projects/CI/matrix",
+      "reportsOwner": "ci-bot",
+      "retentionDays": 14,
+      "remotes": [
+        "https://github.com/DinandVanvelzen/GUCEF.git",
+        "git@github.com:DinandVanvelzen/GUCEF.git",
+        "https://github.com/LiberatorUSA/GUCEF.git",
+        "git@github.com:LiberatorUSA/GUCEF.git",
+        "http://172.16.1.125:32001/forgejo-admin/GUCEF.git",
+        "ssh://git@172.16.1.125:32002/forgejo-admin/GUCEF.git"
+      ],
+      "defaults": { "mode": "build", "toolchains": [], "cppStandards": [], "products": [] }
+    }
+  ]
+}

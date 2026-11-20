@@ -260,7 +260,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             ASSERT_TRUE( CountRows( store, "category_map" ) >= 100 && CountRows( store, "category_rules" ) >= 90 && CountRows( store, "licence_map" ) >= 20 );
             store.Close();
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Open() );
-            ASSERT_TRUE( CAssetCatalogue::CurrentSchemaVersion == store.GetCatalogue().GetSchemaVersion() && 5 == CAssetCatalogue::CurrentSchemaVersion && CAssetCatalogue::CurrentSchemaVersion == CountRows( store, "schema_version" ) );
+            ASSERT_TRUE( CAssetCatalogue::CurrentSchemaVersion == store.GetCatalogue().GetSchemaVersion() && 6 == CAssetCatalogue::CurrentSchemaVersion && CAssetCatalogue::CurrentSchemaVersion == CountRows( store, "schema_version" ) );
             ASSERT_TRUE( 2 == CountRows( store, "store_locations" ) );
 
             // a catalogue of a later build
@@ -829,6 +829,44 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.QueryLibrary( library, page ) && 1 == page.items.size() && packBId == page.items[ 0 ].itemId );
             CAssetStoreDownloadPlan plan;
             ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == store.PlanDownload( packBId, "original", CString::StringVector(), plan ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": layout 2: a folder on the disk that the catalogue does not know (another catalogue on the same share, a left over) is never taken over: the pack gets the short id, the files there stay" ).C_String() )
+        try
+        {
+            const CString mainRoot = base + "/main";
+            ASSERT_TRUE( WriteText( mainRoot + "/original/Foreign_Pack/keep.txt", "of another catalogue" ) );
+            ASSERT_TRUE( WriteText( mainRoot + "/gucef-ogre3d/Other_Foreign/keep.mesh", "cooked by another catalogue" ) );
+            ASSERT_TRUE( WriteText( base + "/source/Foreign_Pack/Meshes/SM_Foreign.fbx", "triangles=23;vertices=11" ) );
+            ASSERT_TRUE( WriteText( base + "/source/Other_Foreign/Meshes/SM_Other.fbx", "triangles=24;vertices=12" ) );
+            CAssetIngestRequest request;
+            request.sourceId = "disk";
+            request.contentPath = base + "/source/Foreign_Pack";
+            CAssetIngestResult first;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Ingest( request, first ) );
+            request.contentPath = base + "/source/Other_Foreign";
+            CAssetIngestResult second;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Ingest( request, second ) );
+            CAssetPackRecord packFirst;
+            CAssetPackRecord packSecond;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( first.packId, packFirst ) && ASSETSTORE_STATUS_OK == store.GetPack( second.packId, packSecond ) );
+            ASSERT_TRUE( "layout2:Foreign_Pack [" + CPackStorageLayout::MakeShortId( first.packId ) + "]" == packFirst.rootPath );
+            ASSERT_TRUE( "layout2:Other_Foreign [" + CPackStorageLayout::MakeShortId( second.packId ) + "]" == packSecond.rootPath );
+            const CPackStorageLayout layoutFirst( packFirst.rootPath );
+            ASSERT_TRUE( vfs.FileExists( layoutFirst.Resolve( mainRoot, "original/Meshes/SM_Foreign.fbx" ) ) );
+            ASSERT_FALSE( vfs.FileExists( mainRoot + "/original/Foreign_Pack/Meshes/SM_Foreign.fbx" ) );
+
+            // removing the packs with their files leaves the folders the catalogue never owned
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.RemovePack( first.packId, true ) && ASSETSTORE_STATUS_OK == store.RemovePack( second.packId, true ) );
+            ASSERT_TRUE( vfs.FileExists( mainRoot + "/original/Foreign_Pack/keep.txt" ) && vfs.FileExists( mainRoot + "/gucef-ogre3d/Other_Foreign/keep.mesh" ) );
+            ASSERT_FALSE( vfs.DirExists( layoutFirst.GetOriginalFolder( mainRoot ) ) );
+            vfs.DeleteDir( mainRoot + "/original/Foreign_Pack", true );
+            vfs.DeleteDir( mainRoot + "/gucef-ogre3d/Other_Foreign", true );
         }
         catch ( ... )
         {

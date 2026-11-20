@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -248,6 +250,26 @@ CTextureBaker::LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& p
         case IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE:
         {
             picture = IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( *pixels ) );
+            return true;
+        }
+        case IMAGE::PSF_SINGLE_CHANNEL_STD_LUMINANCE:
+        case IMAGE::PSF_SINGLE_CHANNEL_P1_LUMINANCE:
+        case IMAGE::PSF_SINGLE_CHANNEL_P2_LUMINANCE:
+        {
+            // one grey channel of 8 or 16 bits (a 16 bit greyscale PNG): grey of 8 bits, 16 bit values rounded to the nearest
+            const UInt32 count = pixels->GetPixelCount();
+            if ( 0 == count || ( GUCEF::DATATYPE_UINT8 != pixels->GetPixelComponentDataType() && GUCEF_DATATYPE_UINT16 != pixels->GetPixelComponentDataType() ) )
+                break;
+            GUCEF::vector< UInt8 > grey( count );
+            if ( GUCEF::DATATYPE_UINT8 == pixels->GetPixelComponentDataType() )
+                memcpy( &grey[ 0 ], pixels->GetDataPtr(), count );
+            else
+            {
+                const UInt16* values = static_cast< const UInt16* >( pixels->GetDataPtr() );
+                for ( UInt32 i=0; i<count; ++i )
+                    grey[ i ] = (UInt8) ( ( (UInt32) values[ i ] + 128 ) / 257 );
+            }
+            picture = IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( &grey[ 0 ], pixels->GetWidthInPixels(), pixels->GetHeightInPixels(), IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8 ) );
             return true;
         }
         default:

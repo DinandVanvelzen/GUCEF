@@ -68,6 +68,9 @@ CAssetLibrarySyncSpec::CAssetLibrarySyncSpec( void )
     , scheduled( false )
     , manual( false )
     , useStoreProfile( false )
+    , replan( false )
+    , refreshDetails( false )
+    , allowLarge( false )
     , profile()
 {GUCEF_TRACE;
 
@@ -104,6 +107,11 @@ CAssetLibrarySyncSpec::IsValid( CORE::CString& reason ) const
     if ( ModeRun != mode && ModePlan != mode )
     {
         reason = "The mode \"" + mode + "\" is not known: run or plan";
+        return false;
+    }
+    if ( allowLarge && itemIds.empty() )
+    {
+        reason = "allowLarge (--allow-large) lets named items through the size guard: name them (--listing <id>, --item-ids)";
         return false;
     }
     return profile.IsValid( reason );
@@ -155,6 +163,12 @@ CAssetLibrarySyncSpec::Serialize( CORE::CDataNode& domRootNode                  
     success = domRootNode.SetAttribute( "scheduled", scheduled ) && success;
     if ( manual )
         success = domRootNode.SetAttribute( "manual", manual ) && success;
+    if ( replan )
+        success = domRootNode.SetAttribute( "replan", replan ) && success;
+    if ( refreshDetails )
+        success = domRootNode.SetAttribute( "refreshDetails", refreshDetails ) && success;
+    if ( allowLarge )
+        success = domRootNode.SetAttribute( "allowLarge", allowLarge ) && success;
     if ( useStoreProfile )
     {
         // the profile of the store is the service's: only the choice travels (an older service ignores it and takes the defaults)
@@ -188,6 +202,9 @@ CAssetLibrarySyncSpec::Deserialize( const CORE::CDataNode& domRootNode          
     scheduled = domRootNode.GetAttributeValueOrChildValueByName( "scheduled" ).AsBool( scheduled, true );
     useStoreProfile = domRootNode.GetAttributeValueOrChildValueByName( "useStoreProfile" ).AsBool( useStoreProfile, true );
     manual = domRootNode.GetAttributeValueOrChildValueByName( "manual" ).AsBool( manual, true );
+    replan = domRootNode.GetAttributeValueOrChildValueByName( "replan" ).AsBool( replan, true );
+    refreshDetails = domRootNode.GetAttributeValueOrChildValueByName( "refreshDetails" ).AsBool( refreshDetails, true );
+    allowLarge = domRootNode.GetAttributeValueOrChildValueByName( "allowLarge" ).AsBool( allowLarge, true );
     const CORE::CDataNode* profileNode = domRootNode.FindChild( "profile" );
     if ( GUCEF_NULL != profileNode )
         profile.Deserialize( *profileNode, settings );

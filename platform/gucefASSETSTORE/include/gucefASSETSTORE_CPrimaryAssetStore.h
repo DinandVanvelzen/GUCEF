@@ -298,6 +298,22 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     /** The ingests that are staged and did not finish (their manifests in the staging areas) */
     void GetPendingIngests( CORE::CString::StringVector& ingestIds ) const;
 
+    /**
+     *  The staging folders of downloads (MakeDownloadStagingPath(), ChooseDownloadStagingPath()): "dl<ms>-<n>" directly below the
+     *  staging folder of a location or in the scratch staging area, with the time in the name; never another folder. Those that
+     *  hold the manifest of an ingest belong to the ingest and are left out
+     */
+    void GetDownloadStagingFolders( CORE::CString::StringVector& vfsPaths ) const;
+
+    /** Whether a name is that of a staging folder of a download ("dl<ms>-<n>"), and the time in it */
+    static bool IsDownloadStagingName( const CORE::CString& name, Int64& createdMs );
+
+    /**
+     *  Removes the staging folder of a download that failed, was cancelled or was left behind: only a folder GetDownloadStagingFolders()
+     *  names (a staging folder of a download, not one of an ingest). False when the path is not such a folder or it could not be removed
+     */
+    bool RemoveDownloadStagingFolder( const CORE::CString& vfsPath );
+
     // conversion of packs that are in the store
 
     /** Converts a pack that is placed in the store ("conversion pending", or again); see the class description. The status is the one of the outcome */
@@ -463,6 +479,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
 
     friend class CAssetIngestPipeline;
     friend class CAssetPackConversion;
+    friend class CAssetPackRegeneration;
+    friend class CAssetPackReprocessJob;
     friend class CPrimaryAssetStoreOperationTaskConsumer;
 
     typedef CORE::CTEventHandlerFunctor< CPrimaryAssetStore > TEventCallback;
@@ -488,8 +506,16 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     CAssetSearchEngine::TLocationStateMap GetLocationStates( void ) const;
     CIAssetConverterHook* GetConverterHook( void ) const;
     MT::CMutex& GetIndexLock( void );
-    /** The folder of a pack that is placed in a location (CPackStorageLayout), reserved for the pack until its row is written */
-    CORE::CString ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId );
+    /**
+     *  The folder of a pack that is placed in a location (CPackStorageLayout), reserved for the pack until its row is written.
+     *  A name is taken when a pack of the catalogue has it, an ingest reserved it, or a folder of that name is on the disk in one
+     *  of the areas (case-insensitively where the file system is: a share), for example of another catalogue on the same
+     *  share or left behind: such a folder is never taken over. 'avoidFoldersOnDisk' false leaves the disk out (the layout
+     *  migration, which refuses a pack whose target folder exists instead)
+     */
+    CORE::CString ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk = true );
+    /** Reserves the folder an earlier attempt of the ingest of the pack chose, until its row is written */
+    void ReservePackFolder( const CORE::CString& locationId, const CORE::CString& packId, const CORE::CString& packFolder );
     void ReleasePackFolder( const CORE::CString& packId );
     CORE::CString FindLocationOfVfsPath( const CORE::CString& vfsPath ) const;
     static CAssetPackRecord PackFromRow( const CAssetCatalogue::TRow& row );

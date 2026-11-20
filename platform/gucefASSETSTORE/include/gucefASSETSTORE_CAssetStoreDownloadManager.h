@@ -236,7 +236,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreDownloadManager : public CORE::CTSG
         CAssetStoreDownloadPlan plan;
         bool planRenewed;
         bool sessionRenewed;
+        UInt32 planRenewals;            /**< renewals of the plan after an expired address in this run */
+        UInt32 renewedAtFile;           /**< the file and the bytes of it the last renewal was made at: an address that expires again with progress since is renewed again */
+        UInt64 renewedAtBytes;
     };
+
+    /** The renewals of the plan of one run after expired addresses, each after progress (a long build outlives the addresses of its chunks) */
+    static const UInt32 MaxPlanRenewals = 64;
 
     void Initialize( void );
     void Schedule( void );

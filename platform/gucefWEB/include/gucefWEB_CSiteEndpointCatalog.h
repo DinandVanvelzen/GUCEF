@@ -68,12 +68,14 @@ namespace WEB {
  *
  *  What is kept follows the privacy rules of its redactor (see CSiteDiscoveryRedactor, SetRedactor()): without example
  *  values only names, types and counts; a never-record request only as having happened. A part of the report (an
- *  endpoint, a host row, an action, a summary line) that would contain a secret value the redactor registered is not
- *  shown: a placeholder names its number and the class of the secret, never the value, and the rest of the report is
- *  written whole; GetRedactedEntryCount() and GetRedactionSummary() tell what the last render left out. The report is
- *  deterministic: the same observations in the same order give the same text, so a catalog rebuilt from a journal
- *  renders what the live one rendered, except that a journal line that was reduced to a stub (see CSiteDiscoveryJournal)
- *  is only counted.
+ *  endpoint, an action, a summary line, the header and cookie names of a host) that would contain a secret value the
+ *  redactor registered and still looks for is not shown: a placeholder names its number, its host and the value by its
+ *  class, field name, length and entropy (CSiteDiscoveryRedactor::DescribeSecretUse()), never the value, and the rest of
+ *  the report is written whole; the head of the report lists those values with the journal lines they appear in.
+ *  GetRedactedEntryCount() and GetRedactionSummary() tell what the last render left out. Host names are never hidden:
+ *  every host of the catalog is a public value for the redactor (NotePublicHost()). The report is deterministic: the
+ *  same observations in the same order give the same text, so a catalog rebuilt from a journal renders what the live
+ *  one rendered, apart from what the live registry left out; a stub line of an older recorder is only counted.
  *
  *  Not thread-safe.
  */
@@ -168,6 +170,11 @@ class GUCEF_WEB_PUBLIC_CPP CSiteEndpointCatalog : public CIWebObservationSink
     /** "cookie: 2, query-value: 1" for the parts the last RenderReport() left out; empty when none */
     CORE::CString GetRedactionSummary( void ) const;
 
+    typedef GUCEF::map< UInt32, UInt32 > TValueCountMap;
+
+    /** Per registered value (its index, see CSiteDiscoveryRedactor::GetSecretInfo()) the parts the last RenderReport() left out for it */
+    const TValueCountMap& GetRedactedValueCounts( void ) const;
+
     /** The journal lines that were stubs (see CSiteDiscoveryJournal) among the observations added: they are counted, not catalogued */
     UInt32 GetStubCount( void ) const;
 
@@ -196,6 +203,7 @@ class GUCEF_WEB_PUBLIC_CPP CSiteEndpointCatalog : public CIWebObservationSink
 
     void RenderEntry( const CDiscoveredEndpoint& entry, CORE::CString& out ) const;
     bool Guard( const CORE::CString& block, CORE::CString& reason ) const;
+    static CORE::CString HostOf( const CORE::CString& url );
     void AddStep( UInt32 actionId, const CORE::CString& step );
     UInt32 GetMergedShapeLimit( void ) const;
 
@@ -218,6 +226,7 @@ class GUCEF_WEB_PUBLIC_CPP CSiteEndpointCatalog : public CIWebObservationSink
     CSiteDiscoveryRedactor::TClassCountMap m_stubByClass;
     mutable UInt32 m_lastRedactedCount;
     mutable CSiteDiscoveryRedactor::TClassCountMap m_lastRedactedByClass;
+    mutable TValueCountMap m_lastRedactedByValue;        /**< index of the registered value: parts it left out */
 };
 
 /*-------------------------------------------------------------------------//

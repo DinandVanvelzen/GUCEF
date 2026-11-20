@@ -81,6 +81,13 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealObjectPathResolver
     /** The package name of an object path: the text in front of the first dot */
     static CORE::CString PackageNameOf( const CORE::CString& objectPath );
 
+    /**
+     *  The package name of a package file: the one its summary carries, or, when the summary carries none (packages of UE 4 store
+     *  "None"), the one its place gives: the path below a folder "Content" with /Game in front, below "Plugins/<Name>/Content" with
+     *  /<Name> in front, without the extension. Empty when neither is there.
+     */
+    static CORE::CString PackageNameOfFile( const CORE::CString& summaryPackageName, const CORE::CString& path );
+
     /** The scene that ResolveReference() records the normalized relations of the import in (converter design 5.8), not owned; may be NULL */
     void SetRecorder( ASSETCONVERTER::CAssetScene* scene );
 

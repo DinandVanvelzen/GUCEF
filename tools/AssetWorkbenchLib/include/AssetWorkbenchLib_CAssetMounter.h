@@ -71,7 +71,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetMounter
 {
     public:
 
-    struct ASSETVIEWERLIB_PUBLIC_CPP SMount
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SMount
     {
         CORE::CString mountPoint;       /**< the first part of the VFS paths below it */
         CORE::CString source;           /**< the folder, the archive file or the VFS path of the archive file */

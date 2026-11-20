@@ -335,6 +335,26 @@ CStore::WriteUsers( const CORE::CString& content, CORE::CString& problem ) const
     return WriteFile( "users", content, problem );
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CStore::ReadCiGatewayTokens( CORE::CString& content, bool& missing, CORE::CString& problem ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return ReadFile( "ci-gateway-tokens", content, missing, problem );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStore::WriteCiGatewayTokens( const CORE::CString& content, CORE::CString& problem ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return WriteFile( "ci-gateway-tokens", content, problem );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

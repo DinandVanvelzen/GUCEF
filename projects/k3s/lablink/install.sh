@@ -281,12 +281,18 @@ if [ "${ROLE}" = "cluster" ]; then
         ARGS="${ARGS} --web"
         [ "${LAB_WEB_PLAIN_HTTP:-false}" = "true" ] && ARGS="${ARGS} --web-allow-plain-http"
     fi
+    # the CI configuration the hub hands to approved machines (tools/gucefLabLink/README.md, CI configuration)
+    [ -n "${LAB_CI_REGISTRY:-}" ] && ARGS="${ARGS} --ci-registry ${LAB_CI_REGISTRY}"
+    [ -n "${LAB_CI_GATEWAY_URL:-}" ] && ARGS="${ARGS} --ci-gateway-url ${LAB_CI_GATEWAY_URL}"
+    [ -n "${LAB_CI_GATEWAY_TOKENS:-}" ] && ARGS="${ARGS} --ci-gateway-tokens ${LAB_CI_GATEWAY_TOKENS}"
+    [ -n "${LAB_CI_GATEWAY_USER:-}" ] && ARGS="${ARGS} --ci-gateway-user ${LAB_CI_GATEWAY_USER}"
 else
     [ "${LAB_JOIN}" = "true" ] && ARGS="${ARGS} --join-script ${K3S_DIR}/agent-node/join.sh"
     [ "${LAB_PERMANENT}" = "true" ] && ARGS="${ARGS} --permanent"
     if [ -n "${LAB_CLAUDE_USER}" ]; then
         ARGS="${ARGS} --claude-user ${LAB_CLAUDE_USER} --local-node $(uname -n | tr '[:upper:]' '[:lower:]')"
     fi
+    [ "${LAB_CI:-true}" = "true" ] || ARGS="${ARGS} --no-ci"
 fi
 
 CONFIG_CHANGED=false

@@ -65,6 +65,14 @@ const CORE::CString CAssetPipelineOperations::OverrideRemove = "override_remove"
 const CORE::CString CAssetPipelineOperations::MaterialMapSuggest = "material_map_suggest";
 const CORE::CString CAssetPipelineOperations::ReadResource = "read_resource";
 const CORE::CString CAssetPipelineOperations::RenderSheet = "render_sheet";
+const CORE::CString CAssetPipelineOperations::PackRedownloadOriginal = "pack_redownload_original";
+const CORE::CString CAssetPipelineOperations::PackRegenerateIntermediate = "pack_regenerate_intermediate";
+const CORE::CString CAssetPipelineOperations::PackRegenerateTarget = "pack_regenerate_target";
+const CORE::CString CAssetPipelineOperations::PackReprocess = "pack_reprocess";
+const CORE::CString CAssetPipelineOperations::AssetRegenerateIntermediate = "asset_regenerate_intermediate";
+const CORE::CString CAssetPipelineOperations::AssetRegenerateTarget = "asset_regenerate_target";
+const CORE::CString CAssetPipelineOperations::ReprocessRollback = "reprocess_rollback";
+const CORE::CString CAssetPipelineOperations::ReprocessPlan = "reprocess_plan";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -76,7 +84,18 @@ bool
 CAssetPipelineOperations::IsJob( const CORE::CString& operation )
 {GUCEF_TRACE;
 
-    return ConvertPack == operation || ConvertFile == operation || CookPack == operation || ValidatePack == operation || IndexPack == operation || SyncLibrary == operation;
+    return ConvertPack == operation || ConvertFile == operation || CookPack == operation || ValidatePack == operation || IndexPack == operation || SyncLibrary == operation ||
+           IsReprocess( operation );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetPipelineOperations::IsReprocess( const CORE::CString& operation )
+{GUCEF_TRACE;
+
+    return PackRedownloadOriginal == operation || PackRegenerateIntermediate == operation || PackRegenerateTarget == operation || PackReprocess == operation ||
+           AssetRegenerateIntermediate == operation || AssetRegenerateTarget == operation || ReprocessRollback == operation;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -85,7 +104,7 @@ bool
 CAssetPipelineOperations::IsServiceJob( const CORE::CString& operation )
 {GUCEF_TRACE;
 
-    return IndexPack == operation || SyncLibrary == operation;
+    return IndexPack == operation || SyncLibrary == operation || IsReprocess( operation );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -135,7 +154,9 @@ CAssetPipelineOperations::IsKnown( const CORE::CString& operation )
            OverrideRemove == operation ||
            MaterialMapSuggest == operation ||
            ReadResource == operation ||
-           RenderSheet == operation;
+           RenderSheet == operation ||
+           ReprocessPlan == operation ||
+           IsReprocess( operation );
 }
 
 /*-------------------------------------------------------------------------//

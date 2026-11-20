@@ -190,7 +190,8 @@ CUnrealTextureReader::Read( CUnrealPackage& package, UInt32 exportIndex, STextur
         return false;
     }
     const CUnrealVersionContext& versions = package.GetVersions();
-    if ( versions.GetUe5Version() >= 1009 )
+    // UE 5 packages store the source as an editor bulk data record (seen from file version 1008 on); UE 4 packages as legacy bulk data
+    if ( versions.IsAtLeast( UE5_PAYLOAD_TOC ) )
     {
         CUnrealEditorBulkData bulk;
         if ( !bulk.Read( reader, versions ) )

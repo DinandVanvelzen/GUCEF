@@ -127,8 +127,8 @@ FindHeader( const CORE::CDataNode* headers, const char* lowerCaseName )
  *  The passive click and submit listener. It runs in an isolated world (ClickListenerWorldName) where page scripts
  *  cannot reach it, follows the composed path of the event so clicks inside shadow roots count, and reports the role and
  *  the label of the control: aria-label, else the visible text (80 characters at most), else title. Never the value of
- *  an input, never anything of a password field, never the text of a table cell: a control inside a table cell is
- *  reported by its role only.
+ *  an input, never anything of a password field, never the text of a table cell. A control inside a table cell is
+ *  reported with its own label, like any other, unless the settings withhold it (reportTableCellControlNames).
  */
 static const char* const ClickListenerScript =
     "(function(){if(window.__gucefSiteDiscoveryListener)return;window.__gucefSiteDiscoveryListener=true;"
@@ -150,7 +150,6 @@ static const char* const ClickListenerScript =
     "var tag=(el.tagName||'').toLowerCase();var type=(el.getAttribute('type')||'').toLowerCase();"
     "var role=roleOf(el,tag,type);var inTable=!!find(el,T);var label='';"
     "if(tag==='input'&&type==='password'){label='';}"
-    "else if(inTable){label='';}"
     "else if(tag==='form'||tag==='select'||tag==='textarea'||(tag==='input'&&!/^(submit|button|reset|image)$/.test(type))){label=el.getAttribute('aria-label')||el.getAttribute('title')||'';}"
     "else{label=el.getAttribute('aria-label')||(tag==='input'?el.getAttribute('value'):(el.innerText||el.textContent))||el.getAttribute('title')||'';}"
     "if(typeof window[B]==='function')window[B](JSON.stringify({kind:kind,tag:tag,role:role,label:clean(label),inTable:inTable}));}catch(x){}}"
@@ -165,6 +164,32 @@ static const char* const ClickListenerScript =
 
 /** Fetching a response to look for a new shape stops after this many tries per allowed shape of an endpoint */
 static const UInt32 ShapeProbesPerShape = 4;
+
+/** The longest label kept of a clicked control, in bytes */
+static const UInt32 MaxLabelBytes = 120;
+
+/*-------------------------------------------------------------------------*/
+
+/** A label as the listener reported it, with control characters as spaces and at most MaxLabelBytes, cut at a character boundary */
+static CORE::CString
+CleanLabel( const CORE::CString& label )
+{
+    const char* t = label.IsNULLOrEmpty() ? "" : label.C_String();
+    UInt32 len = label.IsNULLOrEmpty() ? 0 : label.ByteSize() - 1;
+    if ( len > MaxLabelBytes )
+    {
+        len = MaxLabelBytes;
+        while ( len > 0 && ( ( (unsigned char) t[ len ] ) & 0xC0 ) == 0x80 )
+            --len;
+    }
+    GUCEF::vector< char > buffer( t, t + len );
+    for ( UInt32 i=0; i<len; ++i )
+        if ( ( (unsigned char) buffer[ i ] ) < 0x20 || buffer[ i ] == 0x7F )
+            buffer[ i ] = ' ';
+    if ( 0 == len )
+        return CORE::CString::Empty;
+    return CORE::CString( &buffer[ 0 ], len ).Trim( true ).Trim( false );
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -649,6 +674,10 @@ CChromeNetworkRecorder::HandleRequestWillBeSent( const SChromeProtocolEvent& eve
         return;
 
     const CORE::CString url = GetText( *request, "url" );
+
+    // what is in an address is public: a value seen there is not looked for as a secret
+    m_redactor->NotePublicUrl( url );
+
     CUrlPathTemplate parsed;
     if ( !CUrlPathTemplate::Parse( url, parsed ) || !m_redactor->IsInScope( parsed ) )
         return;
@@ -999,7 +1028,9 @@ CChromeNetworkRecorder::HandleBindingCalled( const SChromeProtocolEvent& event )
         return;
     const CORE::CString kind = GetText( payload, "kind" ) == "submit" ? CObservedUserAction::KindSubmit : CObservedUserAction::KindClick;
     const bool inTable = payload.GetAttributeValue( "inTable" ).AsBool( false );
-    CORE::CString label = inTable ? CORE::CString::Empty : m_redactor->RedactLabel( GetText( payload, "label" ) );
+    const bool withhold = inTable && !m_redactor->GetSettings().reportTableCellControlNames;
+    // the label as the listener gave it: the value rules apply when a report is made (CSiteEndpointCatalog)
+    CORE::CString label = withhold ? CORE::CString::Empty : CleanLabel( GetText( payload, "label" ) );
     if ( label.IsNULLOrEmpty() )
     {
         // only the kind of control: its role, else its tag, both checked to be plain words
@@ -1420,6 +1451,16 @@ CChromeNetworkRecorder::GetSessionCount( void ) const
 {GUCEF_TRACE;
 
     return (UInt32) m_sessions.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeNetworkRecorder::IsMainFrameOf( const CORE::CString& sessionId, const CORE::CString& frameId ) const
+{GUCEF_TRACE;
+
+    TStringMap::const_iterator target = m_sessionTargets.find( sessionId );
+    return target != m_sessionTargets.end() && !frameId.IsNULLOrEmpty() && target->second == frameId;
 }
 
 /*-------------------------------------------------------------------------*/

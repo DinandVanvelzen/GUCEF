@@ -71,6 +71,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncItem : public CORE::CIDataNod
     static const CORE::CString Current;             /**< "current": a pack of every wanted format with the listed revision */
     static const CORE::CString UnknownFreshness;    /**< "unknown-freshness": a pack exists, whether it is the listed version cannot be told */
     static const CORE::CString Stale;               /**< "stale": the store has a newer version; queued as a new pack */
+    static const CORE::CString TooLarge;            /**< "too-large": larger than the size guard of the store plugin (known size, or refused by it before); not queued unless the user allows it for the item */
     static const CORE::CString FailedBefore;        /**< "failed-before": too many failed downloads, or waiting for the next attempt */
     static const CORE::CString Missing;             /**< "missing": no pack of a wanted format; queued */
 

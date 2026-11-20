@@ -77,6 +77,8 @@
 #include "gucefASSETSTORE_CRemoteAssetStoreServiceSettings.h"
 #include "gucefASSETSTORE_CAssetLibrarySyncSpec.h"
 #include "gucefASSETSTORE_CAssetPipelineRequest.h"
+#include "gucefASSETSTORE_CAssetReprocessRequest.h"
+#include "gucefASSETSTORE_CAssetPipelineOperations.h"
 #include "AssetStoreConverterHook_CPipelineConverterHook.h"
 #include "AssetStoreConverterHook_CConverterHookSettings.h"
 #include "AssetStoreConverterHook_CPipelineOperationSettings.h"
@@ -1043,16 +1045,199 @@ class CAdminHandler : public COM::CIServiceAdminHandler
         }
         if ( 0 == command.HasSubstr( "sync-" ) )
             return HandleSyncCommand( command, arguments, result, message );
+        if ( IsReprocessCommand( command ) )
+            return HandleReprocessCommand( command, arguments, result, message );
         message = "the command \"" + command + "\" is not known (status, pair-open, pair-close, pairings, pair-confirm, devices, sessions, revoke, keyring-status, keyring-setup, keyring-unlock, keyring-lock, drain, "
-                  "sync-plan, sync-start, sync-status, sync-cancel, sync-retry, sync-pause, sync-resume, sync-marks, sync-ignore, sync-pin, sync-unmark, sync-profile)";
+                  "sync-plan, sync-start, sync-status, sync-cancel, sync-retry, sync-pause, sync-resume, sync-marks, sync-ignore, sync-pin, sync-unmark, sync-profile, "
+                  "reprocess, reprocess-plan, reprocess-status, reprocess-cancel, redownload, regen-intermediate, regen-target, reprocess-rollback)";
         return COM::SERVICEADMIN_INVALID_ARGUMENT;
+    }
+
+    /** Whether the command is one of the reprocessing of packs */
+    static bool IsReprocessCommand( const CORE::CString& command )
+    {
+        return "reprocess" == command || "reprocess-plan" == command || "reprocess-status" == command || "reprocess-cancel" == command || "redownload" == command ||
+               "regen-intermediate" == command || "regen-target" == command || "reprocess-rollback" == command;
     }
 
     private:
 
     /**
+     *  The reprocessing of packs of the store (the pipeline jobs of CAssetPipelineOperations::IsReprocess(), section 17 of the
+     *  remote service design): reprocess, redownload, regen-intermediate, regen-target and reprocess-rollback start a job per pack
+     *  (--pack P, or --packs A,B,C for several; the jobs wait for a slot of the service), reprocess-plan answers the plan of each
+     *  pack and starts nothing (as does --dry-run true on the others), reprocess-status and reprocess-cancel take --job J (or
+     *  --jobs A,B). Options: --assets a,b (paths below the original folder, or globs: the asset form), --store-asset-ids a,b,
+     *  --failed true, --statuses a,b, --kinds a,b, --targets ogre, --steps redownload,intermediate,target (reprocess),
+     *  --no-cook true, --then-convert false, --no-repair true, --allow-large true, --accept-errors true. The caller is "admin" (the
+     *  owner on the machine of the service): the limits of machine callers do not apply, the caps of the stores do.
+     */
+    COM::TServiceAdminStatus HandleReprocessCommand( const CORE::CString& command, const TArgumentMap& arguments, CORE::CDataNode& result, CORE::CString& message )
+    {GUCEF_TRACE;
+
+        typedef ASSETSTORE::CAssetPipelineOperations Op;
+        CORE::CString::StringVector jobs = SplitArgument( arguments, "jobs" );
+        const CORE::CString job = Argument( arguments, "job", "" );
+        if ( !job.IsNULLOrEmpty() )
+            jobs.push_back( job );
+        if ( "reprocess-status" == command || "reprocess-cancel" == command )
+        {
+            if ( jobs.empty() )
+            {
+                message = command + " needs --job <jobId> or --jobs A,B";
+                return COM::SERVICEADMIN_INVALID_ARGUMENT;
+            }
+            CORE::CDataNode* list = result.AddChild( "jobs", GUCEF_DATATYPE_ARRAY );
+            bool allEnded = true;
+            for ( size_t j=0; j<jobs.size(); ++j )
+            {
+                CORE::CDataNode* entry = list->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+                entry->SetAttribute( "jobId", jobs[ j ] );
+                if ( "reprocess-cancel" == command )
+                {
+                    ASSETSTORE::CAssetServiceResult cancelled;
+                    entry->SetAttribute( "status", CORE::CString( ASSETSTORE::AssetStoreStatusToString( m_service.ControlJob( CORE::CString::Empty, jobs[ j ], ASSETSTORE::ASSETJOB_ACTION_CANCEL, cancelled ) ) ) );
+                    if ( !cancelled.message.IsNULLOrEmpty() )
+                        entry->SetAttribute( "message", cancelled.message );
+                    continue;
+                }
+                ASSETSTORE::CAssetJobEntry state;
+                if ( ASSETSTORE::ASSETSTORE_STATUS_OK != m_service.GetJob( jobs[ j ], state ) )
+                {
+                    entry->SetAttribute( "state", "unknown" );
+                    continue;
+                }
+                entry->SetAttribute( "state", CORE::CString( ASSETSTORE::AssetJobStateToString( state.state ) ) );
+                entry->SetAttribute( "stateText", state.stateText );
+                entry->SetAttribute( "packId", state.packId );
+                entry->SetAttribute( "operation", state.subKind );
+                entry->SetAttribute( "message", state.message );
+                allEnded = allEnded && state.IsEnded();
+                if ( state.IsEnded() )
+                {
+                    ASSETSTORE::CAssetServiceDocument outcome;
+                    if ( ASSETSTORE::ASSETSTORE_STATUS_OK == m_service.GetJobResult( jobs[ j ], CORE::CString::Empty, CORE::CString::Empty, 0, outcome ) )
+                    {
+                        CORE::CDataNode* copied = entry->AddChild( outcome.document );
+                        copied->SetName( "result" );
+                    }
+                }
+            }
+            result.SetAttribute( "allEnded", allEnded );
+            return COM::SERVICEADMIN_OK;
+        }
+
+        CORE::CString operation = Op::PackReprocess;
+        if ( "redownload" == command )
+            operation = Op::PackRedownloadOriginal;
+        else
+        if ( "reprocess-rollback" == command )
+            operation = Op::ReprocessRollback;
+        else
+        if ( "regen-intermediate" == command || "regen-target" == command )
+        {
+            const bool assets = !Argument( arguments, "assets", "" ).IsNULLOrEmpty() || !Argument( arguments, "store-asset-ids", "" ).IsNULLOrEmpty();
+            if ( "regen-intermediate" == command )
+                operation = assets ? Op::AssetRegenerateIntermediate : Op::PackRegenerateIntermediate;
+            else
+                operation = assets ? Op::AssetRegenerateTarget : Op::PackRegenerateTarget;
+        }
+        CORE::CString::StringVector packs = SplitArgument( arguments, "packs" );
+        const CORE::CString pack = Argument( arguments, "pack", "" );
+        if ( !pack.IsNULLOrEmpty() )
+            packs.push_back( pack );
+        if ( packs.empty() )
+        {
+            message = command + " needs --pack <packId> or --packs A,B";
+            return COM::SERVICEADMIN_INVALID_ARGUMENT;
+        }
+        const bool plan = "reprocess-plan" == command || CORE::StringToBool( Argument( arguments, "dry-run", "false" ), false );
+        CORE::CDataNode* list = result.AddChild( plan ? "plans" : "jobs", GUCEF_DATATYPE_ARRAY );
+        CORE::CString::StringVector started;
+        bool anyRefused = false;
+        for ( size_t p=0; p<packs.size(); ++p )
+        {
+            ASSETSTORE::CAssetReprocessRequest spec;
+            spec.operation = "reprocess-plan" == command ? CORE::CString( Op::PackReprocess ) : operation;
+            spec.packId = packs[ p ];
+            spec.assets = SplitArgument( arguments, "assets" );
+            spec.storeAssetIds = SplitArgument( arguments, "store-asset-ids" );
+            spec.steps = SplitArgument( arguments, "steps" );
+            spec.targets = SplitArgument( arguments, "targets" );
+            const CORE::CString::StringVector statuses = SplitArgument( arguments, "statuses" );
+            spec.onlyStatuses.insert( statuses.begin(), statuses.end() );
+            if ( CORE::StringToBool( Argument( arguments, "failed", "false" ), false ) )
+            {
+                spec.onlyStatuses.insert( "failed" );
+                spec.onlyStatuses.insert( "skipped" );
+            }
+            const CORE::CString::StringVector kinds = SplitArgument( arguments, "kinds" );
+            spec.kinds.insert( kinds.begin(), kinds.end() );
+            spec.cook = !CORE::StringToBool( Argument( arguments, "no-cook", "false" ), false );
+            spec.thenConvert = CORE::StringToBool( Argument( arguments, "then-convert", "true" ), true );
+            spec.repairOriginals = !CORE::StringToBool( Argument( arguments, "no-repair", "false" ), false );
+            spec.allowLarge = CORE::StringToBool( Argument( arguments, "allow-large", "false" ), false );
+            spec.acceptErrors = CORE::StringToBool( Argument( arguments, "accept-errors", "false" ), false );
+            spec.caller = "admin";
+            spec.machine = false;
+            CORE::CDataNode* entry = list->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            entry->SetAttribute( "packId", packs[ p ] );
+            ASSETSTORE::CAssetPipelineRequest request;
+            spec.ToRequest( request );
+            if ( plan )
+            {
+                request.operation = Op::ReprocessPlan;
+                request.arguments.SetAttribute( "operation", spec.operation );
+                ASSETSTORE::CAssetServiceDocument planned;
+                const ASSETSTORE::TAssetStoreStatus status = m_service.RunPipelineQuery( request, planned );
+                entry->SetAttribute( "status", CORE::CString( ASSETSTORE::AssetStoreStatusToString( status ) ) );
+                if ( ASSETSTORE::ASSETSTORE_STATUS_OK == status )
+                    entry->AddChild( planned.document )->SetName( "plan" );
+                else
+                    entry->SetAttribute( "message", planned.message );
+                continue;
+            }
+            ASSETSTORE::CAssetServiceResult outcome;
+            const ASSETSTORE::TAssetStoreStatus status = m_service.StartPipelineJob( CORE::CString::Empty, request, outcome );
+            entry->SetAttribute( "status", CORE::CString( ASSETSTORE::AssetStoreStatusToString( status ) ) );
+            entry->SetAttribute( "operation", operation );
+            entry->SetAttribute( "jobId", outcome.id );
+            if ( !outcome.message.IsNULLOrEmpty() )
+                entry->SetAttribute( "message", outcome.message );
+            if ( ASSETSTORE::ASSETSTORE_STATUS_OK == status )
+                started.push_back( outcome.id );
+            else
+                anyRefused = true;
+        }
+        if ( !plan )
+            result.SetAttribute( "jobIds", JoinList( started ) );
+        if ( anyRefused && started.empty() )
+        {
+            message = "no job was started: see the status of each pack";
+            result.SetAttribute( "message", message );
+        }
+        return COM::SERVICEADMIN_OK;
+    }
+
+    /** The values of a list argument ("a,b,c"), without blanks and empty ones */
+    static CORE::CString::StringVector SplitArgument( const TArgumentMap& arguments, const char* name )
+    {
+        CORE::CString::StringVector values;
+        const CORE::CString::StringVector parts = Argument( arguments, name, "" ).ParseElements( ',', false );
+        for ( size_t i=0; i<parts.size(); ++i )
+        {
+            const CORE::CString value = parts[ i ].Trim( true ).Trim( false );
+            if ( !value.IsNULLOrEmpty() )
+                values.push_back( value );
+        }
+        return values;
+    }
+
+    /**
      *  The library sync (library sync design, section 7.5): sync-plan, sync-start, sync-status, sync-cancel, sync-retry, sync-pause,
-     *  sync-resume with --store S (or --job J for the last four and sync-status); sync-marks, sync-ignore, sync-pin, sync-unmark with
+     *  sync-resume with --store S (or --job J for the last four and sync-status); sync-start also takes --max-items N, --item-ids A,B,
+     *  --retry-failed true and --replan true (list afresh instead of using the stored plan); sync-plan and sync-start take
+     *  --refresh-details true (ask the details of the items again instead of taking them from the cache); sync-marks, sync-ignore, sync-pin, sync-unmark with
      *  --store S --item I [--reason R]; sync-profile --store S [--member value ...] shows the profile, or changes the members named.
      *  A plan and a run are the pipeline job "sync-library" with the profile the service keeps for the store; nothing here waits for a
      *  job (the admin client asks sync-status again for that)
@@ -1073,6 +1258,18 @@ class CAdminHandler : public COM::CIServiceAdminHandler
             spec.storeId = storeId;
             spec.mode = "sync-plan" == command ? ASSETSTORE::CAssetLibrarySyncSpec::ModePlan : ASSETSTORE::CAssetLibrarySyncSpec::ModeRun;
             spec.useStoreProfile = true;
+            // a run of a few items first (--max-items 3), only some items (--item-ids a,b), the items that failed before now (--retry-failed true)
+            spec.maxItems = CORE::StringToUInt32( Argument( arguments, "max-items", "0" ), 0 );
+            const CORE::CString items = Argument( arguments, "item-ids", "" );
+            if ( !items.IsNULLOrEmpty() )
+                spec.itemIds = items.ParseElements( ',', false );
+            spec.retryFailed = CORE::StringToBool( Argument( arguments, "retry-failed", "false" ), false );
+            // a start lists afresh instead of using the stored plan of the store (--replan true); the details of the items are asked
+            // of the store again instead of taken from the cache (--refresh-details true)
+            spec.replan = CORE::StringToBool( Argument( arguments, "replan", "false" ), false );
+            spec.refreshDetails = CORE::StringToBool( Argument( arguments, "refresh-details", "false" ), false );
+            // the items named with --item-ids go through the size guard of the store plugin (--allow-large true)
+            spec.allowLarge = CORE::StringToBool( Argument( arguments, "allow-large", "false" ), false );
             ASSETSTORE::CAssetPipelineRequest request;
             spec.ToRequest( request );
             ASSETSTORE::CAssetServiceResult started;
@@ -1383,7 +1580,22 @@ NormaliseSyncWords( const CORE::CString::StringVector& words )
         rest.erase( rest.begin() );
     }
     if ( 0 != command.HasSubstr( "sync-" ) )
-        return words;
+    {
+        // the reprocessing: "<command> <pack> [<pack> ...]" is "<command> --packs P1,P2"
+        if ( !CAdminHandler::IsReprocessCommand( command ) || rest.empty() || rest[ 0 ].StartsWith( "--" ) )
+            return words;
+        CORE::CString::StringVector normal;
+        normal.push_back( command );
+        CORE::CString packs;
+        size_t i = 0;
+        for ( ; i<rest.size() && !rest[ i ].StartsWith( "--" ); ++i )
+            packs += ( packs.IsNULLOrEmpty() ? CORE::CString::Empty : CORE::CString( "," ) ) + rest[ i ];
+        normal.push_back( "reprocess-status" == command || "reprocess-cancel" == command ? CORE::CString( "--jobs" ) : CORE::CString( "--packs" ) );
+        normal.push_back( packs );
+        for ( ; i<rest.size(); ++i )
+            normal.push_back( rest[ i ] );
+        return normal;
+    }
     CORE::CString::StringVector normal;
     normal.push_back( command );
     static const char* const positional[] = { "--store", "--item", "--reason" };
@@ -1450,6 +1662,14 @@ RunAdminCommand( const SServiceSection& service, const SOptions& options )
     const CORE::CString stateDir = CORE::CombinePath( CORE::RelativePath( service.dataDir ), "state" );
     CORE::CDataNode result;
     COMCORE::CRpcStatus status;
+    // --follow true on a reprocessing command: the admin client asks reprocess-status again until the jobs ended, and answers that
+    bool follow = false;
+    COM::CIServiceAdminHandler::TArgumentMap::iterator followArgument = arguments.find( "follow" );
+    if ( followArgument != arguments.end() )
+    {
+        follow = CORE::StringToBool( (*followArgument).second, true );
+        arguments.erase( followArgument );
+    }
     // sync-plan waits for the plan unless --no-wait is given: the admin client asks sync-status again until the job ended
     bool waitForPlan = "sync-plan" == command;
     COM::CIServiceAdminHandler::TArgumentMap::iterator noWait = arguments.find( "no-wait" );
@@ -1462,6 +1682,28 @@ RunAdminCommand( const SServiceSection& service, const SOptions& options )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "AssetStoreService: the admin command \"" << command << "\" failed: " << status.ToString() );
         return EXIT_ADMIN_FAILED;
+    }
+    if ( follow && CAdminHandler::IsReprocessCommand( command ) && !result.GetAttributeValueOrChildValueByName( "jobIds" ).AsString().IsNULLOrEmpty() )
+    {
+        COM::CIServiceAdminHandler::TArgumentMap statusArguments;
+        statusArguments[ "jobs" ] = result.GetAttributeValueOrChildValueByName( "jobIds" ).AsString();
+        const UInt32 waitMs = 2000;
+        const UInt32 maxWaits = 12 * 3600 / 2;     // twelve hours: the conversion of a large pack takes its time
+        for ( UInt32 w=0; w<maxWaits; ++w )
+        {
+            CORE::CDataNode followed;
+            if ( !COM::CServiceAdminClient::RunWithTokenFile( service.adminPort, stateDir, "reprocess-status", statusArguments, followed, status ) || !status.IsOk() )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "AssetStoreService: the state of the jobs " << statusArguments[ "jobs" ] << " cannot be read: " << status.ToString() );
+                return EXIT_ADMIN_FAILED;
+            }
+            if ( followed.GetAttributeValueOrChildValueByName( "allEnded" ).AsBool( false, true ) )
+            {
+                result = followed;
+                break;
+            }
+            MT::ThreadDelay( waitMs );
+        }
     }
     if ( waitForPlan )
     {
@@ -1512,8 +1754,12 @@ PrintUsage( void )
                                              "become ready, drain, exit), --admin <command> [--name value ...] (status, pair-open [--kind K --roles "
                                              "R --seconds S --count N], pair-close, pairings, pair-confirm --device D --fingerprint F, devices, "
                                              "sessions, revoke --device D, keyring-status, keyring-setup, keyring-unlock, keyring-lock [--code-file FILE] (the code comes from the standard input or "
-                                             "the file, never from the command line), drain; the library sync: sync plan|start|status|cancel|retry|pause|resume <store> "
-                                             "(sync plan waits for the plan unless --no-wait; status --items N lines; cancel, retry and status also --job J), "
+                                             "the file, never from the command line), drain; the reprocessing of packs: reprocess|redownload|regen-intermediate|regen-target|reprocess-rollback|reprocess-plan <pack> [<pack> ...] "
+                                             "[--assets a,b --failed true --statuses a,b --kinds a,b --targets ogre --steps redownload,intermediate,target --no-cook true --then-convert false "
+                                             "--allow-large true --accept-errors true --dry-run true --follow true], reprocess-status|reprocess-cancel <job> [<job> ...]; "
+                                             "the library sync: sync plan|start|status|cancel|retry|pause|resume <store> "
+                                             "(sync plan waits for the plan unless --no-wait; start also --max-items N, --item-ids A,B, --retry-failed true, --replan true (list afresh, not the stored plan), --allow-large true (with --item-ids: past the size guard of the store); plan and start "
+                                             "--refresh-details true (ask the details of the items again, not the cache); status --items N lines; cancel, retry and status also --job J), "
                                              "sync marks <store>, sync ignore|pin|unmark <store> <item> [reason], sync profile <store> [--member value ...]), --help. Exit codes: 0 stopped in order or the admin command "
                                              "succeeded, 2 bad options, 3 the bootstrap (plugins) or the settings refused, 4 the service did not start, 5 the "
                                              "admin command failed, 6 the smoke test did not become ready" );
