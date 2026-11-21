@@ -333,6 +333,7 @@ CPipelineAnalysisOperations::ConvertPlan( CPipelineOperationCall& call, CPipelin
     options.cookTargets = call.request.cookTargets;
     options.reimport = call.request.reimport;
     options.force = call.request.force;
+    call.ApplyRedoArguments( options );
     ASSETCONVERTER::CAssetPipeline pipeline;
     ASSETCONVERTER::CAssetPackPlan plan;
     if ( !pipeline.PlanPack( pack.manifest, options, plan ) )

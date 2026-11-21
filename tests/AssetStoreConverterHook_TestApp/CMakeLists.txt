@@ -16,6 +16,7 @@
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestHookConversion.h
+    include/TestHookPackIndex.h
     include/TestHookSupport.h
     include/TestPipelineCooker.h
     include/TestPipelineOperations.h
@@ -28,6 +29,7 @@ if (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     src/AssetStoreConverterHook_TestApp_main.cpp
     src/TestHookConversion.cpp
+    src/TestHookPackIndex.cpp
     src/TestHookSupport.cpp
     src/TestPipelineCooker.cpp
     src/TestPipelineOperations.cpp
@@ -40,6 +42,7 @@ if (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestHookConversion.h
+    include/TestHookPackIndex.h
     include/TestHookSupport.h
     include/TestPipelineCooker.h
     include/TestPipelineOperations.h
@@ -52,6 +55,7 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     src/AssetStoreConverterHook_TestApp_main.cpp
     src/TestHookConversion.cpp
+    src/TestHookPackIndex.cpp
     src/TestHookSupport.cpp
     src/TestPipelineCooker.cpp
     src/TestPipelineOperations.cpp
@@ -64,6 +68,7 @@ elseif (LINUX64)
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestHookConversion.h
+    include/TestHookPackIndex.h
     include/TestHookSupport.h
     include/TestPipelineCooker.h
     include/TestPipelineOperations.h
@@ -76,6 +81,7 @@ elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     src/AssetStoreConverterHook_TestApp_main.cpp
     src/TestHookConversion.cpp
+    src/TestHookPackIndex.cpp
     src/TestHookSupport.cpp
     src/TestPipelineCooker.cpp
     src/TestPipelineOperations.cpp
@@ -88,6 +94,7 @@ elseif (WIN32)
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestHookConversion.h
+    include/TestHookPackIndex.h
     include/TestHookSupport.h
     include/TestPipelineCooker.h
     include/TestPipelineOperations.h
@@ -100,6 +107,7 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_FILES 
     src/AssetStoreConverterHook_TestApp_main.cpp
     src/TestHookConversion.cpp
+    src/TestHookPackIndex.cpp
     src/TestHookSupport.cpp
     src/TestPipelineCooker.cpp
     src/TestPipelineOperations.cpp
@@ -159,19 +167,19 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../tools/AssetConverterLib/include ../../tools/AssetStoreConverterHook/include include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

@@ -1108,6 +1108,46 @@ PerformPipelineOperationTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Redo and bulk options: indexOnly, reindex, noCook and reimport reach the pipeline through the arguments of the request (counter-based), the result names the folder it wrote" )
+        try
+        {
+            CAssetServiceDocument result;
+            // the pack was converted before: a plan says everything is up to date, a plan that reimports says it all runs again
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, Request( CAssetPipelineOperations::ConvertPlan, "plain" ), result ) );
+            ASSERT_TRUE( 3 == UAttr( Child( &result.document, "counts" ), "cached" ) && 0 == UAttr( Child( &result.document, "counts" ), "import" ) );
+            CAssetPipelineRequest forced = Request( CAssetPipelineOperations::ConvertPlan, "plain" );
+            forced.reimport = true;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, forced, result ) && 3 == UAttr( Child( &result.document, "counts" ), "import" ) && 0 == UAttr( Child( &result.document, "counts" ), "cached" ) );
+
+            // an index run converts nothing: no asset is worked on, no asset is imported again
+            CAssetPipelineRequest index = Request( CAssetPipelineOperations::ConvertPack, "plain" );
+            index.arguments.SetAttribute( "indexOnly", true );
+            index.arguments.SetAttribute( "reindex", true );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, index, result ) );
+            const CDataNode* counts = Child( &result.document, "counts" );
+            ASSERT_TRUE( 0 == UAttr( counts, "converted" ) + UAttr( counts, "approximated" ) + UAttr( counts, "cached" ) + UAttr( counts, "failed" ) );
+            ASSERT_TRUE( Attr( &result.document, "intermediateFolder" ).HasSubstr( "plain" ) >= 0 );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, Request( CAssetPipelineOperations::ConvertPlan, "plain" ), result ) );
+            ASSERT_TRUE( 3 == UAttr( Child( &result.document, "counts" ), "cached" ) );
+
+            // intermediate only: the cooker is left out of the plan and the run
+            CAssetPipelineRequest noCook = Request( CAssetPipelineOperations::ConvertPlan, "plain" );
+            noCook.arguments.SetAttribute( "noCook", true );
+            noCook.reimport = true;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, noCook, result ) );
+            const CDataNode* targets = Child( &result.document, "cookTargets" );
+            ASSERT_TRUE( GUCEF_NULL == targets || 0 == targets->GetNrOfDirectChildNodes() );
+            noCook.operation = CAssetPipelineOperations::ConvertPack;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, noCook, result ) );
+            counts = Child( &result.document, "counts" );
+            ASSERT_TRUE( 3 == UAttr( counts, "converted" ) + UAttr( counts, "approximated" ) && 0 == UAttr( counts, "cached" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Service: the operations through CLocalAssetStoreService: queries, previews and applies, jobs with progress, results, a repeated command and a cancel" )
         try
         {
@@ -1307,6 +1347,28 @@ PerformPipelineOperationTests( void )
             service->Close();
             service.Unlink();
             UnmountDirectory( "pomcp" );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Runs: a cooker is asked for by its alias, the name of the cooked area of the store; a name that is neither is refused" )
+        try
+        {
+            CAssetServiceDocument result;
+            CPipelineTestObserver observer;
+            CAssetPipelineRequest aliased = Request( CAssetPipelineOperations::CookPack, "plain" );
+            aliased.cookTargets.push_back( "testcook-area" );
+            // the workbench names the cooker after the folder of its output: without the alias there is no such cooker
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK != Run( hook, aliased, result, &observer ) || !BAttr( &result.document, "clean" ) );
+            ASSERT_TRUE( plugins.RegisterCookerAlias( "testcook-area", "testcook" ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == Run( hook, aliased, result, &observer ) && "cookOnly" == Attr( &result.document, "mode" ) && BAttr( &result.document, "clean" ) );
+            ASSERT_TRUE( plugins.UnregisterCookerAlias( "testcook-area" ) );
+            CAssetPipelineRequest unknown = Request( CAssetPipelineOperations::CookPack, "plain" );
+            unknown.cookTargets.push_back( "nosuchcook" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK != Run( hook, unknown, result, &observer ) || !BAttr( &result.document, "clean" ) );
         }
         catch ( ... )
         {

@@ -79,6 +79,11 @@
 #define ASSETSTORECONVERTERHOOK_CLICENCERECORDBUILDER_H
 #endif /* ASSETSTORECONVERTERHOOK_CLICENCERECORDBUILDER_H ? */
 
+#ifndef ASSETSTORECONVERTERHOOK_CPACKINDEXOPERATIONS_H
+#include "AssetStoreConverterHook_CPackIndexOperations.h"
+#define ASSETSTORECONVERTERHOOK_CPACKINDEXOPERATIONS_H
+#endif /* ASSETSTORECONVERTERHOOK_CPACKINDEXOPERATIONS_H ? */
+
 #include "AssetStoreConverterHook_CPipelineConverterHook.h"
 
 /*-------------------------------------------------------------------------//
@@ -144,7 +149,7 @@ AbsoluteVfsPath( const CORE::CString& vfsPath )
 
 /** The converted file of the asset: the first extension of the list among its cooked files, else among its intermediate files */
 bool
-PickMainFile( const ASSETCONVERTER::CConversionReportEntry& entry, const CConverterHookSettings& settings, const CORE::CString& convertedFolder, CORE::CString& relativePath )
+PickMainFile( const ASSETCONVERTER::CConversionReportEntry& entry, const CConverterHookSettings& settings, const CORE::CString& convertedFolder, const CORE::CString& cookedFolder, CORE::CString& relativePath, bool& inCookedFolder )
 {
     for ( UInt32 pass=0; pass<2; ++pass )
     {
@@ -157,12 +162,41 @@ PickMainFile( const ASSETCONVERTER::CConversionReportEntry& entry, const CConver
                     continue;
                 if ( ASSETCONVERTER::CVfsPaths::ExtensionOf( file.path ) != settings.mainExtensions[ e ].Lowercase() )
                     continue;
+                inCookedFolder = false;
+                if ( !cookedFolder.IsNULLOrEmpty() && file.IsCooked() && ASSETCONVERTER::CVfsPaths::MakeRelative( cookedFolder, file.path, relativePath ) )
+                {
+                    inCookedFolder = true;
+                    return true;
+                }
                 if ( ASSETCONVERTER::CVfsPaths::MakeRelative( convertedFolder, file.path, relativePath ) )
                     return true;
             }
         }
     }
     return false;
+}
+
+/** What a run that failed leaves in the intermediate folder goes, but the licence record, the manifest and the report */
+void
+RemoveWorkOfFailedRun( const CORE::CString& folder )
+{
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    VFS::CVFS::TStringVector names;
+    vfs.GetDirList( names, folder, false, false, CORE::CString::Empty );
+    for ( size_t n=0; n<names.size(); ++n )
+    {
+        const CORE::CString name = ASSETCONVERTER::CVfsPaths::NameOf( names[ n ] );
+        if ( "licence" != name )
+            vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( folder, name ), true );
+    }
+    names.clear();
+    vfs.GetFileList( names, folder, false, false, CORE::CString::Empty, GUCEF_UINT32MAX );
+    for ( size_t n=0; n<names.size(); ++n )
+    {
+        const CORE::CString name = ASSETCONVERTER::CVfsPaths::NameOf( names[ n ] );
+        if ( "pack.assetpack.json" != name && "report.json" != name && "report.txt" != name )
+            vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( folder, name ), true );
+    }
 }
 
 /** The versions of the parts of the converter that made the conversion, "key/version" */
@@ -279,7 +313,12 @@ CPipelineConverterHook::CanConvert( const ASSETSTORE::CAssetRecord& asset ) cons
 
     const CConverterHookSettings settings = GetSettings();
     if ( settings.convertibleKinds.end() == settings.convertibleKinds.find( asset.kind ) )
-        return false;
+    {
+        // a package of an engine (an Unreal .uasset or .umap: the store has no kind of its own for it) that an importer declares
+        // as a package: that importer reads the package into the intermediate
+        if ( asset.originalPath.IsNULLOrEmpty() || ASSETCONVERTER::ASSETKIND_PACKAGE != Plugins().GetKinds().GetKindOfPath( asset.originalPath ) )
+            return false;
+    }
 
     // an importer that is not loaded cannot convert anything
     GUCEF::vector< ASSETCONVERTER::TAssetImporterPtr > importers;
@@ -309,12 +348,22 @@ CPipelineConverterHook::BuildManifest( const ASSETSTORE::CAssetConversionRequest
     manifest.source = AbsoluteVfsPath( request.sourceVfsPath );
     manifest.importer = settings.importer.IsNULLOrEmpty() ? ASSETCONVERTER::CAssetPackManifest::AutoImporter : settings.importer;
     manifest.exporter = settings.exporter;
-    manifest.intermediate = AbsoluteVfsPath( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "intermediate" ) );
+    const bool cookedApart = !request.cookedVfsFolder.IsNULLOrEmpty();
+    if ( cookedApart )
+    {
+        // the intermediate files are the folder of the conversion, the cooked files of each profile a folder of the cooked area
+        manifest.intermediate = AbsoluteVfsPath( convertedFolder );
+        manifest.output = AbsoluteVfsPath( request.cookedVfsFolder );
+    }
+    else
+    {
+        manifest.intermediate = AbsoluteVfsPath( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "intermediate" ) );
 
-    // the cooked files of the profile go into the folder of the conversion itself: <out>/<profile> is that folder
-    const CORE::CString parent = ASSETCONVERTER::CVfsPaths::FolderOf( convertedFolder );
-    const bool profileFolder = ASSETCONVERTER::CVfsPaths::NameOf( convertedFolder ) == settings.cookProfile.name;
-    manifest.output = AbsoluteVfsPath( profileFolder && !parent.IsNULLOrEmpty() ? parent : convertedFolder );
+        // the cooked files of the profile go into the folder of the conversion itself: <out>/<profile> is that folder
+        const CORE::CString parent = ASSETCONVERTER::CVfsPaths::FolderOf( convertedFolder );
+        const bool profileFolder = ASSETCONVERTER::CVfsPaths::NameOf( convertedFolder ) == settings.cookProfile.name;
+        manifest.output = AbsoluteVfsPath( profileFolder && !parent.IsNULLOrEmpty() ? parent : convertedFolder );
+    }
     manifest.manifestFolder = convertedFolder;
     if ( !settings.cookTarget.IsNULLOrEmpty() )
         manifest.cookTargets.push_back( settings.cookTarget );
@@ -456,14 +505,27 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
         outcome.message = CORE::ToString( errors ) + " error(s) in the conversion report" + ( outcome.problems.empty() ? CORE::CString::Empty : ", the first: " + outcome.problems[ 0 ] );
         if ( ASSETSTORE::CAssetConversionRecord::OutcomeConverted != request.pack.conversion.outcome )
         {
-            vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "intermediate" ), true );
-            vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, request.pack.packId ), true );
-            vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "references.json" ), true );
-            vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "sizes.json" ), true );
+            if ( request.cookedVfsFolder.IsNULLOrEmpty() )
+            {
+                vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "intermediate" ), true );
+                vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, request.pack.packId ), true );
+                vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "references.json" ), true );
+                vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "sizes.json" ), true );
+            }
+            else
+            {
+                // the intermediate folder holds the licence record, the manifest and the report as well: they stay
+                RemoveWorkOfFailedRun( convertedFolder );
+                const CORE::CString profileFolder = ASSETCONVERTER::CVfsPaths::Join( ASSETCONVERTER::CVfsPaths::Normalize( request.cookedVfsFolder ), settings.cookProfile.name );
+                vfs.DeleteDir( ASSETCONVERTER::CVfsPaths::Join( profileFolder, request.pack.packId ), true );
+                vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( profileFolder, "references.json" ), true );
+                vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( profileFolder, "sizes.json" ), true );
+            }
         }
         return outcome.status;
     }
 
+    const CORE::CString cookedFolder = ASSETCONVERTER::CVfsPaths::Normalize( request.cookedVfsFolder );
     // the assets that converted: their main file and its format
     UInt32 mapped = 0;
     for ( size_t a=0; a<assets.size(); ++a )
@@ -480,9 +542,10 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
         if ( ASSETCONVERTER::ASSETSTATUS_CONVERTED != status && ASSETCONVERTER::ASSETSTATUS_APPROXIMATED != status && ASSETCONVERTER::ASSETSTATUS_CACHED != status )
             continue;
         CORE::CString relative;
-        if ( !PickMainFile( *entry, settings, convertedFolder, relative ) )
+        bool inCookedFolder = false;
+        if ( !PickMainFile( *entry, settings, convertedFolder, cookedFolder, relative, inCookedFolder ) )
             continue;
-        assets[ a ].convertedPath = request.convertedPathPrefix + "/" + relative;
+        assets[ a ].convertedPath = ( inCookedFolder ? request.cookedPathPrefix : request.convertedPathPrefix ) + "/" + relative;
         assets[ a ].convertedFormat = ASSETSTORE::CAssetNameHints::FormatFromExtension( ASSETCONVERTER::CVfsPaths::ExtensionOf( relative ) );
         ++mapped;
     }
@@ -583,6 +646,16 @@ CPipelineConverterHook::RunPipelineOperation( const ASSETSTORE::CAssetPipelineRe
 
     const CConverterHookSettings settings = GetSettings();
     return m_operations.Run( request, observer, result, settings.threadPoolName, settings.threads );
+}
+
+/*-------------------------------------------------------------------------*/
+
+ASSETSTORE::TAssetStoreStatus
+CPipelineConverterHook::BuildPackIndex( const ASSETSTORE::CAssetPackIndexRequest& request ,
+                                        ASSETSTORE::CAssetPackIndexOutcome& outcome       )
+{GUCEF_TRACE;
+
+    return CPackIndexOperations::Build( *this, request, outcome );
 }
 
 /*-------------------------------------------------------------------------//

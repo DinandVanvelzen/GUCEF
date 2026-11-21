@@ -51,6 +51,17 @@
             <RuntimeDependency Name="codecspluginZLIB" />
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetpluginUNREAL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="ooz_extract" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="ooz_extract" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

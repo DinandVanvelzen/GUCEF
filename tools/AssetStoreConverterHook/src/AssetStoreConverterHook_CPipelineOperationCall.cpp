@@ -209,6 +209,23 @@ CPipelineOperationCall::GetArgument( const CORE::CString& name ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CPipelineOperationCall::ApplyRedoArguments( ASSETCONVERTER::CAssetPipelineOptions& options ) const
+{GUCEF_TRACE;
+
+    options.noIndex = GetBoolArgument( "noIndex", options.noIndex );
+    options.indexOnly = GetBoolArgument( "indexOnly", options.indexOnly );
+    options.analyse = GetBoolArgument( "analyse", options.analyse );
+    options.reindex = GetBoolArgument( "reindex", options.reindex );
+    options.reanalyse = GetBoolArgument( "reanalyse", options.reanalyse );
+    options.rethumbnail = GetBoolArgument( "rethumbnail", options.rethumbnail );
+    options.retryFailed = GetBoolArgument( "retryFailed", options.retryFailed );
+    options.noCook = GetBoolArgument( "noCook", options.noCook );
+}
+
+/*-------------------------------------------------------------------------*/
+
+
 bool
 CPipelineOperationCall::GetBoolArgument( const CORE::CString& name, bool defaultValue ) const
 {GUCEF_TRACE;

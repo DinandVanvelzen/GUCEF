@@ -40,6 +40,11 @@
 #define GUCEF_ASSETSTORE_CIASSETCONVERSIONOBSERVER_H
 #endif /* GUCEF_ASSETSTORE_CIASSETCONVERSIONOBSERVER_H ? */
 
+#ifndef ASSETCONVERTERLIB_CASSETPIPELINEOPTIONS_H
+#include "AssetConverterLib_CAssetPipelineOptions.h"
+#define ASSETCONVERTERLIB_CASSETPIPELINEOPTIONS_H
+#endif /* ASSETCONVERTERLIB_CASSETPIPELINEOPTIONS_H ? */
+
 #ifndef ASSETSTORECONVERTERHOOK_CPIPELINEOPERATIONSETTINGS_H
 #include "AssetStoreConverterHook_CPipelineOperationSettings.h"
 #define ASSETSTORECONVERTERHOOK_CPIPELINEOPERATIONSETTINGS_H
@@ -129,6 +134,9 @@ class ASSETSTORECONVERTERHOOK_PUBLIC_CPP CPipelineOperationCall
 
     /** An argument of the request as a boolean */
     bool GetBoolArgument( const CORE::CString& name, bool defaultValue ) const;
+
+    /** The redo and index arguments of the request (indexOnly, noIndex, analyse, reindex, reanalyse, rethumbnail, retryFailed) on the options of a run; the flags that are not there keep their value */
+    void ApplyRedoArguments( ASSETCONVERTER::CAssetPipelineOptions& options ) const;
 
     /** An argument that is a list of texts */
     void GetListArgument( const CORE::CString& name, CORE::CString::StringVector& values ) const;

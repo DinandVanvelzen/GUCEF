@@ -31,6 +31,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefDRN/include \
+  $(MY_MODULE_PATH)/../../platform/gucefDRNUTILS/include \
   $(MY_MODULE_PATH)/../../platform/gucefGEOMETRY/include \
   $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefMATH/include \

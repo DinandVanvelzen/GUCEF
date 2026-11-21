@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="AssetStoreService" Platform="All" Type="Executable" Tags="tools" >
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>The asset store as a remote service: serves the in-process asset store service to paired devices over the GUCEF remote service kit</DescriptionHeadline>
+            <DescriptionDetails>Wires the pieces of gucefASSETSTORE (CLocalAssetStoreService, CAssetStoreServiceHost), gucefDRNUTILS (CRemoteServiceHost), gucefCORE (service lifecycle, stop signals, resource watch, health registry), gucefWEB (health endpoints) and gucefCOM (loopback admin endpoint) from one settings file, with the converter pipeline as its converter hook. Drains on SIGTERM. An admin client mode of the same program talks to the admin endpoint. No logic of its own beyond wiring.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="dbpluginPOSTGRESQL" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+            <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="assetpluginGLTF" />
+            <RuntimeDependency Name="assetpluginFBX" />
+            <RuntimeDependency Name="assetpluginUNITY" />
+            <RuntimeDependency Name="assetpluginGODOT" />
+            <RuntimeDependency Name="assetpluginUNREAL" />
+            <RuntimeDependency Name="assetcookerOGRE" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="ooz_extract" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="ooz_extract" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

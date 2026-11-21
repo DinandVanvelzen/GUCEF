@@ -60,8 +60,9 @@ namespace ASSETSTORECONVERTER {
  *  application ("conversion" below "AssetSources" in the viewer):
  *
  *  - "cookProfile": the cook profile of the store (name, texture formats, largest texture, mips, LOD bias, as in the
- *    manifests of the converter); its name is the folder below "converted/" of a pack. Default "desktop".
- *  - "cookTarget": the cooker whose output the store keeps ("ogre"), empty for the engine-neutral intermediate only.
+ *    manifests of the converter); its name is the folder of its cooked files in the cooked area of a pack. Default "desktop".
+ *  - "cookTarget": the cooker whose output the store keeps ("ogre"), empty for the engine-neutral intermediate only. The name of
+ *    the cooked area that its output goes to ("gucef-ogre3d") is accepted for it: the cooker registers it as an alias.
  *  - "importer" ("auto": the first importer, by name, that can import a file) and "exporter" ("gltf") of the intermediate.
  *  - "threadPoolName" and "threads" for the converter's tasks (0 threads: one per logical CPU).
  *  - "convertibleKinds": the kinds of assets (of the vocabulary of the store) the converter is offered.

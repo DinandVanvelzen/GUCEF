@@ -111,6 +111,7 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestHookConversion.h",
+      "include/TestHookPackIndex.h",
       "include/TestHookSupport.h",
       "include/TestPipelineCooker.h",
       "include/TestPipelineOperations.h",
@@ -121,6 +122,7 @@ configuration( { "LINUX32" } )
     files( {
       "src/AssetStoreConverterHook_TestApp_main.cpp",
       "src/TestHookConversion.cpp",
+      "src/TestHookPackIndex.cpp",
       "src/TestHookSupport.cpp",
       "src/TestPipelineCooker.cpp",
       "src/TestPipelineOperations.cpp",
@@ -133,6 +135,7 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestHookConversion.h",
+      "include/TestHookPackIndex.h",
       "include/TestHookSupport.h",
       "include/TestPipelineCooker.h",
       "include/TestPipelineOperations.h",
@@ -143,6 +146,7 @@ configuration( { "LINUX64" } )
     files( {
       "src/AssetStoreConverterHook_TestApp_main.cpp",
       "src/TestHookConversion.cpp",
+      "src/TestHookPackIndex.cpp",
       "src/TestHookSupport.cpp",
       "src/TestPipelineCooker.cpp",
       "src/TestPipelineOperations.cpp",
@@ -155,6 +159,7 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestHookConversion.h",
+      "include/TestHookPackIndex.h",
       "include/TestHookSupport.h",
       "include/TestPipelineCooker.h",
       "include/TestPipelineOperations.h",
@@ -165,6 +170,7 @@ configuration( { "WIN32" } )
     files( {
       "src/AssetStoreConverterHook_TestApp_main.cpp",
       "src/TestHookConversion.cpp",
+      "src/TestHookPackIndex.cpp",
       "src/TestHookSupport.cpp",
       "src/TestPipelineCooker.cpp",
       "src/TestPipelineOperations.cpp",
@@ -177,6 +183,7 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestHookConversion.h",
+      "include/TestHookPackIndex.h",
       "include/TestHookSupport.h",
       "include/TestPipelineCooker.h",
       "include/TestPipelineOperations.h",
@@ -187,6 +194,7 @@ configuration( { "WIN64" } )
     files( {
       "src/AssetStoreConverterHook_TestApp_main.cpp",
       "src/TestHookConversion.cpp",
+      "src/TestHookPackIndex.cpp",
       "src/TestHookSupport.cpp",
       "src/TestPipelineCooker.cpp",
       "src/TestPipelineOperations.cpp",
@@ -195,7 +203,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../tools/AssetConverterLib/include", "../../tools/AssetStoreConverterHook/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefGEOMETRY/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../tools/AssetConverterLib/include", "../../tools/AssetStoreConverterHook/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../dependencies/libpq/src/include", "../../dependencies/libpq/src/interfaces/libpq", "../../dependencies/libpq/src/port", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../plugins/COMCORE/dbpluginPOSTGRESQL/include", "include" } )

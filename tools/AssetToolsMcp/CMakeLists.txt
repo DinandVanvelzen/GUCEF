@@ -35,7 +35,7 @@ target_link_libraries( ${MODULE_NAME} PUBLIC AssetConverterLib AssetStoreConvert
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=AssetToolsMcp;MODULE_NAME=AssetToolsMcp;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../AssetConverterLib/include ../AssetStoreConverterHook/include )
+include_directories( ../../common/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefGEOMETRY/include ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../AssetConverterLib/include ../AssetStoreConverterHook/include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

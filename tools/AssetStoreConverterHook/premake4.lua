@@ -48,6 +48,7 @@ files( {
   "include/AssetStoreConverterHook_CConverterPack.h",
   "include/AssetStoreConverterHook_CLicenceRecordBuilder.h",
   "include/AssetStoreConverterHook_CModule.h",
+  "include/AssetStoreConverterHook_CPackIndexOperations.h",
   "include/AssetStoreConverterHook_CPendingChange.h",
   "include/AssetStoreConverterHook_CPendingChangeStore.h",
   "include/AssetStoreConverterHook_CPipelineAnalysisOperations.h",
@@ -77,6 +78,7 @@ files( {
   "src/AssetStoreConverterHook_CConverterPack.cpp",
   "src/AssetStoreConverterHook_CLicenceRecordBuilder.cpp",
   "src/AssetStoreConverterHook_CModule.cpp",
+  "src/AssetStoreConverterHook_CPackIndexOperations.cpp",
   "src/AssetStoreConverterHook_CPendingChange.cpp",
   "src/AssetStoreConverterHook_CPendingChangeStore.cpp",
   "src/AssetStoreConverterHook_CPipelineAnalysisOperations.cpp",
@@ -95,7 +97,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../AssetConverterLib/include", "include" } )
+includedirs( { "../../common/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefGEOMETRY/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../AssetConverterLib/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

@@ -279,14 +279,15 @@ RunHookSuite( SHookFixture& fixture )
             ASSERT_TRUE( pack.formatsConverted.end() != pack.formatsConverted.find( "gltf" ) );
             ASSERT_TRUE( CAssetConversionRecord::OutcomeConverted == pack.conversion.outcome && "desktop" == pack.conversion.profile && 2 == pack.conversion.convertedCount );
             ASSERT_TRUE( HasConverter( pack.conversion, "importer:gltf" ) && HasConverter( pack.conversion, "exporter:gltf" ) && HasConverter( pack.conversion, "converter:AssetConverterLib" ) );
-            ASSERT_TRUE( pack.conversion.reportPath == "converted/desktop/report.json" );
+            ASSERT_TRUE( pack.conversion.reportPath == "intermediate/report.json" );
 
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Models/SM_Tri_01.gltf" ) && vfs.FileExists( root + "/original/Models/tex.png" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/desktop/report.json" ) && vfs.FileExists( root + "/converted/desktop/report.txt" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/desktop/pack.assetpack.json" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/desktop/licence/" + CLicenceRecordBuilder::GetRecordId( pack ) + ".licence.json" ) );
-            const CString licenceText = ReadVfsText( root + "/converted/desktop/licence/" + CLicenceRecordBuilder::GetRecordId( pack ) + ".licence.json" );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_01.gltf" ) ) && vfs.FileExists( layout.Resolve( root, "original/Models/tex.png" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/report.json" ) ) && vfs.FileExists( layout.Resolve( root, "intermediate/report.txt" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/pack.assetpack.json" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/licence/" + CLicenceRecordBuilder::GetRecordId( pack ) + ".licence.json" ) ) );
+            const CString licenceText = ReadVfsText( layout.Resolve( root, "intermediate/licence/" + CLicenceRecordBuilder::GetRecordId( pack ) + ".licence.json" ) );
             ASSERT_TRUE( licenceText.HasSubstr( "\"store\": \"disk\"" ) >= 0 && licenceText.HasSubstr( "CC BY 4.0" ) >= 0 );
 
             TAssetRecordVector assets;
@@ -296,13 +297,13 @@ RunHookSuite( SHookFixture& fixture )
             ASSERT_TRUE( GUCEF_NULL != model && GUCEF_NULL != texture );
             if ( GUCEF_NULL != model && GUCEF_NULL != texture )
             {
-                ASSERT_TRUE( "gltf" == model->convertedFormat && model->convertedPath.HasSubstr( "converted/desktop/" ) == 0 && model->convertedPath.HasSubstr( ".gltf" ) > 0 );
+                ASSERT_TRUE( "gltf" == model->convertedFormat && model->convertedPath.HasSubstr( "intermediate/" ) == 0 && model->convertedPath.HasSubstr( ".gltf" ) > 0 );
                 ASSERT_TRUE( texture->convertedPath.IsNULLOrEmpty() );
 
                 // the converted file resolves from the catalogue and is a glTF file
                 CString vfsPath, message;
                 ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssetConvertedVfsPath( model->assetId, vfsPath, message ) );
-                ASSERT_TRUE( vfs.FileExists( vfsPath ) && vfsPath == root + "/" + model->convertedPath );
+                ASSERT_TRUE( vfs.FileExists( vfsPath ) && vfsPath == layout.Resolve( root, model->convertedPath ) );
                 const CString gltf = ReadVfsText( vfsPath );
                 ASSERT_TRUE( gltf.HasSubstr( "\"asset\"" ) >= 0 && gltf.HasSubstr( "\"2.0\"" ) >= 0 && gltf.HasSubstr( "SM_Tri_01" ) >= 0 );
             }
@@ -330,10 +331,11 @@ RunHookSuite( SHookFixture& fixture )
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == result.state );
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) );
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_FALSE( vfs.FileExists( root + "/original/Models/SM_Tri_01.gltf" ) );
-            ASSERT_FALSE( vfs.FileExists( root + "/original/Models/SM_Tri_02.gltf" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Models/tex.png" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_FALSE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_01.gltf" ) ) );
+            ASSERT_FALSE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_02.gltf" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Models/tex.png" ) ) );
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( result.packId, assets ) );
             const CAssetRecord* model = FindAsset( assets, "SM_Tri_02" );
@@ -362,8 +364,9 @@ RunHookSuite( SHookFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) );
             ASSERT_TRUE( pack.stateReason == "conversion refused: the pack has no licence record in the catalogue" );
             ASSERT_TRUE( HasProblemWith( result.problems, "conversion refused: the pack has no licence record in the catalogue" ) );
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Models/SM_Tri_01.gltf" ) && !vfs.DirExists( root + "/converted" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_01.gltf" ) ) && !vfs.DirExists( layout.GetIntermediateFolder( root, "desktop" ) ) );
             ASSERT_TRUE( CAssetConversionRecord::OutcomeRefused == pack.conversion.outcome && pack.formatsConverted.empty() );
         }
         catch ( ... )
@@ -418,10 +421,14 @@ RunHookSuite( SHookFixture& fixture )
             ASSERT_TRUE( pack.stateReason.HasSubstr( "conversion failed: " ) == 0 && pack.stateReason.HasSubstr( "error(s) in the conversion report" ) > 0 );
             ASSERT_TRUE( CAssetConversionRecord::OutcomeFailed == pack.conversion.outcome && pack.formatsConverted.empty() && pack.conversion.failedCount >= 1 );
             ASSERT_TRUE( HasProblemWith( result.problems, "SM_Tri_02" ) && HasProblemWith( result.problems, "kept as original" ) );
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Models/SM_Tri_01.gltf" ) && vfs.FileExists( root + "/original/Models/SM_Tri_02.gltf" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/desktop/report.json" ) );
-            ASSERT_FALSE( vfs.DirExists( root + "/converted/desktop/intermediate" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_01.gltf" ) ) && vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_02.gltf" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/report.json" ) ) );
+            ASSERT_FALSE( vfs.DirExists( layout.Resolve( root, "gucef-ogre3d" ) ) );
+            CString::StringVector leftFolders;
+            vfs.GetDirList( leftFolders, layout.GetIntermediateFolder( root, "desktop" ), false, false, CString::Empty );
+            ASSERT_TRUE( leftFolders.size() <= 1 && ( leftFolders.empty() || leftFolders[ 0 ].HasSubstr( "licence" ) >= 0 ) );
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( result.packId, assets ) );
             for ( size_t a=0; a<assets.size(); ++a )
@@ -660,6 +667,35 @@ PerformHookUnitTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Manifest of the three areas: the intermediate folder is the folder of the conversion, the cooked files go to the folder of the cooked area" )
+        try
+        {
+            CPipelineConverterHook hook;
+            CAssetConversionRequest request;
+            request.pack = MakePackWithLicence( "attribution", "CC BY 4.0", CString::Empty );
+            request.sourceVfsPath = "hooktest/loc/original/Pack.zip";
+            request.convertedVfsFolder = "hooktest/loc/intermediate/Pack.zip";
+            request.convertedPathPrefix = "intermediate";
+            request.cookedVfsFolder = "hooktest/loc/gucef-ogre3d/Pack.zip";
+            request.cookedPathPrefix = "gucef-ogre3d";
+            CConverterHookSettings settings = hook.GetSettings();
+            settings.cookTarget = "ogre";
+            hook.SetSettings( settings );
+            ASSETCONVERTER::CAssetPackManifest manifest;
+            CString problem;
+            ASSERT_TRUE( hook.BuildManifest( request, manifest, problem ) );
+            ASSERT_TRUE( "hooktest/loc/original/Pack.zip" == manifest.GetSourcePath() );
+            ASSERT_TRUE( "hooktest/loc/intermediate/Pack.zip" == manifest.GetIntermediatePath() );
+            ASSERT_TRUE( "hooktest/loc/gucef-ogre3d/Pack.zip" == manifest.GetOutputPath() );
+            ASSERT_TRUE( manifest.GetLicenceRecordPath() == "hooktest/loc/intermediate/Pack.zip/licence/" + CLicenceRecordBuilder::GetRecordId( request.pack ) + ".licence.json" );
+            ASSERT_TRUE( 1 == manifest.cookTargets.size() && "ogre" == manifest.cookTargets[ 0 ] );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Versions: a part with another version, a part that is gone, a cook target that came or went make a conversion stale" )
         try
         {
@@ -709,6 +745,19 @@ PerformHookUnitTests( void )
             CAssetRecord texture;
             texture.kind = "texture";
             ASSERT_FALSE( hook.CanConvert( texture ) );
+
+            // a package of an engine, which the store has no kind of its own for: convertible, an importer reads packages; a note is not
+            CAssetRecord package;
+            package.kind = "other";
+            package.originalPath = "Characters/Hero/Hero.uasset";
+            ASSERT_TRUE( hook.CanConvert( package ) );
+            CAssetRecord notes;
+            notes.kind = "other";
+            notes.originalPath = "Characters/Hero/readme.txt";
+            ASSERT_FALSE( hook.CanConvert( notes ) );
+            CAssetRecord unnamed;
+            unnamed.kind = "other";
+            ASSERT_FALSE( hook.CanConvert( unnamed ) );
 
             TAssetRecordVector assets;
             for ( UInt32 m=1; m<=4; ++m )

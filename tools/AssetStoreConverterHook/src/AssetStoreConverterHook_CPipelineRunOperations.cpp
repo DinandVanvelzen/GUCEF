@@ -425,7 +425,11 @@ RunManifest( CPipelineOperationCall& call, const CORE::CString& packId, const AS
     }
     const UInt64 durationMs = ( MT::PrecisionTickCount() - start ) * 1000 / MT::PrecisionTimerResolution();
     const CORE::CString reportPath = ASSETCONVERTER::PIPELINEMODE_VALIDATE_ONLY == options.mode ? CORE::CString::Empty : ASSETCONVERTER::CVfsPaths::Join( manifest.GetIntermediatePath(), "report.json" );
-    return FinishRun( call, packId, options.mode, report, ran, durationMs, reportPath );
+    const ASSETSTORE::TAssetStoreStatus status = FinishRun( call, packId, options.mode, report, ran, durationMs, reportPath );
+    // where the run wrote, so that the jobs list can open the result
+    if ( ASSETCONVERTER::PIPELINEMODE_VALIDATE_ONLY != options.mode )
+        call.Document().SetAttribute( "intermediateFolder", manifest.GetIntermediatePath() );
+    return status;
 }
 
 }
@@ -513,6 +517,7 @@ CPipelineRunOperations::ConvertPack( CPipelineOperationCall& call, const CORE::C
     options.force = call.request.force;
     options.reimport = call.request.reimport;
     options.threadPoolName = threadPoolName;
+    call.ApplyRedoArguments( options );
     options.threads = threads;
     options.mode = ASSETCONVERTER::PIPELINEMODE_FULL;
     return RunManifest( call, pack.packId, manifest, options );
@@ -539,6 +544,7 @@ CPipelineRunOperations::CookPack( CPipelineOperationCall& call, const CORE::CStr
     options.cookTargets = call.request.cookTargets;
     options.force = call.request.force;
     options.threadPoolName = threadPoolName;
+    call.ApplyRedoArguments( options );
     options.threads = threads;
     options.mode = ASSETCONVERTER::PIPELINEMODE_COOK_ONLY;
     return RunManifest( call, pack.packId, manifest, options );

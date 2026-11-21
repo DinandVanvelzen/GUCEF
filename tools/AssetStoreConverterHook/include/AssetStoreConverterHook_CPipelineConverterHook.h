@@ -78,10 +78,13 @@ namespace ASSETSTORECONVERTER {
  *     record, or with ueOnly, referenceOnly or restrictedOrNonStandard without reviewed, is REFUSED with the reason.
  *  2. Builds the manifest of the pack: the original files of the request as the source, the importer "auto" (or the one
  *     of the settings), the exporter, the cook profile of the settings as the one profile and the cook target when there
- *     is one. The work folder is request.convertedVfsFolder, "converted/<profile>" of the pack: "licence/" (the record,
- *     which is also what the report names), "intermediate/" (the engine-neutral files, the cache, the sidecars), the
- *     cooked files in "<pack id>/", "report.json" and "report.txt", "pack.assetpack.json" (the manifest, so the run can be
- *     repeated by hand), "references.json" and "sizes.json".
+ *     is one. The work folder is request.convertedVfsFolder: in the layout with three areas the intermediate folder of the
+ *     pack, holding "licence/" (the record, which is also what the report names), the engine-neutral files, the cache and
+ *     the sidecars, "report.json" and "report.txt" and "pack.assetpack.json" (the manifest, so the run can be repeated by
+ *     hand), and the cooked files in "<profile>/" of request.cookedVfsFolder (the cooked area of the pack, with
+ *     "references.json" and "sizes.json" per profile). Without request.cookedVfsFolder (a pack of the earlier layout) it is
+ *     "converted/<profile>" of the pack: "licence/", "intermediate/", the cooked files in "<pack id>/", the report, the
+ *     manifest, "references.json" and "sizes.json".
  *  3. Runs the pipeline (CAssetPipeline::RunPack(), which blocks on its tasks, per asset one task of the pool of the
  *     settings) with the observer of the request: progress per asset, and a cancel request stops the run (CANCELLED).
  *  4. Maps the report: a report with errors is FAILED, what the run wrote is taken away unless the pack was converted
@@ -142,6 +145,10 @@ class ASSETSTORECONVERTERHOOK_PUBLIC_CPP CPipelineConverterHook : public ASSETST
     virtual ASSETSTORE::TAssetStoreStatus RunPipelineOperation( const ASSETSTORE::CAssetPipelineRequest& request    ,
                                                                 ASSETSTORE::CIAssetConversionObserver* observer     ,
                                                                 ASSETSTORE::CAssetServiceDocument& result           ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The pack index of a pack of the store (CPackIndexOperations): built, found fresh, or derived from the catalogue */
+    virtual ASSETSTORE::TAssetStoreStatus BuildPackIndex( const ASSETSTORE::CAssetPackIndexRequest& request ,
+                                                          ASSETSTORE::CAssetPackIndexOutcome& outcome       ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

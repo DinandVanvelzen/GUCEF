@@ -48,6 +48,7 @@
 #define TESTHOOKSUPPORT_H
 #endif /* TESTHOOKSUPPORT_H ? */
 #include "TestHookConversion.h"
+#include "TestHookPackIndex.h"
 #include "TestPipelineOperations.h"
 
 /*-------------------------------------------------------------------------//
@@ -101,6 +102,8 @@ GUCEF_OSMAIN_BEGIN
             PerformPipelineOperationTests();
             PerformHookPrimaryStoreVfsTablesTests();
             PerformHookPrimaryStorePostgreSqlTests();
+            PerformHookPackIndexVfsTablesTests();
+            PerformHookPackIndexPostgreSqlTests();
         }
 
         CORE::CLogStreamScope::FlushLogs();
