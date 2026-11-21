@@ -40,6 +40,13 @@
 #              init container (service image, non-root, no capabilities) and HostToContainer in both containers, the
 #              refusals, and the init container's script run against constructed mount tables (cifs, the node's disk
 #              only, a name prefix, cifs over autofs, autofs alone, a directory the user cannot write)
+#   registry   build_image.sh with stand-in docker and buildctl that record their arguments: the refusals (--push without
+#              --registry, --also-tag or --digest-file without --push, an unknown builder, buildkit without --push and
+#              without --no-import, an incomplete login), the choice of --builder auto, the release probe and the push of
+#              two tags with buildkit, the digest file, the login of REGISTRY_USER and REGISTRY_TOKEN_FILE as a docker
+#              configuration of mode 600 (the token on no command line and in no output), the push with docker, the local
+#              flow with its k3s import as before; the image reference rule (tag or digest), render_manifests.sh with
+#              IMAGE_REGISTRY and IMAGE_REGISTRY_NAME, deploy.sh with a registry image
 #   assetstore projects/k3s/assetstore: rendered against the owner's cluster and only local-path, the kustomize build
 #              (host network, node, probes, security, resources, the Secret mount, no Secret), and the agreement of its
 #              service file, site settings, bootstrap file and the program's ModuleInfo (ports, drain, password file,
@@ -487,6 +494,10 @@ check "build_image --dry-run renders the Dockerfile" env GUCEF_HOME="$G" DRY_RUN
 check "no placeholder is left in the Dockerfile" fails grep -E '@[A-Z][A-Z0-9_:]*@' "$SCRATCH/Dockerfile"
 check "the entry point is the service program" contains "$SCRATCH/Dockerfile" 'ENTRYPOINT ["/opt/example-service/bin/ExampleService"]'
 check "the image runs as 10001" contains "$SCRATCH/Dockerfile" 'USER 10001:10001'
+check "the ports of the service file are exposed" bash -c "grep -qx \"EXPOSE \$(sed -n 's/^SESSION_PORT=//p' '$SCRATCH/svc/service.env') \$(sed -n 's/^PAIRING_PORT=//p' '$SCRATCH/svc/service.env') \$(sed -n 's/^HEALTH_PORT=//p' '$SCRATCH/svc/service.env')\" '$SCRATCH/Dockerfile'"
+sed -e '/^SESSION_PORT=/d' -e '/^PAIRING_PORT=/d' -e '/^HEALTH_PORT=/d' "$SCRATCH/svc/service.env" > "$SCRATCH/svc/noports.env"
+check "a service without ports renders and exposes none" env GUCEF_HOME="$G" DRY_RUN_DOCKERFILE="$SCRATCH/noports.Dockerfile" "$SCRIPTS/build_image.sh" --env "$SCRATCH/svc/noports.env" --dry-run --tag dev
+check "no port line is written for it" bash -c "! grep -q '^EXPOSE' '$SCRATCH/noports.Dockerfile' && grep -q '^# no port is exposed' '$SCRATCH/noports.Dockerfile'"
 check "the image build runs check_libs" contains "$SCRATCH/Dockerfile" '/opt/example-service/bin/check_libs.sh /opt/example-service --program ExampleService'
 sed 's/^IMAGE_TARGETS=.*/IMAGE_TARGETS="GUCEF_exe_NotThere"/' "$SCRATCH/svc/service.env" > "$SCRATCH/svc/notarget.env"
 check "a target without build files is refused before docker" bash -c "env GUCEF_HOME='$G' PATH=/usr/bin:/bin '$SCRIPTS/build_image.sh' --env '$SCRATCH/svc/notarget.env' 2>&1 | grep -q 'no build files for: GUCEF_exe_NotThere'"
@@ -723,6 +734,158 @@ fake_local_deploy() {
 check "local: deploy.sh applies the local configuration" fake_local_deploy
 check "local: the applied manifests hold the share, the init container and the local patch" bash -c "f='$FAKE_K8S/applied-2.yaml'; grep -q 'type: Directory' \"\$f\" && grep -q 'name: host-share-check' \"\$f\" && grep -q 'local-patch' \"\$f\" && grep -q 'deploy: the local install configuration' '$SCRATCH/deploy-local.log'"
 
+echo "registry"
+# build_image.sh with the builder choice, a registry and a push, against stand-in builders that record their arguments;
+# the image reference rule, render_manifests.sh and deploy.sh with IMAGE_REGISTRY
+RB="$SCRATCH/registry-bin"
+RW="$SCRATCH/registry-work"
+mkdir -p "$RB" "$RW"
+export FAKE_BUILD_LOG="$RW/build.log" FAKE_BUILD_DIR="$RW"
+FAKE_DIGEST="sha256:$(printf 'a%.0s' $(seq 1 64))"
+cat > "$RB/buildctl" <<'SH'
+#!/bin/bash
+# stand-in for buildctl: records the arguments and the docker configuration it was given, answers the release probe,
+# writes the metadata file of a push
+{ echo "--- buildctl"; printf '%s\n' "$@"; echo "DOCKER_CONFIG=${DOCKER_CONFIG:-}"; } >> "${FAKE_BUILD_LOG:?}"
+if [ -n "${DOCKER_CONFIG:-}" ]; then
+    cp "$DOCKER_CONFIG/config.json" "$FAKE_BUILD_DIR/buildctl-config.json"
+    stat -c %a "$DOCKER_CONFIG/config.json" > "$FAKE_BUILD_DIR/buildctl-config.mode"
+fi
+previous=""
+for argument in "$@"; do
+    case "$previous" in
+        --output)
+            case "$argument" in
+                type=local,dest=*) dest="${argument#type=local,dest=}"; mkdir -p "$dest"; echo bookworm > "$dest/release"; echo libssl3t64 > "$dest/ssl" ;;
+                type=docker,*dest=*) : > "${argument##*dest=}" ;;
+            esac ;;
+        --metadata-file) printf '{\n  "containerimage.config.digest": "sha256:%s",\n  "containerimage.digest": "%s"\n}\n' "$(printf 'c%.0s' $(seq 1 64))" "${FAKE_DIGEST:?}" > "$argument" ;;
+    esac
+    previous="$argument"
+done
+exit "${FAKE_BUILD_EXIT:-0}"
+SH
+cat > "$RB/docker" <<'SH'
+#!/bin/bash
+# stand-in for docker: records the arguments, answers the release probe and the repository digests
+{ echo "--- docker"; printf '%s\n' "$@"; echo "DOCKER_CONFIG=${DOCKER_CONFIG:-}"; } >> "${FAKE_BUILD_LOG:?}"
+[ -z "${DOCKER_CONFIG:-}" ] || cp "$DOCKER_CONFIG/config.json" "$FAKE_BUILD_DIR/docker-config.json"
+case "$1 $2" in
+    "image inspect") [ "$3" != "--format" ] || echo "${FAKE_REPO_DIGEST:-}"; exit 0 ;;
+    "run --rm") case "$*" in *os-release*) echo bookworm ;; *) echo libssl3 ;; esac; exit 0 ;;
+esac
+exit 0
+SH
+for tool in k3s sudo; do
+    printf '#!/bin/bash\necho "--- %s $*" >> "${FAKE_BUILD_LOG:?}"\n' "$tool" > "$RB/$tool"
+done
+chmod +x "$RB"/*
+# a PATH without docker (every other command of /usr/bin and /bin), for the choice of --builder auto
+NODOCKER="$SCRATCH/no-docker-bin"
+mkdir -p "$NODOCKER"
+for f in /usr/local/bin/* /usr/bin/* /bin/*; do
+    name="$(basename "$f")"
+    [ "$name" = docker ] || [ -e "$NODOCKER/$name" ] || ln -s "$f" "$NODOCKER/$name" 2> /dev/null
+done
+ln -sf "$RB/buildctl" "$NODOCKER/buildctl"
+# a GUCEF checkout in git with the build files of the target
+GR="$SCRATCH/gucef-git"
+mkdir -p "$GR/projects/CMake/targets/GUCEF_exe_ExampleService"
+printf 'x\n' > "$GR/projects/CMake/targets/GUCEF_exe_ExampleService/CMakeLists.txt"
+git -C "$GR" init -q && git -C "$GR" add -A && git -C "$GR" -c user.email=t@example.invalid -c user.name=test commit -q -m init
+TOKEN_VALUE="tok-$(date +%s%N)-secret"
+( umask 077 && printf '%s\n' "$TOKEN_VALUE" > "$RW/registry.token" )
+BI="$SCRIPTS/build_image.sh"
+SVC_ENV="$SCRATCH/svc/service.env"
+# BUILD_LOGIN=1: with the registry login of the token file
+build() { env GUCEF_HOME="$GR" PATH="$RB:$PATH" SERVICE_BUILD_SCRATCH="$RW" FAKE_DIGEST="$FAKE_DIGEST" ${BUILD_LOGIN:+REGISTRY_USER=ci-bot "REGISTRY_TOKEN_FILE=$RW/registry.token"} "$BI" --env "$SVC_ENV" "$@" > "$RW/out.log" 2>&1; }
+build_login() { BUILD_LOGIN=1; build "$@"; local result=$?; BUILD_LOGIN=""; return $result; }
+log_has() { grep -q -x -F -- "$1" "$FAKE_BUILD_LOG"; }
+# refusals before anything runs
+check "build_image: --push needs --registry" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --push --dry-run
+check "build_image: --also-tag needs --push" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --registry h.example:5000/ci --also-tag candidate --dry-run
+check "build_image: --digest-file needs --push" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --registry h.example:5000/ci --digest-file "$RW/d" --dry-run
+check "build_image: an unknown builder is refused" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --builder other --dry-run
+check "build_image: a registry that is no HOST[:PORT][/PATH] is refused" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --registry 'h.example:5000/CI;x' --push --dry-run
+check "build_image: an invalid --also-tag is refused" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --registry h.example:5000/ci --push --also-tag 'bad tag' --dry-run
+check "build_image: buildkit without --push needs --no-import (it never imports into k3s)" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --builder buildkit --dry-run
+check "build_image: buildkit with --push and --save is refused" exit_code_is 2 env GUCEF_HOME="$GR" "$BI" --env "$SVC_ENV" --builder buildkit --registry h.example:5000/ci --push --save "$RW/x.tar" --dry-run
+check "build_image: REGISTRY_USER without REGISTRY_TOKEN_FILE is refused" exit_code_is 2 env GUCEF_HOME="$GR" REGISTRY_USER=ci-bot "$BI" --env "$SVC_ENV" --registry h.example:5000/ci --push --dry-run
+check "build_image: a missing REGISTRY_TOKEN_FILE is refused" exit_code_is 1 env GUCEF_HOME="$GR" REGISTRY_USER=ci-bot REGISTRY_TOKEN_FILE="$RW/none" "$BI" --env "$SVC_ENV" --registry h.example:5000/ci --push --dry-run
+check "build_image: a registry login without --registry is refused" exit_code_is 2 env GUCEF_HOME="$GR" REGISTRY_USER=ci-bot REGISTRY_TOKEN_FILE="$RW/registry.token" "$BI" --env "$SVC_ENV" --dry-run
+check "build_image: below a registry the image name is the last path component of IMAGE_NAME" bash -c "env GUCEF_HOME='$GR' '$BI' --env '$SVC_ENV' --builder buildkit --registry h.example:5000/ci --push --dry-run --tag sha-0123456789ab 2>&1 | grep -q -F 'name=h.example:5000/ci/example-service:sha-0123456789ab,push=true'"
+check "build_image: IMAGE_REGISTRY_NAME of the service file names it otherwise" bash -c "sed 's/^IMAGE_REGISTRY_NAME=.*/IMAGE_REGISTRY_NAME=other-name/' '$SVC_ENV' > '$RW/named.env' && cp '$SCRATCH/svc/ExampleService_bootstrap_container.ini' '$RW/' && env GUCEF_HOME='$GR' '$BI' --env '$RW/named.env' --builder buildkit --registry h.example:5000/ci --push --dry-run --tag dev 2>&1 | grep -q -F 'name=h.example:5000/ci/other-name:dev,push=true'"
+# the builder choice
+check "build_image: auto takes docker when it is installed" bash -c "env GUCEF_HOME='$GR' PATH='$RB:$PATH' '$BI' --env '$SVC_ENV' --dry-run --tag dev 2>&1 | grep -q 'builder docker'"
+check "build_image: auto takes buildkit without docker" bash -c "env GUCEF_HOME='$GR' PATH='$NODOCKER' '$BI' --env '$SVC_ENV' --registry h.example:5000/ci --push --dry-run --tag dev 2>&1 | grep -q 'builder buildkit'"
+check "build_image: the dry run of buildkit shows the build arguments as buildctl options and the push output" bash -c "env GUCEF_HOME='$GR' '$BI' --env '$SVC_ENV' --builder buildkit --registry h.example:5000/ci --image-name example --push --also-tag candidate --dry-run --tag sha-0123456789ab 2>&1 | grep -q -F -- '--opt build-arg:IMAGE_TARGETS=GUCEF_exe_ExampleService' && env GUCEF_HOME='$GR' '$BI' --env '$SVC_ENV' --builder buildkit --registry h.example:5000/ci --image-name example --push --also-tag candidate --dry-run --tag sha-0123456789ab 2>&1 | grep -q -F -- '--output type=image,\"name=h.example:5000/ci/example:sha-0123456789ab,h.example:5000/ci/example:candidate\",push=true,registry.insecure=true'"
+# buildkit, pushed with a second tag and the login from the token file
+: > "$FAKE_BUILD_LOG"
+check "build_image: buildkit builds and pushes" build --builder buildkit --registry h.example:5000/ci --image-name example --tag sha-0123456789ab --push --also-tag candidate --digest-file "$RW/digest" --dev-image h.example:5000/ci/gucef-dev-base:latest --runtime-base h.example:5000/ci/minideb
+check "build_image: the release probe reads the development image through buildctl" bash -c "grep -q -x -F 'build-arg:DEV_IMAGE=h.example:5000/ci/gucef-dev-base:latest' '$FAKE_BUILD_LOG' && grep -q -x 'type=local,dest=.*/release-probe/out' '$FAKE_BUILD_LOG'"
+check "build_image: the build gets the release and the libssl package of the probe" bash -c "grep -q -x -F 'build-arg:MINIDEB_RELEASE=bookworm' '$FAKE_BUILD_LOG' && grep -q -x -F 'build-arg:RUNTIME_PACKAGES=ca-certificates libstdc++6 libssl3t64 libx11-6 ' '$FAKE_BUILD_LOG'"
+check "build_image: the build gets the runtime base" log_has 'build-arg:RUNTIME_BASE=h.example:5000/ci/minideb'
+check "build_image: buildkit pushes both tags in one output, plain HTTP" log_has 'type=image,"name=h.example:5000/ci/example:sha-0123456789ab,h.example:5000/ci/example:candidate",push=true,registry.insecure=true'
+check "build_image: the digest file holds the manifest digest as its only line" bash -c "[ \"\$(cat '$RW/digest')\" = '$FAKE_DIGEST' ] && [ \$(wc -l < '$RW/digest') -eq 1 ]"
+check "build_image: the output names the digest" contains "$RW/out.log" "build_image: digest $FAKE_DIGEST"
+check "build_image: without a registry login nothing is given to buildctl" bash -c "! grep -q '^DOCKER_CONFIG=.' '$FAKE_BUILD_LOG'"
+check "build_image: nothing is imported into k3s" bash -c "! grep -q -e '^--- k3s' -e '^--- sudo' '$FAKE_BUILD_LOG'"
+: > "$FAKE_BUILD_LOG"
+rm -f "$RW/buildctl-config.json" "$RW/buildctl-config.mode"
+check "build_image: buildkit pushes with the login of REGISTRY_USER and REGISTRY_TOKEN_FILE" build_login --builder buildkit --registry h.example:5000/ci --image-name example --tag sha-0123456789ab --push
+check "build_image: buildctl gets a docker configuration of mode 600 with the login for the registry host" bash -c "[ \"\$(cat '$RW/buildctl-config.mode')\" = 600 ] && grep -q -F '\"h.example:5000\": { \"auth\": \"$(printf '%s:%s' ci-bot "$TOKEN_VALUE" | base64 -w0)\" }' '$RW/buildctl-config.json'"
+check "build_image: the token is on no command line and in no output" bash -c "! grep -q -F '$TOKEN_VALUE' '$FAKE_BUILD_LOG' '$RW/out.log' && ! grep -q -F '$(printf '%s:%s' ci-bot "$TOKEN_VALUE" | base64 -w0)' '$FAKE_BUILD_LOG' '$RW/out.log'"
+check "build_image: the docker configuration is removed afterwards" bash -c "dir=\$(sed -n 's/^DOCKER_CONFIG=//p' '$FAKE_BUILD_LOG' | head -n 1); [ -n \"\$dir\" ] && [ ! -e \"\$dir\" ]"
+: > "$FAKE_BUILD_LOG"
+check "build_image: a failing build fails the script and writes no digest" bash -c "rm -f '$RW/digest2'; ! env GUCEF_HOME='$GR' PATH='$RB:$PATH' SERVICE_BUILD_SCRATCH='$RW' FAKE_BUILD_EXIT=1 '$BI' --env '$SVC_ENV' --builder buildkit --registry h.example:5000/ci --push --digest-file '$RW/digest2' > /dev/null 2>&1 && [ ! -e '$RW/digest2' ]"
+# buildkit without a push: an archive for an import elsewhere
+: > "$FAKE_BUILD_LOG"
+check "build_image: buildkit with --no-import --save writes a docker archive" build --builder buildkit --no-import --save "$RW/image.tar" --tag dev
+check "build_image: as the docker output of buildctl" log_has "type=docker,name=vanvelzen/example-service:dev,dest=$RW/image.tar"
+# docker, pushed
+: > "$FAKE_BUILD_LOG"
+export FAKE_REPO_DIGEST="h.example:5000/ci/example@sha256:$(printf 'b%.0s' $(seq 1 64))"
+check "build_image: docker builds and pushes" build_login --builder docker --registry h.example:5000/ci --image-name example --tag sha-0123456789ab --push --also-tag candidate --digest-file "$RW/digest-docker"
+unset FAKE_REPO_DIGEST
+check "build_image: docker tags the image with both tags and pushes both" bash -c "[ \$(grep -c -x -F 'h.example:5000/ci/example:candidate' '$FAKE_BUILD_LOG') -eq 2 ] && [ \$(grep -c -x -F 'h.example:5000/ci/example:sha-0123456789ab' '$FAKE_BUILD_LOG') -ge 2 ]"
+check "build_image: docker pushes both tags with the private docker configuration" bash -c "[ \$(grep -c -x -e 'push' '$FAKE_BUILD_LOG') -eq 2 ] && grep -q -F '\"h.example:5000\": { \"auth\":' '$RW/docker-config.json'"
+check "build_image: the digest of docker comes from the repository digests" bash -c "[ \"\$(cat '$RW/digest-docker')\" = 'sha256:$(printf 'b%.0s' $(seq 1 64))' ]"
+check "build_image: docker with --push imports nothing" bash -c "! grep -q -e '^--- k3s' -e '^--- sudo' -e '^save\$' '$FAKE_BUILD_LOG'"
+check "build_image: the token is on no docker command line" fails grep -q -F "$TOKEN_VALUE" "$FAKE_BUILD_LOG"
+# docker, the local flow as before: no registry, no login, the k3s import
+: > "$FAKE_BUILD_LOG"
+check "build_image: the local flow builds with docker and imports into k3s" build --builder docker --tag dev
+check "build_image: the local flow: the image name of the service file, no runtime base argument, no push" bash -c "grep -q -x -F 'vanvelzen/example-service:dev' '$FAKE_BUILD_LOG' && ! grep -q '^RUNTIME_BASE=' '$FAKE_BUILD_LOG' && ! grep -q -x push '$FAKE_BUILD_LOG' && ! grep -q '^DOCKER_CONFIG=.' '$FAKE_BUILD_LOG'"
+check "build_image: the local flow saves and imports" bash -c "grep -q -x save '$FAKE_BUILD_LOG' && grep -q '^--- sudo k3s ctr images import ' '$FAKE_BUILD_LOG'"
+check "build_image: the Dockerfile takes the runtime base as an argument, default bitnami/minideb" bash -c "grep -q -x 'ARG RUNTIME_BASE=bitnami/minideb' '$SCRATCH/Dockerfile' && grep -q -x -F 'FROM \${RUNTIME_BASE}:\${MINIDEB_RELEASE} AS runtime' '$SCRATCH/Dockerfile'"
+# the image reference rule
+check "image reference: without a registry docker.io/<name>:<tag>" bash -c "source '$SCRIPTS/lib.sh'; [ \"\$(gs_image_ref '' vanvelzen/x dev)\" = docker.io/vanvelzen/x:dev ]"
+check "image reference: with a registry <registry>/<name>:<tag>" bash -c "source '$SCRIPTS/lib.sh'; [ \"\$(gs_image_ref h.example:5000/ci x sha-0123456789ab)\" = h.example:5000/ci/x:sha-0123456789ab ]"
+check "image reference: a digest is joined with @" bash -c "source '$SCRIPTS/lib.sh'; [ \"\$(gs_image_ref h.example:5000/ci x '$FAKE_DIGEST')\" = 'h.example:5000/ci/x@$FAKE_DIGEST' ]"
+check "image reference: neither a tag nor a digest fails" bash -c "source '$SCRIPTS/lib.sh'; ! gs_image_ref h.example:5000/ci x 'sha256:short' && ! gs_image_ref '' x 'a b'"
+# render_manifests.sh with IMAGE_REGISTRY
+make_service "$SCRATCH/reg"
+sed -i -e 's/^DISCOVERY_MODE=.*/DISCOVERY_MODE=off/' -e 's|^HOST_SHARE_HOST_PATH=.*|HOST_SHARE_HOST_PATH=/mnt/nas/share|' "$SCRATCH/reg/service.env"
+check "render: without IMAGE_REGISTRY the imported image, pull policy Never" bash -c "'$SCRIPTS/render_manifests.sh' '$SCRATCH/reg/service.env' '$SCRATCH/r-reg0' > /dev/null 2>&1 && grep -q 'image: docker.io/vanvelzen/example-service:dev\$' '$SCRATCH/r-reg0/deployment.yaml' && grep -q 'imagePullPolicy: Never\$' '$SCRATCH/r-reg0/deployment.yaml' && grep -q 'image: docker.io/vanvelzen/example-service:dev\$' '$SCRATCH/r-reg0/components/host-share/deployment-host-share.yaml'"
+printf 'IMAGE_REGISTRY=h.example:5000/ci\n' >> "$SCRATCH/reg/service.env"
+check "render: with IMAGE_REGISTRY the registry image (the last path component of IMAGE_NAME), pull policy IfNotPresent, in both containers" bash -c "'$SCRIPTS/render_manifests.sh' '$SCRATCH/reg/service.env' '$SCRATCH/r-reg1' > /dev/null 2>&1 && for f in deployment.yaml components/host-share/deployment-host-share.yaml; do grep -q 'image: h.example:5000/ci/example-service:dev\$' \"$SCRATCH/r-reg1/\$f\" && grep -q 'imagePullPolicy: IfNotPresent\$' \"$SCRATCH/r-reg1/\$f\" || exit 1; done"
+printf 'IMAGE_REGISTRY_NAME=example\nIMAGE_TAG=%s\n' "$FAKE_DIGEST" >> "$SCRATCH/reg/service.env"
+check "render: IMAGE_REGISTRY_NAME and a digest as IMAGE_TAG" bash -c "'$SCRIPTS/render_manifests.sh' '$SCRATCH/reg/service.env' '$SCRATCH/r-reg2' > /dev/null 2>&1 && grep -q 'image: h.example:5000/ci/example@$FAKE_DIGEST\$' '$SCRATCH/r-reg2/deployment.yaml'"
+sed 's/^IMAGE_REGISTRY=.*/IMAGE_REGISTRY=h.example:5000\/CI x/' "$SCRATCH/reg/service.env" > "$SCRATCH/reg/bad.env"
+check "render: an IMAGE_REGISTRY that is no registry is refused" fails "$SCRIPTS/render_manifests.sh" "$SCRATCH/reg/bad.env" "$SCRATCH/r-reg3"
+sed "s/^IMAGE_TAG=sha256.*/IMAGE_TAG=sha256:abc/" "$SCRATCH/reg/service.env" > "$SCRATCH/reg/baddigest.env"
+check "render: a short digest is refused" fails "$SCRIPTS/render_manifests.sh" "$SCRATCH/reg/baddigest.env" "$SCRATCH/r-reg4"
+# deploy.sh: an image of a registry is not looked for in the image list of the node
+RLD="$SCRATCH/registry-local"
+mkdir -p "$RLD"
+printf 'IMAGE_REGISTRY=h.example:5000/ci\nIMAGE_TAG=%s\n' "$FAKE_DIGEST" > "$RLD/service.env.local"
+fake_reset
+printf 'node/worker-x299\n' > "$FAKE_K8S/labelled"
+check "deploy: --dry-run with IMAGE_REGISTRY" bash -c "DEPLOY_WORK_DIR='$SCRATCH/deploy-registry' KUBECTL='$FAKE_BIN/kubectl' '$DEPLOY' --env '$ASSET_ENV' --local-dir '$RLD' --dry-run > '$SCRATCH/deploy-registry.log' 2>&1"
+check "deploy: a registry image is pulled, no warning about the image list" bash -c "grep -q 'is pulled from the registry h.example:5000/ci' '$SCRATCH/deploy-registry.log' && ! grep -q 'WARNING' '$SCRATCH/deploy-registry.log'"
+check "deploy: the built manifests pull the registry image by digest" bash -c "grep -q 'image: h.example:5000/ci/asset-store-service@$FAKE_DIGEST' '$SCRATCH'/deploy-registry/assetstore/*/built.yaml && grep -q 'imagePullPolicy: IfNotPresent' '$SCRATCH'/deploy-registry/assetstore/*/built.yaml"
+unset FAKE_BUILD_LOG FAKE_BUILD_DIR
+
 echo "assetstore"
 # the asset store's service folder: renders against the owner's cluster, and its files agree with each other
 A="$SCRATCH/r-assetstore"
@@ -733,7 +896,7 @@ check "assetstore: lan discovery and the secret file enabled, no credentials key
 if command -v kubectl > /dev/null 2>&1; then
     AB="$SCRATCH/assetstore.built.yaml"
     check "assetstore: kustomize builds it" bash -c "kubectl kustomize '$A' > '$AB'"
-    for expected in 'hostNetwork: true' 'dnsPolicy: ClusterFirstWithHostNet' 'kubernetes.io/hostname: worker-x299' 'gucef-service-host: "true"' 'type: Recreate' 'path: /health/started' 'path: /health/ready' 'path: /health/live' 'runAsNonRoot: true' 'runAsUser: 10001' 'readOnlyRootFilesystem: true' 'mountPath: /data' 'mountPath: /tmp' 'memory: 6Gi' 'memory: 1Gi' 'cpu: 250m' 'terminationGracePeriodSeconds: 45' 'imagePullPolicy: Never' 'image: docker.io/vanvelzen/asset-store-service:dev' 'type: ClusterIP' 'secretName: assetstore-db' 'mountPath: /secrets/assetstore-db' 'defaultMode: 256' 'enforce: privileged' 'containerPort: 47800'; do
+    for expected in 'hostNetwork: true' 'dnsPolicy: ClusterFirstWithHostNet' 'kubernetes.io/hostname: worker-x299' 'gucef-service-host: "true"' 'type: Recreate' 'path: /health/started' 'path: /health/ready' 'path: /health/live' 'runAsNonRoot: true' 'runAsUser: 10001' 'readOnlyRootFilesystem: true' 'mountPath: /data' 'mountPath: /tmp' 'memory: 32Gi' 'memory: 1Gi' 'cpu: 250m' 'terminationGracePeriodSeconds: 45' 'imagePullPolicy: Never' 'image: docker.io/vanvelzen/asset-store-service:dev' 'type: ClusterIP' 'secretName: assetstore-db' 'mountPath: /secrets/assetstore-db' 'defaultMode: 256' 'enforce: privileged' 'containerPort: 47800'; do
         check "assetstore built: $expected" contains "$AB" "$expected"
     done
     check "assetstore built: no Secret, no LoadBalancer" bash -c "! grep -q '^kind: Secret' '$AB' && ! grep -q 'LoadBalancer' '$AB'"

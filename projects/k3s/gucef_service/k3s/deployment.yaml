@@ -39,8 +39,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: service
-          image: docker.io/@IMAGE_NAME@:@IMAGE_TAG@
-          imagePullPolicy: Never
+          image: @IMAGE_REF@
+          imagePullPolicy: @IMAGE_PULL_POLICY@
           args: @CONTAINER_ARGS_YAML@
           env:
             - name: GUCEF_CONSOLE_LOGGER

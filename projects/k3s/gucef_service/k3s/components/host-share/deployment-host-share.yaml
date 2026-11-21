@@ -10,8 +10,8 @@ spec:
     spec:
       initContainers:
         - name: host-share-check
-          image: docker.io/@IMAGE_NAME@:@IMAGE_TAG@
-          imagePullPolicy: Never
+          image: @IMAGE_REF@
+          imagePullPolicy: @IMAGE_PULL_POLICY@
           # arguments: the path in the container, the accepted file system types, the node path (for the message)
           command:
             - /bin/bash

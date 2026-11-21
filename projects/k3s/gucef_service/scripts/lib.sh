@@ -13,7 +13,11 @@
 #                                 is allowed only for keys listed in GS_EMPTY_ALLOWED)
 #   gs_load_service <file> <dir> <allow>  the service file with the local install configuration of the site
 #   gs_yaml_quote <value>         a value as a YAML double-quoted scalar
-#   gs_storage_class_*            the friendly names of STORAGE_CLASS, their candidate classes and the auto order
+#   gs_image_ref <registry> <name> <tag>  the image reference of the manifests (render_manifests.sh, deploy.sh)
+#   gs_registry_image_name        the image name below IMAGE_REGISTRY: IMAGE_REGISTRY_NAME, else the last path component
+#                                 of IMAGE_NAME (render_manifests.sh, deploy.sh, build_image.sh --registry)
+#   gs_registry_valid <registry>  whether a value is <host>[:<port>][/<path>] (IMAGE_REGISTRY, build_image.sh --registry)
+#   gs_storage_class_*          the friendly names of STORAGE_CLASS, their candidate classes and the auto order
 #                                 (resolve_storage_class.sh)
 
 GS_SCRIPT_NAME="$(basename "${0}")"
@@ -163,6 +167,41 @@ gs_yaml_quote() {
     value="${value//\\/\\\\}"
     value="${value//\"/\\\"}"
     printf '"%s"' "$value"
+}
+
+# ---- image references (render_manifests.sh, deploy.sh) -----------------------------------------------------------------
+# gs_image_ref <registry or ""> <name> <tag or digest>
+# The one rule for the image reference of the manifests: without a registry the image containerd keeps after an import,
+# docker.io/<name>; with one <registry>/<name>. A tag is joined with ':', a digest (sha256:<64 hex digits>) with '@'.
+# Fails (status 1, nothing printed) for a value that is neither a tag nor a digest.
+gs_image_ref() {
+    local registry="$1" name="$2" tag="$3" repository
+    if [ -n "$registry" ]; then
+        repository="$registry/$name"
+    else
+        repository="docker.io/$name"
+    fi
+    if [[ "$tag" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+        printf '%s@%s\n' "$repository" "$tag"
+    elif [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+        printf '%s:%s\n' "$repository" "$tag"
+    else
+        return 1
+    fi
+}
+
+# gs_registry_image_name: the image name below a registry, from the loaded service file: IMAGE_REGISTRY_NAME, else the
+# last path component of IMAGE_NAME (vanvelzen/asset-store-service -> asset-store-service), so that a registry path such
+# as 172.16.1.125:32001/ci gives <registry host>/<owner>/<name>
+gs_registry_image_name() {
+    local name="${IMAGE_REGISTRY_NAME:-}"
+    [ -n "$name" ] || name="${IMAGE_NAME##*/}"
+    printf '%s\n' "$name"
+}
+
+# gs_registry_valid <registry>: <host>[:<port>][/<path>], the path in lower case components (an image name prefix)
+gs_registry_valid() {
+    [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}[A-Za-z0-9])?(:[0-9]{1,5})?(/[a-z0-9]+([._-][a-z0-9]+)*)*$ ]]
 }
 
 # ---- storage classes (resolve_storage_class.sh, render_manifests.sh, deploy.sh) ----------------------------------------

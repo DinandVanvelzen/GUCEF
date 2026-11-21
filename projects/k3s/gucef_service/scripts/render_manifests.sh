@@ -33,6 +33,12 @@
 #   credentials-key  CREDENTIALS_SECRET_NAME: the credential store key Secret; rendered with secret.example.yaml and
 #                    left as a commented line of the kustomization, to enable by hand once the Secret exists
 #
+# The image (scripts/lib.sh gs_image_ref): without IMAGE_REGISTRY docker.io/<IMAGE_NAME>:<IMAGE_TAG> with
+# imagePullPolicy Never (imported into containerd by build_image.sh); with IMAGE_REGISTRY
+# <IMAGE_REGISTRY>/<IMAGE_REGISTRY_NAME, else the last path component of IMAGE_NAME>:<IMAGE_TAG> with imagePullPolicy
+# IfNotPresent (pulled; the nodes have the registry in
+# /etc/rancher/k3s/registries.yaml). An IMAGE_TAG of the form sha256:<digest> is joined with '@' instead of ':'.
+#
 # DISCOVERY_MODE (default lan) chooses how the service is reached:
 #   lan   (the default) also answers discovery on the local network: the component components/lan-discovery runs the
 #         pod on the host network of the node DISCOVERY_NODE_NAME, which must then be set (the rendering refuses
@@ -113,6 +119,22 @@ for port in SESSION_PORT PAIRING_PORT HEALTH_PORT ADMIN_PORT; do
     [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -ge 1 ] && [ "$value" -le 65535 ] || gs_fail "$port '$value' is not a port"
 done
 [ "${TERMINATION_GRACE_SECONDS:-0}" -gt "${DRAIN_SECONDS:-}" ] 2> /dev/null || gs_fail "TERMINATION_GRACE_SECONDS must be above DRAIN_SECONDS (the drain has to end before the kill)"
+
+# the image: imported into containerd (no IMAGE_REGISTRY: pull policy Never) or pulled from IMAGE_REGISTRY (IfNotPresent)
+IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+if [ -n "$IMAGE_REGISTRY" ]; then
+    gs_registry_valid "$IMAGE_REGISTRY" || gs_fail "IMAGE_REGISTRY '$IMAGE_REGISTRY' is not <host>[:<port>][/<path>] (for example 172.16.1.125:32001/ci)"
+    export IMAGE_PULL_POLICY=IfNotPresent
+else
+    export IMAGE_PULL_POLICY=Never
+fi
+# the name below the registry: IMAGE_REGISTRY_NAME, else the last path component of IMAGE_NAME (build_image.sh
+# --registry uses the same rule)
+image_name="${IMAGE_NAME:-}"
+[ -z "$IMAGE_REGISTRY" ] || image_name="$(gs_registry_image_name)"
+[[ "$image_name" =~ ^[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*$ ]] || gs_fail "IMAGE_NAME (or IMAGE_REGISTRY_NAME) '$image_name' is not an image repository name (lower case path components)"
+IMAGE_REF="$(gs_image_ref "$IMAGE_REGISTRY" "$image_name" "${IMAGE_TAG:-}")" || gs_fail "IMAGE_TAG '${IMAGE_TAG:-}' is neither a tag (letters, digits, '_', '.', '-') nor a digest sha256:<64 hex digits>"
+export IMAGE_REF
 
 # the optional components
 COMPONENTS_ON=""

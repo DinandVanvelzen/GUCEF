@@ -9,7 +9,8 @@
 #   4. creates or updates the namespace
 #   5. checks the Secret of components/secret-file and its key (SECRET_FILE_SECRET_NAME): missing, it stops here with
 #      the command to create it; the value is never read, printed or created by this script
-#   6. warns when the image is not in the image list of the node (imagePullPolicy Never: it is imported by the owner)
+#   6. warns when the image is not in the image list of the node (imagePullPolicy Never: it is imported by the owner);
+#      an image of IMAGE_REGISTRY is pulled by the node (imagePullPolicy IfNotPresent) and not checked
 #   7. applies the built manifests and waits for the rollout
 # It never builds or imports the image and never creates a Secret.
 #
@@ -159,12 +160,18 @@ else
     say "5. no secret file (SECRET_FILE_SECRET_NAME is not set)"
 fi
 
-# 6. the image on the node (the node lists a limited number of images: a warning, not a refusal)
-IMAGES="$("${K[@]}" get node "$IMAGE_NODE" -o 'jsonpath={.status.images}' 2> /dev/null || true)"
-if grep -q -F "docker.io/$IMAGE_NAME:$IMAGE_TAG" <<< "$IMAGES"; then
-    say "6. the image docker.io/$IMAGE_NAME:$IMAGE_TAG is on $IMAGE_NODE"
+# 6. the image on the node (the node lists a limited number of images: a warning, not a refusal); an image of a registry
+#    is pulled by the node itself
+if [ -n "${IMAGE_REGISTRY:-}" ]; then
+    image_name="$(gs_registry_image_name)"
+    say "6. the image $(gs_image_ref "$IMAGE_REGISTRY" "$image_name" "$IMAGE_TAG" || echo "$IMAGE_REGISTRY/$image_name ($IMAGE_TAG)") is pulled from the registry $IMAGE_REGISTRY (imagePullPolicy IfNotPresent; the node needs the registry in /etc/rancher/k3s/registries.yaml, projects/k3s/forgejo/registry/setup-node.sh)"
 else
-    say "6. WARNING: docker.io/$IMAGE_NAME:$IMAGE_TAG is not in the image list of $IMAGE_NODE (imagePullPolicy Never): import it there with sudo k3s ctr images import <archive> (build_image.sh --save), or the pod stays in ErrImageNeverPull"
+    IMAGES="$("${K[@]}" get node "$IMAGE_NODE" -o 'jsonpath={.status.images}' 2> /dev/null || true)"
+    if grep -q -F "docker.io/$IMAGE_NAME:$IMAGE_TAG" <<< "$IMAGES"; then
+        say "6. the image docker.io/$IMAGE_NAME:$IMAGE_TAG is on $IMAGE_NODE"
+    else
+        say "6. WARNING: docker.io/$IMAGE_NAME:$IMAGE_TAG is not in the image list of $IMAGE_NODE (imagePullPolicy Never): import it there with sudo k3s ctr images import <archive> (build_image.sh --save), or the pod stays in ErrImageNeverPull"
+    fi
 fi
 
 # 7. apply and wait

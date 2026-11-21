@@ -5,12 +5,15 @@
 # Two stages: the build stage is the GUCEF development image (projects/k3s/gucef_dev) and builds the targets of
 # IMAGE_TARGETS in release; the runtime stage is the minideb of the same Debian release and holds /opt/@SERVICE_NAME@
 # only. MINIDEB_RELEASE and RUNTIME_PACKAGES have no default on purpose: build_image.sh reads them from the development
-# image, so that the runtime has the release and the libssl package the build linked against.
+# image, so that the runtime has the release and the libssl package the build linked against. Plain OCI Dockerfile
+# syntax: docker and BuildKit (buildctl, dockerfile.v0 frontend) build it alike.
 #
 # Build context (scripts/make_context.sh): src/GUCEF, src/<extra checkouts>, service/bootstrap.ini.
 
 ARG DEV_IMAGE=vanvelzen/github-gucef-dev-base:latest
 ARG MINIDEB_RELEASE
+# the repository of the runtime base image (build_image.sh --runtime-base), tagged with MINIDEB_RELEASE
+ARG RUNTIME_BASE=bitnami/minideb
 
 # --------------------------------------------------------------------
 # build stage
@@ -50,7 +53,7 @@ RUN /src/GUCEF/projects/k3s/gucef_service/scripts/stage_install.sh /out/opt/@SER
 # --------------------------------------------------------------------
 # runtime stage
 # --------------------------------------------------------------------
-FROM bitnami/minideb:${MINIDEB_RELEASE} AS runtime
+FROM ${RUNTIME_BASE}:${MINIDEB_RELEASE} AS runtime
 ARG RUNTIME_PACKAGES
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="@SERVICE_PROGRAM@" \
@@ -73,6 +76,6 @@ ENV GUCEF_CONSOLE_LOGGER=stderr \
 
 USER 10001:10001
 WORKDIR /tmp
-EXPOSE @SESSION_PORT@ @PAIRING_PORT@ @HEALTH_PORT@
+@EXPOSE_LINE@
 STOPSIGNAL SIGTERM
 ENTRYPOINT ["/opt/@SERVICE_NAME@/bin/@SERVICE_PROGRAM@"]
