@@ -730,6 +730,10 @@ CRemoteServiceHost::Start( CORE::CString& error )
     m_running = true;
     m_draining = false;
     m_drainFinished = false;
+    {
+        MT::CScopeMutex lock( m_eventLock );
+        m_drainStopEvents.clear();
+    }
     m_timer.SetEnabled( true );
     StartLanDiscovery();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RemoteServiceHost: " << m_settings.serviceName << " listens on port " << m_sessionPort << " as " << m_serviceId
@@ -803,7 +807,24 @@ CRemoteServiceHost::BeginDrain( const CORE::CString& reason, UInt32 expectedBack
     data.SetAttribute( "expectedBackSeconds", m_drainExpectedBackSeconds );
     data.SetAttribute( "retryAfterMs", (UInt64) m_drainExpectedBackSeconds * 1000 );
     event.SetDataNode( 6, data );
-    PublishEventToAll( event );
+
+    // the drain ends early only once every open event stream wrote this event (AreStopEventsWritten()): ending a
+    // client session drops what its ring still holds, and a stream may be without credit at this moment
+    {
+        MT::CScopeMutex lock( m_eventLock );
+        m_drainStopEvents.clear();
+    }
+    TRemoteSessionVector sessions;
+    m_sessions.GetSessions( sessions );
+    for ( UInt32 i=0; i<sessions.size(); ++i )
+    {
+        const UInt64 eventSeq = PublishEvent( sessions[ i ]->GetSessionId(), event );
+        if ( 0 != eventSeq )
+        {
+            MT::CScopeMutex lock( m_eventLock );
+            m_drainStopEvents[ sessions[ i ]->GetSessionId() ] = eventSeq;
+        }
+    }
 
     // no pairing from now on; the session listener stays: links that are there finish their work (stopping the
     // listener of the node ends its accepted links too), and a new client gets UNAVAILABLE DRAINING at its Hello
@@ -942,6 +963,33 @@ CRemoteServiceHost::FinishDrain( void )
         }
     }
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RemoteServiceHost: drained, " << sessions.size() << " client sessions ended with GOODBYE" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::AreStopEventsWritten( void ) const
+{GUCEF_TRACE;
+
+    // A client session with an open event stream gets its stop event before the drain ends it: the event waits in the
+    // ring until the stream takes it (no credit, or the stream was written at the next tick). A session without an open
+    // stream (suspended, or its client reads no events) is not waited for: its client learns of the drain when its
+    // Hello or Resume is refused with DRAINING. The sessions are looked up outside the event lock, as PublishEvent() does
+    GUCEF::map< CORE::CString, UInt64 > stopEvents;
+    {
+        MT::CScopeMutex lock( m_eventLock );
+        stopEvents = m_drainStopEvents;
+    }
+    for ( GUCEF::map< CORE::CString, UInt64 >::const_iterator i = stopEvents.begin(); i != stopEvents.end(); ++i )
+    {
+        CRemoteSessionPtr session = m_sessions.Find( (*i).first );
+        if ( session.IsNULL() || REMOTESESSION_CLOSED == session->GetState() )
+            continue;
+        MT::CScopeMutex lock( m_eventLock );
+        if ( !session->m_eventsCall.IsNULL() && session->m_nextToSend <= (*i).second )
+            return false;
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2043,7 +2091,8 @@ CRemoteServiceHost::OnTick( CORE::CNotifier* notifier, const CORE::CEvent& event
                 callsOpen = open > 0;
             }
         }
-        if ( !callsOpen || NowMs() >= m_drainDeadlineMs )
+        // and only once every open event stream wrote the stop event; the drain time bounds both
+        if ( ( !callsOpen && AreStopEventsWritten() ) || NowMs() >= m_drainDeadlineMs )
             FinishDrain();
     }
 

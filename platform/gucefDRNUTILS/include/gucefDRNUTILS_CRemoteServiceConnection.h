@@ -157,6 +157,7 @@ namespace DRNUTILS {
 
 typedef CORE::CTCloneableObj< TRemoteConnectionState > TRemoteConnectionStateEventData;
 typedef CORE::CTCloneableObj< COMCORE::CRpcMessage > TRemoteMessageEventData;
+typedef CORE::CTCloneableObj< CORE::CDataNode > TRemoteServiceStoppingEventData;
 
 /**
  *  The connection of a paired client to its remote service (gucefASSETSTORE_RemoteNetworking_Design.md 4 and 5): a
@@ -189,6 +190,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnection : public CORE::CTSGNoti
     static const CORE::CEvent SessionReplacedEvent;         /**< the client session was unknown at the service and a new one was opened (case D) */
     static const CORE::CEvent CredentialsChangedEvent;      /**< the session endpoints or the token of the credentials changed */
     static const CORE::CEvent ClockSkewEvent;               /**< CORE::TCloneableInt64: the service's clock minus this machine's, milliseconds */
+    static const CORE::CEvent ServiceStoppingEvent;         /**< TRemoteServiceStoppingEventData { reason, expectedBackSeconds, retryAfterMs }: the service stops; once per stop, from its SERVICE_STOPPING event or from a Hello or Resume refused with DRAINING */
 
     static void RegisterEvents( void );
 
@@ -340,6 +342,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnection : public CORE::CTSGNoti
     void FailPermanently( const CORE::CString& why );
     void NoteServerTime( UInt64 serverTimeUtcMs );
     void NoteServiceStopping( const COMCORE::CRpcMessage& event );
+    void RaiseServiceStopping( const CORE::CDataNode& data );
     void SaveCredentials( void );
     CRemoteServiceChannel::SSettings MakeChannelSettings( UInt32 channel ) const;
     bool IsPumpingThread( void ) const;
@@ -383,6 +386,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnection : public CORE::CTSGNoti
     UInt64 m_nextAttemptMs;
     UInt32 m_nextAttemptDelayMs;
     UInt32 m_stopHintMs;
+    bool m_stopRaised;                          /**< ServiceStoppingEvent was raised since the connection was last CONNECTED */
     bool m_reconnecting;
     bool m_attemptInProgress;                   /**< an attempt of the reconnect is under way: when it fails the next one waits for the backoff */
     bool m_connectedOnce;

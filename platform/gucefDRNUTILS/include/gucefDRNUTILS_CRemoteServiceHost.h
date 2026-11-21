@@ -460,6 +460,9 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     void NotifyClosed( const TRemoteSessionVector& sessions, const CORE::CString& reason );
     void CloseDeviceLinks( const CORE::CString& deviceId );
     void FinishDrain( void );
+
+    /** While draining: whether every client session with an open event stream wrote its SERVICE_STOPPING event */
+    bool AreStopEventsWritten( void ) const;
     void StartLanDiscovery( void );
     void StopLanDiscovery( void );
     void FillExtensions( const CRemoteSessionPtr& session, bool resync, CORE::CDataNode& extensions ) const;
@@ -505,6 +508,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     mutable MT::CMutex m_eventLock;                     /**< the event rings and the events calls */
     UInt64 m_lastRegistrySaveMs;
     UInt64 m_drainDeadlineMs;
+    GUCEF::map< CORE::CString, UInt64 > m_drainStopEvents;  /**< client session id to the eventSeq of its SERVICE_STOPPING event; under m_eventLock */
     UInt32 m_drainHolds;                                /**< under m_eventLock */
     UInt32 m_drainExpectedBackSeconds;
     UInt16 m_sessionPort;

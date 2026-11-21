@@ -102,6 +102,7 @@ const CORE::CEvent CRemoteServiceConnection::ResyncEvent = "GUCEF::DRNUTILS::CRe
 const CORE::CEvent CRemoteServiceConnection::SessionReplacedEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::SessionReplacedEvent";
 const CORE::CEvent CRemoteServiceConnection::CredentialsChangedEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::CredentialsChangedEvent";
 const CORE::CEvent CRemoteServiceConnection::ClockSkewEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::ClockSkewEvent";
+const CORE::CEvent CRemoteServiceConnection::ServiceStoppingEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::ServiceStoppingEvent";
 
 /*-------------------------------------------------------------------------*/
 
@@ -115,6 +116,7 @@ CRemoteServiceConnection::RegisterEvents( void )
     SessionReplacedEvent.Initialize();
     CredentialsChangedEvent.Initialize();
     ClockSkewEvent.Initialize();
+    ServiceStoppingEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -168,6 +170,7 @@ CRemoteServiceConnection::CRemoteServiceConnection( const CORE::PulseGeneratorPt
     , m_nextAttemptMs( 0 )
     , m_nextAttemptDelayMs( 0 )
     , m_stopHintMs( 0 )
+    , m_stopRaised( false )
     , m_reconnecting( false )
     , m_attemptInProgress( false )
     , m_connectedOnce( false )
@@ -280,6 +283,8 @@ CRemoteServiceConnection::SetState( TRemoteConnectionState state, const CORE::CS
     m_stepStartedMs = NowMs();
     if ( !changed )
         return;
+    if ( REMOTECONNECTION_CONNECTED == state )
+        m_stopRaised = false;
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RemoteServiceConnection: " << RemoteConnectionStateToString( state ) << ( reason.IsNULLOrEmpty() ? "" : ": " ) << reason );
     TRemoteConnectionStateEventData data( state );
     NotifyObservers( StateChangedEvent, &data );
@@ -700,7 +705,9 @@ CRemoteServiceConnection::StepJoining( void )
         }
     }
 
-    if ( control.WasRpcResumed() && !control.HasNewRpcSession() )
+    // Case A only when there is a client session to go on with: an RPC session can be resumed without one (the Hello of
+    // the attempt before was refused, as during a drain), and then the client session is opened on it (Hello)
+    if ( control.WasRpcResumed() && !control.HasNewRpcSession() && !GetSessionId().IsNULLOrEmpty() )
     {
         // case A: calls, streams and the event stream go on where they were
         {
@@ -900,6 +907,12 @@ CRemoteServiceConnection::HandleOpenResult( const COMCORE::CRpcCallResult& resul
     {
         // case E: the service stops; the next attempt waits for its hint
         m_stopHintMs = result.status.details.GetAttributeValueOrChildValueByName( "retryAfterMs" ).AsUInt32( 1000, true );
+        // a client whose event stream did not bring SERVICE_STOPPING (it had none, or it reconnected during the drain) is told here
+        CORE::CDataNode stopping( "data", GUCEF_DATATYPE_OBJECT );
+        stopping.SetAttribute( "reason", result.status.message );
+        stopping.SetAttribute( "retryAfterMs", m_stopHintMs );
+        stopping.SetAttribute( "expectedBackSeconds", ( m_stopHintMs + 999 ) / 1000 );
+        RaiseServiceStopping( stopping );
         for ( UInt32 i=0; i<m_channels.size(); ++i )
             m_channels[ i ]->DropLink();
         StartReconnect( "the service drains" );
@@ -1041,6 +1054,21 @@ CRemoteServiceConnection::NoteServiceStopping( const COMCORE::CRpcMessage& event
     m_stopHintMs = hint;
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RemoteServiceConnection: the service stops (" << data.GetAttributeValueOrChildValueByName( "reason" ).AsString()
                << "), back in about " << hint << " ms" );
+    RaiseServiceStopping( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRemoteServiceConnection::RaiseServiceStopping( const CORE::CDataNode& data )
+{GUCEF_TRACE;
+
+    // once per stop: the event of the stream and the refusals of the reconnect attempts of the same drain are one stop
+    if ( m_stopRaised )
+        return;
+    m_stopRaised = true;
+    TRemoteServiceStoppingEventData eventData( data );
+    NotifyObservers( ServiceStoppingEvent, &eventData );
 }
 
 /*-------------------------------------------------------------------------*/

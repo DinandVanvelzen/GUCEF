@@ -45,6 +45,11 @@
 #define GUCEF_AUTH_ICREDENTIALSTORE_H
 #endif /* GUCEF_AUTH_ICREDENTIALSTORE_H ? */
 
+#ifndef GUCEF_COMCORE_CSERVICEFINDER_H
+#include "gucefCOMCORE_CServiceFinder.h"
+#define GUCEF_COMCORE_CSERVICEFINDER_H
+#endif /* GUCEF_COMCORE_CSERVICEFINDER_H ? */
+
 #ifndef GUCEF_DRNUTILS_CDEVICECREDENTIALS_H
 #include "gucefDRNUTILS_CDeviceCredentials.h"
 #define GUCEF_DRNUTILS_CDEVICECREDENTIALS_H
@@ -106,7 +111,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDevicePairingClient : public CORE::CTSGNotifier
 
     struct GUCEF_DRNUTILS_PUBLIC_CPP SRequest
     {
-        CORE::CString pairingEndpoint;      /**< "tcp://host:port" of the pairing listener */
+        CORE::CString pairingEndpoint;      /**< "tcp://host:port" of the pairing listener; empty: Pair() looks for one on the local network (lanDiscovery), a given endpoint always wins */
         CORE::CString code;                 /**< as typed */
         CORE::CString serviceName;          /**< the DRN service name of the service */
         CORE::CString drnSessionName;       /**< the DRN session of the session listener (the pairing session is this plus ".pair") */
@@ -116,9 +121,27 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDevicePairingClient : public CORE::CTSGNotifier
         CORE::CString appVersion;
         UInt32 connectTimeoutMs;            /**< default 20000 */
         UInt32 confirmationTimeoutMs;       /**< default 300000 */
+        bool lanDiscovery;                  /**< when no pairing endpoint is given: look on the local network for the pairing listener of the service; default true */
+        COMCORE::CServiceFinderSettings lanDiscoveryFinder; /**< the look: service type (default "_gucef-service._tcp", a product sets its own), the filter (set filter.keyFingerprint when the key of the service is known), the discovery clients; it looks for the whole findTimeoutMs (findMinCandidates 0), so that a candidate that answers first is not the only one that is considered */
 
         SRequest( void );
     };
+
+    /**
+     *  A service found on the local network that offers pairing: its announcement carries the address of its session
+     *  endpoint and the property "pairingPort". It is a candidate only: the announcement comes from an address anyone
+     *  on the network can forge, the pairing code and the proof of the service decide whether it is trusted.
+     */
+    struct GUCEF_DRNUTILS_PUBLIC_CPP SPairingCandidate
+    {
+        CORE::CString pairingEndpoint;      /**< "tcp://host:port": the host of the first tcp endpoint of the announcement and its pairingPort */
+        CORE::CString displayName;          /**< what a person sees in a list */
+        CORE::CString instanceId;           /**< the service id of the announcement */
+        CORE::CString keyFingerprint;       /**< the fingerprint of the static key, empty when the announcement has none; not proof of anything */
+
+        SPairingCandidate( void );
+    };
+    typedef GUCEF::vector< SPairingCandidate > TPairingCandidateVector;
 
     /** 'pulseGenerator' GUCEF_NULL: the client makes one of its own for each Pair() */
     explicit CDevicePairingClient( const CORE::PulseGeneratorPtr& pulseGenerator = CORE::PulseGeneratorPtr() );
@@ -130,6 +153,14 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDevicePairingClient : public CORE::CTSGNotifier
      */
     bool Pair( const SRequest& request, CDeviceCredentials& credentials, CORE::CString& error,
                AUTH::ICredentialStore* store = GUCEF_NULL, const CORE::CString& slot = CORE::CString::Empty );
+
+    /**
+     *  Blocking, at most request.lanDiscoveryFinder.findTimeoutMs: the services on the local network that offer pairing
+     *  (the property pairingPort is announced), for a person to choose from. Looks when request.lanDiscovery is on and
+     *  request.pairingEndpoint is empty. Pair() uses the same candidates, one after the other, when no endpoint is given.
+     *  @return whether there is a candidate
+     */
+    bool FindPairingCandidates( const SRequest& request, TPairingCandidateVector& candidates );
 
     TPairingFailure GetLastFailure( void ) const;
 
@@ -143,6 +174,8 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDevicePairingClient : public CORE::CTSGNotifier
     CDevicePairingClient( const CDevicePairingClient& src );                /**< not implemented */
     CDevicePairingClient& operator=( const CDevicePairingClient& src );     /**< not implemented */
 
+    bool PairAtEndpoint( const SRequest& request, CDeviceCredentials& credentials, CORE::CString& error,
+                         AUTH::ICredentialStore* store, const CORE::CString& slot );
     bool Fail( TPairingFailure failure, const CORE::CString& why, CORE::CString& error );
     static void PumpStep( const CORE::PulseGeneratorPtr& pulseGenerator );
 

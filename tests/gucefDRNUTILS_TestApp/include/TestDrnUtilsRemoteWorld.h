@@ -728,10 +728,11 @@ class CEventCollector : public CORE::CObserver
     UInt32 resyncs;
     UInt32 replaced;
     UInt32 skews;
+    UInt32 stopping;                            /**< ServiceStoppingEvent of the connection */
     GUCEF::vector< Int32 > states;              /**< the states the connection entered, in order */
     GUCEF::vector< UInt64 > stateTimesMs;       /**< when it entered them (RemoteTestNowMs(), taken in the event, on the connection's thread) */
 
-    CEventCollector( void ) : CORE::CObserver(), sequences(), kinds(), resyncs( 0 ), replaced( 0 ), skews( 0 ), states(), stateTimesMs() {}
+    CEventCollector( void ) : CORE::CObserver(), sequences(), kinds(), resyncs( 0 ), replaced( 0 ), skews( 0 ), stopping( 0 ), states(), stateTimesMs() {}
 
     /** The time the connection entered the state at or after the index of states, 0 when it did not (yet); 'index' receives its index */
     UInt64 StateEnteredAt( DRNUTILS::TRemoteConnectionState state, UInt32 fromIndex, UInt32* index = GUCEF_NULL ) const
@@ -773,6 +774,8 @@ class CEventCollector : public CORE::CObserver
             ++replaced;
         else if ( DRNUTILS::CRemoteServiceConnection::ClockSkewEvent == eventId )
             ++skews;
+        else if ( DRNUTILS::CRemoteServiceConnection::ServiceStoppingEvent == eventId )
+            ++stopping;
         else if ( DRNUTILS::CRemoteServiceConnection::StateChangedEvent == eventId && GUCEF_NULL != eventData )
         {
             states.push_back( (Int32) static_cast< DRNUTILS::TRemoteConnectionStateEventData* >( eventData )->GetData() );

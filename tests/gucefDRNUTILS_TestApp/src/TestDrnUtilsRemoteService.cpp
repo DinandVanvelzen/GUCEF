@@ -794,6 +794,8 @@ PerformDrnUtilsRemoteServiceTests( void )
         const UInt64 backAt = client.events.StateEnteredAt( DRNUTILS::REMOTECONNECTION_CONNECTED, reconnectingIndex + 1 );
         ASSERT_TRUE( 0 != backAt );
         ASSERT_TRUE( backAt >= goneAt + 2000 );
+        // one stop, told once: the event of the stream (the reconnect reached the restarted host, not the draining one)
+        ASSERT_TRUE( 1 == client.events.stopping );
         NoteFault( "drain -> SERVICE_STOPPING (2 s), mutations refused DRAINING, the drain held by a running call and ended "
                    + CORE::ToString( goneAt - releasedAt ) + " ms after it finished, GOODBYE; the client waited " + CORE::ToString( waited )
                    + " ms (hint 2000 + jitter) and was back " + CORE::ToString( backAt - goneAt ) + " ms after the GOODBYE with a new session" );
@@ -859,6 +861,160 @@ PerformDrnUtilsRemoteServiceTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END;
 
+
+    GUCEF_TESTFW_TESTCASE( "RS-T15 drain with an event stream that cannot take the stop event yet: the drain waits until the stream wrote SERVICE_STOPPING, then ends the session" )
+    try
+    {
+        // the stream of this client has used up its credit when the drain begins: the stop event waits in the ring. The
+        // drain time is long, so the drain can only end because the event was written, not because time ran out
+        CRemoteWorld world( "t15" );
+        world.settings.drainSeconds = 60;
+        REQUIRE_TRUE( world.StartHost() );
+        DRNUTILS::CDeviceCredentials credentials;
+        CORE::CString error;
+        REQUIRE_TRUE( world.Pair( "viewer", "viewer", credentials, error ) );
+        DRNUTILS::CRemoteServiceConnectionSettings clientSettings = world.ClientSettings();
+        clientSettings.openEventStream = false;
+        CTestClient client( world.pulse, clientSettings );
+        REQUIRE_TRUE( client.connection.Connect( credentials, error ) );
+
+        COMCORE::CRpcMessage eventsRequest = client.connection.NewRequest( DRNUTILS::CRemoteSessionContracts::EventsPath );
+        eventsRequest.SetUInt64( 1, 0 );
+        COMCORE::CIRpcStreamPtr stream = client.connection.OpenStream( DRNUTILS::CRemoteSessionContracts::EventsPath, &eventsRequest );
+        REQUIRE_TRUE( !stream.IsNULL() );
+        stream->SetManualCredit( true );
+        CStreamRecorder recorder;
+        recorder.Watch( stream );
+        PumpFor( 200 );
+
+        // the 256 messages of the stream's initial credit, consumed without granting more
+        const UInt32 initialCredit = 256;
+        PublishEvents( world, client, initialCredit );
+        CCounterAtLeast all( recorder.count, initialCredit );
+        REQUIRE_TRUE( PumpUntil( all, 20000 ) );
+        PumpFor( 200 );
+        REQUIRE_TRUE( initialCredit == recorder.count );
+
+        world.host->BeginDrain( "update", 2 );
+        PumpFor( 1000 );
+        // no credit: the stop event is not written yet, and the drain waits for it instead of ending the session
+        ASSERT_TRUE( !( world.host->IsDrainComplete() ) );
+        ASSERT_TRUE( !( recorder.ended ) );
+        ASSERT_TRUE( initialCredit == recorder.count );
+
+        // credit again: the stop event goes out, then the drain ends at once (long before its drain time)
+        const UInt64 grantedAt = RemoteTestNowMs();
+        stream->GrantCredit( 16 );
+        class CStopSeen : public CCondition
+        {
+            public:
+            CStreamRecorder& r;
+            explicit CStopSeen( CStreamRecorder& recorder ) : r( recorder ) {}
+            virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE
+            {
+                for ( UInt32 i=0; i<r.messages.size(); ++i )
+                    if ( r.messages[ i ].GetString( 2 ) == DRNUTILS::CRemoteSessionContracts::EventKindServiceStopping )
+                        return true;
+                return false;
+            }
+        };
+        CStopSeen stopSeen( recorder );
+        ASSERT_TRUE( PumpUntil( stopSeen, 10000 ) );
+        class CDrained : public CCondition
+        {
+            public:
+            CRemoteWorld& w;
+            explicit CDrained( CRemoteWorld& world ) : w( world ) {}
+            virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE { return w.host->IsDrainComplete(); }
+        };
+        CDrained drained( world );
+        ASSERT_TRUE( PumpUntil( drained, 10000 ) );
+        const UInt64 drainedAt = RemoteTestNowMs();
+        ASSERT_TRUE( drainedAt - grantedAt < (UInt64) world.settings.drainSeconds * 1000 / 2 );
+        NoteFault( "drain while the event stream had no credit -> the drain waited for the stop event; it was written "
+                   "after the credit came and the drain ended " + CORE::ToString( drainedAt - grantedAt ) + " ms after the credit" );
+        client.connection.Close( false );
+    }
+    catch ( ::GUCEF::TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "RS-T16 a client without an event stream is told of the drain by the refusal of its Hello: ServiceStoppingEvent once, also over repeated refusals" )
+    try
+    {
+        CRemoteWorld world( "t16" );
+        world.settings.drainSeconds = 60;
+        REQUIRE_TRUE( world.StartHost() );
+        DRNUTILS::CDeviceCredentials credentials;
+        CORE::CString error;
+        REQUIRE_TRUE( world.Pair( "viewer", "viewer", credentials, error ) );
+        DRNUTILS::CRemoteServiceConnectionSettings clientSettings = world.ClientSettings();
+        clientSettings.openEventStream = false;
+        CTestClient client( world.pulse, clientSettings );
+        REQUIRE_TRUE( client.connection.Connect( credentials, error ) );
+
+        // no event stream: nothing holds the drain, the session ends with GOODBYE and the client comes back to a host
+        // that still drains (it is not stopped here), so its Hello is refused with DRAINING
+        world.host->BeginDrain( "update", 1 );
+        class CStopped : public CCondition
+        {
+            public:
+            CTestClient& c;
+            explicit CStopped( CTestClient& client ) : c( client ) {}
+            virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE { return c.events.stopping > 0; }
+        };
+        CStopped stopped( client );
+        ASSERT_TRUE( PumpUntil( stopped, 15000 ) );
+        ASSERT_TRUE( world.host->IsDrainComplete() );
+        ASSERT_TRUE( DRNUTILS::REMOTECONNECTION_RECONNECTING == client.connection.GetState() );
+
+        // further refusals of the same drain are the same stop
+        const UInt32 attempts = client.connection.GetReconnectAttemptCount();
+        class CMoreAttempts : public CCondition
+        {
+            public:
+            CTestClient& c;
+            UInt32 since;
+            CMoreAttempts( CTestClient& client, UInt32 attempts ) : c( client ), since( attempts ) {}
+            virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE { return c.connection.GetReconnectAttemptCount() >= since + 2; }
+        };
+        CMoreAttempts more( client, attempts );
+        ASSERT_TRUE( PumpUntil( more, 20000 ) );
+        ASSERT_TRUE( 1 == client.events.stopping );
+
+        // back at a host that serves: connected, and a later drain is told again
+        world.StopHost();
+        REQUIRE_TRUE( world.StartHost() );
+        ASSERT_TRUE( world.WaitFor( client.connection, DRNUTILS::REMOTECONNECTION_CONNECTED, 30000 ) );
+        world.host->BeginDrain( "update", 1 );
+        class CStoppedTwice : public CCondition
+        {
+            public:
+            CTestClient& c;
+            explicit CStoppedTwice( CTestClient& client ) : c( client ) {}
+            virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE { return c.events.stopping >= 2; }
+        };
+        CStoppedTwice stoppedTwice( client );
+        ASSERT_TRUE( PumpUntil( stoppedTwice, 15000 ) );
+        NoteFault( "drain with a client without an event stream -> GOODBYE, its Hello refused DRAINING, ServiceStoppingEvent once over "
+                   + CORE::ToString( client.connection.GetReconnectAttemptCount() - attempts ) + " further refusals, and again for the next drain" );
+        client.connection.Close( false );
+    }
+    catch ( ::GUCEF::TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
 
     GUCEF_TESTFW_TESTCASE( "RS-T11 a revoked device is refused although its token is unexpired; the client fails without a retry storm" )
     try

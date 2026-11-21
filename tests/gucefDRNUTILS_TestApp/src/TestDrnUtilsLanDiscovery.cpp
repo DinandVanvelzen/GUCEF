@@ -408,6 +408,133 @@ PerformDrnUtilsLanDiscoveryTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+    GUCEF_TESTFW_TESTCASE( "Test: A pairing client without a pairing endpoint finds the pairing listener on the LAN; a spoofer is no more trusted than any address, a given endpoint wins" )
+        try
+        {
+            UInt16 hostDiscoveryPort = TESTFW::FindFreeUdpPort( 47866 );
+            UInt16 spoofPort = TESTFW::FindFreeUdpPort( 47867 );
+            UInt16 clientPort = TESTFW::FindFreeUdpPort( 47868 );
+
+            CRemoteWorld world( "lan-pair" );
+            world.settings.lanDiscoveryAdvertiser.serviceType = LanServiceType;
+            world.settings.pairingPort = TESTFW::FindFreeTcpAndUdpPort( 0 );
+            AddLoopbackClient( world.settings.lanDiscoveryAdvertiser.clientConfig, hostDiscoveryPort, clientPort );
+            ASSERT_TRUE( world.StartHost() );
+            const CORE::CString hostFingerprint = DRNUTILS::CDevicePairingCrypto::Fingerprint( world.host->GetStaticPublicKey() );
+
+            // a spoofer on the LAN: the same type, a key of its own, a pairing port nobody listens on
+            COMCORE::CServiceAdvertiserSettings spoofSettings;
+            spoofSettings.serviceType = LanServiceType;
+            AddLoopbackClient( spoofSettings.clientConfig, spoofPort, clientPort );
+            COMCORE::CServiceAdvertiser spoofer( spoofSettings );
+            COMCORE::CServiceAnnouncement spoof;
+            spoof.instanceId = "s-SPOOFEDSERVICE00000";
+            spoof.displayName = "Spoofed";
+            spoof.endpoints.push_back( "tcp://127.0.0.1:9" );
+            spoof.keyFingerprint = "ZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZ";
+            spoof.properties.Set( "pairingPort", CORE::ToString( TESTFW::FindFreeTcpAndUdpPort( 0 ) ) );
+            ASSERT_TRUE( spoofer.Advertise( spoof ) );
+
+            DRNUTILS::CPairingWindowRequest window;
+            window.deviceKind = "viewer";
+            window.roles.insert( "viewer" );
+            CORE::CString windowId;
+            CORE::CString code;
+            CORE::CString error;
+            UInt64 expires = 0;
+            ASSERT_TRUE( world.host->OpenPairingWindow( window, DRNUTILS::CRemoteServiceHost::LocalAdmin, windowId, code, expires, error ) );
+
+            DRNUTILS::CDevicePairingClient::SRequest request;
+            request.code = code;
+            request.serviceName = world.settings.serviceName;
+            request.drnSessionName = world.settings.drnSessionName;
+            request.clientKind = "test";
+            request.deviceName = "test device";
+            request.platform = "linux";
+            request.appVersion = "1.0";
+            request.connectTimeoutMs = 3000;
+            request.confirmationTimeoutMs = 10000;
+            request.lanDiscoveryFinder.serviceType = LanServiceType;
+            request.lanDiscoveryFinder.findTimeoutMs = 1500;
+            CORE::CDataNode* clientNode = request.lanDiscoveryFinder.clientConfig.AddChild( "DiscoveryClient", GUCEF_DATATYPE_OBJECT );
+            clientNode->SetAttribute( "type", "broadcast" );
+            clientNode->SetAttribute( "port", CORE::ToString( clientPort ) );
+            clientNode->SetAttribute( "useLimitedBroadcast", "false" );
+            clientNode->SetAttribute( "useDirectedBroadcasts", "false" );
+            clientNode->SetAttribute( "extraTargets", "127.0.0.1:" + CORE::ToString( hostDiscoveryPort ) + ",127.0.0.1:" + CORE::ToString( spoofPort ) );
+
+            const CORE::CString hostPairingEndpoint = "tcp://127.0.0.1:" + CORE::ToString( world.settings.pairingPort );
+            DRNUTILS::CDevicePairingClient client( world.pulse );
+            CRemoteWorld::CConfirmer confirmer( world );
+            client.Subscribe( &confirmer );
+
+            // the candidates: the endpoint and the pairing port of the announcements, the spoofer among them
+            DRNUTILS::CDevicePairingClient::TPairingCandidateVector candidates;
+            ASSERT_TRUE( client.FindPairingCandidates( request, candidates ) );
+            ASSERT_TRUE( 2 == candidates.size() );
+            bool hostListed = false;
+            bool spoofListed = false;
+            for ( UInt32 i=0; i<candidates.size(); ++i )
+            {
+                if ( candidates[ i ].pairingEndpoint == hostPairingEndpoint && candidates[ i ].instanceId == world.host->GetServiceId() && candidates[ i ].keyFingerprint == hostFingerprint )
+                    hostListed = true;
+                if ( candidates[ i ].instanceId == spoof.instanceId && "Spoofed" == candidates[ i ].displayName )
+                    spoofListed = true;
+            }
+            ASSERT_TRUE( hostListed && spoofListed );
+
+            // the fingerprint of a key that is known leaves only the candidates with that key
+            {
+                DRNUTILS::CDevicePairingClient::SRequest known( request );
+                known.lanDiscoveryFinder.filter.keyFingerprint = hostFingerprint;
+                DRNUTILS::CDevicePairingClient::TPairingCandidateVector filtered;
+                ASSERT_TRUE( client.FindPairingCandidates( known, filtered ) );
+                ASSERT_TRUE( 1 == filtered.size() && filtered[ 0 ].pairingEndpoint == hostPairingEndpoint );
+            }
+
+            // a given endpoint always wins: nothing is looked for when it does not answer
+            {
+                DRNUTILS::CDevicePairingClient::SRequest given( request );
+                given.pairingEndpoint = "tcp://127.0.0.1:" + CORE::ToString( TESTFW::FindFreeTcpAndUdpPort( 0 ) );
+                DRNUTILS::CDeviceCredentials none;
+                ASSERT_FALSE( client.Pair( given, none, error ) );
+                ASSERT_TRUE( DRNUTILS::CDevicePairingClient::PAIRINGFAILURE_UNREACHABLE == client.GetLastFailure() );
+                DRNUTILS::CDevicePairingClient::TPairingCandidateVector noLook;
+                ASSERT_FALSE( client.FindPairingCandidates( given, noLook ) && !noLook.empty() );
+            }
+
+            // without an endpoint and with the look off there is nothing to pair with
+            {
+                DRNUTILS::CDevicePairingClient::SRequest off( request );
+                off.lanDiscovery = false;
+                DRNUTILS::CDeviceCredentials none;
+                ASSERT_FALSE( client.Pair( off, none, error ) );
+                ASSERT_TRUE( DRNUTILS::CDevicePairingClient::PAIRINGFAILURE_BAD_REQUEST == client.GetLastFailure() );
+            }
+
+            // a wrong code pairs with no candidate, the spoofer included: the code is what decides
+            {
+                DRNUTILS::CDevicePairingClient::SRequest wrong( request );
+                wrong.code = "ABCD-EFGH-JKMN-PQRS";
+                DRNUTILS::CDeviceCredentials none;
+                ASSERT_FALSE( client.Pair( wrong, none, error ) );
+                ASSERT_TRUE( none.serviceId.IsNULLOrEmpty() );
+            }
+
+            // with the code the genuine service is found, the spoofer is passed over, and the credentials are the service's
+            DRNUTILS::CDeviceCredentials credentials;
+            ASSERT_TRUE( client.Pair( request, credentials, error ) );
+            ASSERT_TRUE( credentials.serviceId == world.host->GetServiceId() );
+            ASSERT_TRUE( DRNUTILS::CDevicePairingCrypto::FingerprintOfHex( credentials.serverStaticKeyHex ) == hostFingerprint );
+
+            client.Unsubscribe( &confirmer );
+            spoofer.Withdraw();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

@@ -96,6 +96,11 @@
 #define GUCEF_DRN_CDRNRPCTRANSPORT_H
 #endif /* GUCEF_DRN_CDRNRPCTRANSPORT_H ? */
 
+#ifndef GUCEF_COM_CCOMGLOBAL_H
+#include "gucefCOM_CComGlobal.h"
+#define GUCEF_COM_CCOMGLOBAL_H
+#endif /* GUCEF_COM_CCOMGLOBAL_H ? */
+
 #ifndef GUCEF_DRNUTILS_CREMOTESERVICEHOST_H
 #include "gucefDRNUTILS_CRemoteServiceHost.h"
 #define GUCEF_DRNUTILS_CREMOTESERVICEHOST_H
@@ -171,6 +176,21 @@ class CPairingWatch : public CORE::CObserver
 
 /*-------------------------------------------------------------------------*/
 
+/** How telling a failure of a candidate is for the person: a service that refused the code says more than one that did not answer */
+UInt32
+FailureRank( CDevicePairingClient::TPairingFailure failure )
+{GUCEF_TRACE;
+
+    switch ( failure )
+    {
+        case CDevicePairingClient::PAIRINGFAILURE_WRONG_CODE :      return 3;
+        case CDevicePairingClient::PAIRINGFAILURE_SERVER_PROOF :    return 2;
+        default :                                                   return 1;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt64
 NowMs( void )
 {GUCEF_TRACE;
@@ -203,7 +223,11 @@ CDevicePairingClient::SRequest::SRequest( void )
     , appVersion()
     , connectTimeoutMs( 20000 )
     , confirmationTimeoutMs( 300000 )
+    , lanDiscovery( true )
+    , lanDiscoveryFinder()
 {GUCEF_TRACE;
+
+    lanDiscoveryFinder.findMinCandidates = 0;
 
 }
 
@@ -268,9 +292,135 @@ CDevicePairingClient::PumpStep( const CORE::PulseGeneratorPtr& pulseGeneratorRef
 
 /*-------------------------------------------------------------------------*/
 
+CDevicePairingClient::SPairingCandidate::SPairingCandidate( void )
+    : pairingEndpoint()
+    , displayName()
+    , instanceId()
+    , keyFingerprint()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevicePairingClient::FindPairingCandidates( const SRequest& request, TPairingCandidateVector& candidates )
+{GUCEF_TRACE;
+
+    candidates.clear();
+    if ( !request.lanDiscovery || !request.pairingEndpoint.IsNULLOrEmpty() )
+        return false;
+
+    // the discovery clients are registered by gucefCOM
+    COM::CComGlobal::Instance();
+
+    COMCORE::CServiceFinder::TServiceCandidateVector found;
+    if ( m_pulse.IsNULL() )
+    {
+        COMCORE::CServiceFinder::FindOnce( request.lanDiscoveryFinder, found );
+    }
+    else
+    {
+        // on the pulse generator of the client, which this thread drives or nobody does: the look runs on it
+        COMCORE::CServiceFinder finder( m_pulse, request.lanDiscoveryFinder );
+        if ( !finder.Start() )
+            return false;
+        const UInt64 startedAt = NowMs();
+        const UInt32 wanted = request.lanDiscoveryFinder.findMinCandidates;
+        while ( NowMs() - startedAt < request.lanDiscoveryFinder.findTimeoutMs && ( 0 == wanted || finder.GetCandidateCount() < wanted ) )
+            PumpStep( m_pulse );
+        finder.GetCandidates( found );
+        finder.Stop();
+    }
+
+    for ( UInt32 i=0; i<found.size(); ++i )
+    {
+        const COMCORE::CServiceAnnouncement& announcement = found[ i ].announcement;
+        if ( !announcement.properties.HasKey( "pairingPort" ) )
+            continue;
+        const CORE::CString port = announcement.properties.GetValueAlways( "pairingPort" ).AsString();
+        const UInt32 portNumber = port.IsNULLOrEmpty() ? 0 : CORE::StringToUInt32( port );
+        if ( portNumber < 1 || portNumber > 65535 )
+            continue;
+
+        // the host of the first tcp endpoint: the announcement is about the session listener, the pairing listener has the same host
+        CORE::CString host;
+        for ( UInt32 e=0; e<announcement.endpoints.size() && host.IsNULLOrEmpty(); ++e )
+        {
+            const CORE::CString& endpoint = announcement.endpoints[ e ];
+            if ( !endpoint.StartsWith( "tcp://" ) )
+                continue;
+            const CORE::CString address = endpoint.CutChars( 6, true );
+            const Int32 colon = address.HasChar( ':', false );
+            host = colon > 0 ? address.SubstrToIndex( (UInt32) colon, true ) : address;
+        }
+        if ( host.IsNULLOrEmpty() )
+            continue;
+
+        SPairingCandidate candidate;
+        candidate.pairingEndpoint = "tcp://" + host + ":" + CORE::ToString( portNumber );
+        candidate.displayName = announcement.displayName;
+        candidate.instanceId = announcement.instanceId;
+        candidate.keyFingerprint = announcement.keyFingerprint;
+        candidates.push_back( candidate );
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DevicePairingClient: " << candidates.size() << " pairing candidates on the local network" );
+    return !candidates.empty();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CDevicePairingClient::Pair( const SRequest& request, CDeviceCredentials& result, CORE::CString& error,
                             AUTH::ICredentialStore* store, const CORE::CString& slot )
+{GUCEF_TRACE;
+
+    // a given endpoint always wins: nothing is looked for on the network then
+    if ( !request.pairingEndpoint.IsNULLOrEmpty() || !request.lanDiscovery )
+        return PairAtEndpoint( request, result, error, store, slot );
+
+    m_lastFailure = PAIRINGFAILURE_NONE;
+    m_fingerprint.Clear();
+    CORE::CString normalisedCode;
+    if ( !CDevicePairingCrypto::NormaliseCode( request.code, normalisedCode ) )
+        return Fail( PAIRINGFAILURE_BAD_REQUEST, "the pairing code is not 16 characters of the code alphabet", error );
+    normalisedCode.Clear();
+    TPairingCandidateVector candidates;
+    if ( !FindPairingCandidates( request, candidates ) )
+        return Fail( PAIRINGFAILURE_UNREACHABLE, "no pairing endpoint was given and no service that offers pairing was found on the local network", error );
+
+    // The candidates are not trusted. The code and the proof of the service decide: a candidate that cannot prove it
+    // knows the code (SERVER_PROOF) or does not answer is passed over, any other outcome is the one of the service
+    SRequest candidateRequest( request );
+    TPairingFailure bestFailure = PAIRINGFAILURE_UNREACHABLE;
+    CORE::CString bestError;
+    for ( UInt32 i=0; i<candidates.size(); ++i )
+    {
+        candidateRequest.pairingEndpoint = candidates[ i ].pairingEndpoint;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DevicePairingClient: Pairing with the candidate " << candidates[ i ].displayName << " at " << candidates[ i ].pairingEndpoint );
+        if ( PairAtEndpoint( candidateRequest, result, error, store, slot ) )
+            return true;
+
+        // a candidate that did not answer, did not prove it knows the code or refused the code is passed over: it may be
+        // a service that is not the one of the person. Any other outcome is the one of a service that took the pairing up
+        if ( PAIRINGFAILURE_UNREACHABLE != m_lastFailure && PAIRINGFAILURE_SERVER_PROOF != m_lastFailure && PAIRINGFAILURE_WRONG_CODE != m_lastFailure )
+            return false;
+        if ( FailureRank( m_lastFailure ) >= FailureRank( bestFailure ) || bestError.IsNULLOrEmpty() )
+        {
+            bestFailure = m_lastFailure;
+            bestError = error;
+        }
+    }
+    m_lastFailure = bestFailure;
+    error = bestError;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevicePairingClient::PairAtEndpoint( const SRequest& request, CDeviceCredentials& result, CORE::CString& error,
+                                      AUTH::ICredentialStore* store, const CORE::CString& slot )
 {GUCEF_TRACE;
 
     m_lastFailure = PAIRINGFAILURE_NONE;
