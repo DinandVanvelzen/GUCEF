@@ -40,11 +40,13 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_CAuthSettingsProfile.cpp \
   src/gucefAUTH_CAuthUnavailableProvider.cpp \
   src/gucefAUTH_CAuthUrl.cpp \
+  src/gucefAUTH_CChromeSignInBrowser.cpp \
   src/gucefAUTH_CDescriptorAuthProvider.cpp \
   src/gucefAUTH_CEMailOAuthCredentialProvider.cpp \
   src/gucefAUTH_CFileCredentialStore.cpp \
   src/gucefAUTH_CFileLock.cpp \
   src/gucefAUTH_CIAuthProvider.cpp \
+  src/gucefAUTH_CIWebSignInBrowser.cpp \
   src/gucefAUTH_CJwk.cpp \
   src/gucefAUTH_CJwksCache.cpp \
   src/gucefAUTH_CJwt.cpp \
@@ -66,6 +68,13 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_COpenId2.cpp \
   src/gucefAUTH_COpenId2ProfileRegistry.cpp \
   src/gucefAUTH_CSecretString.cpp \
+  src/gucefAUTH_CWebSession.cpp \
+  src/gucefAUTH_CWebSessionCookie.cpp \
+  src/gucefAUTH_CWebSessionSignIn.cpp \
+  src/gucefAUTH_CWebSessionSignInSettings.cpp \
+  src/gucefAUTH_CWebSessionSignInTaskConsumer.cpp \
+  src/gucefAUTH_CWebSessionSignInTaskData.cpp \
+  src/gucefAUTH_CWebSignInCredentials.cpp \
   src/gucefAUTH_Clock.cpp \
   src/gucefAUTH_IAccountProfile.cpp \
   src/gucefAUTH_IAuthFlowEngine.cpp \

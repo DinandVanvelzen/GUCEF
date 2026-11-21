@@ -106,6 +106,7 @@
 #include "TestAuthManager.h"
 #include "TestMailOAuth.h"
 #include "TestAccessTokenKeeper.h"
+#include "TestWebSessionSignIn.h"
 #include "TestOpenId2Backend.h"
 #include "TestUnavailableProviders.h"
 #include "TestJwt.h"
@@ -201,6 +202,7 @@ GUCEF_OSMAIN_BEGIN
         if ( RunGroup( "UnavailableProviders" ) ) PerformUnavailableProviderTests();
         if ( RunGroup( "MailOAuth" ) )      PerformMailOAuthTests();
         if ( RunGroup( "AccessTokenKeeper" ) ) PerformAccessTokenKeeperTests();
+        if ( RunGroup( "WebSessionSignIn" ) ) PerformWebSessionSignInTests();
 
         // The login engine over https with the native HTTP client backend, which has to be the only one there: before the plugin is loaded again
         if ( RunGroup( "OAuth2Tls" ) )      PerformOAuth2TlsTests();

@@ -30,8 +30,10 @@ LOCAL_SRC_FILES := \
   src/TestCredentialStore.cpp \
   src/TestCredentialStoreKeyFile.cpp \
   src/TestDescriptors.cpp \
+  src/TestFakeLoginSite.cpp \
   src/TestFakeOidc.cpp \
   src/TestFakeProvider.cpp \
+  src/TestFakeSignInBrowser.cpp \
   src/TestJwt.cpp \
   src/TestKeyring.cpp \
   src/TestLinkStore.cpp \
@@ -45,6 +47,7 @@ LOCAL_SRC_FILES := \
   src/TestSettings.cpp \
   src/TestSigner.cpp \
   src/TestUnavailableProviders.cpp \
+  src/TestWebSessionSignIn.cpp \
   src/gucefAUTH_TestApp.cpp
 
 LOCAL_C_INCLUDES := \

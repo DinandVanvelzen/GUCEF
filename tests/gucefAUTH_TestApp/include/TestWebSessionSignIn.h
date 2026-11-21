@@ -1,0 +1,34 @@
+/*
+ *  gucefAUTH_TestApp: Application for testing gucefAUTH
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+#ifndef GUCEF_AUTH_TESTAPP_TESTWEBSESSIONSIGNIN_H
+#define GUCEF_AUTH_TESTAPP_TESTWEBSESSIONSIGNIN_H
+
+/**
+ *  Web session sign in: sessions and credentials in the credential store, and CWebSessionSignIn against a fake login
+ *  site through a test double of the browser: automatic sign in, session reuse, re-sign in after expiry, hand over for
+ *  a captcha and an e-mail code, manual sign in, a refused password, cancel, time outs, a closed window, and that
+ *  nothing secret reaches a log or a file.
+ *
+ *  With GUCEF_TEST_BROWSER=1 and a Chrome, Chromium, Edge or Brave on this computer the same site is also signed in to
+ *  with the real browser, headless (--headless=new) and kept off every network but the loopback; skipped otherwise.
+ */
+void
+PerformWebSessionSignInTests( void );
+
+#endif /* GUCEF_AUTH_TESTAPP_TESTWEBSESSIONSIGNIN_H ? */

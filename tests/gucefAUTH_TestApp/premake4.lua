@@ -57,8 +57,10 @@ files( {
   "include/TestCredentialStore.h",
   "include/TestCredentialStoreKeyFile.h",
   "include/TestDescriptors.h",
+  "include/TestFakeLoginSite.h",
   "include/TestFakeOidc.h",
   "include/TestFakeProvider.h",
+  "include/TestFakeSignInBrowser.h",
   "include/TestFiles.h",
   "include/TestFlowEngine.h",
   "include/TestHttp.h",
@@ -81,7 +83,8 @@ files( {
   "include/TestSettings.h",
   "include/TestSigner.h",
   "include/TestText.h",
-  "include/TestUnavailableProviders.h"
+  "include/TestUnavailableProviders.h",
+  "include/TestWebSessionSignIn.h"
  } )
 
 
@@ -98,8 +101,10 @@ files( {
   "src/TestCredentialStore.cpp",
   "src/TestCredentialStoreKeyFile.cpp",
   "src/TestDescriptors.cpp",
+  "src/TestFakeLoginSite.cpp",
   "src/TestFakeOidc.cpp",
   "src/TestFakeProvider.cpp",
+  "src/TestFakeSignInBrowser.cpp",
   "src/TestJwt.cpp",
   "src/TestKeyring.cpp",
   "src/TestLinkStore.cpp",
@@ -113,6 +118,7 @@ files( {
   "src/TestSettings.cpp",
   "src/TestSigner.cpp",
   "src/TestUnavailableProviders.cpp",
+  "src/TestWebSessionSignIn.cpp",
   "src/gucefAUTH_TestApp.cpp"
  } )
 

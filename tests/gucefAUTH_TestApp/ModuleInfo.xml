@@ -25,6 +25,7 @@
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="httpclientpluginCURL" />
             <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

@@ -55,6 +55,11 @@
 #define GUCEF_AUTH_CKEYRINGOPERATIONTASKCONSUMER_H
 #endif /* GUCEF_AUTH_CKEYRINGOPERATIONTASKCONSUMER_H ? */
 
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H
+#include "gucefAUTH_CWebSessionSignInTaskConsumer.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -173,6 +178,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthGlobal
 
     CAuthProviderFactory* m_providerFactory;
     TKeyringOperationTaskConsumerFactory* m_keyringOperationFactory;   /**< the task of the asynchronous operations of CKeyringSession */
+    TWebSessionSignInTaskConsumerFactory* m_webSignInTaskFactory;      /**< the task of CWebSessionSignIn::SignInAsync() */
     CAuthProviderRegistry* m_descriptorRegistry;
     COpenId2ProfileRegistry* m_openId2Profiles;
     CAuthManager* m_manager;
