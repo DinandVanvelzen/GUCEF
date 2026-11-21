@@ -720,6 +720,79 @@ PerformGuiContentBrowserFormTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Content browser: The actions of the items are a context menu of the tiles and of the list: a right click selects the item and opens the menu, a choice is notified for the selection, folders and a browser without actions get no menu" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CContentBrowserForm form( context );
+        ASSERT_TRUE( form.Build() );
+        ASSERT_TRUE( form.AddRoot( "Content", MakeContent() ) );
+        form.SetViewMode( GUI::CContentBrowserForm::VIEWMODE_THUMBNAILS );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        CEventRecorder chosen( &form, GUI::CContentBrowserForm::ItemActionEvent );
+
+        // no actions: a right click selects, there is no menu
+        GUI::CWidget* fileTile = form.GetWidget( "Tile_3" );
+        GUI::CWidget* folderTile = form.GetWidget( "Tile_2" );
+        ASSERT_TRUE( GUCEF_NULL != fileTile && GUCEF_NULL != folderTile );
+        if ( GUCEF_NULL == fileTile || GUCEF_NULL == folderTile )
+            return;
+        context->FlushChanges();
+        const GUI::CRect fileRect = fileTile->GetRect();
+        const GUI::CRect folderRect = folderTile->GetRect();
+        ClickAt( context, fileRect.left + fileRect.width / 2, fileRect.top + fileRect.height / 2, GUI::MOUSEBUTTON_RIGHT );
+        ASSERT_TRUE( !form.IsItemActionsOpen() && GUCEF_NULL == context->GetPopup() );
+
+        GUI::TContextMenuItemVector actions;
+        actions.push_back( GUI::CContextMenuItem( "open", "Open", "Enter" ) );
+        actions.push_back( GUI::CContextMenuItem::Separator() );
+        actions.push_back( GUI::CContextMenuItem( "remove", "Remove", CORE::CString::Empty, false ) );
+        form.SetItemActions( actions );
+        ASSERT_TRUE( 3 == form.GetItemActions().size() );
+
+        // a right click on a file: it is the selection and its menu opens; the first item is chosen with a click on it
+        context->RenderFrame( 500 );
+        ClickAt( context, fileRect.left + fileRect.width / 2, fileRect.top + fileRect.height / 2, GUI::MOUSEBUTTON_RIGHT );
+        ASSERT_TRUE( 1 == form.GetSelection().size() && 3 == form.GetSelection()[ 0 ] && form.IsItemActionsOpen() );
+        GUI::CPopupMenu* menu = GUI::CWidget::As< GUI::CPopupMenu >( context->GetPopup() );
+        ASSERT_TRUE( GUCEF_NULL != menu && 3 == menu->GetItems().size() );
+        if ( GUCEF_NULL == menu )
+            return;
+        context->FlushChanges();
+        context->RenderFrame( 500 );
+        const GUI::CRect menuRect = menu->GetRect();
+        ClickAt( context, menuRect.left + 10, menuRect.top + menu->GetRowHeight() / 2 );
+        ASSERT_TRUE( 1 == chosen.count && "open" == static_cast< CORE::TCloneableString* >( chosen.data[ 0 ] )->GetData() );
+        ASSERT_TRUE( !form.IsItemActionsOpen() && 1 == form.GetSelectedPaths().size() && "/a.png" == form.GetSelectedPaths()[ 0 ] );
+
+        // a disabled action is not chosen; a folder has no menu
+        ASSERT_FALSE( form.ChooseItemAction( "remove" ) );
+        ASSERT_FALSE( form.ChooseItemAction( "unknown" ) );
+        context->RenderFrame( 500 );
+        ClickAt( context, folderRect.left + folderRect.width / 2, folderRect.top + folderRect.height / 2, GUI::MOUSEBUTTON_RIGHT );
+        ASSERT_TRUE( !form.IsItemActionsOpen() && 1 == chosen.count );
+
+        // the list of the details view: its context menu has the same actions
+        form.SetViewMode( GUI::CContentBrowserForm::VIEWMODE_DETAILS );
+        context->RenderFrame( 16 );
+        GUI::CGridView* grid = form.GetWidgetAs< GUI::CGridView >( "Items" );
+        ASSERT_TRUE( GUCEF_NULL != grid );
+        if ( GUCEF_NULL == grid )
+            return;
+        ASSERT_TRUE( grid->OpenContextMenu( 4, 0, 100, 100 ) );
+        ASSERT_TRUE( form.IsItemActionsOpen() && 1 == form.GetSelection().size() && 4 == form.GetSelection()[ 0 ] );
+        ASSERT_TRUE( grid->ChooseContextMenuItem( "open" ) );
+        ASSERT_TRUE( 2 == chosen.count && "open" == static_cast< CORE::TCloneableString* >( chosen.data[ 1 ] )->GetData() && "/b.txt" == form.GetSelectedPaths()[ 0 ] );
+        ASSERT_FALSE( grid->OpenContextMenu( 0, 0, 100, 100 ) );        // a folder
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Content browser: A layout of the form saves and loads again: the new form browses the roots it is given, and the tiles are made again" )
     try
     {

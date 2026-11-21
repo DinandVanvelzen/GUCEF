@@ -130,7 +130,7 @@ CRemoteFetchJobs::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CRemoteFetchJobs::SetFileSystem( ASSETSTORE::CRemoteAssetFileSystem* system )
+CRemoteFetchJobs::SetFileSystem( ASSETSTORE::CRemoteAssetShares* system )
 {GUCEF_TRACE;
 
     if ( system != m_system )

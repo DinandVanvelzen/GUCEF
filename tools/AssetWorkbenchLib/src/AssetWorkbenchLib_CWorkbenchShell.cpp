@@ -288,6 +288,7 @@ struct SMenuItem
 {
     const char* path;
     const char* actionId;
+    bool remoteOnly;        /**< only while the workbench works on a remote service */
 };
 
 const SMenuItem g_menuItems[] =
@@ -323,9 +324,10 @@ const SMenuItem g_menuItems[] =
     { "Jobs/Reprocess pack: all steps", "Reprocess:reprocess" },
     { "Jobs/Reprocess pack: roll back regeneration", "Reprocess:rollback" },
     { "Jobs/Convert for Ogre", "ConvertForOgre" },
+    { "Server/Settings...", "ServerSettings", true },
     { "Help/Help of this place", "Help" },
     { "Help/Keyboard shortcuts", "Help:workbench.shortcuts" },
-    { GUCEF_NULL, GUCEF_NULL }
+    { GUCEF_NULL, GUCEF_NULL, false }
 };
 
 /** The actions with a key, in the order the settings list them */
@@ -409,6 +411,8 @@ CWorkbenchShell::CWorkbenchShell( CAssetMounter& mounter )
     , m_bulkController( GUCEF_NULL )
     , m_syncForm( GUCEF_NULL )
     , m_syncController( GUCEF_NULL )
+    , m_serverSettingsForm( GUCEF_NULL )
+    , m_serverSettingsController( GUCEF_NULL )
     , m_jobSummaryWaitMs( 0 )
     , m_shownSummary()
     , m_sourcesHost( GUCEF_NULL )
@@ -859,6 +863,8 @@ CWorkbenchShell::Shutdown( void )
     GUCEF_DELETE m_bulkController;  m_bulkController = GUCEF_NULL;
     GUCEF_DELETE m_syncForm;        m_syncForm = GUCEF_NULL;
     GUCEF_DELETE m_syncController;  m_syncController = GUCEF_NULL;
+    GUCEF_DELETE m_serverSettingsForm;          m_serverSettingsForm = GUCEF_NULL;
+    GUCEF_DELETE m_serverSettingsController;    m_serverSettingsController = GUCEF_NULL;
     GUCEF_DELETE m_jobsForm;        m_jobsForm = GUCEF_NULL;
     m_jobSummaryButton = GUCEF_NULL;
     m_activityHost = GUCEF_NULL;
@@ -2922,6 +2928,12 @@ CWorkbenchShell::AttachJobs( void )
         m_syncController = GUCEF_NEW CLibrarySyncController( *service );
     if ( GUCEF_NULL != m_syncForm )
         m_syncForm->SetController( m_syncController );
+    // the settings of the server: of a remote service only
+    if ( GUCEF_NULL != service && !service->IsInProcess() && GUCEF_NULL == m_serverSettingsController )
+        m_serverSettingsController = GUCEF_NEW CServerSettingsController( *service );
+    if ( GUCEF_NULL != m_serverSettingsForm )
+        m_serverSettingsForm->SetController( m_serverSettingsController );
+    ShowMenuItems();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3017,6 +3029,14 @@ CWorkbenchShell::DetachService( void )
         m_syncForm->SetController( GUCEF_NULL );
     GUCEF_DELETE m_syncController;
     m_syncController = GUCEF_NULL;
+    if ( GUCEF_NULL != m_serverSettingsForm )
+    {
+        m_serverSettingsForm->SetController( GUCEF_NULL );
+        m_serverSettingsForm->Close();
+    }
+    GUCEF_DELETE m_serverSettingsController;
+    m_serverSettingsController = GUCEF_NULL;
+    ShowMenuItems();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3263,6 +3283,60 @@ CWorkbenchShell::ShowLibrarySync( void )
 {GUCEF_TRACE;
 
     CLibrarySyncForm* form = GetLibrarySyncForm();
+    return GUCEF_NULL != form && form->Open();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchShell::IsServerSettingsAvailable( void ) const
+{GUCEF_TRACE;
+
+    ASSETSTORE::CIAssetStoreService* service = GUCEF_NULL != m_sources ? m_sources->GetService() : GUCEF_NULL;
+    return GUCEF_NULL != service && !service->IsInProcess() && GUCEF_NULL != m_serverSettingsController;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CServerSettingsForm*
+CWorkbenchShell::GetServerSettingsForm( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_serverSettingsForm && m_initialized )
+    {
+        m_serverSettingsForm = GUCEF_NEW CServerSettingsForm( m_context );
+        if ( !m_serverSettingsForm->Build() )
+        {
+            GUCEF_DELETE m_serverSettingsForm;
+            m_serverSettingsForm = GUCEF_NULL;
+            return GUCEF_NULL;
+        }
+        m_serverSettingsForm->SetController( m_serverSettingsController );
+    }
+    return m_serverSettingsForm;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CServerSettingsController*
+CWorkbenchShell::GetServerSettingsController( void ) const
+{GUCEF_TRACE;
+
+    return m_serverSettingsController;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchShell::ShowServerSettings( void )
+{GUCEF_TRACE;
+
+    if ( !IsServerSettingsAvailable() )
+    {
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CWorkbenchShell: the settings of a server are shown while the workbench is connected to a remote asset store service" );
+        return false;
+    }
+    CServerSettingsForm* form = GetServerSettingsForm();
     return GUCEF_NULL != form && form->Open();
 }
 
@@ -3540,6 +3614,9 @@ CWorkbenchShell::ExecuteAction( const CORE::CString& actionId )
     if ( "LibrarySync" == actionId )
         return ShowLibrarySync();
     else
+    if ( "ServerSettings" == actionId )
+        return ShowServerSettings();
+    else
     if ( 0 == actionId.HasSubstr( "Redo:" ) )
     {
         CWorkbenchRedoActions::ERedoAction redo = CWorkbenchRedoActions::REDO_REINDEX;
@@ -3596,12 +3673,25 @@ CWorkbenchShell::BuildMenuBar( void )
         return;
     m_menuBar->SetProperty( GUI::EWidgetProperty_Position, "0,0 0,0" );
     m_menuBar->SetProperty( GUI::EWidgetProperty_Size, "1,0 0," + CORE::UInt32ToString( MenuBarHeight ) );
-    GUI::TStringVector items;
-    for ( UInt32 i=0; GUCEF_NULL != g_menuItems[ i ].path; ++i )
-        items.push_back( g_menuItems[ i ].path );
-    m_menuBar->SetProperty( GUI::EWidgetProperty_Items, GUI::JoinStringList( items ) );
+    ShowMenuItems();
     TEventCallback itemCallback( this, &CWorkbenchShell::OnMenuItemActivated );
     SubscribeTo( m_menuBar, GUI::CWidget::ItemActivatedEvent, itemCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchShell::ShowMenuItems( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_menuBar )
+        return;
+    const bool remote = IsServerSettingsAvailable();
+    GUI::TStringVector items;
+    for ( UInt32 i=0; GUCEF_NULL != g_menuItems[ i ].path; ++i )
+        if ( remote || !g_menuItems[ i ].remoteOnly )
+            items.push_back( g_menuItems[ i ].path );
+    m_menuBar->SetProperty( GUI::EWidgetProperty_Items, GUI::JoinStringList( items ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3921,6 +4011,9 @@ CWorkbenchShell::Update( UInt32 thumbnailBudgetInMs )
         m_thumbnails->Update( thumbnailBudgetInMs );
     if ( GUCEF_NULL != m_sources )
         m_sources->Update( thumbnailBudgetInMs );
+    // the answers about the settings of the server, also while their page is closed (the console asks too)
+    if ( GUCEF_NULL != m_serverSettingsController )
+        m_serverSettingsController->Update();
 }
 
 /*-------------------------------------------------------------------------*/

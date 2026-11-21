@@ -67,7 +67,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteCookedDiscovery : public ASSETSTORE::C
 
     virtual ~CRemoteCookedDiscovery() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void Discover( ASSETSTORE::CRemoteAssetFileSystem& system, CORE::CString::StringVector& servicePaths ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Discover( ASSETSTORE::CIRemoteFileSource& system, CORE::CString::StringVector& servicePaths ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** How many cooked files the last Discover() found */
     UInt32 GetFoundCount( void ) const;

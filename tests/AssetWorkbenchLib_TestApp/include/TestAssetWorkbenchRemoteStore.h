@@ -28,4 +28,10 @@ void PerformAssetWorkbenchRemoteStoreTests( void );
 
 void PerformAssetWorkbenchRemoteThumbnailTests( void );
 
+/** The files of the remote store on the shares of the service: the thread of the interface that never waits, the settings and cache of the previous version, a keep offline that is refused */
+void PerformAssetWorkbenchRemoteMigrationTests( void );
+
+/** The Sources tab on a remote store and the opening of what it lists: an item of an online store, a pack or an asset of the library */
+void PerformAssetWorkbenchRemoteOpenTests( void );
+
 #endif /* ASSETWORKBENCHLIB_TESTAPP_TESTREMOTESTORE_H ? */

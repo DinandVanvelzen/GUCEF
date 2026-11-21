@@ -210,6 +210,8 @@ SetUpWorkbenchTests( void )
     // the window backend, the platform window driver, the GUI driver, the fonts and the archives of the VFS
     LoadGuiPlugin( "vfspluginLIBARCHIVE" );
     LoadGuiPlugin( "vfspluginUNITYPACKAGE" );
+    // the files of a remote asset store: its share is mounted as an archive of the type "drn"
+    LoadGuiPlugin( "vfspluginDRN" );
     LoadGuiPlugin( "fontpluginFREETYPE" );
     LoadGuiPlugin( "guidriverOgre" );
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )

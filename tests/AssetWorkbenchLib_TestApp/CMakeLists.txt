@@ -27,6 +27,7 @@ if (LINUX32)
     include/TestAssetWorkbenchRemoteStore.h
     include/TestAssetWorkbenchRender.h
     include/TestAssetWorkbenchResourceView.h
+    include/TestAssetWorkbenchServerSettings.h
     include/TestAssetWorkbenchServiceAdapters.h
     include/TestAssetWorkbenchSettings.h
     include/TestAssetWorkbenchShell.h
@@ -62,6 +63,7 @@ if (LINUX32)
     src/TestAssetWorkbenchRemoteStore.cpp
     src/TestAssetWorkbenchRender.cpp
     src/TestAssetWorkbenchResourceView.cpp
+    src/TestAssetWorkbenchServerSettings.cpp
     src/TestAssetWorkbenchServiceAdapters.cpp
     src/TestAssetWorkbenchSettings.cpp
     src/TestAssetWorkbenchShell.cpp
@@ -90,6 +92,7 @@ elseif (LINUX64)
     include/TestAssetWorkbenchRemoteStore.h
     include/TestAssetWorkbenchRender.h
     include/TestAssetWorkbenchResourceView.h
+    include/TestAssetWorkbenchServerSettings.h
     include/TestAssetWorkbenchServiceAdapters.h
     include/TestAssetWorkbenchSettings.h
     include/TestAssetWorkbenchShell.h
@@ -125,6 +128,7 @@ elseif (LINUX64)
     src/TestAssetWorkbenchRemoteStore.cpp
     src/TestAssetWorkbenchRender.cpp
     src/TestAssetWorkbenchResourceView.cpp
+    src/TestAssetWorkbenchServerSettings.cpp
     src/TestAssetWorkbenchServiceAdapters.cpp
     src/TestAssetWorkbenchSettings.cpp
     src/TestAssetWorkbenchShell.cpp
@@ -153,6 +157,7 @@ elseif (WIN32)
     include/TestAssetWorkbenchRemoteStore.h
     include/TestAssetWorkbenchRender.h
     include/TestAssetWorkbenchResourceView.h
+    include/TestAssetWorkbenchServerSettings.h
     include/TestAssetWorkbenchServiceAdapters.h
     include/TestAssetWorkbenchSettings.h
     include/TestAssetWorkbenchShell.h
@@ -188,6 +193,7 @@ elseif (WIN32)
     src/TestAssetWorkbenchRemoteStore.cpp
     src/TestAssetWorkbenchRender.cpp
     src/TestAssetWorkbenchResourceView.cpp
+    src/TestAssetWorkbenchServerSettings.cpp
     src/TestAssetWorkbenchServiceAdapters.cpp
     src/TestAssetWorkbenchSettings.cpp
     src/TestAssetWorkbenchShell.cpp
@@ -216,6 +222,7 @@ elseif (WIN64)
     include/TestAssetWorkbenchRemoteStore.h
     include/TestAssetWorkbenchRender.h
     include/TestAssetWorkbenchResourceView.h
+    include/TestAssetWorkbenchServerSettings.h
     include/TestAssetWorkbenchServiceAdapters.h
     include/TestAssetWorkbenchSettings.h
     include/TestAssetWorkbenchShell.h
@@ -251,6 +258,7 @@ elseif (WIN64)
     src/TestAssetWorkbenchRemoteStore.cpp
     src/TestAssetWorkbenchRender.cpp
     src/TestAssetWorkbenchResourceView.cpp
+    src/TestAssetWorkbenchServerSettings.cpp
     src/TestAssetWorkbenchServiceAdapters.cpp
     src/TestAssetWorkbenchSettings.cpp
     src/TestAssetWorkbenchShell.cpp

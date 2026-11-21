@@ -160,6 +160,11 @@
 #define ASSETWORKBENCHLIB_CLIBRARYSYNCFORM_H
 #endif /* ASSETWORKBENCHLIB_CLIBRARYSYNCFORM_H ? */
 
+#ifndef ASSETWORKBENCHLIB_CSERVERSETTINGSFORM_H
+#include "AssetWorkbenchLib_CServerSettingsForm.h"
+#define ASSETWORKBENCHLIB_CSERVERSETTINGSFORM_H
+#endif /* ASSETWORKBENCHLIB_CSERVERSETTINGSFORM_H ? */
+
 #ifndef ASSETWORKBENCHLIB_CCOOKEDOUTPUTRESOLVER_H
 #include "AssetWorkbenchLib_CCookedOutputResolver.h"
 #define ASSETWORKBENCHLIB_CCOOKEDOUTPUTRESOLVER_H
@@ -829,6 +834,8 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchShell : public CORE::CObservingNoti
     void DetachService( void );
     void ReattachService( void );
     void BuildMenuBar( void );
+    /** The items of the menu bar: those of a remote service only while the workbench works on one */
+    void ShowMenuItems( void );
     void UpdateMenuBar( void );
     void BindShortcuts( void );
 
@@ -891,6 +898,19 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchShell : public CORE::CObservingNoti
 
     CLibrarySyncForm* GetLibrarySyncForm( void );
     CLibrarySyncController* GetLibrarySyncController( void ) const;
+
+    /**
+     *  The settings of the server (a window, made on first use): the run-time settings of the remote asset store service the workbench is
+     *  connected to and the sync profiles of its stores. Only while the workbench works on a remote service (the menu item Server/Settings...
+     *  is there only then); false otherwise
+     */
+    bool ShowServerSettings( void );
+
+    /** Whether the workbench works on a remote service, so the settings of the server can be shown */
+    bool IsServerSettingsAvailable( void ) const;
+
+    CServerSettingsForm* GetServerSettingsForm( void );
+    CServerSettingsController* GetServerSettingsController( void ) const;
 
     /** The scope of the browser as bulk conversion settings: the selected assets, else the folder, else the pack of the sources tab */
     CBulkConversionSettings MakeBulkScopeOfBrowser( void ) const;
@@ -972,6 +992,8 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchShell : public CORE::CObservingNoti
     CBulkConversionController* m_bulkController;
     CLibrarySyncForm* m_syncForm;
     CLibrarySyncController* m_syncController;
+    CServerSettingsForm* m_serverSettingsForm;
+    CServerSettingsController* m_serverSettingsController;
     UInt32 m_jobSummaryWaitMs;
     CWorkbenchJobSummary m_shownSummary;
     GUI::CWidget* m_sourcesHost;

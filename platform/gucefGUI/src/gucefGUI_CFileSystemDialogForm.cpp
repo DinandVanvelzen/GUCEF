@@ -1911,6 +1911,12 @@ CFileSystemDialogForm::DescribeResult( CORE::TFileSystemAccessResult result )
         case CORE::FILESYSTEMACCESS_QUEUEING_FAILED:        return "It could not be started.";
         case CORE::FILESYSTEMACCESS_CANCELLED:              return "It was stopped.";
         case CORE::FILESYSTEMACCESS_TIMEOUT:                return "It took too long.";
+        case CORE::FILESYSTEMACCESS_REMOTE_CONNECTION_PENDING:   return "There is no connection to that place right now. Try again in a moment.";
+        case CORE::FILESYSTEMACCESS_REMOTE_RESOURCE_CHANGED:     return "It was changed on the other side. Open it again to get the new version.";
+        case CORE::FILESYSTEMACCESS_REMOTE_CAPLIMIT_RETRY_LATER: return "The other side is busy. Try again in a moment.";
+        case CORE::FILESYSTEMACCESS_RESOURCE_CORRUPT:            return "The data did not pass its check and cannot be trusted.";
+        case CORE::FILESYSTEMACCESS_REMOTE_PROTOCOL_ERROR:       return "The other side gave an answer that makes no sense.";
+        case CORE::FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE:    return "That is not here yet. It is being fetched and will appear when it arrives.";
         default:                                            return "It could not be done.";
     }
 }

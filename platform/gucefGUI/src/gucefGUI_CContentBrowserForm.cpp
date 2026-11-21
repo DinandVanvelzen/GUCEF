@@ -54,6 +54,11 @@
 #define GUCEF_GUI_CGRIDVIEW_H
 #endif /* GUCEF_GUI_CGRIDVIEW_H ? */
 
+#ifndef GUCEF_GUI_CPOPUPMENU_H
+#include "gucefGUI_CPopupMenu.h"
+#define GUCEF_GUI_CPOPUPMENU_H
+#endif /* GUCEF_GUI_CPOPUPMENU_H ? */
+
 #ifndef GUCEF_GUI_CTREEVIEW_H
 #include "gucefGUI_CTreeview.h"
 #define GUCEF_GUI_CTREEVIEW_H
@@ -107,6 +112,7 @@ const CORE::CEvent CContentBrowserForm::FolderChangedEvent = "GUCEF::GUI::CConte
 const CORE::CEvent CContentBrowserForm::FolderActivatedEvent = "GUCEF::GUI::CContentBrowserForm::FolderActivatedEvent";
 const CORE::CEvent CContentBrowserForm::FilterChangedEvent = "GUCEF::GUI::CContentBrowserForm::FilterChangedEvent";
 const CORE::CEvent CContentBrowserForm::ViewSwitchedEvent = "GUCEF::GUI::CContentBrowserForm::ViewSwitchedEvent";
+const CORE::CEvent CContentBrowserForm::ItemActionEvent = "GUCEF::GUI::CContentBrowserForm::ItemActionEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -331,6 +337,7 @@ CContentBrowserForm::RegisterEvents( void )
     FolderActivatedEvent.Initialize();
     FilterChangedEvent.Initialize();
     ViewSwitchedEvent.Initialize();
+    ItemActionEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -377,6 +384,8 @@ CContentBrowserForm::CContentBrowserForm( void )
     , m_normalDirectory()
     , m_normalLabel( "Files" )
     , m_alternateLabel( "Alternate" )
+    , m_itemActions()
+    , m_itemMenu( GUCEF_NULL )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -426,6 +435,8 @@ CContentBrowserForm::CContentBrowserForm( CIGUIContext* context )
     , m_normalDirectory()
     , m_normalLabel( "Files" )
     , m_alternateLabel( "Alternate" )
+    , m_itemActions()
+    , m_itemMenu( GUCEF_NULL )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -439,6 +450,10 @@ CContentBrowserForm::~CContentBrowserForm()
     UnsubscribeAllFromObserver();
     m_provider = GUCEF_NULL;
     m_resolver = GUCEF_NULL;
+    CWidget* root = GetRootWidget();
+    if ( GUCEF_NULL != m_itemMenu && GUCEF_NULL != root && GUCEF_NULL != root->GetContext() )
+        root->GetContext()->DestroyWidget( m_itemMenu );
+    m_itemMenu = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -608,6 +623,10 @@ CContentBrowserForm::OnPostLayoutLoad( void )
         SubscribeTo( widget, CGridView::ColumnClickedEvent, columnCallback );
         TEventCallback itemCallback( this, &CContentBrowserForm::OnItemsItemActivated );
         SubscribeTo( widget, CWidget::ItemActivatedEvent, itemCallback );
+        // the actions of the items as the context menu of the list (nothing is shown while there are none)
+        CGridView* grid = CWidget::As< CGridView >( widget );
+        if ( GUCEF_NULL != grid )
+            grid->SetContextMenuProvider( this );
     }
     widget = GetWidget( "Thumbs" );
     if ( GUCEF_NULL != widget )
@@ -1494,6 +1513,149 @@ CContentBrowserForm::ActivateItem( UInt32 index )
         NotifyObservers( ItemActivatedEvent, &eventData );
     }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::SetItemActions( const TContextMenuItemVector& actions )
+{GUCEF_TRACE;
+
+    m_itemActions = actions;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TContextMenuItemVector&
+CContentBrowserForm::GetItemActions( void ) const
+{GUCEF_TRACE;
+
+    return m_itemActions;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::SelectionHasFile( void ) const
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32)m_selection.size(); ++i )
+        if ( m_selection[ i ] >= 0 && m_selection[ i ] < (Int32) m_listed.size() && !m_items[ m_listed[ m_selection[ i ] ] ].isDirectory )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::OpenItemActions( Int32 x, Int32 y )
+{GUCEF_TRACE;
+
+    CWidget* root = GetRootWidget();
+    CGUIContext* context = GUCEF_NULL != root ? root->GetContext() : GUCEF_NULL;
+    if ( GUCEF_NULL == context || m_itemActions.empty() || !SelectionHasFile() )
+        return false;
+    if ( GUCEF_NULL == m_itemMenu )
+    {
+        m_itemMenu = CWidget::As< CPopupMenu >( context->CreateWidget( CPopupMenu::GetRegisteredTypeName(), root->GetName() + "#ItemActions", GUCEF_NULL ) );
+        if ( GUCEF_NULL == m_itemMenu )
+            return false;
+        TEventCallback callback( this, &CContentBrowserForm::OnItemMenuActivated );
+        SubscribeTo( m_itemMenu, CWidget::ItemActivatedEvent, callback );
+    }
+    // the menu of the tiles looks like the one of the list: the items of CContextMenuItem
+    CGridView* grid = GetWidgetAs< CGridView >( "Items" );
+    if ( GUCEF_NULL != grid )
+        m_itemMenu->SetProperty( EWidgetProperty_Font, grid->GetPropertyRef( EWidgetProperty_Font ) );
+    CPopupMenu::TStringVector texts;
+    TInt32Vector disabled;
+    for ( UInt32 i=0; i<(UInt32)m_itemActions.size(); ++i )
+    {
+        texts.push_back( m_itemActions[ i ].GetDisplayText() );
+        if ( !m_itemActions[ i ].separator && !m_itemActions[ i ].enabled )
+            disabled.push_back( (Int32) i );
+    }
+    m_itemMenu->SetItems( texts );
+    m_itemMenu->SetIntListProperty( EWidgetProperty_DisabledItems, disabled );
+    return m_itemMenu->ShowAt( x, y );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::IsItemActionsOpen( void ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_itemMenu && GUCEF_NULL != m_itemMenu->GetContext() && m_itemMenu->GetContext()->GetPopup() == m_itemMenu )
+        return true;
+    const CGridView* grid = const_cast< CContentBrowserForm* >( this )->GetWidgetAs< CGridView >( "Items" );
+    return GUCEF_NULL != grid && grid->IsContextMenuOpen();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::ChooseItemAction( const CString& actionId )
+{GUCEF_TRACE;
+
+    if ( !SelectionHasFile() )
+        return false;
+    for ( UInt32 i=0; i<(UInt32)m_itemActions.size(); ++i )
+    {
+        if ( !m_itemActions[ i ].separator && m_itemActions[ i ].enabled && m_itemActions[ i ].id == actionId )
+        {
+            CORE::TCloneableString eventData( actionId );
+            NotifyObservers( ItemActionEvent, &eventData );
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::OnItemMenuActivated( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the row of the menu that was chosen is the action of that row, as the context menu of a grid does it
+    CItemEventData* item = static_cast< CItemEventData* >( eventData );
+    if ( GUCEF_NULL == item || EVENTPHASE_TUNNEL == item->phase )
+        return;
+    if ( item->index < 0 || item->index >= (Int32) m_itemActions.size() || m_itemActions[ (UInt32) item->index ].separator )
+        return;
+    ChooseItemAction( m_itemActions[ (UInt32) item->index ].id );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::GetContextMenuItems( const CGridView& grid, Int32 row, Int32 column, TContextMenuItemVector& items )
+{GUCEF_TRACE;
+
+    if ( m_itemActions.empty() || row < 0 || row >= (Int32) m_listed.size() )
+        return false;
+    // the menu is for the selection: a row that is not in it becomes the selection
+    if ( std::find( m_selection.begin(), m_selection.end(), row ) == m_selection.end() )
+    {
+        TInt32Vector one( 1, row );
+        SelectItems( one );
+    }
+    if ( !SelectionHasFile() )
+        return false;
+    items = m_itemActions;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::OnContextMenuItem( CGridView& grid, Int32 row, Int32 column, const CString& itemId )
+{GUCEF_TRACE;
+
+    ChooseItemAction( itemId );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2515,7 +2677,7 @@ CContentBrowserForm::OnTilesMouseClick( CORE::CNotifier* notifier    ,
 {GUCEF_TRACE;
 
     CPointerEventData* pointer = static_cast< CPointerEventData* >( eventData );
-    if ( GUCEF_NULL == pointer || MOUSEBUTTON_LEFT != pointer->button || EVENTPHASE_TUNNEL == pointer->phase )
+    if ( GUCEF_NULL == pointer || ( MOUSEBUTTON_LEFT != pointer->button && MOUSEBUTTON_RIGHT != pointer->button ) || EVENTPHASE_TUNNEL == pointer->phase )
         return;
     CWidget* thumbs = GetWidget( "Thumbs" );
 
@@ -2531,6 +2693,14 @@ CContentBrowserForm::OnTilesMouseClick( CORE::CNotifier* notifier    ,
         {
             if ( GUCEF_NULL != thumbs )
                 thumbs->SetFocus();
+            if ( MOUSEBUTTON_RIGHT == pointer->button )
+            {
+                // the menu is for the selection: a tile that is not in it becomes the selection
+                if ( std::find( m_selection.begin(), m_selection.end(), m_tiles[ s ].item ) == m_selection.end() )
+                    SelectByTile( m_tiles[ s ].item, 0 );
+                OpenItemActions( pointer->x, pointer->y );
+                return;
+            }
             SelectByTile( m_tiles[ s ].item, pointer->modifiers );
             if ( pointer->clickCount >= 2 )
                 ActivateItem( (UInt32) m_tiles[ s ].item );

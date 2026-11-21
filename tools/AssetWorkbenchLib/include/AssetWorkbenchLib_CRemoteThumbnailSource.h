@@ -40,10 +40,15 @@
 #define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
 #endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
 
-#ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
-#define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
+#ifndef GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#include "gucefASSETSTORE_CRemoteAssetShares.h"
+#define GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#endif /* GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCRESULT_H
+#include "gucefVFS_CVfsAsyncResult.h"
+#define GUCEF_VFS_CVFSASYNCRESULT_H
+#endif /* GUCEF_VFS_CVFSASYNCRESULT_H ? */
 
 #ifndef ASSETWORKBENCHLIB_MACROS_H
 #include "AssetWorkbenchLib_macros.h"
@@ -116,7 +121,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteThumbnailSource : public CORE::CObserv
     virtual ~CRemoteThumbnailSource() GUCEF_VIRTUAL_OVERRIDE;
 
     /** The service and its file system (neither owned); NULL for both: nothing is remote */
-    void SetService( ASSETSTORE::CIAssetStoreService* service, ASSETSTORE::CRemoteAssetFileSystem* system );
+    void SetService( ASSETSTORE::CIAssetStoreService* service, ASSETSTORE::CRemoteAssetShares* system );
 
     /** The folder of the pictures (a path of the disk, made when it is not there) */
     void SetCacheFolder( const CORE::CString& folder );
@@ -191,6 +196,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteThumbnailSource : public CORE::CObserv
     struct SPicture
     {
         CORE::CFutureResult future;
+        VFS::CVfsAsyncResultPtr result;                  /**< the bytes of the picture file, filled in before the future ends */
         CORE::CString assetId;
         UInt32 size;
         SPicture( void );
@@ -208,7 +214,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteThumbnailSource : public CORE::CObserv
     private:
 
     ASSETSTORE::CIAssetStoreService* m_service;
-    ASSETSTORE::CRemoteAssetFileSystem* m_system;
+    ASSETSTORE::CRemoteAssetShares* m_system;
     CORE::CString m_folder;
     GUCEF::map< CORE::CString, CORE::CString > m_assetOfPath;
     GUCEF::map< CORE::CString, UInt64 > m_missing;                  /**< "id\nsize" to the time it was found missing */

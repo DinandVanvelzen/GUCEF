@@ -161,6 +161,12 @@ BuildDarkTheme( CORE::CDataNode& theme, const CString& fontName )
     SetStyleProperty( *style, "BorderColour", BorderColour );
     SetStyleProperty( *style, "HoverColour", AccentColour );
 
+    // a menu opens over everything else: an opaque surface with a border, the row under the pointer marked
+    style = AddStyle( theme, "PopupMenu" );
+    SetStyleProperty( *style, "BackgroundColour", SurfaceColour );
+    SetStyleProperty( *style, "BorderColour", BorderColour );
+    SetStyleProperty( *style, "HoverColour", SelectionColour );
+
     style = AddStyle( theme, "Textbox" );
     SetStyleProperty( *style, "BackgroundColour", "16,18,22,255" );
     SetStyleProperty( *style, "BorderColour", BorderColour );

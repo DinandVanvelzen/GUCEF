@@ -64,12 +64,17 @@
 #define GUCEF_VFS_CVFS_H
 #endif /* GUCEF_VFS_CVFS_H ? */
 
-#ifndef ASSETWORKBENCHLIB_CTEXTUREVIEW_H
-#ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
-#define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
+#ifndef GUCEF_VFS_CVFSTHREADPOLICYSCOPE_H
+#include "gucefVFS_CVfsThreadPolicyScope.h"
+#define GUCEF_VFS_CVFSTHREADPOLICYSCOPE_H
+#endif /* GUCEF_VFS_CVFSTHREADPOLICYSCOPE_H ? */
 
+#ifndef GUCEF_VFS_CIREMOTEARCHIVE_H
+#include "gucefVFS_CIRemoteArchive.h"
+#define GUCEF_VFS_CIREMOTEARCHIVE_H
+#endif /* GUCEF_VFS_CIREMOTEARCHIVE_H ? */
+
+#ifndef ASSETWORKBENCHLIB_CTEXTUREVIEW_H
 #include "AssetWorkbenchLib_CTextureView.h"
 #define ASSETWORKBENCHLIB_CTEXTUREVIEW_H
 #endif /* ASSETWORKBENCHLIB_CTEXTUREVIEW_H ? */
@@ -257,14 +262,22 @@ CORE::CString
 CThumbnailProvider::HashContent( const CORE::CString& vfsPath )
 {GUCEF_TRACE;
 
-    // a file of a remote store service: the digest the catalogue gave is the hash of its content, no read is needed for it
-    CORE::CString servicePath;
-    ASSETSTORE::CRemoteAssetFileSystem* remote = ASSETSTORE::CRemoteAssetFileSystem::FindForPath( CAssetMounter::NormalizePath( vfsPath ), servicePath );
-    if ( GUCEF_NULL != remote )
+    // a file of a remote mount of the VFS: the SHA-256 that the share or the catalogue gave is the hash of its content, no read is needed for it
+    // (from what is held: a thread that may wait does not ask the service for it either)
     {
-        CORE::CString digest;
-        if ( remote->GetKnownDigest( servicePath, digest ) )
-            return digest.Lowercase();
+        VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+        const CORE::CString path = CAssetMounter::NormalizePath( vfsPath );
+        VFS::CVFS::TArchivePtr archive;
+        CORE::CString remainder;
+        if ( vfs.ResolveMount( path, archive, remainder ) && !archive.IsNULL() && GUCEF_NULL != archive->GetRemoteArchiveInterface() )
+        {
+            VFS::CVfsThreadPolicy policy;
+            policy.missAction = VFS::MISSACTION_FAIL;
+            VFS::CVfsThreadPolicyScope scope( policy );
+            VFS::CVfsDigest digest;
+            if ( vfs.GetFileDigest( path, digest ) && VFS::CVfsDigest::ALGORITHM_SHA256 == digest.algorithm && !digest.IsEmpty() )
+                return digest.value.Lowercase();
+        }
     }
 
     VFS::TBasicVfsResourcePtr resource = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( CAssetMounter::NormalizePath( vfsPath ), "rb", false );

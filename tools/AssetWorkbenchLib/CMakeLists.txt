@@ -64,10 +64,13 @@ if (LINUX32)
     include/AssetWorkbenchLib_CResourceViewThumbnailProvider.h
     include/AssetWorkbenchLib_CSceneTreeFileSystemAccess.h
     include/AssetWorkbenchLib_CSceneView.h
+    include/AssetWorkbenchLib_CServerSettingsController.h
+    include/AssetWorkbenchLib_CServerSettingsForm.h
     include/AssetWorkbenchLib_CServicePackIndexSource.h
     include/AssetWorkbenchLib_CShowcaseView.h
     include/AssetWorkbenchLib_CStoreConnectionTaskConsumer.h
     include/AssetWorkbenchLib_CStoreConnectionTaskData.h
+    include/AssetWorkbenchLib_CStoreItemOpenLookup.h
     include/AssetWorkbenchLib_CTextureView.h
     include/AssetWorkbenchLib_CThumbnailProvider.h
     include/AssetWorkbenchLib_CViewPresetTracker.h
@@ -151,10 +154,13 @@ if (LINUX32)
     src/AssetWorkbenchLib_CResourceViewThumbnailProvider.cpp
     src/AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp
     src/AssetWorkbenchLib_CSceneView.cpp
+    src/AssetWorkbenchLib_CServerSettingsController.cpp
+    src/AssetWorkbenchLib_CServerSettingsForm.cpp
     src/AssetWorkbenchLib_CServicePackIndexSource.cpp
     src/AssetWorkbenchLib_CShowcaseView.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskConsumer.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskData.cpp
+    src/AssetWorkbenchLib_CStoreItemOpenLookup.cpp
     src/AssetWorkbenchLib_CTextureView.cpp
     src/AssetWorkbenchLib_CThumbnailProvider.cpp
     src/AssetWorkbenchLib_CViewPresetTracker.cpp
@@ -239,10 +245,13 @@ elseif (LINUX64)
     include/AssetWorkbenchLib_CResourceViewThumbnailProvider.h
     include/AssetWorkbenchLib_CSceneTreeFileSystemAccess.h
     include/AssetWorkbenchLib_CSceneView.h
+    include/AssetWorkbenchLib_CServerSettingsController.h
+    include/AssetWorkbenchLib_CServerSettingsForm.h
     include/AssetWorkbenchLib_CServicePackIndexSource.h
     include/AssetWorkbenchLib_CShowcaseView.h
     include/AssetWorkbenchLib_CStoreConnectionTaskConsumer.h
     include/AssetWorkbenchLib_CStoreConnectionTaskData.h
+    include/AssetWorkbenchLib_CStoreItemOpenLookup.h
     include/AssetWorkbenchLib_CTextureView.h
     include/AssetWorkbenchLib_CThumbnailProvider.h
     include/AssetWorkbenchLib_CViewPresetTracker.h
@@ -326,10 +335,13 @@ elseif (LINUX64)
     src/AssetWorkbenchLib_CResourceViewThumbnailProvider.cpp
     src/AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp
     src/AssetWorkbenchLib_CSceneView.cpp
+    src/AssetWorkbenchLib_CServerSettingsController.cpp
+    src/AssetWorkbenchLib_CServerSettingsForm.cpp
     src/AssetWorkbenchLib_CServicePackIndexSource.cpp
     src/AssetWorkbenchLib_CShowcaseView.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskConsumer.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskData.cpp
+    src/AssetWorkbenchLib_CStoreItemOpenLookup.cpp
     src/AssetWorkbenchLib_CTextureView.cpp
     src/AssetWorkbenchLib_CThumbnailProvider.cpp
     src/AssetWorkbenchLib_CViewPresetTracker.cpp
@@ -414,10 +426,13 @@ elseif (WIN32)
     include/AssetWorkbenchLib_CResourceViewThumbnailProvider.h
     include/AssetWorkbenchLib_CSceneTreeFileSystemAccess.h
     include/AssetWorkbenchLib_CSceneView.h
+    include/AssetWorkbenchLib_CServerSettingsController.h
+    include/AssetWorkbenchLib_CServerSettingsForm.h
     include/AssetWorkbenchLib_CServicePackIndexSource.h
     include/AssetWorkbenchLib_CShowcaseView.h
     include/AssetWorkbenchLib_CStoreConnectionTaskConsumer.h
     include/AssetWorkbenchLib_CStoreConnectionTaskData.h
+    include/AssetWorkbenchLib_CStoreItemOpenLookup.h
     include/AssetWorkbenchLib_CTextureView.h
     include/AssetWorkbenchLib_CThumbnailProvider.h
     include/AssetWorkbenchLib_CViewPresetTracker.h
@@ -501,10 +516,13 @@ elseif (WIN32)
     src/AssetWorkbenchLib_CResourceViewThumbnailProvider.cpp
     src/AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp
     src/AssetWorkbenchLib_CSceneView.cpp
+    src/AssetWorkbenchLib_CServerSettingsController.cpp
+    src/AssetWorkbenchLib_CServerSettingsForm.cpp
     src/AssetWorkbenchLib_CServicePackIndexSource.cpp
     src/AssetWorkbenchLib_CShowcaseView.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskConsumer.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskData.cpp
+    src/AssetWorkbenchLib_CStoreItemOpenLookup.cpp
     src/AssetWorkbenchLib_CTextureView.cpp
     src/AssetWorkbenchLib_CThumbnailProvider.cpp
     src/AssetWorkbenchLib_CViewPresetTracker.cpp
@@ -589,10 +607,13 @@ elseif (WIN64)
     include/AssetWorkbenchLib_CResourceViewThumbnailProvider.h
     include/AssetWorkbenchLib_CSceneTreeFileSystemAccess.h
     include/AssetWorkbenchLib_CSceneView.h
+    include/AssetWorkbenchLib_CServerSettingsController.h
+    include/AssetWorkbenchLib_CServerSettingsForm.h
     include/AssetWorkbenchLib_CServicePackIndexSource.h
     include/AssetWorkbenchLib_CShowcaseView.h
     include/AssetWorkbenchLib_CStoreConnectionTaskConsumer.h
     include/AssetWorkbenchLib_CStoreConnectionTaskData.h
+    include/AssetWorkbenchLib_CStoreItemOpenLookup.h
     include/AssetWorkbenchLib_CTextureView.h
     include/AssetWorkbenchLib_CThumbnailProvider.h
     include/AssetWorkbenchLib_CViewPresetTracker.h
@@ -676,10 +697,13 @@ elseif (WIN64)
     src/AssetWorkbenchLib_CResourceViewThumbnailProvider.cpp
     src/AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp
     src/AssetWorkbenchLib_CSceneView.cpp
+    src/AssetWorkbenchLib_CServerSettingsController.cpp
+    src/AssetWorkbenchLib_CServerSettingsForm.cpp
     src/AssetWorkbenchLib_CServicePackIndexSource.cpp
     src/AssetWorkbenchLib_CShowcaseView.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskConsumer.cpp
     src/AssetWorkbenchLib_CStoreConnectionTaskData.cpp
+    src/AssetWorkbenchLib_CStoreItemOpenLookup.cpp
     src/AssetWorkbenchLib_CTextureView.cpp
     src/AssetWorkbenchLib_CThumbnailProvider.cpp
     src/AssetWorkbenchLib_CViewPresetTracker.cpp

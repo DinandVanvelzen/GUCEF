@@ -397,18 +397,29 @@ bool
 CAssetMounter::AdoptRemote( const CORE::CString& vfsFolder )
 {GUCEF_TRACE;
 
+    // the caller mounted it: a folder of a remote store is not asked whether it exists. The root of a mount exists by construction, but the roots of several
+    // locations lie below the one mount of the share, and the thread of the interface cannot wait for the answer for a folder that is not known yet
     const CORE::CString mountPoint = NormalizePath( vfsFolder );
-    if ( !Adopt( mountPoint ) )
-    {
-        // adopted already: it is marked as remote all the same
-        for ( size_t i=0; i<m_mounts.size(); ++i )
-            if ( m_mounts[ i ].mountPoint == mountPoint )
-                m_mounts[ i ].remote = true;
+    if ( mountPoint.IsNULLOrEmpty() )
         return false;
-    }
     for ( size_t i=0; i<m_mounts.size(); ++i )
+    {
         if ( m_mounts[ i ].mountPoint == mountPoint )
+        {
+            // adopted already: it is marked as remote all the same
             m_mounts[ i ].remote = true;
+            return false;
+        }
+    }
+    SMount mount;
+    mount.mountPoint = mountPoint;
+    mount.source = mountPoint;
+    mount.archiveType = VFS::CVFS::FileSystemArchiveTypeName;
+    mount.groupName = "AssetWorkbench/" + mountPoint;
+    mount.adopted = true;
+    mount.remote = true;
+    m_mounts.push_back( mount );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetMounter: Adopted the mounted folder " << mountPoint << " of a remote store" );
     return true;
 }
 

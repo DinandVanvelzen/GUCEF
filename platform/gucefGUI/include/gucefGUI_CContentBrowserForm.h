@@ -59,6 +59,11 @@
 #define GUCEF_GUI_CICONTENTTYPERESOLVER_H
 #endif /* GUCEF_GUI_CICONTENTTYPERESOLVER_H ? */
 
+#ifndef GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H
+#include "gucefGUI_CIGridContextMenuProvider.h"
+#define GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H
+#endif /* GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -77,6 +82,7 @@ namespace GUI {
 class CGridView;
 class CTreeview;
 class CScrollPanel;
+class CPopupMenu;
 
 /**
  *  A browser of folders and what is in them: a tree of the folders of the roots beside a list of the items of the folder
@@ -102,9 +108,15 @@ class CScrollPanel;
  *  the selection a tile (Up and Down a row), Home and End go to the first and the last, Enter opens, and Ctrl and Shift with a
  *  click add to the selection and extend it. Backspace goes up and Alt+Left and Alt+Right go back and forward.
  *
+ *  Actions of the items (SetItemActions()): what the application offers for the files of a folder, as a context menu of the
+ *  items: a right click on a row of the list or a tile (it selects the item when it was not selected), or the menu key and
+ *  Shift+F10 in the list. Choosing one notifies ItemActionEvent with the id of the action; the items are the selection
+ *  (GetSelectedPaths()). Without actions there is no menu.
+ *
  *  The form builds its layout in code, as a window (Build()) or in the place of a widget of another form (Build( placeholder )).
  */
-class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
+class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx ,
+                                                 private CIGridContextMenuProvider
 {
     public:
 
@@ -114,6 +126,7 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     static const CORE::CEvent FolderActivatedEvent;     /**< TCloneableString with the path of a folder that was opened as an item: a double click or Enter on it (the folder is entered as well) */
     static const CORE::CEvent FilterChangedEvent;       /**< no data: the text of the filter line changed, read GetFilter() */
     static const CORE::CEvent ViewSwitchedEvent;        /**< no data: the person chose the other view with the switch, read IsAlternateViewActive() */
+    static const CORE::CEvent ItemActionEvent;          /**< TCloneableString with the id of the action of SetItemActions() that was chosen for the selected items */
 
     static void RegisterEvents( void );
 
@@ -291,6 +304,19 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     /** Opens an item as a double click does: a folder is entered, for a file ItemActivatedEvent is notified */
     bool ActivateItem( UInt32 index );
 
+    /** The actions of the context menu of the files ("Open", ...); empty (the default): no menu */
+    void SetItemActions( const TContextMenuItemVector& actions );
+    const TContextMenuItemVector& GetItemActions( void ) const;
+
+    /** Opens the context menu of the selected items at a position of the context, as a right click does; false without actions, selection or files */
+    bool OpenItemActions( Int32 x, Int32 y );
+
+    /** Whether the context menu of the items is open */
+    bool IsItemActionsOpen( void ) const;
+
+    /** Chooses an action for the selected items as the menu does: ItemActionEvent; false for an action that is not offered or not enabled */
+    bool ChooseItemAction( const CString& actionId );
+
     /** The thumbnail view: how many tiles are made now, and the picture of a tile (NULL while it has none) */
     UInt32 GetRealizedTileCount( void ) const;
 
@@ -372,6 +398,14 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     void OnRootKeyDown( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnThumbnailReady( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnItemMenuActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    /** The context menu of the list of the details view (CIGridContextMenuProvider) */
+    virtual bool GetContextMenuItems( const CGridView& grid, Int32 row, Int32 column, TContextMenuItemVector& items ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnContextMenuItem( CGridView& grid, Int32 row, Int32 column, const CString& itemId ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Whether the selection has a file, which the actions are for */
+    bool SelectionHasFile( void ) const;
 
     /** Puts the tool bar in one, two or three rows by the width the form has; nothing happens until the form was laid out */
     void UpdateToolbarLayout( void );
@@ -451,6 +485,8 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     CString m_normalDirectory;
     CString m_normalLabel;
     CString m_alternateLabel;
+    TContextMenuItemVector m_itemActions;
+    CPopupMenu* m_itemMenu;                  /**< the context menu of the tiles, made when it is first opened */
 };
 
 /*-------------------------------------------------------------------------//

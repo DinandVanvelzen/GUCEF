@@ -64,6 +64,9 @@ namespace ASSETWORKBENCH {
  *      remote                                  the state of the connection to the remote store
  *      layout <name>                           puts the window in a layout: Browse, Review or Preview
  *      layout lint [on | off | report]         the layout lint of the GUI library (gui.lint, which the console has itself)
+ *      server [settings [open] | set <key> <value> | reset <key>]
+ *                                              the run-time settings of the remote asset store service the workbench is connected to:
+ *                                              lists them (or opens their page), changes one, or puts one back to its site value
  *
  *  A command that is not here is not an error of the console: the line stays in the output and other observers of the console see it.
  */
@@ -125,6 +128,14 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchConsoleCommands : public CORE::CObs
     bool CommandThumbnails( const CORE::CString& argument );
     bool CommandSource( const CORE::CString& argument );
     bool CommandOgre( const CORE::CString& argument );
+    bool CommandServer( const CORE::CString& argument );
+
+    /** Follows the answers of the controller of the settings of the server (once per controller) */
+    void FollowServerSettings( CServerSettingsController* controller );
+    void PrintServerSettings( const CServerSettingsController& controller );
+    void OnServerSettingsRead( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnServerSettingsOutcome( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnServerSettingsGone( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     static const SCommand* GetCommands( UInt32& count );
 
@@ -135,6 +146,8 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchConsoleCommands : public CORE::CObs
 
     CWorkbenchShell& m_shell;
     GUI::CDeveloperConsoleForm& m_console;
+    CServerSettingsController* m_followedSettings;      /**< the controller whose answers are followed, not owned */
+    bool m_printSettings;                               /**< the next description of the settings goes to the console */
 };
 
 /*-------------------------------------------------------------------------//

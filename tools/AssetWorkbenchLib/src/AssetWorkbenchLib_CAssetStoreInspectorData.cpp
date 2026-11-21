@@ -37,6 +37,11 @@
 #define GUCEF_ASSETSTORE_ETYPES_H
 #endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
 
+#ifndef GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#include "gucefWEB_CHtmlTextExtractor.h"
+#define GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#endif /* GUCEF_WEB_CHTMLTEXTEXTRACTOR_H ? */
+
 #ifndef ASSETWORKBENCHLIB_CASSETSTOREINSPECTORDATA_H
 #include "AssetWorkbenchLib_CAssetStoreInspectorData.h"
 #define ASSETWORKBENCHLIB_CASSETSTOREINSPECTORDATA_H
@@ -73,6 +78,32 @@ CORE::CString
 Join( const CORE::CString::StringVector& values )
 {
     return CORE::CString().Combine( values, ',' ).ReplaceSubstr( ",", ", " );
+}
+
+/**
+ *  The description of a store as readable text (stores give HTML; a catalogue of an older service may still hold it), with the
+ *  links of it in a group "Links" of their own: the address of the page of the item is the base of relative links
+ */
+void
+AddDescription( CORE::CDataNode& node, const CORE::CString& description, const CORE::CString& pageAddress )
+{
+    if ( description.IsNULLOrEmpty() )
+        return;
+    WEB::CHtmlTextExtractor::TLinkVector links;
+    CORE::CUri page;
+    const bool havePage = !pageAddress.IsNULLOrEmpty() && page.ParseUriInStringForm( pageAddress );
+    node.SetAttribute( "Description", WEB::CHtmlTextExtractor::ToPlainTextIfHtml( description, &links, false, havePage ? &page : GUCEF_NULL ) );
+    if ( links.empty() )
+        return;
+    CORE::CDataNode* group = node.AddChild( "Links" );
+    for ( size_t i=0; i<links.size(); ++i )
+    {
+        // two links with the same text are both listed
+        CORE::CString name = links[ i ].text;
+        if ( group->IsAttribute( name ) )
+            name += " (" + CORE::UInt32ToString( (UInt32) i + 1 ) + ")";
+        group->SetAttribute( name, links[ i ].address );
+    }
 }
 
 void
@@ -190,8 +221,7 @@ CAssetStoreInspectorData::FillPack( const ASSETSTORE::CAssetPackRecord& pack, CO
     node.SetAttribute( "Files", CORE::Int64ToString( pack.fileCount ) );
     node.SetAttribute( "Assets", CORE::Int64ToString( pack.assetCount ) );
     node.SetAttribute( "Size", CORE::Int64ToString( pack.sizeBytes ) + " bytes" );
-    if ( !pack.description.IsNULLOrEmpty() )
-        node.SetAttribute( "Description", pack.description );
+    AddDescription( node, pack.description, pack.sourceUrl );
     CORE::CDataNode* classification = node.AddChild( "Classification" );
     classification->SetAttribute( "Categories", Join( pack.categories ) );
     classification->SetAttribute( "Kinds", Join( pack.kinds ) );
@@ -285,8 +315,7 @@ CAssetStoreInspectorData::FillStoreItem( const ASSETSTORE::CAssetStoreItem& item
         node.SetAttribute( "Version", item.version );
     if ( !item.url.IsNULLOrEmpty() )
         node.SetAttribute( "Address", item.url );
-    if ( !item.description.IsNULLOrEmpty() )
-        node.SetAttribute( "Description", item.description );
+    AddDescription( node, item.description, item.url );
     if ( !item.categories.empty() )
         node.SetAttribute( "Categories", Join( item.categories ) );
     if ( !item.tags.empty() )

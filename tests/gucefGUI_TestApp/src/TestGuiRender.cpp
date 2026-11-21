@@ -374,6 +374,92 @@ RunRenderTests( const char* driverName, GUI::TGuiContextPtr ( *createContext )( 
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( ( prefix + "A menu of a menu bar is opaque over what is behind it, with a border and the row under the pointer marked, with and without a theme" ).C_String() )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = createContext();
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        context->RegisterFont( "Block", MakeTestFont( 6, 9 ) );
+        GUI::CWidget* screen = Screen( context );
+        // a blue panel with white text behind the menu: neither may show through it
+        GUI::CWidget* behind = context->CreateWidget( "Panel", "Behind", screen );
+        behind->SetProperty( "Position", "0,0 0,20" );
+        behind->SetProperty( "Size", "0,300 0,200" );
+        behind->SetColourProperty( "BackgroundColour", Blue );
+        GUI::CMenuBar* bar = GUI::CWidget::As< GUI::CMenuBar >( context->CreateWidget( "MenuBar", "Menus", screen ) );
+        ASSERT_TRUE( GUCEF_NULL != bar );
+        if ( GUCEF_NULL == bar )
+            return;
+        bar->SetProperty( "Font", "Block" );
+        bar->SetProperty( "Size", "1,0 0,20" );
+        GUI::CMenuBar::TStringVector items;
+        items.push_back( "File/Open folder..." );
+        items.push_back( "File/Open archive or pack..." );
+        items.push_back( "File/Settings..." );
+        bar->SetProperty( "Items", GUI::JoinStringList( items ) );
+        context->FlushChanges();
+        ASSERT_TRUE( bar->OpenMenu( 0 ) && GUCEF_NULL != context->GetPopup() );
+        GUI::CPopupMenu* menu = GUI::CWidget::As< GUI::CPopupMenu >( context->GetPopup() );
+        ASSERT_TRUE( GUCEF_NULL != menu );
+        if ( GUCEF_NULL == menu )
+            return;
+        // no colours on the bar and no theme: the menu does not take the empty background of the bar
+        ASSERT_FALSE( menu->IsPropertySet( "BackgroundColour" ) );
+        menu->SetIntProperty( "HoverIndex", 1 );
+        context->FlushChanges();
+
+        IMAGE::TPixelMapPtr pixels;
+        ASSERT_TRUE( Capture( context, pixels ) );
+        const GUI::CRect rect = menu->GetRect();
+        ASSERT_TRUE( rect.width > 20 && rect.height >= 3 * menu->GetRowHeight() && rect.Bottom() < 220 );
+        const Int32 rowHeight = menu->GetRowHeight();
+        // the right end of the first row has no text: the surface of the menu, not the blue panel
+        const GUI::CColour surface = PixelAt( pixels, rect.Right() - 3, rect.top + rowHeight / 2 );
+        ASSERT_FALSE( Near( surface, Blue, 40 ) );
+        // the background of the menu (of the theme of the context, when it has one), else the look of a box
+        GUI::CColour expected( 48, 48, 52, 255 );
+        GUI::CColour own;
+        if ( menu->TryGetColourProperty( GUI::EWidgetProperty_BackgroundColour, own ) && own.a > 0 )
+            expected = GUI::CColour( own.r, own.g, own.b, 255 );
+        if ( !Near( surface, expected, 3 ) )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Popup menu test: the surface is " << (UInt32) surface.r << "," << (UInt32) surface.g << "," << (UInt32) surface.b
+                             << ", expected " << (UInt32) expected.r << "," << (UInt32) expected.g << "," << (UInt32) expected.b );
+        ASSERT_TRUE( Near( surface, expected, 3 ) );
+        // the whole of the first row right of its text is that surface: nothing of what is behind shows
+        ASSERT_TRUE( 0 == CountColour( pixels, GUI::CRect( rect.left + 1, rect.top + 1, rect.width - 2, rect.height - 2 ), Blue ) );
+        // a border around it, and the row under the pointer marked
+        ASSERT_FALSE( Near( PixelAt( pixels, rect.left, rect.top + rowHeight / 2 ), surface, 3 ) );
+        ASSERT_FALSE( Near( PixelAt( pixels, rect.Right() - 3, rect.top + rowHeight + rowHeight / 2 ), surface, 3 ) );
+
+        // with the standard theme: the surface of the theme, still opaque
+        CORE::CDataNode theme;
+        GUI::BuildDarkTheme( theme, "Block" );
+        ASSERT_TRUE( context->SetTheme( theme ) );
+        bar->OpenMenu( 0 );
+        menu->SetIntProperty( "HoverIndex", -1 );
+        context->FlushChanges();
+        ASSERT_TRUE( Capture( context, pixels ) );
+        const GUI::CRect themed = menu->GetRect();
+        ASSERT_TRUE( Near( PixelAt( pixels, themed.Right() - 3, themed.top + rowHeight / 2 ), GUI::CColour( 34, 37, 45, 255 ), 3 ) );
+        ASSERT_TRUE( 0 == CountColour( pixels, GUI::CRect( themed.left + 1, themed.top + 1, themed.width - 2, themed.height - 2 ), Blue ) );
+
+        // a background that is set transparent on the bar still gives an opaque menu
+        bar->SetProperty( "BackgroundColour", "0,0,0,0" );
+        bar->OpenMenu( 0 );
+        context->FlushChanges();
+        ASSERT_TRUE( Capture( context, pixels ) );
+        const GUI::CRect clear = menu->GetRect();
+        ASSERT_TRUE( 0 == CountColour( pixels, GUI::CRect( clear.left + 1, clear.top + 1, clear.width - 2, clear.height - 2 ), Blue ) );
+        context->ClosePopup();
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( ( prefix + "Picture buttons show the picture of their state, images scale, cut out and tint" ).C_String() )
     try
     {

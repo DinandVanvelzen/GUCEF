@@ -64,6 +64,11 @@
 #define GUCEF_GUI_CPROPERTYINSPECTORFORM_H
 #endif /* GUCEF_GUI_CPROPERTYINSPECTORFORM_H ? */
 
+#ifndef GUCEF_GUI_CMESSAGEBOXFORM_H
+#include "gucefGUI_CMessageBoxForm.h"
+#define GUCEF_GUI_CMESSAGEBOXFORM_H
+#endif /* GUCEF_GUI_CMESSAGEBOXFORM_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CIASSETSTORESERVICE_H
 #include "gucefASSETSTORE_CIAssetStoreService.h"
 #define GUCEF_ASSETSTORE_CIASSETSTORESERVICE_H
@@ -89,10 +94,10 @@
 #include "AssetStoreConverterHook_CPipelineConverterHook.h"
 #define ASSETSTORECONVERTERHOOK_CPIPELINECONVERTERHOOK_H
 #endif /* ASSETSTORECONVERTERHOOK_CPIPELINECONVERTERHOOK_H ? */
-#ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
-#define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
+#ifndef GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#include "gucefASSETSTORE_CRemoteAssetShares.h"
+#define GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#endif /* GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H ? */
 
 #ifndef ASSETWORKBENCHLIB_CREMOTEFETCHJOBS_H
 #include "AssetWorkbenchLib_CRemoteFetchJobs.h"
@@ -113,6 +118,11 @@
 #include "AssetWorkbenchLib_CRemoteReferencedDiscovery.h"
 #define ASSETWORKBENCHLIB_CREMOTEREFERENCEDDISCOVERY_H
 #endif /* ASSETWORKBENCHLIB_CREMOTEREFERENCEDDISCOVERY_H ? */
+
+#ifndef ASSETWORKBENCHLIB_CSTOREITEMOPENLOOKUP_H
+#include "AssetWorkbenchLib_CStoreItemOpenLookup.h"
+#define ASSETWORKBENCHLIB_CSTOREITEMOPENLOOKUP_H
+#endif /* ASSETWORKBENCHLIB_CSTOREITEMOPENLOOKUP_H ? */
 
 #ifndef ASSETWORKBENCHLIB_CASSETMOUNTER_H
 #include "AssetWorkbenchLib_CAssetMounter.h"
@@ -254,7 +264,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     /** Reads the registered stores again (after a store plugin was loaded) */
     void RefreshStores( void );
 
-    /** The stores the owner switched off in the settings: they are not listed (the primary store cannot be switched off) */
+    /** The stores that are switched off in the settings: they are not listed (the primary store cannot be switched off) */
     void SetDisabledStores( const CORE::CString::StringVector& storeIds );
     const CORE::CString::StringVector& GetDisabledStores( void ) const;
 
@@ -265,8 +275,10 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     CORE::CString GetServiceStateText( void ) const;
 
     /**
-     *  What the line above the stores says when there is something to tell: that no online store is installed and what to do about it, or the
-     *  connection state of a service that is not in this process. Empty when there is nothing
+     *  What the hint in the empty list of the stores says when there is something to tell: that no online store is installed and what to do
+     *  about it, or that the service of the settings is not available in this build or cannot be reached. Empty when there is nothing. The
+     *  connection state of a remote service that is in use is the line "ServiceState" of its own above the list (GetServiceStateText()); the
+     *  list and what is below it move down a row while it is shown
      */
     CORE::CString GetOnlineHintText( void ) const;
 
@@ -290,9 +302,9 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     CORE::CString GetStoreStatusText( void ) const;
 
     /*
-     *  The files of a remote store (remote service design 5.4 and 5.10): while the page works on a service that is not in this process, the
-     *  storage locations of the service are mounted at their own VFS roots (ASSETSTORE::CRemoteAssetFileSystem) and adopted by the mounter, so the VFS
-     *  paths of the catalogue open unchanged. Opening a result fetches the file set of its asset into the block cache of this computer first (a
+     *  The files of a remote store: while the page works on a service that is not in this process, the share of the service that holds its storage
+     *  locations is mounted in the VFS (ASSETSTORE::CRemoteAssetShares, an archive of the type "drn", at the root of the locations or below the prefix) and the roots of the locations are adopted by the
+     *  mounter, so the VFS paths of the catalogue open unchanged. The thread of the page has the rule FAIL_AND_FETCH of the VFS: it never waits for the service. Opening a result fetches the file set of its asset into the block cache of this computer first (a
      *  transfer on a pool thread, the "Fetching" state of the page, an operation of the activity indicator and a job of the jobs list), then
      *  the views open it. "Download to folder" and "Keep offline" copy or pin the files of a pack or an asset in the same way.
      */
@@ -306,7 +318,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     /** The prefix of the VFS paths of the mounts of a remote store; empty (the default): the paths of the catalogue open unchanged. For a process that has the service in it too (tests) */
     void SetRemoteMountPrefix( const CORE::CString& prefix );
 
-    ASSETSTORE::CRemoteAssetFileSystem* GetRemoteFiles( void ) const;
+    ASSETSTORE::CRemoteAssetShares* GetRemoteFiles( void ) const;
     CRemoteFetchJobs* GetFetchJobs( void ) const;
     CRemoteThumbnailSource* GetRemoteThumbnails( void ) const;
 
@@ -417,6 +429,33 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
      */
     bool AddSelectedItemsToPrimaryStore( CORE::CString& jobId );
 
+    /**
+     *  Opens an item of an online store, as a double click, Enter or the action Open of the browser of the store does: the pack that the
+     *  item became in the library is looked up (CStoreItemOpenLookup, without the interface waiting), its asset to show is opened in the views
+     *  (AssetOpenRequestedEvent; the files of a remote store come through the block cache first) and its folder in the content browser
+     *  (FolderOpenRequestedEvent). An item that is not in the library yet asks whether to download and convert it now (GetNotInLibraryQuestion());
+     *  a failure is reported (a warning in the report, the status line of the page). False when the store or the item is not known
+     */
+    bool OpenStoreItem( const CORE::CString& storeId, const CORE::CString& itemId );
+
+    /** Opens a pack of the library as OpenStoreItem() does for the pack of an item: its asset to show in the views, its folder in the content browser */
+    bool OpenPack( const CORE::CString& packId, const CORE::CString& title );
+
+    /** Queues the download of an item of a store into the library with its ingest and conversion (the answer yes to the question of OpenStoreItem()) */
+    bool AddStoreItemToLibrary( const CORE::CString& storeId, const CORE::CString& itemId );
+
+    /** The lookup of the open that runs, or of the last one */
+    const CStoreItemOpenLookup& GetItemOpenLookup( void ) const;
+
+    /** The question "Not in the library yet" of OpenStoreItem(); GUCEF_NULL before it was asked the first time */
+    GUI::CMessageBoxForm* GetNotInLibraryQuestion( void ) const;
+
+    /** What the last open of a row said when it could not open, empty after one that worked */
+    const CORE::CString& GetOpenProblem( void ) const;
+
+    /** The id of the action Open of the browsers of the online stores */
+    static const CORE::CString OpenActionId;
+
     /** The VFS folder a download of the selected item goes into */
     CORE::CString GetImportFolder( const CORE::CString& providerId, const CORE::CString& itemId, const CORE::CString& title ) const;
 
@@ -492,12 +531,21 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     bool OpenAssetFile( const CORE::CString& key, bool converted );
     void ShowResult( const CORE::CString& key );
     void OnOpenFolderRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnOnlineItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnOnlineItemAction( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNotInLibraryAnswered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void UpdateItemOpen( void );
+    void ReportOpenProblem( const CORE::CString& problem );
+    bool OpenAssetById( const CORE::CString& assetId, const CORE::CString& name, bool converted );
+    bool OpenRemoteAsset( const CORE::CString& assetId, const CORE::CString& name, bool converted );
+    bool ShowPackFolder( const ASSETSTORE::CAssetPackRecord& pack );
 
     void BuildLayout( void );
     void FillStoreList( void );
     void ShowSelectedStore( void );
     void ShowStatus( void );
     void ShowOnlineHint( void );
+    void ApplyServiceLine( void );
     void ShowButtons( void );
     void ShowItem( const ASSETSTORE::CAssetStoreItem& item );
     void ShowFormatChoices( void );
@@ -521,7 +569,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     void StopRemoteFiles( void );
     bool OpenRemoteResult( const CORE::CString& key, bool converted );
     void UpdateRemote( void );
-    void FinishRemoteOpen( const CORE::CString& problem );
+    void FinishRemoteOpen( const CORE::CString& problem, bool failure = true );
     void BeginRemoteOpenFetch( const ASSETSTORE::CAssetFileSet& files );
     bool StartTransferJob( ASSETSTORE::TRemoteFileTransferPtr transfer, const CORE::CString& kind, const CORE::CString& label, CORE::CString& message );
     void OnFetchJobEnded( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
@@ -596,6 +644,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
         CORE::CString name;
         bool converted;
         CORE::CFutureResult future;              /**< the file set of the asset */
+        bool awaitingFuture;                     /**< 'future' is a call that was made and not taken yet: its answer, a failure included, is taken by UpdateRemote() */
         UInt32 jobId;                            /**< the transfer of its files, 0 before it starts */
         CORE::CString openPath;
         CORE::CString folderPath;                /**< a pack: the folder to show when its list is known */
@@ -607,7 +656,9 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
         SRemoteOpen( void );
     };
 
-    ASSETSTORE::CRemoteAssetFileSystem* m_remoteFiles;
+    ASSETSTORE::CRemoteAssetShares* m_remoteFiles;
+    TThreadId m_noWaitThread;                    /**< the thread of the interface, which has the rule of the VFS that it never waits for the service; 0 for none */
+    CORE::CString::StringSet m_missedPaths;      /**< the files that the views read from the cache of a remote store and that were not all there: fetched whole, as soon as the missing blocks arrive */
     CRemoteFetchJobs* m_fetchJobs;
     CRemoteThumbnailSource* m_remoteThumbs;
     GUI::CActivityService* m_activity;
@@ -616,6 +667,16 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     CORE::CString m_remotePrefix;
     CORE::CString::StringVector m_remoteRoots;   /**< the locations of the remote store that the mounter adopted */
     SRemoteOpen m_open;
+    CStoreItemOpenLookup m_itemOpen;            /**< what an open of a row of the Sources tab shows: the pack of an item, the asset of a pack */
+    GUI::CMessageBoxForm* m_notInLibrary;       /**< the question "Not in the library yet: download and convert now?" */
+    CORE::CString m_askedStoreId;               /**< the item the question is about */
+    CORE::CString m_askedItemId;
+    CORE::CString m_addWhenShownStoreId;        /**< an item to add to the library once its details (its formats) are shown */
+    CORE::CString m_addWhenShownItemId;
+    CORE::CString m_openProblem;
+    CORE::CString m_itemOpenText;               /**< what an open of an item of an online store does or why it did not open: the status line while the store is shown */
+    CORE::CString m_pendingFolderPath;          /**< a folder of a remote pack to show in the content browser when its list is in */
+    Int32 m_serviceLineOffset;                  /**< how far the list of the stores and what is below it are moved down for the line of the connection */
     CORE::CString m_remoteOpenText;
     GUCEF::map< CORE::CString, CORE::CString > m_remoteRootOfLocation;     /**< the VFS root of each location of the remote store, by its id */
     CORE::CString::StringSet m_keptPacks;                                    /**< the packs that were kept offline from this page */

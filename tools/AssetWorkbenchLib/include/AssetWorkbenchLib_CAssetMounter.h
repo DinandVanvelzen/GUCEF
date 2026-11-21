@@ -135,7 +135,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetMounter
     bool Adopt( const CORE::CString& vfsFolder );
 
     /**
-     *  As Adopt() for a folder of a remote store service (ASSETSTORE::CRemoteAssetFileSystem): the resource group of the mount has the mount as a
+     *  As Adopt() for a folder of a remote store service (ASSETSTORE::CRemoteAssetShares): the resource group of the mount has the mount as a
      *  place and nothing else, a listing of everything below a location of thousands of packs is never made. The packs that are opened bring their
      *  own folders (AdoptRemotePack())
      */

@@ -56,6 +56,7 @@
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="vfspluginDRN" />
             <RuntimeDependency Name="fontpluginFREETYPE" />
             <RuntimeDependency Name="imgpluginFreeImage" />
             <RuntimeDependency Name="assetpluginGLTF" />

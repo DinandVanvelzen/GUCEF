@@ -87,6 +87,7 @@ using namespace GUCEF;
 #include "TestAssetWorkbenchJobs.h"
 #include "TestAssetWorkbenchSettings.h"
 #include "TestAssetWorkbenchRemoteStore.h"
+#include "TestAssetWorkbenchServerSettings.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -172,6 +173,18 @@ GUCEF_OSMAIN_BEGIN
         if ( !GUCEF::TESTFW::GetEnvVar( "GUCEF_TEST_ONLY_REMOTE_THUMBS" ).empty() )
             PerformAssetWorkbenchRemoteThumbnailTests();
         else
+        // GUCEF_TEST_ONLY_REMOTE_MIGRATION=1 runs the cases of the files of the remote store on the shares of the service
+        if ( !GUCEF::TESTFW::GetEnvVar( "GUCEF_TEST_ONLY_REMOTE_MIGRATION" ).empty() )
+            PerformAssetWorkbenchRemoteMigrationTests();
+        else
+        // GUCEF_TEST_ONLY_SERVER_SETTINGS=1 runs the cases of the settings of a remote server
+        if ( !GUCEF::TESTFW::GetEnvVar( "GUCEF_TEST_ONLY_SERVER_SETTINGS" ).empty() )
+            PerformAssetWorkbenchServerSettingsTests();
+        else
+        // GUCEF_TEST_ONLY_REMOTE_OPEN=1 runs the cases of the Sources tab on a remote store and of opening what it lists
+        if ( !GUCEF::TESTFW::GetEnvVar( "GUCEF_TEST_ONLY_REMOTE_OPEN" ).empty() )
+            PerformAssetWorkbenchRemoteOpenTests();
+        else
         if ( onlyRemote )
             PerformAssetWorkbenchRemoteStoreTests();
         else
@@ -220,6 +233,7 @@ GUCEF_OSMAIN_BEGIN
             PerformAssetWorkbenchLoadingTests();
             PerformAssetWorkbenchSettingsTests();
             PerformAssetWorkbenchRemoteStoreTests();
+            PerformAssetWorkbenchServerSettingsTests();
         }
         for ( UInt32 repeat=onlyViews ? 0 : 1; !onlySettings && !onlyPacks && !onlyJobs && !onlySources && !onlyRemote && repeat<viewRepeats; ++repeat )
             PerformAssetWorkbenchViewTests();

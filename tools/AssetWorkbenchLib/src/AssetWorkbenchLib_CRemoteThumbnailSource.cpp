@@ -67,6 +67,16 @@
 #define GUCEF_ASSETSTORE_CASSETTHUMBNAILFILES_H
 #endif /* GUCEF_ASSETSTORE_CASSETTHUMBNAILFILES_H ? */
 
+#ifndef GUCEF_VFS_CVFSGLOBAL_H
+#include "gucefVFS_CVfsGlobal.h"
+#define GUCEF_VFS_CVFSGLOBAL_H
+#endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
+
+#ifndef GUCEF_VFS_CVFS_H
+#include "gucefVFS_CVFS.h"
+#define GUCEF_VFS_CVFS_H
+#endif /* GUCEF_VFS_CVFS_H ? */
+
 #include "AssetWorkbenchLib_CRemoteThumbnailSource.h"
 
 /*-------------------------------------------------------------------------//
@@ -95,7 +105,7 @@ const CORE::CEvent CRemoteThumbnailSource::ThumbnailReadyEvent = "GUCEF::ASSETWO
 CRemoteThumbnailSource::SReady::SReady( void ) : path(), size( 0 ), found( false ) {}
 CRemoteThumbnailSource::SWanted::SWanted( void ) : assetId(), size( 0 ), paths(), queuedMs( 0 ), sent( false ) {}
 CRemoteThumbnailSource::SBatch::SBatch( void ) : future( CORE::TASKSTATUS_UNDEFINED ), size( 0 ), ids() {}
-CRemoteThumbnailSource::SPicture::SPicture( void ) : future( CORE::TASKSTATUS_UNDEFINED ), assetId(), size( 0 ) {}
+CRemoteThumbnailSource::SPicture::SPicture( void ) : future( CORE::TASKSTATUS_UNDEFINED ), result(), assetId(), size( 0 ) {}
 
 /*-------------------------------------------------------------------------*/
 
@@ -162,7 +172,7 @@ CRemoteThumbnailSource::NowMs( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CRemoteThumbnailSource::SetService( ASSETSTORE::CIAssetStoreService* service, ASSETSTORE::CRemoteAssetFileSystem* system )
+CRemoteThumbnailSource::SetService( ASSETSTORE::CIAssetStoreService* service, ASSETSTORE::CRemoteAssetShares* system )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_service )
@@ -225,7 +235,7 @@ CRemoteThumbnailSource::IsFileAvailable( const CORE::CString& vfsPath ) const
     CORE::CString servicePath;
     if ( GUCEF_NULL == m_system || !m_system->ToServicePath( vfsPath, servicePath ) )
         return false;
-    ASSETSTORE::CRemoteAssetFileSystem::SFileInfo info;
+    ASSETSTORE::CIRemoteFileSource::SFileInfo info;
     return m_system->GetFileInfo( servicePath, info ) && !info.isDirectory && m_system->IsFileCached( servicePath, info.size );
 }
 
@@ -262,7 +272,7 @@ CRemoteThumbnailSource::NoteAsset( const CORE::CString& vfsPath, const CORE::CSt
         return;
     if ( m_assetOfPath.size() > 20000 )
         m_assetOfPath.clear();
-    m_assetOfPath[ ASSETSTORE::CRemoteAssetFileSystem::Normalize( vfsPath ) ] = assetId;
+    m_assetOfPath[ ASSETSTORE::CIRemoteFileSource::Normalize( vfsPath ) ] = assetId;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -288,7 +298,7 @@ CRemoteThumbnailSource::Lookup( const CORE::CString& vfsPath, UInt32 size, CORE:
     cacheFile.Clear();
     if ( GUCEF_NULL == m_service || m_folder.IsNULLOrEmpty() )
         return LOOKUP_NONE;
-    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CRemoteAssetFileSystem::Normalize( vfsPath ) );
+    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CIRemoteFileSource::Normalize( vfsPath ) );
     if ( known == m_assetOfPath.end() )
         return LOOKUP_NONE;
     const CORE::CString& assetId = known->second;
@@ -415,7 +425,9 @@ CRemoteThumbnailSource::Update( void )
             SPicture picture;
             picture.assetId = ids[ i ];
             picture.size = size;
-            picture.future = m_service->ReadFileBlockAsync( entry->vfsPath, 0, (UInt32) MaxPictureBytes );
+            // the picture file through the VFS: one more byte than a picture may have tells a file that is too large
+            if ( GUCEF_NULL != m_system )
+                picture.future = VFS::CVfsGlobal::Instance()->GetVfs().ReadFileRangeAsync( m_system->ToClientPath( entry->vfsPath ), 0, (UInt32) MaxPictureBytes + 1, picture.result );
             m_pictures.push_back( picture );
         }
     }
@@ -429,13 +441,12 @@ CRemoteThumbnailSource::Update( void )
             ++p;
             continue;
         }
-        ASSETSTORE::CAssetFileBlock block;
         bool found = false;
-        if ( ASSETSTORE::ASSETSTORE_STATUS_OK == ASSETSTORE::CIAssetStoreService::GetStatusOfFuture( picture.future ) &&
-             ASSETSTORE::CIAssetStoreService::TryGetFutureResult( picture.future, block ) && block.endOfFile && block.data.GetDataSize() > 0 )
+        if ( !picture.result.IsNULL() && picture.result->result.IsSuccess() && picture.result->data.GetDataSize() > 0 && picture.result->data.GetDataSize() <= (UInt32) MaxPictureBytes )
         {
+            const CORE::CDynamicBuffer& bytes = picture.result->data;
             CORE::CFileAccess file( MakeCacheFile( picture.assetId, picture.size ), "wb" );
-            found = file.Opened() && block.data.GetDataSize() == file.Write( block.data.GetConstBufferPtr(), 1, block.data.GetDataSize() );
+            found = file.Opened() && bytes.GetDataSize() == file.Write( bytes.GetConstBufferPtr(), 1, bytes.GetDataSize() );
         }
         const CORE::CString assetId = picture.assetId;
         const UInt32 size = picture.size;
@@ -496,7 +507,7 @@ CRemoteThumbnailSource::Upload( const CORE::CString& vfsPath, UInt32 size, const
     // the service takes pictures from the owner devices only: no call, no refusal to log
     if ( !m_mayUpload )
         return false;
-    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CRemoteAssetFileSystem::Normalize( vfsPath ) );
+    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CIRemoteFileSource::Normalize( vfsPath ) );
     if ( GUCEF_NULL == m_service || known == m_assetOfPath.end() || 0 == png.GetDataSize() || png.GetDataSize() > (UInt32) MaxPictureBytes )
         return false;
     ASSETSTORE::CAssetThumbnail thumbnail;
@@ -537,7 +548,7 @@ CRemoteThumbnailSource::UploadRender( const CORE::CString& vfsPath, const IMAGE:
 
     if ( !m_mayUpload )
         return false;
-    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CRemoteAssetFileSystem::Normalize( vfsPath ) );
+    GUCEF::map< CORE::CString, CORE::CString >::const_iterator known = m_assetOfPath.find( ASSETSTORE::CIRemoteFileSource::Normalize( vfsPath ) );
     if ( GUCEF_NULL == m_service || known == m_assetOfPath.end() || pixels.IsNULL() || m_folder.IsNULLOrEmpty() )
         return false;
     if ( !m_renderedAssets.insert( known->second ).second )

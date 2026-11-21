@@ -51,6 +51,16 @@
 #define GUCEF_VFS_CVFSGLOBAL_H
 #endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
 
+#ifndef GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H
+#include "gucefVFS_CVfsThreadPolicyRegistry.h"
+#define GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H
+#endif /* GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H ? */
+
+#ifndef GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#include "gucefVFS_CRemoteArchiveEvents.h"
+#define GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#endif /* GUCEF_VFS_CREMOTEARCHIVEEVENTS_H ? */
+
 #ifndef GUCEF_GUI_CLISTBOX_H
 #include "gucefGUI_CListBox.h"
 #define GUCEF_GUI_CLISTBOX_H
@@ -142,6 +152,7 @@ const CORE::CEvent CAssetSourcesPane::SessionExpiredEvent = "GUCEF::ASSETWORKBEN
 const CORE::CEvent CAssetSourcesPane::ServiceChangedEvent = "GUCEF::ASSETWORKBENCH::CAssetSourcesPane::ServiceChangedEvent";
 const CORE::CEvent CAssetSourcesPane::RemoteContentChangedEvent = "GUCEF::ASSETWORKBENCH::CAssetSourcesPane::RemoteContentChangedEvent";
 const CORE::CString CAssetSourcesPane::PrimaryStoreId = "primary";
+const CORE::CString CAssetSourcesPane::OpenActionId = "open";
 
 namespace {
 
@@ -149,6 +160,7 @@ const Int32 StoreListHeight = 72;
 const Int32 StatusTop = 78;
 const Int32 ActionsHeight = 104;
 const Int32 ContentTop = 104;
+const Int32 ServiceLineHeight = 24;          /**< the row of the line of the connection to a remote store, above the list of the stores */
 const char* const KeepNames[] = { "Keep original", "Keep converted", "Keep both" };
 
 GUI::CWidget*
@@ -240,6 +252,8 @@ CAssetSourcesPane::CAssetSourcesPane( CAssetMounter& mounter )
     , m_diskMounts( 0 )
     , m_hasConverter( false )
     , m_remoteFiles( GUCEF_NULL )
+    , m_noWaitThread( 0 )
+    , m_missedPaths()
     , m_fetchJobs( GUCEF_NULL )
     , m_remoteThumbs( GUCEF_NEW CRemoteThumbnailSource() )
     , m_activity( GUCEF_NULL )
@@ -248,6 +262,16 @@ CAssetSourcesPane::CAssetSourcesPane( CAssetMounter& mounter )
     , m_remotePrefix()
     , m_remoteRoots()
     , m_open()
+    , m_itemOpen()
+    , m_notInLibrary( GUCEF_NULL )
+    , m_askedStoreId()
+    , m_askedItemId()
+    , m_addWhenShownStoreId()
+    , m_addWhenShownItemId()
+    , m_openProblem()
+    , m_itemOpenText()
+    , m_pendingFolderPath()
+    , m_serviceLineOffset( 0 )
     , m_remoteOpenText()
     , m_remoteRootOfLocation()
     , m_keptPacks()
@@ -359,6 +383,14 @@ void
 CAssetSourcesPane::BuildLayout( void )
 {GUCEF_TRACE;
 
+    // the line of the connection to a remote store has a row of its own above the list; the rest moves down while it is shown (ApplyServiceLine())
+    GUI::CWidget* serviceLine = MakeWidget( *m_context, "Label", "ServiceState", m_host, "0,8 0,4", "1,-16 0," + Int( ServiceLineHeight - 2 ) );
+    if ( GUCEF_NULL != serviceLine )
+    {
+        serviceLine->SetBoolProperty( GUI::EWidgetProperty_InputTransparent, true );
+        serviceLine->SetBoolProperty( GUI::EWidgetProperty_Visible, false );
+        serviceLine->SetProperty( GUI::EWidgetProperty_TextOverflow, "Ellipsis" );
+    }
     GUI::CWidget* stores = MakeWidget( *m_context, "Listbox", "Stores", m_host, "0,4 0,4", "1,-8 0," + Int( StoreListHeight ) );
     GUI::CWidget* status = MakeWidget( *m_context, "Label", "SourceStatus", m_host, "0,6 0," + Int( StatusTop ), "1,-248 0,22" );
     GUI::CWidget* onlineHint = MakeWidget( *m_context, "Label", "OnlineHint", m_host, "0,12 0," + Int( 4 + 24 ), "1,-24 0,40" );
@@ -547,6 +579,9 @@ CAssetSourcesPane::Shutdown( void )
 
     StopRemoteFiles();
     UnsubscribeAllFromObserver();
+    m_itemOpen.Cancel();
+    GUCEF_DELETE m_notInLibrary;
+    m_notInLibrary = GUCEF_NULL;
     if ( GUCEF_NULL != m_transfers )
         m_transfers->SetModel( GUCEF_NULL );
     GUCEF_DELETE m_searchForm;
@@ -695,9 +730,12 @@ CORE::CString
 CAssetSourcesPane::GetOnlineHintText( void ) const
 {GUCEF_TRACE;
 
-    const CORE::CString serviceState = GetServiceStateText();
-    if ( !serviceState.IsNULLOrEmpty() )
-        return serviceState;
+    // the state of the connection to a remote store is the line of its own above the list (ServiceState), not this hint; a service of the
+    // settings that this build cannot make or reach has no list of stores to be above: that is said here
+    if ( !IsUsingRemoteService() && !GetServiceStateText().IsNULLOrEmpty() )
+        return GetServiceStateText();
+    if ( 0 == GetOnlineStoreCount() && IsUsingRemoteService() )
+        return "The store service offers no online store";
     if ( 0 == GetOnlineStoreCount() )
         return m_disabledStores.empty() ? CORE::CString( "No online store is installed: see Settings, Sources" ) : CORE::CString( "The online stores are switched off: see Settings, Sources" );
     return CORE::CString::Empty;
@@ -717,6 +755,54 @@ CAssetSourcesPane::ShowOnlineHint( void )
     const CORE::CString text = GetOnlineHintText();
     hint->SetProperty( GUI::EWidgetProperty_Text, text );
     hint->SetBoolProperty( GUI::EWidgetProperty_Visible, !text.IsNULLOrEmpty() );
+    ApplyServiceLine();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::ApplyServiceLine( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_host )
+        return;
+    const CORE::CString text = IsUsingRemoteService() ? GetServiceStateText() : CORE::CString::Empty;
+    GUI::CWidget* line = m_host->GetChildWidget( "ServiceState" );
+    if ( GUCEF_NULL != line )
+    {
+        line->SetProperty( GUI::EWidgetProperty_Text, text );
+        line->SetProperty( GUI::EWidgetProperty_Tooltip, text );
+        line->SetBoolProperty( GUI::EWidgetProperty_Visible, !text.IsNULLOrEmpty() );
+    }
+    const Int32 offset = text.IsNULLOrEmpty() ? 0 : ServiceLineHeight;
+    if ( offset == m_serviceLineOffset )
+        return;
+    m_serviceLineOffset = offset;
+
+    // everything below the line moves down by its row: the list, the status line with its buttons, the hint in the list, the places of the stores
+    struct SPlace { const char* name; const char* left; Int32 top; };
+    const SPlace places[] =
+    {
+        { "Stores", "0,4", 4 }, { "SourceStatus", "0,6", StatusTop }, { "SignIn", "1,-84", StatusTop - 2 },
+        { "SignInSettings", "1,-244", StatusTop - 2 }, { "OnlineHint", "0,12", 4 + 24 }, { "PrimaryHost", "0,4", ContentTop }
+    };
+    for ( UInt32 i=0; i<(UInt32)( sizeof( places ) / sizeof( places[ 0 ] ) ); ++i )
+    {
+        GUI::CWidget* widget = m_host->GetChildWidget( places[ i ].name );
+        if ( GUCEF_NULL != widget )
+            widget->SetProperty( GUI::EWidgetProperty_Position, CORE::CString( places[ i ].left ) + " 0," + Int( places[ i ].top + offset ) );
+    }
+    const CORE::CString contentSize = "1,-8 1,-" + Int( ContentTop + offset + ActionsHeight + 4 );
+    GUI::CWidget* primary = m_host->GetChildWidget( "PrimaryHost" );
+    if ( GUCEF_NULL != primary )
+        primary->SetProperty( GUI::EWidgetProperty_Size, contentSize );
+    for ( size_t i=0; i<m_online.size(); ++i )
+    {
+        if ( GUCEF_NULL == m_online[ i ]->host )
+            continue;
+        m_online[ i ]->host->SetProperty( GUI::EWidgetProperty_Position, "0,4 0," + Int( ContentTop + offset ) );
+        m_online[ i ]->host->SetProperty( GUI::EWidgetProperty_Size, contentSize );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -749,8 +835,14 @@ CAssetSourcesPane::GetStoreLine( UInt32 index ) const
         return IsCatalogueAvailable() ? CORE::CString( "Primary store" ) : CORE::CString( "Primary store - not available" );
     ASSETSTORE::CAssetStoreInfo info;
     if ( !GetStoreInfo( m_storeIds[ index ], info ) )
+    {
+        // the name the store gives itself, not its id
+        ASSETSTORE::TAssetStoreProviderPtr provider;
+        if ( GUCEF_NULL != m_service && m_service->GetStoreProvider( m_storeIds[ index ], provider ) && !provider.IsNULL() && !provider->GetDisplayName().IsNULLOrEmpty() )
+            return provider->GetDisplayName();
         return m_storeIds[ index ];
-    const CORE::CString name = info.displayName;
+    }
+    const CORE::CString name = info.displayName.IsNULLOrEmpty() ? m_storeIds[ index ] : info.displayName;
     if ( ASSETSTORE::ASSETSTORE_SIGNIN_NONE == info.signInKind )
         return name;
     if ( info.signedIn )
@@ -855,8 +947,8 @@ CAssetSourcesPane::MakeOnline( const CORE::CString& storeId )
     ASSETSTORE::TAssetStoreProviderPtr provider;
     if ( GUCEF_NULL == m_service || !m_service->GetStoreProvider( storeId, provider ) || provider.IsNULL() || GUCEF_NULL == m_context || GUCEF_NULL == m_host )
         return GUCEF_NULL;
-    const CORE::CString contentSize = "1,-8 1,-" + Int( ContentTop + ActionsHeight + 4 );
-    GUI::CWidget* hostWidget = MakeWidget( *m_context, "Panel", ( "OnlineHost_" + storeId ).C_String(), m_host, "0,4 0," + Int( ContentTop ), contentSize );
+    const CORE::CString contentSize = "1,-8 1,-" + Int( ContentTop + m_serviceLineOffset + ActionsHeight + 4 );
+    GUI::CWidget* hostWidget = MakeWidget( *m_context, "Panel", ( "OnlineHost_" + storeId ).C_String(), m_host, "0,4 0," + Int( ContentTop + m_serviceLineOffset ), contentSize );
     if ( GUCEF_NULL == hostWidget )
         return GUCEF_NULL;
     hostWidget->SetProperty( GUI::EWidgetProperty_BackgroundColour, "0,0,0,0" );
@@ -879,6 +971,14 @@ CAssetSourcesPane::MakeOnline( const CORE::CString& storeId )
 
     TEventCallback selectionCallback( this, &CAssetSourcesPane::OnBrowserSelectionChanged );
     SubscribeTo( store->browser, GUI::CContentBrowserForm::SelectionChangedEvent, selectionCallback );
+    // an item is opened with a double click, Enter or the action Open of its context menu
+    GUI::TContextMenuItemVector actions;
+    actions.push_back( GUI::CContextMenuItem( OpenActionId, "Open", "Enter" ) );
+    store->browser->SetItemActions( actions );
+    TEventCallback activatedCallback( this, &CAssetSourcesPane::OnOnlineItemActivated );
+    SubscribeTo( store->browser, GUI::CContentBrowserForm::ItemActivatedEvent, activatedCallback );
+    TEventCallback actionCallback( this, &CAssetSourcesPane::OnOnlineItemAction );
+    SubscribeTo( store->browser, GUI::CContentBrowserForm::ItemActionEvent, actionCallback );
     TEventCallback changedCallback( this, &CAssetSourcesPane::OnLibraryChanged );
     SubscribeTo( store->library, ASSETSTORE::CAssetStoreLibraryFileSystemAccess::LibraryChangedEvent, changedCallback );
     TEventCallback failedCallback( this, &CAssetSourcesPane::OnLibraryFailed );
@@ -973,6 +1073,9 @@ CAssetSourcesPane::GetStoreStatusText( void ) const
         // what the page knows of the end of the session, else the invitation
         return store->message.IsNULLOrEmpty() ? CORE::CString( "The session ended: sign in again" ) : store->message;
     }
+    // an open of an item of the store: what it does, or why it did not open
+    if ( !m_itemOpenText.IsNULLOrEmpty() )
+        return m_itemOpenText;
     if ( !store->message.IsNULLOrEmpty() )
         return store->message;
     if ( store->library->IsLoading() )
@@ -1224,6 +1327,14 @@ CAssetSourcesPane::ShowItem( const ASSETSTORE::CAssetStoreItem& item )
     m_item = item;
     m_haveItem = true;
     ShowFormatChoices();
+    // the answer yes to "not in the library" waited for the formats of the item
+    if ( !m_addWhenShownItemId.IsNULLOrEmpty() && m_addWhenShownItemId == item.itemId && m_addWhenShownStoreId == m_selectedProviderId && !GetSelectedFormatId().IsNULLOrEmpty() )
+    {
+        const CORE::CString storeId = m_addWhenShownStoreId;
+        m_addWhenShownStoreId.Clear();
+        m_addWhenShownItemId.Clear();
+        AddStoreItemToLibrary( storeId, item.itemId );
+    }
     if ( !keepFormat.IsNULLOrEmpty() )
     {
         for ( size_t i=0; i<m_formatOrder.size(); ++i )
@@ -1267,6 +1378,8 @@ CAssetSourcesPane::OnBrowserSelectionChanged( CORE::CNotifier* notifier, const C
     const CORE::CString itemId = store->library->GetItemIdOfPath( paths[ 0 ] );
     if ( itemId.IsNULLOrEmpty() )
         return;
+    if ( itemId != m_selectedItemId )
+        m_itemOpenText.Clear();
     m_selectedProviderId = store->providerId;
     m_selectedItemId = itemId;
     ASSETSTORE::CAssetStoreItem item;
@@ -1908,27 +2021,14 @@ bool
 CAssetSourcesPane::OpenResult( const CORE::CString& key )
 {GUCEF_TRACE;
 
-    if ( IsUsingRemoteService() )
-        return OpenRemoteResult( key, false );
     ASSETSTORE::CAssetSearchHit hit;
     if ( GUCEF_NULL == m_searchModel || !m_searchModel->FindHit( key, hit ) )
         return false;
+    // a pack: its folder in the content browser and the asset it shows in the views
     if ( hit.assetId.IsNULLOrEmpty() )
-    {
-        // a pack: its folder is shown
-        ASSETSTORE::CAssetPackRecord pack;
-        if ( GUCEF_NULL != m_service && ASSETSTORE::ASSETSTORE_STATUS_OK == m_service->GetPack( hit.packId, pack ) )
-        {
-            const CORE::CString root = GetLocationRoot( pack.locationId );
-            if ( !root.IsNULLOrEmpty() )
-            {
-                CORE::TCloneableString data( CAssetMounter::NormalizePath( ASSETSTORE::CPackStorageLayout( pack.rootPath ).GetBrowseFolder( root ) ) );
-                NotifyObservers( FolderOpenRequestedEvent, &data );
-                return true;
-            }
-        }
-        return false;
-    }
+        return OpenPack( hit.packId, hit.name );
+    if ( IsUsingRemoteService() )
+        return OpenRemoteResult( key, false );
     return OpenAssetFile( key, false );
 }
 
@@ -1952,6 +2052,22 @@ CAssetSourcesPane::OpenAssetFile( const CORE::CString& key, bool converted )
     ASSETSTORE::CAssetSearchHit hit;
     if ( GUCEF_NULL == m_service || GUCEF_NULL == m_searchModel || !m_searchModel->FindHit( key, hit ) || hit.assetId.IsNULLOrEmpty() )
         return false;
+    return OpenAssetById( hit.assetId, hit.name, converted );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSourcesPane::OpenAssetById( const CORE::CString& assetId, const CORE::CString& name, bool converted )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_service )
+        return false;
+    if ( IsUsingRemoteService() )
+        return OpenRemoteAsset( assetId, name, converted );
+    ASSETSTORE::CAssetSearchHit hit;
+    hit.assetId = assetId;
+    hit.name = name;
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     ASSETSTORE::CAssetFileSet files;
     if ( ASSETSTORE::ASSETSTORE_STATUS_OK != m_service->GetAssetFileSet( hit.assetId, files ) )
@@ -1988,6 +2104,283 @@ CAssetSourcesPane::OpenAssetFile( const CORE::CString& key, bool converted )
     NotifyObservers( AssetOpenRequestedEvent, &data );
     return true;
 }
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSourcesPane::ShowPackFolder( const ASSETSTORE::CAssetPackRecord& pack )
+{GUCEF_TRACE;
+
+    // the converted output of the pack (the area of the target) when it has some, else its original files
+    const ASSETSTORE::CPackStorageLayout layout( pack.rootPath );
+    if ( IsUsingRemoteService() )
+    {
+        if ( GUCEF_NULL == m_remoteFiles )
+            return false;
+        const GUCEF::map< CORE::CString, CORE::CString >::const_iterator r = m_remoteRootOfLocation.find( pack.locationId );
+        if ( r == m_remoteRootOfLocation.end() || (*r).second.IsNULLOrEmpty() )
+        {
+            ReportOpenProblem( "The storage location of the pack " + pack.title + " is not offered by the store service" );
+            return false;
+        }
+        const CORE::CString root = (*r).second;
+        const CORE::CString folder = layout.IsAreaLayout() && !pack.formatsConverted.empty() ? layout.GetCookedFolder( root, CORE::CString::Empty ) : layout.GetBrowseFolder( root );
+        const CORE::CString clientFolder = CAssetMounter::NormalizePath( m_remoteFiles->ToClientPath( folder ) );
+        if ( m_remoteFiles->IsFolderKnown( folder ) )
+        {
+            CORE::TCloneableString data( clientFolder );
+            NotifyObservers( FolderOpenRequestedEvent, &data );
+            return true;
+        }
+        // the content browser goes there when the list of the folder is in (OnRemoteFilesArrived())
+        m_pendingFolderPath = clientFolder;
+        m_remoteFiles->RequestFolder( folder );
+        return true;
+    }
+    const CORE::CString root = GetLocationRoot( pack.locationId );
+    if ( root.IsNULLOrEmpty() )
+    {
+        ReportOpenProblem( "The storage location of the pack " + pack.title + " is not available" );
+        return false;
+    }
+    CORE::CString folder = layout.GetBrowseFolder( root );
+    if ( layout.IsAreaLayout() && !pack.formatsConverted.empty() && VFS::CVfsGlobal::Instance()->GetVfs().DirExists( layout.GetCookedFolder( root, CORE::CString::Empty ) ) )
+        folder = layout.GetCookedFolder( root, CORE::CString::Empty );
+    CORE::TCloneableString data( CAssetMounter::NormalizePath( folder ) );
+    NotifyObservers( FolderOpenRequestedEvent, &data );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSourcesPane::OpenPack( const CORE::CString& packId, const CORE::CString& title )
+{GUCEF_TRACE;
+
+    m_openProblem.Clear();
+    if ( !m_itemOpen.StartForPack( m_service, packId, title ) )
+        return false;
+    m_remoteOpenText = "Opening " + ( title.IsNULLOrEmpty() ? packId : title ) + "...";
+    ShowStatus();
+    UpdateItemOpen();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSourcesPane::OpenStoreItem( const CORE::CString& storeId, const CORE::CString& itemId )
+{GUCEF_TRACE;
+
+    m_openProblem.Clear();
+    SOnlineStore* store = FindOnline( storeId );
+    if ( GUCEF_NULL == store || itemId.IsNULLOrEmpty() )
+        return false;
+    ASSETSTORE::CAssetStoreItem item;
+    const CORE::CString path = store->library->GetPathOfItem( itemId );
+    const CORE::CString title = !path.IsNULLOrEmpty() && store->library->TryGetItem( path, item ) && !item.title.IsNULLOrEmpty() ? item.title : itemId;
+    if ( !m_itemOpen.StartForItem( m_service, storeId, itemId, title ) )
+        return false;
+    m_itemOpenText = "Looking up " + title + " in the library...";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << m_itemOpenText );
+    ShowStatus();
+    UpdateItemOpen();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::ReportOpenProblem( const CORE::CString& problem )
+{GUCEF_TRACE;
+
+    // a failure is never silent: the report of the workbench takes the warning, the status line of the page says it
+    m_openProblem = problem;
+    m_remoteOpenText = problem;
+    m_itemOpenText = problem;
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CAssetSourcesPane: " << problem );
+    ShowStatus();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::UpdateItemOpen( void )
+{GUCEF_TRACE;
+
+    if ( !m_itemOpen.Update() )
+        return;
+    const CORE::CString title = m_itemOpen.GetItemTitle();
+    switch ( m_itemOpen.GetState() )
+    {
+        case CStoreItemOpenLookup::STATE_FOUND:
+        {
+            const ASSETSTORE::CAssetPackRecord& pack = m_itemOpen.GetPack();
+            m_remoteOpenText.Clear();
+            m_itemOpenText.Clear();
+            ShowPackFolder( pack );
+            if ( m_itemOpen.GetAssetId().IsNULLOrEmpty() )
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: The pack " << pack.title << " has no asset to show: its folder is shown" );
+                ShowStatus();
+                return;
+            }
+            const ASSETSTORE::CAssetRecord& asset = m_itemOpen.GetAsset();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << title << " is the pack " << pack.title << " of the library: opening " << asset.name );
+            if ( !OpenAssetById( asset.assetId, asset.name, false ) && m_openProblem.IsNULLOrEmpty() )
+                ReportOpenProblem( asset.name + " of the pack " + pack.title + " cannot be opened" );
+            ShowStatus();
+            return;
+        }
+        case CStoreItemOpenLookup::STATE_NOT_IN_LIBRARY:
+        {
+            m_remoteOpenText.Clear();
+            m_openProblem = title + " is not in the library yet";
+            m_itemOpenText = m_openProblem;
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << m_openProblem );
+            ShowStatus();
+            if ( GUCEF_NULL == m_context )
+                return;
+            if ( GUCEF_NULL == m_notInLibrary )
+            {
+                m_notInLibrary = GUCEF_NEW GUI::CMessageBoxForm( m_context );
+                if ( !m_notInLibrary->Build() )
+                    return;
+                TEventCallback callback( this, &CAssetSourcesPane::OnNotInLibraryAnswered );
+                SubscribeTo( m_notInLibrary, GUI::CMessageBoxForm::ClosedEvent, callback );
+            }
+            m_askedStoreId = m_itemOpen.GetStoreId();
+            m_askedItemId = m_itemOpen.GetItemId();
+            m_notInLibrary->Open( "Not in the library yet", title + " is not in the library yet.\n\nDownload and convert it now? It is added to the library, converted for the "
+                                  "views, and its progress is shown in the Jobs view.", GUI::CMessageBoxForm::MESSAGEBOXBUTTONS_YES_NO );
+            return;
+        }
+        case CStoreItemOpenLookup::STATE_FAILED:
+        {
+            ReportOpenProblem( m_itemOpen.GetProblem() );
+            return;
+        }
+        default:
+            return;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::OnNotInLibraryAnswered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_notInLibrary )
+        return;
+    const GUI::CMessageBoxForm::EMessageBoxResult answer = m_notInLibrary->GetResult();
+    const CORE::CString storeId = m_askedStoreId;
+    const CORE::CString itemId = m_askedItemId;
+    m_askedStoreId.Clear();
+    m_askedItemId.Clear();
+    if ( GUI::CMessageBoxForm::MESSAGEBOXRESULT_YES != answer && GUI::CMessageBoxForm::MESSAGEBOXRESULT_OK != answer )
+    {
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: Not in the library: no download" );
+        return;
+    }
+    GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: Not in the library: download and convert" );
+    AddStoreItemToLibrary( storeId, itemId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetSourcesPane::AddStoreItemToLibrary( const CORE::CString& storeId, const CORE::CString& itemId )
+{GUCEF_TRACE;
+
+    if ( storeId.IsNULLOrEmpty() || itemId.IsNULLOrEmpty() )
+        return false;
+    if ( m_selectedProviderId != storeId || m_selectedItemId != itemId || !m_haveItem || m_item.itemId != itemId || GetSelectedFormatId().IsNULLOrEmpty() )
+    {
+        // the item is selected first; it is added when its formats are known (ShowItem())
+        m_addWhenShownStoreId = storeId;
+        m_addWhenShownItemId = itemId;
+        if ( !SelectItem( storeId, itemId ) && ( m_selectedProviderId != storeId || m_selectedItemId != itemId ) )
+        {
+            m_addWhenShownStoreId.Clear();
+            m_addWhenShownItemId.Clear();
+            ReportOpenProblem( "The item " + itemId + " is not in the listing of the store: it cannot be downloaded" );
+            return false;
+        }
+        if ( m_haveItem && m_item.itemId == itemId && !GetSelectedFormatId().IsNULLOrEmpty() )
+        {
+            m_addWhenShownStoreId.Clear();
+            m_addWhenShownItemId.Clear();
+        }
+        else
+            return true;
+    }
+    // the download is ingested when it is done; the converted output is kept, so that the views can show it
+    const ASSETSTORE::TAssetKeepPolicy keep = m_keep;
+    if ( ASSETSTORE::ASSETKEEP_ORIGINAL == m_keep )
+        m_keep = ASSETSTORE::ASSETKEEP_BOTH;
+    CORE::CString jobId;
+    const bool queued = QueueDownload( true, jobId );
+    m_keep = keep;
+    if ( !queued )
+    {
+        ReportOpenProblem( m_item.title + " cannot be downloaded into the library: see the report" );
+        return false;
+    }
+    m_openProblem.Clear();
+    m_itemOpenText = "Downloading " + m_item.title + " into the library: see the Jobs view";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << m_itemOpenText << " (job " << jobId << ")" );
+    ShowStatus();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::OnOnlineItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    SOnlineStore* store = FindOnlineOfNotifier( notifier );
+    const CORE::TCloneableString* path = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL == store || GUCEF_NULL == path )
+        return;
+    const CORE::CString itemId = store->library->GetItemIdOfPath( path->GetData() );
+    if ( itemId.IsNULLOrEmpty() )
+    {
+        ReportOpenProblem( path->GetData() + " is no item of the store" );
+        return;
+    }
+    OpenStoreItem( store->providerId, itemId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetSourcesPane::OnOnlineItemAction( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    SOnlineStore* store = FindOnlineOfNotifier( notifier );
+    const CORE::TCloneableString* action = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL == store || GUCEF_NULL == action || OpenActionId != action->GetData() )
+        return;
+    const CORE::CString::StringVector paths = store->browser->GetSelectedPaths();
+    for ( size_t i=0; i<paths.size(); ++i )
+    {
+        const CORE::CString itemId = store->library->GetItemIdOfPath( paths[ i ] );
+        if ( !itemId.IsNULLOrEmpty() )
+        {
+            // one open at a time: the first item of the selection
+            OpenStoreItem( store->providerId, itemId );
+            return;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CStoreItemOpenLookup& CAssetSourcesPane::GetItemOpenLookup( void ) const { return m_itemOpen; }
+GUI::CMessageBoxForm* CAssetSourcesPane::GetNotInLibraryQuestion( void ) const { return m_notInLibrary; }
+const CORE::CString& CAssetSourcesPane::GetOpenProblem( void ) const { return m_openProblem; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -2109,6 +2502,7 @@ CAssetSourcesPane::Update( UInt32 deltaInMs )
     if ( GUCEF_NULL != m_transferModel )
         m_transferModel->Update();
     UpdateRemote();
+    UpdateItemOpen();
     CheckDetails();
     // a future that ended in failure has no future either: the outstanding request is what m_itemFutureId says
     if ( !m_itemFutureId.IsNULLOrEmpty() && m_itemFuture.IsReady() )
@@ -2291,6 +2685,9 @@ CAssetSourcesPane::SwitchService( const ASSETSTORE::TAssetStoreServicePtr& servi
     m_detailWaiting = false;
     m_addJobs.clear();
     m_endedDownloads.clear();
+    m_itemOpen.Cancel();
+    m_addWhenShownStoreId.Clear();
+    m_addWhenShownItemId.Clear();
     if ( m_service->IsInProcess() )
         AdoptLocations();
 
@@ -2321,7 +2718,7 @@ CAssetSourcesPane::SwitchService( const ASSETSTORE::TAssetStoreServicePtr& servi
 //-------------------------------------------------------------------------*/
 
 CAssetSourcesPane::SRemoteOpen::SRemoteOpen( void )
-    : active( false ), key(), assetId(), name(), converted( false ), future( CORE::TASKSTATUS_UNDEFINED ), jobId( 0 ), openPath(), folderPath(), retries( 0 ), pack( false ), finishedTicks( 0 )
+    : active( false ), key(), assetId(), name(), converted( false ), future( CORE::TASKSTATUS_UNDEFINED ), awaitingFuture( false ), jobId( 0 ), openPath(), folderPath(), retries( 0 ), pack( false ), finishedTicks( 0 )
 {GUCEF_TRACE;
 
 }
@@ -2349,7 +2746,7 @@ CAssetSourcesPane::SetFeedback( GUI::CActivityService* activity, CWorkbenchJobRe
 
 void CAssetSourcesPane::SetRemoteCacheFolder( const CORE::CString& folder ) { m_remoteCacheFolder = folder; }
 void CAssetSourcesPane::SetRemoteMountPrefix( const CORE::CString& prefix ) { m_remotePrefix = prefix; }
-ASSETSTORE::CRemoteAssetFileSystem* CAssetSourcesPane::GetRemoteFiles( void ) const { return m_remoteFiles; }
+ASSETSTORE::CRemoteAssetShares* CAssetSourcesPane::GetRemoteFiles( void ) const { return m_remoteFiles; }
 CRemoteFetchJobs* CAssetSourcesPane::GetFetchJobs( void ) const { return m_fetchJobs; }
 CRemoteThumbnailSource* CAssetSourcesPane::GetRemoteThumbnails( void ) const { return m_remoteThumbs; }
 CORE::CString CAssetSourcesPane::GetRemoteOpenText( void ) const { return m_remoteOpenText; }
@@ -2380,21 +2777,33 @@ CAssetSourcesPane::StartRemoteFiles( void )
         return;
     ASSETSTORE::CRemoteFilesSettings files( m_settings.remoteFiles );
     const CORE::CString base = GetRemoteCacheBase();
-    files.cacheFolder = CORE::CombinePath( base, "blocks" );
-    m_remoteFiles = GUCEF_NEW ASSETSTORE::CRemoteAssetFileSystem( *m_service, files );
-    if ( !m_remoteFiles->Open() )
+    files.cacheFolder = CORE::CombinePath( base, "blockcache" );
+    m_remoteFiles = GUCEF_NEW ASSETSTORE::CRemoteAssetShares( *m_service, files );
+
+    // the thread of the interface never waits for the service: what is not in the cache is fetched in the background, and the arrival is an event of the VFS
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    VFS::CVfsThreadPolicy policy;
+    policy.missAction = VFS::MISSACTION_FAIL_AND_FETCH;
+    m_noWaitThread = MT::GetCurrentThreadID();
+    VFS::CVfsGlobal::Instance()->GetThreadPolicyRegistry().SetThreadPolicy( m_noWaitThread, policy );
+    TEventCallback arrivedCallback( this, &CAssetSourcesPane::OnRemoteFilesArrived );
+    SubscribeTo( &vfs, VFS::CRemoteArchiveEvents::FileArrivedEvent, arrivedCallback );
+    SubscribeTo( &vfs, VFS::CRemoteArchiveEvents::ListingArrivedEvent, arrivedCallback );
+    SubscribeTo( &vfs, VFS::CRemoteArchiveEvents::FetchFailedEvent, arrivedCallback );
+    SubscribeTo( &vfs, VFS::CRemoteArchiveEvents::ConnectionStateChangedEvent, arrivedCallback );
+    if ( !m_remoteFiles->Open( m_remotePrefix ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CAssetSourcesPane: The files of the remote store cannot be opened" );
+        UnsubscribeFrom( &vfs );
+        VFS::CVfsGlobal::Instance()->GetThreadPolicyRegistry().ClearThreadPolicy( m_noWaitThread );
+        m_noWaitThread = 0;
         GUCEF_DELETE m_remoteFiles;
         m_remoteFiles = GUCEF_NULL;
         return;
     }
-    // the thread of the interface never waits for the service: what is not in the cache is fetched in the background
-    m_remoteFiles->SetNoWaitThread( MT::GetCurrentThreadID() );
-    TEventCallback arrivedCallback( this, &CAssetSourcesPane::OnRemoteFilesArrived );
-    SubscribeTo( m_remoteFiles, ASSETSTORE::CRemoteAssetFileSystem::FileArrivedEvent, arrivedCallback );
-    SubscribeTo( m_remoteFiles, ASSETSTORE::CRemoteAssetFileSystem::ListingArrivedEvent, arrivedCallback );
-    const UInt32 mounted = m_remoteFiles->MountLocations( m_remotePrefix );
+    ASSETSTORE::CRemoteAssetShares::TShareVector shares;
+    m_remoteFiles->GetShares( shares );
+    const UInt32 mounted = (UInt32) shares.size();
     m_remoteRootOfLocation.clear();
     {
         ASSETSTORE::CAssetLocationPage locations;
@@ -2403,7 +2812,7 @@ CAssetSourcesPane::StartRemoteFiles( void )
                 m_remoteRootOfLocation[ locations.entries[ i ].location.locationId ] = locations.entries[ i ].location.vfsRoot;
     }
     CORE::CString::StringVector roots;
-    m_remoteFiles->GetMounts( roots );
+    m_remoteFiles->GetLocationRoots( roots );
     for ( size_t i=0; i<roots.size(); ++i )
     {
         const CORE::CString clientRoot = m_remoteFiles->ToClientPath( roots[ i ] );
@@ -2419,7 +2828,7 @@ CAssetSourcesPane::StartRemoteFiles( void )
     m_remoteThumbs->SetCacheFolder( CORE::CombinePath( base, "thumbnails" ) );
     if ( GUCEF_NULL != m_fetchJobs )
         m_fetchJobs->SetFileSystem( m_remoteFiles );
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: The files of the remote store are mounted (" << mounted << " locations), the block cache is in " << files.cacheFolder );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: The files of the remote store are mounted (" << mounted << " shares), the block cache is in " << files.cacheFolder );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2432,6 +2841,7 @@ CAssetSourcesPane::StopRemoteFiles( void )
         m_fetchJobs->SetFileSystem( GUCEF_NULL );
     m_open = SRemoteOpen();
     m_remoteOpenText.Clear();
+    m_pendingFolderPath.Clear();
     if ( GUCEF_NULL != m_remoteThumbs )
         m_remoteThumbs->SetService( GUCEF_NULL, GUCEF_NULL );
     for ( size_t i=0; i<m_remoteRoots.size(); ++i )
@@ -2439,12 +2849,18 @@ CAssetSourcesPane::StopRemoteFiles( void )
     m_remoteRoots.clear();
     m_remoteRootOfLocation.clear();
     m_keptPacks.clear();
+    m_missedPaths.clear();
     if ( GUCEF_NULL != m_remoteFiles )
     {
-        UnsubscribeFrom( m_remoteFiles );
+        UnsubscribeFrom( &VFS::CVfsGlobal::Instance()->GetVfs() );
         m_remoteFiles->Close();
         GUCEF_DELETE m_remoteFiles;
         m_remoteFiles = GUCEF_NULL;
+    }
+    if ( 0 != m_noWaitThread )
+    {
+        VFS::CVfsGlobal::Instance()->GetThreadPolicyRegistry().ClearThreadPolicy( m_noWaitThread );
+        m_noWaitThread = 0;
     }
 }
 
@@ -2454,11 +2870,23 @@ void
 CAssetSourcesPane::OnRemoteFilesArrived( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    // a list that a folder of the content browser or a pack that is opened asked for is in: the views read it again (not at every list: a few frames later)
-    if ( m_open.active && m_open.pack && ASSETSTORE::CRemoteAssetFileSystem::ListingArrivedEvent == eventId )
+    if ( GUCEF_NULL == m_remoteFiles )
+        return;
+    if ( VFS::CRemoteArchiveEvents::ConnectionStateChangedEvent == eventId )
     {
-        const CORE::TCloneableString* folder = static_cast< const CORE::TCloneableString* >( eventData );
-        if ( GUCEF_NULL != folder && GUCEF_NULL != m_remoteFiles && m_remoteFiles->ToClientPath( folder->GetData() ) == m_open.folderPath )
+        // the link came or went: the views read again what they show (a few frames later)
+        m_remoteChangedDelay = 3;
+        return;
+    }
+    const VFS::CVfsArrivalInfo* info = static_cast< const VFS::CVfsArrivalInfo* >( eventData );
+    if ( GUCEF_NULL == info || !m_remoteFiles->Contains( info->path ) )
+        return;
+    const CORE::CString arrivedPath = CAssetMounter::NormalizePath( info->path );
+
+    // a list that a folder of the content browser or a pack that is opened asked for is in: the views read it again (not at every list: a few frames later)
+    if ( VFS::CRemoteArchiveEvents::ListingArrivedEvent == eventId )
+    {
+        if ( m_open.active && m_open.pack && arrivedPath == CAssetMounter::NormalizePath( m_open.folderPath ) )
         {
             const CORE::CString path = m_open.folderPath;
             m_open = SRemoteOpen();
@@ -2467,6 +2895,37 @@ CAssetSourcesPane::OnRemoteFilesArrived( CORE::CNotifier* notifier, const CORE::
             CORE::TCloneableString data( CAssetMounter::NormalizePath( path ) );
             NotifyObservers( FolderOpenRequestedEvent, &data );
             return;
+        }
+        if ( !m_pendingFolderPath.IsNULLOrEmpty() && arrivedPath == m_pendingFolderPath )
+        {
+            CORE::TCloneableString data( m_pendingFolderPath );
+            m_pendingFolderPath.Clear();
+            NotifyObservers( FolderOpenRequestedEvent, &data );
+        }
+    }
+    else
+    if ( VFS::CRemoteArchiveEvents::FileArrivedEvent == eventId )
+    {
+        // blocks of a file that a read of the views missed are in (what a fetch of the whole file of this page brings is not that): the views will find the
+        // rest the same way, so the whole file is fetched, and the views read it again (UpdateRemote())
+        CORE::CString servicePath;
+        if ( m_remoteFiles->ToServicePath( info->path, servicePath ) && !m_remoteFiles->TakeWholeFetched( servicePath ) )
+            m_missedPaths.insert( servicePath );
+    }
+    else
+    if ( VFS::CRemoteArchiveEvents::FetchFailedEvent == eventId )
+    {
+        // the list that a pack waits for did not come: said, not waited for
+        if ( m_open.active && m_open.pack && !m_open.folderPath.IsNULLOrEmpty() && arrivedPath == CAssetMounter::NormalizePath( m_open.folderPath ) )
+        {
+            FinishRemoteOpen( "The folder of " + m_open.name + " cannot be listed: " + info->message );
+            return;
+        }
+        if ( !m_pendingFolderPath.IsNULLOrEmpty() && arrivedPath == m_pendingFolderPath )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CAssetSourcesPane: The folder " << m_pendingFolderPath << " of the remote store cannot be listed: " << info->message );
+            m_remoteOpenText = "The folder cannot be listed: " + info->message;
+            m_pendingFolderPath.Clear();
         }
     }
     m_remoteChangedDelay = 3;
@@ -2496,7 +2955,7 @@ CAssetSourcesPane::OpenRemoteResult( const CORE::CString& key, bool converted )
     if ( GUCEF_NULL == m_remoteFiles || GUCEF_NULL == m_service || GUCEF_NULL == m_searchModel || !m_searchModel->FindHit( key, hit ) )
         return false;
     if ( m_open.active )
-        FinishRemoteOpen( "Another result was opened" );
+        FinishRemoteOpen( "Another result was opened", false );
     m_open = SRemoteOpen();
     m_open.active = true;
     m_open.key = key;
@@ -2507,12 +2966,14 @@ CAssetSourcesPane::OpenRemoteResult( const CORE::CString& key, bool converted )
         // a pack: its folder is shown when the service has given its list
         m_open.pack = true;
         m_open.future = m_service->GetPackAsync( hit.packId );
+        m_open.awaitingFuture = true;
         m_remoteOpenText = "Fetching the folder of " + hit.name + "...";
     }
     else
     {
         m_open.assetId = hit.assetId;
         m_open.future = m_service->GetAssetFileSetAsync( hit.assetId );
+        m_open.awaitingFuture = true;
         m_remoteOpenText = "Fetching " + hit.name + "...";
     }
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << m_remoteOpenText );
@@ -2522,14 +2983,47 @@ CAssetSourcesPane::OpenRemoteResult( const CORE::CString& key, bool converted )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CAssetSourcesPane::OpenRemoteAsset( const CORE::CString& assetId, const CORE::CString& name, bool converted )
+{GUCEF_TRACE;
+
+    // as a result of the search is opened: the file set of the asset, its files into the cache, then the views
+    if ( GUCEF_NULL == m_remoteFiles || GUCEF_NULL == m_service || assetId.IsNULLOrEmpty() )
+        return false;
+    if ( m_open.active )
+        FinishRemoteOpen( "Another result was opened", false );
+    m_open = SRemoteOpen();
+    m_open.active = true;
+    m_open.key = "asset:" + assetId;
+    m_open.name = name;
+    m_open.converted = converted;
+    m_open.assetId = assetId;
+    m_open.future = m_service->GetAssetFileSetAsync( assetId );
+    m_open.awaitingFuture = true;
+    m_remoteOpenText = "Fetching " + name + "...";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << m_remoteOpenText );
+    ShowStatus();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
-CAssetSourcesPane::FinishRemoteOpen( const CORE::CString& problem )
+CAssetSourcesPane::FinishRemoteOpen( const CORE::CString& problem, bool failure )
 {GUCEF_TRACE;
 
     if ( !problem.IsNULLOrEmpty() )
     {
+        // a failure of an open is never silent: a warning goes into the report of the workbench
         m_remoteOpenText = problem;
-        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << problem );
+        if ( failure )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CAssetSourcesPane: " << problem );
+        }
+        else
+        {
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CAssetSourcesPane: " << problem );
+        }
     }
     else
         m_remoteOpenText.Clear();
@@ -2547,7 +3041,6 @@ CAssetSourcesPane::UpdateRemote( void )
 
     if ( GUCEF_NULL == m_remoteFiles )
         return;
-    m_remoteFiles->Update();
     if ( GUCEF_NULL != m_fetchJobs )
         m_fetchJobs->Update();
     m_remoteThumbs->Update();
@@ -2556,7 +3049,7 @@ CAssetSourcesPane::UpdateRemote( void )
 
     // a file that the views asked for in the cache and did not find: fetched, then the views open the asset again (twice at most)
     CORE::CString::StringSet missed;
-    m_remoteFiles->TakeMissedPaths( missed );
+    missed.swap( m_missedPaths );
     if ( !missed.empty() && !m_open.active && !m_open.openPath.IsNULLOrEmpty() && m_open.retries < 2 && 0 != m_open.finishedTicks &&
          ( ( MT::PrecisionTickCount() - m_open.finishedTicks ) * 1000 ) / MT::PrecisionTimerResolution() < 10000 && GUCEF_NULL != m_fetchJobs )
     {
@@ -2564,7 +3057,7 @@ CAssetSourcesPane::UpdateRemote( void )
         UInt32 count = 0;
         for ( CORE::CString::StringSet::const_iterator i = missed.begin(); i != missed.end(); ++i )
         {
-            ASSETSTORE::CRemoteAssetFileSystem::SFileInfo info;
+            ASSETSTORE::CIRemoteFileSource::SFileInfo info;
             // known by the list of its folder, or asked for in the background: the next frame
             if ( m_remoteFiles->GetFileInfo( *i, info ) && !info.isDirectory )
             {
@@ -2589,8 +3082,10 @@ CAssetSourcesPane::UpdateRemote( void )
         }
     }
 
-    if ( !m_open.active || 0 != m_open.jobId || !m_open.future.HasAFuture() || !m_open.future.IsReady() )
+    // a call that failed has no future any more (HasAFuture() is false), but its answer is taken all the same: the failure is reported
+    if ( !m_open.active || 0 != m_open.jobId || !m_open.awaitingFuture || !m_open.future.IsReady() )
         return;
+    m_open.awaitingFuture = false;
 
     if ( m_open.pack )
     {
@@ -2763,7 +3258,7 @@ CAssetSourcesPane::ReopenRemotePath( const CORE::CString& clientPath )
             transfer->AddDiscovery( GUCEF_NEW CRemoteReferencedDiscovery( path, packFolder ), true );
     }
     if ( m_open.active )
-        FinishRemoteOpen( "Another result was opened" );
+        FinishRemoteOpen( "Another result was opened", false );
     m_open = SRemoteOpen();
     m_open.active = true;
     m_open.name = name;

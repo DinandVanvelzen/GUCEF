@@ -46,6 +46,8 @@
 
 #ifndef GUCEF_AUTH_CAUTHGLOBAL_H
 #include "gucefAUTH_CAuthGlobal.h"
+
+#include "gucefCORE_CSha256.h"
 #define GUCEF_AUTH_CAUTHGLOBAL_H
 #endif /* GUCEF_AUTH_CAUTHGLOBAL_H ? */
 
@@ -65,7 +67,9 @@
 #endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
 
 #ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
+#include "gucefASSETSTORE_CRemoteAssetShares.h"
+
+#include "gucefVFS_CVfsRemoteStatistics.h"
 #define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
 #endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
 
@@ -98,6 +102,7 @@
 #include "AssetConverterLib_CContentHash.h"
 
 #include "TestAssetWorkbenchSupport.h"
+#include "TestFakeSourceStore.h"
 #include "TestWorkbenchRemoteWorld.h"
 #include "TestAssetWorkbenchRemoteStore.h"
 
@@ -236,7 +241,7 @@ class CRemoteFixture
     bool sourcesOpened;
     bool ready;
 
-    CRemoteFixture( const CORE::CString& name )
+    CRemoteFixture( const CORE::CString& name, UInt64 remoteCacheBytes = 0 )
         : contextPtr(), context( GUCEF_NULL ), window( GUCEF_NULL ), mounter(), shell( GUCEF_NULL ), preferences(), layer( GUCEF_NULL ), credentials( GUCEF_NULL ),
           sourcesSettings(), dir(), sourcesOpened( false ), ready( false )
     {
@@ -268,6 +273,8 @@ class CRemoteFixture
         sourcesSettings.primaryStore.locations[ 0 ].fileSystemPath = storeDir;
         sourcesSettings.primaryStore.database.database = root + "/catalogue";
         sourcesSettings.primaryStore.analysisConcurrency = 2;
+        if ( remoteCacheBytes > 0 )
+            sourcesSettings.remoteFiles.maxCacheBytes = remoteCacheBytes;
         sourcesOpened = shell->InitializeSources( sourcesSettings );
         layer->BindSources();
         ready = true;
@@ -646,8 +653,9 @@ TestRemoteStoreWorkbench( void )
         ASSERT_TRUE( pane.GetServiceLabel().HasSubstr( world.GetEndpoint() ) >= 0 );
         fixture.Frames( 3 );
         ASSERT_TRUE( pane.GetServiceStateText().HasSubstr( "Remote store " + world.GetEndpoint() ) == 0 && pane.GetServiceStateText().HasSubstr( "connected" ) >= 0 );
-        GUI::CWidget* hint = pane.GetControl( "OnlineHint" );
-        ASSERT_TRUE( GUCEF_NULL != hint && hint->GetBoolProperty( "Visible" ) && TextOf( hint ).HasSubstr( world.GetEndpoint() ) >= 0 );
+        // the state of the connection is the line above the list of the stores
+        GUI::CWidget* serviceLine = pane.GetControl( "ServiceState" );
+        ASSERT_TRUE( GUCEF_NULL != serviceLine && serviceLine->GetBoolProperty( "Visible" ) && TextOf( serviceLine ).HasSubstr( world.GetEndpoint() ) >= 0 );
         ASSERT_TRUE( pane.GetStoreCount() >= 1 && "Primary store" == pane.GetStoreLine( 0 ) );
 
         // the search is the search of the server: its pack, which this computer does not have
@@ -1053,7 +1061,7 @@ TestRemoteFilesOpen( void )
         ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
         CAssetSourcesPane& pane = fixture.Pane();
         ASSERT_TRUE( ConnectFixture( fixture, world ) );
-        ASSETSTORE::CRemoteAssetFileSystem* files = pane.GetRemoteFiles();
+        ASSETSTORE::CRemoteAssetShares* files = pane.GetRemoteFiles();
         ASSERT_TRUE( GUCEF_NULL != files && files->IsMounted( "avstore/remote_wbfiles" ) && GUCEF_NULL != pane.GetFetchJobs() );
         // the mounter adopted the location: the paths of the catalogue open (here below the prefix of the test)
         CAssetMounter::SMount mount;
@@ -1076,13 +1084,11 @@ TestRemoteFilesOpen( void )
         ASSERT_TRUE( CAssetMounter::NormalizePath( opened.last ) == fixture.shell->GetShownPath() );
 
         // what the cache holds: the file set of the asset; the disk of this computer has none of the files of the store
-        ASSETSTORE::CAssetBlockCache::SStatistics statistics;
-        files->GetCache().GetStatistics( statistics );
+        VFS::CVfsRemoteStatistics statistics;
+        ASSERT_TRUE( files->GetStatistics( statistics ) );
         ASSERT_TRUE( statistics.usedBytes > 0 && statistics.entries >= 1 );
         ASSERT_TRUE( !CORE::DirExists( fixture.dir + "/store/original" ) );
-        ASSETSTORE::CRemoteAssetFileSystem::SStatistics fileStatistics;
-        files->GetStatistics( fileStatistics );
-        ASSERT_TRUE( fileStatistics.bytesFetched > 0 && fileStatistics.fetchCalls >= 1 );
+        ASSERT_TRUE( statistics.bytesFetched > 0 && statistics.fetchCalls >= 1 );
 
         // a picture of the pack opens in the texture view
         ASSERT_TRUE( form->SelectResult( textureKey ) && form->OpenResult( textureKey ) );
@@ -1151,14 +1157,14 @@ TestRemoteFilesReferenced( void )
         ASSERT_TRUE( FindSwordKeys( fixture, modelKey, textureKey ) );
         GUI::CAssetSearchForm* form = pane.GetSearchForm();
         ASSERT_TRUE( form->SelectResult( modelKey ) );
-        ASSETSTORE::CRemoteAssetFileSystem* files = pane.GetRemoteFiles();
+        ASSETSTORE::CRemoteAssetShares* files = pane.GetRemoteFiles();
         ASSERT_TRUE( GUCEF_NULL != files );
         CPathRecorder opened( &pane, CAssetSourcesPane::AssetOpenRequestedEvent );
         ASSERT_TRUE( form->OpenResult( modelKey ) );
         ASSERT_TRUE( fixture.WaitFor( [&]() { return 1 == opened.count; } ) );
 
         // the picture is in the cache of the files, and the group of the pack has it as a resource
-        ASSETSTORE::CRemoteAssetFileSystem::SFileInfo info;
+        ASSETSTORE::CIRemoteFileSource::SFileInfo info;
         ASSERT_TRUE( files->GetFileInfo( pictureService, info ) && info.exists && info.size > 0 );
         ASSERT_TRUE( files->IsFileCached( pictureService, info.size ) );
         CORE::CString relative;
@@ -1312,13 +1318,13 @@ TestRemoteFilesDownload( void )
         ASSERT_TRUE( pane.KeepSelectedOffline( true, message ) );
         ASSERT_TRUE( fixture.WaitFor( [&]() { return 0 == pane.GetFetchJobs()->GetActiveCount(); } ) );
         ASSERT_TRUE( ASSETSTORE::ASSETSTORE_STATUS_OK == pane.GetFetchJobs()->GetLastEnded().status && "offline" == pane.GetFetchJobs()->GetLastEnded().kind );
-        ASSETSTORE::CAssetBlockCache::SStatistics statistics;
-        pane.GetRemoteFiles()->GetCache().GetStatistics( statistics );
+        VFS::CVfsRemoteStatistics statistics;
+        ASSERT_TRUE( pane.GetRemoteFiles()->GetStatistics( statistics ) );
         ASSERT_TRUE( statistics.pinnedEntries >= 1 && statistics.pinnedBytes > 0 );
         ASSERT_TRUE( pane.KeepPackOffline( packId, true, message ) );
         ASSERT_TRUE( fixture.WaitFor( [&]() { return 0 == pane.GetFetchJobs()->GetActiveCount(); } ) );
         ASSERT_TRUE( ASSETSTORE::ASSETSTORE_STATUS_OK == pane.GetFetchJobs()->GetLastEnded().status && "offline" == pane.GetFetchJobs()->GetLastEnded().kind );
-        pane.GetRemoteFiles()->GetCache().GetStatistics( statistics );
+        ASSERT_TRUE( pane.GetRemoteFiles()->GetStatistics( statistics ) );
         ASSERT_TRUE( statistics.pinnedEntries >= 2 && statistics.pinnedBytes > 0 );
         ASSETSTORE::CAssetPackRecord pack;
         ASSERT_TRUE( ASSETSTORE::ASSETSTORE_STATUS_OK == pane.GetService()->GetPack( packId, pack ) );
@@ -1421,7 +1427,7 @@ TestRemoteFilesCompanions( void )
         ASSERT_TRUE( fixture.WaitFor( [&]() { return 0 == pane.GetFetchJobs()->GetActiveCount(); } ) );
         ASSERT_TRUE( ASSETSTORE::ASSETSTORE_STATUS_OK == pane.GetFetchJobs()->GetLastEnded().status && "offline" == pane.GetFetchJobs()->GetLastEnded().kind );
         const CORE::CString textureService = "avstore/remote_wbcompanion/original/" + packFolder + "/Textures/sword_d.png";
-        ASSETSTORE::CRemoteAssetFileSystem::SFileInfo info;
+        ASSETSTORE::CIRemoteFileSource::SFileInfo info;
         ASSERT_TRUE( pane.GetRemoteFiles()->GetFileInfo( textureService, info ) && info.exists && pane.GetRemoteFiles()->IsFileCached( textureService, info.size ) );
     }
     catch ( ... )
@@ -1501,6 +1507,9 @@ TestRemoteFilesThumbnails( void )
         ASSERT_TRUE( source->GetBatchCount() >= 1 && source->GetRequestedCount() >= 2 && source->GetRequestedCount() <= form->GetShownRowCount() );
         ASSERT_TRUE( CORE::DirExists( source->GetCacheFolder() ) );
         ASSERT_TRUE( provider->GetRemoteHitCount() >= 1 );
+        // the pictures came through the share (in this process the paths of the service open in the VFS of the test too, so the bytes that the share fetched are what shows it)
+        VFS::CVfsRemoteStatistics pictureStatistics;
+        ASSERT_TRUE( GUCEF_NULL != pane.GetRemoteFiles() && pane.GetRemoteFiles()->GetStatistics( pictureStatistics ) && pictureStatistics.bytesFetched > 0 );
         // what was fetched is not asked for again
         const UInt32 batches = source->GetBatchCount();
         form->SetThumbnailView( false );
@@ -1537,6 +1546,652 @@ TestRemoteFilesThumbnails( void )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+namespace {
+
+/** An online store of the tests in the registry of the process, so that the service of the server side offers it; removed again at the end */
+class CRegisteredFakeStore
+{
+    public:
+
+    SOURCESTEST::TFakeSourceFactory factory;
+    SOURCESTEST::CFakeSourceProvider* fake;
+
+    CRegisteredFakeStore( void ) : factory(), fake( GUCEF_NULL )
+    {
+        ASSETSTORE::TAssetStoreProviderPtr provider = factory.Create();
+        fake = static_cast< SOURCESTEST::CFakeSourceProvider* >( provider.GetPointerAlways() );
+        fake->SetSignedIn( true );
+        typedef SOURCESTEST::CFakeSourceProvider TFake;
+        GUCEF::vector< TFake::SFormatSpec > formats;
+        TFake::SFormatSpec gltf;
+        gltf.formatId = "gltf";
+        gltf.name = "glTF";
+        gltf.group = "3d-exchange";
+        TFake::SFileSpec file;
+        file.name = "sword_model.gltf";
+        file.size = 2048;
+        file.seed = 3;
+        gltf.files.push_back( file );
+        formats.push_back( gltf );
+        fake->AddItem( "sword-1", "Sword Pack", "Forge Works", "3d-model", formats, "Store EULA" );
+        fake->AddItem( "barrel-1", "Wooden Barrel", "Forge Works", "3d-model", formats );
+        ASSETSTORE::CAssetStoreGlobal::Instance()->GetRegistry().AddProvider( provider );
+    }
+
+    ~CRegisteredFakeStore()
+    {
+        ASSETSTORE::CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( SOURCESTEST::CFakeSourceProvider::ProviderIdText );
+    }
+};
+
+/** The overlaps (layout lint L01) of the widgets of the Sources tab that are about the list of the stores and the lines next to it */
+UInt32
+CountStoreListOverlaps( GUI::CGUIContext& context, CORE::CString& described )
+{
+    GUI::TLayoutLintFindingVector findings;
+    GUI::CLayoutLint lint;
+    lint.Run( context, GUI::CLayoutLintOptions(), findings );
+    UInt32 count = 0;
+    const char* const names[] = { "/Stores", "/OnlineHint", "/ServiceState", "/SourceStatus", "/SignInSettings", "/SignIn" };
+    for ( size_t f=0; f<findings.size(); ++f )
+    {
+        if ( GUI::LAYOUTLINTRULE_OVERLAP != findings[ f ].rule )
+            continue;
+        bool about = false;
+        for ( UInt32 n=0; n<6 && !about; ++n )
+            about = findings[ f ].widgetPath.HasSubstr( names[ n ] ) >= 0 && findings[ f ].otherPath.HasSubstr( "/Stores" ) >= 0;
+        for ( UInt32 n=0; n<6 && !about; ++n )
+            about = findings[ f ].otherPath.HasSubstr( names[ n ] ) >= 0 && findings[ f ].widgetPath.HasSubstr( "/Stores" ) >= 0;
+        if ( about )
+        {
+            ++count;
+            described += findings[ f ].Describe() + "\n";
+        }
+    }
+    return count;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteSourcesLayout( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteStore: the Sources tab connected to a remote store: the line of the connection has a row of its own above the list of the stores, nothing is drawn over the rows of the list, the stores show the names they report" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        CRegisteredFakeStore store;
+        WBREMOTETEST::CRemoteWorld world( "wblayout" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        CRemoteFixture fixture( "wblayout_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        fixture.shell->ShowLeftTab( 2 );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return pane.GetStoreCount() >= 2; } ) );
+        ASSERT_TRUE( "Primary store" == pane.GetStoreLine( 0 ) );
+        ASSERT_TRUE( "fakesrc" == pane.GetStoreId( 1 ) && "Fake Store - signed in" == pane.GetStoreLine( 1 ) );
+        ASSERT_TRUE( pane.SelectStore( "fakesrc" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return GUCEF_NULL != pane.GetLibrary( "fakesrc" ) && !pane.GetLibrary( "fakesrc" )->IsLoading() && 2 == pane.GetLibrary( "fakesrc" )->GetItemCount(); } ) );
+        IMAGE::TPixelMapPtr pixels = fixture.Frames( 4 );
+        DumpPicture( pixels, "sources_remote_layout_" + CORE::CString( GetTestRenderer() ) );
+
+        // the state of the connection is shown, in a line of its own that is not over the list
+        ASSERT_TRUE( pane.GetServiceStateText().HasSubstr( world.GetEndpoint() ) >= 0 );
+        CORE::CString overlaps;
+        const UInt32 overlapCount = CountStoreListOverlaps( *fixture.context, overlaps );
+        if ( 0 != overlapCount )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "TestRemoteSourcesLayout: over the list of the stores:\n" << overlaps );
+        ASSERT_TRUE( 0 == overlapCount );
+        GUI::CWidget* serviceLine = pane.GetControl( "ServiceState" );
+        GUI::CWidget* list = pane.GetControl( "Stores" );
+        ASSERT_TRUE( GUCEF_NULL != serviceLine && GUCEF_NULL != list && serviceLine->IsEffectivelyVisible() );
+        if ( GUCEF_NULL != serviceLine && GUCEF_NULL != list )
+        {
+            ASSERT_TRUE( TextOf( serviceLine ).HasSubstr( world.GetEndpoint() ) >= 0 );
+            ASSERT_TRUE( serviceLine->GetRect().Bottom() <= list->GetRect().top );
+        }
+        GUI::CWidget* hint = pane.GetControl( "OnlineHint" );
+        ASSERT_TRUE( GUCEF_NULL == hint || !hint->IsEffectivelyVisible() );
+
+        // back to the store of this computer: no line of a connection, the list where it was
+        fixture.Connection().Disconnect();
+        fixture.Frames( 3 );
+        ASSERT_TRUE( GUCEF_NULL == serviceLine || !serviceLine->IsEffectivelyVisible() );
+        overlaps.Clear();
+        ASSERT_TRUE( 0 == CountStoreListOverlaps( *fixture.context, overlaps ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** Adds a pack to the catalogue of the server as the item of the store of the tests became it (its source is the store, its source item the item) */
+bool
+AddStoreItemPack( WBREMOTETEST::CRemoteWorld& world, SOURCESTEST::CFakeSourceProvider& fake, const CORE::CString& itemId, const CORE::CString& packName )
+{
+    const CORE::CString native = world.WritePack( packName );
+    const CORE::CString contentPath = "disk/item_" + ASSETSTORE::CAssetStoreSafeNames::MakeSafePart( itemId );
+    if ( !world.mounter.Mount( contentPath, native ) )
+        return false;
+    ASSETSTORE::CAssetIngestRequest request;
+    request.sourceId = SOURCESTEST::CFakeSourceProvider::ProviderIdText;
+    request.itemId = itemId;
+    if ( ASSETSTORE::ASSETSTORE_STATUS_OK != fake.GetItem( itemId, request.item ) )
+        return false;
+    request.contentPath = contentPath;
+    request.keep = ASSETSTORE::AssetKeepPolicyToString( ASSETSTORE::ASSETKEEP_BOTH );
+    request.locationId = world.serverConfig.primaryStore.defaultLocationId;
+    world.serverService->IngestAsync( CORE::CString::Empty, request );
+    for ( UInt32 i=0; i<2000; ++i )
+    {
+        world.Pump( 10 );
+        ASSETSTORE::CAssetSearchQuery query;
+        query.resultKind = "packs";
+        query.sources.insert( SOURCESTEST::CFakeSourceProvider::ProviderIdText );
+        query.sourceItemIds.insert( itemId );
+        ASSETSTORE::CAssetSearchResultPage page;
+        if ( ASSETSTORE::ASSETSTORE_STATUS_OK == world.serverService->Search( query, page ) && page.total >= 1 )
+            return true;
+    }
+    return false;
+}
+
+/** Whether the names hold the name */
+bool
+Contains( const CORE::CString::StringVector& names, const CORE::CString& name )
+{
+    for ( size_t i=0; i<names.size(); ++i )
+        if ( names[ i ] == name )
+            return true;
+    return false;
+}
+
+/** The index of the selected item of a browser, -1 when none is selected */
+Int32
+SelectedIndex( GUI::CContentBrowserForm& browser )
+{
+    const GUI::CContentBrowserForm::TInt32Vector selection = browser.GetSelection();
+    return selection.empty() ? -1 : selection[ 0 ];
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteOpenStoreItem( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteStore: opening an item of an online store in the Sources tab (double click, Enter, the action Open): an item that is in the library opens its pack, the model shown from the files of the service; one that is not asks to download and convert it and queues the job; a failure is reported" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        CRegisteredFakeStore store;
+        WBREMOTETEST::CRemoteWorld world( "wbitemopen" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) );
+        ASSERT_TRUE( AddStoreItemPack( world, *store.fake, "sword-1", "Sword Pack" ) );
+        CRemoteFixture fixture( "wbitemopen_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        fixture.shell->ShowLeftTab( 2 );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return pane.GetStoreCount() >= 2; } ) );
+        ASSERT_TRUE( pane.SelectStore( "fakesrc" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return GUCEF_NULL != pane.GetLibrary( "fakesrc" ) && !pane.GetLibrary( "fakesrc" )->IsLoading() && 2 == pane.GetLibrary( "fakesrc" )->GetItemCount(); } ) );
+        GUI::CContentBrowserForm* browser = pane.GetOnlineBrowser( "fakesrc" );
+        ASSERT_TRUE( GUCEF_NULL != browser && 1 == browser->GetItemActions().size() && CAssetSourcesPane::OpenActionId == browser->GetItemActions()[ 0 ].id );
+        if ( GUCEF_NULL == browser )
+            return;
+
+        // an item that is in the library: a double click on it (ActivateItem() is what a double click and Enter do)
+        CPathRecorder opened( &pane, CAssetSourcesPane::AssetOpenRequestedEvent );
+        CPathRecorder folders( &pane, CAssetSourcesPane::FolderOpenRequestedEvent );
+        ASSERT_TRUE( pane.SelectItem( "fakesrc", "sword-1" ) && SelectedIndex( *browser ) >= 0 );
+        ASSERT_TRUE( browser->ActivateItem( (UInt32) SelectedIndex( *browser ) ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return CStoreItemOpenLookup::STATE_FOUND == pane.GetItemOpenLookup().GetState(); } ) );
+        ASSERT_TRUE( "sword-1" == pane.GetItemOpenLookup().GetPack().sourceItemId && "sword_model" == pane.GetItemOpenLookup().GetAsset().name );
+        // the pack in the content browser, its model in the views: fetched from the service into the cache of this computer
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return 1 == folders.count; } ) );
+        ASSERT_TRUE( folders.last.HasSubstr( "client/avstore/remote_wbitemopen/" ) == 0 );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return 1 == opened.count; } ) );
+        ASSERT_TRUE( opened.last.HasSubstr( "sword_model.gltf" ) > 0 && opened.last.HasSubstr( "client/avstore/remote_wbitemopen/" ) == 0 );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return ASSETKIND_MODEL == fixture.shell->GetShownKind() && !fixture.shell->IsOpening(); } ) );
+        ASSERT_TRUE( fixture.shell->GetModelView().GetStatistics().vertexCount > 0 );
+        ASSERT_TRUE( pane.GetOpenProblem().IsNULLOrEmpty() );
+        IMAGE::TPixelMapPtr pixels = fixture.Frames( 4 );
+        const GUI::CRect surface = fixture.shell->GetViewport()->GetSurfaceRect();
+        ASSERT_TRUE( !pixels.IsNULL() && PixelsDiffer( pixels, surface.left + surface.width / 2, surface.top + surface.height / 2, surface.left + surface.width / 2, surface.top + 6, 20 ) );
+        DumpPicture( pixels, "remote_item_open_" + CORE::CString( GetTestRenderer() ) );
+
+        // an item that is not in the library, with the action Open of its context menu: the question, and yes queues the download with the ingest
+        ASSERT_TRUE( pane.SelectItem( "fakesrc", "barrel-1" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return "barrel-1" == pane.GetSelectedItemId() && !pane.GetSelectedFormatId().IsNULLOrEmpty(); } ) );
+        ASSERT_TRUE( browser->ChooseItemAction( CAssetSourcesPane::OpenActionId ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return GUCEF_NULL != pane.GetNotInLibraryQuestion() && pane.GetNotInLibraryQuestion()->IsOpen(); } ) );
+        ASSERT_TRUE( CStoreItemOpenLookup::STATE_NOT_IN_LIBRARY == pane.GetItemOpenLookup().GetState() && pane.GetOpenProblem().HasSubstr( "not in the library yet" ) > 0 );
+        IMAGE::TPixelMapPtr question = fixture.Frames( 3 );
+        DumpPicture( question, "remote_item_not_in_library_" + CORE::CString( GetTestRenderer() ) );
+        pane.GetNotInLibraryQuestion()->Choose( GUI::CMessageBoxForm::MESSAGEBOXRESULT_YES );
+        bool queued = false;
+        ASSERT_TRUE( fixture.WaitFor( [&]()
+        {
+            ASSETSTORE::CAssetJobPage jobs;
+            if ( ASSETSTORE::ASSETSTORE_STATUS_OK == world.serverService->ListJobs( CORE::CString::Empty, 100, jobs ) )
+                for ( size_t j=0; j<jobs.entries.size(); ++j )
+                    if ( "download" == jobs.entries[ j ].kind && "barrel-1" == jobs.entries[ j ].itemId )
+                        queued = true;
+            return queued;
+        } ) );
+        ASSERT_TRUE( pane.GetStoreStatusText().HasSubstr( "Jobs view" ) > 0 );
+
+        // a pack that is not there: the failure is said, not ignored
+        ASSERT_TRUE( pane.OpenPack( "pk_not_there", "Missing Pack" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return CStoreItemOpenLookup::STATE_FAILED == pane.GetItemOpenLookup().GetState(); } ) );
+        ASSERT_TRUE( pane.GetOpenProblem().HasSubstr( "Missing Pack" ) >= 0 && pane.GetStoreStatusText().HasSubstr( "Missing Pack" ) >= 0 );
+        ASSERT_FALSE( pane.OpenStoreItem( "fakesrc", CORE::CString::Empty ) );
+        ASSERT_FALSE( pane.OpenStoreItem( "no-such-store", "sword-1" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteOpenLibraryPack( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteStore: opening a pack of the library (a row of the search of the primary store) shows its folder in the content browser and its model in the views, fetched from the service" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        WBREMOTETEST::CRemoteWorld world( "wbpackopen" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        CRemoteFixture fixture( "wbpackopen_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        GUI::CAssetSearchForm* form = pane.GetSearchForm();
+        form->SetText( "sword" );
+        form->Search();
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return !form->IsSearching() && form->GetPage().total >= 1; } ) );
+        CORE::CString packKey;
+        CORE::CString packId;
+        CORE::CString assetId;
+        for ( UInt32 i=0; i<form->GetShownRowCount(); ++i )
+        {
+            ASSETSTORE::CAssetSearchHit hit;
+            if ( pane.GetSearchModel()->FindHit( form->GetShownRow( i ).key, hit ) && packId.IsNULLOrEmpty() )
+                packId = hit.packId;
+        }
+        ASSERT_TRUE( !packId.IsNULLOrEmpty() );
+        CPathRecorder opened( &pane, CAssetSourcesPane::AssetOpenRequestedEvent );
+        CPathRecorder folders( &pane, CAssetSourcesPane::FolderOpenRequestedEvent );
+        ASSERT_TRUE( pane.OpenPack( packId, "Sword Pack" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return 1 == folders.count && 1 == opened.count; } ) );
+        ASSERT_TRUE( folders.last.HasSubstr( "client/avstore/remote_wbpackopen/original/" ) == 0 && opened.last.HasSubstr( "sword_model.gltf" ) > 0 );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return ASSETKIND_MODEL == fixture.shell->GetShownKind() && !fixture.shell->IsOpening(); } ) );
+        ASSERT_TRUE( fixture.shell->GetModelView().GetStatistics().vertexCount > 0 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteContentBrowserListing( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteStore: connected, the storage locations of the service are mounted at their VFS roots and the content browser lists them in its VFS root: the folders of a location arrive in the background" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        WBREMOTETEST::CRemoteWorld world( "wblisting" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        CRemoteFixture fixture( "wblisting_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        GUI::CContentBrowserForm* browser = fixture.shell->GetBrowser();
+        ASSERT_TRUE( GUCEF_NULL != browser );
+        if ( GUCEF_NULL == browser )
+            return;
+        // the browser starts in the files of this computer: nothing of the store is shown until the VFS root is chosen
+        ASSERT_TRUE( CWorkbenchShell::LocalFilesRootName == browser->GetCurrentRootName() );
+        ASSERT_TRUE( browser->NavigateTo( CWorkbenchShell::VfsRootName, "/" ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { browser->Refresh(); return Contains( browser->GetListedNames(), "client/" ); }, 400 ) );
+        // the location: its areas are listed once the list of the folder arrived from the service
+        const CORE::CString location = "/client/avstore/remote_wblisting";
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return browser->NavigateTo( CWorkbenchShell::VfsRootName, location ); }, 400 ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { browser->Refresh(); return Contains( browser->GetListedNames(), "original/" ); }, 1000 ) );
+        IMAGE::TPixelMapPtr pixels = fixture.Frames( 3 );
+        fixture.shell->ShowLeftTab( 0 );
+        pixels = fixture.Frames( 3 );
+        DumpPicture( pixels, "remote_content_listing_" + CORE::CString( GetTestRenderer() ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts an event of a pane that has no data */
+class CEventCounter : public CORE::CObserver
+{
+    public:
+
+    UInt32 count;
+
+    CEventCounter( CORE::CNotifier* notifier, const CORE::CEvent& eventId ) : CORE::CObserver(), count( 0 )
+    {
+        SubscribeTo( notifier, eventId );
+    }
+
+    virtual ~CEventCounter() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& id, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        ++count;
+    }
+};
+
+/** The time that a call takes, in milliseconds */
+UInt64
+ElapsedMs( UInt64 startTicks )
+{
+    return MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - startTicks );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteFilesNeverWait( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteFiles: the thread of the interface never waits for the service: with a link that answers nothing the content browser, the lists of the VFS and the open of a pack come back at once, and what arrives later is shown without a call that waits" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        WBREMOTETEST::CRemoteWorld world( "wbnowait" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        // a file of the pack that nothing of the workbench looks at: the paths of the store that were never looked at
+        ASSETSTORE::CAssetSearchQuery query;
+        query.text = "sword";
+        ASSETSTORE::CAssetSearchResultPage page;
+        ASSERT_TRUE( ASSETSTORE::ASSETSTORE_STATUS_OK == world.serverService->Search( query, page ) && !page.hits.empty() );
+        CORE::CString sourceVfs;
+        for ( size_t i=0; i<page.hits.size(); ++i )
+            if ( "sword_model" == page.hits[ i ].name )
+                sourceVfs = page.hits[ i ].vfsPath;
+        const Int32 at = sourceVfs.HasSubstr( "/original/", false );
+        ASSERT_TRUE( at > 0 );
+        const CORE::CString packFolderName = sourceVfs.CutChars( (UInt32) at + 10, true ).SubstrToChar( '/', true );
+        ASSERT_TRUE( WriteTestFile( world.directory + "/store/original/" + packFolderName + "/Extra/untouched.txt", "a file that nothing looks at" ) );
+        const CORE::CString serviceFolder = "avstore/remote_wbnowait/original/" + packFolderName;
+
+        CRemoteFixture fixture( "wbnowait_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        ASSETSTORE::CRemoteAssetShares* files = pane.GetRemoteFiles();
+        ASSERT_TRUE( GUCEF_NULL != files );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return !files->IsOffline(); } ) );
+        CORE::CString modelKey, textureKey, packKey;
+        ASSERT_TRUE( FindSwordKeys( fixture, modelKey, textureKey ) );
+        GUI::CAssetSearchForm* form = pane.GetSearchForm();
+        for ( UInt32 i=0; i<form->GetShownRowCount(); ++i )
+            if ( 0 == form->GetShownRow( i ).key.HasSubstr( "pack:" ) )
+                packKey = form->GetShownRow( i ).key;
+        VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+        GUI::CContentBrowserForm* browser = fixture.shell->GetBrowser();
+        ASSERT_TRUE( GUCEF_NULL != browser && browser->NavigateTo( CWorkbenchShell::VfsRootName, "/" ) );
+        const CORE::CString packFolder = files->ToClientPath( serviceFolder );
+        const CORE::CString untouched = packFolder + "/Extra/untouched.txt";
+        ASSERT_TRUE( files->Contains( untouched ) );
+
+        // the service answers nothing while the thread of the interface works: the pulse generator is not driven here
+        UInt64 worstMs = 0;
+        CEventCounter changed( &pane, CAssetSourcesPane::RemoteContentChangedEvent );
+        CPathRecorder folders( &pane, CAssetSourcesPane::FolderOpenRequestedEvent );
+        for ( UInt32 round=0; round<5; ++round )
+        {
+            UInt64 started = MT::PrecisionTickCount();
+            VFS::CVFS::TStringVector names;
+            vfs.GetFileList( names, packFolder + "/Textures", false, false, CORE::CString::Empty );
+            vfs.GetDirList( names, packFolder, false, false, CORE::CString::Empty );
+            worstMs = ElapsedMs( started ) > worstMs ? ElapsedMs( started ) : worstMs;
+            started = MT::PrecisionTickCount();
+            vfs.FileExists( untouched );
+            VFS::TBasicVfsResourcePtr file = vfs.GetFile( untouched, "rb", false );
+            worstMs = ElapsedMs( started ) > worstMs ? ElapsedMs( started ) : worstMs;
+            // nothing pumped yet in the first round: what is not known is not here (a later round may have a service call of the page in it that drives the link while it waits)
+            ASSERT_TRUE( round > 0 || file.IsNULL() );
+            started = MT::PrecisionTickCount();
+            browser->NavigateTo( CWorkbenchShell::VfsRootName, "/" + packFolder );
+            browser->Refresh();
+            worstMs = ElapsedMs( started ) > worstMs ? ElapsedMs( started ) : worstMs;
+            started = MT::PrecisionTickCount();
+            if ( !packKey.IsNULLOrEmpty() )
+                form->OpenResult( packKey );
+            worstMs = ElapsedMs( started ) > worstMs ? ElapsedMs( started ) : worstMs;
+        }
+        ASSERT_TRUE( worstMs < 150 );
+        VFS::CVfsRemoteStatistics statistics;
+        ASSERT_TRUE( files->GetStatistics( statistics ) && statistics.policyMisses >= 1 );
+
+        // the link is driven again: the list arrives, the pack opens in the content browser, and the views are told that there is something new
+        if ( !packKey.IsNULLOrEmpty() )
+            ASSERT_TRUE( fixture.WaitFor( [&]() { return folders.count >= 1; } ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return changed.count >= 1; } ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { browser->Refresh(); browser->NavigateTo( CWorkbenchShell::VfsRootName, "/" + packFolder + "/Extra" ); return Contains( browser->GetListedNames(), "untouched.txt" ); }, 1000 ) );
+        IMAGE::TPixelMapPtr pixels = fixture.Frames( 3 );
+        DumpPicture( pixels, "remote_files_nowait_" + CORE::CString( GetTestRenderer() ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteFilesMigration( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteFiles: settings and cache of the previous version: the settings load and are kept, the old cache folder is left alone and the cache of the new files is made beside it, the digests of the catalogue reach the hash of a picture, keeping offline that does not fit says so in words, and a lost link is told to the views" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        // the settings of a workbench of the previous version, as they were written: no name of the share, nothing about the kept files
+        {
+            CORE::CDataNode tree;
+            CORE::CDataNode* section = tree.AddChild( CAssetSourcesSettings::SectionName );
+            CORE::CDataNode* remote = section->AddChild( "remoteFiles" );
+            remote->SetAttribute( "cacheFolder", "oldcache/remote" );
+            remote->SetAttribute( "maxCacheBytes", (UInt64) 5000000 );
+            remote->SetAttribute( "readAheadBlocks", (UInt32) 4 );
+            CAssetSourcesSettings loaded;
+            ASSERT_TRUE( loaded.Load( tree ) );
+            ASSERT_TRUE( "assets" == loaded.remoteFiles.shareName && loaded.remoteFiles.refetchPinned );
+            ASSERT_TRUE( "oldcache/remote" == loaded.remoteFiles.cacheFolder && 5000000 == loaded.remoteFiles.maxCacheBytes && 4 == loaded.remoteFiles.readAheadBlocks );
+        }
+
+        WBREMOTETEST::CRemoteWorld world( "wbmigrate" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        CRemoteFixture fixture( "wbmigrate_wb" );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        // a cache folder of the previous version: its files are not read, not removed and not mistaken for entries of the new cache
+        const CORE::CString oldFolder = fixture.dir + "/remote_cache/blocks";
+        ASSERT_TRUE( CORE::CreateDirs( oldFolder ) && WriteTestFile( oldFolder + "/0123456789abcdef.dat", "the bytes of a file of the old cache" ) && WriteTestFile( oldFolder + "/0123456789abcdef.idx", "an index of the old cache" ) );
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        ASSERT_TRUE( CORE::DirExists( fixture.dir + "/remote_cache/blockcache" ) );
+        ASSERT_TRUE( CORE::FileExists( oldFolder + "/0123456789abcdef.dat" ) && CORE::FileExists( oldFolder + "/0123456789abcdef.idx" ) );
+        ASSETSTORE::CRemoteAssetShares* files = pane.GetRemoteFiles();
+        ASSERT_TRUE( GUCEF_NULL != files );
+        ASSERT_TRUE( "assets" == files->GetSettings().shareName && 20ULL * 1024 * 1024 * 1024 == files->GetSettings().maxCacheBytes );
+
+        CORE::CString modelKey, textureKey;
+        ASSERT_TRUE( FindSwordKeys( fixture, modelKey, textureKey ) );
+        GUI::CAssetSearchForm* form = pane.GetSearchForm();
+        ASSERT_TRUE( form->SelectResult( textureKey ) );
+        CPathRecorder opened( &pane, CAssetSourcesPane::AssetOpenRequestedEvent );
+        ASSERT_TRUE( form->OpenResult( textureKey ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return 1 == opened.count; } ) );
+        ASSERT_TRUE( CORE::FileExists( oldFolder + "/0123456789abcdef.dat" ) );
+
+        // the hash of the content of a file of the store is the digest of the catalogue: no read of the picture is needed for it
+        const CORE::CString clientPath = CAssetMounter::NormalizePath( opened.last );
+        CORE::CDynamicBuffer content;
+        ASSERT_TRUE( ReadThroughVfs( clientPath, content ) );
+        CORE::CString expected;
+        {
+            CORE::CSha256 sha;
+            sha.Update( content.GetConstBufferPtr(), content.GetDataSize() );
+            UInt8 digest[ CORE::CSha256::DigestSize ];
+            sha.Final( digest );
+            expected = CORE::ConvertBytesToHexString( digest, CORE::CSha256::DigestSize, false, false ).Lowercase();
+        }
+        ASSERT_TRUE( CThumbnailProvider::HashContent( clientPath ) == expected );
+        CORE::CString servicePath;
+        ASSERT_TRUE( files->ToServicePath( clientPath, servicePath ) );
+        CORE::CString known;
+        ASSERT_TRUE( files->GetKnownDigest( servicePath, known ) && known == expected && 64 == known.Length() );
+
+        // the hash is the digest that the catalogue gave: a digest that is not the one of the bytes shows that nothing was read for it
+        const Int32 texturesAt = clientPath.HasSubstr( "/Textures/" );
+        ASSERT_TRUE( texturesAt > 0 );
+        const CORE::CString packRoot = clientPath.SubstrFromRange( 0, (UInt32) texturesAt );
+        CORE::CString packJsonService;
+        ASSERT_TRUE( files->ToServicePath( packRoot + "/pack.json", packJsonService ) );
+        const CORE::CString fakeDigest = "abababababababababababababababababababababababababababababababab";
+        files->NoteDigest( packJsonService, fakeDigest );
+        ASSERT_TRUE( CThumbnailProvider::HashContent( packRoot + "/pack.json" ) == fakeDigest );
+
+        // a read of the views that misses (a file of the pack that the open did not fetch): the rest of it is fetched, and the views are asked to open again
+        const UInt32 openedBefore = opened.count;
+        {
+            VFS::TBasicVfsResourcePtr file = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( packRoot + "/sword_model.gltf", "rb", false );
+            if ( !file.IsNULL() && !file->GetAccess().IsNULL() )
+            {
+                UInt8 first[ 8 ];
+                file->GetAccess()->Read( first, 1, 8 );
+            }
+        }
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return opened.count > openedBefore; } ) );
+        CORE::CDynamicBuffer model;
+        ASSERT_TRUE( ReadThroughVfs( packRoot + "/sword_model.gltf", model ) && model.GetDataSize() > 100 );
+
+        // the link is lost: the views are told to read again, and the files that were looked at are still read from the cache
+        CEventCounter changed( &pane, CAssetSourcesPane::RemoteContentChangedEvent );
+        world.StopHost();
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return files->IsOffline(); } ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return changed.count >= 1; } ) );
+        CORE::CDynamicBuffer again;
+        ASSERT_TRUE( ReadThroughVfs( clientPath, again ) && again.GetDataSize() == content.GetDataSize() );
+
+        // the page lets go of the files and the rule of its thread: what is not the interface waits again
+        fixture.Connection().Disconnect();
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return GUCEF_NULL == pane.GetRemoteFiles(); } ) );
+        ASSERT_TRUE( VFS::MISSACTION_WAIT == VFS::CVfsGlobal::Instance()->GetThreadPolicyRegistry().GetCurrent().missAction );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestRemoteFilesKeepRefused( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "RemoteFiles: keeping a result offline with a cache that is too small for it is refused in plain words, as a job of the workbench that failed" )
+    try
+    {
+        if ( GetMainTestWindow().IsNULL() )
+            GUCEF_TESTFW_SKIP( GetNoWindowReason().C_String() );
+        WBREMOTETEST::CRemoteWorld world( "wbrefused" );
+        CORE::CString error;
+        ASSERT_TRUE( world.StartServer( error ) && world.AddPack( "Sword Pack" ) );
+        CRemoteFixture fixture( "wbrefused_wb", 100 );
+        ASSERT_TRUE( fixture.ready && fixture.sourcesOpened );
+        CAssetSourcesPane& pane = fixture.Pane();
+        ASSERT_TRUE( ConnectFixture( fixture, world ) );
+        ASSERT_TRUE( GUCEF_NULL != pane.GetRemoteFiles() && 100 == pane.GetRemoteFiles()->GetSettings().maxCacheBytes );
+        CORE::CString modelKey, textureKey;
+        ASSERT_TRUE( FindSwordKeys( fixture, modelKey, textureKey ) );
+        GUI::CAssetSearchForm* form = pane.GetSearchForm();
+        CORE::CString message;
+        ASSERT_TRUE( form->SelectResult( modelKey ) && pane.KeepSelectedOffline( true, message ) );
+        ASSERT_TRUE( fixture.WaitFor( [&]() { return 0 == pane.GetFetchJobs()->GetActiveCount(); } ) );
+        const CRemoteFetchJobs::SEnded& ended = pane.GetFetchJobs()->GetLastEnded();
+        ASSERT_TRUE( "offline" == ended.kind && ASSETSTORE::ASSETSTORE_STATUS_NO_SPACE == ended.status && ended.message.HasSubstr( "cannot be kept offline" ) >= 0 );
+        ASSETSTORE::TAssetJobEntryVector jobs;
+        fixture.shell->GetJobRegistry().GetJobs( jobs );
+        bool failedJob = false;
+        for ( size_t i=0; i<jobs.size(); ++i )
+            failedJob = failedJob || ( "offline" == jobs[ i ].kind && ASSETSTORE::ASSETJOB_STATE_FAILED == jobs[ i ].state && jobs[ i ].resultText.HasSubstr( "cannot be kept offline" ) >= 0 );
+        ASSERT_TRUE( failedJob || ended.bytes < 1048576 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformAssetWorkbenchRemoteOpenTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_SUITE_SCOPE( "AssetWorkbenchLib.RemoteStore" );
+
+    TestRemoteSourcesLayout();
+    TestRemoteOpenStoreItem();
+    TestRemoteOpenLibraryPack();
+    TestRemoteContentBrowserListing();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformAssetWorkbenchRemoteStoreTests( void )
 {GUCEF_TRACE;
@@ -1556,6 +2211,24 @@ PerformAssetWorkbenchRemoteStoreTests( void )
     TestRemoteFilesDownload();
     TestRemoteFilesCompanions();
     TestRemoteFilesThumbnails();
+    TestRemoteSourcesLayout();
+    TestRemoteOpenStoreItem();
+    TestRemoteOpenLibraryPack();
+    TestRemoteContentBrowserListing();
+    TestRemoteFilesNeverWait();
+    TestRemoteFilesMigration();
+    TestRemoteFilesKeepRefused();
+}
+
+void
+PerformAssetWorkbenchRemoteMigrationTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_SUITE_SCOPE( "AssetWorkbenchLib.RemoteStore" );
+
+    TestRemoteFilesNeverWait();
+    TestRemoteFilesMigration();
+    TestRemoteFilesKeepRefused();
 }
 
 void

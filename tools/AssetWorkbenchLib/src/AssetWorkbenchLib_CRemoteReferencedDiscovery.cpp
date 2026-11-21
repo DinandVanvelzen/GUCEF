@@ -60,7 +60,7 @@
 #endif /* ASSETWORKBENCHLIB_CASSETTYPERESOLVER_H ? */
 
 #ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
+#include "gucefASSETSTORE_CIRemoteFileSource.h"
 #define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
 #endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
 
@@ -164,7 +164,7 @@ CORE::CString
 CRemoteReferencedDiscovery::GetServicePackFolder( const CORE::CString& servicePath )
 {GUCEF_TRACE;
 
-    const CORE::CString path = ASSETSTORE::CRemoteAssetFileSystem::Normalize( servicePath );
+    const CORE::CString path = ASSETSTORE::CIRemoteFileSource::Normalize( servicePath );
     const CORE::CString area = "/" + ASSETSTORE::CPackStorageLayout::OriginalArea + "/";
     const Int32 at = path.HasSubstr( area, true );
     if ( at >= 0 )
@@ -194,7 +194,7 @@ CRemoteReferencedDiscovery::OnAssetFileSet( const ASSETSTORE::CAssetFileSet& fil
             model = fileSet.files[ f ].path;
     if ( model.IsNULLOrEmpty() || ASSETKIND_MODEL != CAssetTypeResolver::GetKind( model ) )
         return;
-    m_servicePath = ASSETSTORE::CRemoteAssetFileSystem::Normalize( model );
+    m_servicePath = ASSETSTORE::CIRemoteFileSource::Normalize( model );
     m_servicePackFolder = GetServicePackFolder( m_servicePath );
 }
 
@@ -229,7 +229,7 @@ CRemoteReferencedDiscovery::IsReferenceableExtension( const CORE::CString& exten
 /*-------------------------------------------------------------------------*/
 
 void
-CRemoteReferencedDiscovery::Discover( ASSETSTORE::CRemoteAssetFileSystem& system, CORE::CString::StringVector& servicePaths )
+CRemoteReferencedDiscovery::Discover( ASSETSTORE::CIRemoteFileSource& system, CORE::CString::StringVector& servicePaths )
 {GUCEF_TRACE;
 
     m_found = 0;
@@ -281,7 +281,7 @@ CRemoteReferencedDiscovery::Discover( ASSETSTORE::CRemoteAssetFileSystem& system
         CORE::CString::StringVector next;
         for ( size_t r=0; r<toRead.size(); ++r )
         {
-            ASSETSTORE::CRemoteAssetFileSystem::SFileInfo info;
+            ASSETSTORE::CIRemoteFileSource::SFileInfo info;
             if ( !system.GetFileInfo( toRead[ r ], info ) || info.isDirectory || info.size > MaxModelBytes )
             {
                 if ( info.size > MaxModelBytes )

@@ -743,6 +743,9 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
     CColour disabledColour = ColourOr( widget, EWidgetProperty_DisabledTextColour, DisabledTextColour );
     CColour selectionColour = ColourOr( widget, EWidgetProperty_SelectionColour, CColour( 0, 0, 0, 0 ) );
     CColour hoverColour = ColourOr( widget, EWidgetProperty_HoverColour, CColour( 0, 0, 0, 0 ) );
+    // the row of a menu under the pointer is always marked: the look of the hovered box when nothing says otherwise
+    if ( 0 == hoverColour.a && IsA( widget, "PopupMenu" ) )
+        hoverColour = BoxHoverColour;
     Int32 hoverIndex = widget.GetIntProperty( EWidgetProperty_HoverIndex );
     Int32 scroll = widget.GetIntProperty( EWidgetProperty_ScrollPosition );
 
@@ -915,8 +918,25 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     }
     if ( IsA( widget, "Listbox" ) || IsA( widget, "Treeview" ) || IsA( widget, "Textbox" ) || IsA( widget, "GridView" ) || IsA( widget, "PopupMenu" ) )
     {
-        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
+        // a menu, and a list that is open as the popup of the context (the list of a combo box), is drawn over other widgets:
+        // it is never see-through, whatever its colours say, and it has a border
+        const bool popup = IsA( widget, "PopupMenu" ) || context.GetPopup() == &widget;
+        CColour background = ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) );
+        if ( popup && 0 == background.a )
+            background = BoxColour;
+        else
+        if ( popup && background.a < 255 )
+            background.a = 255;
+        Fill( commands, area, background );
         PaintRows( widget, context, area, commands );
+        if ( popup )
+        {
+            CColour border = ColourOr( widget, EWidgetProperty_BorderColour, BoxBorderColour );
+            if ( 0 == border.a )
+                border = BoxBorderColour;
+            Stroke( commands, area, border, 1 );
+            return;
+        }
         // the list that takes the keys says so, as a field does
         if ( widget.HasFocus() && ( IsA( widget, "Listbox" ) || IsA( widget, "Treeview" ) || IsA( widget, "GridView" ) ) )
             Stroke( commands, area, FocusColour, 1 );

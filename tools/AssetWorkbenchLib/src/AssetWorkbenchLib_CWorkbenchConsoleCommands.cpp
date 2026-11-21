@@ -103,7 +103,8 @@ CWorkbenchConsoleCommands::GetCommands( UInt32& count )
         { "presentation", "presentation [on | off | reset | <portrait | effect | scene | grid | animation | material | images | summary> | more]", "switches the presentation of packs that are opened, or shows another presentation of the pack that is shown", &CWorkbenchConsoleCommands::CommandPresentation },
         { "thumbnails", "thumbnails [on | off | clear]", "switches the automatic thumbnails, or deletes them", &CWorkbenchConsoleCommands::CommandThumbnails },
         { "source", "source [cooked | quicklook]", "tells which source the shown model, scene or pack comes from (the cooked Ogre output or the quick look) and what its cooked output is; cooked or quicklook switches the preference", &CWorkbenchConsoleCommands::CommandSource },
-        { "ogre", "ogre", "Convert for Ogre: converts the shown model, scene or pack into cooked Ogre output as a job, and shows that when it is done", &CWorkbenchConsoleCommands::CommandOgre }
+        { "ogre", "ogre", "Convert for Ogre: converts the shown model, scene or pack into cooked Ogre output as a job, and shows that when it is done", &CWorkbenchConsoleCommands::CommandOgre },
+        { "server", "server [settings [open] | set <key> <value> | reset <key>]", "the run-time settings of the remote asset store service the workbench is connected to: lists them (open: their page), changes one, or puts one back to the value of the site settings of the server", &CWorkbenchConsoleCommands::CommandServer }
     };
     count = (UInt32) ( sizeof( commands ) / sizeof( commands[ 0 ] ) );
     return commands;
@@ -115,6 +116,8 @@ CWorkbenchConsoleCommands::CWorkbenchConsoleCommands( CWorkbenchShell& shell, GU
     : CORE::CObserver()
     , m_shell( shell )
     , m_console( console )
+    , m_followedSettings( GUCEF_NULL )
+    , m_printSettings( false )
 {GUCEF_TRACE;
 
     TEventCallback callback( this, &CWorkbenchConsoleCommands::OnCommandEntered );
@@ -185,6 +188,141 @@ CWorkbenchConsoleCommands::Run( const CORE::CString& commandLine )
             return true;
         }
     }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchConsoleCommands::FollowServerSettings( CServerSettingsController* controller )
+{GUCEF_TRACE;
+
+    // subscribed again every time: a controller made for a new connection can have the address of the one before it
+    if ( controller != m_followedSettings )
+        m_printSettings = false;
+    m_followedSettings = controller;
+    if ( GUCEF_NULL == controller )
+        return;
+    UnsubscribeFrom( *controller );
+    TEventCallback read( this, &CWorkbenchConsoleCommands::OnServerSettingsRead );
+    SubscribeTo( controller, CServerSettingsController::SettingsReadEvent, read );
+    TEventCallback outcome( this, &CWorkbenchConsoleCommands::OnServerSettingsOutcome );
+    SubscribeTo( controller, CServerSettingsController::OutcomeEvent, outcome );
+    TEventCallback gone( this, &CWorkbenchConsoleCommands::OnServerSettingsGone );
+    SubscribeTo( controller, CORE::CINotifier::DestructionEvent, gone );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchConsoleCommands::OnServerSettingsGone( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( static_cast< CORE::CNotifier* >( m_followedSettings ) == notifier )
+    {
+        m_followedSettings = GUCEF_NULL;
+        m_printSettings = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchConsoleCommands::PrintServerSettings( const CServerSettingsController& controller )
+{GUCEF_TRACE;
+
+    const ASSETSTORE::CAssetSettingsDescription& description = controller.GetDescription();
+    m_console.AppendLine( description.canChange ? CORE::CString( "Settings of the server (server set <key> <value>, server reset <key>):" )
+                                                : "Settings of the server, read only: " + description.changeRefusal );
+    for ( size_t e=0; e<description.entries.size(); ++e )
+    {
+        const ASSETSTORE::CAssetSettingState& state = description.entries[ e ];
+        m_console.AppendLine( "  " + state.descriptor.key + " = " + state.value + ( state.descriptor.unit.IsNULLOrEmpty() ? CORE::CString::Empty : " " + state.descriptor.unit ) +
+                              " (" + state.source + ", " + ( state.descriptor.AppliesLive() ? "live" : "restart" ) + ", " + state.descriptor.GetRangeText() + ")" +
+                              ( state.hasPendingValue ? "; " + state.pendingValue + " after a restart" : CORE::CString::Empty ) );
+    }
+    const CServerSettingsController::TStoreProfileVector& profiles = controller.GetProfiles();
+    for ( size_t s=0; s<profiles.size(); ++s )
+        m_console.AppendLine( "  sync profile of " + profiles[ s ].displayName + ": on the page Server/Settings..." );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchConsoleCommands::OnServerSettingsRead( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_printSettings || GUCEF_NULL == m_followedSettings || !m_followedSettings->HasDescription() )
+        return;
+    m_printSettings = false;
+    PrintServerSettings( *m_followedSettings );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWorkbenchConsoleCommands::OnServerSettingsOutcome( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* text = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != text )
+        m_console.AppendLine( "Server: " + text->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchConsoleCommands::CommandServer( const CORE::CString& argument )
+{GUCEF_TRACE;
+
+    static const char* usage = "Usage: server [settings [open] | set <key> <value> | reset <key>]";
+    const CORE::CString::StringVector words = TrimArgument( argument ).ParseElements( ' ', false );
+    CServerSettingsController* controller = m_shell.GetServerSettingsController();
+    if ( GUCEF_NULL == controller )
+    {
+        m_console.AppendLine( "The settings of a server are there while the workbench is connected to a remote asset store service (connect, pair)" );
+        return false;
+    }
+    FollowServerSettings( controller );
+    if ( words.empty() || words[ 0 ].Equals( "settings", false ) )
+    {
+        if ( words.size() > 1 && words[ 1 ].Equals( "open", false ) )
+            return m_shell.ShowServerSettings();
+        m_printSettings = true;
+        if ( !controller->Refresh() )
+        {
+            m_printSettings = false;
+            m_console.AppendLine( controller->GetProblem() );
+            return false;
+        }
+        m_console.AppendLine( "Reading the settings of the server..." );
+        return true;
+    }
+    if ( words[ 0 ].Equals( "set", false ) && words.size() >= 3 )
+    {
+        // the value is the rest of the line: a text may have blanks
+        CORE::CString value;
+        for ( size_t w=2; w<words.size(); ++w )
+            value += ( w > 2 ? CORE::CString( " " ) : CORE::CString::Empty ) + words[ w ];
+        if ( !controller->SetValue( words[ 1 ], value ) )
+        {
+            m_console.AppendLine( controller->GetProblem() );
+            return false;
+        }
+        m_console.AppendLine( "Sent " + words[ 1 ] + " = " + value + " to the server" );
+        return true;
+    }
+    if ( words[ 0 ].Equals( "reset", false ) && 2 == words.size() )
+    {
+        if ( !controller->ResetValue( words[ 1 ] ) )
+        {
+            m_console.AppendLine( controller->GetProblem() );
+            return false;
+        }
+        m_console.AppendLine( "Asked the server to put " + words[ 1 ] + " back to its site value" );
+        return true;
+    }
+    m_console.AppendLine( usage );
     return false;
 }
 

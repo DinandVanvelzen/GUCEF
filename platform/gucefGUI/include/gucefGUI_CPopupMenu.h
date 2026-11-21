@@ -48,7 +48,9 @@ namespace GUI {
 /**
  *  A menu that opens on top of everything (as the popup of the context) and closes when an item is
  *  chosen or the user clicks elsewhere. An item "-" is a separator. Properties: Items, DisabledItems,
- *  Font, TextColour, DisabledTextColour, HoverColour, BackgroundColour, RowHeight. Runtime: HoverIndex.
+ *  Font, TextColour, DisabledTextColour, HoverColour, BackgroundColour, BorderColour, RowHeight. Runtime: HoverIndex.
+ *  A menu is drawn over other widgets and is never see-through: without a background colour (or with a transparent one)
+ *  it gets the look of a box, and it always has a border; the row under the pointer is marked.
  *  The menu must be a root widget (made without a parent).
  */
 class GUCEF_GUI_PUBLIC_CPP CPopupMenu : public CWidget

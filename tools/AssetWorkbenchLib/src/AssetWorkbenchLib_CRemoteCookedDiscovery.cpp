@@ -28,7 +28,7 @@
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
 #ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
+#include "gucefASSETSTORE_CIRemoteFileSource.h"
 #define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
 #endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
 
@@ -86,7 +86,7 @@ CRemoteCookedDiscovery::GetFoundCount( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CRemoteCookedDiscovery::Discover( ASSETSTORE::CRemoteAssetFileSystem& system, CORE::CString::StringVector& servicePaths )
+CRemoteCookedDiscovery::Discover( ASSETSTORE::CIRemoteFileSource& system, CORE::CString::StringVector& servicePaths )
 {GUCEF_TRACE;
 
     m_found = 0;

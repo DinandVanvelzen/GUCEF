@@ -79,7 +79,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteReferencedDiscovery : public ASSETSTOR
 
     virtual ~CRemoteReferencedDiscovery() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void Discover( ASSETSTORE::CRemoteAssetFileSystem& system, CORE::CString::StringVector& servicePaths ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Discover( ASSETSTORE::CIRemoteFileSource& system, CORE::CString::StringVector& servicePaths ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** How many files the last Discover() found */
     UInt32 GetFoundCount( void ) const;

@@ -50,6 +50,11 @@
 #define GUCEF_ASSETSTORE_CREMOTEFILETRANSFER_H
 #endif /* GUCEF_ASSETSTORE_CREMOTEFILETRANSFER_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#include "gucefASSETSTORE_CRemoteAssetShares.h"
+#define GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#endif /* GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H ? */
+
 #ifndef ASSETWORKBENCHLIB_CWORKBENCHJOBREGISTRY_H
 #include "AssetWorkbenchLib_CWorkbenchJobRegistry.h"
 #define ASSETWORKBENCHLIB_CWORKBENCHJOBREGISTRY_H
@@ -78,7 +83,7 @@ namespace ASSETWORKBENCH {
 /**
  *  The transfers of files of a remote asset store service that the workbench runs (the files of an asset that is opened, a pack that is
  *  downloaded to a folder, a pack that is kept offline), with the feedback the workbench gives for long work: each one runs as a task
- *  of a thread pool (ASSETSTORE::CRemoteAssetFileSystem::StartTransfer()), is an operation of the activity service (the indicator shows
+ *  of a thread pool (ASSETSTORE::CRemoteAssetShares::StartTransfer()), is an operation of the activity service (the indicator shows
  *  it after 300 ms, with its progress and a cancel button) and a job of the registry of the workbench, so it is in the jobs list and in
  *  the transfer queue with its progress and a cancel action. Update() is called on the thread of the interface; it carries the progress
  *  over, ends the operation and the job when the transfer ended and raises JobEndedEvent.
@@ -112,7 +117,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteFetchJobs : public CORE::CObservingNot
     virtual ~CRemoteFetchJobs() GUCEF_VIRTUAL_OVERRIDE;
 
     /** The file system the transfers run on (not owned); another one cancels what runs */
-    void SetFileSystem( ASSETSTORE::CRemoteAssetFileSystem* system );
+    void SetFileSystem( ASSETSTORE::CRemoteAssetShares* system );
 
     /**
      *  Starts a transfer. 'kind' is what the jobs list says ("open", "download", "offline"), 'label' what the indicator shows ("Fetching
@@ -166,7 +171,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CRemoteFetchJobs : public CORE::CObservingNot
 
     GUI::CActivityService* m_activity;
     CWorkbenchJobRegistry* m_registry;
-    ASSETSTORE::CRemoteAssetFileSystem* m_system;
+    ASSETSTORE::CRemoteAssetShares* m_system;
     TJobVector m_jobs;
     UInt32 m_nextId;
     SEnded m_lastEnded;

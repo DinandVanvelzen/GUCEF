@@ -67,6 +67,7 @@
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="vfspluginLIBARCHIVE" />
             <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+            <RuntimeDependency Name="vfspluginDRN" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="linux">

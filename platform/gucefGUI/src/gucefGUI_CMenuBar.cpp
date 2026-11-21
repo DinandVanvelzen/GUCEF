@@ -188,10 +188,17 @@ CMenuBar::OpenMenu( Int32 menuIndex )
         SubscribeTo( context, CGUIContext::FormHiddenEvent, formHiddenCallback );
     }
     m_popup->SetItems( GetMenuItems( menus[ menuIndex ] ) );
-    m_popup->SetProperty( EWidgetProperty_Font, GetProperty( EWidgetProperty_Font ) );
-    m_popup->SetProperty( EWidgetProperty_TextColour, GetProperty( EWidgetProperty_TextColour ) );
-    m_popup->SetProperty( EWidgetProperty_BackgroundColour, GetProperty( EWidgetProperty_BackgroundColour ) );
-    m_popup->SetProperty( EWidgetProperty_HoverColour, GetProperty( EWidgetProperty_HoverColour ) );
+    // what was set on the bar itself goes to its menu; what was not stays the menu's own (its style in the theme, else the
+    // look of a menu): an empty value set on the menu would hide its style and leave it without a background
+    const EWidgetProperty shared[] = { EWidgetProperty_Font, EWidgetProperty_TextColour, EWidgetProperty_BackgroundColour, EWidgetProperty_HoverColour, EWidgetProperty_BorderColour };
+    for ( UInt32 i=0; i<(UInt32)( sizeof( shared ) / sizeof( shared[ 0 ] ) ); ++i )
+    {
+        CString value;
+        if ( GetExplicitProperty( shared[ i ], value ) && !value.IsNULLOrEmpty() )
+            m_popup->SetProperty( shared[ i ], value );
+        else
+            m_popup->ResetProperty( shared[ i ] );
+    }
     CRect title = GetMenuRect( (UInt32) menuIndex );
     m_openMenuName = menus[ menuIndex ];
     SetIntProperty( EWidgetProperty_OpenMenu, menuIndex );
