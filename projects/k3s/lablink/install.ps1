@@ -23,7 +23,8 @@
 #
 # Usage (an elevated PowerShell):
 #   .\install.ps1 [-Secret SECRET] [-SkipTests] [-Prebuilt DIR] [-Upgrade] [-NoFirewall]
-#   -Secret SECRET  the lab secret the cluster printed; without it the machine
+#   -Secret SECRET  the lab secret the cluster printed (or the environment
+#                   variable GUCEF_LAB_SECRET); without it the machine
 #                   asks the cluster for access and waits until it is approved
 #                   there: sudo gucefLabLink --approve <name>
 #   -SkipTests      install without running the tests
@@ -48,6 +49,9 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
+
+# the secret may also come in the environment variable GUCEF_LAB_SECRET (the installer uses it: not on a command line)
+if ( $Secret -eq "" -and $env:GUCEF_LAB_SECRET ) { $Secret = $env:GUCEF_LAB_SECRET }
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $K3sDir = Split-Path -Parent $ScriptDir
@@ -227,6 +231,9 @@ if ( $Allow.Count -eq 0 ) { $Allow = Get-LocalNetworks }
 $Mdns = ( Get-Setting $settings "LAB_MDNS" "true" ) -eq "true"
 $Broadcast = ( Get-Setting $settings "LAB_BROADCAST" "true" ) -eq "true"
 $ClusterName = Get-Setting $settings "LAB_CLUSTER_NAME" $env:COMPUTERNAME.ToLowerInvariant()
+$CiRegistry = Get-Setting $settings "LAB_CI_REGISTRY" ""
+$CiGatewayUrl = Get-Setting $settings "LAB_CI_GATEWAY_URL" ""
+$Ci = ( Get-Setting $settings "LAB_CI" "true" ) -eq "true"
 
 # ---------------------------------------------------------------------------
 # Build, or the built files
@@ -339,6 +346,10 @@ foreach ( $range in $Allow ) { $lines += "allow = $range" }
 if ( -not $Mdns ) { $lines += "no-mdns" }
 if ( -not $Broadcast ) { $lines += "no-broadcast" }
 if ( $Role -eq "cluster" ) { $lines += "cluster-name = $ClusterName" }
+# the CI configuration (tools/gucefLabLink/README.md, CI configuration): the registry and gateway of a hub, or no-ci on a machine
+if ( $Role -eq "cluster" -and $CiRegistry -ne "" ) { $lines += "ci-registry = `"$CiRegistry`"" }
+if ( $Role -eq "cluster" -and $CiGatewayUrl -ne "" ) { $lines += "ci-gateway-url = $CiGatewayUrl" }
+if ( $Role -eq "machine" -and -not $Ci ) { $lines += "no-ci" }
 $NewConfig = ( $lines -join "`r`n" ) + "`r`n"
 
 $ConfigChanged = $false

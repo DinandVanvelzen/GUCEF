@@ -40,6 +40,10 @@ Contents
                      gucef-k3s-scripts  scripts in /usr/share/gucef-k3s
                      gucef-mcp          the MCP server, service gucef-mcp
                      gucef-lablink      the lab link, service gucef-lablink
+    windows/       the setup program of the lab link for Windows (only on a medium
+                   made with --windows-bin): run gucefLabLink-<version>-setup.exe as
+                   an administrator; setup-with-lab-secret.cmd (only with the lab
+                   secret on the medium) runs it with the secret
     docs/          the README of each service and of its program; installed
                    with it in /usr/lib/<service> and /opt/<service>/current
     lablink.env    settings for every machine, e.g. LAB_ALLOW (when the medium has them);

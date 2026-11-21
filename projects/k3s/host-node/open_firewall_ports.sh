@@ -15,6 +15,7 @@
 #                     MCP 8791/tcp, discovery 5353/udp and 47812/udp
 #            machine  a machine that is no node: discovery 5353/udp and 47812/udp
 #            web      the website of the hub, 47813/tcp (a cluster with LAB_WEB=true)
+#            ci-gateway  the CI gateway of gucefMcpCi, 8792/tcp (ci/mcp/install.sh --role gateway)
 #   CIDR     the networks the ports are open to; default: the networks of the
 #            interfaces of this machine (not those of containers and VMs)
 # ---------------------------------------------------------------------------
@@ -28,8 +29,9 @@ case "${ROLE}" in
     node)    TCP_PORTS="10250 8791";                  UDP_PORTS="8472 5353 47812" ;;
     machine) TCP_PORTS="";                            UDP_PORTS="5353 47812" ;;
     web)     TCP_PORTS="47813";                       UDP_PORTS="" ;;
+    ci-gateway) TCP_PORTS="8792";                     UDP_PORTS="" ;;
     close) ;;
-    *) echo "Usage: open_firewall_ports.sh cluster|node|machine|web [CIDR ...] | close"; exit 1 ;;
+    *) echo "Usage: open_firewall_ports.sh cluster|node|machine|web|ci-gateway [CIDR ...] | close"; exit 1 ;;
 esac
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -46,7 +48,7 @@ if [ "${ROLE}" = "close" ]; then
         echo "Firewall (ufw): the ports of the lab are closed again"
     elif command -v firewall-cmd > /dev/null 2>&1 && firewall-cmd --state > /dev/null 2>&1; then
         firewall-cmd --permanent --list-rich-rules 2>/dev/null | \
-            grep -E 'port port="?(6443|10250|47810|47811|47813|8791|8472|5353|47812)"? protocol="?(tcp|udp)"? accept' | \
+            grep -E 'port port="?(6443|10250|47810|47811|47813|8791|8792|8472|5353|47812)"? protocol="?(tcp|udp)"? accept' | \
             while read -r rule; do firewall-cmd --permanent --quiet --remove-rich-rule="${rule}"; done
         firewall-cmd --reload --quiet
         echo "Firewall (firewalld): the ports of the lab are closed again"

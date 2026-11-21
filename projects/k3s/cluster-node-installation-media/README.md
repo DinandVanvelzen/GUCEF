@@ -71,4 +71,9 @@ upgrade brings a service that is set up to the new files (`--upgrade`); removing
 
 Versions are `1.<commits of the checkout>.<UTC time of the build>`.
 
-Windows and macOS machines get their part with phases 2 and 3 of the lab link.
+`--windows-bin DIR` (the bin directory of a Windows build of gucefLabLink: `gucefLabLink.exe` and its DLLs) adds
+`windows/` with the setup program `gucefLabLink-<version>-setup.exe`, which installs the Windows service on a PC when run
+as an administrator (`lablink/windows-installer`, CPack with NSIS; `makensis` is needed, Ubuntu: `sudo apt-get install
+nsis`, otherwise a ZIP of the same files is made). A medium made with `--with-secret` also gets
+`windows/setup-with-lab-secret.cmd`. The Windows build itself cannot be made on the machine that makes the medium; on
+Windows `lablink/build-installer.ps1` builds and packs in one go. macOS machines get their part later.

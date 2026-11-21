@@ -47,3 +47,39 @@ The SSH public key of the pushing user must be added to the Forgejo user (Settin
 - A NetworkPolicy denies all ingress to the runner pod: the daemon listens on tcp 2375 without authentication.
 - Job images are cached on the PVC `forgejo-runner-data-pvc`. `runner/uninstall.sh --wipe-data` deletes it.
 - Other settings in `config.env`: `FORGEJO_RUNNER_CAPACITY` (default 2), `FORGEJO_RUNNER_STORAGE_SIZE`, `FORGEJO_RUNNER_VERSION`, `FORGEJO_RUNNER_MTU`.
+
+## CI scratch repository (`scratch-repo.sh`)
+
+The matrix CI (`.forgejo/workflows/gucef-ci.yml`) also runs on unpublished work: a snapshot is pushed as a branch
+`scratch/<machine>-<utc>-<sha>` to a normal writable repository and started with `workflow_dispatch` (inputs `force`,
+`toolchains`, `cppStandards`, `products`, `mode` = `build` or `test`). The pull mirror of the published repository refuses
+pushes, so the scratch repository sits next to it. `./scratch-repo.sh` (idempotent) sets it up:
+
+- Bot user `ci-bot` (`FORGEJO_CI_BOT_USER`) with a random password, stored as `FORGEJO_CI_BOT_PASSWORD` in `secrets.env` and
+  `~/.config/gucef-k3s/forgejo-secrets.env`. It is never printed.
+- Private repository `ci/GUCEF` (`FORGEJO_CI_OWNER`/`FORGEJO_CI_REPO`; the owner is created as a private organization when
+  missing), Actions enabled, `ci-bot` collaborator with write access.
+- `--seed <git url or local repository>` pushes all branches and tags into it, once, while it is empty. Actions are off
+  during that push, so it starts no CI run.
+- `--report-token` gives `ci-bot` a new token with scope `write:package` (earlier ones of this script are deleted) and stores
+  it as the Actions secret `CI_REPORT_TOKEN` of the scratch repository. Without that secret the cells still build and write
+  their reports, they only skip the upload. Run it once after the first setup, and again to rotate the token.
+- `--gateway-token FILE` gives `ci-bot` an access token for the CI gateway (`gucefMcpCi --mode gateway`, see
+  [../ci/mcp/README.md](../ci/mcp/README.md)) and writes it to FILE with mode 0600; the directory of FILE must exist.
+  Scopes: `write:repository` (push and delete scratch branches, dispatch and cancel runs), `read:package` and
+  `write:package` (read and delete the report packages of `ci-bot`). When FILE exists and is not empty nothing is done.
+  With `--rotate` a new token is made and written even then, after which the earlier tokens of this option (named
+  `ci-gateway-*`) are deleted; without it they stay valid. `ci/mcp/install.sh --role gateway` runs this option when the
+  gateway has no token yet.
+- `--prune [DAYS]` deletes branches `scratch/*` whose head commit is older than DAYS days (default `FORGEJO_CI_PRUNE_DAYS`, 14).
+- `--dry-run` prints the planned API calls and git commands without touching the cluster.
+
+Example: `./scratch-repo.sh --seed https://github.com/<owner>/GUCEF.git --report-token`, later `./scratch-repo.sh --prune`.
+Tokens are never printed; the gateway token exists only in FILE.
+
+Reports: each matrix cell (`projects/CI/scripts/ci_cell.sh`) writes `ci-report/<cell>/report.json` (per product: status,
+phase, exit code, seconds, log tail; in test mode per test application the failed test cases) and `<product>.log.gz`, and
+uploads them with `CI_REPORT_TOKEN` to the generic package registry of `ci-bot`: package `ci-reports`, version
+`<run id>-<cell id>`, for example `http://<host>:32001/api/packages/ci-bot/generic/ci-reports/<run id>-<cell id>/report.json`.
+The upload is one function in `ci_cell.sh` (`upload_report`) and is still to be confirmed on the live Forgejo; upload
+failures are warnings. Test applications listed in `projects/CI/matrix/test-skip.txt` are not run.
