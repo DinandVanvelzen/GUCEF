@@ -722,6 +722,9 @@ namespace Ogre {
             usedBoneIndices.insert(itVBA.second.boneIndex);
         }
 
+        // DV edit: the blend indices are 8 bits, a submesh that uses more bones than that would silently get wrong indices
+        OgreAssert(usedBoneIndices.size() <= OGRE_MAX_NUM_BONES, "A submesh uses more bones than its blend indices can address: split it by bone subsets");
+
         // Allocate space for index map
         blendIndexToBoneIndexMap.resize(usedBoneIndices.size());
         boneIndexToBlendIndexMap.resize(*usedBoneIndices.rbegin() + 1);

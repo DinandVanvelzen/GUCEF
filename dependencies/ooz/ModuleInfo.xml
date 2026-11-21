@@ -1,0 +1,19 @@
+<ModuleInfoEntry>
+    <Module Name="ooz_extract" Type="Executable" Platform="linux;mswin" Tags="tools">
+        <ModuleMetaData>
+            <License>GPL-3.0-or-later</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>ooz_extract: stand alone Kraken family decompressor (external tool, never linked)</DescriptionHeadline>
+            <DescriptionDetails>Command line tool built from the decompressor of ooz (Powzix, GPL-3.0-or-later) and a thin wrapper, see dependencies/ooz/README.txt. It is started as a child process by programs that need to decompress Kraken family data, with files and standard input and output as the only interface. It has no link dependency on other modules (it only includes headers of common/include) and no module links it.</DescriptionDetails>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="OOZ_EXTRACT_NO_MAIN" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-fno-strict-aliasing -fno-aggressive-loop-optimizations -msse2" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

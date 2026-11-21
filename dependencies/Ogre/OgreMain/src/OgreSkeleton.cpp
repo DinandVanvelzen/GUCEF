@@ -123,7 +123,8 @@ namespace Ogre {
     //---------------------------------------------------------------------
     Bone* Skeleton::createBone(const String& name, unsigned short handle)
     {
-        OgreAssert(handle < OGRE_MAX_NUM_BONES, "Exceeded the maximum number of bones per skeleton");
+        // DV edit: OGRE_MAX_SKELETON_BONES, see OgreConfig.h
+        OgreAssert(handle < OGRE_MAX_SKELETON_BONES, "Exceeded the maximum number of bones per skeleton");
         // Check handle not used
         if (handle < mBoneList.size() && mBoneList[handle] != NULL)
         {

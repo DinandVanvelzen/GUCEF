@@ -35,6 +35,8 @@ THE SOFTWARE.
 #include "OgreString.h"
 #include "OgreStringConverter.h"
 
+#include <mutex>
+#include <memory>
 #include <assimp/version.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -360,8 +362,38 @@ Vector3 componentwiseDivide(const Vector3& num, const Vector3& den)
 }
 } // namespace
 
+// DV edit: what the prepare mode of the codec makes of a file: the importer owns the scene
+struct PreparedImport
+{
+    Assimp::Importer importer;
+    const aiScene* scene = nullptr;
+};
+
+// DV edit: the logger of Assimp is global and a loader makes and kills it. While a file is read ahead on another thread (the
+// prepare mode) that thread logs through it: a loader that starts or ends then leaves it as it is
+namespace
+{
+std::mutex gAssimpLoggerMutex;
+int gAssimpPreparesActive = 0;
+
+void assimpPrepareBegin()
+{
+    std::lock_guard<std::mutex> lock(gAssimpLoggerMutex);
+    ++gAssimpPreparesActive;
+}
+
+void assimpPrepareEnd()
+{
+    std::lock_guard<std::mutex> lock(gAssimpLoggerMutex);
+    --gAssimpPreparesActive;
+}
+}
+
 AssimpLoader::AssimpLoader()
 {
+    std::lock_guard<std::mutex> lock(gAssimpLoggerMutex);
+    if(gAssimpPreparesActive > 0)
+        return;
     Assimp::DefaultLogger::create("");
     Assimp::DefaultLogger::get()->attachStream(new OgreLogStream(LML_NORMAL), ~Assimp::DefaultLogger::Err);
     Assimp::DefaultLogger::get()->attachStream(new OgreLogStream(LML_CRITICAL), Assimp::DefaultLogger::Err);
@@ -415,6 +447,9 @@ bool AssimpLoader::_load(const char* name, Assimp::Importer& importer, Mesh* mes
 
     uint32 flags = aiProcessPreset_TargetRealtime_Fast | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
     flags &= ~(aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace); // optimize for fast loading
+    // DV edit: a submesh addresses its bones with 8 bits: a mesh that uses more bones than that is split by bone subsets
+    flags |= aiProcess_SplitByBoneCount;
+    importer.SetPropertyInteger(AI_CONFIG_PP_SBBC_MAX_BONES, OGRE_MAX_NUM_BONES);
 
     flags |= postProcessSteps;
 
@@ -424,7 +459,19 @@ bool AssimpLoader::_load(const char* name, Assimp::Importer& importer, Mesh* mes
     importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", maxEdgeAngle);
     importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING, true);
 
-    const aiScene* scene = importer.ReadFile(name, flags);
+    // DV edit: a file that was read ahead on another thread (the prepare mode of AssimpCodec::decode()) is used as it is: the
+    // reading and the post processing take the time, the creation of the Ogre objects below has to stay on the thread of Ogre
+    std::shared_ptr<PreparedImport> prepared;
+    const aiScene* scene = nullptr;
+    auto preparedAny = mesh->getUserObjectBindings().getUserAny("_AssimpPrepared");
+    if(preparedAny.has_value())
+    {
+        prepared = any_cast<std::shared_ptr<PreparedImport> >(preparedAny);
+        if(prepared)
+            scene = prepared->scene;
+    }
+    if(!scene)
+        scene = importer.ReadFile(name, flags);
 
     // If the import failed, report it
     if (!scene)
@@ -503,7 +550,12 @@ bool AssimpLoader::_load(const char* name, Assimp::Importer& importer, Mesh* mes
     mesh->_setBounds(aabb);
     mesh->_setBoundingSphereRadius((aabb.getMaximum() - aabb.getMinimum()).length() / 2);
 
-    Assimp::DefaultLogger::kill();
+    {
+        // DV edit: not while a file is being read ahead on another thread, which logs through it
+        std::lock_guard<std::mutex> lock(gAssimpLoggerMutex);
+        if(gAssimpPreparesActive == 0)
+            Assimp::DefaultLogger::kill();
+    }
 
     if (mSkeleton)
     {
@@ -1566,8 +1618,40 @@ struct AssimpCodec : public Codec
     AssimpCodec(const String& type) : mType(type) {}
 
     String getType() const override { return mType; }
+    // DV edit: the prepare mode. The output is an Any* that holds the resource group (a String) on the way in; the import of
+    // the file, with the same options as a plain load, is put in it on the way out (_AssimpPrepared of the user object
+    // bindings of the mesh that is loaded next). Touches no Ogre object, so it can run on any thread
+    static void prepare(const DataStreamPtr& input, Any* holder)
+    {
+        String group = holder->has_value() ? any_cast<String>(*holder) : ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME;
+        assimpPrepareBegin();
+        struct PrepareEnd { ~PrepareEnd() { assimpPrepareEnd(); } } prepareEnd;
+        auto result = std::make_shared<PreparedImport>();
+        AssimpLoader::Options opts;
+        uint32 flags = aiProcessPreset_TargetRealtime_Fast | aiProcess_TransformUVCoords | aiProcess_FlipUVs;
+        flags &= ~(aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
+        // DV edit: see _load()
+        flags |= aiProcess_SplitByBoneCount;
+        result->importer.SetPropertyInteger(AI_CONFIG_PP_SBBC_MAX_BONES, OGRE_MAX_NUM_BONES);
+        flags |= opts.postProcessSteps;
+        if((flags & (aiProcess_GenSmoothNormals | aiProcess_GenNormals)) != aiProcess_GenNormals)
+            flags &= ~aiProcess_GenNormals;
+        result->importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", opts.maxEdgeAngle);
+        result->importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING, true);
+        result->importer.SetIOHandler(new OgreIOSystem(input, group));
+        result->scene = result->importer.ReadFile(input->getName().c_str(), flags);
+        if(!result->scene)
+            LogManager::getSingleton().logError("Assimp failed - " + String(result->importer.GetErrorString()));
+        *holder = Any(result);
+    }
+
     void decode(const DataStreamPtr& input, const Any& output) const override
     {
+        if(output.has_value() && output.type() == typeid(Any*))
+        {
+            prepare(input, any_cast<Any*>(output));
+            return;
+        }
         Mesh* dst = any_cast<Mesh*>(output);
 
         AssimpLoader::Options opts;

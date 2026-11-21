@@ -58,6 +58,10 @@ THE SOFTWARE.
 /// blend indices are stored as ubyte, so we can't address more than 256 bones
 #define OGRE_MAX_NUM_BONES 256
 
+// DV edit: the limit of the bones of a skeleton. The 256 above is the limit of what one submesh can address: it indexes the bones it uses
+// through its blend index to bone index map. A skeleton can have more bones than that, a mesh with such a rig splits its submeshes by bone subsets
+#define OGRE_MAX_SKELETON_BONES 1024
+
 /** Define max number of multiple render targets (MRTs) to render to at once.
 */
 #define OGRE_MAX_MULTIPLE_RENDER_TARGETS 8

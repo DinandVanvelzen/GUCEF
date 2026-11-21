@@ -441,7 +441,8 @@ namespace Ogre {
                 AxisAlignedBox bbox;
                 bbox.setNull();
                 Real maxScale = Real(0);
-                bool boneHasVerts[ OGRE_MAX_NUM_BONES ] = { false };
+                // DV edit: indexed by bone handle, not by blend index, so the size of a skeleton
+                bool boneHasVerts[ OGRE_MAX_SKELETON_BONES ] = { false };
                 // for each bone that has vertices weighted to it,
                 for (uint16 iBone : mMesh->sharedBlendIndexToBoneIndexMap)
                 {
