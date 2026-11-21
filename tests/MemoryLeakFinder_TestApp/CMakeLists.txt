@@ -100,13 +100,13 @@ endif()
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MemoryLeakFinder gucefCORE gucefMT )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MemoryLeakFinder gucefCORE gucefMT )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
 endif( WIN64 )
 
@@ -120,10 +120,10 @@ endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
 if ( WIN32 )
-  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders INCLUDE_ONLY_MODULES MemoryLeakFinder )
+  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 endif( WIN32 )
 if ( WIN64 )
-  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders INCLUDE_ONLY_MODULES MemoryLeakFinder )
+  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 endif( WIN64 )
 
 

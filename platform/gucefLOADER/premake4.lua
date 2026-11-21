@@ -48,10 +48,10 @@ configuration( { "LINUX64" } )
 links( { "dl", "rt" } )
 
 configuration( { "WIN32" } )
-links( { "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib", "winmm.lib" } )
+links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib", "winmm.lib" } )
 
 configuration( { "WIN64" } )
-links( { "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib", "winmm.lib" } )
+links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib", "winmm.lib" } )
 
 
 configuration( {} )

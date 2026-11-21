@@ -48,7 +48,7 @@ configuration( { "WIN32" } )
 links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
 
 configuration( { "WIN32" } )
-links( { "gucefCORE", "gucefMT" } )
+links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
 
 
 configuration( { "WIN32" } )
@@ -58,7 +58,7 @@ configuration( { "WIN64" } )
 links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
 
 configuration( { "WIN64" } )
-links( { "gucefCORE", "gucefMT" } )
+links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
 
 
 configuration( { "WIN64" } )

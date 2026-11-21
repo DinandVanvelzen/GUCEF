@@ -92,7 +92,7 @@ configuration( { "ANDROID32" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "ANDROID32" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "ANDROID32" } )
@@ -102,7 +102,7 @@ configuration( { "ANDROID64" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "ANDROID64" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "ANDROID64" } )
@@ -112,7 +112,7 @@ configuration( { "LINUX32" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "LINUX32" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "LINUX32" } )
@@ -122,7 +122,7 @@ configuration( { "LINUX64" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "LINUX64" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "LINUX64" } )
@@ -132,7 +132,7 @@ configuration( { "WIN32" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "WIN32" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "WIN32" } )
@@ -142,7 +142,7 @@ configuration( { "WIN64" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 configuration( { "WIN64" } )
-links( { "opus" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
 
 
 configuration( { "WIN64" } )

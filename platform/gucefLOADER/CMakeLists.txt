@@ -3449,11 +3449,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Bcrypt.lib PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Bcrypt.lib PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
 include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )
