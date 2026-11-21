@@ -72,6 +72,7 @@ const SNamedValue g_statusNames[] =
     { ASSETSTORE_STATUS_DATABASE_ERROR, "databaseError" },
     { ASSETSTORE_STATUS_ALREADY_EXISTS, "alreadyExists" },
     { ASSETSTORE_STATUS_REFUSED, "refused" },
+    { ASSETSTORE_STATUS_NO_SPACE, "noSpace" },
     { ASSETSTORE_STATUS_TIMED_OUT, "timedOut" },
     { ASSETSTORE_STATUS_OWNER_ACTION_NEEDED, "ownerActionNeeded" },
     { ASSETSTORE_STATUS_BROWSER_UNAVAILABLE, "browserUnavailable" }

@@ -55,6 +55,11 @@
 #define GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
 #endif /* GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#include "gucefASSETSTORE_CRemoteAssetShares.h"
+#define GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H
+#endif /* GUCEF_ASSETSTORE_CREMOTEASSETSHARES_H ? */
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -237,17 +242,14 @@ FindPackFile( CIAssetStoreService& service, const CString& packId, const CString
 
 /*-------------------------------------------------------------------------*/
 
-/** Reads a whole file of the service (at most 4 MiB) */
+/** Reads a whole file of the service (the server side is in this process: its files are in the VFS of the test) */
 bool
 ReadWholeFile( CIAssetStoreService& service, const CString& vfsPath, UInt32 size, CDynamicBuffer& content )
 {
-    CAssetFileBlock block;
-    const TAssetStoreStatus status = service.ReadFileBlock( vfsPath, 0, size, block );
-    content = block.data;
-    if ( ASSETSTORE_STATUS_OK != status || content.GetDataSize() != size || !block.endOfFile )
+    content.Clear();
+    if ( !ReadVfsFile( vfsPath, content ) || content.GetDataSize() != size )
     {
-        GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ReadWholeFile: " << vfsPath << ": " << AssetStoreStatusToString( status ) << ", " << content.GetDataSize() << " of " << size
-                         << " bytes, end of file " << ( block.endOfFile ? "yes" : "no" ) << ", file size " << block.fileSize );
+        GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ReadWholeFile: " << vfsPath << ": " << content.GetDataSize() << " of " << size << " bytes" );
         return false;
     }
     return true;
@@ -385,10 +387,10 @@ PerformAssetStoreRemoteUnitTests( void )
                 CDataNode redacted;
                 ASSERT_TRUE( request.ToDataNode( redacted, true ) );
                 ASSERT_TRUE( redacted.GetAttributeValueOrChildValueByName( "secret" ).AsString().HasSubstr( "do-not-show" ) < 0 );
-                ASSERT_TRUE( GUCEF_NULL != files->FindType( "Block" ) && GUCEF_NULL != files->FindType( "WriteBlockRequest" ) );
+                ASSERT_TRUE( GUCEF_NULL != files->FindType( "WriteBlockRequest" ) );
             }
             // every operation of the interface answers a record the client can make
-            const char* operations[] = { "Info/GetServiceInfo", "Catalogue/Search", "Catalogue/GetPack", "Files/Stat", "Files/Read", "Files/BeginUploadFiles",
+            const char* operations[] = { "Info/GetServiceInfo", "Catalogue/Search", "Catalogue/GetPack", "Files/BeginUploadFiles",
                                          "Files/QueryUpload", "Locations/Verify", "Ingest/Ingest", "Jobs/List", "Jobs/Control", "Stores/QueryLibrary",
                                          "SignIn/Answer", "Admin/UnlockKeyring", "Pipeline/Query", "LocalCopy/Request" };
             for ( UInt32 i=0; i<sizeof( operations ) / sizeof( operations[ 0 ] ); ++i )
@@ -398,10 +400,42 @@ PerformAssetStoreRemoteUnitTests( void )
                 GUCEF_DELETE record;
             }
             ASSERT_TRUE( GUCEF_NULL == CAssetStoreRemoteCodec::NewResult( "Catalogue/NoSuchOperation" ) );
-            ASSERT_TRUE( CAssetStoreRemoteContracts::IsFilesOperation( CAssetServiceOperations::ReadFileBlock ) && !CAssetStoreRemoteContracts::IsFilesOperation( CAssetServiceOperations::Search ) );
+            ASSERT_TRUE( CAssetStoreRemoteContracts::IsFilesOperation( CAssetServiceOperations::QueryUpload ) && CAssetStoreRemoteContracts::IsFilesOperation( CAssetServiceOperations::WriteUploadBlock ) && !CAssetStoreRemoteContracts::IsFilesOperation( CAssetServiceOperations::Search ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_REFUSED == CAssetStoreRemoteCodec::StatusOfRpcFailure( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED ) ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_UNAVAILABLE == CAssetStoreRemoteCodec::StatusOfRpcFailure( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_UNAVAILABLE ) ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == CAssetStoreRemoteCodec::StatusOfRpcFailure( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_INVALID_ARGUMENT ) ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Status: every status has a name that reads back to it, noSpace included; a name that is not known reads as failed; a full cache is a status of its own and no refusal" )
+        try
+        {
+            const TAssetStoreStatus all[] = { ASSETSTORE_STATUS_OK, ASSETSTORE_STATUS_FAILED, ASSETSTORE_STATUS_INVALID_ARGUMENT, ASSETSTORE_STATUS_NOT_FOUND, ASSETSTORE_STATUS_NOT_SIGNED_IN,
+                ASSETSTORE_STATUS_SESSION_EXPIRED, ASSETSTORE_STATUS_URL_EXPIRED, ASSETSTORE_STATUS_RATE_LIMITED, ASSETSTORE_STATUS_NETWORK_ERROR, ASSETSTORE_STATUS_SERVER_ERROR,
+                ASSETSTORE_STATUS_HTTP_ERROR, ASSETSTORE_STATUS_DIGEST_MISMATCH, ASSETSTORE_STATUS_SIZE_MISMATCH, ASSETSTORE_STATUS_UNSAFE_NAME, ASSETSTORE_STATUS_IO_ERROR,
+                ASSETSTORE_STATUS_CANCELLED, ASSETSTORE_STATUS_PAUSED, ASSETSTORE_STATUS_UNSUPPORTED, ASSETSTORE_STATUS_DUPLICATE, ASSETSTORE_STATUS_UNAVAILABLE,
+                ASSETSTORE_STATUS_DATABASE_ERROR, ASSETSTORE_STATUS_ALREADY_EXISTS, ASSETSTORE_STATUS_REFUSED, ASSETSTORE_STATUS_NO_SPACE, ASSETSTORE_STATUS_TIMED_OUT,
+                ASSETSTORE_STATUS_OWNER_ACTION_NEEDED, ASSETSTORE_STATUS_BROWSER_UNAVAILABLE };
+            for ( UInt32 i=0; i<sizeof( all ) / sizeof( all[ 0 ] ); ++i )
+            {
+                const CString name = AssetStoreStatusToString( all[ i ] );
+                ASSERT_TRUE( !name.IsNULLOrEmpty() );
+                ASSERT_TRUE( all[ i ] == AssetStoreStatusFromString( name ) );
+                for ( UInt32 j=0; j<i; ++j )
+                    ASSERT_TRUE( name != CString( AssetStoreStatusToString( all[ j ] ) ) );
+            }
+            ASSERT_TRUE( CString( "noSpace" ) == AssetStoreStatusToString( ASSETSTORE_STATUS_NO_SPACE ) && ASSETSTORE_STATUS_NO_SPACE != ASSETSTORE_STATUS_REFUSED );
+            ASSERT_TRUE( 32 == (Int32) ASSETSTORE_STATUS_NO_SPACE && 31 == (Int32) ASSETSTORE_STATUS_REFUSED );
+            ASSERT_TRUE( ASSETSTORE_STATUS_FAILED == AssetStoreStatusFromString( "noSuchStatus" ) );
+            // the files of a remote store: no room is no refusal, a refused read is no lack of room
+            ASSERT_TRUE( ASSETSTORE_STATUS_NO_SPACE == CRemoteAssetShares::StatusOfResult( FILESYSTEMACCESS_NO_SPACE ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_REFUSED == CRemoteAssetShares::StatusOfResult( FILESYSTEMACCESS_ACCESS_DENIED ) );
+            ASSERT_TRUE( CRemoteAssetShares::DescribeFailure( "p/a.bin", ASSETSTORE_STATUS_NO_SPACE, "the limit" ).HasSubstr( "cannot be kept in the cache of this computer: the limit" ) >= 0 );
+            ASSERT_TRUE( CRemoteAssetShares::DescribeFailure( "p/a.bin", ASSETSTORE_STATUS_REFUSED, "no" ).HasSubstr( "does not give the file" ) >= 0 );
         }
         catch ( ... )
         {
@@ -475,6 +509,16 @@ PerformAssetStoreRemoteUnitTests( void )
             ASSERT_TRUE( hostSettings.LoadConfig( hostConfig ) && 2 == hostSettings.roles.size() );
             hostConfig.SetAttribute( "stagingDir", "x" );
             ASSERT_FALSE( hostSettings.LoadConfig( hostConfig ) );
+            // the setting of the size of a block that was read (it has no meaning any more) is still accepted, with a value that the earlier version refused too, and it is not written again
+            CAssetStoreServiceHostSettings oldHostSettings;
+            CDataNode oldHostConfig( "host", GUCEF_DATATYPE_OBJECT );
+            oldHostConfig.SetAttribute( "roles", "owner" );
+            oldHostConfig.SetAttribute( "maxReadBlockBytes", (UInt32) 524288 );
+            ASSERT_TRUE( oldHostSettings.LoadConfig( oldHostConfig ) );
+            oldHostConfig.SetAttribute( "maxReadBlockBytes", (UInt32) 0 );
+            ASSERT_TRUE( oldHostSettings.LoadConfig( oldHostConfig ) );
+            CDataNode savedHostConfig( "host", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( oldHostSettings.SaveConfig( savedHostConfig ) && !savedHostConfig.IsAttribute( "maxReadBlockBytes" ) && savedHostConfig.IsAttribute( "shareName" ) );
 
             AUTH::CMemoryCredentialStore empty;
             CAssetStoreServiceConfig clientConfig;
@@ -719,6 +763,39 @@ PerformAssetStoreRemoteFaultTests( void )
     CIAssetStoreService& client = *clientPtr;
     CServiceEventRecorder events( client );
     CRemoteNoticeRecorder notices( client );
+
+    GUCEF_TESTFW_TESTCASE( "Remote faults: the operations of the read side of the files contract (Files/Stat, Files/List, Files/Read) are no longer served: the call is refused as not known; the files contract has no ReadBlock, its upload methods stay" )
+        try
+        {
+            ASSERT_TRUE( started && !clientPtr.IsNULL() );
+            const char* removed[ 3 ] = { "Files/Stat", "Files/List", "Files/Read" };
+            for ( UInt32 i=0; i<3; ++i )
+            {
+                CAssetServiceCall call( removed[ i ] );
+                CFutureResult future = clientPtr->ExecuteAsync( call );
+                ASSERT_TRUE( WaitForFuture( future, 10000 ) );
+                ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == CIAssetStoreService::GetStatusOfFuture( future ) );
+                ASSERT_TRUE( CIAssetStoreService::GetMessageOfFuture( future ).HasSubstr( "is not known" ) >= 0 );
+            }
+            COMCORE::CRpcContractPtr files = CAssetStoreRemoteContracts::GetFilesContract();
+            ASSERT_TRUE( !files.IsNULL() );
+            if ( !files.IsNULL() )
+            {
+                ASSERT_TRUE( CAssetStoreRemoteContracts::Major == files->GetMajor() && CAssetStoreRemoteContracts::FilesMinor == files->GetMinor() && 1 == files->GetMinor() );
+                ASSERT_TRUE( GUCEF_NULL == files->FindMethod( "Files/ReadBlock" ) && GUCEF_NULL == files->FindType( "ReadBlockRequest" ) && GUCEF_NULL == files->FindType( "Block" ) );
+                ASSERT_TRUE( GUCEF_NULL != files->FindMethod( "Files/Query" ) && GUCEF_NULL != files->FindMethod( "Files/Command" ) && GUCEF_NULL != files->FindMethod( "Files/WriteBlock" ) );
+            }
+            ASSERT_TRUE( !CAssetServiceOperations::IsKnown( "Files/Stat" ) && !CAssetServiceOperations::IsKnown( "Files/List" ) && !CAssetServiceOperations::IsKnown( "Files/Read" ) );
+            ASSERT_TRUE( CAssetServiceOperations::IsKnown( CAssetServiceOperations::BeginUpload ) && CAssetServiceOperations::IsKnown( CAssetServiceOperations::BeginUploadFiles ) &&
+                         CAssetServiceOperations::IsKnown( CAssetServiceOperations::WriteUploadBlock ) && CAssetServiceOperations::IsKnown( CAssetServiceOperations::QueryUpload ) &&
+                         CAssetServiceOperations::IsKnown( CAssetServiceOperations::CommitUpload ) && CAssetServiceOperations::IsKnown( CAssetServiceOperations::AbortUpload ) );
+            ASSERT_TRUE( GUCEF_NULL == CAssetStoreRemoteCodec::NewResult( "Files/Stat" ) && GUCEF_NULL == CAssetStoreRemoteCodec::NewResult( "Files/Read" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
 
     GUCEF_TESTFW_TESTCASE( "Remote faults: the link is cut while job listings are on their way: every listing completes with the whole list, the session resumes" )
         try

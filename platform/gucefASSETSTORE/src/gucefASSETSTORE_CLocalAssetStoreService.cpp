@@ -52,6 +52,11 @@
 #define GUCEF_VFS_CVFS_H
 #endif /* GUCEF_VFS_CVFS_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETSTORESERVICECONFIGSETTINGS_H
+#include "gucefASSETSTORE_CAssetStoreServiceConfigSettings.h"
+#define GUCEF_ASSETSTORE_CASSETSTORESERVICECONFIGSETTINGS_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTORESERVICECONFIGSETTINGS_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
 #include "gucefASSETSTORE_CPackStorageLayout.h"
 #include "gucefASSETSTORE_CAssetThumbnailFiles.h"
@@ -260,7 +265,6 @@ UInt32 g_scheduleKeyCounter = 0;
 
 const UInt32 IngestStepCount = 8;
 const UInt32 MaxSuggestions = 64;
-const UInt32 MaxBlockBytes = 4 * 1024 * 1024;
 const UInt32 MaxStatPaths = 256;
 
 /** The name of the mount of the state folder of the service in the VFS */
@@ -475,6 +479,12 @@ CLocalAssetStoreService::SPipelineJob::SPipelineJob( void )
     , createdAtMs( 0 )
     , updatedAtMs( 0 )
     , dispatched( true )
+    , slot( 0 )
+    , threads( 0 )
+    , memoryMB( 0 )
+    , locationId()
+    , waitText()
+    , interrupted( false )
 {GUCEF_TRACE;
 
 }
@@ -551,6 +561,8 @@ CLocalAssetStoreService::CLocalAssetStoreService( const CAssetStoreServiceConfig
     , m_conversionCounter( 0 )
     , m_pipelineCounter( 0 )
     , m_reprocessGuard()
+    , m_reprocessCheckpoints()
+    , m_closing( false )
     , m_endedSessions()
     , m_watchedProviders()
     , m_journal()
@@ -569,11 +581,31 @@ CLocalAssetStoreService::CLocalAssetStoreService( const CAssetStoreServiceConfig
     , m_signInWakeup( GUCEF_NULL )
     , m_signInTimer( GUCEF_NULL )
     , m_lock()
+    , m_restrictionLock()
+    , m_pathRestrictions()
+    , m_revisionKept( 0 )
+    , m_packFilesLock()
+    , m_packFilesBuildLock()
+    , m_packFiles()
+    , m_packFilesCount( 0 )
+    , m_settingsRegistry()
+    , m_siteSettingValues()
+    , m_settingOverrides()
+    , m_settingsRevision( 0 )
+    , m_settingsCommands()
+    , m_settingsCommandOrder()
+    , m_settingsLock()
 {GUCEF_TRACE;
 
     m_reprocessGuard.Configure( config.reprocess );
     CAssetStoreGlobal::Instance();
     m_config.implementationId = CAssetStoreServiceConfig::LocalImplementationId;
+
+    // the run-time settings: what can be changed, and the values of the site settings that a reset goes back to
+    CORE::CString problem;
+    if ( !CAssetStoreServiceConfigSettings::RegisterDescriptors( m_settingsRegistry, problem ) )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: the settings cannot be registered: " << problem );
+    CAssetStoreServiceConfigSettings::ReadValues( m_settingsRegistry, m_config, m_siteSettingValues );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -690,11 +722,16 @@ CLocalAssetStoreService::Open( void )
     if ( m_open )
         return m_catalogueOpen ? ASSETSTORE_STATUS_OK : ASSETSTORE_STATUS_UNAVAILABLE;
 
+    m_closing = false;
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The reprocessing of packs may use " << m_reprocessGuard.GetBudget().DescribeText() );
+
     // the state of an earlier run: the policies set through the service apply to the store that is made below
     m_stateKept = MountStateDirectory();
     m_thumbnailsMounted = MountThumbnailsDirectory();
     if ( m_stateKept )
         LoadServiceState();
+    // the overrides of the run-time settings apply over the site settings before the parts are made with them
+    LoadSettingOverrides();
 
     CPrimaryAssetStore* store = GUCEF_NEW CPrimaryAssetStore();
     m_storePtr = TPrimaryAssetStorePtr( store );
@@ -804,6 +841,21 @@ CLocalAssetStoreService::Close( void )
         m_scheduleKey.Clear();
     }
     StopSyncSchedules();
+    {
+        // no reprocessing job starts any more; the ones that run stop and stay in the state file, the next start runs them again
+        // from the beginning (their outputs are swapped in at the end only, so a stopped job left nothing half done)
+        MT::CScopeMutex lock( m_lock );
+        m_closing = true;
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+        {
+            SPipelineJob& job = m_pipelineJobs[ i ];
+            if ( CAssetPipelineOperations::IsReprocess( job.request.operation ) && job.dispatched && !AssetJobStateIsFinal( job.state ) )
+            {
+                job.interrupted = true;
+                job.source.GetFuture().RequestCancellation();
+            }
+        }
+    }
     // the calls that run use the parts below
     while ( m_pendingCalls.Load() > 0 )
         MT::ThreadDelay( 2 );
@@ -972,6 +1024,7 @@ CLocalAssetStoreService::RecordChange( TAssetCatalogueChangeKind kind, const COR
     {
         MT::CScopeMutex lock( m_lock );
         change.revision = ++m_revision;
+        m_revisionKept.Store( m_revision );
         change.kind = kind;
         if ( !id.IsNULLOrEmpty() )
             change.ids.push_back( id );
@@ -1170,6 +1223,7 @@ CLocalAssetStoreService::GetServiceInfo( CAssetServiceInfo& result )
         result.capabilities.insert( "keyring" );
     if ( GUCEF_NULL != m_config.signIn.authManager )
         result.capabilities.insert( "signIn" );
+    result.capabilities.insert( "settings" );
     GetLocationInfos( result.locations );
     CAssetStoreInfoPage stores;
     ListStores( stores );
@@ -1943,109 +1997,6 @@ CLocalAssetStoreService::RemovePack( const CORE::CString& commandId, const CORE:
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CLocalAssetStoreService::StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    result.Clear();
-    if ( vfsPaths.size() > MaxStatPaths )
-        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
-    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
-    for ( size_t i=0; i<vfsPaths.size(); ++i )
-    {
-        CAssetFileRecord entry;
-        entry.path = vfsPaths[ i ];
-        if ( vfs.FileExists( vfsPaths[ i ] ) )
-        {
-            UInt64 size = 0;
-            entry.role = "file";
-            if ( CAssetDigest::ComputeVfsFileDigest( vfsPaths[ i ], CAssetDigest::Sha256, entry.digest, &size ) )
-                entry.sizeBytes = (Int64) size;
-            else
-                entry.sizeBytes = (Int64) vfs.GetFileSize( vfsPaths[ i ] );
-        }
-        else
-        if ( vfs.DirExists( vfsPaths[ i ] ) )
-            entry.role = "directory";
-        else
-            entry.role = "missing";
-        result.entries.push_back( entry );
-    }
-    result.total = result.entries.size();
-    return ASSETSTORE_STATUS_OK;
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CLocalAssetStoreService::ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    result.Clear();
-    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
-    if ( !vfs.DirExists( vfsPath ) )
-        return ASSETSTORE_STATUS_NOT_FOUND;
-    VFS::CVFS::TStringVector dirs;
-    VFS::CVFS::TStringVector files;
-    vfs.GetDirList( dirs, vfsPath, false, false, CORE::CString::Empty );
-    vfs.GetFileList( files, vfsPath, false, false, CORE::CString::Empty );
-    GUCEF::vector< CAssetFileRecord > entries;
-    for ( size_t i=0; i<dirs.size(); ++i )
-    {
-        CAssetFileRecord entry;
-        entry.path = JoinVfsPath( vfsPath, dirs[ i ] );
-        entry.role = "directory";
-        entries.push_back( entry );
-    }
-    for ( size_t i=0; i<files.size(); ++i )
-    {
-        CAssetFileRecord entry;
-        entry.path = JoinVfsPath( vfsPath, files[ i ] );
-        entry.role = "file";
-        entry.sizeBytes = (Int64) vfs.GetFileSize( entry.path );
-        entries.push_back( entry );
-    }
-    FillPage( entries, pageToken, maxEntries, result );
-    return ASSETSTORE_STATUS_OK;
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CLocalAssetStoreService::ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result )
-{GUCEF_TRACE;
-
-    result.Clear();
-    result.vfsPath = vfsPath;
-    result.offset = offset;
-    if ( length > MaxBlockBytes )
-        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
-    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
-    if ( !vfs.FileExists( vfsPath ) )
-        return ASSETSTORE_STATUS_NOT_FOUND;
-    VFS::TBasicVfsResourcePtr file = vfs.GetFile( vfsPath, "rb", false );
-    if ( file.IsNULL() )
-        return ASSETSTORE_STATUS_IO_ERROR;
-    CORE::IOAccessPtr access = file->GetAccess();
-    if ( access.IsNULL() )
-        return ASSETSTORE_STATUS_IO_ERROR;
-    result.fileSize = access->GetSize();
-    if ( offset > result.fileSize )
-        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
-    // Setpos follows fsetpos: 0 is success
-    if ( 0 != access->Setpos( offset ) )
-        return ASSETSTORE_STATUS_IO_ERROR;
-    const UInt64 left = result.fileSize - offset;
-    const UInt32 wanted = left < (UInt64) length ? (UInt32) left : length;
-    result.data.SetBufferSize( wanted > 0 ? wanted : 1 );
-    const UInt32 read = wanted > 0 ? access->Read( result.data.GetBufferPtr(), 1, wanted ) : 0;
-    result.data.SetDataSize( read );
-    result.endOfFile = offset + read >= result.fileSize;
-    return ASSETSTORE_STATUS_OK;
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
 CLocalAssetStoreService::GetLocations( CAssetLocationPage& result )
 {GUCEF_TRACE;
 
@@ -2387,7 +2338,15 @@ CLocalAssetStoreService::MakePipelineEntry( const SPipelineJob& job, CAssetJobEn
     if ( ASSETJOB_STATE_DONE == job.state && ASSETSTORE_STATUS_NOT_SIGNED_IN == job.status )
         entry.stateText = "sign-in-needed";
     if ( CAssetPipelineOperations::IsReprocess( job.request.operation ) )
+    {
         entry.SetActionAvailable( ASSETJOB_ACTION_RETRY, entry.IsEnded() && ASSETJOB_STATE_DONE != job.state );
+        // the scheduling of the reprocessing: why it waits, or its share of the threads while it runs
+        if ( !job.dispatched && !AssetJobStateIsFinal( job.state ) )
+            entry.stateText = job.waitText.IsNULLOrEmpty() ? CORE::CString( "waiting for slot" ) : job.waitText;
+        else
+        if ( !AssetJobStateIsFinal( job.state ) && job.slot > 0 )
+            entry.stateText = "running (" + CORE::ToString( job.threads ) + " thread(s)" + ( job.memoryMB > 0 ? ", " + CORE::ToString( job.memoryMB ) + " MB" : CORE::CString::Empty ) + ")";
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2635,6 +2594,7 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
         bool changed = false;
         bool restart = false;
         bool restartFailedOnly = false;
+        bool waitingCancelled = false;
         CAssetLibrarySyncJob* cancelSync = GUCEF_NULL;
         CAssetLibrarySyncJob* removedSync = GUCEF_NULL;
         CAssetLibrarySyncJob* pauseSync = GUCEF_NULL;
@@ -2674,11 +2634,13 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
                 else
                 if ( ASSETJOB_ACTION_CANCEL == action && !AssetJobStateIsFinal( job.state ) && !job.dispatched )
                 {
-                    // a reprocessing job that waits for a slot ends at once
+                    // a reprocessing job that waits for its turn ends at once
                     job.dispatched = true;
                     job.state = ASSETJOB_STATE_CANCELLED;
                     job.status = ASSETSTORE_STATUS_CANCELLED;
                     job.message = "Cancelled before it started";
+                    job.waitText.Clear();
+                    waitingCancelled = true;
                     job.updatedAtMs = NowMs();
                     result.status = ASSETSTORE_STATUS_OK;
                     changed = true;
@@ -2725,6 +2687,12 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
             NotifyJobChanged( jobId );
         if ( wasRemoved )
             NotifyJobRemoved( removed );
+        if ( waitingCancelled )
+        {
+            // the queue of the reprocessing lost a job: it is kept so, and the ones behind it may start now
+            SaveServiceState();
+            DispatchReprocessJobs();
+        }
         if ( restart )
         {
             CORE::CString newId;
@@ -3110,6 +3078,17 @@ CLocalAssetStoreService::LoadServiceState( void )
             }
         }
     }
+    const CORE::CDataNode* reprocessNode = root.FindChild( "reprocessJobs" );
+    if ( GUCEF_NULL != reprocessNode )
+    {
+        m_reprocessCheckpoints.clear();
+        for ( CORE::CDataNode::const_iterator i = reprocessNode->ConstBegin(); i != reprocessNode->ConstEnd(); ++i )
+        {
+            const CORE::CString jobId = (*i)->GetAttributeValueOrChildValueByName( "jobId" ).AsString();
+            if ( 0 == jobId.HasSubstr( PipelineJobPrefix ) && GUCEF_NULL != (*i)->FindChild( "request" ) )
+                m_reprocessCheckpoints.push_back( *(*i) );
+        }
+    }
     const CORE::CDataNode* resumeNode = root.FindChild( "ingestResumes" );
     if ( GUCEF_NULL != resumeNode )
     {
@@ -3180,6 +3159,25 @@ CLocalAssetStoreService::SaveServiceState( void )
             resume->SetAttribute( "ingestId", (*r).first );
             resume->SetAttribute( "attempts", (*r).second );
         }
+        // the queue of the reprocessing: the jobs that wait or run (and those the close of the service stopped), with the
+        // ones of the state file that are not restored yet
+        CORE::CDataNode* reprocessJobs = root.AddChild( "reprocessJobs", GUCEF_DATATYPE_ARRAY );
+        for ( size_t r=0; r<m_reprocessCheckpoints.size(); ++r )
+            reprocessJobs->AddChild( m_reprocessCheckpoints[ r ] );
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+        {
+            const SPipelineJob& job = m_pipelineJobs[ i ];
+            if ( !CAssetPipelineOperations::IsReprocess( job.request.operation ) || ( AssetJobStateIsFinal( job.state ) && !job.interrupted ) )
+                continue;
+            CORE::CDataNode* entry = reprocessJobs->AddChild( "reprocessJob", GUCEF_DATATYPE_OBJECT );
+            entry->SetAttribute( "jobId", PipelineJobPrefix + job.key );
+            entry->SetAttribute( "name", job.name );
+            entry->SetAttribute( "createdAtMs", job.createdAtMs );
+            entry->SetAttribute( "memoryMB", job.memoryMB );
+            entry->SetAttribute( "locationId", job.locationId );
+            entry->SetAttribute( "wasRunning", job.dispatched );
+            job.request.Serialize( *entry->AddChild( "request", GUCEF_DATATYPE_OBJECT ), serializerSettings );
+        }
     }
     MT::CScopeMutex saveLock( m_stateLock );
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
@@ -3196,6 +3194,8 @@ CLocalAssetStoreService::ResumePendingWork( void )
 
     // the library syncs that did not end go on first: they follow the downloads and ingests that are taken up below
     RestoreSyncJobs();
+    // the reprocessing jobs that waited or ran: they wait for their turn again
+    RestoreReprocessJobs();
     // the staging folders of downloads that failed, were cancelled or were left behind (after the syncs, so theirs are known)
     SweepDownloadStaging();
 
@@ -3659,9 +3659,11 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
     const bool serviceJob = CAssetPipelineOperations::IsServiceJob( request.operation );
     const bool reprocess = CAssetPipelineOperations::IsReprocess( request.operation );
     CORE::CString reprocessName;
+    UInt64 reprocessMemoryMB = 0;
+    CORE::CString reprocessLocationId;
     if ( reprocess )
     {
-        const TAssetStoreStatus admitted = AdmitReprocessJob( request, reprocessName, result );
+        const TAssetStoreStatus admitted = AdmitReprocessJob( request, reprocessName, reprocessMemoryMB, reprocessLocationId, result );
         if ( ASSETSTORE_STATUS_OK != admitted )
         {
             RememberCommand( commandId, CAssetServiceOperations::StartPipelineJob, result );
@@ -3698,27 +3700,52 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
     job.message = "Waiting for its turn";
     job.createdAtMs = NowMs();
     job.updatedAtMs = job.createdAtMs;
-    // a reprocessing job takes a slot of the jobs at a time before it is queued; without one it waits in the list
-    job.dispatched = !reprocess || m_reprocessGuard.AcquireSlot();
-    if ( !job.dispatched )
-        job.message = "Waiting for a free slot of the reprocessing (maxConcurrentJobs)";
+    // a reprocessing job waits in the list until DispatchReprocessJobs() admits it (a slot, its memory, its location): it holds
+    // no thread of the pool while it waits
+    job.dispatched = !reprocess;
+    if ( reprocess )
+    {
+        job.memoryMB = reprocessMemoryMB;
+        job.locationId = reprocessLocationId;
+        job.waitText = CAssetReprocessGuard::WaitText( CAssetReprocessGuard::START_WAIT_SLOT );
+    }
     {
         MT::CScopeMutex lock( m_lock );
         job.key = "pj" + CORE::ToString( ++m_pipelineCounter );
         m_pipelineJobs.push_back( job );
     }
     result.id = PipelineJobPrefix + job.key;
-    if ( !job.dispatched )
+    if ( reprocess )
     {
-        result.status = ASSETSTORE_STATUS_OK;
-        result.message = job.message;
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The reprocessing job " << result.id << " (" << job.name << ") waits for a free slot" );
+        // the queue of the reprocessing is kept over a restart; the job starts now when the guard admits it
+        SaveServiceState();
+        DispatchReprocessJobs();
+        bool started = false;
+        bool failed = false;
+        {
+            MT::CScopeMutex lock( m_lock );
+            for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+            {
+                if ( m_pipelineJobs[ i ].key != job.key )
+                    continue;
+                started = m_pipelineJobs[ i ].dispatched;
+                failed = ASSETJOB_STATE_FAILED == m_pipelineJobs[ i ].state;
+                result.message = m_pipelineJobs[ i ].message;
+            }
+        }
+        result.status = failed ? ASSETSTORE_STATUS_FAILED : ASSETSTORE_STATUS_OK;
+        if ( started )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Started the reprocessing job " << result.id << ": " << job.name << " (" << CAssetReprocessRequest::FromRequest( job.request ).DescribeForAudit() << ")" );
+        }
+        else
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The reprocessing job " << result.id << " (" << job.name << ") waits: " << result.message );
+        }
         NotifyJobChanged( result.id );
         RememberCommand( commandId, CAssetServiceOperations::StartPipelineJob, result );
         return result.status;
     }
-    if ( reprocess )
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Started the reprocessing job " << result.id << ": " << job.name << " (" << CAssetReprocessRequest::FromRequest( job.request ).DescribeForAudit() << ")" );
     CAssetServiceCall call( CAssetServiceOperations::StartPipelineJob, commandId );
     CORE::CFutureResult future = QueueCall( call, job.key );
     if ( future.HasNoFuture() )
@@ -3733,8 +3760,6 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
                     m_pipelineJobs[ i ].message = "The job could not be queued";
                 }
         }
-        if ( reprocess )
-            m_reprocessGuard.ReleaseSlot();
         result.status = ASSETSTORE_STATUS_FAILED;
         result.message = "The job could not be queued";
     }
@@ -3748,7 +3773,7 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CLocalAssetStoreService::AdmitReprocessJob( const CAssetPipelineRequest& request, CORE::CString& name, CAssetServiceResult& result )
+CLocalAssetStoreService::AdmitReprocessJob( const CAssetPipelineRequest& request, CORE::CString& name, UInt64& memoryMB, CORE::CString& locationId, CAssetServiceResult& result )
 {GUCEF_TRACE;
 
     CORE::CString problem;
@@ -3799,17 +3824,47 @@ CLocalAssetStoreService::AdmitReprocessJob( const CAssetPipelineRequest& request
     }
     name = spec.operation + " " + spec.packId + ( pack.title.IsNULLOrEmpty() ? CORE::CString::Empty : " \"" + pack.title + "\"" );
     result.relatedId = spec.packId;
+
+    // what the job is estimated to need while it runs: memory when a step converts (the largest asset of the pack tells how
+    // much an importer may hold), and the storage location its staging writes to
+    const bool converts = needsConverter || ( spec.HasStep( CAssetReprocessRequest::StepRedownload ) && spec.thenConvert );
+    UInt64 largest = 0;
+    if ( converts )
+    {
+        TAssetRecordVector assets;
+        if ( ASSETSTORE_STATUS_OK == m_store->GetAssets( spec.packId, assets ) )
+            for ( size_t a=0; a<assets.size(); ++a )
+                if ( assets[ a ].sizeBytes > 0 && (UInt64) assets[ a ].sizeBytes > largest )
+                    largest = (UInt64) assets[ a ].sizeBytes;
+        if ( 0 == largest && pack.sizeBytes > 0 )
+            largest = (UInt64) pack.sizeBytes;
+    }
+    memoryMB = CAssetReprocessBudget::EstimateJobMemoryMB( m_reprocessGuard.GetSettings(), converts, largest );
+    locationId = pack.locationId;
     return ASSETSTORE_STATUS_OK;
 }
 
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CLocalAssetStoreService::RunReprocessJob( const CORE::CString& key, const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, CAssetServiceDocument& document )
+CLocalAssetStoreService::RunReprocessJob( const CORE::CString& key, const CAssetPipelineRequest& request, UInt32 slot, UInt32 threads,
+                                          CIAssetConversionObserver* observer, CAssetServiceDocument& document )
 {GUCEF_TRACE;
 
     CAssetPackReprocessJob job( *this, PipelineJobPrefix + key, CAssetReprocessRequest::FromRequest( request ), observer );
+    // the converter run of the job uses its share of the threads on a pool of its slot: no other run queues tasks there
+    if ( slot > 0 )
+        job.SetThreadShare( threads, GetReprocessThreadPoolName( slot ) );
     return job.Run( document );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalAssetStoreService::GetReprocessThreadPoolName( UInt32 slot ) const
+{GUCEF_TRACE;
+
+    return m_config.threadPoolName + ".reprocess" + CORE::ToString( slot );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3818,56 +3873,104 @@ void
 CLocalAssetStoreService::DispatchReprocessJobs( void )
 {GUCEF_TRACE;
 
-    while ( true )
+    CORE::CString::StringVector started;
+    CORE::CString::StringVector changed;
     {
-        CORE::CString key;
-        CORE::CString cancelledKey;
+        MT::CScopeMutex lock( m_lock );
+        if ( m_closing )
+            return;
+        bool heldUp = false;
+        CORE::CString heldUpText;
+        CORE::CString heldUpReason;
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
         {
-            MT::CScopeMutex lock( m_lock );
-            for ( size_t i=0; i<m_pipelineJobs.size() && key.IsNULLOrEmpty() && cancelledKey.IsNULLOrEmpty(); ++i )
+            SPipelineJob& job = m_pipelineJobs[ i ];
+            if ( job.dispatched || AssetJobStateIsFinal( job.state ) || !CAssetPipelineOperations::IsReprocess( job.request.operation ) )
+                continue;
+            const CORE::CString before = job.waitText + "|" + job.message;
+            if ( job.source.IsCancellationRequested() )
             {
-                SPipelineJob& job = m_pipelineJobs[ i ];
-                if ( job.dispatched || AssetJobStateIsFinal( job.state ) || !CAssetPipelineOperations::IsReprocess( job.request.operation ) )
-                    continue;
-                if ( job.source.IsCancellationRequested() )
+                job.dispatched = true;
+                job.state = ASSETJOB_STATE_CANCELLED;
+                job.status = ASSETSTORE_STATUS_CANCELLED;
+                job.message = "Cancelled before it started";
+                job.waitText.Clear();
+                job.updatedAtMs = NowMs();
+                changed.push_back( job.key );
+                continue;
+            }
+            if ( heldUp )
+            {
+                // an earlier job waits for a slot or for memory: this one waits behind it
+                job.waitText = heldUpText;
+                job.message = heldUpReason;
+            }
+            else
+            {
+                UInt32 slot = 0;
+                UInt32 threads = 0;
+                CORE::CString reason;
+                const CAssetReprocessGuard::EStartOutcome outcome = m_reprocessGuard.TryStart( job.memoryMB, job.locationId, slot, threads, reason );
+                if ( CAssetReprocessGuard::START_OK == outcome )
                 {
                     job.dispatched = true;
-                    job.state = ASSETJOB_STATE_CANCELLED;
-                    job.status = ASSETSTORE_STATUS_CANCELLED;
-                    job.message = "Cancelled before it started";
+                    job.slot = slot;
+                    job.threads = threads;
+                    job.waitText.Clear();
+                    job.message = "Starting with " + CORE::ToString( threads ) + " converter thread(s)" +
+                                  ( job.memoryMB > 0 ? ", estimated at " + CORE::ToString( job.memoryMB ) + " MB" : CORE::CString::Empty );
                     job.updatedAtMs = NowMs();
-                    cancelledKey = job.key;
+                    started.push_back( job.key );
                     continue;
                 }
-                if ( !m_reprocessGuard.AcquireSlot() )
-                    return;
-                job.dispatched = true;
-                job.message = "Waiting for its turn";
-                key = job.key;
+                job.waitText = CAssetReprocessGuard::WaitText( outcome );
+                job.message = reason;
+                if ( CAssetReprocessGuard::START_WAIT_LOCATION != outcome )
+                {
+                    heldUp = true;
+                    heldUpText = job.waitText;
+                    heldUpReason = reason + " (an earlier job waits)";
+                }
+            }
+            if ( before != job.waitText + "|" + job.message )
+            {
+                job.updatedAtMs = NowMs();
+                changed.push_back( job.key );
             }
         }
-        if ( !cancelledKey.IsNULLOrEmpty() )
-        {
-            NotifyJobChanged( PipelineJobPrefix + cancelledKey );
-            continue;
-        }
-        if ( key.IsNULLOrEmpty() )
-            return;
-        CAssetServiceCall call( CAssetServiceOperations::StartPipelineJob );
-        if ( QueueCall( call, key ).HasNoFuture() )
-        {
-            m_reprocessGuard.ReleaseSlot();
-            MT::CScopeMutex lock( m_lock );
-            for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
-                if ( m_pipelineJobs[ i ].key == key )
-                {
-                    m_pipelineJobs[ i ].state = ASSETJOB_STATE_FAILED;
-                    m_pipelineJobs[ i ].status = ASSETSTORE_STATUS_FAILED;
-                    m_pipelineJobs[ i ].message = "The job could not be queued";
-                }
-        }
-        NotifyJobChanged( PipelineJobPrefix + key );
     }
+    if ( !started.empty() )
+    {
+        // the jobs that run each need a thread of the pool of the service, beside the one the other calls use
+        CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_config.threadPoolName );
+        const UInt32 workers = m_reprocessGuard.GetRunning() + 1;
+        if ( !threadPool.IsNULL() && threadPool->GetDesiredMinNrOfWorkerThreads() < workers )
+            threadPool->SetDesiredMinNrOfWorkerThreads( workers );
+    }
+    for ( size_t s=0; s<started.size(); ++s )
+    {
+        CAssetServiceCall call( CAssetServiceOperations::StartPipelineJob );
+        if ( QueueCall( call, started[ s ] ).HasNoFuture() )
+        {
+            UInt32 slot = 0;
+            {
+                MT::CScopeMutex lock( m_lock );
+                for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+                    if ( m_pipelineJobs[ i ].key == started[ s ] )
+                    {
+                        slot = m_pipelineJobs[ i ].slot;
+                        m_pipelineJobs[ i ].slot = 0;
+                        m_pipelineJobs[ i ].state = ASSETJOB_STATE_FAILED;
+                        m_pipelineJobs[ i ].status = ASSETSTORE_STATUS_FAILED;
+                        m_pipelineJobs[ i ].message = "The job could not be queued";
+                    }
+            }
+            m_reprocessGuard.Finish( slot );
+        }
+        NotifyJobChanged( PipelineJobPrefix + started[ s ] );
+    }
+    for ( size_t c=0; c<changed.size(); ++c )
+        NotifyJobChanged( PipelineJobPrefix + changed[ c ] );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -4194,6 +4297,536 @@ CLocalAssetStoreService::GetReprocessGuard( void )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CLocalAssetStoreService::ApplyReprocessSettings( const CAssetReprocessSettings& settings )
+{GUCEF_TRACE;
+
+    m_reprocessGuard.Configure( settings );
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_config.reprocess = settings;
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The settings of the reprocessing changed: " << m_reprocessGuard.GetBudget().DescribeText() );
+    // a higher limit starts the jobs that wait at once; a lower one starts none until the running jobs are below it
+    DispatchReprocessJobs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAssetReprocessSettings
+CLocalAssetStoreService::GetReprocessSettings( void ) const
+{GUCEF_TRACE;
+
+    return m_reprocessGuard.GetSettings();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::GetReprocessSettings( CORE::CDataNode& settings ) const
+{GUCEF_TRACE;
+
+    settings.Clear();
+    settings.SetName( "reprocess" );
+    settings.SetNodeType( GUCEF_DATATYPE_OBJECT );
+    CORE::CDataNodeSerializableSettings serializerSettings;
+    m_reprocessGuard.GetSettings().Serialize( settings, serializerSettings );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::SetReprocessSettings( const CORE::CDataNode& changes, CORE::CString::StringMap& errors )
+{GUCEF_TRACE;
+
+    CAssetReprocessSettings settings = m_reprocessGuard.GetSettings();
+    if ( !settings.ApplyChanges( changes, errors ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: A change of the settings of the reprocessing is refused: " << (UInt32) errors.size() << " key(s) are not valid" );
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    }
+    ApplyReprocessSettings( settings );
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAssetSettingsRegistry&
+CLocalAssetStoreService::GetSettingsRegistry( void ) const
+{GUCEF_TRACE;
+
+    return m_settingsRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::GetSettingValue( const CORE::CString& key, CORE::CString& value ) const
+{GUCEF_TRACE;
+
+    CAssetStoreServiceConfig config;
+    {
+        MT::CScopeMutex lock( m_lock );
+        config = m_config;
+    }
+    CORE::CString::StringMap values;
+    CAssetStoreServiceConfigSettings::ReadValues( m_settingsRegistry, config, values );
+    CORE::CString::StringMap::const_iterator i = values.find( key );
+    if ( i == values.end() )
+        return false;
+    value = (*i).second;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalAssetStoreService::GetSettingsRefusal( const CAssetSettingsRequest& request ) const
+{GUCEF_TRACE;
+
+    // the site administrator (the admin command line, a caller in this process without a host) may always change them
+    if ( !request.remoteClient )
+        return CORE::CString::Empty;
+    if ( !request.mayChange )
+        return "the settings of the service are changed by the devices with the owner role";
+    bool allowed = true;
+    {
+        MT::CScopeMutex lock( m_lock );
+        allowed = m_config.allowSettingsChanges;
+    }
+    if ( !allowed )
+        return "settings changes by clients are switched off on this server";
+    return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    CAssetStoreServiceConfig config;
+    {
+        MT::CScopeMutex lock( m_lock );
+        config = m_config;
+    }
+    CORE::CString::StringMap effective;
+    CAssetStoreServiceConfigSettings::ReadValues( m_settingsRegistry, config, effective );
+    const CORE::CString::StringMap overrides = m_settingOverrides.GetOverrides();
+    result.changesAllowed = config.allowSettingsChanges;
+    result.callerMayChange = !request.remoteClient || request.mayChange;
+    result.changeRefusal = GetSettingsRefusal( request );
+    result.canChange = result.changeRefusal.IsNULLOrEmpty();
+    result.persistent = m_settingOverrides.IsPersistent();
+    {
+        MT::CScopeMutex settingsLock( m_settingsLock );
+        result.revision = m_settingsRevision;
+    }
+    const CAssetSettingsRegistry::TDescriptorVector& descriptors = m_settingsRegistry.GetDescriptors();
+    for ( size_t d=0; d<descriptors.size(); ++d )
+    {
+        const CAssetSettingDescriptor& descriptor = descriptors[ d ];
+        // the values that are owner-only-read are not described to a caller that may not read them
+        if ( !descriptor.IsPublic() && !request.fullRead )
+            continue;
+        CAssetSettingState state;
+        state.descriptor = descriptor;
+        state.value = effective[ descriptor.key ];
+        CORE::CString::StringMap::const_iterator site = m_siteSettingValues.find( descriptor.key );
+        state.siteValue = site != m_siteSettingValues.end() ? (*site).second : descriptor.defaultValue;
+        CORE::CString::StringMap::const_iterator overridden = overrides.find( descriptor.key );
+        const CORE::CString target = overridden != overrides.end() ? (*overridden).second : state.siteValue;
+        if ( overridden != overrides.end() )
+            state.source = CAssetSettingState::SourceOverridden;
+        else
+            state.source = state.siteValue == descriptor.defaultValue ? CAssetSettingState::SourceDefault : CAssetSettingState::SourceSite;
+        if ( target != state.value )
+        {
+            state.hasPendingValue = true;
+            state.pendingValue = target;
+        }
+        result.entries.push_back( state );
+    }
+    result.status = ASSETSTORE_STATUS_OK;
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    return ChangeSettings( false, commandId, request, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    return ChangeSettings( true, commandId, request, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::AuditSettingsRefusal( const CAssetSettingsRequest& request, const CORE::CString& operation, const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex settingsLock( m_settingsLock );
+    CORE::CString::StringVector keys = request.keys;
+    for ( CORE::CString::StringMap::const_iterator v = request.values.begin(); v != request.values.end(); ++v )
+        keys.push_back( (*v).first );
+    if ( keys.empty() )
+        keys.push_back( CORE::CString::Empty );
+    for ( size_t k=0; k<keys.size(); ++k )
+    {
+        // the value asked for, of a public setting only
+        const CAssetSettingDescriptor* descriptor = m_settingsRegistry.Find( keys[ k ] );
+        CORE::CString::StringMap::const_iterator asked = request.values.find( keys[ k ] );
+        const CORE::CString value = GUCEF_NULL != descriptor && descriptor->IsPublic() && asked != request.values.end() ? (*asked).second : CORE::CString::Empty;
+        WriteSettingsAudit( "settings-refused", request, keys[ k ], CORE::CString::Empty, value, operation + ": " + reason );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::WriteSettingsAudit( const CORE::CString& event, const CAssetSettingsRequest& request, const CORE::CString& key,
+                                             const CORE::CString& oldValue, const CORE::CString& newValue, const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    const CORE::CString caller = request.caller.IsNULLOrEmpty() ? CORE::CString( "local" ) : request.caller;
+    CORE::CDataNode entry( "entry", GUCEF_DATATYPE_OBJECT );
+    entry.SetAttribute( "timeMs", NowMs() );
+    entry.SetAttribute( "event", event );
+    entry.SetAttribute( "caller", caller );
+    entry.SetAttribute( "callerName", request.callerName );
+    entry.SetAttribute( "origin", request.remoteClient ? "remote client" : "site administrator" );
+    entry.SetAttribute( "key", key );
+    entry.SetAttribute( "oldValue", oldValue );
+    entry.SetAttribute( "newValue", newValue );
+    entry.SetAttribute( "reason", reason );
+    m_settingOverrides.AddAuditEntry( entry );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: settings audit: " << event << " of \"" << key << "\" by " << caller << " (" << request.callerName << ")"
+               << ( oldValue.IsNULLOrEmpty() && newValue.IsNULLOrEmpty() ? CORE::CString::Empty : ", \"" + oldValue + "\" to \"" + newValue + "\"" )
+               << ( reason.IsNULLOrEmpty() ? CORE::CString::Empty : ": " + reason ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::ChangeSettings( bool reset, const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    static const UInt32 SettingsCommandCapacity = 256;
+    const CORE::CString operation = reset ? CAssetServiceOperations::ResetSettings : CAssetServiceOperations::SetSettings;
+    result.Clear();
+    result.operation = reset ? "reset" : "set";
+    result.caller = request.caller;
+    result.callerName = request.callerName;
+
+    // one change at a time: checked, saved, applied, audited and announced as a whole
+    MT::CScopeMutex settingsLock( m_settingsLock );
+    if ( !commandId.IsNULLOrEmpty() )
+    {
+        GUCEF::map< CORE::CString, CAssetSettingsChangeResult >::const_iterator known = m_settingsCommands.find( operation + "\n" + commandId );
+        if ( known != m_settingsCommands.end() )
+        {
+            result = (*known).second;
+            result.replayed = true;
+            return result.status;
+        }
+        if ( m_settingsCommands.end() != m_settingsCommands.find( ( reset ? CAssetServiceOperations::SetSettings : CAssetServiceOperations::ResetSettings ) + "\n" + commandId ) )
+        {
+            result.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+            result.message = "The command id " + commandId + " was used for another operation already";
+            return result.status;
+        }
+    }
+
+    const CORE::CString refusal = GetSettingsRefusal( request );
+    if ( !refusal.IsNULLOrEmpty() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: a change of the settings by " << request.caller << " is refused: " << refusal );
+        result.status = ASSETSTORE_STATUS_REFUSED;
+        result.message = refusal;
+        AuditSettingsRefusal( request, operation, refusal );
+    }
+    else
+    {
+        // every key and value is checked before anything changes
+        CORE::CString::StringMap normalized;
+        if ( reset )
+        {
+            for ( size_t k=0; k<request.keys.size(); ++k )
+            {
+                if ( GUCEF_NULL == m_settingsRegistry.Find( request.keys[ k ] ) )
+                    result.errors[ request.keys[ k ] ] = "not a setting of this service";
+                else
+                {
+                    CORE::CString::StringMap::const_iterator site = m_siteSettingValues.find( request.keys[ k ] );
+                    normalized[ request.keys[ k ] ] = site != m_siteSettingValues.end() ? (*site).second : m_settingsRegistry.Find( request.keys[ k ] )->defaultValue;
+                }
+            }
+        }
+        else
+        {
+            for ( CORE::CString::StringMap::const_iterator v = request.values.begin(); v != request.values.end(); ++v )
+            {
+                CORE::CString value;
+                CORE::CString problem;
+                if ( m_settingsRegistry.Normalize( (*v).first, (*v).second, value, problem ) )
+                    normalized[ (*v).first ] = value;
+                else
+                    result.errors[ (*v).first ] = problem;
+            }
+        }
+        if ( normalized.empty() && result.errors.empty() )
+        {
+            result.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+            result.message = reset ? "No setting was named" : "No setting was given";
+        }
+        else
+        if ( !result.errors.empty() )
+        {
+            result.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+            result.message = "Nothing was changed: " + CORE::ToString( (UInt32) result.errors.size() ) + " setting(s) are not valid";
+            for ( CORE::CString::StringMap::const_iterator e = result.errors.begin(); e != result.errors.end(); ++e )
+                result.message += "; " + (*e).first + ": " + (*e).second;
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: a change of the settings by " << request.caller << " is not valid: " << result.message );
+        }
+        else
+        {
+            // what changes: the value a key has before is its override, else its site value; a live one also has to be in effect
+            const CORE::CString::StringMap overrides = m_settingOverrides.GetOverrides();
+            CAssetStoreServiceConfig config;
+            {
+                MT::CScopeMutex lock( m_lock );
+                config = m_config;
+            }
+            CORE::CString::StringMap effective;
+            CAssetStoreServiceConfigSettings::ReadValues( m_settingsRegistry, config, effective );
+            CORE::CString::StringMap newOverrides = overrides;
+            CORE::CString::StringMap live;
+            UInt32 changed = 0;
+            for ( CORE::CString::StringMap::const_iterator n = normalized.begin(); n != normalized.end(); ++n )
+            {
+                const CAssetSettingDescriptor& descriptor = *m_settingsRegistry.Find( (*n).first );
+                CORE::CString::StringMap::const_iterator overridden = overrides.find( (*n).first );
+                CORE::CString::StringMap::const_iterator site = m_siteSettingValues.find( (*n).first );
+                const CORE::CString siteValue = site != m_siteSettingValues.end() ? (*site).second : descriptor.defaultValue;
+                const CORE::CString before = overridden != overrides.end() ? (*overridden).second : siteValue;
+                CAssetSettingChange change;
+                change.key = (*n).first;
+                change.oldValue = descriptor.AppliesLive() ? effective[ (*n).first ] : before;
+                change.newValue = (*n).second;
+                const CORE::CString target = reset ? siteValue : (*n).second;
+                const bool inEffect = !descriptor.AppliesLive() || effective[ (*n).first ] == target;
+                const bool unchanged = inEffect && ( reset ? overridden == overrides.end() : before == (*n).second );
+                if ( unchanged )
+                {
+                    change.newValue = before;
+                    change.applied = CAssetSettingChange::AppliedUnchanged;
+                }
+                else
+                {
+                    if ( reset )
+                        newOverrides.erase( (*n).first );
+                    else
+                        newOverrides[ (*n).first ] = (*n).second;
+                    change.applied = descriptor.AppliesLive() ? CAssetSettingChange::AppliedLive : CAssetSettingChange::AppliedRestart;
+                    if ( descriptor.AppliesLive() )
+                        live[ (*n).first ] = change.newValue;
+                    ++changed;
+                }
+                result.changes.push_back( change );
+            }
+            if ( 0 == changed )
+            {
+                result.status = ASSETSTORE_STATUS_OK;
+                result.noChange = true;
+                result.message = reset ? "Nothing changed: the settings have no override" : "Nothing changed: the settings have these values already";
+            }
+            else
+            {
+                CORE::CString problem;
+                if ( !m_settingOverrides.SetOverrides( newOverrides, problem ) )
+                {
+                    // nothing is applied when the change cannot be kept
+                    CORE::CString ignored;
+                    m_settingOverrides.SetOverrides( overrides, ignored );
+                    result.changes.clear();
+                    result.status = ASSETSTORE_STATUS_IO_ERROR;
+                    result.message = "Nothing was changed: " + problem;
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: a change of the settings could not be kept: " << problem );
+                }
+                else
+                {
+                    ApplySettingValues( live );
+                    result.revision = ++m_settingsRevision;
+                    result.status = ASSETSTORE_STATUS_OK;
+                    result.message = reset ? "Back to the site value:" : "Changed:";
+                    for ( size_t c=0; c<result.changes.size(); ++c )
+                    {
+                        const CAssetSettingChange& change = result.changes[ c ];
+                        if ( CAssetSettingChange::AppliedUnchanged == change.applied )
+                            continue;
+                        const bool shown = m_settingsRegistry.Find( change.key )->IsPublic();
+                        WriteSettingsAudit( reset ? "settings-reset" : "settings-set", request, change.key, shown ? change.oldValue : CORE::CString::Empty,
+                                            shown ? change.newValue : CORE::CString::Empty, CORE::CString::Empty );
+                        result.message += " " + change.key + ( shown ? " = " + change.newValue : CORE::CString::Empty ) +
+                                          ( CAssetSettingChange::AppliedLive == change.applied ? " (applies at once)" : " (applies after a restart)" ) + ";";
+                    }
+
+                    // the clients see the change, without the values that are owner-only-read
+                    CAssetSettingsChangeResult announced( result );
+                    for ( size_t c=0; c<announced.changes.size(); ++c )
+                        if ( !m_settingsRegistry.Find( announced.changes[ c ].key )->IsPublic() )
+                            announced.changes[ c ].HideValues();
+                    announced.message.Clear();
+                    Raise( SettingsChangedEvent, announced );
+                }
+            }
+        }
+    }
+
+    // a caller that may not read them does not get the values of the settings that are owner-only-read
+    if ( !request.fullRead )
+    {
+        for ( size_t c=0; c<result.changes.size(); ++c )
+        {
+            const CAssetSettingDescriptor* descriptor = m_settingsRegistry.Find( result.changes[ c ].key );
+            if ( GUCEF_NULL != descriptor && !descriptor->IsPublic() )
+                result.changes[ c ].HideValues();
+        }
+    }
+    // the outcomes that changed something or nothing are kept for a repeat; a refusal is not, a repeat may succeed
+    if ( !commandId.IsNULLOrEmpty() && ASSETSTORE_STATUS_OK == result.status )
+    {
+        const CORE::CString commandKey = operation + "\n" + commandId;
+        if ( m_settingsCommands.find( commandKey ) == m_settingsCommands.end() )
+        {
+            m_settingsCommandOrder.push_back( commandKey );
+            if ( m_settingsCommandOrder.size() > SettingsCommandCapacity )
+            {
+                m_settingsCommands.erase( m_settingsCommandOrder.front() );
+                m_settingsCommandOrder.erase( m_settingsCommandOrder.begin() );
+            }
+        }
+        m_settingsCommands[ commandKey ] = result;
+    }
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ApplySettingValues( const CORE::CString::StringMap& values )
+{GUCEF_TRACE;
+
+    if ( values.empty() )
+        return;
+    bool reprocess = false;
+    bool downloads = false;
+    CAssetReprocessSettings reprocessSettings;
+    CAssetStoreDownloadSettings downloadSettings;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( CORE::CString::StringMap::const_iterator v = values.begin(); v != values.end(); ++v )
+        {
+            if ( !CAssetStoreServiceConfigSettings::WriteValue( m_config, (*v).first, (*v).second ) )
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: the setting " << (*v).first << " cannot be written into the configuration" );
+            reprocess = reprocess || 0 == (*v).first.HasSubstr( CAssetStoreServiceConfigSettings::ReprocessPrefix );
+            downloads = downloads || 0 == (*v).first.HasSubstr( CAssetStoreServiceConfigSettings::DownloadsPrefix );
+        }
+        reprocessSettings = m_config.reprocess;
+        downloadSettings = m_config.downloads;
+    }
+    // the parts apply them at once: the reprocessing looks at the waiting jobs again, the download manager schedules again;
+    // the members of the service itself are read where they are used (the next staging sweep, the next step of a sign in)
+    if ( reprocess )
+        ApplyReprocessSettings( reprocessSettings );
+    if ( downloads && GUCEF_NULL != m_manager )
+        m_manager->SetSettings( downloadSettings );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::LoadSettingOverrides( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex settingsLock( m_settingsLock );
+    m_settingOverrides.SetFolder( m_stateKept ? CAssetStoreServiceConfig::StateVfsRoot : CORE::CString::Empty );
+    CORE::CString problem;
+    if ( !m_settingOverrides.Load( problem ) )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: the overrides of the settings cannot be read, the site values apply: " << problem );
+
+    // the site values first (a service that opens again starts from them), then the overrides that are still valid
+    CORE::CString::StringMap values = m_siteSettingValues;
+    const CORE::CString::StringMap overrides = m_settingOverrides.GetOverrides();
+    CORE::CString::StringMap kept;
+    CORE::CString applied;
+    for ( CORE::CString::StringMap::const_iterator o = overrides.begin(); o != overrides.end(); ++o )
+    {
+        CORE::CString value;
+        if ( !m_settingsRegistry.Normalize( (*o).first, (*o).second, value, problem ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: the override of the setting \"" << (*o).first << "\" is left out: " << problem );
+            continue;
+        }
+        values[ (*o).first ] = value;
+        kept[ (*o).first ] = value;
+        applied += ( applied.IsNULLOrEmpty() ? CORE::CString::Empty : CORE::CString( ", " ) ) + (*o).first +
+                   ( m_settingsRegistry.Find( (*o).first )->IsPublic() ? " = " + value : CORE::CString::Empty );
+    }
+    if ( kept.size() != overrides.size() )
+        m_settingOverrides.SetOverrides( kept, problem );
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( CORE::CString::StringMap::const_iterator v = values.begin(); v != values.end(); ++v )
+            CAssetStoreServiceConfigSettings::WriteValue( m_config, (*v).first, (*v).second );
+        m_reprocessGuard.Configure( m_config.reprocess );
+    }
+    if ( !kept.empty() )
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: " << (UInt32) kept.size() << " setting override(s) apply over the site settings: " << applied );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::DescribeReprocessing( CORE::CDataNode& status ) const
+{GUCEF_TRACE;
+
+    m_reprocessGuard.Describe( status );
+    UInt32 waiting = 0;
+    UInt32 waitingForMemory = 0;
+    UInt32 waitingForLocation = 0;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+        {
+            const SPipelineJob& job = m_pipelineJobs[ i ];
+            if ( !CAssetPipelineOperations::IsReprocess( job.request.operation ) || job.dispatched || AssetJobStateIsFinal( job.state ) )
+                continue;
+            ++waiting;
+            if ( job.waitText == CAssetReprocessGuard::WaitText( CAssetReprocessGuard::START_WAIT_MEMORY ) )
+                ++waitingForMemory;
+            if ( job.waitText == CAssetReprocessGuard::WaitText( CAssetReprocessGuard::START_WAIT_LOCATION ) )
+                ++waitingForLocation;
+        }
+    }
+    status.SetAttribute( "waitingJobs", waiting );
+    status.SetAttribute( "waitingForMemory", waitingForMemory );
+    status.SetAttribute( "waitingForLocation", waitingForLocation );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CAssetLibrarySyncAdmission::TLedgerVector
 CLocalAssetStoreService::GetSyncLedger( const CORE::CString& storeId ) const
 {GUCEF_TRACE;
@@ -4243,7 +4876,12 @@ CLocalAssetStoreService::SweepDownloadStaging( void )
     if ( GUCEF_NULL == m_manager || GUCEF_NULL == m_store || !m_store->IsOpen() )
         return 0;
     const Int64 now = NowMs();
-    const Int64 keepMs = (Int64) m_config.downloadStagingKeepHours * 60 * 60 * 1000;
+    UInt32 keepHours = 0;
+    {
+        MT::CScopeMutex lock( m_lock );
+        keepHours = m_config.downloadStagingKeepHours;
+    }
+    const Int64 keepMs = (Int64) keepHours * 60 * 60 * 1000;
     const Int64 orphanMs = 60 * 60 * 1000;
     UInt32 removed = 0;
 
@@ -4602,6 +5240,73 @@ CLocalAssetStoreService::NoteSyncNotice( const CORE::CString& jobId, const CORE:
 /*-------------------------------------------------------------------------*/
 
 void
+CLocalAssetStoreService::RestoreReprocessJobs( void )
+{GUCEF_TRACE;
+
+    GUCEF::vector< CORE::CDataNode > checkpoints;
+    {
+        MT::CScopeMutex lock( m_lock );
+        checkpoints = m_reprocessCheckpoints;
+        m_reprocessCheckpoints.clear();
+    }
+    if ( checkpoints.empty() )
+        return;
+    CORE::CDataNodeSerializableSettings serializerSettings;
+    CORE::CString::StringVector restored;
+    for ( size_t c=0; c<checkpoints.size(); ++c )
+    {
+        const CORE::CDataNode& checkpoint = checkpoints[ c ];
+        const CORE::CString jobId = checkpoint.GetAttributeValueOrChildValueByName( "jobId" ).AsString();
+        SPipelineJob job;
+        job.key = jobId.CutChars( PipelineJobPrefix.Length(), true );
+        const CORE::CDataNode* requestNode = checkpoint.FindChild( "request" );
+        if ( job.key.IsNULLOrEmpty() || GUCEF_NULL == requestNode || !job.request.Deserialize( *requestNode, serializerSettings ) ||
+             !CAssetPipelineOperations::IsReprocess( job.request.operation ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The reprocessing job " << jobId << " of the state file cannot be read, it is left out" );
+            continue;
+        }
+        const bool wasRunning = checkpoint.GetAttributeValueOrChildValueByName( "wasRunning" ).AsBool( false, true );
+        job.name = checkpoint.GetAttributeValueOrChildValueByName( "name" ).AsString();
+        job.createdAtMs = checkpoint.GetAttributeValueOrChildValueByName( "createdAtMs" ).AsInt64( NowMs(), true );
+        job.updatedAtMs = NowMs();
+        job.memoryMB = checkpoint.GetAttributeValueOrChildValueByName( "memoryMB" ).AsUInt64( 0, true );
+        job.locationId = checkpoint.GetAttributeValueOrChildValueByName( "locationId" ).AsString();
+        job.dispatched = false;
+        job.waitText = CAssetReprocessGuard::WaitText( CAssetReprocessGuard::START_WAIT_SLOT );
+        job.message = wasRunning ? "The restart of the service stopped it: it runs again from the beginning" : "Waiting for its turn after a restart of the service";
+        const CORE::CString packId = CAssetReprocessRequest::FromRequest( job.request ).packId;
+        {
+            MT::CScopeMutex lock( m_lock );
+            bool known = false;
+            for ( size_t i=0; i<m_pipelineJobs.size() && !known; ++i )
+            {
+                const SPipelineJob& other = m_pipelineJobs[ i ];
+                known = other.key == job.key ||
+                        ( CAssetPipelineOperations::IsReprocess( other.request.operation ) && !AssetJobStateIsFinal( other.state ) &&
+                          CAssetReprocessRequest::FromRequest( other.request ).packId == packId );
+            }
+            if ( known )
+                continue;
+            // later jobs get keys after the restored ones
+            const UInt32 number = CORE::StringToUInt32( job.key.CutChars( 2, true ), 0 );
+            if ( number > m_pipelineCounter )
+                m_pipelineCounter = number;
+            m_pipelineJobs.push_back( job );
+        }
+        restored.push_back( jobId );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The reprocessing job " << jobId << " (" << job.name << ") is queued again after the restart" <<
+                   ( wasRunning ? ", it runs from the beginning" : CORE::CString::Empty ) );
+    }
+    SaveServiceState();
+    for ( size_t r=0; r<restored.size(); ++r )
+        NotifyJobChanged( restored[ r ] );
+    DispatchReprocessJobs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CLocalAssetStoreService::RestoreSyncJobs( void )
 {GUCEF_TRACE;
 
@@ -4728,6 +5433,8 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
     CAssetPipelineRequest request;
     CORE::CFutureResultSource source( CORE::TASKSTATUS_QUEUED );
     bool found = false;
+    UInt32 slot = 0;
+    UInt32 threads = 0;
     {
         MT::CScopeMutex lock( m_lock );
         for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
@@ -4735,6 +5442,8 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
             {
                 request = m_pipelineJobs[ i ].request;
                 source = m_pipelineJobs[ i ].source;
+                slot = m_pipelineJobs[ i ].slot;
+                threads = m_pipelineJobs[ i ].threads;
                 m_pipelineJobs[ i ].state = ASSETJOB_STATE_RUNNING;
                 m_pipelineJobs[ i ].message.Clear();
                 found = true;
@@ -4752,7 +5461,7 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
     {
         try
         {
-            status = RunReprocessJob( key, request, &observer, document );
+            status = RunReprocessJob( key, request, slot, threads, &observer, document );
         }
         catch ( ... )
         {
@@ -4807,6 +5516,12 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
                 job.state = ASSETJOB_STATE_DONE;
             job.resultText = DescribePipelineResult( job.result, status );
             job.updatedAtMs = NowMs();
+            if ( reprocess )
+            {
+                // only a job that the close of the service stopped stays for the next start
+                job.interrupted = job.interrupted && ASSETJOB_STATE_CANCELLED == job.state;
+                job.slot = 0;
+            }
         }
     }
     CAssetServiceCall call( CAssetServiceOperations::StartPipelineJob );
@@ -4814,7 +5529,8 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
     NotifyJobChanged( PipelineJobPrefix + key );
     if ( reprocess )
     {
-        m_reprocessGuard.ReleaseSlot();
+        m_reprocessGuard.Finish( slot );
+        SaveServiceState();
         DispatchReprocessJobs();
     }
 }
@@ -5567,7 +6283,12 @@ CLocalAssetStoreService::BeginSignInOnThread( SSignInCommand& command )
     }
 
     const Int64 now = NowMs();
-    const Int64 expires = now + (Int64) m_config.signInPromptSeconds * 1000;
+    UInt32 promptSeconds = 0;
+    {
+        MT::CScopeMutex lock( m_lock );
+        promptSeconds = m_config.signInPromptSeconds;
+    }
+    const Int64 expires = now + (Int64) promptSeconds * 1000;
     SSignInRun run;
     run.provider = provider;
     run.storeId = command.storeId;
@@ -6293,9 +7014,23 @@ TAssetStoreStatus
 CLocalAssetStoreService::GetAuditRecords( const CORE::CString& pageToken, UInt32 maxEntries, CAssetServiceDocument& result )
 {GUCEF_TRACE;
 
+    // the audit of the run-time settings (gucefASSETSTORE_RemoteService_Design.md 18.4), oldest first
     result.Clear();
-    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
-    result.message = "The audit is a function of a remote service";
+    const UInt32 offset = ParsePageToken( pageToken );
+    const UInt32 count = ClampPageEntries( maxEntries );
+    GUCEF::vector< CORE::CDataNode > entries;
+    m_settingOverrides.GetAuditEntries( offset, count, entries );
+    const UInt32 total = m_settingOverrides.GetAuditCount();
+    result.document.Clear();
+    result.document.SetName( "auditRecords" );
+    result.document.SetNodeType( GUCEF_DATATYPE_OBJECT );
+    result.document.SetAttribute( "total", total );
+    CORE::CDataNode* list = result.document.AddChild( "entries", GUCEF_DATATYPE_ARRAY );
+    for ( size_t e=0; e<entries.size(); ++e )
+        list->AddChild( entries[ e ] );
+    if ( offset + (UInt32) entries.size() < total )
+        result.nextPageToken = MakePageToken( offset + (UInt32) entries.size() );
+    result.status = ASSETSTORE_STATUS_OK;
     return result.status;
 }
 
@@ -6398,6 +7133,21 @@ CLocalAssetStoreService::GetThumbnails( const CORE::CString::StringVector& asset
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CLocalAssetStoreService::MakeRestrictionKey( const CORE::CString& vfsPath ) const
+{GUCEF_TRACE;
+
+    const CORE::CString packFolder = m_store->GetPackFolderOfVfsPath( vfsPath );
+    if ( !packFolder.IsNULLOrEmpty() )
+        return packFolder;
+
+    // not in a pack folder of the area layout: what lies in one directory is in one pack (the legacy layout) or in none
+    const Int32 lastSlash = vfsPath.HasChar( '/', false );
+    return CORE::CString( "dir:" ) + ( lastSlash > 0 ? vfsPath.SubstrFromRange( 0, (UInt32) lastSlash ) : CORE::CString::Empty );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CLocalAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const
 {GUCEF_TRACE;
@@ -6405,14 +7155,10 @@ CLocalAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CO
     flags.clear();
     if ( GUCEF_NULL == m_store )
         return false;
-    // the answer per pack folder is kept while the catalogue does not change
-    const UInt64 revision = GetCatalogueRevision();
-    const CORE::CString cacheKey = m_store->GetPackFolderOfVfsPath( vfsPath.ReplaceChar( '\\', '/' ) );
-    if ( cacheKey.IsNULLOrEmpty() )
-    {
-        // a path that is in no pack folder of the area layout: the catalogue is asked (the legacy layout), nothing is kept
-        return m_store->GetRestrictionsOfVfsPath( vfsPath, flags );
-    }
+    // the answer per pack folder (per directory outside the pack folders) is kept while the catalogue does not change
+    const UInt64 revision = m_revisionKept.Load();
+    const CORE::CString path = vfsPath.ReplaceChar( '\\', '/' );
+    const CORE::CString cacheKey = MakeRestrictionKey( path );
     {
         MT::CScopeMutex lock( m_restrictionLock );
         TPathRestrictionMap::const_iterator i = m_pathRestrictions.find( cacheKey );
@@ -6424,13 +7170,97 @@ CLocalAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CO
     }
     SPathRestriction entry;
     entry.revision = revision;
-    entry.inPack = m_store->GetRestrictionsOfVfsPath( vfsPath, entry.flags );
+    entry.inPack = m_store->GetRestrictionsOfVfsPath( path, entry.flags );
     MT::CScopeMutex lock( m_restrictionLock );
     if ( m_pathRestrictions.size() > 4096 )
         m_pathRestrictions.clear();
     m_pathRestrictions[ cacheKey ] = entry;
     flags = entry.flags;
     return entry.inPack;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::TryGetRestrictionsOfPathKept( const CORE::CString& vfsPath, CORE::CString::StringSet& flags, bool& inPack ) const
+{GUCEF_TRACE;
+
+    flags.clear();
+    inPack = false;
+    if ( GUCEF_NULL == m_store )
+        return false;
+
+    // no query of the catalogue here: the key is made from the settings of the locations and the path alone
+    const CORE::CString cacheKey = MakeRestrictionKey( vfsPath.ReplaceChar( '\\', '/' ) );
+    const UInt64 revision = m_revisionKept.Load();
+    MT::CScopeMutex lock( m_restrictionLock );
+    TPathRestrictionMap::const_iterator i = m_pathRestrictions.find( cacheKey );
+    if ( i == m_pathRestrictions.end() || i->second.revision != revision )
+        return false;
+    flags = i->second.flags;
+    inPack = i->second.inPack;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::GetCatalogueDigestOfPath( const CORE::CString& vfsPath, UInt64& sizeBytes, CORE::CString& sha256Hex ) const
+{GUCEF_TRACE;
+
+    sizeBytes = 0;
+    sha256Hex.Clear();
+    if ( GUCEF_NULL == m_store )
+        return false;
+    const CORE::CString path = vfsPath.ReplaceChar( '\\', '/' );
+    const CORE::CString packFolder = m_store->GetPackFolderOfVfsPath( path );
+    if ( packFolder.IsNULLOrEmpty() )
+        return false;
+    const UInt64 revision = m_revisionKept.Load();
+    for ( int attempt=0; attempt<2; ++attempt )
+    {
+        {
+            MT::CScopeMutex lock( m_packFilesLock );
+            TPackFilesMap::const_iterator pack = m_packFiles.find( packFolder );
+            if ( pack != m_packFiles.end() && pack->second.revision == revision )
+            {
+                GUCEF::map< CORE::CString, CAssetFileRecord >::const_iterator file = pack->second.files.find( path );
+                if ( file == pack->second.files.end() || file->second.sizeBytes < 0 || file->second.digest.Length() != 64 )
+                    return false;
+                sizeBytes = (UInt64) file->second.sizeBytes;
+                sha256Hex = file->second.digest.Lowercase();
+                return true;
+            }
+        }
+        if ( 0 != attempt )
+            break;
+
+        // not kept (or of an older catalogue): the files of the pack are asked of the catalogue, once, whoever of the threads comes first
+        MT::CScopeMutex build( m_packFilesBuildLock );
+        {
+            MT::CScopeMutex lock( m_packFilesLock );
+            TPackFilesMap::const_iterator pack = m_packFiles.find( packFolder );
+            if ( pack != m_packFiles.end() && pack->second.revision == revision )
+                continue;
+        }
+        GUCEF::vector< CAssetFileRecord > files;
+        SPackFiles made;
+        made.revision = revision;
+        if ( m_store->GetFilesOfPackFolder( packFolder, files ) )
+        {
+            for ( size_t f=0; f<files.size(); ++f )
+                made.files[ files[ f ].path ] = files[ f ];
+        }
+        MT::CScopeMutex lock( m_packFilesLock );
+        if ( m_packFiles.size() >= 64 || m_packFilesCount + (UInt32) made.files.size() > 500000 )
+        {
+            m_packFiles.clear();
+            m_packFilesCount = 0;
+        }
+        m_packFilesCount += (UInt32) made.files.size();
+        m_packFiles[ packFolder ] = made;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -51,27 +51,30 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  The settings of CRemoteAssetFileSystem, the client side of the files of a remote asset store service (remote service design 5.4):
+ *  The settings of the client side of the files of a remote asset store service (CRemoteAssetShares):
  *  the block cache on the disk, the read ahead and the bounds of the lists. A limit of 0 means no limit where that is noted.
+ *  The keys "maxParallelFiles" and "transferQueueThresholdBytes" of earlier versions are read and ignored when a tree is loaded (no
+ *  value of them is kept) and are not written again, so that a saved tree with them loads and loses them with the next save.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFilesSettings : public CORE::CIDataNodeSerializable
 {
     public:
 
-    CORE::CString cacheFolder;                  /**< a folder of the disk for the block cache; empty: no cache on the disk (reads go to the service and are not kept) */
+    CORE::CString cacheFolder;                  /**< a folder of the disk for the block cache; empty: no cache on the disk (what is read is not kept, and the thread of the interface cannot read bytes) */
+    CORE::CString shareName;                    /**< the name the service shares its files under, default "assets" (the setting shareName of the host of the service) */
     UInt64 maxCacheBytes;                       /**< the limit of the block cache, default 20 GiB; the entries that were used longest ago go first, pinned ones stay */
     UInt32 readAheadAfterBlocks;                /**< sequential blocks that were read before the next ones are fetched ahead, default 2; 0: no read ahead */
     UInt32 readAheadBlocks;                     /**< blocks fetched ahead, default 8 (2 MiB) */
     UInt32 maxBlocksPerRequest;                 /**< blocks asked of the service in one call, default 16 (4 MiB) */
-    UInt32 maxParallelFiles;                    /**< files fetched at once by a transfer, default 4 */
     UInt32 maxListEntries;                      /**< entries of a recursive list of a folder of the service, default 100000; the log says when a list was cut */
     UInt32 listPageEntries;                     /**< entries asked per page of a list of a folder, default 1000 */
     UInt32 metadataEntries;                     /**< files and folders whose size, digest and kind are remembered, default 200000 */
+    UInt32 metadataTtlMs;                       /**< what is known of a folder or a file is taken as current for this long and checked again after it, default 3000 */
     UInt32 negativeTtlMs;                       /**< a path that the service does not have is not asked for again within this time, default 3000 */
     UInt32 blockingReadTimeoutMs;               /**< the most a read waits for the service, default 30000 */
-    UInt32 transferQueueThresholdBytes;         /**< a set of files above this size is shown in the transfer queue as a fetch, default 16 MiB */
     UInt32 openWithoutPrefetchBytes;            /**< a set larger than the maximum is opened with what is there after this much, default 8 MiB */
     UInt64 maxPrefetchBytes;                    /**< the largest set that is fetched before an asset is opened, default 2 GiB */
+    bool refetchPinned;                         /**< a file that is kept offline and whose newest version is not here yet is fetched again by itself while the service can be reached, default true */
 
     CRemoteFilesSettings( void );
     virtual ~CRemoteFilesSettings() GUCEF_VIRTUAL_OVERRIDE;

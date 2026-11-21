@@ -96,7 +96,7 @@ class CIAssetRenderHook;
  *
  *  The events of the service are raised on the thread of pulseGenerator (the global pulse generator when it is null).
  *  The settings serialise as an object with "implementationId", "imageCacheFolder", "threadPoolName", "loadDownloadQueue",
- *  "startDownloads", "stateDirectory", "thumbnailsDirectory", "resumeIngestsOnStart", "ingestResumeAttempts", "downloadStagingKeepHours", the children "primaryStore", "downloads", "reprocess" and "implementationSettings"; the objects do not.
+ *  "startDownloads", "stateDirectory", "thumbnailsDirectory", "resumeIngestsOnStart", "ingestResumeAttempts", "downloadStagingKeepHours", "signInPromptSeconds", "allowSettingsChanges", the children "primaryStore", "downloads", "reprocess" and "implementationSettings"; the objects do not.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceConfig : public CORE::CIDataNodeSerializable
 {
@@ -129,6 +129,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceConfig : public CORE::CIData
     CIAssetRenderHook* renderHook;                          /**< contact sheets and renders, not owned */
     CAssetStoreSignInContext signIn;                        /**< what the stores need to sign in on the server (the in-process implementation only; none of it is owned) */
     UInt32 signInPromptSeconds;                             /**< how long a step of a sign in waits for the person before the sign in ends, default 600 */
+    bool allowSettingsChanges;                              /**< clients of the remote service may change the run-time settings (Settings/Set, Settings/Reset), default true; reads work either way. Only in the site settings file: not a setting a client can read or change */
 
     CAssetStoreServiceConfig( void );
     virtual ~CAssetStoreServiceConfig() GUCEF_VIRTUAL_OVERRIDE;

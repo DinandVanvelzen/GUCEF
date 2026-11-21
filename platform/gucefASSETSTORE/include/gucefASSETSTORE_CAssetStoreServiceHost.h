@@ -105,6 +105,8 @@
 namespace GUCEF {
 namespace ASSETSTORE {
 
+class CAssetShareDecision;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -126,14 +128,22 @@ namespace ASSETSTORE {
  *    stores, sign in prompts, thumbnails, notices) go to the event ring of every client session; a mutation answers
  *    once the events it caused are in the rings (two pulses of the host's pulse generator, at most eventBarrierMs), and
  *    every answer carries the next event sequence of the caller's session, so the client delivers them first;
- *  - files: blocks of at most maxReadBlockBytes as bytes; uploads through a DRNUTILS::CUploadStaging (a quota per
+ *  - files: the blocks of an upload as bytes; uploads through a DRNUTILS::CUploadStaging (a quota per
  *    device, SHA-256 checked at the commit) whose committed folder is ingested through the VFS mount of the staging;
  *  - secrets (the answer of a sign in prompt, the keyring code) come in a sensitive field and go to the service as
  *    AUTH::CSecretString; nothing of a call is logged but its operation.
  *  Access: only devices with one of the roles of the settings (default "owner") may call, and of those only the devices with a
  *  sign in role (default "owner"; never "mcp") may drive the sign in to the online stores and the keyring, and only their sessions
- *  receive the prompts of a sign in; a caller that is not an
- *  active paired device gets nothing (the host's access rules refuse it first).
+ *  receive the prompts of a sign in; the run-time settings (Settings/Set, Settings/Reset) and the audit records are for the devices
+ *  with the owner role and without the machine role, Settings/Describe for every role (gucefASSETSTORE_RemoteService_Design.md 18.3);
+ *  a caller that is not an active paired device gets nothing (the host's access rules refuse it first).
+ *  The files are shared as a tree through the DRN resource facility of the host's session (settings shareName, with the roles of
+ *  the settings): the storage locations of the service that are reachable are served read only under one share, so that a device mounts
+ *  them with the VFS archive of type "drn" (DRNUTILS::CRemoteShareMount). The root of the share is the root of the storage location, or, with
+ *  several locations whose roots lie below one folder of the VFS, that folder; locations whose roots have nothing in common are shared one by
+ *  one under the name of their location id. The share exists while a location it serves is online and follows the location state events of
+ *  the service. Reading its bytes is decided by the licence gate of the files (CAssetFileServingGate through CAssetShareDecision); names, sizes and
+ *  listings are visible to every role of the share; the digest of a file is the catalogue's when the catalogue has it (CAssetShareProvider).
  *  What the service does not offer it answers UNSUPPORTED with the reason (thumbnails and renders: R5; exports; local
  *  copies and offline pins, which are functions of a client; BeginUpload without the file list).
  *  Threading: Attach() and Detach() on the host's pulse thread; the handlers on the RPC pool; the events and the timer on
@@ -174,6 +184,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
     /** Counters for an info page and the resource line; no names, no secrets */
     void GetInfo( CORE::CValueList& info ) const;
 
+    /** The names of the shares this binding serves now, and the VFS path of the root of a share (empty for a share it does not serve) */
+    void GetShareNames( CORE::CString::StringVector& names ) const;
+    CORE::CString GetShareRoot( const CORE::CString& share ) const;
+
+    /** The decision of the shares (for the counters of the tests); NULL while not attached or without a share */
+    const CAssetShareDecision* GetShareDecision( void ) const;
+
     // CIServiceResourceSource
     virtual CORE::CString GetResourceSourceName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual void GetResourceCounters( CORE::CValueList& counters ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -205,7 +222,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
     COMCORE::TRpcHandlerResult OnSecret( COMCORE::CRpcServerCall& call );
     COMCORE::TRpcHandlerResult OnFilesQuery( COMCORE::CRpcServerCall& call );
     COMCORE::TRpcHandlerResult OnFilesCommand( COMCORE::CRpcServerCall& call );
-    COMCORE::TRpcHandlerResult OnReadBlock( COMCORE::CRpcServerCall& call );
     COMCORE::TRpcHandlerResult OnWriteBlock( COMCORE::CRpcServerCall& call );
 
     COMCORE::TRpcHandlerResult HandleCall( COMCORE::CRpcServerCall& call, bool isCommand, bool filesContract );
@@ -244,6 +260,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
      *  whatever the client sent), so the limits and the audit of the service know the device. Answers the refusal, empty when allowed.
      */
     CORE::CString PrepareReprocessCall( const DRNUTILS::CRemoteServicePrincipal& principal, CAssetServiceCall& call );
+    /**
+     *  The run-time settings (Settings/Describe, Set, Reset) and the audit records: the host sets who asks in the request of the call
+     *  (CAssetSettingsRequest::SetRemoteCaller(): the device, its name, whether it reads the owner-only-read values and may change
+     *  settings: the owner role without the machine role), whatever the client sent. A change by a device without that role is refused
+     *  and the refusal is written to the audit of the service; so are the audit records. Answers the refusal, empty when allowed.
+     */
+    CORE::CString PrepareSettingsCall( const DRNUTILS::CRemoteServicePrincipal& principal, CAssetServiceCall& call );
     /** Whether the caller has one of the learning roles of the settings: a machine learning consumer */
     bool IsLearningPrincipal( const DRNUTILS::CRemoteServicePrincipal& principal ) const;
     /** The caller as the licence gate of the files and thumbnails sees it */
@@ -251,6 +274,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
     TAssetStoreStatus QueryUpload( const DRNUTILS::CRemoteServicePrincipal& principal, const CAssetServiceCall& call, CAssetFileStatPage& result, CORE::CString& message );
     TAssetStoreStatus CommitUpload( const DRNUTILS::CRemoteServicePrincipal& principal, const CAssetServiceCall& call, CAssetServiceResult& result );
     TAssetStoreStatus AbortUpload( const DRNUTILS::CRemoteServicePrincipal& principal, const CAssetServiceCall& call, CAssetServiceResult& result );
+
+    /** Brings the shares in line with the locations of the service: serves the reachable ones, takes away the ones that are gone or moved */
+    void UpdateShares( void );
+    void RemoveShares( void );
 
     /** Waits until the events a mutation caused went through the host's pulse thread (two pulses), at most eventBarrierMs */
     void WaitForEventBarrier( void );
@@ -283,6 +310,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
     DRNUTILS::CUploadStaging m_staging;
     CORE::CString m_stagingMountName;
     TUploadFileIndexMap m_uploadIndexes;
+    CAssetShareDecision* m_shareDecision;               /**< owned; made at Attach() when there is a share name */
+    GUCEF::map< CORE::CString, CORE::CString > m_shares;    /**< the shares served: name to the VFS root; under m_shareLock */
+    mutable MT::CMutex m_shareLock;                     /**< serializes the updates of the shares (the location events can come from any thread) */
     TJobThrottleMap m_jobs;
     CORE::CString::StringSet m_inFlight;
     CORE::CTimer m_timer;
@@ -292,7 +322,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHost : public CORE::CObservi
     MT::CTAtomic< UInt64 > m_commandCount;
     MT::CTAtomic< UInt64 > m_replays;
     MT::CTAtomic< UInt64 > m_refusals;
-    MT::CTAtomic< UInt64 > m_bytesRead;
     MT::CTAtomic< UInt64 > m_bytesWritten;
     MT::CTAtomic< UInt64 > m_eventsPublished;
     UInt64 m_lastExpiryMs;

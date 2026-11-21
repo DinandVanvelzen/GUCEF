@@ -120,6 +120,11 @@
 #define ASSETSTORECONVERTERHOOK_CPIPELINECONVERTERHOOK_H
 #endif /* ASSETSTORECONVERTERHOOK_CPIPELINECONVERTERHOOK_H ? */
 
+#ifndef ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#include "AssetStoreConverterHook_CCookPhaseLock.h"
+#define ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#endif /* ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H ? */
+
 #include "AssetStoreConverterHook_CPackIndexOperations.h"
 
 /*-------------------------------------------------------------------------//
@@ -147,6 +152,7 @@ class CIndexRequestObserver : public ASSETCONVERTER::CIAssetPipelineObserver
     explicit CIndexRequestObserver( ASSETSTORE::CIAssetConversionObserver* observer )
         : ASSETCONVERTER::CIAssetPipelineObserver()
         , m_observer( observer )
+        , m_cookLock()
     {
 
     }
@@ -164,9 +170,16 @@ class CIndexRequestObserver : public ASSETCONVERTER::CIAssetPipelineObserver
             m_observer->OnConversionProgress( done, total, assetPath );
     }
 
+    virtual void OnPhase( ASSETCONVERTER::TPipelinePhase phase ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_cookLock.OnPhase( phase );
+    }
+
     private:
 
     ASSETSTORE::CIAssetConversionObserver* m_observer;
+    CCookPhaseLock m_cookLock;
 };
 
 /** Makes the folder and the folders above it */

@@ -204,7 +204,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetToolContext
     /**
      *  The error of a service answer: the errorCode of the document when it has one, else one made from the status
      *  (NOT_FOUND: not-found, INVALID_ARGUMENT: invalid-arguments, UNSUPPORTED: unsupported, UNAVAILABLE and the
-     *  network statuses: backend-unavailable, REFUSED: licence-refused, NOT_SIGNED_IN: not-signed-in, ...)
+     *  network statuses: backend-unavailable, REFUSED: licence-refused, NO_SPACE: no-space, NOT_SIGNED_IN: not-signed-in, ...)
      */
     void SetServiceError( COM::CMcpToolResult& result, TAssetStoreStatus status, const CORE::CString& message,
                           const CORE::CDataNode* document );

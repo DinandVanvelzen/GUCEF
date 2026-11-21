@@ -40,10 +40,15 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
-#ifndef GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#include "gucefASSETSTORE_CRemoteAssetFileSystem.h"
-#define GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H
-#endif /* GUCEF_ASSETSTORE_CREMOTEASSETFILESYSTEM_H ? */
+#ifndef GUCEF_ASSETSTORE_CIREMOTEFILESOURCE_H
+#include "gucefASSETSTORE_CIRemoteFileSource.h"
+#define GUCEF_ASSETSTORE_CIREMOTEFILESOURCE_H
+#endif /* GUCEF_ASSETSTORE_CIREMOTEFILESOURCE_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CIASSETSTORESERVICE_H
+#include "gucefASSETSTORE_CIAssetStoreService.h"
+#define GUCEF_ASSETSTORE_CIASSETSTORESERVICE_H
+#endif /* GUCEF_ASSETSTORE_CIASSETSTORESERVICE_H ? */
 
 #ifndef GUCEF_ASSETSTORE_CIREMOTEFILEDISCOVERY_H
 #include "gucefASSETSTORE_CIRemoteFileDiscovery.h"
@@ -82,7 +87,7 @@ namespace ASSETSTORE {
  *    link that did not come back, a restart) is continued from its last whole block; a file that is there already with the right size
  *    and digest is left alone. Cancel() leaves the part for the next run.
  *
- *  Run() runs on the calling thread (a task of the thread pool when it is started with CRemoteAssetFileSystem::StartTransfer()); the
+ *  Run() runs on the calling thread (a task of the thread pool when it is started with CRemoteAssetShares::StartTransfer()); the
  *  progress, the state and Cancel() are for any thread. A call that fails because the service cannot be reached is tried again with a
  *  growing wait, so a link that comes back goes on without a new transfer.
  */
@@ -111,7 +116,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFileTransfer
     enum EDefaults
     {
         MaxAttempts = 5,
-        ChunkBytes = 1048576
+        ChunkBytes = 1048576,
+        PartAlignBytes = 262144             /**< a part of an earlier download is continued from a multiple of this */
     };
 
     CRemoteFileTransfer( EMode mode, const CORE::CString& name );
@@ -174,7 +180,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFileTransfer
     void SetFetchLimit( UInt64 bytes );
 
     /** Does the work on the calling thread; the status of the end (the same as GetStatus()) */
-    TAssetStoreStatus Run( CRemoteAssetFileSystem& system );
+    TAssetStoreStatus Run( CIRemoteFileSource& system );
 
     void Cancel( void );
     bool IsCancelRequested( void ) const;
@@ -234,10 +240,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFileTransfer
     };
     typedef GUCEF::vector< SDiscovery > TDiscoveryVector;
 
-    bool Expand( CRemoteAssetFileSystem& system );
-    TAssetStoreStatus RunItem( CRemoteAssetFileSystem& system, const SItem& item, CORE::CString& message );
-    TAssetStoreStatus DownloadItem( CRemoteAssetFileSystem& system, const SItem& item, CORE::CString& message );
-    TAssetStoreStatus DownloadAttempt( CRemoteAssetFileSystem& system, const SItem& item, const CORE::CString& part, bool fromStart, bool& partWasBad, CORE::CString& message );
+    bool Expand( CIRemoteFileSource& system );
+    TAssetStoreStatus RunItem( CIRemoteFileSource& system, const SItem& item, CORE::CString& message );
+    TAssetStoreStatus DownloadItem( CIRemoteFileSource& system, const SItem& item, CORE::CString& message );
+    TAssetStoreStatus DownloadAttempt( CIRemoteFileSource& system, const SItem& item, const CORE::CString& part, bool fromStart, bool& partWasBad, CORE::CString& message );
     static bool HashFile( const CORE::CString& path, CORE::CString& hex );
     static bool IsRetryable( TAssetStoreStatus status );
     void Finish( EState state, TAssetStoreStatus status, const CORE::CString& message );
@@ -266,6 +272,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFileTransfer
     MT::CTAtomic< UInt32 > m_status;
     MT::CTAtomic< bool > m_cancel;
     MT::CTAtomic< UInt64 > m_bytesDone;
+    MT::CTAtomic< UInt64 > m_fetching;          /**< the bytes of the file that is fetched now, as they arrive */
     MT::CTAtomic< UInt64 > m_bytesTotal;
     MT::CTAtomic< UInt64 > m_bytesReused;
     MT::CTAtomic< UInt32 > m_filesDone;

@@ -55,17 +55,19 @@ namespace ASSETSTORE {
  *  surface of step R2): every operation of CIAssetStoreService travels as its CAssetServiceCall (the operation name of
  *  CAssetServiceOperations, the command id and the arguments as a DataNode) and is answered with the status name of
  *  AssetStoreStatusToString(), a message and the result record in its DataNode form, so a new operation of the
- *  interface needs no new contract. Only the hot path is typed: blocks of files and of uploads travel as bytes.
+ *  interface needs no new contract. Only the hot path is typed: the blocks of an upload travel as bytes.
  *
  *  gucef.assetstore 1.0, service Service (the control channel):
  *      Query    (U, idempotent)   reads
  *      Command  (U)               mutations; the command id makes a repeat answer the first outcome
  *      Secret   (U, sensitive)    the operations that carry a secret: AnswerPrompt, ImportWebSession, UnlockKeyring (field secret is sensitive)
- *  gucef.assetstore.files 1.0, service Files (the bulk channel, a DRN link of its own; the control channel binds it too):
- *      Query    (U, idempotent)   StatFiles, ListDirectory, QueryUpload
+ *  gucef.assetstore.files 1.1, service Files (the bulk channel, a DRN link of its own; the control channel binds it too):
+ *      Query    (U, idempotent)   QueryUpload
  *      Command  (U)               BeginUpload, BeginUploadFiles, CommitUpload, AbortUpload
- *      ReadBlock  (U, idempotent) at most BlockSize bytes of a file, binary
- *      WriteBlock (U)             bytes of a file of an upload, binary
+ *      WriteBlock (U)             at most BlockSize bytes of a file of an upload, binary
+ *  Version 1.1 of the files contract has no StatFiles, ListDirectory and ReadBlock: the files of the store are read as a share of
+ *  the DRN resource facility (see CAssetStoreServiceHost and CRemoteAssetShares). A client that still calls them gets an answer that says the
+ *  operation or the method is not known.
  *  Every answer carries eventSeq, the next sequence of the caller's session event ring after the call: a client delivers
  *  the session events before that sequence before it hands out the answer, so events a call caused come before its
  *  result as they do in process.
@@ -80,6 +82,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreRemoteContracts
     static const char* ControlContractName;     /**< "gucef.assetstore" */
     static const char* FilesContractName;       /**< "gucef.assetstore.files" */
     static const UInt32 Major = 1;
+    static const UInt32 FilesMinor = 1;         /**< the minor version of the files contract: 1.1 has no ReadBlock, the files of the store are read through the share of the service */
     static const UInt32 BlockSize = 262144;     /**< bytes of a block of a file, 256 KiB */
 
     static const char* QueryPath;               /**< "gucef.assetstore.Service/Query" */
@@ -87,7 +90,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreRemoteContracts
     static const char* SecretPath;              /**< "gucef.assetstore.Service/Secret" */
     static const char* FilesQueryPath;          /**< "gucef.assetstore.files.Files/Query" */
     static const char* FilesCommandPath;        /**< "gucef.assetstore.files.Files/Command" */
-    static const char* ReadBlockPath;           /**< "gucef.assetstore.files.Files/ReadBlock" */
     static const char* WriteBlockPath;          /**< "gucef.assetstore.files.Files/WriteBlock" */
 
     // the field numbers of the messages
@@ -103,15 +105,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreRemoteContracts
     static const UInt32 SecretCommandIdField = 2;
     static const UInt32 SecretTargetField = 3;
     static const UInt32 SecretValueField = 4;
-    static const UInt32 ReadPathField = 1;
-    static const UInt32 ReadOffsetField = 2;
-    static const UInt32 ReadLengthField = 3;
-    static const UInt32 BlockStatusField = 1;
-    static const UInt32 BlockMessageField = 2;
-    static const UInt32 BlockFileSizeField = 3;
-    static const UInt32 BlockEndOfFileField = 4;
-    static const UInt32 BlockDataField = 5;
-    static const UInt32 BlockOffsetField = 6;
     static const UInt32 WriteUploadIdField = 1;
     static const UInt32 WritePathField = 2;
     static const UInt32 WriteOffsetField = 3;
@@ -128,6 +121,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreRemoteContracts
     static const char* EventSignInPromptClosed; /**< "SIGNIN_PROMPT_CLOSED": CAssetSignInPrompt */
     static const char* EventThumbnailUpdated;   /**< "THUMBNAIL_UPDATED": CAssetThumbnail without pixels */
     static const char* EventServiceNotice;      /**< "ASSETSTORE_NOTICE": CAssetServiceNotice */
+    static const char* EventSettingsChanged;    /**< "SETTINGS_CHANGED": CAssetSettingsChangeResult, values of owner-only-read settings left out */
 
     /** The contract of the control channel, built and registered once */
     static COMCORE::CRpcContractPtr GetControlContract( void );

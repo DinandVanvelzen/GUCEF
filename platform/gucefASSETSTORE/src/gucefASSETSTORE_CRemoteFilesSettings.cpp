@@ -47,19 +47,20 @@ namespace ASSETSTORE {
 CRemoteFilesSettings::CRemoteFilesSettings( void )
     : CORE::CIDataNodeSerializable()
     , cacheFolder( CORE::CString() )
+    , shareName( "assets" )
     , maxCacheBytes( 20ULL * 1024 * 1024 * 1024 )
     , readAheadAfterBlocks( 2 )
     , readAheadBlocks( 8 )
     , maxBlocksPerRequest( 16 )
-    , maxParallelFiles( 4 )
     , maxListEntries( 100000 )
     , listPageEntries( 1000 )
     , metadataEntries( 200000 )
+    , metadataTtlMs( 3000 )
     , negativeTtlMs( 3000 )
     , blockingReadTimeoutMs( 30000 )
-    , transferQueueThresholdBytes( 16 * 1024 * 1024 )
     , openWithoutPrefetchBytes( 8 * 1024 * 1024 )
     , maxPrefetchBytes( 2ULL * 1024 * 1024 * 1024 )
+    , refetchPinned( true )
 {GUCEF_TRACE;
 
 }
@@ -80,19 +81,20 @@ CRemoteFilesSettings::Serialize( CORE::CDataNode& domRootNode                   
 
     bool success = true;
     success = domRootNode.SetAttribute( "cacheFolder", cacheFolder ) && success;
+    success = domRootNode.SetAttribute( "shareName", shareName ) && success;
     success = domRootNode.SetAttribute( "maxCacheBytes", maxCacheBytes ) && success;
     success = domRootNode.SetAttribute( "readAheadAfterBlocks", readAheadAfterBlocks ) && success;
     success = domRootNode.SetAttribute( "readAheadBlocks", readAheadBlocks ) && success;
     success = domRootNode.SetAttribute( "maxBlocksPerRequest", maxBlocksPerRequest ) && success;
-    success = domRootNode.SetAttribute( "maxParallelFiles", maxParallelFiles ) && success;
     success = domRootNode.SetAttribute( "maxListEntries", maxListEntries ) && success;
     success = domRootNode.SetAttribute( "listPageEntries", listPageEntries ) && success;
     success = domRootNode.SetAttribute( "metadataEntries", metadataEntries ) && success;
+    success = domRootNode.SetAttribute( "metadataTtlMs", metadataTtlMs ) && success;
     success = domRootNode.SetAttribute( "negativeTtlMs", negativeTtlMs ) && success;
     success = domRootNode.SetAttribute( "blockingReadTimeoutMs", blockingReadTimeoutMs ) && success;
-    success = domRootNode.SetAttribute( "transferQueueThresholdBytes", transferQueueThresholdBytes ) && success;
     success = domRootNode.SetAttribute( "openWithoutPrefetchBytes", openWithoutPrefetchBytes ) && success;
     success = domRootNode.SetAttribute( "maxPrefetchBytes", maxPrefetchBytes ) && success;
+    success = domRootNode.SetAttribute( "refetchPinned", refetchPinned ) && success;
     return success;
 }
 
@@ -105,23 +107,24 @@ CRemoteFilesSettings::Deserialize( const CORE::CDataNode& domRootNode           
 
     CRemoteFilesSettings defaults;
     cacheFolder = domRootNode.GetAttributeValueOrChildValueByName( "cacheFolder" ).AsString( defaults.cacheFolder, true );
+    shareName = domRootNode.GetAttributeValueOrChildValueByName( "shareName" ).AsString( defaults.shareName, true );
     maxCacheBytes = domRootNode.GetAttributeValueOrChildValueByName( "maxCacheBytes" ).AsUInt64( defaults.maxCacheBytes, true );
     readAheadAfterBlocks = domRootNode.GetAttributeValueOrChildValueByName( "readAheadAfterBlocks" ).AsUInt32( defaults.readAheadAfterBlocks, true );
     readAheadBlocks = domRootNode.GetAttributeValueOrChildValueByName( "readAheadBlocks" ).AsUInt32( defaults.readAheadBlocks, true );
     maxBlocksPerRequest = domRootNode.GetAttributeValueOrChildValueByName( "maxBlocksPerRequest" ).AsUInt32( defaults.maxBlocksPerRequest, true );
-    maxParallelFiles = domRootNode.GetAttributeValueOrChildValueByName( "maxParallelFiles" ).AsUInt32( defaults.maxParallelFiles, true );
     maxListEntries = domRootNode.GetAttributeValueOrChildValueByName( "maxListEntries" ).AsUInt32( defaults.maxListEntries, true );
     listPageEntries = domRootNode.GetAttributeValueOrChildValueByName( "listPageEntries" ).AsUInt32( defaults.listPageEntries, true );
     metadataEntries = domRootNode.GetAttributeValueOrChildValueByName( "metadataEntries" ).AsUInt32( defaults.metadataEntries, true );
+    metadataTtlMs = domRootNode.GetAttributeValueOrChildValueByName( "metadataTtlMs" ).AsUInt32( defaults.metadataTtlMs, true );
     negativeTtlMs = domRootNode.GetAttributeValueOrChildValueByName( "negativeTtlMs" ).AsUInt32( defaults.negativeTtlMs, true );
     blockingReadTimeoutMs = domRootNode.GetAttributeValueOrChildValueByName( "blockingReadTimeoutMs" ).AsUInt32( defaults.blockingReadTimeoutMs, true );
-    transferQueueThresholdBytes = domRootNode.GetAttributeValueOrChildValueByName( "transferQueueThresholdBytes" ).AsUInt32( defaults.transferQueueThresholdBytes, true );
     openWithoutPrefetchBytes = domRootNode.GetAttributeValueOrChildValueByName( "openWithoutPrefetchBytes" ).AsUInt32( defaults.openWithoutPrefetchBytes, true );
     maxPrefetchBytes = domRootNode.GetAttributeValueOrChildValueByName( "maxPrefetchBytes" ).AsUInt64( defaults.maxPrefetchBytes, true );
+    refetchPinned = domRootNode.GetAttributeValueOrChildValueByName( "refetchPinned" ).AsBool( defaults.refetchPinned, true );
+    if ( shareName.IsNULLOrEmpty() )
+        shareName = defaults.shareName;
     if ( 0 == maxBlocksPerRequest )
         maxBlocksPerRequest = defaults.maxBlocksPerRequest;
-    if ( 0 == maxParallelFiles )
-        maxParallelFiles = 1;
     if ( 0 == listPageEntries )
         listPageEntries = defaults.listPageEntries;
     return true;

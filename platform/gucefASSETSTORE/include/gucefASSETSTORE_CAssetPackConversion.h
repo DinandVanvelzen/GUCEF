@@ -109,6 +109,9 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetPackConversion
     /** Makes an id for a conversion job: "cv" and 19 hexadecimal characters */
     static CORE::CString MakeJobId( void );
 
+    /** The converter threads and the thread pool of the run (CAssetConversionRequest::maxThreads, threadPoolName); 0 and empty: those of the converter */
+    void SetThreadShare( UInt32 threads, const CORE::CString& threadPoolName );
+
     protected:
 
     /**
@@ -144,6 +147,8 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetPackConversion
     CIAssetConversionObserver* m_observer;      /**< the observer of the hook instead of the events of the store; not owned */
     bool m_notifyEvents;                        /**< the conversion events of the store are raised, true by default */
     bool m_removeOriginals;                     /**< a keep policy of "converted" removes the originals of what converted, true by default */
+    UInt32 m_threads;                           /**< CAssetConversionRequest::maxThreads of the run */
+    CORE::CString m_threadPoolName;             /**< CAssetConversionRequest::threadPoolName of the run */
 
     private:
 

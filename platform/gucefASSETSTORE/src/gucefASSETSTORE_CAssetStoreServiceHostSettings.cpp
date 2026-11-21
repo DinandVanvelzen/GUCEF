@@ -41,9 +41,10 @@ namespace ASSETSTORE {
 
 namespace {
 
+/** The names of the settings; "maxReadBlockBytes" is a setting of an earlier version that is read and ignored, so that a settings file that still has it loads */
 const char* const KnownKeys[] = { "roles", "signInRoles", "learningRoles", "stagingDirectory", "stagingVfsRoot", "maxUploadBytesPerSubject", "maxUploadBytesTotal",
                                   "maxUploadsPerSubject", "uploadExpiryHours", "uploadLocationId", "commandJournalDirectory",
-                                  "commandJournalKeepDays", "eventBarrierMs", "jobProgressIntervalMs", "maxReadBlockBytes" };
+                                  "commandJournalKeepDays", "eventBarrierMs", "jobProgressIntervalMs", "maxReadBlockBytes", "shareName" };
 
 bool
 IsKnownKey( const CORE::CString& key )
@@ -79,7 +80,7 @@ CAssetStoreServiceHostSettings::CAssetStoreServiceHostSettings( void )
     , commandJournalKeepDays( 7 )
     , eventBarrierMs( 1000 )
     , jobProgressIntervalMs( 500 )
-    , maxReadBlockBytes( 262144 )
+    , shareName( "assets" )
 {GUCEF_TRACE;
 
     roles.insert( "owner" );
@@ -107,7 +108,7 @@ CAssetStoreServiceHostSettings::SaveConfig( CORE::CDataNode& config ) const
     success = config.SetAttribute( "commandJournalKeepDays", commandJournalKeepDays ) && success;
     success = config.SetAttribute( "eventBarrierMs", eventBarrierMs ) && success;
     success = config.SetAttribute( "jobProgressIntervalMs", jobProgressIntervalMs ) && success;
-    success = config.SetAttribute( "maxReadBlockBytes", maxReadBlockBytes ) && success;
+    success = config.SetAttribute( "shareName", shareName ) && success;
     return success;
 }
 
@@ -180,12 +181,7 @@ CAssetStoreServiceHostSettings::LoadConfig( const CORE::CDataNode& config )
     commandJournalKeepDays = config.GetAttributeValueOrChildValueByName( "commandJournalKeepDays" ).AsUInt32( commandJournalKeepDays, true );
     eventBarrierMs = config.GetAttributeValueOrChildValueByName( "eventBarrierMs" ).AsUInt32( eventBarrierMs, true );
     jobProgressIntervalMs = config.GetAttributeValueOrChildValueByName( "jobProgressIntervalMs" ).AsUInt32( jobProgressIntervalMs, true );
-    maxReadBlockBytes = config.GetAttributeValueOrChildValueByName( "maxReadBlockBytes" ).AsUInt32( maxReadBlockBytes, true );
-    if ( 0 == maxReadBlockBytes || maxReadBlockBytes > 1048576 )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "AssetStoreServiceHostSettings: maxReadBlockBytes must be 1 to 1048576" );
-        return false;
-    }
+    shareName = config.GetAttributeValueOrChildValueByName( "shareName" ).AsString( shareName, true );
     return true;
 }
 

@@ -19,7 +19,6 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetAnalysisTaskData.h
   include/gucefASSETSTORE_CAssetAnimationProps.h
   include/gucefASSETSTORE_CAssetAudioProps.h
-  include/gucefASSETSTORE_CAssetBlockCache.h
   include/gucefASSETSTORE_CAssetCatalogue.h
   include/gucefASSETSTORE_CAssetCatalogueChange.h
   include/gucefASSETSTORE_CAssetCategoryRule.h
@@ -35,7 +34,6 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetDigest.h
   include/gucefASSETSTORE_CAssetDiskPackNormalizer.h
   include/gucefASSETSTORE_CAssetDownloadRequest.h
-  include/gucefASSETSTORE_CAssetFileBlock.h
   include/gucefASSETSTORE_CAssetFileRecord.h
   include/gucefASSETSTORE_CAssetFileServingGate.h
   include/gucefASSETSTORE_CAssetFileSet.h
@@ -93,6 +91,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetRecord.h
   include/gucefASSETSTORE_CAssetRelationRecord.h
   include/gucefASSETSTORE_CAssetRenderSheetTool.h
+  include/gucefASSETSTORE_CAssetReprocessBudget.h
   include/gucefASSETSTORE_CAssetReprocessGuard.h
   include/gucefASSETSTORE_CAssetReprocessRequest.h
   include/gucefASSETSTORE_CAssetReprocessSettings.h
@@ -109,6 +108,17 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetServiceOperations.h
   include/gucefASSETSTORE_CAssetServiceResult.h
   include/gucefASSETSTORE_CAssetServiceStringList.h
+  include/gucefASSETSTORE_CAssetSettingChange.h
+  include/gucefASSETSTORE_CAssetSettingDescriptor.h
+  include/gucefASSETSTORE_CAssetSettingState.h
+  include/gucefASSETSTORE_CAssetSettingsChangeResult.h
+  include/gucefASSETSTORE_CAssetSettingsDescription.h
+  include/gucefASSETSTORE_CAssetSettingsOverrideStore.h
+  include/gucefASSETSTORE_CAssetSettingsRegistry.h
+  include/gucefASSETSTORE_CAssetSettingsRequest.h
+  include/gucefASSETSTORE_CAssetShareDecision.h
+  include/gucefASSETSTORE_CAssetShareProvider.h
+  include/gucefASSETSTORE_CAssetShareWarmJob.h
   include/gucefASSETSTORE_CAssetSignInPrompt.h
   include/gucefASSETSTORE_CAssetSourcePolicy.h
   include/gucefASSETSTORE_CAssetStorageLocation.h
@@ -142,6 +152,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CAssetStoreRemoteContracts.h
   include/gucefASSETSTORE_CAssetStoreSafeNames.h
   include/gucefASSETSTORE_CAssetStoreServiceConfig.h
+  include/gucefASSETSTORE_CAssetStoreServiceConfigSettings.h
   include/gucefASSETSTORE_CAssetStoreServiceHost.h
   include/gucefASSETSTORE_CAssetStoreServiceHostSettings.h
   include/gucefASSETSTORE_CAssetStoreSignInContext.h
@@ -194,6 +205,7 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CIAssetStoreService.h
   include/gucefASSETSTORE_CIAssetStoreTransferSource.h
   include/gucefASSETSTORE_CIRemoteFileDiscovery.h
+  include/gucefASSETSTORE_CIRemoteFileSource.h
   include/gucefASSETSTORE_CIWebSessionEndedCheck.h
   include/gucefASSETSTORE_CIWebSignInBrowser.h
   include/gucefASSETSTORE_CLocalAssetStoreService.h
@@ -205,12 +217,10 @@ set( HEADER_FILES
   include/gucefASSETSTORE_CPrimaryAssetStoreOperationData.h
   include/gucefASSETSTORE_CPrimaryAssetStoreOperationTaskConsumer.h
   include/gucefASSETSTORE_CPrimaryAssetStoreSettings.h
-  include/gucefASSETSTORE_CRemoteAssetArchive.h
-  include/gucefASSETSTORE_CRemoteAssetFileSystem.h
+  include/gucefASSETSTORE_CRemoteAssetShares.h
   include/gucefASSETSTORE_CRemoteAssetStoreProvider.h
   include/gucefASSETSTORE_CRemoteAssetStoreService.h
   include/gucefASSETSTORE_CRemoteAssetStoreServiceSettings.h
-  include/gucefASSETSTORE_CRemoteFileAccess.h
   include/gucefASSETSTORE_CRemoteFileTransfer.h
   include/gucefASSETSTORE_CRemoteFileTransferTaskConsumer.h
   include/gucefASSETSTORE_CRemoteFileTransferTaskData.h
@@ -244,7 +254,6 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetAnalysisTaskData.cpp
   src/gucefASSETSTORE_CAssetAnimationProps.cpp
   src/gucefASSETSTORE_CAssetAudioProps.cpp
-  src/gucefASSETSTORE_CAssetBlockCache.cpp
   src/gucefASSETSTORE_CAssetCatalogue.cpp
   src/gucefASSETSTORE_CAssetCatalogueChange.cpp
   src/gucefASSETSTORE_CAssetCategoryRule.cpp
@@ -260,7 +269,6 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetDigest.cpp
   src/gucefASSETSTORE_CAssetDiskPackNormalizer.cpp
   src/gucefASSETSTORE_CAssetDownloadRequest.cpp
-  src/gucefASSETSTORE_CAssetFileBlock.cpp
   src/gucefASSETSTORE_CAssetFileRecord.cpp
   src/gucefASSETSTORE_CAssetFileServingGate.cpp
   src/gucefASSETSTORE_CAssetFileSet.cpp
@@ -318,6 +326,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetRecord.cpp
   src/gucefASSETSTORE_CAssetRelationRecord.cpp
   src/gucefASSETSTORE_CAssetRenderSheetTool.cpp
+  src/gucefASSETSTORE_CAssetReprocessBudget.cpp
   src/gucefASSETSTORE_CAssetReprocessGuard.cpp
   src/gucefASSETSTORE_CAssetReprocessRequest.cpp
   src/gucefASSETSTORE_CAssetReprocessSettings.cpp
@@ -334,6 +343,17 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetServiceOperations.cpp
   src/gucefASSETSTORE_CAssetServiceResult.cpp
   src/gucefASSETSTORE_CAssetServiceStringList.cpp
+  src/gucefASSETSTORE_CAssetSettingChange.cpp
+  src/gucefASSETSTORE_CAssetSettingDescriptor.cpp
+  src/gucefASSETSTORE_CAssetSettingState.cpp
+  src/gucefASSETSTORE_CAssetSettingsChangeResult.cpp
+  src/gucefASSETSTORE_CAssetSettingsDescription.cpp
+  src/gucefASSETSTORE_CAssetSettingsOverrideStore.cpp
+  src/gucefASSETSTORE_CAssetSettingsRegistry.cpp
+  src/gucefASSETSTORE_CAssetSettingsRequest.cpp
+  src/gucefASSETSTORE_CAssetShareDecision.cpp
+  src/gucefASSETSTORE_CAssetShareProvider.cpp
+  src/gucefASSETSTORE_CAssetShareWarmJob.cpp
   src/gucefASSETSTORE_CAssetSignInPrompt.cpp
   src/gucefASSETSTORE_CAssetSourcePolicy.cpp
   src/gucefASSETSTORE_CAssetStorageLocation.cpp
@@ -367,6 +387,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CAssetStoreRemoteContracts.cpp
   src/gucefASSETSTORE_CAssetStoreSafeNames.cpp
   src/gucefASSETSTORE_CAssetStoreServiceConfig.cpp
+  src/gucefASSETSTORE_CAssetStoreServiceConfigSettings.cpp
   src/gucefASSETSTORE_CAssetStoreServiceHost.cpp
   src/gucefASSETSTORE_CAssetStoreServiceHostSettings.cpp
   src/gucefASSETSTORE_CAssetStoreSignInContext.cpp
@@ -417,6 +438,7 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CIAssetStoreService.cpp
   src/gucefASSETSTORE_CIAssetStoreTransferSource.cpp
   src/gucefASSETSTORE_CIRemoteFileDiscovery.cpp
+  src/gucefASSETSTORE_CIRemoteFileSource.cpp
   src/gucefASSETSTORE_CLocalAssetStoreService.cpp
   src/gucefASSETSTORE_CLocalAssetStoreServiceOperationData.cpp
   src/gucefASSETSTORE_CLocalAssetStoreServiceOperationTaskConsumer.cpp
@@ -426,12 +448,10 @@ set( SOURCE_FILES
   src/gucefASSETSTORE_CPrimaryAssetStoreOperationData.cpp
   src/gucefASSETSTORE_CPrimaryAssetStoreOperationTaskConsumer.cpp
   src/gucefASSETSTORE_CPrimaryAssetStoreSettings.cpp
-  src/gucefASSETSTORE_CRemoteAssetArchive.cpp
-  src/gucefASSETSTORE_CRemoteAssetFileSystem.cpp
+  src/gucefASSETSTORE_CRemoteAssetShares.cpp
   src/gucefASSETSTORE_CRemoteAssetStoreProvider.cpp
   src/gucefASSETSTORE_CRemoteAssetStoreService.cpp
   src/gucefASSETSTORE_CRemoteAssetStoreServiceSettings.cpp
-  src/gucefASSETSTORE_CRemoteFileAccess.cpp
   src/gucefASSETSTORE_CRemoteFileTransfer.cpp
   src/gucefASSETSTORE_CRemoteFileTransferTaskConsumer.cpp
   src/gucefASSETSTORE_CRemoteFileTransferTaskData.cpp

@@ -106,6 +106,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSearchQuery : public CORE::CIDataNodeSer
     CORE::CString::StringSet packStates;
     bool unclassified;                           /**< packs and assets without a category */
     CORE::CString::StringSet packIds;            /**< only these packs */
+    CORE::CString::StringSet sourceItemIds;      /**< only the packs of these items of their stores (with sources: of those stores): the packs an item of a store became */
     CORE::CString::StringSet groups;             /**< function groups of the pack index (scenes, characters, static-models, ...): only assets that are resources of these groups */
     CORE::CString::StringSet subGroups;          /**< sub-groups (paths with / for nesting) of the pack index; with groups they narrow a group */
     CORE::CString resultKind;

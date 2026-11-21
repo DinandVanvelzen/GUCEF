@@ -111,7 +111,7 @@ CRemoteFileTransferTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     CRemoteFileTransferTaskData* data = const_cast< CRemoteFileTransferTaskData* >( CORE::CICloneable::CloneableAs< CRemoteFileTransferTaskData >( task->GetTaskData() ) );
     if ( GUCEF_NULL == data || GUCEF_NULL == data->system || data->transfer.IsNULL() )
         return true;
-    CRemoteAssetFileSystem* system = data->system;
+    CIRemoteFileSource* system = data->system;
     TRemoteFileTransferPtr transfer = data->transfer;
     data->system = GUCEF_NULL;
     CAssetServiceCall call( "Files/Transfer" );
@@ -145,7 +145,7 @@ CRemoteFileTransferTaskConsumer::OnTaskEnded( CORE::CTaskPtr task, bool wasForce
         if ( GUCEF_NULL != data && GUCEF_NULL != data->system )
         {
             // the task ended before it ran
-            CRemoteAssetFileSystem* system = data->system;
+            CIRemoteFileSource* system = data->system;
             data->system = GUCEF_NULL;
             data->transfer->Cancel();
             data->source.Cancel();

@@ -74,9 +74,6 @@ const CORE::CString CAssetServiceOperations::RemovePack = "Curation/RemovePack";
 const CORE::CString CAssetServiceOperations::GetThumbnails = "Thumbnails/Get";
 const CORE::CString CAssetServiceOperations::PutThumbnail = "Thumbnails/Put";
 const CORE::CString CAssetServiceOperations::GetMissingThumbnails = "Thumbnails/GetMissing";
-const CORE::CString CAssetServiceOperations::StatFiles = "Files/Stat";
-const CORE::CString CAssetServiceOperations::ListDirectory = "Files/List";
-const CORE::CString CAssetServiceOperations::ReadFileBlock = "Files/Read";
 const CORE::CString CAssetServiceOperations::BeginUpload = "Files/BeginUpload";
 const CORE::CString CAssetServiceOperations::BeginUploadFiles = "Files/BeginUploadFiles";
 const CORE::CString CAssetServiceOperations::WriteUploadBlock = "Files/WriteUpload";
@@ -123,6 +120,9 @@ const CORE::CString CAssetServiceOperations::GetSyncMarks = "Sync/GetMarks";
 const CORE::CString CAssetServiceOperations::SetSyncMarks = "Sync/SetMarks";
 const CORE::CString CAssetServiceOperations::GetSyncProfile = "Sync/GetProfile";
 const CORE::CString CAssetServiceOperations::SetSyncProfile = "Sync/SetProfile";
+const CORE::CString CAssetServiceOperations::DescribeSettings = "Settings/Describe";
+const CORE::CString CAssetServiceOperations::SetSettings = "Settings/Set";
+const CORE::CString CAssetServiceOperations::ResetSettings = "Settings/Reset";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -173,7 +173,9 @@ CAssetServiceOperations::IsMutation( const CORE::CString& operation )
            operation == LockKeyring ||
            operation == ReindexFromStorage ||
            operation == SetSyncMarks ||
-           operation == SetSyncProfile;
+           operation == SetSyncProfile ||
+           operation == SetSettings ||
+           operation == ResetSettings;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -214,9 +216,6 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == GetThumbnails ||
            operation == PutThumbnail ||
            operation == GetMissingThumbnails ||
-           operation == StatFiles ||
-           operation == ListDirectory ||
-           operation == ReadFileBlock ||
            operation == BeginUpload ||
            operation == BeginUploadFiles ||
            operation == WriteUploadBlock ||
@@ -262,7 +261,10 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == GetSyncMarks ||
            operation == SetSyncMarks ||
            operation == GetSyncProfile ||
-           operation == SetSyncProfile;
+           operation == SetSyncProfile ||
+           operation == DescribeSettings ||
+           operation == SetSettings ||
+           operation == ResetSettings;
 }
 
 /*-------------------------------------------------------------------------//

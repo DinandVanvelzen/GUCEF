@@ -1002,6 +1002,74 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": the HTML description of a store item is kept and searched as its text; a row that still holds HTML is read as text; the packs of an item are found by its id" ).C_String() )
+        try
+        {
+            const CString staging = store.MakeDownloadStagingPath();
+            ASSERT_TRUE( WriteText( staging + "/SM_Bundle_Pine_Description.fbx", "triangles=431;vertices=377;description=html" ) );
+            CAssetIngestRequest request;
+            request.sourceId = "example-store";
+            request.contentPath = staging;
+            request.item.itemId = "example-bundle";
+            request.item.title = "Example Bundle";
+            request.item.seller = "Example Seller";
+            request.item.description = "<span>This bundle includes the following packs:</span><p></p><p><a target=\"_blank\" href=\"https://www.example.com/listings/1\" "
+                                       "rel=\"noopener noreferrer nofollow\"><span><u>Realistic Pine Pack</u></span></a></p><script>track()</script>";
+            CAssetIngestResult result;
+            const TAssetStoreStatus ingested = store.Ingest( request, result );
+            if ( ASSETSTORE_STATUS_OK != ingested )
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "TestPrimaryStore: the ingest of the item with an HTML description ended with " << AssetStoreStatusToString( ingested ) << ": " << result.message );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == ingested );
+            const CString bundleId = result.packId;
+            CAssetPackRecord pack;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( bundleId, pack ) );
+            ASSERT_TRUE( "This bundle includes the following packs:\n\nRealistic Pine Pack (https://www.example.com/listings/1)" == pack.description );
+
+            // the words of the text are searched, the markup is not
+            CAssetSearchQuery words;
+            words.text = "pine";
+            words.resultKind = "packs";
+            CAssetSearchResultPage page;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( words, page ) && 1 == page.total && bundleId == page.hits[ 0 ].packId );
+            words.text = "noopener";
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( words, page ) && 0 == page.total );
+
+            // the packs that an item of a store became, by the id of the item
+            CAssetSearchQuery ofItem;
+            ofItem.resultKind = "packs";
+            ofItem.sources.insert( "example-store" );
+            ofItem.sourceItemIds.insert( "example-bundle" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( ofItem, page ) && 1 == page.total && bundleId == page.hits[ 0 ].packId );
+            ofItem.sourceItemIds.clear();
+            ofItem.sourceItemIds.insert( "not-an-item" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( ofItem, page ) && 0 == page.total );
+            CDataNode queryNode;
+            CDataNodeSerializableSettings serializerSettings;
+            ASSERT_TRUE( ofItem.Serialize( queryNode, serializerSettings ) );
+            CAssetSearchQuery queryBack;
+            ASSERT_TRUE( queryBack.Deserialize( queryNode, serializerSettings ) && 1 == queryBack.sourceItemIds.size() && "not-an-item" == *queryBack.sourceItemIds.begin() );
+
+            // a catalogue that kept the HTML of a store (written before the conversion existed): read as its text
+            CDataTableQuery query;
+            query.WhereEquals( "pack_id", CVariant( bundleId ) );
+            CAssetCatalogue::TRowVector rows;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetCatalogue().Select( "packs", query, rows ) && 1 == rows.size() );
+            if ( 1 == rows.size() )
+            {
+                rows[ 0 ][ "description" ] = CVariant( CString( "<p>Old &amp; <b>stored</b></p><p>row</p>" ) );
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetCatalogue().Write( "packs", rows ) );
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( bundleId, pack ) && "Old & stored\n\nrow" == pack.description );
+            }
+
+            // the pack goes again: the store is left with the packs the other cases count
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.RemovePack( bundleId, true ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     store.Close();
     analyzers.Unregister( "testmodel" );
     UnmountDirectory( fixture.label + "_main" );

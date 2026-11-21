@@ -242,6 +242,51 @@ CAssetOnlineStoreTool::Compute( COM::CMcpRequestContext& context      ,
         return COM::MCP_EXECUTE_COMPLETE;
     }
 
+    if ( "settings_get" == m_name )
+    {
+        // a machine caller: the values that are owner-only-read are not asked for, and it may not change settings
+        CAssetSettingsRequest request;
+        request.caller = "mcp";
+        request.callerName = "MCP tools";
+        request.remoteClient = true;
+        request.fullRead = false;
+        request.mayChange = false;
+        CAssetSettingsDescription description;
+        const TAssetStoreStatus status = service.DescribeSettings( request, description );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            m_context.SetServiceError( result, status, description.message, GUCEF_NULL );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        const CORE::CString group = GetStringArgument( arguments, "group" );
+        const CORE::CString key = GetStringArgument( arguments, "key" );
+        CORE::CDataNode* settings = document.AddChild( "settings", GUCEF_DATATYPE_ARRAY );
+        for ( size_t e=0; e<description.entries.size(); ++e )
+        {
+            const CAssetSettingState& entry = description.entries[ e ];
+            if ( !entry.descriptor.IsPublic() || ( !group.IsNULLOrEmpty() && !group.Equals( entry.descriptor.group, false ) ) ||
+                 ( !key.IsNULLOrEmpty() && key != entry.descriptor.key ) )
+                continue;
+            CORE::CDataNode* setting = settings->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            setting->SetAttribute( "key", entry.descriptor.key );
+            setting->SetAttribute( "group", entry.descriptor.group );
+            setting->SetAttribute( "type", entry.descriptor.type );
+            setting->SetAttribute( "range", entry.descriptor.GetRangeText() );
+            setting->SetAttribute( "default", entry.descriptor.defaultValue );
+            setting->SetAttribute( "unit", entry.descriptor.unit );
+            setting->SetAttribute( "description", entry.descriptor.description );
+            setting->SetAttribute( "applyMode", entry.descriptor.applyMode );
+            setting->SetAttribute( "value", entry.value );
+            if ( entry.hasPendingValue )
+                setting->SetAttribute( "valueAfterRestart", entry.pendingValue );
+            setting->SetAttribute( "source", entry.source );
+        }
+        document.SetAttribute( "changesAllowed", description.changesAllowed );
+        document.SetAttribute( "revision", description.revision );
+        SetStructured( result, document );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+
     if ( "sync_marks" == m_name )
     {
         const CORE::CString storeId = GetStringArgument( arguments, "storeId" );

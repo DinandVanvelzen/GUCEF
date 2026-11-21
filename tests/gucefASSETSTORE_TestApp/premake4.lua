@@ -139,40 +139,40 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 configuration( { "LINUX32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 
 configuration( { "LINUX32" } )
 defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
 
 configuration( { "LINUX64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 configuration( { "LINUX64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 
 configuration( { "LINUX64" } )
 defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
 
 configuration( { "WIN32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 configuration( { "WIN32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 
 configuration( { "WIN32" } )
 defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
 
 configuration( { "WIN64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 configuration( { "WIN64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB", "vfspluginDRN" } )
 
 
 configuration( { "WIN64" } )
@@ -304,6 +304,7 @@ configuration( { "LINUX32" } )
       "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
+      "include/TestAssetStoreShare.h",
       "include/TestAssetStoreSupport.h",
       "include/TestAssetToolsMcp.h",
       "include/TestConversion.h",
@@ -324,8 +325,9 @@ configuration( { "LINUX32" } )
       "include/TestPackIndexDocument.h",
       "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
-      "include/TestRemoteAssetFiles.h",
+      "include/TestRemoteAssetShares.h",
       "include/TestReprocess.h",
+      "include/TestServiceSettings.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -339,6 +341,7 @@ configuration( { "LINUX32" } )
       "src/TestAssetStorePluginLoader.cpp",
       "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
+      "src/TestAssetStoreShare.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
       "src/TestConversion.cpp",
@@ -357,8 +360,9 @@ configuration( { "LINUX32" } )
       "src/TestPackIndexDocument.cpp",
       "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
-      "src/TestRemoteAssetFiles.cpp",
+      "src/TestRemoteAssetShares.cpp",
       "src/TestReprocess.cpp",
+      "src/TestServiceSettings.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -376,6 +380,7 @@ configuration( { "LINUX64" } )
       "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
+      "include/TestAssetStoreShare.h",
       "include/TestAssetStoreSupport.h",
       "include/TestAssetToolsMcp.h",
       "include/TestConversion.h",
@@ -396,8 +401,9 @@ configuration( { "LINUX64" } )
       "include/TestPackIndexDocument.h",
       "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
-      "include/TestRemoteAssetFiles.h",
+      "include/TestRemoteAssetShares.h",
       "include/TestReprocess.h",
+      "include/TestServiceSettings.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -411,6 +417,7 @@ configuration( { "LINUX64" } )
       "src/TestAssetStorePluginLoader.cpp",
       "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
+      "src/TestAssetStoreShare.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
       "src/TestConversion.cpp",
@@ -429,8 +436,9 @@ configuration( { "LINUX64" } )
       "src/TestPackIndexDocument.cpp",
       "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
-      "src/TestRemoteAssetFiles.cpp",
+      "src/TestRemoteAssetShares.cpp",
       "src/TestReprocess.cpp",
+      "src/TestServiceSettings.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -538,6 +546,7 @@ configuration( { "WIN32" } )
       "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
+      "include/TestAssetStoreShare.h",
       "include/TestAssetStoreSupport.h",
       "include/TestAssetToolsMcp.h",
       "include/TestConversion.h",
@@ -558,8 +567,9 @@ configuration( { "WIN32" } )
       "include/TestPackIndexDocument.h",
       "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
-      "include/TestRemoteAssetFiles.h",
+      "include/TestRemoteAssetShares.h",
       "include/TestReprocess.h",
+      "include/TestServiceSettings.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -573,6 +583,7 @@ configuration( { "WIN32" } )
       "src/TestAssetStorePluginLoader.cpp",
       "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
+      "src/TestAssetStoreShare.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
       "src/TestConversion.cpp",
@@ -591,8 +602,9 @@ configuration( { "WIN32" } )
       "src/TestPackIndexDocument.cpp",
       "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
-      "src/TestRemoteAssetFiles.cpp",
+      "src/TestRemoteAssetShares.cpp",
       "src/TestReprocess.cpp",
+      "src/TestServiceSettings.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -610,6 +622,7 @@ configuration( { "WIN64" } )
       "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
+      "include/TestAssetStoreShare.h",
       "include/TestAssetStoreSupport.h",
       "include/TestAssetToolsMcp.h",
       "include/TestConversion.h",
@@ -630,8 +643,9 @@ configuration( { "WIN64" } )
       "include/TestPackIndexDocument.h",
       "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
-      "include/TestRemoteAssetFiles.h",
+      "include/TestRemoteAssetShares.h",
       "include/TestReprocess.h",
+      "include/TestServiceSettings.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -645,6 +659,7 @@ configuration( { "WIN64" } )
       "src/TestAssetStorePluginLoader.cpp",
       "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
+      "src/TestAssetStoreShare.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
       "src/TestConversion.cpp",
@@ -663,8 +678,9 @@ configuration( { "WIN64" } )
       "src/TestPackIndexDocument.cpp",
       "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
-      "src/TestRemoteAssetFiles.cpp",
+      "src/TestRemoteAssetShares.cpp",
       "src/TestReprocess.cpp",
+      "src/TestServiceSettings.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -683,7 +699,7 @@ configuration( { "WINDOWS" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../plugins/VFS/vfspluginDRN/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../dependencies/libpq/src/include", "../../dependencies/libpq/src/interfaces/libpq", "../../dependencies/libpq/src/port", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../plugins/COMCORE/dbpluginPOSTGRESQL/include", "include" } )

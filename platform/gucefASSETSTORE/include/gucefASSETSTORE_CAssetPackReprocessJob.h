@@ -104,6 +104,9 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetPackReprocessJob
     /** What the request would do now, without doing anything */
     TAssetStoreStatus Plan( CAssetServiceDocument& result );
 
+    /** The share of the converter threads of the job and its own thread pool, for the conversions of its steps; 0 and empty: those of the converter */
+    void SetThreadShare( UInt32 threads, const CORE::CString& threadPoolName );
+
     private:
 
     TAssetStoreStatus ResolveScope( const CORE::CString& packId, CORE::CString::StringVector& globs, CORE::CDataNode& scope, CORE::CString& message );
@@ -127,6 +130,8 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetPackReprocessJob
     CORE::CString m_jobId;
     CAssetReprocessRequest m_request;
     CIAssetConversionObserver* m_observer;
+    UInt32 m_threads;
+    CORE::CString m_threadPoolName;
 };
 
 /*-------------------------------------------------------------------------//

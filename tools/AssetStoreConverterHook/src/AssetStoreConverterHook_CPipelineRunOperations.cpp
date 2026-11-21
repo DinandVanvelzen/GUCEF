@@ -104,6 +104,11 @@
 #define ASSETSTORECONVERTERHOOK_CPIPELINELICENCEOPERATIONS_H
 #endif /* ASSETSTORECONVERTERHOOK_CPIPELINELICENCEOPERATIONS_H ? */
 
+#ifndef ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#include "AssetStoreConverterHook_CCookPhaseLock.h"
+#define ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#endif /* ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H ? */
+
 #include "AssetStoreConverterHook_CPipelineRunOperations.h"
 
 /*-------------------------------------------------------------------------//
@@ -136,6 +141,7 @@ class CCallPipelineObserver : public ASSETCONVERTER::CIAssetPipelineObserver
     explicit CCallPipelineObserver( ASSETSTORE::CIAssetConversionObserver* observer )
         : ASSETCONVERTER::CIAssetPipelineObserver()
         , m_observer( observer )
+        , m_cookLock()
     {GUCEF_TRACE;
     }
 
@@ -150,9 +156,16 @@ class CCallPipelineObserver : public ASSETCONVERTER::CIAssetPipelineObserver
             m_observer->OnConversionProgress( done, total, assetPath );
     }
 
+    virtual void OnPhase( ASSETCONVERTER::TPipelinePhase phase ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_cookLock.OnPhase( phase );
+    }
+
     private:
 
     ASSETSTORE::CIAssetConversionObserver* m_observer;
+    CCookPhaseLock m_cookLock;
 };
 
 /** A group of findings of the same source and pattern */

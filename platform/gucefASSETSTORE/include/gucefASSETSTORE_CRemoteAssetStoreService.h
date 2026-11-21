@@ -94,8 +94,9 @@ namespace ASSETSTORE {
  *  - Events of the session become the events of the interface: catalogue changes, jobs, locations, stores, prompts,
  *    thumbnails, notices; a resync or a new session raises CatalogueChangedEvent with RESYNC (drop cached metadata);
  *    the connection's state raises ConnectionStateChangedEvent (CAssetServiceNotice, code: the state).
- *  - Files: ReadFileBlock() reads in blocks of CAssetStoreRemoteContracts::BlockSize in parallel on the bulk link;
- *    WriteUploadBlock() writes the same way; BeginUploadFiles() announces an upload with its digests.
+ *  - Files: WriteUploadBlock() writes in blocks of CAssetStoreRemoteContracts::BlockSize in parallel on the bulk link;
+ *    BeginUploadFiles() announces an upload with its digests. The files of the store are read through the share of the
+ *    service (CRemoteAssetShares).
  *  - Online stores: GetStoreProvider() gives a CRemoteAssetStoreProvider whose library calls go to the service.
  *    Listing pictures are not offered in this version (TryGetListingImage() and RequestListingImage() answer false).
  *  Threading: events and the completion of futures on the notification pulse generator of the configuration (a timer
@@ -172,9 +173,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
     virtual TAssetStoreStatus GetThumbnails( const CORE::CString::StringVector& assetIds, UInt32 size, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus PutThumbnail( const CORE::CString& commandId, const CAssetThumbnail& thumbnail, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetMissingThumbnails( const CORE::CString& rendererId, const CORE::CString& rendererVersion, UInt32 size, UInt32 maxEntries, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual TAssetStoreStatus StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual TAssetStoreStatus ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual TAssetStoreStatus ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus BeginUpload( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus QueryUpload( const CORE::CString& uploadId, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus CommitUpload( const CORE::CString& commandId, const CORE::CString& uploadId, const CAssetIngestRequest& ingest, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
@@ -216,6 +214,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
     virtual TAssetStoreStatus SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus BeginUploadFiles( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus AnswerPrompt( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual CORE::CFutureResult AnswerPromptAsync( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer ) GUCEF_VIRTUAL_OVERRIDE;
@@ -240,7 +241,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
         enum EKind
         {
             KIND_CALL = 0 ,         /**< a generic call: one CallAnswer */
-            KIND_READ ,             /**< ReadFileBlock: Block answers in order */
             KIND_WRITE              /**< WriteUploadBlock: CallAnswer per block */
         };
 
@@ -248,8 +248,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
         CORE::CString operation;
         GUCEF::vector< CORE::CFutureResult > rpcFutures;
         CORE::CFutureResultSource source;
-        CORE::CString vfsPath;                  /**< of a read */
-        UInt64 offset;                          /**< of a read */
         bool decoded;                           /**< the answer is read, it waits for the events before it */
         TAssetStoreStatus status;
         CORE::CString message;
@@ -293,7 +291,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteAssetStoreService : public CIAssetStore
     CORE::CFutureResult Refuse( const CORE::CString& operation, TAssetStoreStatus status, const CORE::CString& message );
 
     CORE::CFutureResult Track( SPendingCall* pending );
-    CORE::CFutureResult ReadBlocksAsync( const CAssetServiceCall& call );
     bool IsPumpingThread( void ) const;
     UInt32 GetFilesChannel( void ) const;
     COMCORE::CRpcCallOptions MakeOptions( bool idempotent ) const;

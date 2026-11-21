@@ -59,6 +59,8 @@ CAssetIngestRequest::CAssetIngestRequest( void )
     , syncJobId()
     , verifyPackId()
     , repairOriginals( false )
+    , conversionThreads( 0 )
+    , conversionThreadPoolName()
 {GUCEF_TRACE;
 
 }

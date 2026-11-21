@@ -102,6 +102,21 @@
 #define GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
 #endif /* GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETSHAREDECISION_H
+#include "gucefASSETSTORE_CAssetShareDecision.h"
+#define GUCEF_ASSETSTORE_CASSETSHAREDECISION_H
+#endif /* GUCEF_ASSETSTORE_CASSETSHAREDECISION_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSHAREPROVIDER_H
+#include "gucefASSETSTORE_CAssetShareProvider.h"
+#define GUCEF_ASSETSTORE_CASSETSHAREPROVIDER_H
+#endif /* GUCEF_ASSETSTORE_CASSETSHAREPROVIDER_H ? */
+
+#ifndef GUCEF_DRN_CDRNRESOURCENAME_H
+#include "gucefDRN_CDRNResourceName.h"
+#define GUCEF_DRN_CDRNRESOURCENAME_H
+#endif /* GUCEF_DRN_CDRNRESOURCENAME_H ? */
+
 #include "gucefASSETSTORE_CAssetStoreServiceHost.h"
 
 /*-------------------------------------------------------------------------//
@@ -196,6 +211,9 @@ CAssetStoreServiceHost::CAssetStoreServiceHost( DRNUTILS::CRemoteServiceHost& ho
     , m_staging()
     , m_stagingMountName()
     , m_uploadIndexes()
+    , m_shareDecision( GUCEF_NULL )
+    , m_shares()
+    , m_shareLock()
     , m_jobs()
     , m_inFlight()
     , m_timer( host.GetPulseGenerator(), 100 )
@@ -205,7 +223,6 @@ CAssetStoreServiceHost::CAssetStoreServiceHost( DRNUTILS::CRemoteServiceHost& ho
     , m_commandCount( 0 )
     , m_replays( 0 )
     , m_refusals( 0 )
-    , m_bytesRead( 0 )
     , m_bytesWritten( 0 )
     , m_eventsPublished( 0 )
     , m_lastExpiryMs( 0 )
@@ -221,7 +238,6 @@ CAssetStoreServiceHost::CAssetStoreServiceHost( DRNUTILS::CRemoteServiceHost& ho
     m_serviceImpl.BindMethod( "Secret", GUCEF_NEW THandler( this, &CAssetStoreServiceHost::OnSecret ) );
     m_filesImpl.BindMethod( "Query", GUCEF_NEW THandler( this, &CAssetStoreServiceHost::OnFilesQuery ) );
     m_filesImpl.BindMethod( "Command", GUCEF_NEW THandler( this, &CAssetStoreServiceHost::OnFilesCommand ) );
-    m_filesImpl.BindMethod( "ReadBlock", GUCEF_NEW THandler( this, &CAssetStoreServiceHost::OnReadBlock ) );
     m_filesImpl.BindMethod( "WriteBlock", GUCEF_NEW THandler( this, &CAssetStoreServiceHost::OnWriteBlock ) );
     // a mount name of its own per binding (several hosts in one process, tests)
     m_stagingMountName = "AssetStoreServiceStaging" + CORE::ToString( (UInt64) (size_t) this );
@@ -347,6 +363,7 @@ CAssetStoreServiceHost::Attach( CORE::CString& error )
     SubscribeTo( service, CIAssetStoreService::SignInPromptClosedEvent, onEvent );
     SubscribeTo( service, CIAssetStoreService::ThumbnailUpdatedEvent, onEvent );
     SubscribeTo( service, CIAssetStoreService::NoticeEvent, onEvent );
+    SubscribeTo( service, CIAssetStoreService::SettingsChangedEvent, onEvent );
     CORE::PulseGeneratorPtr pulse = m_host.GetPulseGenerator();
     if ( !pulse.IsNULL() )
     {
@@ -357,6 +374,13 @@ CAssetStoreServiceHost::Attach( CORE::CString& error )
     SubscribeTo( &m_timer, CORE::CTimer::TimerUpdateEvent, onTimer );
     m_timer.SetEnabled( true );
     m_attached = true;
+
+    // the files as a share of the session of the host
+    if ( !m_settings.shareName.IsNULLOrEmpty() )
+    {
+        m_shareDecision = GUCEF_NEW CAssetShareDecision( m_service, m_fileGate, m_settings.learningRoles );
+        UpdateShares();
+    }
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: serving the " << m_service->GetType() << " asset store service to the devices with the roles "
                << rolesCsv << ( m_stagingOpen ? ", uploads staged in " + m_settings.stagingDirectory : CORE::CString( ", no uploads" ) ) );
     return true;
@@ -370,6 +394,7 @@ CAssetStoreServiceHost::Detach( void )
 
     m_timer.SetEnabled( false );
     UnsubscribeAllFromObserver();
+    RemoveShares();
     // the implementations of the services are members: no call may reach them once this binding goes, also not one
     // that arrived before and waits in the thread pool. Unregistering waits for the handlers under way
     COMCORE::CRpcServiceSetPtr services = m_host.GetServiceSet();
@@ -567,8 +592,9 @@ CAssetStoreServiceHost::RememberCommand( const DRNUTILS::CRemoteServicePrincipal
                                          TAssetStoreStatus status, const CORE::CString& message, const CORE::CICloneable* result )
 {GUCEF_TRACE;
 
-    // refusals that changed nothing are not kept: a repeat may succeed
-    if ( !CIAssetStoreService::IsOutcomeStatus( operation, status ) )
+    // refusals that changed nothing are not kept: a repeat may succeed (a change of the settings ends with its record also when it is refused)
+    if ( !CIAssetStoreService::IsOutcomeStatus( operation, status ) ||
+         ( ASSETSTORE_STATUS_OK != status && ( CAssetServiceOperations::SetSettings == operation || CAssetServiceOperations::ResetSettings == operation ) ) )
         return;
     DRNUTILS::CCommandOutcomeCache::SOutcome outcome;
     DRNUTILS::CCommandOutcomeCache::MakeOutcome( COMCORE::CRpcStatus::Ok, &answer, outcome );
@@ -650,13 +676,21 @@ CAssetStoreServiceHost::HandleCall( COMCORE::CRpcServerCall& call, bool isComman
             call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, reprocessRefusal ) );
             return COMCORE::RPC_HANDLER_DONE;
         }
+        const CORE::CString settingsRefusal = PrepareSettingsCall( principal, serviceCall );
+        if ( !settingsRefusal.IsNULLOrEmpty() )
+        {
+            ++m_refusals;
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: " << operation << " refused for the device " << principal.deviceId << ": " << settingsRefusal );
+            call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, settingsRefusal ) );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
     }
     const bool known = CAssetServiceOperations::IsKnown( operation );
     const bool mutation = CAssetServiceOperations::IsMutation( operation );
     if ( !known || mutation != isCommand || CAssetStoreRemoteContracts::IsFilesOperation( operation ) != filesContract ||
          CAssetServiceOperations::AnswerPrompt == operation || CAssetServiceOperations::UnlockKeyring == operation ||
          CAssetServiceOperations::ImportWebSession == operation ||
-         CAssetServiceOperations::ReadFileBlock == operation || CAssetServiceOperations::WriteUploadBlock == operation )
+         CAssetServiceOperations::WriteUploadBlock == operation )
     {
         ++m_refusals;
         call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_INVALID_ARGUMENT, known ? "the operation \"" + operation + "\" is not called this way"
@@ -775,57 +809,6 @@ CAssetStoreServiceHost::OnSecret( COMCORE::CRpcServerCall& call )
     WaitForEventBarrier();
     COMCORE::CRpcMessage answer = call.NewResponse();
     CAssetStoreRemoteCodec::FillAnswer( answer, status, result.message, &result, GetNextEventSeq( principal ), false );
-    call.Reply( answer );
-    return COMCORE::RPC_HANDLER_DONE;
-}
-
-/*-------------------------------------------------------------------------*/
-
-COMCORE::TRpcHandlerResult
-CAssetStoreServiceHost::OnReadBlock( COMCORE::CRpcServerCall& call )
-{GUCEF_TRACE;
-
-    CRunningScope running( m_running );
-    DRNUTILS::CRemoteServicePrincipal principal;
-    if ( !m_host.GetCallPrincipal( call, principal ) )
-    {
-        ++m_refusals;
-        call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, CORE::CString( DRNUTILS::CRemoteServiceDetailCodes::DeviceUnknown ) + ": not an active paired device" ) );
-        return COMCORE::RPC_HANDLER_DONE;
-    }
-    const COMCORE::CRpcMessage& request = call.GetRequest();
-    const CORE::CString path = request.GetString( CAssetStoreRemoteContracts::ReadPathField );
-    const UInt64 offset = request.GetUInt64( CAssetStoreRemoteContracts::ReadOffsetField );
-    UInt32 length = request.GetUInt32( CAssetStoreRemoteContracts::ReadLengthField );
-    if ( length > m_settings.maxReadBlockBytes )
-        length = m_settings.maxReadBlockBytes;
-    CAssetFileBlock block;
-    TAssetStoreStatus status = ASSETSTORE_STATUS_OK;
-    CORE::CString denial;
-    const CAssetFileServingGate::SCaller gateCaller = MakeGateCaller( principal );
-    if ( gateCaller.NeedsLook() && CAssetFileServingGate::ALLOWED != m_fileGate.CheckFile( gateCaller, path, denial ) )
-    {
-        // the licence gate: the blocks of a file are for the owner devices; the machine role sees metadata only
-        ++m_refusals;
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: a read of " << path << " is refused for the device " << principal.deviceId << ": " << denial );
-        status = ASSETSTORE_STATUS_REFUSED;
-    }
-    else
-        status = m_service->ReadFileBlock( path, offset, length, block );
-    COMCORE::CRpcMessage answer = call.NewResponse();
-    answer.SetString( CAssetStoreRemoteContracts::BlockStatusField, AssetStoreStatusToString( status ) );
-    if ( ASSETSTORE_STATUS_OK == status )
-    {
-        answer.SetUInt64( CAssetStoreRemoteContracts::BlockFileSizeField, block.fileSize );
-        answer.SetBool( CAssetStoreRemoteContracts::BlockEndOfFileField, block.endOfFile );
-        answer.SetUInt64( CAssetStoreRemoteContracts::BlockOffsetField, block.offset );
-        answer.SetBytes( CAssetStoreRemoteContracts::BlockDataField, block.data );
-        m_bytesRead.FetchAdd( block.data.GetDataSize() );
-    }
-    else
-    {
-        answer.SetString( CAssetStoreRemoteContracts::BlockMessageField, denial.IsNULLOrEmpty() ? "the block of " + path + " cannot be read: " + AssetStoreStatusToString( status ) : denial );
-    }
     call.Reply( answer );
     return COMCORE::RPC_HANDLER_DONE;
 }
@@ -1170,16 +1153,215 @@ CAssetStoreServiceHost::PrepareReprocessCall( const DRNUTILS::CRemoteServicePrin
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CAssetStoreServiceHost::PrepareSettingsCall( const DRNUTILS::CRemoteServicePrincipal& principal, CAssetServiceCall& call )
+{GUCEF_TRACE;
+
+    typedef CAssetServiceOperations Op;
+    const CORE::CString& operation = call.operation;
+    const bool changer = principal.HasRole( "owner" ) && !principal.HasRole( "mcp" );
+    if ( Op::GetAuditRecords == operation )
+        return changer ? CORE::CString::Empty : CORE::CString( "the audit records are for the devices with the owner role" );
+    if ( Op::DescribeSettings != operation && Op::SetSettings != operation && Op::ResetSettings != operation )
+        return CORE::CString::Empty;
+    CAssetSettingsRequest request;
+    call.GetRecord( "request", request );
+    request.SetRemoteCaller( principal.deviceId, principal.deviceName, changer, changer );
+    call.SetRecord( "request", request );
+    if ( Op::DescribeSettings == operation || changer )
+        return CORE::CString::Empty;
+    const CORE::CString refusal = "the settings of the service are changed by the devices with the owner role";
+    m_service->AuditSettingsRefusal( request, operation, refusal );
+    return refusal;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CAssetFileServingGate::SCaller
 CAssetStoreServiceHost::MakeGateCaller( const DRNUTILS::CRemoteServicePrincipal& principal ) const
 {GUCEF_TRACE;
 
-    CAssetFileServingGate::SCaller caller;
-    caller.deviceId = principal.deviceId;
-    caller.owner = principal.HasRole( "owner" );
-    caller.mcp = principal.HasRole( "mcp" );
-    caller.learning = IsLearningPrincipal( principal );
-    return caller;
+    return CAssetShareDecision::MakeCaller( principal.deviceId, principal.roles, m_settings.learningRoles );
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** A VFS path with '/' separators and no separator at either end */
+CORE::CString
+CleanVfsRoot( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    CORE::CString root = path.ReplaceChar( '\\', '/' );
+    while ( root.Length() > 0 && '/' == root[ root.Length() - 1 ] )
+        root = root.CutChars( 1, false );
+    while ( root.Length() > 0 && '/' == root[ 0 ] )
+        root = root.CutChars( 1, true );
+    return root;
+}
+
+/** The folders that every one of the roots lies in or is: the longest common part, by whole folder names, empty when there is none */
+CORE::CString
+CommonVfsRoot( const CORE::CString::StringVector& roots )
+{GUCEF_TRACE;
+
+    if ( roots.empty() )
+        return CORE::CString::Empty;
+    CORE::CString::StringVector common = roots[ 0 ].ParseElements( '/', false );
+    for ( size_t r=1; r<roots.size(); ++r )
+    {
+        const CORE::CString::StringVector parts = roots[ r ].ParseElements( '/', false );
+        size_t same = 0;
+        while ( same < common.size() && same < parts.size() && common[ same ] == parts[ same ] )
+            ++same;
+        common.resize( same );
+    }
+    CORE::CString root;
+    for ( size_t i=0; i<common.size(); ++i )
+        root += ( i > 0 ? CORE::CString( "/" ) : CORE::CString::Empty ) + common[ i ];
+    return root;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetStoreServiceHost::UpdateShares( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_shareDecision || m_service.IsNULL() )
+        return;
+
+    // what the service says now: where its locations are and whether they are reachable
+    CAssetLocationPage page;
+    if ( ASSETSTORE_STATUS_OK != m_service->GetLocations( page ) )
+        return;
+    CORE::CString::StringVector roots;
+    CORE::CString::StringVector onlineIds;
+    GUCEF::map< CORE::CString, CORE::CString > rootOfId;
+    bool anyOnline = false;
+    for ( size_t l=0; l<page.entries.size(); ++l )
+    {
+        const CORE::CString root = CleanVfsRoot( page.entries[ l ].location.vfsRoot );
+        if ( root.IsNULLOrEmpty() )
+            continue;
+        roots.push_back( root );
+        rootOfId[ page.entries[ l ].location.locationId ] = root;
+        if ( page.entries[ l ].online )
+        {
+            anyOnline = true;
+            onlineIds.push_back( page.entries[ l ].location.locationId );
+        }
+    }
+
+    // one share of the common folder of the roots when they have one, else a share per reachable location under the name of its id
+    GUCEF::map< CORE::CString, CORE::CString > wanted;
+    const CORE::CString common = CommonVfsRoot( roots );
+    if ( !common.IsNULLOrEmpty() )
+    {
+        if ( anyOnline )
+            wanted[ m_settings.shareName ] = common;
+    }
+    else
+    {
+        for ( size_t i=0; i<onlineIds.size(); ++i )
+        {
+            if ( !DRN::CDRNResourceName::IsValidProviderName( onlineIds[ i ] ) )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: the location " << onlineIds[ i ] << " cannot be shared: its id is no share name" );
+                continue;
+            }
+            wanted[ onlineIds[ i ] ] = rootOfId[ onlineIds[ i ] ];
+        }
+    }
+
+    MT::CScopeMutex lock( m_shareLock );
+    GUCEF::map< CORE::CString, CORE::CString >::iterator have = m_shares.begin();
+    while ( have != m_shares.end() )
+    {
+        GUCEF::map< CORE::CString, CORE::CString >::const_iterator want = wanted.find( (*have).first );
+        if ( want != wanted.end() && (*want).second == (*have).second )
+        {
+            ++have;
+            continue;
+        }
+        m_host.UnregisterShare( (*have).first );
+        m_shareDecision->RemoveShareRoot( (*have).first );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: the share " << (*have).first << " is no longer served" );
+        m_shares.erase( have++ );
+    }
+    for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator want = wanted.begin(); want != wanted.end(); ++want )
+    {
+        if ( m_shares.find( (*want).first ) != m_shares.end() )
+            continue;
+        m_shareDecision->SetShareRoot( (*want).first, (*want).second );
+        DRN::CIDRNResourceProviderPtr provider( GUCEF_NEW CAssetShareProvider( (*want).second, m_service, m_shareDecision ) );
+        CORE::CString error;
+        if ( !m_host.RegisterShare( (*want).first, provider, m_settings.roles, m_shareDecision, error ) )
+        {
+            m_shareDecision->RemoveShareRoot( (*want).first );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "AssetStoreServiceHost: the share " << (*want).first << " cannot be served: " << error );
+            continue;
+        }
+        m_shares[ (*want).first ] = (*want).second;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: serving " << (*want).second << " as the share " << (*want).first );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetStoreServiceHost::RemoveShares( void )
+{GUCEF_TRACE;
+
+    CAssetShareDecision* decision = GUCEF_NULL;
+    {
+        MT::CScopeMutex lock( m_shareLock );
+        for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator i = m_shares.begin(); i != m_shares.end(); ++i )
+            m_host.UnregisterShare( (*i).first );
+        m_shares.clear();
+        decision = m_shareDecision;
+        m_shareDecision = GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != decision )
+    {
+        decision->Shutdown( 30000 );
+        GUCEF_DELETE decision;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetStoreServiceHost::GetShareNames( CORE::CString::StringVector& names ) const
+{GUCEF_TRACE;
+
+    names.clear();
+    MT::CScopeMutex lock( m_shareLock );
+    for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator i = m_shares.begin(); i != m_shares.end(); ++i )
+        names.push_back( (*i).first );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetStoreServiceHost::GetShareRoot( const CORE::CString& share ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    GUCEF::map< CORE::CString, CORE::CString >::const_iterator i = m_shares.find( share );
+    return i == m_shares.end() ? CORE::CString::Empty : (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAssetShareDecision*
+CAssetStoreServiceHost::GetShareDecision( void ) const
+{GUCEF_TRACE;
+
+    return m_shareDecision;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1466,7 +1648,10 @@ CAssetStoreServiceHost::OnServiceEvent( CORE::CNotifier* notifier, const CORE::C
     }
     // the record of each event by the type its event id fixes (checked by type name, no RTTI)
     if ( CIAssetStoreService::LocationStateChangedEvent == eventId )
+    {
+        UpdateShares();
         Publish( CAssetStoreRemoteContracts::EventLocationState, CORE::CICloneable::CloneableAs< CAssetLocationInfo >( eventData ), ids, 0 );
+    }
     else if ( CIAssetStoreService::StoreStateChangedEvent == eventId )
         Publish( CAssetStoreRemoteContracts::EventStoreState, CORE::CICloneable::CloneableAs< CAssetStoreInfo >( eventData ), ids, 0 );
     else if ( CIAssetStoreService::StoresChangedEvent == eventId )
@@ -1479,6 +1664,8 @@ CAssetStoreServiceHost::OnServiceEvent( CORE::CNotifier* notifier, const CORE::C
         Publish( CAssetStoreRemoteContracts::EventThumbnailUpdated, CORE::CICloneable::CloneableAs< CAssetThumbnail >( eventData ), ids, 0 );
     else if ( CIAssetStoreService::NoticeEvent == eventId )
         Publish( CAssetStoreRemoteContracts::EventServiceNotice, CORE::CICloneable::CloneableAs< CAssetServiceNotice >( eventData ), ids, 0 );
+    else if ( CIAssetStoreService::SettingsChangedEvent == eventId )
+        Publish( CAssetStoreRemoteContracts::EventSettingsChanged, CORE::CICloneable::CloneableAs< CAssetSettingsChangeResult >( eventData ), ids, 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1540,7 +1727,6 @@ CAssetStoreServiceHost::GetInfo( CORE::CValueList& info ) const
     info.Set( "assetstore.replays", CORE::CVariant( m_replays.Load() ) );
     info.Set( "assetstore.refusals", CORE::CVariant( m_refusals.Load() ) );
     info.Set( "assetstore.running", CORE::CVariant( m_running.Load() ) );
-    info.Set( "assetstore.bytesRead", CORE::CVariant( m_bytesRead.Load() ) );
     info.Set( "assetstore.bytesWritten", CORE::CVariant( m_bytesWritten.Load() ) );
     info.Set( "assetstore.events", CORE::CVariant( m_eventsPublished.Load() ) );
     if ( m_stagingOpen )

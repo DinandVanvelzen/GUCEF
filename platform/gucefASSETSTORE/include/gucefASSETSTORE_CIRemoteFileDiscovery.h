@@ -44,7 +44,7 @@
 namespace GUCEF {
 namespace ASSETSTORE {
 
-class CRemoteAssetFileSystem;
+class CIRemoteFileSource;
 class CAssetFileSet;
 
 /*-------------------------------------------------------------------------//
@@ -66,7 +66,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIRemoteFileDiscovery
     virtual ~CIRemoteFileDiscovery() {}
 
     /** Adds the paths of the service (as the service has them) of the files that are needed as well */
-    virtual void Discover( CRemoteAssetFileSystem& system, CORE::CString::StringVector& servicePaths ) = 0;
+    virtual void Discover( CIRemoteFileSource& system, CORE::CString::StringVector& servicePaths ) = 0;
 
     /**
      *  The file set of an asset that the transfer added (CRemoteFileTransfer::AddAsset()), before Discover() is asked: a discovery

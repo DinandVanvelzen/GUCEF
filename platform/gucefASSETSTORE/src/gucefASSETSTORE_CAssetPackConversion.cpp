@@ -227,6 +227,8 @@ CAssetPackConversion::CAssetPackConversion( CPrimaryAssetStore& store, const COR
     , m_observer( GUCEF_NULL )
     , m_notifyEvents( true )
     , m_removeOriginals( true )
+    , m_threads( 0 )
+    , m_threadPoolName()
     , m_store( store )
     , m_cancel( cancel )
 {GUCEF_TRACE;
@@ -314,6 +316,16 @@ CAssetPackConversion::IsCancelRequested( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NULL != m_cancel && m_cancel->IsCancellationRequested();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetPackConversion::SetThreadShare( UInt32 threads, const CORE::CString& threadPoolName )
+{GUCEF_TRACE;
+
+    m_threads = threads;
+    m_threadPoolName = threadPoolName;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -592,6 +604,8 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
     CStoredPackObserver observer( m_store, outcome.jobId, packId, m_cancel );
     request.observer = GUCEF_NULL != m_observer ? m_observer : &observer;
     request.reconvert = false;
+    request.maxThreads = m_threads;
+    request.threadPoolName = m_threadPoolName;
     {
         CORE::CString prepareMessage;
         const TAssetStoreStatus prepared = OnPrepare( pack, assets, locationRoot, request, prepareMessage );

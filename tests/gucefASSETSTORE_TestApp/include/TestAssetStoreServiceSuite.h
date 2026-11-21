@@ -850,57 +850,11 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
-    GUCEF_TESTFW_TESTCASE( ( label + " service: files of the service by path: their kind, size and digest, a folder listing and blocks of a file" ).C_String() )
-        try
-        {
-            CAssetFileSet files;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetAssetFileSet( swordId, files ) );
-            CString::StringVector paths;
-            paths.push_back( files.mainVfsPath );
-            paths.push_back( base + "/main" );
-            paths.push_back( base + "/main/nothing.bin" );
-            CAssetFileStatPage stats;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StatFiles( paths, stats ) && 3 == stats.entries.size() );
-            ASSERT_TRUE( "file" == stats.entries[ 0 ].role && "directory" == stats.entries[ 1 ].role && "missing" == stats.entries[ 2 ].role );
-            ASSERT_TRUE( !files.files.empty() && stats.entries[ 0 ].digest == files.files[ 0 ].digest && stats.entries[ 0 ].sizeBytes == files.files[ 0 ].sizeBytes );
-            const Int32 slash = files.mainVfsPath.HasChar( '/', false );
-            const CString folder = slash > 0 ? files.mainVfsPath.SubstrToIndex( (UInt32) slash, true ) : CString::Empty;
-            CAssetFileStatPage listing;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ListDirectory( folder, CString::Empty, 0, listing ) && listing.entries.size() >= 2 );
-            CAssetFileBlock block;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, 0, 9, block ) && 9 == block.data.GetDataSize() && !block.endOfFile );
-            ASSERT_TRUE( 0 == memcmp( block.data.GetConstBufferPtr(), "triangles", 9 ) );
-            CAssetFileBlock rest;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, 10, 1024, rest ) && rest.endOfFile && rest.fileSize == (UInt64) stats.entries[ 0 ].sizeBytes );
-            CAssetFileBlock beyond;
-            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.ReadFileBlock( files.mainVfsPath, rest.fileSize + 1, 16, beyond ) );
-            CFutureResult future = service.StatFilesAsync( paths );
-            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, future ) );
-            CAssetFileStatPage asyncStats;
-            ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( future, asyncStats ) && 3 == asyncStats.entries.size() && asyncStats.entries[ 0 ].digest == stats.entries[ 0 ].digest );
-        }
-        catch ( ... )
-        {
-            ERRORHERE;
-        }
-    GUCEF_TESTFW_TESTCASE_END;
-
-    GUCEF_TESTFW_TESTCASE( ( label + " service: reads of a file by range (the end, beyond the end) and the stored thumbnails: put, found by the digest of the content and the size, read as a file of the service" ).C_String() )
+    GUCEF_TESTFW_TESTCASE( ( label + " service: the stored thumbnails: put, found by the digest of the content and the size, the picture is a file of the service" ).C_String() )
         try
         {
             CAssetFileSet files;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetAssetFileSet( swordId, files ) && !files.files.empty() );
-            const UInt64 size = (UInt64) files.files[ 0 ].sizeBytes;
-            CAssetFileBlock whole;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, 0, (UInt32) size, whole ) && whole.endOfFile && size == whole.data.GetDataSize() && size == whole.fileSize );
-            ASSERT_TRUE( Sha256Of( whole.data ) == files.files[ 0 ].digest );
-            CAssetFileBlock tail;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, size - 3, 100, tail ) && tail.endOfFile && 3 == tail.data.GetDataSize() && size - 3 == tail.offset );
-            CAssetFileBlock atEnd;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, size, 16, atEnd ) && atEnd.endOfFile && 0 == atEnd.data.GetDataSize() );
-            CAssetFileBlock none;
-            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.ReadFileBlock( base + "/main/nothing.bin", 0, 16, none ) );
-
             CString::StringVector ids;
             ids.push_back( swordId );
             ids.push_back( "pack:" + packAId );
@@ -925,8 +879,8 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 64, page ) && ASSETSTORE_STATUS_OK == page.entries[ 0 ].status && 96 == page.entries[ 0 ].key.size );
             ASSERT_TRUE( "suite" == page.entries[ 0 ].key.rendererId && "2" == page.entries[ 0 ].key.rendererVersion && files.files[ 0 ].digest == page.entries[ 0 ].key.digest );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 16, page ) && 32 == page.entries[ 0 ].key.size );
-            CAssetFileBlock picture;
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( page.entries[ 0 ].vfsPath, 0, 1048576, picture ) && picture.endOfFile && Sha256Of( picture.data ) == Sha256Of( png32 ) );
+            CDynamicBuffer picture;
+            ASSERT_TRUE( ReadVfsFile( page.entries[ 0 ].vfsPath, picture ) && Sha256Of( picture ) == Sha256Of( png32 ) );
             CFutureResult future = service.GetThumbnailsAsync( ids, 96 );
             ASSERT_TRUE( ServiceSuiteWaitForFuture( target, future ) );
             CAssetThumbnailPage asyncPage;

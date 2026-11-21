@@ -132,6 +132,11 @@
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
 #endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H ? */
 
+#ifndef GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#include "gucefWEB_CHtmlTextExtractor.h"
+#define GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#endif /* GUCEF_WEB_CHTMLTEXTEXTRACTOR_H ? */
+
 #include "gucefASSETSTORE_CPrimaryAssetStore.h"
 
 /*-------------------------------------------------------------------------//
@@ -2343,7 +2348,8 @@ CPrimaryAssetStore::PackFromRow( const CAssetCatalogue::TRow& row )
     pack.sourceUrl = CAssetCatalogue::GetText( row, "source_url" );
     pack.title = CAssetCatalogue::GetText( row, "title" );
     pack.seller = CAssetCatalogue::GetText( row, "seller" );
-    pack.description = CAssetCatalogue::GetText( row, "description" );
+    // a row of a catalogue that kept the HTML of the store: read as its text
+    pack.description = WEB::CHtmlTextExtractor::ToPlainTextIfHtml( CAssetCatalogue::GetText( row, "description" ) );
     pack.sourceCategories = CAssetCatalogue::SplitLines( CAssetCatalogue::GetText( row, "source_categories" ) );
     pack.sourceTags = CAssetCatalogue::SplitLines( CAssetCatalogue::GetText( row, "source_tags" ) );
     pack.categories = CAssetCatalogue::SplitSet( CAssetCatalogue::GetText( row, "categories" ) );
@@ -2794,6 +2800,45 @@ CPrimaryAssetStore::GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const
     if ( secondSlash > 0 )
         folder = folder.SubstrFromRange( 0, (UInt32) secondSlash );
     return folder.IsNULLOrEmpty() ? CORE::CString::Empty : root + "/" + folder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPrimaryAssetStore::GetFilesOfPackFolder( const CORE::CString& packFolder, GUCEF::vector< CAssetFileRecord >& files ) const
+{GUCEF_TRACE;
+
+    files.clear();
+    const CORE::CString locationId = FindLocationOfVfsPath( packFolder );
+    if ( locationId.IsNULLOrEmpty() )
+        return false;
+    const CORE::CString root = GetLocationRoot( locationId );
+    const CORE::CString folder = NormalizeVfsPath( packFolder );
+    if ( folder.Length() <= root.Length() + 1 )
+        return false;
+    CORE::CDataTableQuery packQuery;
+    packQuery.WhereEquals( "location_id", CORE::CVariant( locationId ) );
+    packQuery.WhereEquals( "root_path", CORE::CVariant( CPackStorageLayout::MakeRootPath( folder.CutChars( root.Length() + 1, true ) ) ) );
+    CAssetCatalogue::TRowVector packs;
+    if ( ASSETSTORE_STATUS_OK != m_catalogue.Select( "packs", packQuery, packs ) || packs.empty() )
+        return false;
+    const CPackStorageLayout layout( CAssetCatalogue::GetText( packs[ 0 ], "root_path" ) );
+    CORE::CDataTableQuery fileQuery;
+    fileQuery.WhereEquals( "pack_id", CORE::CVariant( CAssetCatalogue::GetText( packs[ 0 ], "pack_id" ) ) );
+    CAssetCatalogue::TRowVector rows;
+    if ( ASSETSTORE_STATUS_OK != m_catalogue.Select( "asset_files", fileQuery, rows ) )
+        return false;
+    files.reserve( rows.size() );
+    for ( size_t r=0; r<rows.size(); ++r )
+    {
+        CAssetFileRecord file;
+        file.path = layout.Resolve( root, CAssetCatalogue::GetText( rows[ r ], "path" ) );
+        file.sizeBytes = CAssetCatalogue::GetInt( rows[ r ], "size_bytes" );
+        file.digest = CAssetCatalogue::GetText( rows[ r ], "digest" );
+        file.role = CAssetCatalogue::GetText( rows[ r ], "role" );
+        files.push_back( file );
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

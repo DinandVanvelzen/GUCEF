@@ -16,6 +16,7 @@ set( HEADER_FILES
   include/AssetStoreConverterHook_CConverterHookSettings.h
   include/AssetStoreConverterHook_CConverterLicenceDecision.h
   include/AssetStoreConverterHook_CConverterPack.h
+  include/AssetStoreConverterHook_CCookPhaseLock.h
   include/AssetStoreConverterHook_CLicenceRecordBuilder.h
   include/AssetStoreConverterHook_CModule.h
   include/AssetStoreConverterHook_CPackIndexOperations.h
@@ -42,6 +43,7 @@ set( SOURCE_FILES
   src/AssetStoreConverterHook_CConverterHookSettings.cpp
   src/AssetStoreConverterHook_CConverterLicenceDecision.cpp
   src/AssetStoreConverterHook_CConverterPack.cpp
+  src/AssetStoreConverterHook_CCookPhaseLock.cpp
   src/AssetStoreConverterHook_CLicenceRecordBuilder.cpp
   src/AssetStoreConverterHook_CModule.cpp
   src/AssetStoreConverterHook_CPackIndexOperations.cpp

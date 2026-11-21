@@ -65,9 +65,11 @@
 #include "TestAssetStoreService.h"
 #include "TestAssetToolsMcp.h"
 #include "TestAssetStoreRemoteService.h"
-#include "TestRemoteAssetFiles.h"
+#include "TestRemoteAssetShares.h"
+#include "TestAssetStoreShare.h"
 #include "TestAssetStorePluginLoader.h"
 #include "TestLibrarySync.h"
+#include "TestServiceSettings.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -105,14 +107,23 @@ GUCEF_OSMAIN_BEGIN
         ASSETSTORETEST::SetUpTestEnvironment();
 
         // GUCEF_TEST_ASSETTOOLS_ONLY=1 runs the suites of the asset tool set only (repeated runs of those suites);
-        // GUCEF_TEST_ASSETSTORE_REMOTE_ONLY=1 the suites of the remote service, =faults its fault suite, =live its live smoke suite
+        // GUCEF_TEST_ASSETSTORE_REMOTE_ONLY=1 the suites of the remote service, =faults its fault suite, =share the share of the files through the DRN resource facility, =live its live smoke suite
         const char* toolsOnly = ::getenv( "GUCEF_TEST_ASSETTOOLS_ONLY" );
         const char* remoteOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_REMOTE_ONLY" );
         // GUCEF_TEST_ASSETSTORE_SYNC_ONLY=1 runs the suites of the library sync only
         const char* syncOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_SYNC_ONLY" );
         // GUCEF_TEST_ASSETSTORE_REPROCESS_ONLY=1 runs the suites of the reprocessing of packs only
         const char* reprocessOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_REPROCESS_ONLY" );
+        // GUCEF_TEST_ASSETSTORE_SETTINGS_ONLY=1 runs the suites of the run-time settings of the service only
+        const char* settingsOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_SETTINGS_ONLY" );
         const CORE::CString remoteSelection = GUCEF_NULL != remoteOnly ? CORE::CString( remoteOnly ) : CORE::CString::Empty;
+        if ( GUCEF_NULL != settingsOnly && '1' == settingsOnly[ 0 ] )
+        {
+            PerformServiceSettingsUnitTests();
+            PerformServiceSettingsVfsTablesTests();
+            PerformServiceSettingsPostgreSqlTests();
+        }
+        else
         if ( GUCEF_NULL != reprocessOnly && '1' == reprocessOnly[ 0 ] )
         {
             PerformReprocessVfsTablesTests();
@@ -131,6 +142,16 @@ GUCEF_OSMAIN_BEGIN
             PerformAssetStoreRemoteLiveSmokeTests();
         }
         else
+        if ( "share" == remoteSelection )
+        {
+            PerformAssetStoreShareTests();
+        }
+        else
+        if ( "shares" == remoteSelection )
+        {
+            PerformAssetStoreRemoteSharesTests();
+        }
+        else
         if ( "faults" == remoteSelection )
         {
             PerformAssetStoreRemoteFaultTests();
@@ -139,9 +160,8 @@ GUCEF_OSMAIN_BEGIN
         else
         if ( "files" == remoteSelection )
         {
-            PerformAssetStoreBlockCacheTests();
-            PerformAssetStoreRemoteFilesTests();
-            PerformAssetStoreRemoteFilesGateTests();
+            PerformAssetStoreRemoteSharesTests();
+            PerformAssetStoreShareTests();
         }
         else
         if ( "1" == remoteSelection )
@@ -151,9 +171,8 @@ GUCEF_OSMAIN_BEGIN
             PerformAssetStoreRemoteServicePostgreSqlTests();
             PerformAssetStoreRemoteFaultTests();
             PerformAssetStoreRemoteSignInRoleTests();
-            PerformAssetStoreBlockCacheTests();
-            PerformAssetStoreRemoteFilesTests();
-            PerformAssetStoreRemoteFilesGateTests();
+            PerformAssetStoreRemoteSharesTests();
+            PerformAssetStoreShareTests();
             PerformAssetStoreRemoteLiveSmokeTests();
         }
         else
@@ -185,14 +204,16 @@ GUCEF_OSMAIN_BEGIN
             PerformLibrarySyncUnitTests();
             PerformLibrarySyncVfsTablesTests();
             PerformLibrarySyncPostgreSqlTests();
+            PerformServiceSettingsUnitTests();
+            PerformServiceSettingsVfsTablesTests();
+            PerformServiceSettingsPostgreSqlTests();
             PerformAssetStoreRemoteUnitTests();
             PerformAssetStoreRemoteServiceVfsTablesTests();
             PerformAssetStoreRemoteServicePostgreSqlTests();
             PerformAssetStoreRemoteFaultTests();
             PerformAssetStoreRemoteSignInRoleTests();
-            PerformAssetStoreBlockCacheTests();
-            PerformAssetStoreRemoteFilesTests();
-            PerformAssetStoreRemoteFilesGateTests();
+            PerformAssetStoreRemoteSharesTests();
+            PerformAssetStoreShareTests();
             PerformAssetStoreRemoteLiveSmokeTests();
             PerformAssetToolsMcpFakeTests();
             PerformAssetToolsMcpLocalTests();

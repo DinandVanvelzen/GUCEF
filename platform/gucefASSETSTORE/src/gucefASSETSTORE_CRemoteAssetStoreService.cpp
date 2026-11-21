@@ -141,8 +141,6 @@ CRemoteAssetStoreService::SPendingCall::SPendingCall( void )
     , operation()
     , rpcFutures()
     , source()
-    , vfsPath()
-    , offset( 0 )
     , decoded( false )
     , status( ASSETSTORE_STATUS_FAILED )
     , message()
@@ -509,8 +507,6 @@ CRemoteAssetStoreService::ExecuteAsync( const CAssetServiceCall& call )
 
     if ( !m_open || GUCEF_NULL == m_connection )
         return Refuse( call.operation, ASSETSTORE_STATUS_UNAVAILABLE, "the remote asset store service is not open" );
-    if ( CAssetServiceOperations::ReadFileBlock == call.operation )
-        return ReadBlocksAsync( call );
 
     const bool files = CAssetStoreRemoteContracts::IsFilesOperation( call.operation );
     const bool mutation = CAssetServiceOperations::IsMutation( call.operation );
@@ -527,41 +523,6 @@ CRemoteAssetStoreService::ExecuteAsync( const CAssetServiceCall& call )
     pending->kind = SPendingCall::KIND_CALL;
     pending->operation = call.operation;
     pending->rpcFutures.push_back( m_connection->CallAsync( path, request, MakeOptions( !mutation ), files ? GetFilesChannel() : 0 ) );
-    return Track( pending );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CFutureResult
-CRemoteAssetStoreService::ReadBlocksAsync( const CAssetServiceCall& call )
-{GUCEF_TRACE;
-
-    const CORE::CString vfsPath = call.GetText( "vfsPath" );
-    const UInt64 offset = call.GetUInt64( "offset" );
-    UInt32 length = call.GetUInt32( "length" );
-    if ( length > 4194304 )
-        length = 4194304;
-    COMCORE::CRpcContractPtr contract = CAssetStoreRemoteContracts::GetFilesContract();
-    SPendingCall* pending = GUCEF_NEW SPendingCall();
-    pending->kind = SPendingCall::KIND_READ;
-    pending->operation = call.operation;
-    pending->vfsPath = vfsPath;
-    pending->offset = offset;
-    const UInt32 channel = GetFilesChannel();
-    const COMCORE::CRpcCallOptions options = MakeOptions( true );
-    // the blocks of the range go out together: they are answered in parallel on the bulk link
-    UInt32 done = 0;
-    do
-    {
-        const UInt32 blockLength = length - done > CAssetStoreRemoteContracts::BlockSize ? CAssetStoreRemoteContracts::BlockSize : length - done;
-        COMCORE::CRpcMessage request = NewMessage( contract, "ReadBlockRequest" );
-        request.SetString( CAssetStoreRemoteContracts::ReadPathField, vfsPath );
-        request.SetUInt64( CAssetStoreRemoteContracts::ReadOffsetField, offset + done );
-        request.SetUInt32( CAssetStoreRemoteContracts::ReadLengthField, blockLength );
-        pending->rpcFutures.push_back( m_connection->CallAsync( CAssetStoreRemoteContracts::ReadBlockPath, request, options, channel ) );
-        done += blockLength;
-    }
-    while ( done < length );
     return Track( pending );
 }
 
@@ -666,42 +627,6 @@ CRemoteAssetStoreService::Decode( SPendingCall& pending )
     pending.decodedAtMs = NowMs();
     GUCEF_DELETE pending.result;
     pending.result = GUCEF_NULL;
-    if ( SPendingCall::KIND_READ == pending.kind )
-    {
-        // the blocks in order up to the end of the file; a block that failed before it fails the read
-        CAssetFileBlock* block = GUCEF_NEW CAssetFileBlock();
-        pending.result = block;
-        block->vfsPath = pending.vfsPath;
-        block->offset = pending.offset;
-        pending.status = ASSETSTORE_STATUS_OK;
-        for ( size_t i=0; i<pending.rpcFutures.size(); ++i )
-        {
-            COMCORE::CRpcCallResult rpc;
-            if ( !COMCORE::CRpcEndpoint::TryGetCallResult( pending.rpcFutures[ i ], rpc ) || !rpc.status.IsOk() )
-            {
-                pending.status = rpc.status.IsOk() ? ASSETSTORE_STATUS_NETWORK_ERROR : CAssetStoreRemoteCodec::StatusOfRpcFailure( rpc.status );
-                pending.message = rpc.status.IsOk() ? CORE::CString( "a block of the file was not answered" ) : rpc.status.message;
-                break;
-            }
-            const TAssetStoreStatus status = AssetStoreStatusFromString( rpc.response.GetString( CAssetStoreRemoteContracts::BlockStatusField ) );
-            if ( ASSETSTORE_STATUS_OK != status )
-            {
-                pending.status = status;
-                pending.message = rpc.response.GetString( CAssetStoreRemoteContracts::BlockMessageField );
-                break;
-            }
-            CORE::CDynamicBuffer data;
-            rpc.response.GetBytes( CAssetStoreRemoteContracts::BlockDataField, data );
-            block->data.Append( data.GetConstBufferPtr(), data.GetDataSize() );
-            block->fileSize = rpc.response.GetUInt64( CAssetStoreRemoteContracts::BlockFileSizeField );
-            block->endOfFile = rpc.response.GetBool( CAssetStoreRemoteContracts::BlockEndOfFileField );
-            if ( block->endOfFile )
-                break;
-        }
-        if ( ASSETSTORE_STATUS_OK != pending.status )
-            block->data.Clear();
-        return;
-    }
     if ( SPendingCall::KIND_WRITE == pending.kind )
     {
         CAssetServiceResult* outcome = GUCEF_NEW CAssetServiceResult();
@@ -880,7 +805,11 @@ CRemoteAssetStoreService::GetStatusOfAnswer( const CORE::CFutureResult& future )
     // an outcome that is not OK (DUPLICATE of an ingest) is in the record
     CORE::CTaskPtr task = future.GetResult( 0 );
     const CAssetIngestResult* ingest = task.IsNULL() ? GUCEF_NULL : CORE::CICloneable::CloneableAs< CAssetIngestResult >( task->GetTaskData() );
-    return GUCEF_NULL != ingest && ASSETSTORE_STATUS_DUPLICATE == ingest->status ? ingest->status : status;
+    if ( GUCEF_NULL != ingest && ASSETSTORE_STATUS_DUPLICATE == ingest->status )
+        return ingest->status;
+    // a change of the settings carries its status in the record
+    const CAssetSettingsChangeResult* settingsChange = task.IsNULL() ? GUCEF_NULL : CORE::CICloneable::CloneableAs< CAssetSettingsChangeResult >( task->GetTaskData() );
+    return GUCEF_NULL != settingsChange ? settingsChange->status : status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1061,6 +990,13 @@ CRemoteAssetStoreService::OnSessionEvent( CORE::CNotifier* notifier, const CORE:
         CAssetServiceNotice notice;
         if ( ReadEventData( event, notice ) )
             NotifyObservers( NoticeEvent, &notice );
+    }
+    else
+    if ( CAssetStoreRemoteContracts::EventSettingsChanged == kind )
+    {
+        CAssetSettingsChangeResult change;
+        if ( ReadEventData( event, change ) )
+            NotifyObservers( SettingsChangedEvent, &change );
     }
     else
     if ( DRNUTILS::CRemoteSessionContracts::EventKindNotice == kind )
@@ -1419,33 +1355,6 @@ CRemoteAssetStoreService::GetMissingThumbnails( const CORE::CString& rendererId,
 {GUCEF_TRACE;
 
     return Await( GetMissingThumbnailsAsync( rendererId, rendererVersion, size, maxEntries ), result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CRemoteAssetStoreService::StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    return Await( StatFilesAsync( vfsPaths ), result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CRemoteAssetStoreService::ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    return Await( ListDirectoryAsync( vfsPath, pageToken, maxEntries ), result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CRemoteAssetStoreService::ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result )
-{GUCEF_TRACE;
-
-    return Await( ReadFileBlockAsync( vfsPath, offset, length ), result );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1815,6 +1724,33 @@ CRemoteAssetStoreService::SetSyncProfile( const CORE::CString& commandId, const 
 {GUCEF_TRACE;
 
     return Await( SetSyncProfileAsync( commandId, storeId, profile ), result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CRemoteAssetStoreService::DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result )
+{GUCEF_TRACE;
+
+    return Await( DescribeSettingsAsync( request ), result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CRemoteAssetStoreService::SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    return Await( SetSettingsAsync( commandId, request ), result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CRemoteAssetStoreService::ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    return Await( ResetSettingsAsync( commandId, request ), result );
 }
 
 /*-------------------------------------------------------------------------*/

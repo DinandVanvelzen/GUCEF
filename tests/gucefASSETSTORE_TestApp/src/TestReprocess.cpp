@@ -89,6 +89,16 @@
 #define GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
 #endif /* GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETREPROCESSBUDGET_H
+#include "gucefASSETSTORE_CAssetReprocessBudget.h"
+#define GUCEF_ASSETSTORE_CASSETREPROCESSBUDGET_H
+#endif /* GUCEF_ASSETSTORE_CASSETREPROCESSBUDGET_H ? */
+
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H
 #include "gucefASSETSTORE_CAssetLibrarySyncSpec.h"
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H
@@ -928,6 +938,447 @@ RunReprocessRemoteSuite( SReprocessFixture& fixture )
     world.StopServer();
 }
 
+
+/*-------------------------------------------------------------------------*/
+
+/** The budget of the reprocessing from given facts, and the memory limit of a cgroup from a fake tree; no service */
+void
+RunReprocessBudgetTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Reprocess budget: automatic jobs and threads from the logical cores, the memory budget from the limit, explicit numbers taken as they are" )
+        try
+        {
+            const UInt64 mb = 1024 * 1024;
+            CAssetReprocessSettings defaults;
+            ASSERT_TRUE( 0 == defaults.maxConcurrentJobs && 0 == defaults.threadsPerJob && 2 == defaults.reservedCores && 64 == defaults.maxQueuedJobs );
+            ASSERT_TRUE( 0 == defaults.memoryBudgetMB && 2048 == defaults.memoryPerJobMB && 4 == defaults.memoryLargestAssetFactor && 0 == defaults.maxConcurrentWritesPerLocation );
+            CAssetReprocessBudget budget;
+            budget.Compute( defaults, 28, 6144 * mb, "given" );
+            ASSERT_TRUE( 7 == budget.concurrentJobs && 3 == budget.threadsPerJob && 4300 == budget.memoryBudgetMB );
+            ASSERT_TRUE( budget.concurrentJobs * budget.threadsPerJob <= 28 - 2 );
+            budget.Compute( defaults, 2, 0, "unknown" );
+            ASSERT_TRUE( 1 == budget.concurrentJobs && 1 == budget.threadsPerJob && 0 == budget.memoryBudgetMB );
+            budget.Compute( defaults, 64, 32768 * mb, "given" );
+            ASSERT_TRUE( 8 == budget.concurrentJobs && 7 == budget.threadsPerJob && 22937 == budget.memoryBudgetMB );
+            ASSERT_TRUE( budget.concurrentJobs * budget.threadsPerJob <= 64 - 2 );
+            budget.Compute( defaults, 8, 0, "unknown" );
+            ASSERT_TRUE( 2 == budget.concurrentJobs && 3 == budget.threadsPerJob );
+            budget.Compute( defaults, 1, 0, "unknown" );
+            ASSERT_TRUE( 1 == budget.concurrentJobs && 1 == budget.threadsPerJob );
+            CAssetReprocessSettings explicitJobs;
+            explicitJobs.maxConcurrentJobs = 3;
+            budget.Compute( explicitJobs, 28, 0, "unknown" );
+            ASSERT_TRUE( 3 == budget.concurrentJobs && 8 == budget.threadsPerJob && !budget.jobsAutomatic && budget.threadsAutomatic );
+            CAssetReprocessSettings explicitAll;
+            explicitAll.maxConcurrentJobs = 2;
+            explicitAll.threadsPerJob = 5;
+            explicitAll.memoryBudgetMB = 1234;
+            budget.Compute( explicitAll, 28, 6144 * mb, "given" );
+            ASSERT_TRUE( 2 == budget.concurrentJobs && 5 == budget.threadsPerJob && 1234 == budget.memoryBudgetMB && !budget.memoryAutomatic );
+            // the estimate of a job: the least per job, more for a large asset, nothing for a job that converts nothing
+            ASSERT_TRUE( 2048 == CAssetReprocessBudget::EstimateJobMemoryMB( defaults, true, 10 * mb ) );
+            ASSERT_TRUE( 4000 == CAssetReprocessBudget::EstimateJobMemoryMB( defaults, true, 1000 * mb ) );
+            ASSERT_TRUE( 0 == CAssetReprocessBudget::EstimateJobMemoryMB( defaults, false, 1000 * mb ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Reprocess budget: the memory limit of the cgroup of the process, v2 and v1, of its group and of the root; no limit is none" )
+        try
+        {
+            UInt64 bytes = 0;
+            ASSERT_TRUE( !CAssetReprocessBudget::ParseCgroupMemoryLimit( "max\n", bytes ) );
+            ASSERT_TRUE( !CAssetReprocessBudget::ParseCgroupMemoryLimit( "9223372036854771712\n", bytes ) );
+            ASSERT_TRUE( !CAssetReprocessBudget::ParseCgroupMemoryLimit( "", bytes ) );
+            ASSERT_TRUE( CAssetReprocessBudget::ParseCgroupMemoryLimit( "6442450944\n", bytes ) && 6442450944ULL == bytes );
+
+            const CString root = TestDirectory( "rp_cgroup" );
+            if ( DirExists( root ) )
+                DeleteDir( root, true );
+            // v2: the group of the process has the limit
+            CreateDirs( root + "/v2/kubepods/pod1" );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/v2/kubepods/pod1/memory.max", "6442450944\n" ) );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/v2/memory.max", "max\n" ) );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/self_v2", "0::/kubepods/pod1\n" ) );
+            CString source;
+            ASSERT_TRUE( 6442450944ULL == CAssetReprocessBudget::ReadCgroupMemoryLimitBytes( root + "/v2", root + "/self_v2", source ) && "cgroup v2" == source );
+            // v2 in a container: the group is the root
+            CreateDirs( root + "/v2root" );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/v2root/memory.max", "34359738368\n" ) );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/self_root", "0::/\n" ) );
+            ASSERT_TRUE( 34359738368ULL == CAssetReprocessBudget::ReadCgroupMemoryLimitBytes( root + "/v2root", root + "/self_root", source ) );
+            // no limit anywhere
+            ASSERT_TRUE( 0 == CAssetReprocessBudget::ReadCgroupMemoryLimitBytes( root + "/v2", root + "/self_root", source ) );
+            // v1: the memory controller of the group
+            CreateDirs( root + "/v1/memory/kube" );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/v1/memory/kube/memory.limit_in_bytes", "2147483648\n" ) );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/v1/memory/memory.limit_in_bytes", "9223372036854771712\n" ) );
+            ASSERT_TRUE( WriteStringAsTextFile( root + "/self_v1", "5:cpu,cpuacct:/kube\n4:memory:/kube\n" ) );
+            ASSERT_TRUE( 2147483648ULL == CAssetReprocessBudget::ReadCgroupMemoryLimitBytes( root + "/v1", root + "/self_v1", source ) && "cgroup v1" == source );
+            DeleteDir( root, true );
+            // the facts of this machine: at least one core
+            ASSERT_TRUE( CAssetReprocessBudget::DetectLogicalCores() >= 1 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Reprocess settings: a change is checked key by key; one key that is not valid or not known changes nothing" )
+        try
+        {
+            CAssetReprocessSettings settings;
+            CDataNode changes( "reprocess", GUCEF_DATATYPE_OBJECT );
+            changes.SetAttribute( "maxConcurrentJobs", "3" );
+            changes.SetAttribute( "threadsPerJob", "many" );
+            changes.SetAttribute( "noSuchKey", "1" );
+            CString::StringMap errors;
+            ASSERT_TRUE( !settings.ApplyChanges( changes, errors ) );
+            ASSERT_TRUE( 2 == errors.size() && errors.end() != errors.find( "threadsPerJob" ) && errors.end() != errors.find( "noSuchKey" ) );
+            ASSERT_TRUE( 0 == settings.maxConcurrentJobs && 0 == settings.threadsPerJob );
+            CDataNode tooMany( "reprocess", GUCEF_DATATYPE_OBJECT );
+            tooMany.SetAttribute( "memoryLargestAssetFactor", "65" );
+            ASSERT_TRUE( !settings.ApplyChanges( tooMany, errors ) && 1 == errors.size() && 4 == settings.memoryLargestAssetFactor );
+            CDataNode valid( "reprocess", GUCEF_DATATYPE_OBJECT );
+            valid.SetAttribute( "maxConcurrentJobs", "3" );
+            valid.SetAttribute( "limitOwner", "true" );
+            valid.AddChildWithValue( "memoryBudgetMB", CVariant( (UInt32) 4096 ) );
+            ASSERT_TRUE( settings.ApplyChanges( valid, errors ) && errors.empty() );
+            ASSERT_TRUE( 3 == settings.maxConcurrentJobs && settings.limitOwner && 4096 == settings.memoryBudgetMB && 64 == settings.maxQueuedJobs );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A pack of one model from a folder of the incoming area */
+CString
+IngestDiskPack( CIAssetStoreService& service, const SReprocessFixture& fixture, const CString& name )
+{
+    const CString folder = fixture.base + "/incoming/" + name;
+    if ( !WriteVfsFile( folder + "/SM_" + name + ".fbx", "a model of " + name ) )
+        return CString::Empty;
+    CAssetIngestRequest ingest;
+    ingest.sourceId = "disk";
+    ingest.contentPath = folder;
+    CAssetIngestResult ingested;
+    if ( ASSETSTORE_STATUS_OK != service.Ingest( CString::Empty, ingest, ingested ) )
+        return CString::Empty;
+    return ingested.packId;
+}
+
+bool
+WaitForActive( CTestConverterHook& hook, UInt32 count, UInt32 timeoutInMs = 20000 )
+{
+    for ( UInt32 waited=0; waited<timeoutInMs; waited+=10 )
+    {
+        if ( hook.GetActiveCount() == count )
+            return true;
+        PumpFor( 10 );
+    }
+    return false;
+}
+
+CString
+StateTextOf( CIAssetStoreService& service, const CString& jobId )
+{
+    CAssetJobEntry job;
+    if ( ASSETSTORE_STATUS_OK != service.GetJob( jobId, job ) )
+        return "unknown";
+    return job.stateText;
+}
+
+CString
+StartRegeneration( CIAssetStoreService& service, const CString& packId )
+{
+    CAssetServiceResult started;
+    if ( ASSETSTORE_STATUS_OK != service.StartPipelineJob( CString::Empty, MakeReprocess( CAssetPipelineOperations::PackRegenerateIntermediate, packId ), started ) )
+        return CString::Empty;
+    return started.id;
+}
+
+bool
+WaitForAllDone( CIAssetStoreService& service, const CString::StringVector& jobIds )
+{
+    for ( size_t j=0; j<jobIds.size(); ++j )
+    {
+        CAssetJobEntry job;
+        if ( !WaitForJob( service, jobIds[ j ], job ) || ASSETJOB_STATE_DONE != job.state )
+            return false;
+    }
+    return true;
+}
+
+bool
+ChangeReprocessSetting( CLocalAssetStoreService& local, const char* key, const char* value )
+{
+    CDataNode change( "reprocess", GUCEF_DATATYPE_OBJECT );
+    change.SetAttribute( key, value );
+    CString::StringMap errors;
+    return ASSETSTORE_STATUS_OK == local.SetReprocessSettings( change, errors );
+}
+
+Int32
+IndexOf( const CString::StringVector& list, const CString& value )
+{
+    for ( size_t i=0; i<list.size(); ++i )
+        if ( list[ i ] == value )
+            return (Int32) i;
+    return -1;
+}
+
+/** The reprocessing of different packs in parallel: the budget of threads and memory, the order of admission, live changes of the settings, the queue over a restart */
+void
+RunReprocessParallelSuite( SReprocessFixture& fixture )
+{
+    MountFreshDirectory( fixture.label + "_main", fixture.base + "/main" );
+    MountFreshDirectory( fixture.label + "_incoming", fixture.base + "/incoming" );
+    CTestConverterHook hook;
+    CAssetStoreServiceConfig config = MakeReprocessConfig( fixture, hook );
+    config.reprocess.maxConcurrentJobs = 0;
+    config.reprocess.memoryPerJobMB = 1000;
+    const CString stateDirectory = TestDirectory( fixture.label + "_state" );
+    if ( DirExists( stateDirectory ) )
+        DeleteDir( stateDirectory, true );
+    config.stateDirectory = stateDirectory;
+    CString error;
+    TAssetStoreServicePtr servicePtr = CAssetStoreGlobal::Instance()->CreateService( config, error );
+    const bool opened = !servicePtr.IsNULL() && ASSETSTORE_STATUS_OK == servicePtr->Open();
+    CString::StringVector packs;
+    if ( opened )
+    {
+        static const char* const names[] = { "Par A", "Par B", "Par C", "Par D", "Par E" };
+        for ( UInt32 p=0; p<5; ++p )
+            packs.push_back( IngestDiskPack( *servicePtr, fixture, names[ p ] ) );
+    }
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: the service opens and five independent packs are ingested" ).C_String() )
+        ASSERT_TRUE( opened && 5 == packs.size() && !packs[ 0 ].IsNULLOrEmpty() && !packs[ 4 ].IsNULLOrEmpty() );
+    GUCEF_TESTFW_TESTCASE_END;
+    if ( !opened || 5 != packs.size() || packs[ 0 ].IsNULLOrEmpty() || packs[ 4 ].IsNULLOrEmpty() )
+    {
+        if ( opened )
+            servicePtr->Close();
+        return;
+    }
+    CIAssetStoreService& service = *servicePtr;
+    CLocalAssetStoreService& local = static_cast< CLocalAssetStoreService& >( service );
+    const UInt64 mb = 1024 * 1024;
+    // a machine of 16 logical cores with much memory: 4 jobs at a time with 3 threads each
+    local.GetReprocessGuard().SetMachineFacts( 16, 65536 * mb );
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: jobs of different packs run at the same time, each with its share of the threads on its own pool; the fifth waits for a slot; the same pack is busy" ).C_String() )
+        try
+        {
+            const CAssetReprocessBudget budget = local.GetReprocessGuard().GetBudget();
+            ASSERT_TRUE( 4 == budget.concurrentJobs && 3 == budget.threadsPerJob );
+            hook.SetHold( true );
+            hook.ResetConcurrency();
+            CString::StringVector jobIds;
+            for ( size_t p=0; p<packs.size(); ++p )
+                jobIds.push_back( StartRegeneration( service, packs[ p ] ) );
+            ASSERT_TRUE( !jobIds[ 4 ].IsNULLOrEmpty() );
+            ASSERT_TRUE( WaitForActive( hook, 4 ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 4 == hook.GetActiveCount() && "waiting for slot" == StateTextOf( service, jobIds[ 4 ] ) );
+            ASSERT_TRUE( StateTextOf( service, jobIds[ 0 ] ).HasSubstr( "running (3 thread(s)" ) == 0 );
+            // the converter threads of the running jobs stay within the cores the service does not keep
+            ASSERT_TRUE( 12 == hook.GetMaxActiveThreads() && hook.GetMaxActiveThreads() <= 16 - 2 && 12 == local.GetReprocessGuard().GetBusyThreads() );
+            const CString::StringSet pools = hook.GetThreadPoolNames();
+            ASSERT_TRUE( 4 == pools.size() && 0 == (*pools.begin()).HasSubstr( "AssetStoreService.reprocess" ) );
+            CDataNode status;
+            local.DescribeReprocessing( status );
+            ASSERT_TRUE( 4 == status.GetAttributeValueOrChildValueByName( "runningJobs" ).AsUInt32( 0, true ) && 1 == status.GetAttributeValueOrChildValueByName( "waitingJobs" ).AsUInt32( 0, true ) );
+            CAssetServiceResult busy;
+            ASSERT_TRUE( ASSETSTORE_STATUS_ALREADY_EXISTS == service.StartPipelineJob( CString::Empty, MakeReprocess( CAssetPipelineOperations::PackRegenerateTarget, packs[ 0 ] ), busy ) && busy.id == jobIds[ 0 ] );
+            hook.SetHold( false );
+            ASSERT_TRUE( WaitForAllDone( service, jobIds ) );
+            ASSERT_TRUE( 4 == hook.GetMaxActiveCount() && 0 == local.GetReprocessGuard().GetRunning() );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: the settings change while the service runs: a higher maxConcurrentJobs starts the jobs that wait, a lower one starts none until the running jobs are below it" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentJobs", "1" ) && 1 == local.GetReprocessGuard().GetBudget().concurrentJobs );
+            hook.SetHold( true );
+            hook.ResetConcurrency();
+            CString::StringVector jobIds;
+            for ( size_t p=0; p<3; ++p )
+                jobIds.push_back( StartRegeneration( service, packs[ p ] ) );
+            ASSERT_TRUE( WaitForActive( hook, 1 ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 1 == hook.GetActiveCount() && "waiting for slot" == StateTextOf( service, jobIds[ 1 ] ) );
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentJobs", "3" ) );
+            ASSERT_TRUE( WaitForActive( hook, 3 ) );
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentJobs", "1" ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 3 ] ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 3 == hook.GetActiveCount() && "waiting for slot" == StateTextOf( service, jobIds[ 3 ] ) );
+            hook.SetHold( false );
+            ASSERT_TRUE( WaitForAllDone( service, jobIds ) );
+            // it started when the three had ended: alone
+            ASSERT_TRUE( 1 == hook.GetActiveAtStart( packs[ 3 ] ) );
+
+            // a change with a key that is not valid changes nothing and says why per key
+            CDataNode change( "reprocess", GUCEF_DATATYPE_OBJECT );
+            change.SetAttribute( "maxConcurrentJobs", "2" );
+            change.SetAttribute( "threadsPerJob", "many" );
+            change.SetAttribute( "noSuchKey", "1" );
+            CString::StringMap errors;
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == local.SetReprocessSettings( change, errors ) && 2 == errors.size() );
+            ASSERT_TRUE( 1 == local.GetReprocessSettings().maxConcurrentJobs );
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentJobs", "0" ) && 4 == local.GetReprocessGuard().GetBudget().concurrentJobs );
+            CDataNode current;
+            local.GetReprocessSettings( current );
+            ASSERT_TRUE( 0 == current.GetAttributeValueOrChildValueByName( "maxConcurrentJobs" ).AsUInt32( 99, true ) && 1000 == current.GetAttributeValueOrChildValueByName( "memoryPerJobMB" ).AsUInt32( 0, true ) );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: the remote settings: Settings/Set of reprocess.maxConcurrentJobs by an owner device while jobs wait starts them at once, Settings/Reset puts the site value back" ).C_String() )
+        try
+        {
+            CAssetSettingsRequest owner;
+            owner.SetRemoteCaller( "dev-owner", "owner device", true, true );
+            owner.values[ "reprocess.maxConcurrentJobs" ] = "1";
+            CAssetSettingsChangeResult changed;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == local.SetSettings( CString::Empty, owner, changed ) && 1 == local.GetReprocessGuard().GetBudget().concurrentJobs );
+            ASSERT_TRUE( GUCEF_NULL != changed.Find( "reprocess.maxConcurrentJobs" ) && CAssetSettingChange::AppliedLive == changed.Find( "reprocess.maxConcurrentJobs" )->applied );
+            hook.SetHold( true );
+            hook.ResetConcurrency();
+            CString::StringVector jobIds;
+            for ( size_t p=0; p<3; ++p )
+                jobIds.push_back( StartRegeneration( service, packs[ p ] ) );
+            ASSERT_TRUE( WaitForActive( hook, 1 ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 1 == hook.GetActiveCount() && "waiting for slot" == StateTextOf( service, jobIds[ 1 ] ) && "waiting for slot" == StateTextOf( service, jobIds[ 2 ] ) );
+            owner.values[ "reprocess.maxConcurrentJobs" ] = "3";
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == local.SetSettings( CString::Empty, owner, changed ) && "1" == changed.Find( "reprocess.maxConcurrentJobs" )->oldValue );
+            ASSERT_TRUE( WaitForActive( hook, 3 ) );
+            hook.SetHold( false );
+            ASSERT_TRUE( WaitForAllDone( service, jobIds ) );
+            CAssetSettingsRequest reset;
+            reset.keys.push_back( "reprocess.maxConcurrentJobs" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == local.ResetSettings( CString::Empty, reset, changed ) && "0" == changed.Find( "reprocess.maxConcurrentJobs" )->newValue );
+            ASSERT_TRUE( 0 == local.GetReprocessSettings().maxConcurrentJobs && 4 == local.GetReprocessGuard().GetBudget().concurrentJobs );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: a job is admitted when its memory fits the budget, in the order of the queue; a job larger than the budget runs alone" ).C_String() )
+        try
+        {
+            // 3000 MB: a budget of 2100 MB, two jobs of 1000 MB at a time
+            local.GetReprocessGuard().SetMachineFacts( 16, 3000 * mb );
+            ASSERT_TRUE( 2100 == local.GetReprocessGuard().GetBudget().memoryBudgetMB );
+            hook.SetHold( true );
+            hook.ResetConcurrency();
+            CString::StringVector jobIds;
+            jobIds.push_back( StartRegeneration( service, packs[ 0 ] ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 1 ] ) );
+            ASSERT_TRUE( WaitForActive( hook, 2 ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 2 ] ) );
+            // estimated at 5000 MB: more than the budget
+            ASSERT_TRUE( ChangeReprocessSetting( local, "memoryPerJobMB", "5000" ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 3 ] ) );
+            ASSERT_TRUE( ChangeReprocessSetting( local, "memoryPerJobMB", "1000" ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 4 ] ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 2 == hook.GetActiveCount() );
+            ASSERT_TRUE( "waiting for memory" == StateTextOf( service, jobIds[ 2 ] ) && "waiting for memory" == StateTextOf( service, jobIds[ 3 ] ) && "waiting for memory" == StateTextOf( service, jobIds[ 4 ] ) );
+            CDataNode status;
+            local.DescribeReprocessing( status );
+            ASSERT_TRUE( 3 == status.GetAttributeValueOrChildValueByName( "waitingForMemory" ).AsUInt32( 0, true ) && 2000 == status.GetAttributeValueOrChildValueByName( "admittedMemoryMB" ).AsUInt32( 0, true ) );
+            hook.SetHold( false );
+            ASSERT_TRUE( WaitForAllDone( service, jobIds ) );
+            const CString::StringVector order = hook.GetStartOrder();
+            ASSERT_TRUE( IndexOf( order, packs[ 2 ] ) >= 0 && IndexOf( order, packs[ 2 ] ) < IndexOf( order, packs[ 3 ] ) && IndexOf( order, packs[ 3 ] ) < IndexOf( order, packs[ 4 ] ) );
+            ASSERT_TRUE( 1 == hook.GetActiveAtStart( packs[ 3 ] ) && 1 == hook.GetActiveAtStart( packs[ 4 ] ) );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+    local.GetReprocessGuard().SetMachineFacts( 16, 65536 * mb );
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: maxConcurrentWritesPerLocation holds a second job of the same storage location back" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentWritesPerLocation", "1" ) );
+            hook.SetHold( true );
+            CString::StringVector jobIds;
+            jobIds.push_back( StartRegeneration( service, packs[ 0 ] ) );
+            jobIds.push_back( StartRegeneration( service, packs[ 1 ] ) );
+            ASSERT_TRUE( WaitForActive( hook, 1 ) );
+            PumpFor( 150 );
+            ASSERT_TRUE( 1 == hook.GetActiveCount() && "waiting for location" == StateTextOf( service, jobIds[ 1 ] ) );
+            hook.SetHold( false );
+            ASSERT_TRUE( WaitForAllDone( service, jobIds ) );
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentWritesPerLocation", "0" ) );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": parallel: the queue of the reprocessing is kept over a restart: the job that waited and the one that ran both run after it" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( ChangeReprocessSetting( local, "maxConcurrentJobs", "1" ) );
+            hook.SetHold( true );
+            const UInt32 callsBefore = hook.GetCallCount();
+            const CString running = StartRegeneration( service, packs[ 0 ] );
+            ASSERT_TRUE( WaitForActive( hook, 1 ) );
+            const CString waiting = StartRegeneration( service, packs[ 1 ] );
+            ASSERT_TRUE( !running.IsNULLOrEmpty() && !waiting.IsNULLOrEmpty() && "waiting for slot" == StateTextOf( service, waiting ) );
+            service.Close();
+            hook.SetHold( false );
+            ASSERT_TRUE( 0 == hook.GetActiveCount() && FileExists( CombinePath( stateDirectory, "service-state.json" ) ) );
+
+            TAssetStoreServicePtr againPtr = CAssetStoreGlobal::Instance()->CreateService( config, error );
+            ASSERT_TRUE( !againPtr.IsNULL() && ASSETSTORE_STATUS_OK == againPtr->Open() );
+            CString::StringVector jobIds;
+            jobIds.push_back( running );
+            jobIds.push_back( waiting );
+            const bool done = WaitForAllDone( *againPtr, jobIds );
+            const UInt32 calls = hook.GetCallCount();
+            againPtr->Close();
+            ASSERT_TRUE( done && calls >= callsBefore + 3 );
+        }
+        catch ( ... )
+        {
+            hook.SetHold( false );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+    service.Close();
+    DeleteDir( stateDirectory, true );
+}
 }
 
 /*-------------------------------------------------------------------------//
@@ -962,6 +1413,18 @@ PerformReprocessVfsTablesTests( void )
     RunReprocessRemoteSuite( remote );
     UnmountDirectory( "rp_vfstables_remote_catalogue" );
     UnmountDirectory( "rp_vfstables_remote_main" );
+
+    RunReprocessBudgetTests();
+
+    SReprocessFixture parallel( fixture );
+    parallel.label = "rp_vfstables_parallel";
+    parallel.base = "astest/rp_vfstables_parallel";
+    MountFreshDirectory( "rp_vfstables_parallel_catalogue", "astest/rp_vfstables_parallel/catalogue" );
+    parallel.database.database = "astest/rp_vfstables_parallel/catalogue/db";
+    RunReprocessParallelSuite( parallel );
+    UnmountDirectory( "rp_vfstables_parallel_catalogue" );
+    UnmountDirectory( "rp_vfstables_parallel_main" );
+    UnmountDirectory( "rp_vfstables_parallel_incoming" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -990,8 +1453,8 @@ PerformReprocessPostgreSqlTests( void )
     }
     AUTH::CMemoryCredentialStore credentials;
     const char* password = getenv( "PGPASSWORD" );
-    const char* const labels[] = { "rp_postgresql", "rp_postgresql_remote" };
-    for ( UInt32 run=0; run<2; ++run )
+    const char* const labels[] = { "rp_postgresql", "rp_postgresql_remote", "rp_postgresql_parallel" };
+    for ( UInt32 run=0; run<3; ++run )
     {
         SReprocessFixture fixture;
         fixture.label = labels[ run ];
@@ -1017,7 +1480,10 @@ PerformReprocessPostgreSqlTests( void )
         if ( 0 == run )
             RunReprocessSuite( fixture );
         else
+        if ( 1 == run )
             RunReprocessRemoteSuite( fixture );
+        else
+            RunReprocessParallelSuite( fixture );
 
         // the schema of the run goes
         CPrimaryAssetStoreSettings settings;

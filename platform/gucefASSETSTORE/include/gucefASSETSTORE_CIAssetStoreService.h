@@ -66,10 +66,6 @@
 #include "gucefASSETSTORE_CAssetDownloadRequest.h"
 #define GUCEF_ASSETSTORE_CASSETDOWNLOADREQUEST_H
 #endif /* GUCEF_ASSETSTORE_CASSETDOWNLOADREQUEST_H ? */
-#ifndef GUCEF_ASSETSTORE_CASSETFILEBLOCK_H
-#include "gucefASSETSTORE_CAssetFileBlock.h"
-#define GUCEF_ASSETSTORE_CASSETFILEBLOCK_H
-#endif /* GUCEF_ASSETSTORE_CASSETFILEBLOCK_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETFILESET_H
 #include "gucefASSETSTORE_CAssetFileSet.h"
 #define GUCEF_ASSETSTORE_CASSETFILESET_H
@@ -192,6 +188,21 @@
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCPROFILE_H
 #endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCPROFILE_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H
+#include "gucefASSETSTORE_CAssetSettingsRequest.h"
+#define GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSDESCRIPTION_H
+#include "gucefASSETSTORE_CAssetSettingsDescription.h"
+#define GUCEF_ASSETSTORE_CASSETSETTINGSDESCRIPTION_H
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSDESCRIPTION_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSCHANGERESULT_H
+#include "gucefASSETSTORE_CAssetSettingsChangeResult.h"
+#define GUCEF_ASSETSTORE_CASSETSETTINGSCHANGERESULT_H
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSCHANGERESULT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -243,8 +254,9 @@ namespace ASSETSTORE {
  *  viewer): CatalogueChangedEvent (CAssetCatalogueChange), JobChangedEvent and JobRemovedEvent (CAssetJobEntry),
  *  LocationStateChangedEvent (CAssetLocationInfo), StoreStateChangedEvent (CAssetStoreInfo), StoresChangedEvent (no data:
  *  stores came or went), SignInPromptEvent and SignInPromptClosedEvent (CAssetSignInPrompt), ThumbnailUpdatedEvent and
- *  ListingImageReadyEvent (CAssetThumbnail), NoticeEvent (CAssetServiceNotice) and ConnectionStateChangedEvent
- *  (CAssetServiceNotice, its code the state; implementations that are not in process only).
+ *  ListingImageReadyEvent (CAssetThumbnail), NoticeEvent (CAssetServiceNotice), SettingsChangedEvent (CAssetSettingsChangeResult:
+ *  the run-time settings changed) and ConnectionStateChangedEvent (CAssetServiceNotice, its code the state; implementations that
+ *  are not in process only).
  *
  *  Implementations are made by the factories registered in CAssetStoreGlobal::GetServiceFactory() under their id
  *  (GetType()), with a CAssetStoreServiceConfig; "local" is registered by the module.
@@ -264,6 +276,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     static const CORE::CEvent ThumbnailUpdatedEvent;
     static const CORE::CEvent ListingImageReadyEvent;
     static const CORE::CEvent NoticeEvent;
+    static const CORE::CEvent SettingsChangedEvent;
     static const CORE::CEvent ConnectionStateChangedEvent;
 
     static void RegisterEvents( void );
@@ -313,7 +326,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
      */
     TAssetStoreStatus Dispatch( const CAssetServiceCall& call, CORE::CICloneable*& result, CORE::CString& message );
 
-    /** Whether the status ends the call successfully (also DUPLICATE of an ingest) */
+    /** Whether the status ends the call with its record (also DUPLICATE of an ingest, and every status of Settings/Set and Settings/Reset: the record has the status and the reasons per key) */
     static bool IsOutcomeStatus( const CORE::CString& operation, TAssetStoreStatus status );
 
     /** Ends the future of a call with the result of Dispatch(); takes ownership of the result */
@@ -375,6 +388,22 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
      *  default has no pack for any path
      */
     virtual bool GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const;
+
+    /**
+     *  What GetRestrictionsOfPath() answers, when the service holds that answer in memory now (current for the catalogue it is
+     *  asked of): true with 'flags' and 'inPack' as GetRestrictionsOfPath() gives them, and GetRestrictionsOfPath() answers the
+     *  same path without asking the catalogue. False, nothing set, when the answer is not held: it would take a query of the
+     *  catalogue. Never asks the catalogue and never waits for one: for callers that must not wait (a thread of a network node); the
+     *  answer is made held by one call of GetRestrictionsOfPath() on a thread that may wait. The default holds nothing
+     */
+    virtual bool TryGetRestrictionsOfPathKept( const CORE::CString& vfsPath, CORE::CString::StringSet& flags, bool& inPack ) const;
+
+    /**
+     *  The size and the SHA-256 (lower case hexadecimal) that the catalogue has of the file at a VFS path of the storage locations;
+     *  false when the catalogue knows no such file. The catalogue is asked once per pack and catalogue revision (the files of a pack are
+     *  kept), never once per file: for a thread that may wait (a pool thread). The default knows none
+     */
+    virtual bool GetCatalogueDigestOfPath( const CORE::CString& vfsPath, UInt64& sizeBytes, CORE::CString& sha256Hex ) const;
 
     /** The provider of an online store for the browsing of its library (CAssetStoreLibraryFileSystemAccess); false for an unknown store */
     virtual bool GetStoreProvider( const CORE::CString& storeId, TAssetStoreProviderPtr& provider ) = 0;
@@ -540,18 +569,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     CORE::CFutureResult GetMissingThumbnailsAsync( const CORE::CString& rendererId, const CORE::CString& rendererVersion, UInt32 size, UInt32 maxEntries );
 
     // Files
-
-    /** Size, SHA-256 digest and kind ("file", "directory", "missing") of each VFS path, at most 256 */
-    virtual TAssetStoreStatus StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result ) = 0;
-    CORE::CFutureResult StatFilesAsync( const CORE::CString::StringVector& vfsPaths );
-
-    /** A page of the entries of a VFS folder, not recursive; digests are left empty */
-    virtual TAssetStoreStatus ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result ) = 0;
-    CORE::CFutureResult ListDirectoryAsync( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries );
-
-    /** Bytes of a file of the service: at most length bytes (at most 4 MiB) from the offset */
-    virtual TAssetStoreStatus ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result ) = 0;
-    CORE::CFutureResult ReadFileBlockAsync( const CORE::CString& vfsPath, UInt64 offset, UInt32 length );
 
     /** Starts an upload of a pack from the caller's disk; result.id is the upload */
     virtual TAssetStoreStatus BeginUpload( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount, CAssetServiceResult& result ) = 0;
@@ -777,6 +794,34 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     /** Replaces the sync profile of a store; kept over a restart of the service. A sync whose spec says useStoreProfile runs with it */
     virtual TAssetStoreStatus SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result );
     CORE::CFutureResult SetSyncProfileAsync( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile );
+
+    /*
+     *  Settings: the run-time settings of the service (gucefASSETSTORE_RemoteService_Design.md 18). The request says who asks; the host of
+     *  the remote service sets that from the device, an in-process caller without a host is the site administrator. Implementations
+     *  without settings answer UNSUPPORTED (the default).
+     */
+
+    /** The settings the caller may read with their values, where the values come from and whether the caller may change them */
+    virtual TAssetStoreStatus DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result );
+    CORE::CFutureResult DescribeSettingsAsync( const CAssetSettingsRequest& request );
+
+    /**
+     *  Changes the settings of request.values: every key and value is checked first, and one that is not valid changes nothing
+     *  (INVALID_ARGUMENT with the reason per key in result.errors); a call that changes nothing answers OK with result.noChange.
+     *  SettingsChangedEvent follows a change
+     */
+    virtual TAssetStoreStatus SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result );
+    CORE::CFutureResult SetSettingsAsync( const CORE::CString& commandId, const CAssetSettingsRequest& request );
+
+    /** The settings of request.keys go back to the value of the site settings; checked and applied as SetSettings() */
+    virtual TAssetStoreStatus ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result );
+    CORE::CFutureResult ResetSettingsAsync( const CORE::CString& commandId, const CAssetSettingsRequest& request );
+
+    /**
+     *  Writes the refusal of a change of the settings that a host refused itself (a device without the role) to the audit of the service.
+     *  Not an operation of the wire: the host tells the service it serves. The default keeps nothing
+     */
+    virtual void AuditSettingsRefusal( const CAssetSettingsRequest& request, const CORE::CString& operation, const CORE::CString& reason );
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

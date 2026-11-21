@@ -81,6 +81,7 @@ enum EAssetStoreStatus
     ASSETSTORE_STATUS_DATABASE_ERROR        = 29    ,   /**< the catalogue database refused */
     ASSETSTORE_STATUS_ALREADY_EXISTS        = 30    ,   /**< a name or id that is taken */
     ASSETSTORE_STATUS_REFUSED               = 31    ,   /**< a conversion that was refused (the licence or the policy does not allow it): not a failure, the pack stays as original */
+    ASSETSTORE_STATUS_NO_SPACE              = 32    ,   /**< there is no room: a cache or a storage location that is full, or a limit that would be passed, such as keeping a file offline that does not fit the size limit of the cache */
     ASSETSTORE_STATUS_TIMED_OUT             = 40    ,   /**< a wait ran out of time, such as a sign in that was not finished in time */
     ASSETSTORE_STATUS_OWNER_ACTION_NEEDED   = 41    ,   /**< only a person can go on (a captcha, a code sent by e-mail, a second factor) and none is there to do it */
     ASSETSTORE_STATUS_BROWSER_UNAVAILABLE   = 42        /**< no browser to sign in with: none was found, or it did not start */

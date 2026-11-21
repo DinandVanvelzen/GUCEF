@@ -91,10 +91,8 @@ CAssetStoreRemoteCodec::NewResult( const CORE::CString& operation )
         return GUCEF_NEW CAssetServiceDocument();
     if ( Op::GetThumbnails == operation || Op::GetMissingThumbnails == operation )
         return GUCEF_NEW CAssetThumbnailPage();
-    if ( Op::StatFiles == operation || Op::ListDirectory == operation || Op::QueryUpload == operation )
+    if ( Op::QueryUpload == operation )
         return GUCEF_NEW CAssetFileStatPage();
-    if ( Op::ReadFileBlock == operation )
-        return GUCEF_NEW CAssetFileBlock();
     if ( Op::GetLocations == operation || Op::RefreshLocationStates == operation )
         return GUCEF_NEW CAssetLocationPage();
     if ( Op::VerifyLocation == operation )
@@ -117,6 +115,10 @@ CAssetStoreRemoteCodec::NewResult( const CORE::CString& operation )
         return GUCEF_NEW CAssetSyncMarkPage();
     if ( Op::GetSyncProfile == operation )
         return GUCEF_NEW CAssetLibrarySyncProfile();
+    if ( Op::DescribeSettings == operation )
+        return GUCEF_NEW CAssetSettingsDescription();
+    if ( Op::SetSettings == operation || Op::ResetSettings == operation )
+        return GUCEF_NEW CAssetSettingsChangeResult();
     if ( Op::IsKnown( operation ) || Op::BeginUploadFiles == operation )
         return GUCEF_NEW CAssetServiceResult();      // every mutation that answers an outcome
     return GUCEF_NULL;
@@ -183,6 +185,9 @@ CAssetStoreRemoteCodec::ReadAnswer( const CORE::CString& operation, const COMCOR
         CAssetServiceResult* outcome = CORE::CICloneable::CloneableAs< CAssetServiceResult >( result );
         if ( GUCEF_NULL != outcome )
             outcome->replayed = true;
+        CAssetSettingsChangeResult* settingsChange = CORE::CICloneable::CloneableAs< CAssetSettingsChangeResult >( result );
+        if ( GUCEF_NULL != settingsChange )
+            settingsChange->replayed = true;
     }
     return status;
 }
@@ -256,6 +261,20 @@ CAssetStoreRemoteCodec::SetFailure( CORE::CICloneable* result, TAssetStoreStatus
     if ( GUCEF_NULL != report )
     {
         report->status = status;
+        return true;
+    }
+    CAssetSettingsChangeResult* settingsChange = CORE::CICloneable::CloneableAs< CAssetSettingsChangeResult >( result );
+    if ( GUCEF_NULL != settingsChange )
+    {
+        settingsChange->status = status;
+        settingsChange->message = message;
+        return true;
+    }
+    CAssetSettingsDescription* settings = CORE::CICloneable::CloneableAs< CAssetSettingsDescription >( result );
+    if ( GUCEF_NULL != settings )
+    {
+        settings->status = status;
+        settings->message = message;
         return true;
     }
     return false;

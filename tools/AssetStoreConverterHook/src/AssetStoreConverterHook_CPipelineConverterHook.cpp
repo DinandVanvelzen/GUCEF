@@ -84,6 +84,11 @@
 #define ASSETSTORECONVERTERHOOK_CPACKINDEXOPERATIONS_H
 #endif /* ASSETSTORECONVERTERHOOK_CPACKINDEXOPERATIONS_H ? */
 
+#ifndef ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#include "AssetStoreConverterHook_CCookPhaseLock.h"
+#define ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H
+#endif /* ASSETSTORECONVERTERHOOK_CCOOKPHASELOCK_H ? */
+
 #include "AssetStoreConverterHook_CPipelineConverterHook.h"
 
 /*-------------------------------------------------------------------------//
@@ -113,6 +118,7 @@ class CRequestPipelineObserver : public ASSETCONVERTER::CIAssetPipelineObserver
     explicit CRequestPipelineObserver( ASSETSTORE::CIAssetConversionObserver* observer )
         : ASSETCONVERTER::CIAssetPipelineObserver()
         , m_observer( observer )
+        , m_cookLock()
     {
 
     }
@@ -130,9 +136,16 @@ class CRequestPipelineObserver : public ASSETCONVERTER::CIAssetPipelineObserver
             m_observer->OnConversionProgress( done, total, assetPath );
     }
 
+    virtual void OnPhase( ASSETCONVERTER::TPipelinePhase phase ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_cookLock.OnPhase( phase );
+    }
+
     private:
 
     ASSETSTORE::CIAssetConversionObserver* m_observer;
+    CCookPhaseLock m_cookLock;
 };
 
 ASSETCONVERTER::CAssetPluginRegistry&
@@ -447,8 +460,9 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
     // the run
     ASSETCONVERTER::CAssetPipelineOptions options;
     options.reimport = request.reconvert && !request.cookOnly;
-    options.threads = settings.threads;
-    options.threadPoolName = settings.threadPoolName;
+    // a reprocessing job of the service gives its share of the threads and a pool of its own; other runs use the settings
+    options.threads = request.maxThreads > 0 ? request.maxThreads : settings.threads;
+    options.threadPoolName = request.threadPoolName.IsNULLOrEmpty() ? settings.threadPoolName : request.threadPoolName;
     options.reportPath = request.reportVfsPath.IsNULLOrEmpty() ? ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "report.json" ) : request.reportVfsPath;
     options.assetGlobs = request.assetGlobs;
     options.noCook = request.noCook && !request.cookOnly;

@@ -1,7 +1,7 @@
 {
     "contract": "gucef.assetstore.files",
-    "version": "1.0",
-    "doc": "The files of the asset store service: stats, listings and uploads as generic calls, blocks of files and uploads as bytes",
+    "version": "1.1",
+    "doc": "The files of the asset store service: uploads as generic calls, the blocks of an upload as bytes",
     "types": [
         {
             "name": "CallRequest",
@@ -24,27 +24,6 @@
             ]
         },
         {
-            "name": "ReadBlockRequest",
-            "doc": "At most one block (262144 bytes) of a file of the service from an offset",
-            "fields": [
-                { "number": 1, "name": "path", "type": "string" },
-                { "number": 2, "name": "offset", "type": "uint64" },
-                { "number": 3, "name": "length", "type": "uint32" }
-            ]
-        },
-        {
-            "name": "Block",
-            "doc": "The bytes read, with the size of the file",
-            "fields": [
-                { "number": 1, "name": "status", "type": "string" },
-                { "number": 2, "name": "message", "type": "string" },
-                { "number": 3, "name": "fileSize", "type": "uint64" },
-                { "number": 4, "name": "endOfFile", "type": "bool" },
-                { "number": 5, "name": "data", "type": "bytes" },
-                { "number": 6, "name": "offset", "type": "uint64" }
-            ]
-        },
-        {
             "name": "WriteBlockRequest",
             "doc": "Bytes of a file of an upload at an offset",
             "fields": [
@@ -62,7 +41,6 @@
             "methods": [
                 { "number": 1, "name": "Query", "kind": "unary", "request": "CallRequest", "response": "CallAnswer", "flags": [ "idempotent" ], "deadlineMs": 60000 },
                 { "number": 2, "name": "Command", "kind": "unary", "request": "CallRequest", "response": "CallAnswer", "deadlineMs": 600000 },
-                { "number": 3, "name": "ReadBlock", "kind": "unary", "request": "ReadBlockRequest", "response": "Block", "flags": [ "idempotent" ], "deadlineMs": 60000 },
                 { "number": 4, "name": "WriteBlock", "kind": "unary", "request": "WriteBlockRequest", "response": "CallAnswer", "deadlineMs": 60000 }
             ]
         }

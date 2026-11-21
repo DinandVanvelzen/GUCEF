@@ -80,6 +80,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetConversionRequest
     CORE::CString::StringVector cookTargets;        /**< only these cook targets (names of the cookers); empty: those of the converter */
     bool keepPartialResult;                         /**< a run that ended with errors in its report still maps the assets that converted (the outcome stays FAILED), and nothing of what it wrote is taken away */
     CORE::CString reportVfsPath;                    /**< where the report of the run goes; empty: "<convertedVfsFolder>/report.json" */
+    UInt32 maxThreads;                              /**< the converter threads of this run (the share of a reprocessing job); 0: the converter's own setting */
+    CORE::CString threadPoolName;                   /**< the thread pool of this run, used by this run alone while it runs; empty: the converter's own pool */
 
     CAssetConversionRequest( void );
     ~CAssetConversionRequest();

@@ -20,6 +20,7 @@ if (LINUX32)
     include/TestAssetStoreRemoteWorld.h
     include/TestAssetStoreService.h
     include/TestAssetStoreServiceSuite.h
+    include/TestAssetStoreShare.h
     include/TestAssetStoreSupport.h
     include/TestAssetToolsMcp.h
     include/TestConversion.h
@@ -40,8 +41,9 @@ if (LINUX32)
     include/TestPackIndexDocument.h
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
-    include/TestRemoteAssetFiles.h
+    include/TestRemoteAssetShares.h
     include/TestReprocess.h
+    include/TestServiceSettings.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -57,6 +59,7 @@ if (LINUX32)
     src/TestAssetStorePluginLoader.cpp
     src/TestAssetStoreRemoteService.cpp
     src/TestAssetStoreService.cpp
+    src/TestAssetStoreShare.cpp
     src/TestAssetStoreSupport.cpp
     src/TestAssetToolsMcp.cpp
     src/TestConversion.cpp
@@ -75,8 +78,9 @@ if (LINUX32)
     src/TestPackIndexDocument.cpp
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
-    src/TestRemoteAssetFiles.cpp
+    src/TestRemoteAssetShares.cpp
     src/TestReprocess.cpp
+    src/TestServiceSettings.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -94,6 +98,7 @@ elseif (LINUX64)
     include/TestAssetStoreRemoteWorld.h
     include/TestAssetStoreService.h
     include/TestAssetStoreServiceSuite.h
+    include/TestAssetStoreShare.h
     include/TestAssetStoreSupport.h
     include/TestAssetToolsMcp.h
     include/TestConversion.h
@@ -114,8 +119,9 @@ elseif (LINUX64)
     include/TestPackIndexDocument.h
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
-    include/TestRemoteAssetFiles.h
+    include/TestRemoteAssetShares.h
     include/TestReprocess.h
+    include/TestServiceSettings.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -131,6 +137,7 @@ elseif (LINUX64)
     src/TestAssetStorePluginLoader.cpp
     src/TestAssetStoreRemoteService.cpp
     src/TestAssetStoreService.cpp
+    src/TestAssetStoreShare.cpp
     src/TestAssetStoreSupport.cpp
     src/TestAssetToolsMcp.cpp
     src/TestConversion.cpp
@@ -149,8 +156,9 @@ elseif (LINUX64)
     src/TestPackIndexDocument.cpp
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
-    src/TestRemoteAssetFiles.cpp
+    src/TestRemoteAssetShares.cpp
     src/TestReprocess.cpp
+    src/TestServiceSettings.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -168,6 +176,7 @@ elseif (WIN32)
     include/TestAssetStoreRemoteWorld.h
     include/TestAssetStoreService.h
     include/TestAssetStoreServiceSuite.h
+    include/TestAssetStoreShare.h
     include/TestAssetStoreSupport.h
     include/TestAssetToolsMcp.h
     include/TestConversion.h
@@ -188,8 +197,9 @@ elseif (WIN32)
     include/TestPackIndexDocument.h
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
-    include/TestRemoteAssetFiles.h
+    include/TestRemoteAssetShares.h
     include/TestReprocess.h
+    include/TestServiceSettings.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -205,6 +215,7 @@ elseif (WIN32)
     src/TestAssetStorePluginLoader.cpp
     src/TestAssetStoreRemoteService.cpp
     src/TestAssetStoreService.cpp
+    src/TestAssetStoreShare.cpp
     src/TestAssetStoreSupport.cpp
     src/TestAssetToolsMcp.cpp
     src/TestConversion.cpp
@@ -223,8 +234,9 @@ elseif (WIN32)
     src/TestPackIndexDocument.cpp
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
-    src/TestRemoteAssetFiles.cpp
+    src/TestRemoteAssetShares.cpp
     src/TestReprocess.cpp
+    src/TestServiceSettings.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -242,6 +254,7 @@ elseif (WIN64)
     include/TestAssetStoreRemoteWorld.h
     include/TestAssetStoreService.h
     include/TestAssetStoreServiceSuite.h
+    include/TestAssetStoreShare.h
     include/TestAssetStoreSupport.h
     include/TestAssetToolsMcp.h
     include/TestConversion.h
@@ -262,8 +275,9 @@ elseif (WIN64)
     include/TestPackIndexDocument.h
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
-    include/TestRemoteAssetFiles.h
+    include/TestRemoteAssetShares.h
     include/TestReprocess.h
+    include/TestServiceSettings.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -279,6 +293,7 @@ elseif (WIN64)
     src/TestAssetStorePluginLoader.cpp
     src/TestAssetStoreRemoteService.cpp
     src/TestAssetStoreService.cpp
+    src/TestAssetStoreShare.cpp
     src/TestAssetStoreSupport.cpp
     src/TestAssetToolsMcp.cpp
     src/TestConversion.cpp
@@ -297,8 +312,9 @@ elseif (WIN64)
     src/TestPackIndexDocument.cpp
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
-    src/TestRemoteAssetFiles.cpp
+    src/TestRemoteAssetShares.cpp
     src/TestReprocess.cpp
+    src/TestServiceSettings.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -335,139 +351,139 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
+  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefASSETSTORE_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
+  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefASSETSTORE_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
+  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefASSETSTORE_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB )
+  add_dependencies( ${MODULE_NAME} dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC dbpluginPOSTGRESQL gucefASSETSTORE gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefIMAGE gucefMT gucefVFS gucefWEB vfspluginDRN )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefASSETSTORE_TestApp" )
 endif( WIN64 )
 
 if ( ANDROID )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( ANDROID )
 
 if ( ANDROID32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( ANDROID64 )
 
 if ( ARDUINO )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( ARDUINO )
 
 if ( EMSCRIPTEN )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( EMSCRIPTEN64 )
 
 if ( GLX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( GTK )
 
 if ( IOS )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( IOS )
 
 if ( IPHONE )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( IPHONE )
 
 if ( IPHONEOS )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( IPHONEOS )
 
 if ( LINUX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( LINUX )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../plugins/VFS/vfspluginDRN/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../plugins/VFS/vfspluginDRN/include include )
 endif( LINUX64 )
 
 if ( MAC )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( MAC )
 
 if ( MACOS )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( MACOS )
 
 if ( MACOSX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( MACOSX )
 
 if ( MSWIN )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( MSWIN )
 
 if ( NACL )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( NACL )
 
 if ( OSX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( OSX )
 
 if ( POSIX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( POSIX )
 
 if ( SDL )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( SDL )
 
 if ( SYMBIAN )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( SYMBIAN )
 
 if ( UNIX )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( UNIX )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../plugins/VFS/vfspluginDRN/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/libpq/src/include ../../dependencies/libpq/src/include/port/win32 ../../dependencies/libpq/src/include/port/win32_msvc ../../dependencies/libpq/src/interfaces/libpq ../../dependencies/libpq/src/port ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../plugins/COMCORE/dbpluginPOSTGRESQL/include ../../plugins/VFS/vfspluginDRN/include include )
 endif( WIN64 )
 
 if ( WINDOWS )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefASSETSTORE/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/VFS/vfspluginDRN/include )
 endif( WINDOWS )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

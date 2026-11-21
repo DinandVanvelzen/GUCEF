@@ -64,7 +64,11 @@ namespace ASSETSTORECONVERTER {
  *  - "cookTarget": the cooker whose output the store keeps ("ogre"), empty for the engine-neutral intermediate only. The name of
  *    the cooked area that its output goes to ("gucef-ogre3d") is accepted for it: the cooker registers it as an alias.
  *  - "importer" ("auto": the first importer, by name, that can import a file) and "exporter" ("gltf") of the intermediate.
- *  - "threadPoolName" and "threads" for the converter's tasks (0 threads: one per logical CPU).
+ *  - "threadPoolName" and "threads" for the converter's tasks (0 threads: one per logical CPU). A reprocessing job of the
+ *    asset store service gives its own share of the threads and a pool of its own with the conversion request
+ *    (ASSETSTORE::CAssetConversionRequest::maxThreads and threadPoolName, from the "reprocess" settings of the service): those
+ *    replace these two for that run. The cook step of a run (the Ogre cooker is not thread safe) runs one run at a time in
+ *    the process (CCookPhaseLock), whatever the threads.
  *  - "convertibleKinds": the kinds of assets (of the vocabulary of the store) the converter is offered.
  *  - "mainExtensions": which file of what the converter made for an asset is "its converted file", the first extension
  *    of this list that the asset has among its cooked files, else among its intermediate files.

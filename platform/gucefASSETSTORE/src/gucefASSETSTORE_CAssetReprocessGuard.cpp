@@ -51,8 +51,13 @@ namespace ASSETSTORE {
 CAssetReprocessGuard::CAssetReprocessGuard( void )
     : m_lock()
     , m_settings()
+    , m_budget()
+    , m_factsKnown( false )
+    , m_logicalCores( 1 )
+    , m_memoryLimitBytes( 0 )
+    , m_memoryLimitSource()
     , m_starts()
-    , m_running( 0 )
+    , m_running()
 {GUCEF_TRACE;
 
 }
@@ -67,11 +72,41 @@ CAssetReprocessGuard::~CAssetReprocessGuard()
 /*-------------------------------------------------------------------------*/
 
 void
+CAssetReprocessGuard::ComputeBudget( void )
+{GUCEF_TRACE;
+
+    if ( !m_factsKnown )
+    {
+        m_logicalCores = CAssetReprocessBudget::DetectLogicalCores();
+        m_memoryLimitBytes = CAssetReprocessBudget::DetectMemoryLimitBytes( m_memoryLimitSource );
+        m_factsKnown = true;
+    }
+    m_budget.Compute( m_settings, m_logicalCores, m_memoryLimitBytes, m_memoryLimitSource );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CAssetReprocessGuard::Configure( const CAssetReprocessSettings& settings )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
     m_settings = settings;
+    ComputeBudget();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetReprocessGuard::SetMachineFacts( UInt32 logicalCores, UInt64 memoryLimitBytes )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_logicalCores = logicalCores > 0 ? logicalCores : 1;
+    m_memoryLimitBytes = memoryLimitBytes;
+    m_memoryLimitSource = "given";
+    m_factsKnown = true;
+    ComputeBudget();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -82,6 +117,16 @@ CAssetReprocessGuard::GetSettings( void ) const
 
     MT::CScopeMutex lock( m_lock );
     return m_settings;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAssetReprocessBudget
+CAssetReprocessGuard::GetBudget( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_budget;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -238,26 +283,82 @@ CAssetReprocessGuard::AdmitRedownload( bool machine, Int64 nowMs, CORE::CString&
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CAssetReprocessGuard::AcquireSlot( void )
+CAssetReprocessGuard::EStartOutcome
+CAssetReprocessGuard::TryStart( UInt64 memoryMB, const CORE::CString& locationId, UInt32& slot, UInt32& threads, CORE::CString& reason )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    if ( m_running >= ( 0 == m_settings.maxConcurrentJobs ? 1 : m_settings.maxConcurrentJobs ) )
-        return false;
-    ++m_running;
-    return true;
+    slot = 0;
+    threads = 0;
+    reason.Clear();
+    const UInt32 running = (UInt32) m_running.size();
+    if ( running >= m_budget.concurrentJobs )
+    {
+        reason = "waiting for slot: " + CORE::ToString( running ) + " reprocessing job(s) run, " + CORE::ToString( m_budget.concurrentJobs ) +
+                 " at a time (maxConcurrentJobs " + ( m_budget.jobsAutomatic ? CORE::CString( "automatic" ) : CORE::ToString( m_settings.maxConcurrentJobs ) ) + ")";
+        return START_WAIT_SLOT;
+    }
+    UInt64 admitted = 0;
+    for ( size_t r=0; r<m_running.size(); ++r )
+        admitted += m_running[ r ].memoryMB;
+    if ( m_budget.memoryBudgetMB > 0 && memoryMB > 0 && running > 0 && admitted + memoryMB > m_budget.memoryBudgetMB )
+    {
+        if ( memoryMB > m_budget.memoryBudgetMB )
+            reason = "waiting for memory: the job is estimated at " + CORE::ToString( memoryMB ) + " MB, more than the memory budget of " +
+                     CORE::ToString( m_budget.memoryBudgetMB ) + " MB: it runs alone once the " + CORE::ToString( running ) + " running job(s) ended";
+        else
+            reason = "waiting for memory: the job is estimated at " + CORE::ToString( memoryMB ) + " MB, the running job(s) hold " + CORE::ToString( admitted ) +
+                     " MB of the memory budget of " + CORE::ToString( m_budget.memoryBudgetMB ) + " MB";
+        return START_WAIT_MEMORY;
+    }
+    if ( m_settings.maxConcurrentWritesPerLocation > 0 && !locationId.IsNULLOrEmpty() )
+    {
+        UInt32 writers = 0;
+        for ( size_t r=0; r<m_running.size(); ++r )
+            if ( m_running[ r ].locationId == locationId )
+                ++writers;
+        if ( writers >= m_settings.maxConcurrentWritesPerLocation )
+        {
+            reason = "waiting for location: " + CORE::ToString( writers ) + " running job(s) write to the storage location " + locationId +
+                     " (maxConcurrentWritesPerLocation " + CORE::ToString( m_settings.maxConcurrentWritesPerLocation ) + ")";
+            return START_WAIT_LOCATION;
+        }
+    }
+    // the first free slot number: the slot names the thread pool of the job, so the pools are reused
+    UInt32 free = 1;
+    bool taken = true;
+    while ( taken )
+    {
+        taken = false;
+        for ( size_t r=0; r<m_running.size() && !taken; ++r )
+            taken = m_running[ r ].slot == free;
+        if ( taken )
+            ++free;
+    }
+    SRunning entry;
+    entry.slot = free;
+    entry.memoryMB = memoryMB;
+    entry.threads = m_budget.threadsPerJob;
+    entry.locationId = locationId;
+    m_running.push_back( entry );
+    slot = entry.slot;
+    threads = entry.threads;
+    return START_OK;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CAssetReprocessGuard::ReleaseSlot( void )
+CAssetReprocessGuard::Finish( UInt32 slot )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    if ( m_running > 0 )
-        --m_running;
+    for ( size_t r=0; r<m_running.size(); ++r )
+        if ( m_running[ r ].slot == slot )
+        {
+            m_running.erase( m_running.begin() + r );
+            return;
+        }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -267,7 +368,69 @@ CAssetReprocessGuard::GetRunning( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    return m_running;
+    return (UInt32) m_running.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CAssetReprocessGuard::GetAdmittedMemoryMB( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    UInt64 admitted = 0;
+    for ( size_t r=0; r<m_running.size(); ++r )
+        admitted += m_running[ r ].memoryMB;
+    return admitted;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAssetReprocessGuard::GetBusyThreads( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    UInt32 threads = 0;
+    for ( size_t r=0; r<m_running.size(); ++r )
+        threads += m_running[ r ].threads;
+    return threads;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetReprocessGuard::Describe( CORE::CDataNode& node ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_budget.Describe( node );
+    UInt64 admitted = 0;
+    UInt32 threads = 0;
+    for ( size_t r=0; r<m_running.size(); ++r )
+    {
+        admitted += m_running[ r ].memoryMB;
+        threads += m_running[ r ].threads;
+    }
+    node.SetAttribute( "runningJobs", (UInt32) m_running.size() );
+    node.SetAttribute( "busyThreads", threads );
+    node.SetAttribute( "admittedMemoryMB", admitted );
+    node.SetAttribute( "maxConcurrentWritesPerLocation", m_settings.maxConcurrentWritesPerLocation );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CAssetReprocessGuard::WaitText( EStartOutcome outcome )
+{GUCEF_TRACE;
+
+    switch ( outcome )
+    {
+        case START_WAIT_SLOT: return "waiting for slot";
+        case START_WAIT_MEMORY: return "waiting for memory";
+        case START_WAIT_LOCATION: return "waiting for location";
+        default: return "running";
+    }
 }
 
 /*-------------------------------------------------------------------------//

@@ -26,6 +26,7 @@ LOCAL_SRC_FILES := \
   src/AssetStoreConverterHook_CConverterHookSettings.cpp \
   src/AssetStoreConverterHook_CConverterLicenceDecision.cpp \
   src/AssetStoreConverterHook_CConverterPack.cpp \
+  src/AssetStoreConverterHook_CCookPhaseLock.cpp \
   src/AssetStoreConverterHook_CLicenceRecordBuilder.cpp \
   src/AssetStoreConverterHook_CModule.cpp \
   src/AssetStoreConverterHook_CPackIndexOperations.cpp \

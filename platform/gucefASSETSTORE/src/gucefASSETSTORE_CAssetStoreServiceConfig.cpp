@@ -73,6 +73,7 @@ CAssetStoreServiceConfig::CAssetStoreServiceConfig( void )
     , renderHook( GUCEF_NULL )
     , signIn()
     , signInPromptSeconds( 600 )
+    , allowSettingsChanges( true )
 {GUCEF_TRACE;
 
 }
@@ -102,6 +103,7 @@ CAssetStoreServiceConfig::Serialize( CORE::CDataNode& domRootNode               
     success = domRootNode.SetAttribute( "ingestResumeAttempts", ingestResumeAttempts ) && success;
     success = domRootNode.SetAttribute( "downloadStagingKeepHours", downloadStagingKeepHours ) && success;
     success = domRootNode.SetAttribute( "signInPromptSeconds", signInPromptSeconds ) && success;
+    success = domRootNode.SetAttribute( "allowSettingsChanges", allowSettingsChanges ) && success;
     CORE::CDataNode* store = domRootNode.AddChild( "primaryStore", GUCEF_DATATYPE_OBJECT );
     CORE::CDataNode* downloadNode = domRootNode.AddChild( "downloads", GUCEF_DATATYPE_OBJECT );
     if ( GUCEF_NULL == store || GUCEF_NULL == downloadNode )
@@ -135,6 +137,7 @@ CAssetStoreServiceConfig::Deserialize( const CORE::CDataNode& domRootNode       
     ingestResumeAttempts = domRootNode.GetAttributeValueOrChildValueByName( "ingestResumeAttempts" ).AsUInt32( ingestResumeAttempts, true );
     downloadStagingKeepHours = domRootNode.GetAttributeValueOrChildValueByName( "downloadStagingKeepHours" ).AsUInt32( downloadStagingKeepHours, true );
     signInPromptSeconds = domRootNode.GetAttributeValueOrChildValueByName( "signInPromptSeconds" ).AsUInt32( signInPromptSeconds, true );
+    allowSettingsChanges = domRootNode.GetAttributeValueOrChildValueByName( "allowSettingsChanges" ).AsBool( allowSettingsChanges, true );
     bool success = true;
     const CORE::CDataNode* store = domRootNode.FindChild( "primaryStore" );
     if ( GUCEF_NULL != store )

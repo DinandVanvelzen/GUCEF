@@ -73,7 +73,9 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
         GUCEF::CORE::CString::StringVector assetGlobs;
         GUCEF::CORE::CString convertedVfsFolder;
         GUCEF::CORE::CString cookedVfsFolder;
-        SLastRequest( void ) : cookOnly( false ), noCook( false ), reconvert( false ), keepPartialResult( false ), assetGlobs(), convertedVfsFolder(), cookedVfsFolder() {}
+        GUCEF::UInt32 maxThreads;
+        GUCEF::CORE::CString threadPoolName;
+        SLastRequest( void ) : cookOnly( false ), noCook( false ), reconvert( false ), keepPartialResult( false ), assetGlobs(), convertedVfsFolder(), cookedVfsFolder(), maxThreads( 0 ), threadPoolName() {}
     };
 
     /** The models (asset names) that fail in a conversion: no output, the status failed in the report, the run FAILED */
@@ -100,6 +102,22 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
     GUCEF::UInt32 GetCallCount( void ) const;
     GUCEF::UInt32 GetStartedWaitCount( void ) const;
 
+    /**
+     *  Holds every conversion that starts (before it does what the mode says) until SetHold( false ) or its cancel: the runs of
+     *  several jobs are then at the same time in the hook. The counts say how many were at most, and how many threads they
+     *  were given together (CAssetConversionRequest::maxThreads, 1 for a run without a share).
+     */
+    void SetHold( bool hold );
+    GUCEF::UInt32 GetActiveCount( void ) const;
+    GUCEF::UInt32 GetMaxActiveCount( void ) const;
+    GUCEF::UInt32 GetMaxActiveThreads( void ) const;
+    /** The thread pools the runs were given, each once */
+    GUCEF::CORE::CString::StringSet GetThreadPoolNames( void ) const;
+    void ResetConcurrency( void );
+    /** The packs of the runs since ResetConcurrency() in the order they started, and the runs that were active when each started (itself included) */
+    GUCEF::CORE::CString::StringVector GetStartOrder( void ) const;
+    GUCEF::UInt32 GetActiveAtStart( const GUCEF::CORE::CString& packId ) const;
+
     virtual GUCEF::CORE::CString GetName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::CORE::CString GetProfileName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool CanConvert( const GUCEF::ASSETSTORE::CAssetRecord& asset ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -114,6 +132,10 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
 
     private:
 
+    GUCEF::ASSETSTORE::TAssetStoreStatus ConvertPackNow( const GUCEF::ASSETSTORE::CAssetConversionRequest& request ,
+                                                         GUCEF::ASSETSTORE::TAssetRecordVector& assets             ,
+                                                         GUCEF::ASSETSTORE::CAssetConversionOutcome& outcome       );
+
     GUCEF::ASSETSTORE::TAssetStoreStatus MakeIndexDocument( const GUCEF::ASSETSTORE::CAssetPackIndexRequest& request, GUCEF::ASSETSTORE::CAssetPackIndexOutcome& outcome, bool countBuild );
 
     EMode m_mode;
@@ -125,6 +147,14 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
     GUCEF::UInt32 m_indexBuilds;
     GUCEF::CORE::CString::StringSet m_failingAssets;
     SLastRequest m_lastRequest;
+    bool m_hold;
+    GUCEF::UInt32 m_active;
+    GUCEF::UInt32 m_maxActive;
+    GUCEF::UInt32 m_activeThreads;
+    GUCEF::UInt32 m_maxActiveThreads;
+    GUCEF::CORE::CString::StringSet m_threadPoolNames;
+    GUCEF::CORE::CString::StringVector m_startOrder;
+    GUCEF::map< GUCEF::CORE::CString, GUCEF::UInt32 > m_activeAtStart;
     mutable GUCEF::MT::CMutex m_lock;
 };
 

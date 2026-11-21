@@ -77,7 +77,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreServiceHostSettings : public CORE::
     UInt32 commandJournalKeepDays;          /**< days of the journal read back at the start; default 7 */
     UInt32 eventBarrierMs;                  /**< how long a mutation waits for the events it caused to be in the session rings before it answers; default 1000 */
     UInt32 jobProgressIntervalMs;           /**< progress of a job goes out at most this often (state changes at once); default 500 */
-    UInt32 maxReadBlockBytes;               /**< the most bytes one ReadBlock answers; default 262144 */
+    CORE::CString shareName;                /**< the name of the share of the primary store root through the DRN resource facility (what a device mounts as a VFS archive); the roles are those of "roles"; empty: no share; default "assets" */
 
     CAssetStoreServiceHostSettings( void );
 

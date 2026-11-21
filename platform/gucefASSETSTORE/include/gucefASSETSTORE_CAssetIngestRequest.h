@@ -69,6 +69,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestRequest : public CORE::CIDataNodeS
     CORE::CString syncJobId;                /**< the library sync job of the download, empty for a manual download */
     CORE::CString verifyPackId;             /**< a download again of the originals of this pack: the same files make it a duplicate of that pack (whatever the revision), other files a new pack */
     bool repairOriginals;                   /**< with verifyPackId: when the files are the same, original files of that pack that are missing or do not match their digest are put back from the download */
+    UInt32 conversionThreads;               /**< in process only, not serialized: the converter threads of the convert step (CAssetConversionRequest::maxThreads); 0: the converter's own */
+    CORE::CString conversionThreadPoolName; /**< in process only, not serialized: the thread pool of the convert step; empty: the converter's own */
 
     CAssetIngestRequest( void );
     virtual ~CAssetIngestRequest() GUCEF_VIRTUAL_OVERRIDE;

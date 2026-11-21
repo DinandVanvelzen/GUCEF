@@ -106,6 +106,7 @@
 
 #ifndef GUCEF_ASSETSTORE_CASSETPACKRECORD_H
 #include "gucefASSETSTORE_CAssetPackRecord.h"
+#include "gucefASSETSTORE_CAssetFileRecord.h"
 #define GUCEF_ASSETSTORE_CASSETPACKRECORD_H
 #endif /* GUCEF_ASSETSTORE_CASSETPACKRECORD_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETLAYOUTMIGRATIONREPORT_H
@@ -454,6 +455,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
 
     /** The folder of the pack that holds a VFS path of layout version 2 as "<root of the location>/<folder of the pack>"; empty for a path that is in no pack folder of that layout */
     CORE::CString GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const;
+
+    /**
+     *  The files the catalogue has of the pack of a pack folder (what GetPackFolderOfVfsPath() gives): the VFS path of each (the path of the
+     *  catalogue resolved in the location), its size and its digest, with two queries of the catalogue. False when no pack has that folder
+     */
+    bool GetFilesOfPackFolder( const CORE::CString& packFolder, GUCEF::vector< CAssetFileRecord >& files ) const;
 
     /** Adds the exclusion of packs with the flag to a search query */
     static void ExcludeRestricted( CAssetSearchQuery& query, const CORE::CString& restrictionFlag );

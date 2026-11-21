@@ -62,13 +62,13 @@ namespace ASSETSTORE {
 const char* CAssetStoreRemoteContracts::ControlContractName = "gucef.assetstore";
 const char* CAssetStoreRemoteContracts::FilesContractName = "gucef.assetstore.files";
 const UInt32 CAssetStoreRemoteContracts::Major;
+const UInt32 CAssetStoreRemoteContracts::FilesMinor;
 const UInt32 CAssetStoreRemoteContracts::BlockSize;
 const char* CAssetStoreRemoteContracts::QueryPath = "gucef.assetstore.Service/Query";
 const char* CAssetStoreRemoteContracts::CommandPath = "gucef.assetstore.Service/Command";
 const char* CAssetStoreRemoteContracts::SecretPath = "gucef.assetstore.Service/Secret";
 const char* CAssetStoreRemoteContracts::FilesQueryPath = "gucef.assetstore.files.Files/Query";
 const char* CAssetStoreRemoteContracts::FilesCommandPath = "gucef.assetstore.files.Files/Command";
-const char* CAssetStoreRemoteContracts::ReadBlockPath = "gucef.assetstore.files.Files/ReadBlock";
 const char* CAssetStoreRemoteContracts::WriteBlockPath = "gucef.assetstore.files.Files/WriteBlock";
 const char* CAssetStoreRemoteContracts::EventCatalogueChanged = "CATALOGUE_CHANGED";
 const char* CAssetStoreRemoteContracts::EventJobChanged = "JOB_CHANGED";
@@ -80,6 +80,7 @@ const char* CAssetStoreRemoteContracts::EventSignInPrompt = "SIGNIN_PROMPT";
 const char* CAssetStoreRemoteContracts::EventSignInPromptClosed = "SIGNIN_PROMPT_CLOSED";
 const char* CAssetStoreRemoteContracts::EventThumbnailUpdated = "THUMBNAIL_UPDATED";
 const char* CAssetStoreRemoteContracts::EventServiceNotice = "ASSETSTORE_NOTICE";
+const char* CAssetStoreRemoteContracts::EventSettingsChanged = "SETTINGS_CHANGED";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -164,20 +165,9 @@ void
 CAssetStoreRemoteContracts::GetFilesContractSource( CORE::CDataNode& source )
 {GUCEF_TRACE;
 
-    COMCORE::CRpcContractBuilder builder( FilesContractName, Major, 0 );
-    builder.SetDoc( "The files of the asset store service: stats, listings and uploads as generic calls, blocks of files and uploads as bytes" );
+    COMCORE::CRpcContractBuilder builder( FilesContractName, Major, FilesMinor );
+    builder.SetDoc( "The files of the asset store service: uploads as generic calls, the blocks of an upload as bytes" );
     AddCallTypes( builder );
-    builder.AddType( "ReadBlockRequest", "At most one block (262144 bytes) of a file of the service from an offset" );
-    builder.AddField( "ReadBlockRequest", 1, "path", "string", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "ReadBlockRequest", 2, "offset", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "ReadBlockRequest", 3, "length", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddType( "Block", "The bytes read, with the size of the file" );
-    builder.AddField( "Block", 1, "status", "string", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "Block", 2, "message", "string", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "Block", 3, "fileSize", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "Block", 4, "endOfFile", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "Block", 5, "data", "bytes", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
-    builder.AddField( "Block", 6, "offset", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
     builder.AddType( "WriteBlockRequest", "Bytes of a file of an upload at an offset" );
     builder.AddField( "WriteBlockRequest", 1, "uploadId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
     builder.AddField( "WriteBlockRequest", 2, "path", "string", COMCORE::RPC_CARDINALITY_SINGLE, 0, 0 );
@@ -186,7 +176,6 @@ CAssetStoreRemoteContracts::GetFilesContractSource( CORE::CDataNode& source )
     builder.AddService( "Files", 1 );
     builder.AddMethod( "Files", 1, "Query", COMCORE::RPC_METHODKIND_UNARY, "CallRequest", "CallAnswer", GUCEF_RPC_METHODFLAG_IDEMPOTENT, 60000 );
     builder.AddMethod( "Files", 2, "Command", COMCORE::RPC_METHODKIND_UNARY, "CallRequest", "CallAnswer", 0, 600000 );
-    builder.AddMethod( "Files", 3, "ReadBlock", COMCORE::RPC_METHODKIND_UNARY, "ReadBlockRequest", "Block", GUCEF_RPC_METHODFLAG_IDEMPOTENT, 60000 );
     builder.AddMethod( "Files", 4, "WriteBlock", COMCORE::RPC_METHODKIND_UNARY, "WriteBlockRequest", "CallAnswer", 0, 60000 );
     source = builder.GetDataNode();
 }
@@ -219,10 +208,7 @@ bool
 CAssetStoreRemoteContracts::IsFilesOperation( const CORE::CString& operation )
 {GUCEF_TRACE;
 
-    return CAssetServiceOperations::StatFiles == operation ||
-           CAssetServiceOperations::ListDirectory == operation ||
-           CAssetServiceOperations::ReadFileBlock == operation ||
-           CAssetServiceOperations::BeginUpload == operation ||
+    return CAssetServiceOperations::BeginUpload == operation ||
            CAssetServiceOperations::BeginUploadFiles == operation ||
            CAssetServiceOperations::WriteUploadBlock == operation ||
            CAssetServiceOperations::QueryUpload == operation ||

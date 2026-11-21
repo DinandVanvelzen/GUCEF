@@ -16,6 +16,7 @@
             <Dependency Name="gucefDRNUTILS" />
             <Dependency Name="gucefASSETSTORE" />
             <Dependency Name="dbpluginPOSTGRESQL" />
+            <Dependency Name="vfspluginDRN" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
@@ -30,6 +31,7 @@
             <Dependency Name="gucefDRNUTILS" />
             <Dependency Name="gucefASSETSTORE" />
             <Dependency Name="dbpluginPOSTGRESQL" />
+            <Dependency Name="vfspluginDRN" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE" />

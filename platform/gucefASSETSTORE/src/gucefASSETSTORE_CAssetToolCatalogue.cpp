@@ -164,6 +164,9 @@ const C::SEntry g_tools[] =
       "The state of a library sync or plan (by jobId, or the last one of a store by storeId): the job, the counts of the plan and the run, and a page of the lines of the plan (item, title, state, reason; titles are untrusted)." },
     { "sync_marks", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Marks of a library sync",
       "The ignore and pin marks the user set on items of an online store, with their reasons (untrusted)." },
+    // the run-time settings of the service (remote service design 18): read only; a change is made by the user through the workbench or the admin command line
+    { "settings_get", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Settings of the service",
+      "The run-time settings of the asset store service (reprocessing, downloads, the service itself), per setting the key, group, type, range or choices, default, the value in effect, a value that applies after a restart, where the value comes from (site, overridden, default) and whether a change applies at once or after a restart; and whether clients may change settings. Read only: there is no tool that changes them, the user changes them in the workbench." },
     // reprocessing of a pack of the primary store (store pack ids "pk..."): the outputs are made again with the converter as it is now; the
     // previous generation of the outputs is kept, so reprocess_rollback undoes a regeneration that made things worse; originals are never changed
     { "reprocess_plan", "read", C::FAMILY_PIPELINE_QUERY, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Plan a reprocessing",
@@ -577,6 +580,12 @@ CAssetToolCatalogue::BuildInputSchema( const CORE::CString& name, const CAssetVo
         AddPaging( schema, 100 );
     }
     else
+    if ( "settings_get" == name )
+    {
+        S::AddProperty( schema, "group", S::String( 1, 64, "Only the settings of this group (Reprocessing, Downloads, Service)" ) );
+        S::AddProperty( schema, "key", S::String( 1, 128, "Only this setting, by its key (reprocess.maxConcurrentJobs)" ) );
+    }
+    else
     if ( "validate_pack" == name )
     {
         CORE::CDataNode validator = S::Object();
@@ -842,6 +851,13 @@ CAssetToolCatalogue::BuildOutputSchema( const CORE::CString& name )
     {
         CORE::CDataNode schema = LooseObject( "The pack or asset" );
         S::AddProperty( schema, "packId", S::String(), true );
+        return schema;
+    }
+    if ( "settings_get" == name )
+    {
+        CORE::CDataNode schema = LooseObject( "The settings" );
+        S::AddProperty( schema, "settings", S::Array( LooseObject( "A setting" ) ), true );
+        S::AddProperty( schema, "changesAllowed", S::Boolean(), true );
         return schema;
     }
     if ( "reprocess_plan" == name )

@@ -111,6 +111,7 @@ CRemoteFileTransfer::CRemoteFileTransfer( EMode mode, const CORE::CString& name 
     , m_status( (UInt32) ASSETSTORE_STATUS_OK )
     , m_cancel( false )
     , m_bytesDone( 0 )
+    , m_fetching( 0 )
     , m_bytesTotal( 0 )
     , m_bytesReused( 0 )
     , m_filesDone( 0 )
@@ -179,7 +180,12 @@ bool CRemoteFileTransfer::IsCancelRequested( void ) const { return m_cancel.Load
 CRemoteFileTransfer::EState CRemoteFileTransfer::GetState( void ) const { return (EState) m_state.Load(); }
 bool CRemoteFileTransfer::IsEnded( void ) const { const EState state = GetState(); return STATE_DONE == state || STATE_FAILED == state || STATE_CANCELLED == state; }
 TAssetStoreStatus CRemoteFileTransfer::GetStatus( void ) const { return (TAssetStoreStatus) m_status.Load(); }
-UInt64 CRemoteFileTransfer::GetBytesDone( void ) const { return m_bytesDone.Load(); }
+UInt64
+CRemoteFileTransfer::GetBytesDone( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_bytesDone.Load() + m_fetching.Load();
+}
 UInt64 CRemoteFileTransfer::GetBytesTotal( void ) const { return m_bytesTotal.Load(); }
 UInt64 CRemoteFileTransfer::GetBytesReused( void ) const { return m_bytesReused.Load(); }
 UInt32 CRemoteFileTransfer::GetFilesDone( void ) const { return m_filesDone.Load(); }
@@ -219,8 +225,8 @@ CRemoteFileTransfer::AddFile( const CORE::CString& servicePath, const CORE::CStr
 {GUCEF_TRACE;
 
     SItem item;
-    item.servicePath = CRemoteAssetFileSystem::Normalize( servicePath );
-    item.target = CRemoteAssetFileSystem::Normalize( targetPath );
+    item.servicePath = CIRemoteFileSource::Normalize( servicePath );
+    item.target = CIRemoteFileSource::Normalize( targetPath );
     item.size = size;
     item.digest = digest.Lowercase();
     MT::CScopeMutex lock( m_lock );
@@ -234,8 +240,8 @@ CRemoteFileTransfer::AddFolder( const CORE::CString& serviceFolder, const CORE::
 {GUCEF_TRACE;
 
     SFolder folder;
-    folder.servicePath = CRemoteAssetFileSystem::Normalize( serviceFolder );
-    folder.target = CRemoteAssetFileSystem::Normalize( targetPrefix );
+    folder.servicePath = CIRemoteFileSource::Normalize( serviceFolder );
+    folder.target = CIRemoteFileSource::Normalize( targetPrefix );
     MT::CScopeMutex lock( m_lock );
     m_folders.push_back( folder );
 }
@@ -247,7 +253,7 @@ CRemoteFileTransfer::AddListing( const CORE::CString& serviceFolder, bool recurs
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    const CORE::CString folder = CRemoteAssetFileSystem::Normalize( serviceFolder );
+    const CORE::CString folder = CIRemoteFileSource::Normalize( serviceFolder );
     m_listings.push_back( folder );
     if ( recursive )
         m_recursiveListings.insert( folder );
@@ -311,7 +317,7 @@ CRemoteFileTransfer::AddPack( CIAssetStoreService& service, const CORE::CString&
     }
     const CPackStorageLayout layout( pack.rootPath );
     const CORE::CString folder = layout.GetBrowseFolder( locationRoot );
-    CORE::CString name = CRemoteAssetFileSystem::Normalize( layout.GetPackFolder() );
+    CORE::CString name = CIRemoteFileSource::Normalize( layout.GetPackFolder() );
     if ( name.IsNULLOrEmpty() )
         name = pack.title.IsNULLOrEmpty() ? packId : pack.title;
     AddFolder( folder, name );
@@ -354,14 +360,14 @@ CRemoteFileTransfer::AddAsset( CIAssetStoreService& service, const CORE::CString
         return false;
     }
     // the folder that all the files are in
-    CORE::CString common = CRemoteAssetFileSystem::Normalize( set.files[ 0 ].path );
+    CORE::CString common = CIRemoteFileSource::Normalize( set.files[ 0 ].path );
     {
         const Int32 slash = common.HasChar( '/', false );
         common = slash < 0 ? CORE::CString::Empty : common.SubstrFromRange( 0, (UInt32) slash );
     }
     for ( size_t i=1; i<set.files.size(); ++i )
     {
-        const CORE::CString path = CRemoteAssetFileSystem::Normalize( set.files[ i ].path );
+        const CORE::CString path = CIRemoteFileSource::Normalize( set.files[ i ].path );
         while ( !common.IsNULLOrEmpty() && !( 0 == path.HasSubstr( common + "/" ) ) )
         {
             const Int32 slash = common.HasChar( '/', false );
@@ -370,7 +376,7 @@ CRemoteFileTransfer::AddAsset( CIAssetStoreService& service, const CORE::CString
     }
     for ( size_t i=0; i<set.files.size(); ++i )
     {
-        const CORE::CString path = CRemoteAssetFileSystem::Normalize( set.files[ i ].path );
+        const CORE::CString path = CIRemoteFileSource::Normalize( set.files[ i ].path );
         CORE::CString target = path;
         if ( !common.IsNULLOrEmpty() && 0 == path.HasSubstr( common + "/" ) )
             target = path.CutChars( common.Length() + 1, true );
@@ -408,7 +414,7 @@ CRemoteFileTransfer::Finish( EState state, TAssetStoreStatus status, const CORE:
 /*-------------------------------------------------------------------------*/
 
 bool
-CRemoteFileTransfer::Expand( CRemoteAssetFileSystem& system )
+CRemoteFileTransfer::Expand( CIRemoteFileSource& system )
 {GUCEF_TRACE;
 
     // the digests that the catalogue gave are known to the file system before the folders are listed
@@ -449,7 +455,7 @@ CRemoteFileTransfer::Expand( CRemoteAssetFileSystem& system )
             for ( size_t n=0; n<files.size(); ++n )
             {
                 const CORE::CString servicePath = folder + "/" + files[ n ];
-                CRemoteAssetFileSystem::SFileInfo info;
+                CIRemoteFileSource::SFileInfo info;
                 if ( !system.GetFileInfo( servicePath, info ) )
                     continue;
                 CORE::CString target = relative.IsNULLOrEmpty() ? files[ n ] : relative + "/" + files[ n ];
@@ -496,7 +502,7 @@ CRemoteFileTransfer::HashFile( const CORE::CString& path, CORE::CString& hex )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CRemoteFileTransfer::Run( CRemoteAssetFileSystem& system )
+CRemoteFileTransfer::Run( CIRemoteFileSource& system )
 {GUCEF_TRACE;
 
     m_state.Store( (UInt32) STATE_LISTING );
@@ -538,7 +544,7 @@ CRemoteFileTransfer::Run( CRemoteAssetFileSystem& system )
         // a size that is not known is asked of the service
         if ( 0 == items[ i ].size )
         {
-            CRemoteAssetFileSystem::SFileInfo info;
+            CIRemoteFileSource::SFileInfo info;
             if ( system.GetFileInfo( items[ i ].servicePath, info ) && !info.isDirectory )
             {
                 items[ i ].size = info.size;
@@ -642,12 +648,12 @@ CRemoteFileTransfer::Run( CRemoteAssetFileSystem& system )
         for ( size_t i=0; i<more.size() && !IsCancelRequested(); ++i )
         {
             SItem item;
-            item.servicePath = CRemoteAssetFileSystem::Normalize( more[ i ] );
+            item.servicePath = CIRemoteFileSource::Normalize( more[ i ] );
             if ( !known.insert( item.servicePath ).second )
                 continue;
             if ( !m_assetFolder.IsNULLOrEmpty() && 0 == item.servicePath.HasSubstr( m_assetFolder + "/" ) )
                 item.target = item.servicePath.CutChars( m_assetFolder.Length() + 1, true );
-            CRemoteAssetFileSystem::SFileInfo info;
+            CIRemoteFileSource::SFileInfo info;
             if ( !system.GetFileInfo( item.servicePath, info ) || info.isDirectory )
                 continue;
             item.size = info.size;
@@ -678,7 +684,7 @@ CRemoteFileTransfer::Run( CRemoteAssetFileSystem& system )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CRemoteFileTransfer::RunItem( CRemoteAssetFileSystem& system, const SItem& item, CORE::CString& message )
+CRemoteFileTransfer::RunItem( CIRemoteFileSource& system, const SItem& item, CORE::CString& message )
 {GUCEF_TRACE;
 
     if ( MODE_RELEASE_OFFLINE == m_mode )
@@ -703,9 +709,14 @@ CRemoteFileTransfer::RunItem( CRemoteAssetFileSystem& system, const SItem& item,
     {
         const UInt64 doneBefore = m_bytesDone.Load();
         const bool cachedBefore = system.IsFileCached( item.servicePath, item.size );
-        MT::CTAtomic< UInt64 > fetched( 0 );
-        const TAssetStoreStatus status = system.FetchWholeFile( item.servicePath, pin, &m_cancel, &fetched, message );
-        m_bytesDone.FetchAdd( fetched.Load() );
+        // the bytes of the file come in while it is fetched: the progress shows them as they arrive
+        m_fetching.Store( 0 );
+        const TAssetStoreStatus status = system.FetchWholeFile( item.servicePath, pin, &m_cancel, &m_fetching, message );
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_bytesDone.FetchAdd( m_fetching.Load() );
+            m_fetching.Store( 0 );
+        }
         if ( cachedBefore || ASSETSTORE_STATUS_OK == status )
         {
             // what was in the cache already counts as done
@@ -740,7 +751,7 @@ CRemoteFileTransfer::IsRetryable( TAssetStoreStatus status )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CRemoteFileTransfer::DownloadItem( CRemoteAssetFileSystem& system, const SItem& item, CORE::CString& message )
+CRemoteFileTransfer::DownloadItem( CIRemoteFileSource& system, const SItem& item, CORE::CString& message )
 {GUCEF_TRACE;
 
     const CORE::CString target = item.target.IsNULLOrEmpty() ? item.servicePath : item.target;
@@ -799,7 +810,7 @@ CRemoteFileTransfer::DownloadItem( CRemoteAssetFileSystem& system, const SItem& 
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SItem& item, const CORE::CString& part, bool fromStart, bool& partWasBad, CORE::CString& message )
+CRemoteFileTransfer::DownloadAttempt( CIRemoteFileSource& system, const SItem& item, const CORE::CString& part, bool fromStart, bool& partWasBad, CORE::CString& message )
 {GUCEF_TRACE;
 
     // where the part of an earlier run ends: the last whole block, so a torn tail is never kept
@@ -807,7 +818,7 @@ CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SIte
     if ( !fromStart && CORE::FileExists( part ) )
     {
         const UInt64 partSize = CORE::FileSize( part );
-        start = ( partSize / CAssetBlockCache::BlockBytes ) * CAssetBlockCache::BlockBytes;
+        start = ( partSize / PartAlignBytes ) * PartAlignBytes;
         if ( start > item.size )
             start = 0;
     }
@@ -817,20 +828,23 @@ CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SIte
     if ( CORE::FileSize( part ) != start )
         CORE::TruncateFile( part, start );
 
-    CRemoteAssetFileSystem::SOpenFile source;
-    if ( !system.OpenFile( item.servicePath, source, message ) )
-        return ASSETSTORE_STATUS_NOT_FOUND == source.status && system.IsOffline() ? ASSETSTORE_STATUS_UNAVAILABLE : source.status;
+    CIRemoteFileSource::SFileInfo source;
+    if ( !system.GetFileInfo( item.servicePath, source ) || source.isDirectory )
+    {
+        message = source.isDirectory ? "The path " + item.servicePath + " is a folder of the store service" :
+                  system.IsOffline() ? "The file " + item.servicePath + " is not available offline: it is not in the cache of this computer and the store service cannot be reached" :
+                                       "The file " + item.servicePath + " is not on the store service (any more)";
+        return system.IsOffline() ? ASSETSTORE_STATUS_UNAVAILABLE : ASSETSTORE_STATUS_NOT_FOUND;
+    }
     if ( item.size != 0 && source.size != item.size )
     {
         message = "The file " + item.servicePath + " is not the size the catalogue says (" + CORE::ToString( source.size ) + " bytes where " + CORE::ToString( item.size ) + " are expected)";
-        system.CloseFile( source );
         return ASSETSTORE_STATUS_SIZE_MISMATCH;
     }
     CORE::CFileAccess out( part, start > 0 ? "r+b" : "wb" );
     if ( !out.Opened() )
     {
         message = "The file " + part + " cannot be written";
-        system.CloseFile( source );
         return ASSETSTORE_STATUS_IO_ERROR;
     }
     out.Setpos( start );
@@ -839,8 +853,7 @@ CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SIte
         m_bytesDone.FetchAdd( start );
         m_bytesReused.FetchAdd( start );
     }
-    GUCEF::vector< UInt8 > chunk;
-    chunk.resize( ChunkBytes );
+    CORE::CDynamicBuffer chunk;
     UInt64 offset = start;
     TAssetStoreStatus result = ASSETSTORE_STATUS_OK;
     while ( offset < source.size )
@@ -851,14 +864,16 @@ CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SIte
             message = "Cancelled: the part of " + item.target + " is kept to continue";
             break;
         }
-        const UInt32 read = system.ReadFile( source, offset, &chunk[ 0 ], ChunkBytes );
+        CORE::CString readMessage;
+        const TAssetStoreStatus readStatus = system.ReadFileRange( item.servicePath, offset, ChunkBytes, chunk, readMessage );
+        const UInt32 read = chunk.GetDataSize();
         if ( 0 == read )
         {
-            result = ASSETSTORE_STATUS_OK == source.status ? ASSETSTORE_STATUS_IO_ERROR : source.status;
-            message = source.message;
+            result = ASSETSTORE_STATUS_OK == readStatus ? ASSETSTORE_STATUS_IO_ERROR : readStatus;
+            message = readMessage;
             break;
         }
-        if ( read != out.Write( &chunk[ 0 ], 1, read ) )
+        if ( read != out.Write( chunk.GetConstBufferPtr(), 1, read ) )
         {
             result = ASSETSTORE_STATUS_IO_ERROR;
             message = "The file " + part + " cannot be written: the disk may be full";
@@ -869,7 +884,6 @@ CRemoteFileTransfer::DownloadAttempt( CRemoteAssetFileSystem& system, const SIte
     }
     out.Flush();
     out.Close();
-    system.CloseFile( source );
     if ( ASSETSTORE_STATUS_OK != result )
         return result;
 

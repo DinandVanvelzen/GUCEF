@@ -22,11 +22,12 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CDATANODE_H
-#include "CDataNode.h"
-#define GUCEF_CORE_CDATANODE_H
-#endif /* GUCEF_CORE_CDATANODE_H ? */
-#include "gucefASSETSTORE_CAssetFileBlock.h"
+#ifndef GUCEF_ASSETSTORE_CASSETSHAREDECISION_H
+#include "gucefASSETSTORE_CAssetShareDecision.h"
+#define GUCEF_ASSETSTORE_CASSETSHAREDECISION_H
+#endif /* GUCEF_ASSETSTORE_CASSETSHAREDECISION_H ? */
+
+#include "gucefASSETSTORE_CAssetShareWarmJob.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -43,20 +44,17 @@ namespace ASSETSTORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CAssetFileBlock::CAssetFileBlock( void )
-    : CORE::CIDataNodeSerializable()
-    , vfsPath()
-    , offset( 0 )
-    , fileSize( 0 )
-    , endOfFile( false )
-    , data()
+CAssetShareWarmJob::CAssetShareWarmJob( CAssetShareDecision& decision, const CORE::CString& servicePath )
+    : DRN::CIDRNResourceIoJob()
+    , m_decision( &decision )
+    , m_servicePath( servicePath )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CAssetFileBlock::~CAssetFileBlock()
+CAssetShareWarmJob::~CAssetShareWarmJob()
 {GUCEF_TRACE;
 
 }
@@ -64,77 +62,11 @@ CAssetFileBlock::~CAssetFileBlock()
 /*-------------------------------------------------------------------------*/
 
 void
-CAssetFileBlock::Clear( void )
+CAssetShareWarmJob::Execute( void )
 {GUCEF_TRACE;
 
-    *this = CAssetFileBlock();
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CAssetFileBlock::Serialize( CORE::CDataNode& domRootNode                        ,
-                           const CORE::CDataNodeSerializableSettings& settings ) const
-{GUCEF_TRACE;
-
-    bool success = true;
-    success = domRootNode.SetAttribute( "vfsPath", vfsPath ) && success;
-    success = domRootNode.SetAttribute( "offset", offset ) && success;
-    success = domRootNode.SetAttribute( "fileSize", fileSize ) && success;
-    success = domRootNode.SetAttribute( "endOfFile", endOfFile ) && success;
-    return success;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CAssetFileBlock::Deserialize( const CORE::CDataNode& domRootNode                  ,
-                             const CORE::CDataNodeSerializableSettings& settings )
-{GUCEF_TRACE;
-
-    Clear();
-    vfsPath = domRootNode.GetAttributeValueOrChildValueByName( "vfsPath" ).AsString( vfsPath );
-    offset = domRootNode.GetAttributeValueOrChildValueByName( "offset" ).AsUInt64( offset, true );
-    fileSize = domRootNode.GetAttributeValueOrChildValueByName( "fileSize" ).AsUInt64( fileSize, true );
-    endOfFile = domRootNode.GetAttributeValueOrChildValueByName( "endOfFile" ).AsBool( endOfFile, true );
-    return true;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CAssetFileBlock::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CAssetFileBlock( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CAssetFileBlock::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CAssetFileBlock::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::ASSETSTORE::CAssetFileBlock";
-}
-
-/*-------------------------------------------------------------------------*/
-
-const CORE::CString&
-CAssetFileBlock::GetClassTypeName( void ) const
-{GUCEF_TRACE;
-
-    static const CORE::CString classTypeName = "GUCEF::ASSETSTORE::CAssetFileBlock";
-    return classTypeName;
+    m_decision->Warm( m_servicePath );
+    m_decision->WarmDone( m_servicePath );
 }
 
 /*-------------------------------------------------------------------------//

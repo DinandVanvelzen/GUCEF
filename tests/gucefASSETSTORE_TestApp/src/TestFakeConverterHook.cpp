@@ -79,8 +79,93 @@ CTestConverterHook::CTestConverterHook( void )
     , m_indexBuilds( 0 )
     , m_failingAssets()
     , m_lastRequest()
+    , m_hold( false )
+    , m_active( 0 )
+    , m_maxActive( 0 )
+    , m_activeThreads( 0 )
+    , m_maxActiveThreads( 0 )
+    , m_threadPoolNames()
+    , m_startOrder()
+    , m_activeAtStart()
     , m_lock()
 {
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTestConverterHook::SetHold( bool hold )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_hold = hold;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetActiveCount( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_active;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetMaxActiveCount( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_maxActive;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetMaxActiveThreads( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_maxActiveThreads;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringSet
+CTestConverterHook::GetThreadPoolNames( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_threadPoolNames;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTestConverterHook::ResetConcurrency( void )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_maxActive = m_active;
+    m_maxActiveThreads = m_activeThreads;
+    m_threadPoolNames.clear();
+    m_startOrder.clear();
+    m_activeAtStart.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringVector
+CTestConverterHook::GetStartOrder( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_startOrder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetActiveAtStart( const CORE::CString& packId ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    GUCEF::map< CORE::CString, UInt32 >::const_iterator i = m_activeAtStart.find( packId );
+    return i == m_activeAtStart.end() ? 0 : (*i).second;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,6 +238,58 @@ CTestConverterHook::CanConvert( const CAssetRecord& asset ) const
 
 TAssetStoreStatus
 CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetRecordVector& assets, CAssetConversionOutcome& outcome )
+{
+    // the run counts as active, with its threads, from here to its end
+    const UInt32 threads = request.maxThreads > 0 ? request.maxThreads : 1;
+    {
+        MT::CScopeMutex lock( m_lock );
+        ++m_active;
+        m_activeThreads += threads;
+        if ( m_active > m_maxActive )
+            m_maxActive = m_active;
+        if ( m_activeThreads > m_maxActiveThreads )
+            m_maxActiveThreads = m_activeThreads;
+        if ( !request.threadPoolName.IsNULLOrEmpty() )
+            m_threadPoolNames.insert( request.threadPoolName );
+        m_lastRequest.maxThreads = request.maxThreads;
+        m_lastRequest.threadPoolName = request.threadPoolName;
+        m_startOrder.push_back( request.pack.packId );
+        m_activeAtStart[ request.pack.packId ] = m_active;
+    }
+    bool held = true;
+    while ( held )
+    {
+        {
+            MT::CScopeMutex lock( m_lock );
+            held = m_hold;
+        }
+        if ( held && GUCEF_NULL != request.observer && request.observer->IsCancelRequested() )
+            held = false;
+        if ( held )
+            MT::ThreadDelay( 5 );
+    }
+    TAssetStoreStatus status = ASSETSTORE_STATUS_FAILED;
+    try
+    {
+        status = ConvertPackNow( request, assets, outcome );
+    }
+    catch ( ... )
+    {
+        MT::CScopeMutex lock( m_lock );
+        --m_active;
+        m_activeThreads -= threads;
+        throw;
+    }
+    MT::CScopeMutex lock( m_lock );
+    --m_active;
+    m_activeThreads -= threads;
+    return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CTestConverterHook::ConvertPackNow( const CAssetConversionRequest& request, TAssetRecordVector& assets, CAssetConversionOutcome& outcome )
 {
     EMode mode;
     EIndexMode indexMode;

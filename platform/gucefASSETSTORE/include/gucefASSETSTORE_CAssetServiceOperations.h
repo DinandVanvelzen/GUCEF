@@ -101,9 +101,6 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     static const CORE::CString GetMissingThumbnails;        /**< "Thumbnails/GetMissing" */
 
     // Files
-    static const CORE::CString StatFiles;                   /**< "Files/Stat" */
-    static const CORE::CString ListDirectory;               /**< "Files/List" */
-    static const CORE::CString ReadFileBlock;               /**< "Files/Read" */
     static const CORE::CString BeginUpload;                 /**< "Files/BeginUpload" */
     static const CORE::CString BeginUploadFiles;            /**< "Files/BeginUploadFiles": an upload with its file list (paths, sizes, SHA-256 digests) */
     static const CORE::CString WriteUploadBlock;            /**< "Files/WriteUpload" */
@@ -170,6 +167,11 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     static const CORE::CString SetSyncMarks;                /**< "Sync/SetMarks": sets or removes marks of items of a store */
     static const CORE::CString GetSyncProfile;              /**< "Sync/GetProfile": the sync profile of a store, the defaults when none was set */
     static const CORE::CString SetSyncProfile;              /**< "Sync/SetProfile": replaces the sync profile of a store */
+
+    // Settings (the run-time settings of the service, gucefASSETSTORE_RemoteService_Design.md 18)
+    static const CORE::CString DescribeSettings;            /**< "Settings/Describe": the settings the caller may read, their values and whether changes are allowed */
+    static const CORE::CString SetSettings;                 /**< "Settings/Set": changes settings, all or none */
+    static const CORE::CString ResetSettings;               /**< "Settings/Reset": settings back to the value of the site settings */
 
     /** Whether the operation changes something and carries a command id */
     static bool IsMutation( const CORE::CString& operation );

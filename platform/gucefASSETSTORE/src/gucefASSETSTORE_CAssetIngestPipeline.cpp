@@ -1156,6 +1156,8 @@ CAssetIngestPipeline::Convert( CAssetIngestJob& job, CORE::CString& message )
     CIngestConversionObserver observer( m_store, job.ingestId, job.pack.packId, m_cancel );
     request.observer = &observer;
     request.reconvert = false;
+    request.maxThreads = job.request.conversionThreads;
+    request.threadPoolName = job.request.conversionThreadPoolName;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Ingest " << job.ingestId << " converts the pack with " << hook->GetName() << " for the profile " << profile );
     m_store.NotifyConversionEvent( CPrimaryAssetStore::ConversionProgressEvent, job.ingestId, job.pack.packId, true, 0, (UInt32) job.assets.size(), CORE::CString::Empty,

@@ -152,7 +152,7 @@ PerformAssetToolsMcpFakeTests( void )
             CAssetToolSet::GetToolNames( expected );
             const CString::StringSet listed( names.begin(), names.end() );
             const CString::StringSet catalogued( expected.begin(), expected.end() );
-            ASSERT_TRUE( listed == catalogued && 57 == names.size() && 57 == listed.size() );
+            ASSERT_TRUE( listed == catalogued && 58 == names.size() && 58 == listed.size() );
             CDataNode::const_iterator i = list.ConstBegin();
             while ( i != list.ConstEnd() )
             {
@@ -351,6 +351,7 @@ PerformAssetToolsMcpFakeTests( void )
                 { ASSETSTORE_STATUS_NOT_FOUND, GUCEF_NULL, "not-found" },
                 { ASSETSTORE_STATUS_UNAVAILABLE, GUCEF_NULL, "backend-unavailable" },
                 { ASSETSTORE_STATUS_UNSUPPORTED, GUCEF_NULL, "unsupported" },
+                { ASSETSTORE_STATUS_NO_SPACE, GUCEF_NULL, "no-space" },
                 { ASSETSTORE_STATUS_REFUSED, GUCEF_NULL, "licence-refused" }
             };
             for ( UInt32 c=0; c<sizeof( cases ) / sizeof( cases[ 0 ] ); ++c )
@@ -1044,6 +1045,16 @@ PerformAssetToolsMcpLocalTests( void )
                 ASSERT_TRUE( fixture.Call( "online_item", "{\"storeId\":\"toolstore\",\"itemId\":\"tool-item-1\"}", response ) && HasChildObject( response, "formats" ) );
                 ASSERT_TRUE( fixture.Call( "online_library", "{\"storeId\":\"no-such-store\"}", response ) && "not-found" == CToolsFixture::ErrorCode( response ) );
                 ASSERT_TRUE( fixture.Call( "transfer_queue", "{}", response ) && 2 <= CToolsFixture::CountItems( response ) );
+
+                // the run-time settings: read only, as a machine caller (no owner-only-read value), filtered by group or key; no write tool
+                const CAssetToolCatalogue::SEntry* settingsTool = CAssetToolCatalogue::Find( "settings_get" );
+                ASSERT_TRUE( GUCEF_NULL != settingsTool && CString( "read" ) == settingsTool->group && COM::MCP_TOOLEFFECT_READ_ONLY == settingsTool->effect );
+                ASSERT_TRUE( GUCEF_NULL == CAssetToolCatalogue::Find( "settings_set" ) );
+                ASSERT_TRUE( fixture.Call( "settings_get", "{}", response ) && !CToolsFixture::IsToolError( response ) );
+                ASSERT_TRUE( 0 <= fixture.GetTranscript().HasSubstr( "reprocess.maxConcurrentJobs" ) && 0 <= fixture.GetTranscript().HasSubstr( "downloads.maxAttempts" ) );
+                ASSERT_TRUE( 0 > fixture.GetTranscript().HasSubstr( "signInPromptSeconds" ) && 0 > fixture.GetTranscript().HasSubstr( "allowSettingsChanges" ) );
+                ASSERT_TRUE( "true" == CToolsFixture::StructuredAttr( response, "changesAllowed" ) );
+                ASSERT_TRUE( fixture.Call( "settings_get", "{\"key\":\"downloadStagingKeepHours\"}", response ) && 1 == CToolsFixture::Structured( response )->FindChild( "settings" )->GetNrOfChildNodes() );
 
                 // content of the withheld pack: denied; the status resource names no folder of the disk
                 ASSERT_TRUE( fixture.Request( "resources/read", "\"uri\":\"assettools://store/assets/" + swordAsset + "/thumbnail\"", response ) && -31003 == CToolsFixture::ProtocolError( response ) );

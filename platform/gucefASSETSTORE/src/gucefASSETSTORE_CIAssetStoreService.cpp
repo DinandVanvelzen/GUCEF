@@ -63,6 +63,7 @@ const CORE::CEvent CIAssetStoreService::SignInPromptClosedEvent = "GUCEF::ASSETS
 const CORE::CEvent CIAssetStoreService::ThumbnailUpdatedEvent = "GUCEF::ASSETSTORE::CIAssetStoreService::ThumbnailUpdatedEvent";
 const CORE::CEvent CIAssetStoreService::ListingImageReadyEvent = "GUCEF::ASSETSTORE::CIAssetStoreService::ListingImageReadyEvent";
 const CORE::CEvent CIAssetStoreService::NoticeEvent = "GUCEF::ASSETSTORE::CIAssetStoreService::NoticeEvent";
+const CORE::CEvent CIAssetStoreService::SettingsChangedEvent = "GUCEF::ASSETSTORE::CIAssetStoreService::SettingsChangedEvent";
 const CORE::CEvent CIAssetStoreService::ConnectionStateChangedEvent = "GUCEF::ASSETSTORE::CIAssetStoreService::ConnectionStateChangedEvent";
 
 /*-------------------------------------------------------------------------*/
@@ -82,6 +83,7 @@ CIAssetStoreService::RegisterEvents( void )
     ThumbnailUpdatedEvent.Initialize();
     ListingImageReadyEvent.Initialize();
     NoticeEvent.Initialize();
+    SettingsChangedEvent.Initialize();
     ConnectionStateChangedEvent.Initialize();
 }
 
@@ -147,6 +149,9 @@ CIAssetStoreService::IsOutcomeStatus( const CORE::CString& operation, TAssetStor
 {GUCEF_TRACE;
 
     if ( ASSETSTORE_STATUS_OK == status )
+        return true;
+    // a change of the settings ends with its record, whatever its status: it carries the reason per key that was not valid
+    if ( ( CAssetServiceOperations::SetSettings == operation || CAssetServiceOperations::ResetSettings == operation ) && ASSETSTORE_STATUS_CANCELLED != status )
         return true;
     // a duplicate is an outcome of an ingest, not a failure: the result tells
     return ASSETSTORE_STATUS_DUPLICATE == status && ( CAssetServiceOperations::Ingest == operation || CAssetServiceOperations::ResumeIngest == operation );
@@ -233,6 +238,12 @@ MessageOf( const CORE::CICloneable* result )
     const CAssetFileSet* fileSet = CORE::CICloneable::CloneableAs< CAssetFileSet >( result );
     if ( GUCEF_NULL != fileSet )
         return fileSet->mainMessage;
+    const CAssetSettingsChangeResult* settingsChange = CORE::CICloneable::CloneableAs< CAssetSettingsChangeResult >( result );
+    if ( GUCEF_NULL != settingsChange )
+        return settingsChange->message;
+    const CAssetSettingsDescription* settings = CORE::CICloneable::CloneableAs< CAssetSettingsDescription >( result );
+    if ( GUCEF_NULL != settings )
+        return settings->message;
     return CORE::CString::Empty;
 }
 
@@ -407,6 +418,24 @@ CIAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::
 {GUCEF_TRACE;
 
     flags.clear();
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIAssetStoreService::TryGetRestrictionsOfPathKept( const CORE::CString& /* vfsPath */, CORE::CString::StringSet& /* flags */, bool& /* inPack */ ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIAssetStoreService::GetCatalogueDigestOfPath( const CORE::CString& /* vfsPath */, UInt64& /* sizeBytes */, CORE::CString& /* sha256Hex */ ) const
+{GUCEF_TRACE;
+
     return false;
 }
 
@@ -658,43 +687,6 @@ CIAssetStoreService::GetMissingThumbnailsAsync( const CORE::CString& rendererId,
     call.SetText( "rendererVersion", rendererVersion );
     call.SetUInt32( "size", size );
     call.SetUInt32( "maxEntries", maxEntries );
-    return ExecuteAsync( call );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CFutureResult
-CIAssetStoreService::StatFilesAsync( const CORE::CString::StringVector& vfsPaths )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::StatFiles );
-    call.SetTexts( "vfsPaths", vfsPaths );
-    return ExecuteAsync( call );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CFutureResult
-CIAssetStoreService::ListDirectoryAsync( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::ListDirectory );
-    call.SetText( "vfsPath", vfsPath );
-    call.SetText( "pageToken", pageToken );
-    call.SetUInt32( "maxEntries", maxEntries );
-    return ExecuteAsync( call );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CFutureResult
-CIAssetStoreService::ReadFileBlockAsync( const CORE::CString& vfsPath, UInt64 offset, UInt32 length )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::ReadFileBlock );
-    call.SetText( "vfsPath", vfsPath );
-    call.SetUInt64( "offset", offset );
-    call.SetUInt32( "length", length );
     return ExecuteAsync( call );
 }
 
@@ -1255,6 +1247,83 @@ CIAssetStoreService::SetSyncProfileAsync( const CORE::CString& commandId, const 
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
+CIAssetStoreService::DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service has no run-time settings";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::DescribeSettingsAsync( const CAssetSettingsRequest& request )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::DescribeSettings );
+    call.SetRecord( "request", request );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service has no run-time settings";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::SetSettingsAsync( const CORE::CString& commandId, const CAssetSettingsRequest& request )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::SetSettings, commandId );
+    call.SetRecord( "request", request );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service has no run-time settings";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::ResetSettingsAsync( const CORE::CString& commandId, const CAssetSettingsRequest& request )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::ResetSettings, commandId );
+    call.SetRecord( "request", request );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIAssetStoreService::AuditSettingsRefusal( const CAssetSettingsRequest& request, const CORE::CString& operation, const CORE::CString& reason )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
 CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*& result, CORE::CString& message )
 {GUCEF_TRACE;
 
@@ -1549,34 +1618,6 @@ CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*
         const UInt32 maxEntries = call.GetUInt32( "maxEntries" );
         CAssetThumbnailPage* answer = GUCEF_NEW CAssetThumbnailPage();
         status = GetMissingThumbnails( rendererId, rendererVersion, size, maxEntries, *answer );
-        result = answer;
-    }
-    else
-    if ( CAssetServiceOperations::StatFiles == operation )
-    {
-        const CORE::CString::StringVector vfsPaths = call.GetTexts( "vfsPaths" );
-        CAssetFileStatPage* answer = GUCEF_NEW CAssetFileStatPage();
-        status = StatFiles( vfsPaths, *answer );
-        result = answer;
-    }
-    else
-    if ( CAssetServiceOperations::ListDirectory == operation )
-    {
-        const CORE::CString vfsPath = call.GetText( "vfsPath" );
-        const CORE::CString pageToken = call.GetText( "pageToken" );
-        const UInt32 maxEntries = call.GetUInt32( "maxEntries" );
-        CAssetFileStatPage* answer = GUCEF_NEW CAssetFileStatPage();
-        status = ListDirectory( vfsPath, pageToken, maxEntries, *answer );
-        result = answer;
-    }
-    else
-    if ( CAssetServiceOperations::ReadFileBlock == operation )
-    {
-        const CORE::CString vfsPath = call.GetText( "vfsPath" );
-        const UInt64 offset = call.GetUInt64( "offset" );
-        const UInt32 length = call.GetUInt32( "length" );
-        CAssetFileBlock* answer = GUCEF_NEW CAssetFileBlock();
-        status = ReadFileBlock( vfsPath, offset, length, *answer );
         result = answer;
     }
     else
@@ -1938,6 +1979,24 @@ CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*
         call.GetRecord( "profile", profile );
         CAssetServiceResult* answer = GUCEF_NEW CAssetServiceResult();
         status = SetSyncProfile( commandId, call.GetText( "storeId" ), profile, *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::DescribeSettings == operation )
+    {
+        CAssetSettingsRequest request;
+        call.GetRecord( "request", request );
+        CAssetSettingsDescription* answer = GUCEF_NEW CAssetSettingsDescription();
+        status = DescribeSettings( request, *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::SetSettings == operation || CAssetServiceOperations::ResetSettings == operation )
+    {
+        CAssetSettingsRequest request;
+        call.GetRecord( "request", request );
+        CAssetSettingsChangeResult* answer = GUCEF_NEW CAssetSettingsChangeResult();
+        status = CAssetServiceOperations::SetSettings == operation ? SetSettings( commandId, request, *answer ) : ResetSettings( commandId, request, *answer );
         result = answer;
     }
     else

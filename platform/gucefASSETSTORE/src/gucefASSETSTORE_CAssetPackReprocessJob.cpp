@@ -230,8 +230,20 @@ CAssetPackReprocessJob::CAssetPackReprocessJob( CLocalAssetStoreService& service
     , m_jobId( jobId )
     , m_request( request )
     , m_observer( observer )
+    , m_threads( 0 )
+    , m_threadPoolName()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetPackReprocessJob::SetThreadShare( UInt32 threads, const CORE::CString& threadPoolName )
+{GUCEF_TRACE;
+
+    m_threads = threads;
+    m_threadPoolName = threadPoolName;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -689,6 +701,8 @@ CAssetPackReprocessJob::Redownload( const CAssetPackRecord& pack, CORE::CDataNod
         ingest.expectedRevision = CAssetItemRevision::GetEffectiveRevision( item );
         ingest.verifyPackId = pack.packId;
         ingest.repairOriginals = m_request.repairOriginals;
+        ingest.conversionThreads = m_threads;
+        ingest.conversionThreadPoolName = m_threadPoolName;
         const TAssetStoreStatus ingestStatus = store->Ingest( ingest, ingested );
         if ( ASSETSTORE_STATUS_DUPLICATE == ingestStatus && ingested.duplicateOfPackId == pack.packId )
         {
@@ -767,6 +781,7 @@ CAssetPackReprocessJob::Regenerate( const CORE::CString& packId, bool target, co
     Progress( 0, 0, target ? "regenerating the target resources" : "regenerating the intermediate resources" );
     CAssetPackRegeneration regeneration( *store, GUCEF_NULL, m_observer );
     regeneration.SetJob( m_jobId, "reprocess:" + step, m_request.DescribeForAudit() );
+    regeneration.SetThreadShare( m_threads, m_threadPoolName );
     CAssetConversionOutcome outcome;
     const TAssetStoreStatus status = regeneration.Regenerate( packId, target ? CAssetPackRegeneration::MODE_TARGET : CAssetPackRegeneration::MODE_INTERMEDIATE,
                                                               globs, cook, m_request.targets, m_request.acceptErrors, MakeMade( step ), outcome );

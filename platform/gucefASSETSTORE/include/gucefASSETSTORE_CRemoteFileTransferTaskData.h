@@ -65,7 +65,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CRemoteFileTransferTaskData : public CORE::CIC
 {
     public:
 
-    CRemoteAssetFileSystem* system;
+    CIRemoteFileSource* system;
     TRemoteFileTransferPtr transfer;
     CORE::CFutureResultSource source;
 

@@ -620,6 +620,7 @@ CAssetToolContext::GetErrorCodeOfStatus( TAssetStoreStatus status )
         case ASSETSTORE_STATUS_UNSAFE_NAME:         return "invalid-arguments";
         case ASSETSTORE_STATUS_UNSUPPORTED:         return "unsupported";
         case ASSETSTORE_STATUS_REFUSED:             return "licence-refused";
+        case ASSETSTORE_STATUS_NO_SPACE:            return "no-space";
         case ASSETSTORE_STATUS_NOT_SIGNED_IN:
         case ASSETSTORE_STATUS_SESSION_EXPIRED:     return "not-signed-in";
         case ASSETSTORE_STATUS_RATE_LIMITED:        return "busy";

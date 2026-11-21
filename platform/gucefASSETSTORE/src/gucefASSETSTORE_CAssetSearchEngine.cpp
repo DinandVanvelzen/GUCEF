@@ -445,6 +445,11 @@ CAssetSearchEngine::Search( const CAssetSearchQuery& query, const TLocationState
             packQuery.WhereIn( "state", ToVariants( query.packStates ) );
             any = true;
         }
+        if ( !query.sourceItemIds.empty() )
+        {
+            packQuery.WhereIn( "source_item_id", ToVariants( query.sourceItemIds ) );
+            any = true;
+        }
         AddRange( packQuery, "size_bytes", query.minPackBytes, query.maxPackBytes, any );
         if ( query.unclassified && packsMode )
         {

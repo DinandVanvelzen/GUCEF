@@ -26,6 +26,11 @@
 #include "gucefASSETSTORE_CAssetVocabulary.h"
 #define GUCEF_ASSETSTORE_CASSETVOCABULARY_H
 #endif /* GUCEF_ASSETSTORE_CASSETVOCABULARY_H ? */
+#ifndef GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#include "gucefWEB_CHtmlTextExtractor.h"
+#define GUCEF_WEB_CHTMLTEXTEXTRACTOR_H
+#endif /* GUCEF_WEB_CHTMLTEXTEXTRACTOR_H ? */
+
 #include "gucefASSETSTORE_CAssetStoreItemNormalizer.h"
 
 /*-------------------------------------------------------------------------//
@@ -85,7 +90,8 @@ CAssetStoreItemNormalizer::MapFields( const CAssetStoreItem& item, CAssetPackRec
     pack.sourceUrl = item.url;
     pack.title = item.title.Trim( true ).Trim( false );
     pack.seller = item.seller.Trim( true ).Trim( false );
-    pack.description = item.description;
+    // stores give their descriptions as HTML: the catalogue keeps, shows and searches the readable text of it
+    pack.description = WEB::CHtmlTextExtractor::ToPlainTextIfHtml( item.description );
     pack.sourceCategories = item.categories;
     pack.sourceTags = item.tags;
 }

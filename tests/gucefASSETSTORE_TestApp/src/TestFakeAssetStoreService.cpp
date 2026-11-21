@@ -678,43 +678,6 @@ CFakeAssetStoreService::GetMissingThumbnails( const CORE::CString& rendererId, c
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
-CFakeAssetStoreService::StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::StatFiles );
-    call.SetTexts( "vfsPaths", vfsPaths );
-    return Answer( call, result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CFakeAssetStoreService::ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::ListDirectory );
-    call.SetText( "vfsPath", vfsPath );
-    call.SetText( "pageToken", pageToken );
-    call.SetUInt32( "maxEntries", maxEntries );
-    return Answer( call, result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
-CFakeAssetStoreService::ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result )
-{GUCEF_TRACE;
-
-    CAssetServiceCall call( CAssetServiceOperations::ReadFileBlock );
-    call.SetText( "vfsPath", vfsPath );
-    call.SetUInt64( "offset", offset );
-    call.SetUInt32( "length", length );
-    return Answer( call, result );
-}
-
-/*-------------------------------------------------------------------------*/
-
-TAssetStoreStatus
 CFakeAssetStoreService::BeginUpload( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount, CAssetServiceResult& result )
 {GUCEF_TRACE;
 

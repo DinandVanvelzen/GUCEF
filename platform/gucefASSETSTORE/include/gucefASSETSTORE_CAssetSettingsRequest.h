@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_ASSETSTORE_CASSETFILEBLOCK_H
-#define GUCEF_ASSETSTORE_CASSETFILEBLOCK_H
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H
+#define GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -29,10 +29,10 @@
 #include "gucefCORE_CIDataNodeSerializable.h"
 #define GUCEF_CORE_CIDATANODESERIALIZABLE_H
 #endif /* GUCEF_CORE_CIDATANODESERIALIZABLE_H ? */
-#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
-#include "CDynamicBuffer.h"
-#define GUCEF_CORE_CDYNAMICBUFFER_H
-#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+#ifndef GUCEF_ASSETSTORE_ETYPES_H
+#include "gucefASSETSTORE_ETypes.h"
+#define GUCEF_ASSETSTORE_ETYPES_H
+#endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
 #ifndef GUCEF_ASSETSTORE_MACROS_H
 #include "gucefASSETSTORE_macros.h"
 #define GUCEF_ASSETSTORE_MACROS_H
@@ -54,24 +54,28 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Bytes of a file of the asset store service: the part from the offset, the size of the whole file and whether the end
- *  was reached. The bytes are not part of the DataNode form: the wire form is defined with the remote contract.
+ *  The arguments of the operations of the settings (gucefASSETSTORE_RemoteService_Design.md 18.2): the values of Settings/Set, the keys of
+ *  Settings/Reset, and who asks. The host of the remote service sets the caller from the device whatever the client sent ("device:<id>",
+ *  the device name, remoteClient true, fullRead and mayChange for a device with the role owner and without the role mcp); an in-process
+ *  caller without a host is the site administrator (the defaults: remoteClient false, fullRead and mayChange true).
  */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetFileBlock : public CORE::CIDataNodeSerializable
+class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSettingsRequest : public CORE::CIDataNodeSerializable
 {
     public:
 
-    CORE::CString vfsPath;
-    UInt64 offset;
-    UInt64 fileSize;
-    bool endOfFile;
-    CORE::CDynamicBuffer data;    /**< not serialised */
+    CORE::CString::StringMap values;        /**< Settings/Set: the key and the new value as text */
+    CORE::CString::StringVector keys;       /**< Settings/Reset: the keys that go back to the site value */
+    CORE::CString caller;                   /**< "device:<id>", "admin", "mcp", ...: for the audit */
+    CORE::CString callerName;               /**< the name of the device or of the caller, for the audit */
+    bool remoteClient;                      /**< a client of the remote service: allowSettingsChanges applies to it */
+    bool fullRead;                          /**< the caller may read the values of the settings that are owner-only-read */
+    bool mayChange;                         /**< the caller has the role to change settings */
 
-    CAssetFileBlock( void );
-    virtual ~CAssetFileBlock() GUCEF_VIRTUAL_OVERRIDE;
+    CAssetSettingsRequest( void );
+    virtual ~CAssetSettingsRequest() GUCEF_VIRTUAL_OVERRIDE;
 
-    /** Every member back to its default */
-    void Clear( void );
+    /** The caller as a client device of the host: what the host sets, whatever the client sent */
+    void SetRemoteCaller( const CORE::CString& deviceId, const CORE::CString& deviceName, bool readsAll, bool changes );
 
     virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
                             const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -81,6 +85,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetFileBlock : public CORE::CIDataNodeSeria
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Type check of the result of a future or of the data of an event without RTTI (CICloneable::CloneableAs()) */
     virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     static const char* CloneableTypeName( void );
@@ -99,4 +104,4 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetFileBlock : public CORE::CIDataNodeSeria
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_ASSETSTORE_CASSETFILEBLOCK_H ? */
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSREQUEST_H ? */

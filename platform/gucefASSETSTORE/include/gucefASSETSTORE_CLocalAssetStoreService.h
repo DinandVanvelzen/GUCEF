@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CTFACTORYWITHPARAM_H
 #endif /* GUCEF_CORE_CTFACTORYWITHPARAM_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CTSHAREDPTR_H
 #include "CTSharedPtr.h"
 #define GUCEF_CORE_CTSHAREDPTR_H
@@ -89,6 +94,16 @@
 #include "gucefASSETSTORE_CAssetLibrarySyncAdmission.h"
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
 #endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSREGISTRY_H
+#include "gucefASSETSTORE_CAssetSettingsRegistry.h"
+#define GUCEF_ASSETSTORE_CASSETSETTINGSREGISTRY_H
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSREGISTRY_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSETTINGSOVERRIDESTORE_H
+#include "gucefASSETSTORE_CAssetSettingsOverrideStore.h"
+#define GUCEF_ASSETSTORE_CASSETSETTINGSOVERRIDESTORE_H
+#endif /* GUCEF_ASSETSTORE_CASSETSETTINGSOVERRIDESTORE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -209,6 +224,42 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
 
     /** The admission of the reprocessing jobs (CAssetReprocessGuard) with the limits of the configuration ("reprocess") */
     CAssetReprocessGuard& GetReprocessGuard( void );
+
+    /*
+     *  The settings of the reprocessing while the service runs: a change takes effect for the next admission and start of a
+     *  job, without a restart. The jobs that run finish with the share they were given; the jobs that wait are looked at again
+     *  at once, so a higher limit starts them, a lower one starts none until the running jobs are below it.
+     */
+
+    /** Replaces the settings of the reprocessing */
+    void ApplyReprocessSettings( const CAssetReprocessSettings& settings );
+
+    /** The settings of the reprocessing in effect */
+    CAssetReprocessSettings GetReprocessSettings( void ) const;
+
+    /** The settings of the reprocessing as a data node ("reprocess", the keys of CAssetReprocessSettings) */
+    void GetReprocessSettings( CORE::CDataNode& settings ) const;
+
+    /**
+     *  Changes the keys that 'changes' holds (CAssetReprocessSettings::ApplyChanges()) and applies the result; when a key is not
+     *  known or not valid nothing changes, the answer is INVALID_ARGUMENT and 'errors' has the reason per key
+     */
+    TAssetStoreStatus SetReprocessSettings( const CORE::CDataNode& changes, CORE::CString::StringMap& errors );
+
+    /** The budget in effect (CAssetReprocessBudget), what the running jobs use of it and the jobs that wait, as attributes of 'status' */
+    void DescribeReprocessing( CORE::CDataNode& status ) const;
+
+    /*
+     *  The run-time settings (gucefASSETSTORE_RemoteService_Design.md 18): the registry of CAssetStoreServiceConfigSettings, the values
+     *  of the site settings given at construction, and the overrides that clients and administrators set (DescribeSettings(),
+     *  SetSettings(), ResetSettings()), kept in the state folder and applied over the site values at every Open()
+     */
+
+    /** The settings that can be read and changed */
+    const CAssetSettingsRegistry& GetSettingsRegistry( void ) const;
+
+    /** The value in effect of a setting as canonical text; false for a key that is not registered */
+    bool GetSettingValue( const CORE::CString& key, CORE::CString& value ) const;
 
     /** The VFS path of the work list file of a sync job, empty when the service keeps no state */
     CORE::CString GetSyncWorklistPath( const CORE::CString& jobId ) const;
@@ -337,14 +388,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
 
     virtual TAssetStoreStatus GetThumbnails( const CORE::CString::StringVector& assetIds, UInt32 size, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool TryGetRestrictionsOfPathKept( const CORE::CString& vfsPath, CORE::CString::StringSet& flags, bool& inPack ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool GetCatalogueDigestOfPath( const CORE::CString& vfsPath, UInt64& sizeBytes, CORE::CString& sha256Hex ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus PutThumbnail( const CORE::CString& commandId, const CAssetThumbnail& thumbnail, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetMissingThumbnails( const CORE::CString& rendererId, const CORE::CString& rendererVersion, UInt32 size, UInt32 maxEntries, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
 
     // Files
 
-    virtual TAssetStoreStatus StatFiles( const CORE::CString::StringVector& vfsPaths, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual TAssetStoreStatus ListDirectory( const CORE::CString& vfsPath, const CORE::CString& pageToken, UInt32 maxEntries, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual TAssetStoreStatus ReadFileBlock( const CORE::CString& vfsPath, UInt64 offset, UInt32 length, CAssetFileBlock& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus BeginUpload( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus QueryUpload( const CORE::CString& uploadId, CAssetFileStatPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus WriteUploadBlock( const CORE::CString& uploadId, const CORE::CString& relativePath, UInt64 offset, const CORE::CDynamicBuffer& data, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
@@ -420,6 +470,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     virtual TAssetStoreStatus SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus DescribeSettings( const CAssetSettingsRequest& request, CAssetSettingsDescription& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus SetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus ResetSettings( const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void AuditSettingsRefusal( const CAssetSettingsRequest& request, const CORE::CString& operation, const CORE::CString& reason ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -480,6 +534,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
         Int64 createdAtMs;
         Int64 updatedAtMs;
         bool dispatched;            /**< queued on the thread pool; a reprocessing job waits for a slot first */
+        UInt32 slot;                /**< a running reprocessing job: its slot of CAssetReprocessGuard, 0 when it has none */
+        UInt32 threads;             /**< a running reprocessing job: its share of the converter threads */
+        UInt64 memoryMB;            /**< a reprocessing job: its estimated memory */
+        CORE::CString locationId;   /**< a reprocessing job: the storage location of its pack */
+        CORE::CString waitText;     /**< a reprocessing job that waits: "waiting for slot", "waiting for memory", "waiting for location" */
+        bool interrupted;           /**< a reprocessing job that the close of the service ended: it is kept for the next start */
         SPipelineJob( void );
     };
     typedef GUCEF::vector< SPipelineJob > TPipelineJobVector;
@@ -573,10 +633,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void OnPackIndexUpdated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     TAssetStoreStatus RunIndexPackJob( const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, const CORE::CFutureResultSource& source, CAssetServiceDocument& document );
     TAssetStoreStatus StartSyncJob( const CORE::CString& commandId, const CAssetPipelineRequest& request, CAssetServiceResult& result );
-    TAssetStoreStatus AdmitReprocessJob( const CAssetPipelineRequest& request, CORE::CString& name, CAssetServiceResult& result );
-    TAssetStoreStatus RunReprocessJob( const CORE::CString& key, const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, CAssetServiceDocument& document );
-    /** Queues the reprocessing jobs that wait for a slot while slots are free */
+    TAssetStoreStatus AdmitReprocessJob( const CAssetPipelineRequest& request, CORE::CString& name, UInt64& memoryMB, CORE::CString& locationId, CAssetServiceResult& result );
+    TAssetStoreStatus RunReprocessJob( const CORE::CString& key, const CAssetPipelineRequest& request, UInt32 slot, UInt32 threads, CIAssetConversionObserver* observer, CAssetServiceDocument& document );
+    /**
+     *  Starts the reprocessing jobs that wait, in the order they came, as CAssetReprocessGuard::TryStart() admits them: a job that
+     *  waits for a slot or for memory holds up the ones after it (a large job is not passed by smaller ones for ever), one that
+     *  waits for its storage location lets the others go first. A job that waits holds no thread of the pool.
+     */
     void DispatchReprocessJobs( void );
+    /** The thread pool of the converter run of the reprocessing job in a slot */
+    CORE::CString GetReprocessThreadPoolName( UInt32 slot ) const;
+    /** Makes the reprocessing jobs of the state file again: they wait for their turn, one that ran starts from the beginning */
+    void RestoreReprocessJobs( void );
     void OnSyncJobChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     CAssetLibrarySyncJob* FindSyncJobLocked( const CORE::CString& key ) const;
     /** The profile kept for the store, the defaults when none was set */
@@ -660,6 +728,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void RememberCommand( const CORE::CString& commandId, const CORE::CString& operation, const CAssetServiceResult& result );
     void Raise( const CORE::CEvent& eventId, const CORE::CICloneable& eventData );
     bool IsOnNotificationThread( void ) const;
+
+    // the run-time settings
+    /** Set (no keys) or reset (keys): checked entirely, then saved, applied, audited and announced together under m_settingsLock */
+    TAssetStoreStatus ChangeSettings( bool reset, const CORE::CString& commandId, const CAssetSettingsRequest& request, CAssetSettingsChangeResult& result );
+    /** Why a change of the caller would be refused (allowSettingsChanges, the role), empty when it would not */
+    CORE::CString GetSettingsRefusal( const CAssetSettingsRequest& request ) const;
+    /** Takes the values (checked already) into the configuration and applies them through the live apply methods of their parts */
+    void ApplySettingValues( const CORE::CString::StringMap& values );
+    /** At Open(): the site values, then the overrides of the state folder that are still valid */
+    void LoadSettingOverrides( void );
+    void WriteSettingsAudit( const CORE::CString& event, const CAssetSettingsRequest& request, const CORE::CString& key,
+                             const CORE::CString& oldValue, const CORE::CString& newValue, const CORE::CString& reason );
     TAssetStoreStatus Refuse( TAssetStoreStatus status, const CORE::CString& message, CAssetServiceResult& result ) const;
     TAssetStoreStatus NeedCatalogue( CORE::CString& message ) const;
     CORE::CFutureResult QueueCall( const CAssetServiceCall& call, const CORE::CString& pipelineJobKey );
@@ -676,6 +756,17 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
         SPathRestriction( void ) : inPack( false ), flags(), revision( 0 ) {}
     };
     typedef GUCEF::map< CORE::CString, SPathRestriction > TPathRestrictionMap;
+
+    /** The key the restrictions of a path are kept under: the folder of its pack, else its directory (what lies in one directory is in one pack or in none) */
+    CORE::CString MakeRestrictionKey( const CORE::CString& vfsPath ) const;
+
+    struct SPackFiles
+    {
+        UInt64 revision;
+        GUCEF::map< CORE::CString, CAssetFileRecord > files;        /**< by VFS path */
+        SPackFiles( void ) : revision( 0 ), files() {}
+    };
+    typedef GUCEF::map< CORE::CString, SPackFiles > TPackFilesMap;
     void CallEnded( void );
     void GetLocationInfos( TAssetLocationInfoVector& locations ) const;
 
@@ -714,6 +805,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     UInt32 m_conversionCounter;
     UInt32 m_pipelineCounter;
     CAssetReprocessGuard m_reprocessGuard;
+    GUCEF::vector< CORE::CDataNode > m_reprocessCheckpoints;   /**< the reprocessing jobs of the state file that are not restored yet */
+    bool m_closing;                                         /**< Close() runs: no reprocessing job starts any more */
     CORE::CString::StringSet m_endedSessions;
     CORE::CString::StringSet m_watchedProviders;
     TAssetCatalogueChangeVector m_journal;
@@ -734,6 +827,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     mutable MT::CMutex m_lock;
     mutable MT::CMutex m_restrictionLock;
     mutable TPathRestrictionMap m_pathRestrictions;
+    MT::CTAtomic< UInt64 > m_revisionKept;                  /**< m_revision, for the callers that must not wait for m_lock */
+    mutable MT::CMutex m_packFilesLock;
+    mutable MT::CMutex m_packFilesBuildLock;                /**< one build of the files of a pack at a time: the second finds what the first made */
+    mutable TPackFilesMap m_packFiles;
+    mutable UInt32 m_packFilesCount;
+    CAssetSettingsRegistry m_settingsRegistry;              /**< filled at construction, read only afterwards */
+    CORE::CString::StringMap m_siteSettingValues;           /**< the values of the configuration given at construction */
+    CAssetSettingsOverrideStore m_settingOverrides;
+    UInt64 m_settingsRevision;
+    GUCEF::map< CORE::CString, CAssetSettingsChangeResult > m_settingsCommands;   /**< the outcomes of the command ids of the settings, "set:" or "reset:" in front */
+    CORE::CString::StringVector m_settingsCommandOrder;
+    mutable MT::CMutex m_settingsLock;                      /**< serialises the changes of the settings */
 };
 
 /** The factory of the in-process implementation, registered under "local" by CAssetStoreGlobal */

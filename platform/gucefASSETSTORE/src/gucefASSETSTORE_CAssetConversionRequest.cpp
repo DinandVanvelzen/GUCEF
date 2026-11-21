@@ -60,6 +60,8 @@ CAssetConversionRequest::CAssetConversionRequest( void )
     , cookTargets()
     , keepPartialResult( false )
     , reportVfsPath()
+    , maxThreads( 0 )
+    , threadPoolName()
 {GUCEF_TRACE;
 
 }

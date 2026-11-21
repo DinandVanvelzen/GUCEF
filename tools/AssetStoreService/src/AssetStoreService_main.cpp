@@ -79,6 +79,7 @@
 #include "gucefASSETSTORE_CAssetPipelineRequest.h"
 #include "gucefASSETSTORE_CAssetReprocessRequest.h"
 #include "gucefASSETSTORE_CAssetPipelineOperations.h"
+#include "gucefASSETSTORE_CLocalAssetStoreService.h"
 #include "AssetStoreConverterHook_CPipelineConverterHook.h"
 #include "AssetStoreConverterHook_CConverterHookSettings.h"
 #include "AssetStoreConverterHook_CPipelineOperationSettings.h"
@@ -883,7 +884,11 @@ class CAdminHandler : public COM::CIServiceAdminHandler
 
     CAdminHandler( CORE::CServiceLifecycle& lifecycle, DRNUTILS::CRemoteServiceHost& host, ASSETSTORE::CAssetStoreServiceHost& binding,
                    ASSETSTORE::CIAssetStoreService& service, CORE::CServiceResourceWatch& watch )
-        : COM::CIServiceAdminHandler(), m_lifecycle( lifecycle ), m_host( host ), m_binding( binding ), m_service( service ), m_watch( watch ), m_driver( GUCEF_NULL ), m_keyring( GUCEF_NULL ) {}
+        : COM::CIServiceAdminHandler(), m_lifecycle( lifecycle ), m_host( host ), m_binding( binding ), m_service( service ), m_watch( watch ), m_driver( GUCEF_NULL ), m_keyring( GUCEF_NULL ),
+          m_local( GUCEF_NULL ) {}
+
+    /** The service of this process (not owned): reprocess-status adds the budget of the reprocessing; GUCEF_NULL for none */
+    void SetLocalService( ASSETSTORE::CLocalAssetStoreService* local ) { m_local = local; }
 
     void SetDriver( CServiceDriver* driver ) { m_driver = driver; }
 
@@ -1047,9 +1052,12 @@ class CAdminHandler : public COM::CIServiceAdminHandler
             return HandleSyncCommand( command, arguments, result, message );
         if ( IsReprocessCommand( command ) )
             return HandleReprocessCommand( command, arguments, result, message );
+        if ( IsSettingsCommand( command ) )
+            return HandleSettingsCommand( command, arguments, result, message );
         message = "the command \"" + command + "\" is not known (status, pair-open, pair-close, pairings, pair-confirm, devices, sessions, revoke, keyring-status, keyring-setup, keyring-unlock, keyring-lock, drain, "
                   "sync-plan, sync-start, sync-status, sync-cancel, sync-retry, sync-pause, sync-resume, sync-marks, sync-ignore, sync-pin, sync-unmark, sync-profile, "
-                  "reprocess, reprocess-plan, reprocess-status, reprocess-cancel, redownload, regen-intermediate, regen-target, reprocess-rollback)";
+                  "reprocess, reprocess-plan, reprocess-status, reprocess-cancel, redownload, regen-intermediate, regen-target, reprocess-rollback, "
+                  "settings-describe, settings-set, settings-reset)";
         return COM::SERVICEADMIN_INVALID_ARGUMENT;
     }
 
@@ -1060,7 +1068,69 @@ class CAdminHandler : public COM::CIServiceAdminHandler
                "regen-intermediate" == command || "regen-target" == command || "reprocess-rollback" == command;
     }
 
+    /** Whether the command is one of the run-time settings */
+    static bool IsSettingsCommand( const CORE::CString& command )
+    {
+        return "settings-describe" == command || "settings-set" == command || "settings-reset" == command;
+    }
+
     private:
+
+    /**
+     *  The run-time settings of the service (section 18 of the remote service design): settings-describe answers every setting with its
+     *  value, where it comes from and how a change applies; settings-set --<key> <value> ... (the words key=value on the command line)
+     *  changes them, all or none; settings-reset --keys a,b puts them back to the site value. The caller is the site administrator: the
+     *  changes are allowed whatever allowSettingsChanges says, and they are audited as "admin".
+     */
+    COM::TServiceAdminStatus HandleSettingsCommand( const CORE::CString& command, const TArgumentMap& arguments, CORE::CDataNode& result, CORE::CString& message )
+    {GUCEF_TRACE;
+
+        ASSETSTORE::CAssetSettingsRequest request;
+        request.caller = "admin";
+        request.callerName = "the admin command line";
+        CORE::CDataNodeSerializableSettings serializerSettings;
+        if ( "settings-describe" == command )
+        {
+            ASSETSTORE::CAssetSettingsDescription description;
+            if ( ASSETSTORE::ASSETSTORE_STATUS_OK != m_service.DescribeSettings( request, description ) )
+            {
+                message = description.message;
+                return COM::SERVICEADMIN_FAILED;
+            }
+            description.Serialize( result, serializerSettings );
+            return COM::SERVICEADMIN_OK;
+        }
+        ASSETSTORE::CAssetSettingsChangeResult outcome;
+        ASSETSTORE::TAssetStoreStatus status = ASSETSTORE::ASSETSTORE_STATUS_OK;
+        if ( "settings-set" == command )
+        {
+            for ( TArgumentMap::const_iterator a = arguments.begin(); a != arguments.end(); ++a )
+                request.values[ (*a).first ] = (*a).second;
+            if ( request.values.empty() )
+            {
+                message = "settings-set needs the settings: key=value ...";
+                return COM::SERVICEADMIN_INVALID_ARGUMENT;
+            }
+            status = m_service.SetSettings( CORE::CString::Empty, request, outcome );
+        }
+        else
+        {
+            const CORE::CString::StringVector keys = Argument( arguments, "keys", "" ).ParseElements( ',', false );
+            for ( size_t k=0; k<keys.size(); ++k )
+                request.keys.push_back( keys[ k ].Trim( true ).Trim( false ) );
+            if ( request.keys.empty() )
+            {
+                message = "settings-reset needs the keys: key ...";
+                return COM::SERVICEADMIN_INVALID_ARGUMENT;
+            }
+            status = m_service.ResetSettings( CORE::CString::Empty, request, outcome );
+        }
+        outcome.Serialize( result, serializerSettings );
+        if ( ASSETSTORE::ASSETSTORE_STATUS_OK == status )
+            return COM::SERVICEADMIN_OK;
+        message = outcome.message;
+        return ASSETSTORE::ASSETSTORE_STATUS_INVALID_ARGUMENT == status ? COM::SERVICEADMIN_INVALID_ARGUMENT : COM::SERVICEADMIN_FAILED;
+    }
 
     /**
      *  The reprocessing of packs of the store (the pipeline jobs of CAssetPipelineOperations::IsReprocess(), section 17 of the
@@ -1124,6 +1194,9 @@ class CAdminHandler : public COM::CIServiceAdminHandler
                 }
             }
             result.SetAttribute( "allEnded", allEnded );
+            // the jobs at a time, the threads per job, the memory budget and what the running and waiting jobs use of them
+            if ( GUCEF_NULL != m_local && "reprocess-status" == command )
+                m_local->DescribeReprocessing( *result.AddChild( "reprocessing", GUCEF_DATATYPE_OBJECT ) );
             return COM::SERVICEADMIN_OK;
         }
 
@@ -1490,6 +1563,7 @@ class CAdminHandler : public COM::CIServiceAdminHandler
     CORE::CServiceResourceWatch& m_watch;
     CServiceDriver* m_driver;
     AUTH::CKeyringSession* m_keyring;
+    ASSETSTORE::CLocalAssetStoreService* m_local;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -1574,6 +1648,38 @@ NormaliseSyncWords( const CORE::CString::StringVector& words )
     CORE::CString::StringVector rest = words;
     CORE::CString command = rest[ 0 ];
     rest.erase( rest.begin() );
+    if ( "settings" == command && !rest.empty() && !rest[ 0 ].StartsWith( "--" ) )
+    {
+        command = "settings-" + rest[ 0 ];
+        rest.erase( rest.begin() );
+    }
+    if ( CAdminHandler::IsSettingsCommand( command ) )
+    {
+        // "settings-set key=value ..." is "settings-set --key value ...", "settings-reset key ..." is "settings-reset --keys a,b"
+        CORE::CString::StringVector normal;
+        normal.push_back( command );
+        CORE::CString keys;
+        for ( size_t i=0; i<rest.size(); ++i )
+        {
+            const Int32 equals = rest[ i ].HasChar( '=' );
+            if ( "settings-set" == command && !rest[ i ].StartsWith( "--" ) && equals > 0 )
+            {
+                normal.push_back( "--" + rest[ i ].SubstrToIndex( (UInt32) equals, true ) );
+                normal.push_back( rest[ i ].SubstrToIndex( (UInt32) equals + 1, false ) );
+            }
+            else
+            if ( "settings-reset" == command && !rest[ i ].StartsWith( "--" ) )
+                keys += ( keys.IsNULLOrEmpty() ? CORE::CString::Empty : CORE::CString( "," ) ) + rest[ i ];
+            else
+                normal.push_back( rest[ i ] );
+        }
+        if ( !keys.IsNULLOrEmpty() )
+        {
+            normal.push_back( "--keys" );
+            normal.push_back( keys );
+        }
+        return normal;
+    }
     if ( "sync" == command && !rest.empty() && !rest[ 0 ].StartsWith( "--" ) )
     {
         command = "sync-" + rest[ 0 ];
@@ -1760,7 +1866,8 @@ PrintUsage( void )
                                              "the library sync: sync plan|start|status|cancel|retry|pause|resume <store> "
                                              "(sync plan waits for the plan unless --no-wait; start also --max-items N, --item-ids A,B, --retry-failed true, --replan true (list afresh, not the stored plan), --allow-large true (with --item-ids: past the size guard of the store); plan and start "
                                              "--refresh-details true (ask the details of the items again, not the cache); status --items N lines; cancel, retry and status also --job J), "
-                                             "sync marks <store>, sync ignore|pin|unmark <store> <item> [reason], sync profile <store> [--member value ...]), --help. Exit codes: 0 stopped in order or the admin command "
+                                             "sync marks <store>, sync ignore|pin|unmark <store> <item> [reason], sync profile <store> [--member value ...]; the run-time settings: "
+                                             "settings-describe, settings-set key=value ..., settings-reset key ... (also settings describe|set|reset)), --help. Exit codes: 0 stopped in order or the admin command "
                                              "succeeded, 2 bad options, 3 the bootstrap (plugins) or the settings refused, 4 the service did not start, 5 the "
                                              "admin command failed, 6 the smoke test did not become ready" );
 }
@@ -2027,6 +2134,8 @@ GUCEF_OSSERVICEMAIN_BEGIN( "AssetStoreService" )
                 watch.Configure( serviceSection.resourceSampleMs, serviceSection.resourceLogSeconds, (UInt64) serviceSection.memorySoftLimitMB * 1024ULL * 1024ULL );
                 CAdminHandler adminHandler( lifecycle, host, binding, *service, watch );
                 adminHandler.SetKeyring( &keyringSession );
+                // the service of this process is the local one (implementationId above)
+                adminHandler.SetLocalService( static_cast< ASSETSTORE::CLocalAssetStoreService* >( service.GetPointerAlways() ) );
                 COM::CServiceAdminEndpoint admin( adminHandler, pulse );
                 CORE::CString startError;
                 if ( !host.Start( startError ) || !binding.Attach( startError ) || ( 0 != serviceSection.adminPort && !admin.Open( stateDir, serviceSection.adminPort, startError ) ) )
