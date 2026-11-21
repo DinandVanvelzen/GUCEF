@@ -97,7 +97,8 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPConnection : public CSocket
 
     /**
      *  Allows you to set whether to use data coalescing on sends.
-     *  This is commonly refered to as the Nagle algorithm
+     *  This is commonly refered to as the Nagle algorithm: true leaves it on (TCP_NODELAY 0), false switches it
+     *  off (TCP_NODELAY 1, every send goes out at once). The default is false, no coalescing.
      */
     virtual bool SetUseTcpSendCoalescing( bool coaleseData ) = 0;
 

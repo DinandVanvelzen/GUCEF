@@ -191,11 +191,19 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
 
     /**
      *  Allows you to set whether to use data coalescing on sends.
-     *  This is commonly refered to as the Nagle algorithm
+     *  This is commonly refered to as the Nagle algorithm: true leaves it on (TCP_NODELAY 0, small sends are
+     *  held back and joined), false switches it off (TCP_NODELAY 1, every send goes out at once). The default is
+     *  false, no coalescing, also for a connection that was accepted by a server socket.
      */
     virtual bool SetUseTcpSendCoalescing( bool coaleseData ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool GetUseTcpSendCoalescing( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Reads TCP_NODELAY back from the operating system for the socket, for a socket that is open.
+     *  @return false when there is no open socket or the option cannot be read
+     */
+    bool GetTcpNoDelayOfSocket( bool& noDelay ) const;
 
     virtual UInt32 GetBytesReceived( bool resetCounter ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -220,6 +228,12 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     
     protected:
     friend class CTCPServerSocket;
+
+    /**
+     *  Applies the connection's send coalescing setting (TCP_NODELAY) to the socket that the server socket just
+     *  accepted: every accepted connection starts with the default, no coalescing
+     */
+    bool ApplyTcpNoDelayOfSendCoalescing( void );
 
     /**                 
      *      polls the socket ect. as needed and update stats.

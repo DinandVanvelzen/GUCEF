@@ -556,6 +556,11 @@ CTCPServerSocket::AcceptClient( void )
                     }
                     clientcon->_blocking = _blocking;
 
+                    // every accepted connection starts with the default (no send coalescing, TCP_NODELAY on), whatever the
+                    // client served before it asked for; the option is not inherited from the listening socket
+                    clientcon->m_coaleseDataSends = false;
+                    clientcon->ApplyTcpNoDelayOfSendCoalescing();
+
                     // The TLS of the client: a session that cannot be made ends the connection, the client is never served without it
                     TTlsSessionPtr tlsSession;
                     if ( !m_tlsProvider.IsNULL() )

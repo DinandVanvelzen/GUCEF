@@ -101,7 +101,7 @@ CTCPServerConnection::CTCPServerConnection( CTCPServerSocket *tcp_serversock ,
     , m_connectionidx( connection_idx )
     , m_userData( GUCEF_NULL )   
     , m_parentsock( tcp_serversock )      
-    , m_coaleseDataSends( true )          
+    , m_coaleseDataSends( false )          
     , m_bytesReceived( 0 )
     , m_bytesTransmitted( 0 )
     , m_disconnectIfIdle( false )
@@ -1146,13 +1146,16 @@ CTCPServerConnection::IsActive( void ) const
 
 bool
 CTCPServerConnection::SetUseTcpSendCoalescing( bool coaleseData )
-{
+{GUCEF_TRACE;
+
     if ( _active )
     {
-        int flag = (coaleseData ? 1 : 0);
+        int flag = (coaleseData ? 0 : 1);   // TCP_NODELAY switches the Nagle algorithm off: no coalescing is 1
         int errorCode = 0;
         if ( -1 == dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag), &errorCode ) )
         {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Failed to apply data coalescing (TCP_NODELAY) setting \""
+                << CORE::BoolToString( coaleseData ) << "\" to the socket. ErrorCode: " << errorCode );
             return false;
         }
     }
@@ -1165,8 +1168,59 @@ CTCPServerConnection::SetUseTcpSendCoalescing( bool coaleseData )
 
 bool
 CTCPServerConnection::GetUseTcpSendCoalescing( void ) const
-{
+{GUCEF_TRACE;
+
     return m_coaleseDataSends;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::ApplyTcpNoDelayOfSendCoalescing( void )
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    int flag = (m_coaleseDataSends ? 0 : 1);   // TCP_NODELAY switches the Nagle algorithm off: no coalescing is 1
+    int errorCode = 0;
+    if ( -1 == dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag), &errorCode ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Failed to apply data coalescing (TCP_NODELAY) setting \""
+            << CORE::BoolToString( m_coaleseDataSends ) << "\" to an accepted socket. ErrorCode: " << errorCode );
+        return false;
+    }
+    return true;
+
+    #else
+
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::GetTcpNoDelayOfSocket( bool& noDelay ) const
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    if ( !_active || GUCEF_NULL == _data )
+        return false;
+    int flag = 0;
+    int optionSize = (int) sizeof( flag );
+    int errorCode = 0;
+    if ( 0 > dvsocket_getsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &flag, &optionSize, &errorCode ) )
+        return false;
+    noDelay = 0 != flag;
+    return true;
+
+    #else
+
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------//

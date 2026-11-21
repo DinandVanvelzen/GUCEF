@@ -148,11 +148,7 @@ CTCPClientSocket::CTCPClientSocket( CORE::PulseGeneratorPtr pulseGenerator ,
     , m_ipv4Target()
     , m_isConnecting( false )
     , m_pulseGenerator( pulseGenerator )
-    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-    , m_coaleseDataSends( true )
-    #else
     , m_coaleseDataSends( false )
-    #endif
     , m_maxUpdatesPerCycle( 10 )
     , m_autoReconnectOnError( false )
     , m_lastConnFailed( false )
@@ -192,11 +188,7 @@ CTCPClientSocket::CTCPClientSocket( bool blocking )
     , m_hostAddress()
     , m_isConnecting( false )
     , m_pulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
-    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-    , m_coaleseDataSends( true )
-    #else
     , m_coaleseDataSends( false )
-    #endif
     , m_maxUpdatesPerCycle( 10 )
     , m_autoReconnectOnError( false )
     , m_lastConnFailed( false )
@@ -414,7 +406,7 @@ CTCPClientSocket::Connect( bool blocking )
 
     #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
-    int noDelayFlag = (m_coaleseDataSends ? 1 : 0);
+    int noDelayFlag = (m_coaleseDataSends ? 0 : 1);   // TCP_NODELAY switches the Nagle algorithm off: no coalescing is 1
     if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &noDelayFlag, sizeof(noDelayFlag), &errorCode ) )
     {
         _active = m_lastConnFailed = false;
@@ -1126,7 +1118,7 @@ CTCPClientSocket::SetUseTcpSendCoalescing( bool coaleseData )
     if ( _active )
     {
         int errorCode = 0;
-        int flag = (coaleseData ? 1 : 0);
+        int flag = (coaleseData ? 0 : 1);   // TCP_NODELAY switches the Nagle algorithm off: no coalescing is 1
         if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &flag, sizeof(flag), &errorCode ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): Failed to apply data coalescing (TCP_NODELAY) setting \""
@@ -1155,6 +1147,31 @@ CTCPClientSocket::GetUseTcpSendCoalescing( void ) const
 {GUCEF_TRACE;
 
     return m_coaleseDataSends;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPClientSocket::GetTcpNoDelayOfSocket( bool& noDelay ) const
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    if ( !_active || GUCEF_NULL == _data )
+        return false;
+    int flag = 0;
+    int optionSize = (int) sizeof( flag );
+    int errorCode = 0;
+    if ( 0 > dvsocket_getsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &flag, &optionSize, &errorCode ) )
+        return false;
+    noDelay = 0 != flag;
+    return true;
+
+    #else
+
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

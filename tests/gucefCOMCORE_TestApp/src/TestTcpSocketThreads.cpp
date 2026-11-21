@@ -1379,6 +1379,89 @@ PerformTcpSocketThreadsTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    // no coalescing is TCP_NODELAY on the system's socket, on the connecting side and on the side that accepted
+    GUCEF_TESTFW_TESTCASE( "No send coalescing is TCP_NODELAY 1 on the operating system's socket: a client socket and an accepted connection have it from the start, asking for coalescing switches it off again, and the next client of a connection object starts with the default" )
+        try
+        {
+            CORE::PulseGeneratorPtr pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
+            CTCPServerSocket server( pulseGenerator, false, 1 );
+            ASSERT_TRUE( server.ListenOnPort( 0 ) );
+            // the connection object that waits for a client has the default already
+            CTCPServerConnection* waiting = server.GetConnection( 0 );
+            ASSERT_TRUE( GUCEF_NULL != waiting );
+            ASSERT_TRUE( GUCEF_NULL == waiting || !waiting->GetUseTcpSendCoalescing() );
+            CTCPClientSocket first( pulseGenerator, false );
+            ASSERT_FALSE( first.GetUseTcpSendCoalescing() );
+            ASSERT_TRUE( first.ConnectTo( "127.0.0.1", server.GetBoundPort(), false ) );
+            ASSERT_TRUE( PumpTcpUntil( pulseGenerator, SServerHasActive( server, 1 ) ) );
+            PumpTcp( pulseGenerator, 5 );
+            CTCPServerConnection* connection = server.GetConnection( 0 );
+            ASSERT_TRUE( GUCEF_NULL != connection );
+            ASSERT_TRUE( connection->IsActive() );
+            ASSERT_FALSE( connection->GetUseTcpSendCoalescing() );
+
+            bool clientNoDelay = false;
+            bool acceptedNoDelay = false;
+            ASSERT_TRUE( first.GetTcpNoDelayOfSocket( clientNoDelay ) );
+            ASSERT_TRUE( connection->GetTcpNoDelayOfSocket( acceptedNoDelay ) );
+            ASSERT_TRUE( clientNoDelay );
+            ASSERT_TRUE( acceptedNoDelay );
+
+            // coalescing asked for: the Nagle algorithm is on, TCP_NODELAY off; and back
+            ASSERT_TRUE( first.SetUseTcpSendCoalescing( true ) );
+            ASSERT_TRUE( connection->SetUseTcpSendCoalescing( true ) );
+            ASSERT_TRUE( first.GetUseTcpSendCoalescing() && connection->GetUseTcpSendCoalescing() );
+            ASSERT_TRUE( first.GetTcpNoDelayOfSocket( clientNoDelay ) );
+            ASSERT_TRUE( connection->GetTcpNoDelayOfSocket( acceptedNoDelay ) );
+            ASSERT_FALSE( clientNoDelay );
+            ASSERT_FALSE( acceptedNoDelay );
+            ASSERT_TRUE( first.SetUseTcpSendCoalescing( false ) );
+            ASSERT_TRUE( connection->SetUseTcpSendCoalescing( false ) );
+            ASSERT_TRUE( first.GetTcpNoDelayOfSocket( clientNoDelay ) );
+            ASSERT_TRUE( connection->GetTcpNoDelayOfSocket( acceptedNoDelay ) );
+            ASSERT_TRUE( clientNoDelay );
+            ASSERT_TRUE( acceptedNoDelay );
+
+            // a client that connects with coalescing asked for before it connects gets the Nagle algorithm
+            CTCPClientSocket coalescing( pulseGenerator, false );
+            ASSERT_TRUE( coalescing.SetUseTcpSendCoalescing( true ) );
+            CTCPServerSocket otherServer( pulseGenerator, false, 1 );
+            ASSERT_TRUE( otherServer.ListenOnPort( 0 ) );
+            ASSERT_TRUE( coalescing.ConnectTo( "127.0.0.1", otherServer.GetBoundPort(), false ) );
+            ASSERT_TRUE( PumpTcpUntil( pulseGenerator, SServerHasActive( otherServer, 1 ) ) );
+            ASSERT_TRUE( coalescing.GetTcpNoDelayOfSocket( clientNoDelay ) );
+            ASSERT_FALSE( clientNoDelay );
+            coalescing.Close();
+            otherServer.Close();
+
+            // the connection object that asked for coalescing for its client starts with the default for the next client
+            ASSERT_TRUE( connection->SetUseTcpSendCoalescing( true ) );
+            connection->Close();
+            first.Close();
+            server.Close();
+            PumpTcp( pulseGenerator, 5 );
+            ASSERT_TRUE( server.ListenOnPort( 0 ) );
+            CTCPClientSocket second( pulseGenerator, false );
+            ASSERT_TRUE( second.ConnectTo( "127.0.0.1", server.GetBoundPort(), false ) );
+            ASSERT_TRUE( PumpTcpUntil( pulseGenerator, SClientActive( second ) ) );
+            PumpTcp( pulseGenerator, 20 );
+            ASSERT_TRUE( connection->IsActive() );
+            ASSERT_FALSE( connection->GetUseTcpSendCoalescing() );
+            ASSERT_TRUE( connection->GetTcpNoDelayOfSocket( acceptedNoDelay ) );
+            ASSERT_TRUE( acceptedNoDelay );
+            ASSERT_TRUE( second.GetTcpNoDelayOfSocket( clientNoDelay ) );
+            ASSERT_TRUE( clientNoDelay );
+
+            second.Close();
+            PumpTcp( pulseGenerator, 5 );
+            server.Close();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
