@@ -12,6 +12,7 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 plugins/ASSETS/assetpluginUNREAL/*
+plugins/CORE/codecspluginZLIB/*
 plugins/VFS/vfspluginLIBARCHIVE/*
 plugins/VFS/vfspluginZIP/*
 tests/assetpluginUNREAL_TestApp/*

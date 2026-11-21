@@ -1,0 +1,14 @@
+common/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefIMAGE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginZLIB/*
+plugins/CORE/dstorepluginJSONPARSER/*
+tools/gucefMcpCi/*
+tools/gucefMcpLocalLlm/include/*
+tools/gucefMcpLocalLlm/src//*

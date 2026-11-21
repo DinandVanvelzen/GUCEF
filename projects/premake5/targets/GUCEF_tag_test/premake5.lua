@@ -133,6 +133,7 @@ filter "ALL"
   include( "tests/gucefMULTIPLAY_EosTestApp" )
   include( "tests/gucefMULTIPLAY_MailProvider_TestApp" )
   include( "tests/gucefMULTIPLAY_TestApp" )
+  include( "tests/gucefMcpCi_TestApp" )
   include( "tests/gucefMcpLocalLlm_TestApp" )
   include( "tests/gucefPATCHERAPP_TestApp" )
   include( "tests/gucefPRODMAN_TestApp" )
@@ -144,6 +145,7 @@ filter "ALL"
   include( "tests/vfspluginUNITYPACKAGE_TestApp" )
   include( "tools/AncestryDotComBackupLib" )
   include( "tools/ProjectGen" )
+  include( "tools/gucefMcpCi" )
   include( "tools/gucefMcpEcho" )
   include( "tools/gucefMcpLocalLlm" )
 
