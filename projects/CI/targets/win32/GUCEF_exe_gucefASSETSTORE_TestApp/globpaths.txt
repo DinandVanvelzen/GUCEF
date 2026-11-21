@@ -22,6 +22,7 @@ plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/tablecodecpluginPARQUET/*
+plugins/VFS/vfspluginDRN/*
 tests/gucefASSETSTORE_TestApp/*
 tests/gucefAUTH_TestApp/src//*
 tools/MemoryLeakFinder/*

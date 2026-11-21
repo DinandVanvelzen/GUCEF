@@ -13,5 +13,6 @@ platform/gucefVFS/*
 platform/gucefWEB/*
 plugins/CORE/codecspluginMONOCYPHER/*
 plugins/CORE/dstorepluginJSONPARSER/*
+plugins/VFS/vfspluginDRN/*
 tests/gucefCOMCORE_TestApp/include/*
 tests/gucefDRNUTILS_TestApp/*

@@ -53,6 +53,7 @@ plugins/INPUT/inputdriverXWINMSG/*
 plugins/OGRE/OgreCodec_GucefIMAGE/*
 plugins/OGRE/OgrePlugin_GucefVFS/*
 plugins/SHARED/pluginglueOGRE/*
+plugins/VFS/vfspluginDRN/*
 plugins/VFS/vfspluginLIBARCHIVE/*
 plugins/VFS/vfspluginUNITYPACKAGE/*
 tests/AssetWorkbenchLib_TestApp/*

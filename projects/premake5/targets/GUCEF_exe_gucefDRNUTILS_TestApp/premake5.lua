@@ -36,6 +36,7 @@ filter "LINUX32"
   include( "platform/gucefWEB" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefDRNUTILS_TestApp" )
 
 filter "LINUX64"
@@ -54,6 +55,7 @@ filter "LINUX64"
   include( "platform/gucefWEB" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefDRNUTILS_TestApp" )
 
 filter "WIN32"
@@ -72,6 +74,7 @@ filter "WIN32"
   include( "platform/gucefWEB" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefDRNUTILS_TestApp" )
 
 filter "WIN64"
@@ -90,4 +93,5 @@ filter "WIN64"
   include( "platform/gucefWEB" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefDRNUTILS_TestApp" )

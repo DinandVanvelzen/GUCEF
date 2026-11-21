@@ -1,0 +1,15 @@
+common/include/*
+common/test/include/*
+dependencies/monocypher/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefDRN/*
+platform/gucefIMAGE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/VFS/vfspluginDRN/*
+tests/gucefDRN_TestApp/src//*
+tests/gucefVFS_TestApp/src//*
+tests/vfspluginDRN_TestApp/*

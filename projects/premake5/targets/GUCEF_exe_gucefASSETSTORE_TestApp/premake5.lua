@@ -45,6 +45,7 @@ filter "LINUX32"
   include( "plugins/CORE/codecspluginZLIB" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
   include( "plugins/CORE/tablecodecpluginPARQUET" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefASSETSTORE_TestApp" )
 
 filter "LINUX64"
@@ -72,6 +73,7 @@ filter "LINUX64"
   include( "plugins/CORE/codecspluginZLIB" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
   include( "plugins/CORE/tablecodecpluginPARQUET" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefASSETSTORE_TestApp" )
 
 filter "WIN32"
@@ -99,6 +101,7 @@ filter "WIN32"
   include( "plugins/CORE/codecspluginZLIB" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
   include( "plugins/CORE/tablecodecpluginPARQUET" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefASSETSTORE_TestApp" )
   include( "tools/MemoryLeakFinder" )
 
@@ -127,5 +130,6 @@ filter "WIN64"
   include( "plugins/CORE/codecspluginZLIB" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
   include( "plugins/CORE/tablecodecpluginPARQUET" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "tests/gucefASSETSTORE_TestApp" )
   include( "tools/MemoryLeakFinder" )
