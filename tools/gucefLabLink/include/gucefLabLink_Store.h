@@ -94,6 +94,10 @@ class CStore
     bool LoadApprovals( GUCEF::vector< SApproval >& approvals, GUCEF::CORE::CString& problem ) const;
     bool SaveApprovals( const GUCEF::vector< SApproval >& approvals, GUCEF::CORE::CString& problem ) const;
 
+    /** The text of "users", the users of the website (see CWebUserStore); missing is set when there is no such file */
+    bool ReadUsers( GUCEF::CORE::CString& content, bool& missing, GUCEF::CORE::CString& problem ) const;
+    bool WriteUsers( const GUCEF::CORE::CString& content, GUCEF::CORE::CString& problem ) const;
+
     /** A file of the state directory */
     GUCEF::CORE::CString GetPath( const char* fileName ) const;
 

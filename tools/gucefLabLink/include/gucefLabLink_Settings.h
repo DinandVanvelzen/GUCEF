@@ -26,6 +26,7 @@
 //-------------------------------------------------------------------------*/
 
 #include "gucefLabLink_Protocol.h"
+#include "gucefLabLink_WebSettings.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,6 +72,26 @@ struct SSettings
     GUCEF::UInt32 refreshIntervalInSecs;        /**< how often a linked machine asks the cluster again */
     GUCEF::UInt32 retryIntervalInSecs;          /**< how often a machine that waits for approval asks again */
 
+    // hub storage: where the cluster keeps what it learns of its nodes
+    GUCEF::CORE::CString dbType;                /**< "vfstables" (tables as files in a directory), "postgresql" or "none": the nodes are kept in memory only */
+    GUCEF::CORE::CString dbDirectory;           /**< vfstables: the directory, default "db" in the state directory */
+    GUCEF::CORE::CString dbHost;                /**< postgresql: */
+    GUCEF::UInt16 dbPort;                       /**< postgresql: 0 is the port of the server */
+    GUCEF::CORE::CString dbName;
+    GUCEF::CORE::CString dbUser;
+    GUCEF::CORE::CString dbSslMode;
+    GUCEF::CORE::CString dbSchema;
+    GUCEF::CORE::CString dbPasswordFile;        /**< postgresql: the password is read from this file, never given on the command line or in the settings */
+    GUCEF::UInt32 eventRetentionInDays;         /**< how long the history of the nodes is kept */
+    GUCEF::UInt32 maxStoredEvents;              /**< and how many of its events at most */
+
+    // node reports
+    bool report;                                /**< machine: tell the hub about this node; a cluster that does not know the call is left alone */
+    GUCEF::UInt32 reportIntervalInSecs;         /**< machine: how often; hub: the interval its nodes are told, and a third of the time after which a silent node is offline */
+
+    // the website of the hub (cluster), off unless enabled
+    SWebSettings web;
+
     SSettings( void )
         : stateDir( "/var/lib/gucef-lablink" )
         , clusterName()
@@ -94,6 +115,20 @@ struct SSettings
         , localMcpNode()
         , refreshIntervalInSecs( 600 )
         , retryIntervalInSecs( 30 )
+        , dbType( "vfstables" )
+        , dbDirectory()
+        , dbHost()
+        , dbPort( 0 )
+        , dbName( "gucef_lablink" )
+        , dbUser()
+        , dbSslMode()
+        , dbSchema()
+        , dbPasswordFile()
+        , eventRetentionInDays( 30 )
+        , maxStoredEvents( 20000 )
+        , report( true )
+        , reportIntervalInSecs( 20 )
+        , web()
     {}
 };
 

@@ -46,6 +46,8 @@
 
 namespace GUCEFLabLink {
 
+class CNodeReporter;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -112,6 +114,9 @@ class CMachineRole : public GUCEF::CORE::CObserver
     /** What the last visit did or why it failed, for the log and tests */
     const GUCEF::CORE::CString& GetLastOutcome( void ) const;
 
+    /** The reports of this node to the cluster; NULL before Start() and when reporting is off */
+    const CNodeReporter* GetReporter( void ) const;
+
     virtual const GUCEF::CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     protected:
@@ -125,6 +130,9 @@ class CMachineRole : public GUCEF::CORE::CObserver
 
     /** The token for the lab endpoint; asks for access when there is none. @return false when there is none (yet) */
     bool GetToken( const SClusterSighting& cluster, GUCEF::CORE::CString& token );
+
+    /** The token for the report link, without asking anything of the cluster. @return false when this machine has none for this cluster */
+    bool GetReportToken( const SClusterSighting& cluster, GUCEF::CORE::CString& token );
 
     bool AskForAccess( const SClusterSighting& cluster, GUCEF::CORE::CString& token );
 
@@ -147,10 +155,10 @@ class CMachineRole : public GUCEF::CORE::CObserver
     GUCEF::CORE::CString m_lastOutcome;
     GUCEF::CORE::CString::StringVector m_discoveryClients;
     bool m_claudeMissingReported;               /**< that the user has no Claude Code is said once */
+    CNodeReporter* m_reporter;
+    SClusterSighting m_linkedSighting;          /**< the cluster the last successful visit was to: the one the reports go to */
+    bool m_linked;
 };
-
-/** Milliseconds of a monotonic clock */
-GUCEF::UInt64 NowInMs( void );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -209,6 +209,10 @@ facts, sources, media, stories and so on. Press Enter when done. It sends no req
 `discovery/requests.jsonl`, the JSON responses in `discovery/bodies/`, and `discovery/endpoints.md` describing the endpoints
 (methods, paths with ids as `{n}`, query parameters, paging fields, and the shape of the JSON: field names and types, not data).
 Sign-in, account and credential pages are never recorded, DNA pages only with `recordDna=true`. The saved responses are your tree's data, keep them private.
+The journal, the report and the saved responses are created readable by you only. The report also lists file downloads
+and the requests that followed each navigation. The recording is done by the site discovery classes of gucefWEB
+(`WEB::CChromeNetworkRecorder`, `WEB::CSiteEndpointCatalog`, `WEB::CSiteDiscoveryJournal`); this tool adds its own rules
+to them: example values in the report, the DNA rule and the tree ids.
 
 `report` rebuilds `endpoints.md` from `requests.jsonl` without a browser.
 

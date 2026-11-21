@@ -78,6 +78,7 @@ extern const char* AccessContractName;
 extern const char* HelloPath;
 extern const char* JoinPath;
 extern const char* ClientConfigPath;
+extern const char* ReportPath;
 extern const char* RequestAccessPath;
 
 /** Attributes of the discovery entry */
@@ -85,6 +86,7 @@ extern const char* AttributeCluster;         /**< the name of the cluster */
 extern const char* AttributeKey;             /**< the public key of the lab endpoint, the form DRN pins */
 extern const char* AttributeLabPort;
 extern const char* AttributeAccessPort;
+extern const char* AttributeWebPort;         /**< the port of the website of the hub; only there while it runs */
 
 /** Roles in the tokens of the lab endpoint */
 extern const char* RoleLab;                  /**< a token made with the lab secret */
@@ -94,6 +96,15 @@ extern const char* RoleApproved;             /**< a token the cluster gave an ap
 extern const char* AccessPending;
 extern const char* AccessApproved;
 extern const char* AccessRefused;
+
+/** What a node reports as its agent version */
+extern const char* AgentVersion;
+
+/** Milliseconds of a monotonic clock */
+GUCEF::UInt64 NowInMs( void );
+
+/** Seconds since 1970 of the wall clock */
+GUCEF::UInt64 NowInUnixSecs( void );
 
 /** Seconds a token made with the lab secret is valid, a token of an approved machine */
 static const GUCEF::UInt64 LabTokenLifetimeInSecs = 600;
@@ -106,10 +117,12 @@ static const GUCEF::UInt64 ApprovedTokenLifetimeInSecs = 365 * 24 * 3600;
 //-------------------------------------------------------------------------*/
 
 /**
- *  The contract of the lab endpoint, gucef.lab 1.0, service Lab:
+ *  The contract of the lab endpoint, gucef.lab 1.1, service Lab:
  *    Hello( HelloRequest{} ) -> HelloResponse{ 1 cluster, 2 k3sVersion, 3 proof }
  *    Join( JoinRequest{ 1 name, 2 os, 3 arch, 4 ephemeral } ) -> JoinResponse{ 1 server, 2 k3sVersion, 3 token, 4 ephemeral }
  *    ClientConfig( ClientConfigRequest{} ) -> ClientConfigResponse{ 1 caCertificate, 2 mcpToken, 3 nodes (repeated "name url") }
+ *    Report( ReportRequest, see SNodeReport ) -> ReportResponse{ 1 hubTimeSecs, 2 verified, 3 reportIntervalSecs, 4 renewedToken }
+ *  Report is new in minor 1; the other methods are those of minor 0.
  */
 GUCEF::COMCORE::CRpcContractPtr BuildLabContract( GUCEF::CORE::CString& error );
 

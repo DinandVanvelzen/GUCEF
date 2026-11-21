@@ -30,10 +30,10 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
-#ifndef GUCEF_CORE_CFILEACCESS_H
-#include "CFileAccess.h"
-#define GUCEF_CORE_CFILEACCESS_H
-#endif /* GUCEF_CORE_CFILEACCESS_H ? */
+#ifndef GUCEF_WEB_CSITEDISCOVERYJOURNAL_H
+#include "gucefWEB_CSiteDiscoveryJournal.h"
+#define GUCEF_WEB_CSITEDISCOVERYJOURNAL_H
+#endif /* GUCEF_WEB_CSITEDISCOVERYJOURNAL_H ? */
 
 #ifndef ANCESTRYBACKUP_CENDPOINTCATALOG_H
 #include "AncestryBackup_CEndpointCatalog.h"
@@ -61,8 +61,9 @@ namespace ANCESTRYBACKUP {
 //-------------------------------------------------------------------------*/
 
 /**
- *  The journal of discovery: an append-only file with one JSON document per observed request.
- *  The catalog, and with it the endpoint report, can be rebuilt from it at any time without a browser.
+ *  The journal of discovery: an append-only file with one JSON document per observed request, at the place the data
+ *  layout gives it. The catalog, and with it the endpoint report, can be rebuilt from it at any time without a browser.
+ *  The work is done by WEB::CSiteDiscoveryJournal, with the policy of the tool (see CEndpointCatalog::MakeSettings()).
  */
 class CDiscoveryJournal
 {
@@ -72,7 +73,7 @@ class CDiscoveryJournal
 
     ~CDiscoveryJournal();
 
-    /** Opens the journal of the layout for appending, creating it if needed */
+    /** Opens the journal of the layout for appending, creating it (owner-only) if needed */
     bool Open( const CDataLayout& layout );
 
     void Close( void );
@@ -81,8 +82,16 @@ class CDiscoveryJournal
 
     bool Append( const SObservedRequest& observation );
 
+    /** Appends an observation of the generic recorder */
+    bool AppendObservation( const WEB::CObservedWebRequest& observation );
+
+    bool AppendAction( const WEB::CObservedUserAction& action );
+
     /** The sequence number to give the next observation: one past the highest in the journal */
     UInt32 GetNextSequence( void ) const;
+
+    /** Shares the redactor of a recorder, so the secrets it saw are known; GUCEF_NULL returns to the journal's own */
+    void SetSharedRedactor( WEB::CSiteDiscoveryRedactor* redactor );
 
     /**
      *  Rebuilds a catalog from the journal. Response bodies that were saved next to the journal are analyzed
@@ -101,8 +110,8 @@ class CDiscoveryJournal
 
     private:
 
-    CORE::CFileAccess m_file;
-    UInt32 m_nextSequence;
+    WEB::CSiteDiscoveryRedactor m_ownRedactor;
+    WEB::CSiteDiscoveryJournal m_journal;
 };
 
 /*-------------------------------------------------------------------------//

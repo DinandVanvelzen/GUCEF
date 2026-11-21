@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -40,10 +45,15 @@
 #define ANCESTRYBACKUP_CJSONSHAPE_H
 #endif /* ANCESTRYBACKUP_CJSONSHAPE_H ? */
 
-#include <string>
-#include <vector>
-#include <map>
-#include <set>
+#ifndef GUCEF_WEB_CSITEENDPOINTCATALOG_H
+#include "gucefWEB_CSiteEndpointCatalog.h"
+#define GUCEF_WEB_CSITEENDPOINTCATALOG_H
+#endif /* GUCEF_WEB_CSITEENDPOINTCATALOG_H ? */
+
+#ifndef GUCEF_WEB_CSITEDISCOVERYREDACTOR_H
+#include "gucefWEB_CSiteDiscoveryRedactor.h"
+#define GUCEF_WEB_CSITEDISCOVERYREDACTOR_H
+#endif /* GUCEF_WEB_CSITEDISCOVERYREDACTOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -108,34 +118,42 @@ struct SEndpointEntry
 };
 
 /**
- *  Collects the observations of discovery into endpoints, and turns them into the report that tells how
- *  the web application gets its data: which endpoints there are, how they take their parameters, how they
- *  page, where the media is.
+ *  Collects the observations of discovery into endpoints and turns them into the report that tells how the web
+ *  application gets its data. The work is done by WEB::CSiteEndpointCatalog; this adds the policy of the tool:
  *
- *  Observations also go to a journal, one JSON document per line, from which the catalog can be rebuilt
- *  without a browser.
+ *    - example values are kept (query values, request bodies, saved responses): the report stays on the user's disk
+ *    - sign-in, account and credential requests are noted, never their content (the generic never-record rules)
+ *    - so are the DNA pages, which hold the data of other people, unless DNA recording is on
+ *    - the ids that follow a "tree" or "trees" path segment are collected as candidates for the tree id
+ *
+ *  It is a sink of observations, so the generic recorder and journal reader can feed it directly.
  */
-class CEndpointCatalog
+class CEndpointCatalog : public WEB::CIWebObservationSink
 {
     public:
 
     enum EKind
     {
-        KIND_DATA   ,     /**< XHR, fetch and anything else that returns JSON or XML */
-        KIND_MEDIA  ,     /**< images, audio, video and documents */
-        KIND_PAGE   ,     /**< html documents */
-        KIND_OTHER        /**< scripts, styles, fonts, tracking: only counted */
+        KIND_DATA   = WEB::CSiteEndpointCatalog::KIND_DATA  ,     /**< XHR, fetch and anything else that returns JSON or XML */
+        KIND_MEDIA  = WEB::CSiteEndpointCatalog::KIND_MEDIA ,     /**< images, audio, video and documents */
+        KIND_PAGE   = WEB::CSiteEndpointCatalog::KIND_PAGE  ,     /**< html documents */
+        KIND_OTHER  = WEB::CSiteEndpointCatalog::KIND_OTHER       /**< scripts, styles, fonts, tracking: only counted */
     };
 
     CEndpointCatalog( void );
 
+    virtual ~CEndpointCatalog();
+
+    /** The settings of site discovery with the policy of the tool, see the class description */
+    static WEB::CSiteDiscoverySettings MakeSettings( bool recordDna );
+
     /** Decides what an observation is, from its resource type and mime type */
     static EKind Classify( const SObservedRequest& observation );
 
-    /** Is this a response the shape of which is worth analyzing, and does the catalog not have one yet for its endpoint? */
+    /** Is this a saved JSON response the shape of which is worth analyzing, and does the catalog not have one yet for its endpoint? */
     bool NeedsShape( const SObservedRequest& observation ) const;
 
-    /** Note that the response of this observation was looked at, so that endpoints whose responses have no shape are not tried again for every request */
+    /** Kept for the interface: an observation with a saved response marks its endpoint as looked at when it is added */
     void MarkShapeTried( const SObservedRequest& observation );
 
     /**
@@ -144,6 +162,9 @@ class CEndpointCatalog
      *  @return true if this is the first observation of its endpoint
      */
     bool Add( const SObservedRequest& observation, const SJsonShape* shape = GUCEF_NULL );
+
+    /** Adds an observation of the generic recorder or journal; @return true if this is the first observation of its endpoint */
+    bool AddObservation( const WEB::CObservedWebRequest& observation );
 
     UInt32 GetRequestCount( void ) const;
 
@@ -157,23 +178,13 @@ class CEndpointCatalog
     /** The ids that show up after a "tree" or "trees" path segment, candidates for the tree id */
     const std::set< std::string >& GetTreeIds( void ) const;
 
-    /** The Markdown report */
+    /** The Markdown report; empty when it was refused because it would contain a secret value */
     CORE::CString RenderReport( void ) const;
 
-    /** The journal representation of an observation, a single line of JSON without the line end */
-    static CORE::CString ToJournalLine( const SObservedRequest& observation );
-
-    static bool FromJournalDocument( const CORE::CDataNode& document, SObservedRequest& observation );
-
-    /**
-     *  Is this a request that carries credentials or other secrets in what is sent or received: signing in, passwords,
-     *  verification codes, tokens, the account pages, and the DNA pages which hold the data of other people.
-     *  Of those requests the bodies are never recorded, not what was
-     *  sent and not the answer, only that the request happened.
-     */
+    /** Sign in, account and security requests, and the DNA pages: what IsCredentialUrl() or IsDnaUrl() says */
     static bool IsSensitiveUrl( const std::string& url );
 
-    /** The part of the sensitive urls that carries credentials, as opposed to DNA data of other people */
+    /** The requests that carry credentials: the never-record rules of WEB::CSiteDiscoverySettings */
     static bool IsCredentialUrl( const std::string& url );
 
     /** The DNA pages and services */
@@ -182,32 +193,49 @@ class CEndpointCatalog
     /** Record the bodies of DNA requests as well. Off unless the DNA facility is being studied, credentials stay out regardless. */
     void SetRecordDna( bool record );
 
-    /** Is this a request of which the bodies are kept out of the report and the journal? Credentials always, DNA unless it is recorded. */
+    bool IsRecordDna( void ) const;
+
+    /** Is this a request of which the content is kept out of the report and the journal? Credentials always, DNA unless it is recorded. */
     bool IsExcluded( const std::string& url ) const;
 
-    /** Replaces secrets in headers: the name stays so we learn what the site expects, the value goes */
+    /** Is this a header of which the value is a secret: the name stays so we learn what the site expects, the value goes */
     static bool IsSecretHeader( const std::string& lowerCaseName );
 
-    ~CEndpointCatalog();
+    /** Shares the redactor of a recorder, so the secrets it saw are known; GUCEF_NULL returns to the catalog's own */
+    void SetSharedRedactor( WEB::CSiteDiscoveryRedactor* redactor );
+
+    WEB::CSiteDiscoveryRedactor& GetRedactor( void ) const;
+
+    WEB::CSiteEndpointCatalog& GetGeneric( void );
+
+    virtual void OnWebRequestObserved( const WEB::CObservedWebRequest& observation ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnUserActionObserved( const WEB::CObservedUserAction& action ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool WantsResponseShape( const WEB::CObservedWebRequest& observation ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsNewResponseShape( const WEB::CObservedWebRequest& observation, const WEB::CWebBodyShape& shape ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The generic form of an observation of the tool */
+    static WEB::CObservedWebRequest ToObservation( const SObservedRequest& observation, const SJsonShape* shape );
 
     private:
 
     CEndpointCatalog( const CEndpointCatalog& src );
     CEndpointCatalog& operator=( const CEndpointCatalog& src );
 
-    typedef std::map< std::string, SEndpointEntry* > TEntryMap;
+    typedef std::map< const WEB::CDiscoveredEndpoint*, SEndpointEntry* > TEntryCache;
+
+    SEndpointEntry* Refresh( const WEB::CDiscoveredEndpoint& endpoint ) const;
 
     private:
 
-    TEntryMap m_entryMap;
-    std::vector< SEndpointEntry* > m_entries;
-    std::map< std::string, UInt32 > m_hostCounts;
-    std::map< std::string, UInt32 > m_ignoredCounts;
+    WEB::CSiteDiscoveryRedactor m_ownRedactor;
+    WEB::CSiteEndpointCatalog m_catalog;
     std::set< std::string > m_treeIds;
     bool m_recordDna;
-    UInt32 m_requestCount;
-    Float64 m_firstTimestamp;
-    Float64 m_lastTimestamp;
+    mutable TEntryCache m_cache;
+    mutable std::vector< SEndpointEntry* > m_entries;
 };
 
 /*-------------------------------------------------------------------------//

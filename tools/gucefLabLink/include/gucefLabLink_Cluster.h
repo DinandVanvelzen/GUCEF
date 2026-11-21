@@ -42,6 +42,7 @@
 
 #include "gucefLabLink_Settings.h"
 #include "gucefLabLink_Store.h"
+#include "gucefLabLink_Registry.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -62,6 +63,9 @@ namespace GUCEFLabLink {
 class CLabService;
 class CAccessService;
 class CJoinPolicy;
+class CHubStore;
+class CRegistryHubView;
+class CLabWebSite;
 
 /**
  *  The cluster side, on a k3s server node: the lab endpoint (DRN, HMAC tokens of the lab secret or of an approval),
@@ -81,6 +85,15 @@ class CClusterRole
 
     void Stop( void );
 
+    /** From the main loop: online and offline of the nodes, about once a second */
+    void Update( void );
+
+    /** The nodes that report to this hub */
+    CNodeRegistry& GetRegistry( void );
+
+    /** The website of the hub, NULL when it is not enabled or did not start */
+    CLabWebSite* GetWebSite( void );
+
     /** The public key of the lab endpoint, the form DRN pins */
     GUCEF::CORE::CString GetLabKey( void ) const;
 
@@ -95,6 +108,9 @@ class CClusterRole
     /** The address of a peer of the access endpoint, from its principal; empty when it is not known */
     GUCEF::CORE::CString GetAccessPeerAddress( const GUCEF::COMCORE::CRpcPrincipal& principal ) const;
 
+    /** The same for a peer of the lab endpoint */
+    GUCEF::CORE::CString GetLabPeerAddress( const GUCEF::COMCORE::CRpcPrincipal& principal ) const;
+
     /** Whether the peer of an RPC call on the lab endpoint may use it: a token of the lab secret, or of a machine that is still approved */
     bool IsAllowed( const GUCEF::CORE::CString& subject, const GUCEF::CORE::CString::StringSet& roles ) const;
 
@@ -105,9 +121,20 @@ class CClusterRole
 
     bool StartEndpoint( bool lab, GUCEF::CORE::CString& problem );
     void Advertise( void );
+    void OpenStore( void );
+    void UpdateStore( GUCEF::UInt64 monoNowInMs, GUCEF::UInt64 unixNowInSecs );
+    void StartWebSite( void );
 
     SSettings m_settings;
     CStore& m_store;
+    CNodeRegistry m_registry;
+    CHubStore* m_hubStore;                      /**< NULL when the database is switched off */
+    GUCEF::UInt64 m_nextEvaluationInMs;
+    GUCEF::UInt64 m_nextStoreOpenInMs;
+    GUCEF::UInt64 m_nextPurgeInMs;
+    bool m_storeProblemReported;
+    GUCEF::vector< SNodeEvent > m_pendingEvents;       /**< the events that are not in the database yet */
+    GUCEF::CORE::CString::StringVector m_pendingForgotten;
     GUCEF::CORE::CString m_secret;
     GUCEF::CORE::CString m_tokenKey;
     GUCEF::CORE::CString m_k3sVersion;
@@ -123,6 +150,8 @@ class CClusterRole
     CAccessService* m_accessService;
     GUCEF::COMCORE::CIDiscoveryEntryPtr m_entry;
     GUCEF::CORE::CString::StringVector m_discoveryClients;
+    CRegistryHubView* m_hubView;                /**< what the website reads of the hub; NULL without the website */
+    CLabWebSite* m_web;                         /**< NULL unless --web */
 };
 
 /** Makes the discovery clients the settings ask for in the manager of the application: "mdns" and "broadcast" */

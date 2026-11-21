@@ -130,6 +130,8 @@
 
 #include "gucefLabLink_Cluster.h"
 #include "gucefLabLink_Machine.h"
+#include "gucefLabLink_Probes.h"
+#include "gucefLabLink_Reporter.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -182,58 +184,6 @@ PumpOnce( DRN::CDRNNode* node )
             own->ForceDirectPulse();
     }
     MT::ThreadDelay( 1 );
-}
-
-/*-------------------------------------------------------------------------*/
-
-/** The name the machine gives itself: the setting, or the host name */
-static CORE::CString
-MachineName( const SSettings& settings )
-{GUCEF_TRACE;
-
-    if ( !settings.machineName.IsNULLOrEmpty() )
-        return settings.machineName;
-
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
-    char name[ 256 ];
-    if ( 0 == ::gethostname( name, sizeof( name ) - 1 ) )
-    {
-        name[ sizeof( name ) - 1 ] = '\0';
-        return CORE::CString( name ).Lowercase();
-    }
-    return "machine";
-    #else
-    return CORE::GetEnv( "COMPUTERNAME" ).Lowercase();
-    #endif
-}
-
-/*-------------------------------------------------------------------------*/
-
-static CORE::CString
-OsName( void )
-{GUCEF_TRACE;
-
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
-    return "linux";
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    return "windows";
-    #else
-    return "other";
-    #endif
-}
-
-/*-------------------------------------------------------------------------*/
-
-static CORE::CString
-ArchName( void )
-{GUCEF_TRACE;
-
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
-    struct utsname info;
-    if ( 0 == ::uname( &info ) )
-        return info.machine;
-    #endif
-    return "unknown";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -399,6 +349,9 @@ CMachineRole::CMachineRole( const SSettings& settings, CStore& store )
     , m_lastOutcome()
     , m_discoveryClients()
     , m_claudeMissingReported( false )
+    , m_reporter( GUCEF_NULL )
+    , m_linkedSighting()
+    , m_linked( false )
 {GUCEF_TRACE;
 
 }
@@ -425,6 +378,7 @@ CMachineRole::GetClassTypeName( void ) const
 
 const SClusterAnswers& CMachineRole::GetLastAnswers( void ) const { return m_lastAnswers; }
 const CORE::CString& CMachineRole::GetLastOutcome( void ) const { return m_lastOutcome; }
+const CNodeReporter* CMachineRole::GetReporter( void ) const { return m_reporter; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -458,6 +412,8 @@ CMachineRole::Stop( void )
 {GUCEF_TRACE;
 
     UnsubscribeAllFromObserver();
+    GUCEF_DELETE m_reporter;
+    m_reporter = GUCEF_NULL;
     COMCORE::CDiscoveryManager& manager = COMCORE::CComCoreGlobal::Instance()->GetDiscoveryManager();
     if ( !m_discoveryClients.empty() )
     {
@@ -517,10 +473,43 @@ void
 CMachineRole::Update( void )
 {GUCEF_TRACE;
 
+    // the reports to the cluster: only to a cluster a visit has linked to, and it never waits
+    if ( GUCEF_NULL != m_reporter )
+    {
+        if ( m_linked && m_reporter->WantsToConnect( NowInMs() ) )
+        {
+            CORE::CString token;
+            if ( GetReportToken( m_linkedSighting, token ) )
+                m_reporter->Connect( m_linkedSighting, m_secret, token );
+        }
+        m_reporter->Update();
+    }
+
     if ( !m_haveSighting || NowInMs() < m_nextVisitInMs )
         return;
     const bool linked = Visit( m_sighting );
     m_nextVisitInMs = NowInMs() + 1000 * (UInt64) ( linked ? m_settings.refreshIntervalInSecs : m_settings.retryIntervalInSecs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMachineRole::GetReportToken( const SClusterSighting& cluster, CORE::CString& token )
+{GUCEF_TRACE;
+
+    if ( !m_secret.IsNULLOrEmpty() )
+    {
+        token = DRN::CDRNTokenAuthenticator::IssueToken( DeriveTokenKey( m_secret ), LabSessionName, m_identity.machineId, RoleLab,
+                                                         DRN::CDRNTokenAuthenticator::GetUnixTimeNow() + LabTokenLifetimeInSecs );
+        return !token.IsNULLOrEmpty();
+    }
+    // the token of the approval is only used for the cluster that gave it
+    if ( !m_identity.token.IsNULLOrEmpty() && m_identity.clusterKey == cluster.key )
+    {
+        token = m_identity.token;
+        return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -941,6 +930,13 @@ CMachineRole::Visit( const SClusterSighting& cluster )
         return false;
     }
     m_lastAnswers = answers;
+    // the reports go to the cluster this visit proved; another cluster, or another key, closes the old link
+    if ( m_linked && GUCEF_NULL != m_reporter && ( m_linkedSighting.address != cluster.address || m_linkedSighting.key != cluster.key || m_linkedSighting.labPort != cluster.labPort ) )
+        m_reporter->Disconnect();
+    m_linkedSighting = cluster;
+    m_linked = true;
+    if ( m_settings.report && GUCEF_NULL == m_reporter )
+        m_reporter = GUCEF_NEW CNodeReporter( m_settings, m_identity );
     ConfigureClaude( answers );
     if ( answers.joinGiven )
         RunJoin( answers );

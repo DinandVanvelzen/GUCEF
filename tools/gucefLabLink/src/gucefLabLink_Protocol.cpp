@@ -42,6 +42,11 @@
 #define GUCEF_DRN_CDRNCRYPTO_H
 #endif /* GUCEF_DRN_CDRNCRYPTO_H ? */
 
+#ifndef GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H
+#include "gucefDRN_CDRNTokenAuthenticator.h"
+#define GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H
+#endif /* GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H ? */
+
 #include "gucefLabLink_Protocol.h"
 
 /*-------------------------------------------------------------------------//
@@ -68,16 +73,19 @@ const char* AccessContractName = "gucef.lab.access";
 const char* HelloPath = "gucef.lab.Lab/Hello";
 const char* JoinPath = "gucef.lab.Lab/Join";
 const char* ClientConfigPath = "gucef.lab.Lab/ClientConfig";
+const char* ReportPath = "gucef.lab.Lab/Report";
 const char* RequestAccessPath = "gucef.lab.access.Access/RequestAccess";
 const char* AttributeCluster = "cluster";
 const char* AttributeKey = "key";
 const char* AttributeLabPort = "labPort";
 const char* AttributeAccessPort = "accessPort";
+const char* AttributeWebPort = "webPort";
 const char* RoleLab = "lab";
 const char* RoleApproved = "approved";
 const char* AccessPending = "pending";
 const char* AccessApproved = "approved";
 const char* AccessRefused = "refused";
+const char* AgentVersion = "gucefLabLink 1.1";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -85,11 +93,20 @@ const char* AccessRefused = "refused";
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+UInt64
+NowInUnixSecs( void )
+{GUCEF_TRACE;
+
+    return DRN::CDRNTokenAuthenticator::GetUnixTimeNow();
+}
+
+/*-------------------------------------------------------------------------*/
+
 COMCORE::CRpcContractPtr
 BuildLabContract( CORE::CString& error )
 {GUCEF_TRACE;
 
-    COMCORE::CRpcContractBuilder b( LabContractName, 1, 0 );
+    COMCORE::CRpcContractBuilder b( LabContractName, 1, 1 );
     b.AddType( "HelloRequest" );
     b.AddType( "HelloResponse" );
     b.AddField( "HelloResponse", 1, "cluster", "string" );
@@ -110,10 +127,60 @@ BuildLabContract( CORE::CString& error )
     b.AddField( "ClientConfigResponse", 1, "caCertificate", "string" );
     b.AddField( "ClientConfigResponse", 2, "mcpToken", "string" );
     b.AddField( "ClientConfigResponse", 3, "nodes", "string", COMCORE::RPC_CARDINALITY_REPEATED );
+
+    // minor 1: the report of a node to the hub. A cluster of minor 0 answers a call of it as not implemented; the
+    // methods above and their fields are the same as in minor 0
+    b.AddType( "GpuInfo" );
+    b.AddField( "GpuInfo", 1, "name", "string" );
+    b.AddField( "GpuInfo", 2, "vendor", "string" );
+    b.AddField( "GpuInfo", 3, "vramTotalMiB", "uint32" );
+    b.AddField( "GpuInfo", 4, "vramFreeMiB", "uint32" );
+    b.AddField( "GpuInfo", 5, "utilizationPercent", "uint32" );
+    b.AddType( "HostInfo" );
+    b.AddField( "HostInfo", 1, "name", "string" );
+    b.AddField( "HostInfo", 2, "state", "string" );
+    b.AddField( "HostInfo", 3, "detail", "string" );
+    b.AddType( "WorkloadInfo" );
+    b.AddField( "WorkloadInfo", 1, "id", "string" );
+    b.AddField( "WorkloadInfo", 2, "kind", "string" );
+    b.AddField( "WorkloadInfo", 3, "state", "string" );
+    b.AddField( "WorkloadInfo", 4, "endpoint", "string" );
+    b.AddField( "WorkloadInfo", 5, "model", "string" );
+    b.AddField( "WorkloadInfo", 6, "idleSlots", "uint32" );
+    b.AddType( "ReportRequest" );
+    b.AddField( "ReportRequest", 1, "machineId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 2, "instanceId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 3, "bootId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 4, "name", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 5, "os", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 6, "arch", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 7, "agentVersion", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 8, "uptimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 9, "ephemeral", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 10, "nodeState", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 11, "presence", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 12, "idleSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 13, "cpuCores", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 14, "cpuLoadPercent", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 15, "memTotalMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 16, "memAvailableMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 17, "diskFreeMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportRequest", 18, "gpus", "GpuInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+    b.AddField( "ReportRequest", 19, "hosts", "HostInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+    b.AddField( "ReportRequest", 20, "workloads", "WorkloadInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+    b.AddField( "ReportRequest", 21, "capabilities", "string", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+    b.AddField( "ReportRequest", 22, "startedAtSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddType( "ReportResponse" );
+    b.AddField( "ReportResponse", 1, "hubTimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportResponse", 2, "verified", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportResponse", 3, "reportIntervalSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    b.AddField( "ReportResponse", 4, "renewedToken", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+
     b.AddService( "Lab", 1 );
     b.AddMethod( "Lab", 1, "Hello", COMCORE::RPC_METHODKIND_UNARY, "HelloRequest", "HelloResponse" );
     b.AddMethod( "Lab", 2, "Join", COMCORE::RPC_METHODKIND_UNARY, "JoinRequest", "JoinResponse" );
     b.AddMethod( "Lab", 3, "ClientConfig", COMCORE::RPC_METHODKIND_UNARY, "ClientConfigRequest", "ClientConfigResponse" );
+    b.AddMethod( "Lab", 4, "Report", COMCORE::RPC_METHODKIND_UNARY, "ReportRequest", "ReportResponse", 0, 0, 1 );
     return b.Build( error );
 }
 

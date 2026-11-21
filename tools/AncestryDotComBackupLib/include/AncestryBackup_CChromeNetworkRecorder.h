@@ -25,20 +25,18 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string>
+#include <vector>
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
-#ifndef GUCEF_CORE_COBSERVER_H
-#include "CObserver.h"
-#define GUCEF_CORE_COBSERVER_H
-#endif /* GUCEF_CORE_COBSERVER_H ? */
-
-#ifndef GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
-#include "gucefWEB_CChromeDevToolsClient.h"
-#define GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
-#endif /* GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H ? */
+#ifndef GUCEF_WEB_CCHROMENETWORKRECORDER_H
+#include "gucefWEB_CChromeNetworkRecorder.h"
+#define GUCEF_WEB_CCHROMENETWORKRECORDER_H
+#endif /* GUCEF_WEB_CCHROMENETWORKRECORDER_H ? */
 
 #ifndef ANCESTRYBACKUP_CENDPOINTCATALOG_H
 #include "AncestryBackup_CEndpointCatalog.h"
@@ -54,11 +52,6 @@
 #include "AncestryBackup_CDataLayout.h"
 #define ANCESTRYBACKUP_CDATALAYOUT_H
 #endif /* ANCESTRYBACKUP_CDATALAYOUT_H ? */
-
-#include <string>
-#include <vector>
-#include <set>
-#include <map>
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -76,18 +69,16 @@ namespace ANCESTRYBACKUP {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Records what the web pages in the browser request, over the DevTools protocol, into the endpoint catalog
- *  and the discovery journal. Works on a connection to the browser (not to a single page), so it sees every
- *  tab, including tabs that are opened later, and the frames and workers inside them.
+ *  Records what the web pages in the browser request into the endpoint catalog and the discovery journal. The work is
+ *  done by WEB::CChromeNetworkRecorder; this adds the policy of the tool: the rules of CEndpointCatalog::MakeSettings()
+ *  (example values, credentials never, DNA only when the catalog records DNA), the browser's cache switched off so every
+ *  response is seen, responses saved under the discovery directory of the data layout, and the endpoints that were seen
+ *  for the first time kept for the user to read.
  *
- *  Only requests to hosts that match the host filter are recorded, and only tabs that show such a host are
- *  watched at all. The browser is the user's own and has other tabs open, the contents of which are none of
- *  our business. A tab that goes to the site later is picked up when it does.
- *
- *  Events are only queued while they are being delivered. The work that needs commands to the browser, such
- *  as getting the body of a response, happens in Process() which has to be called regularly.
+ *  Only requests to hosts that match the host filter are recorded, and only tabs that show such a host are watched.
+ *  Process() has to be called regularly, on the thread that drives the pulse generator of the client.
  */
-class CChromeNetworkRecorder : public CORE::CObserver
+class CChromeNetworkRecorder : public WEB::CIWebObservationSink
 {
     public:
 
@@ -104,7 +95,7 @@ class CChromeNetworkRecorder : public CORE::CObserver
     /** Responses larger than this are not saved, only noted */
     void SetMaxBodyBytes( UInt64 maxBodyBytes );
 
-    /** Subscribes to the client, and starts watching the open tabs and the ones that will be opened */
+    /** Starts watching the open tabs and the ones that will be opened */
     bool Start( void );
 
     void Stop( void );
@@ -114,7 +105,7 @@ class CChromeNetworkRecorder : public CORE::CObserver
     /** Does the work that was queued up. @return the number of things that were done */
     UInt32 Process( void );
 
-    /** The endpoints which were seen for the first time since the last call, as: METHOD host/path */
+    /** The endpoints which were seen for the first time since the last call, as: METHOD host/path (type) */
     bool PopNewEndpoint( std::string& description );
 
     UInt32 GetRecordedRequestCount( void ) const;
@@ -126,60 +117,27 @@ class CChromeNetworkRecorder : public CORE::CObserver
     /** Does a host pass the filter? */
     static bool MatchesFilter( const std::vector< std::string >& terms, const std::string& host );
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventid               ,
-                           CORE::CICloneable* eventdata /* = NULL */ ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnWebRequestObserved( const WEB::CObservedWebRequest& observation ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnUserActionObserved( const WEB::CObservedUserAction& action ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool WantsResponseShape( const WEB::CObservedWebRequest& observation ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsNewResponseShape( const WEB::CObservedWebRequest& observation, const WEB::CWebBodyShape& shape ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
     CChromeNetworkRecorder( const CChromeNetworkRecorder& src );
     CChromeNetworkRecorder& operator=( const CChromeNetworkRecorder& src );
 
-    struct SPendingFinish
-    {
-        SObservedRequest observation;
-        std::string sessionId;
-        std::string requestId;
-    };
-
-    typedef std::map< std::string, SPendingFinish > TInFlightMap;
-
-    void HandleProtocolEvent( const WEB::SChromeProtocolEvent& event );
-    void HandleRequestWillBeSent( const WEB::SChromeProtocolEvent& event );
-    void HandleResponseReceived( const WEB::SChromeProtocolEvent& event );
-    void HandleLoadingFinished( const WEB::SChromeProtocolEvent& event );
-    void HandleLoadingFailed( const WEB::SChromeProtocolEvent& event );
-    void HandleAttachedToTarget( const WEB::SChromeProtocolEvent& event );
-    void HandleTargetCreated( const WEB::SChromeProtocolEvent& event );
-    void HandleTargetInfoChanged( const WEB::SChromeProtocolEvent& event );
-    bool UrlPassesFilter( const std::string& url ) const;
-
-    bool SetupSession( const std::string& sessionId );
-    bool SendOnSession( const std::string& sessionId, const CORE::CString& method, const CORE::CDataNode* params );
-    void Complete( SPendingFinish& finished, bool fetchBody );
-    bool ShouldSaveBody( const SObservedRequest& observation ) const;
-    static std::string MakeKey( const std::string& sessionId, const std::string& requestId );
-
     private:
 
-    WEB::CChromeDevToolsClient& m_client;
-    CDataLayout m_layout;
     CEndpointCatalog& m_catalog;
     CDiscoveryJournal& m_journal;
-    std::vector< std::string > m_hostFilter;
-    UInt64 m_maxBodyBytes;
-    bool m_started;
-
-    TInFlightMap m_inFlight;
-    std::vector< SPendingFinish > m_finished;               // finished loading, the body can be fetched
-    std::vector< SPendingFinish > m_completedWithoutBody;   // failed, redirected: nothing to fetch
-    std::vector< std::string > m_targetsToAttach;
-    std::vector< std::string > m_sessionsToSetup;
-    std::set< std::string > m_sessions;
-    std::set< std::string > m_attachedTargets;
+    WEB::CSiteDiscoverySettings m_settings;
+    WEB::CSiteDiscoveryRedactor m_redactor;
+    WEB::CChromeNetworkRecorder m_recorder;
     std::vector< std::string > m_newEndpoints;
-    UInt32 m_recordedCount;
-    UInt32 m_savedBodyCount;
 };
 
 /*-------------------------------------------------------------------------//

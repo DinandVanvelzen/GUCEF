@@ -38,6 +38,7 @@
 #endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
 
 #include "gucefLabLink_Protocol.h"
+#include "gucefLabLink_WindowsHost.h"
 #include "gucefLabLink_Store.h"
 
 /*-------------------------------------------------------------------------//
@@ -126,6 +127,10 @@ CStore::WriteFile( const char* fileName, const CORE::CString& content, CORE::CSt
 {GUCEF_TRACE;
 
     const CORE::CString path = GetPath( fileName );
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    // the service (SYSTEM) and the command line (an administrator) both read and write the files
+    return WriteProtectedStateFile( m_stateDir, path, content.C_String(), content.ByteSize() > 0 ? content.ByteSize() - 1 : 0, problem );
+    #endif
     const UInt32 size = content.Length();
     if ( !CORE::FileExists( path ) )
     {
@@ -308,6 +313,26 @@ CStore::SaveApprovals( const GUCEF::vector< SApproval >& approvals, CORE::CStrin
                    Field( a.os ) + "\t" + Field( a.token ) + "\n";
     }
     return WriteFile( "approvals", content, problem );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStore::ReadUsers( CORE::CString& content, bool& missing, CORE::CString& problem ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return ReadFile( "users", content, missing, problem );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStore::WriteUsers( const CORE::CString& content, CORE::CString& problem ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return WriteFile( "users", content, problem );
 }
 
 /*-------------------------------------------------------------------------//

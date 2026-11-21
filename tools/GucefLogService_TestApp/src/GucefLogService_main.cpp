@@ -29,6 +29,11 @@
 #define GUCEF_OSMAIN_H
 #endif /* GUCEF_OSMAIN_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
 #ifndef GUCEF_CORE_CGUCEFAPPLICATION_H
 #include "CGUCEFApplication.h"
 #define GUCEF_CORE_CGUCEFAPPLICATION_H
@@ -43,6 +48,11 @@
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_CORE_CTFACTORY_H
+#include "CTFactory.h"
+#define GUCEF_CORE_CTFACTORY_H
+#endif /* GUCEF_CORE_CTFACTORY_H ? */
 
 #ifndef GUCEF_CORE_CTASKMANAGER_H
 #include "gucefCORE_CTaskManager.h"
@@ -221,17 +231,20 @@ GUCEF_OSMAIN_BEGIN
         if ( pluginControl.SearchForPluginInPluginDirs( loggingServiceClientPluginFilename, "", true ) )
         {
             // Start the simulated logging
-            LOGSERVICE::CLogMsgSimulationTask loggingTask;
+            typedef CORE::CTFactory< CORE::CTaskConsumer, LOGSERVICE::CLogMsgSimulationTask, MT::CMutex > TLogMsgSimulationFactory;
+            TLogMsgSimulationFactory loggingTaskFactory;
             CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
-            if ( taskManager.StartTask( loggingTask ) )
+            taskManager.RegisterTaskConsumerFactory( LOGSERVICE::CLogMsgSimulationTask::TaskType, &loggingTaskFactory );
+            if ( taskManager.StartTask( CORE::CTaskManager::DefaultThreadPoolName, LOGSERVICE::CLogMsgSimulationTask::TaskType ).HasAFuture() )
             {
                 appRetValue = CORE::CCoreGlobal::Instance()->GetApplication().main( argc, argv, true );
-                taskManager.RequestAllTasksToStop( true );
+                taskManager.RequestAllThreadsToStop( true, false, 5000 );
             }
             else
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogService_TestApp: Failed to start simulated logging task" );
             }
+            taskManager.UnregisterTaskConsumerFactory( LOGSERVICE::CLogMsgSimulationTask::TaskType );
         }
         else
         {

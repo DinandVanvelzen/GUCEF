@@ -25,17 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-
-#ifndef GUCEF_CORE_CDATANODE_H
-#include "CDataNode.h"
-#define GUCEF_CORE_CDATANODE_H
-#endif /* GUCEF_CORE_CDATANODE_H ? */
-
-#include <vector>
+#ifndef GUCEF_WEB_CWEBBODYSHAPE_H
+#include "gucefWEB_CWebBodyShape.h"
+#define GUCEF_WEB_CWEBBODYSHAPE_H
+#endif /* GUCEF_WEB_CWEBBODYSHAPE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,22 +45,14 @@ namespace ANCESTRYBACKUP {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** What the structure of a JSON document looks like, without its data */
-struct SJsonShape
-{
-    std::vector< CORE::CString > lines;             /**< one line per field: path: type [= sample] */
-    std::vector< CORE::CString > paginationHints;   /**< fields that look like they are about paging: path = value */
-    std::vector< CORE::CString > urlFields;         /**< fields holding a URL or an absolute path: path = value */
-    bool truncated;                                 /**< the document had more fields than the line limit allowed */
-
-    SJsonShape( void ) : lines(), paginationHints(), urlFields(), truncated( false ) {}
-};
+/** What the structure of a JSON document looks like, see WEB::CWebBodyShape */
+typedef WEB::CWebBodyShape SJsonShape;
 
 /**
- *  Describes the structure of a JSON document: which fields it has and of what type. Values are left out,
- *  except for fields that tell how an endpoint pages and fields that hold URLs, because those are what is
- *  needed to learn how to use an endpoint. A genealogy document is full of personal data which does not
- *  belong in a report that gets shared.
+ *  Describes the structure of a JSON document: which fields it has and of what type. The tool keeps the values of
+ *  the fields that tell how an endpoint pages and of the fields that hold URLs (never of secret fields), because those
+ *  are what is needed to learn how to use an endpoint; its report stays on the user's own disk. Other values are left
+ *  out: a genealogy document is full of personal data. The work is done by WEB::CWebBodyShape.
  */
 class CJsonShape
 {
@@ -80,12 +65,6 @@ class CJsonShape
 
     /** json, array, string, ... */
     static CORE::CString GetTypeName( const CORE::CVariant& value );
-
-    private:
-
-    static void Walk( const CORE::CDataNode& node, const CORE::CString& path, UInt32 depth, UInt32 maxDepth, UInt32 maxLines, SJsonShape& shape );
-
-    static void AddLine( const CORE::CString& line, UInt32 maxLines, SJsonShape& shape );
 };
 
 /*-------------------------------------------------------------------------//

@@ -46,6 +46,10 @@ namespace LOGSERVICE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+const CORE::CString CLogMsgSimulationTask::TaskType = "LogMsgSimulation";
+
+/*---------------------------------------------------------------------------*/
+
 CLogMsgSimulationTask::CLogMsgSimulationTask( void )
     : CORE::CTaskConsumer() ,
       m_cycleCounter( 0 )
@@ -65,8 +69,8 @@ CLogMsgSimulationTask::~CLogMsgSimulationTask()
 CORE::CString
 CLogMsgSimulationTask::GetType( void ) const
 {GUCEF_TRACE;
-    
-    return "LogMsgSimulation";
+
+    return TaskType;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -82,7 +86,7 @@ CLogMsgSimulationTask::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CLogMsgSimulationTask::OnTaskStart( CORE::CICloneable* taskdata )
+CLogMsgSimulationTask::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_CRITICAL, "LogMsgSimulationTask: starting task" );
@@ -94,7 +98,7 @@ CLogMsgSimulationTask::OnTaskStart( CORE::CICloneable* taskdata )
 /*-------------------------------------------------------------------------*/
 
 bool
-CLogMsgSimulationTask::OnTaskCycle( CORE::CICloneable* taskdata )
+CLogMsgSimulationTask::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     CORE::CString cycleCountStr = CORE::UInt32ToString( m_cycleCounter+1 );
@@ -193,7 +197,8 @@ CLogMsgSimulationTask::OnTaskCycle( CORE::CICloneable* taskdata )
 /*-------------------------------------------------------------------------*/
 
 void
-CLogMsgSimulationTask::OnTaskEnd( CORE::CICloneable* taskdata )
+CLogMsgSimulationTask::OnTaskEnded( CORE::CTaskPtr task  ,
+                                      bool wasForced )
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_CRITICAL, "LogMsgSimulationTask: ending task" );

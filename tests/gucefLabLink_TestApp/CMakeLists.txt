@@ -13,22 +13,62 @@
 
 set( HEADER_FILES 
   include/TestLabLink.h
+  include/TestLabLinkService.h
+  include/TestLabLinkWeb.h
 )
 
 set( SOURCE_FILES 
   ../../tools/gucefLabLink/src/gucefLabLink_Cluster.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_ConfigFile.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_HubStore.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_HubView.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_LoginThrottle.cpp
   ../../tools/gucefLabLink/src/gucefLabLink_Machine.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_NodeReport.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_PasswordHash.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_PlatformDefaults.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_Probes.cpp
   ../../tools/gucefLabLink/src/gucefLabLink_Protocol.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_Registry.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_RegistryHubView.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_Reporter.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_ServiceHost.cpp
   ../../tools/gucefLabLink/src/gucefLabLink_Store.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebApi.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebAssets.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebCommands.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebJson.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebSessions.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebSite.cpp
+  ../../tools/gucefLabLink/src/gucefLabLink_WebUsers.cpp
   src/TestLabLink.cpp
+  src/TestLabLinkService.cpp
+  src/TestLabLinkWeb.cpp
   src/gucefLabLink_TestApp_main.cpp
 )
 
+
+
+if (WIN32)
+  set( PLATFORM_SOURCE_FILES 
+    ../../tools/gucefLabLink/src/mswin/gucefLabLink_WindowsHost.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WIN64)
+  set( PLATFORM_SOURCE_FILES 
+    ../../tools/gucefLabLink/src/mswin/gucefLabLink_WindowsHost.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+endif ()
+
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
  set( PLATFORM_HEADER_FILES "" )
-
-# Make sure the PLATFORM_SOURCE_FILES variable is always defined
- set( PLATFORM_SOURCE_FILES "" )
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
@@ -42,6 +82,14 @@ endif()
 add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_LABLINK_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefLabLink_TestApp;MODULE_NAME=gucefLabLink_TestApp" )
+
+if ( WIN32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib )
+endif( WIN32 )
+
+if ( WIN64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib )
+endif( WIN64 )
 
 include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tools/gucefLabLink/include include )
 

@@ -58,22 +58,24 @@ class CLogMsgSimulationTask : public CORE::CTaskConsumer
 
     virtual ~CLogMsgSimulationTask();
 
-    virtual CORE::CString GetType( void ) const;
+    static const CORE::CString TaskType;
 
-    virtual const CORE::CString& GetClassTypeName( void ) const;
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Startup routine for the task. You should return true if startup succeeded and the task can commence
      *  cycling.
      */
-    virtual bool OnTaskStart( CORE::CICloneable* taskdata );
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Perorm all your main task work in this function.
      *  It will be called repeatedly until true is returned indicating that the task has been completed.
      *  Thus for ongoing tasks you can write this function to take care of a single interation of the task.
      */
-    virtual bool OnTaskCycle( CORE::CICloneable* taskdata );
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  This is where all the cleanup should be done for task data
@@ -81,7 +83,8 @@ class CLogMsgSimulationTask : public CORE::CTaskConsumer
      *  but in the case of a forcefull termination of the spawned thread this member function will be called
      *  from the thread that triggered the forcefull termination.
      */
-    virtual void OnTaskEnd( CORE::CICloneable* taskdata );
+    virtual void OnTaskEnded( CORE::CTaskPtr task  ,
+                              bool wasForced ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

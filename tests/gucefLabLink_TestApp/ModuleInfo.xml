@@ -29,13 +29,46 @@
         <Files Type="Source">
             <Dir Path="../../tools/gucefLabLink/src">
                 <File Name="gucefLabLink_Cluster.cpp" />
+                <File Name="gucefLabLink_ConfigFile.cpp" />
+                <File Name="gucefLabLink_HubStore.cpp" />
+                <File Name="gucefLabLink_HubView.cpp" />
+                <File Name="gucefLabLink_LoginThrottle.cpp" />
                 <File Name="gucefLabLink_Machine.cpp" />
+                <File Name="gucefLabLink_NodeReport.cpp" />
+                <File Name="gucefLabLink_PasswordHash.cpp" />
+                <File Name="gucefLabLink_PlatformDefaults.cpp" />
+                <File Name="gucefLabLink_Probes.cpp" />
                 <File Name="gucefLabLink_Protocol.cpp" />
+                <File Name="gucefLabLink_Registry.cpp" />
+                <File Name="gucefLabLink_RegistryHubView.cpp" />
+                <File Name="gucefLabLink_Reporter.cpp" />
+                <File Name="gucefLabLink_ServiceHost.cpp" />
                 <File Name="gucefLabLink_Store.cpp" />
+                <File Name="gucefLabLink_WebApi.cpp" />
+                <File Name="gucefLabLink_WebAssets.cpp" />
+                <File Name="gucefLabLink_WebCommands.cpp" />
+                <File Name="gucefLabLink_WebJson.cpp" />
+                <File Name="gucefLabLink_WebSessions.cpp" />
+                <File Name="gucefLabLink_WebSite.cpp" />
+                <File Name="gucefLabLink_WebUsers.cpp" />
             </Dir>
         </Files>
         <RuntimeDependencies>
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
         </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <!-- the Windows part of the tool sources under test -->
+        <Files Type="Source">
+            <Dir Path="../../tools/gucefLabLink/src/mswin">
+                <File Name="gucefLabLink_WindowsHost.cpp" />
+            </Dir>
+        </Files>
+        <Linker>
+            <Dependency Name="Advapi32.lib" />
+        </Linker>
     </Module>
 </ModuleInfoEntry>

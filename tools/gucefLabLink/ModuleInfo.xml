@@ -21,6 +21,15 @@
         </Linker>
         <RuntimeDependencies>
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
         </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <!-- the access lists of the state directory (src/mswin) -->
+        <Linker>
+            <Dependency Name="Advapi32.lib" />
+        </Linker>
     </Module>
 </ModuleInfoEntry>

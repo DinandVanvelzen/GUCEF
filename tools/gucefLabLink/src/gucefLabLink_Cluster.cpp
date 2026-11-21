@@ -102,7 +102,15 @@
 #define GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H
 #endif /* GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
 #include "gucefLabLink_Cluster.h"
+#include "gucefLabLink_HubStore.h"
+#include "gucefLabLink_RegistryHubView.h"
+#include "gucefLabLink_WebSite.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -205,6 +213,7 @@ class CLabService : public COMCORE::CRpcServiceImpl
         BindMethod( "Hello", GUCEF_NEW THandler( this, &CLabService::OnHello ) );
         BindMethod( "Join", GUCEF_NEW THandler( this, &CLabService::OnJoin ) );
         BindMethod( "ClientConfig", GUCEF_NEW THandler( this, &CLabService::OnClientConfig ) );
+        BindMethod( "Report", GUCEF_NEW THandler( this, &CLabService::OnReport ) );
     }
 
     /** A call of a peer that may not use the service any more is refused: the approval was taken back */
@@ -292,6 +301,66 @@ class CLabService : public COMCORE::CRpcServiceImpl
                 response.Add( 3, CORE::CVariant( line ) );
         }
         call.Reply( response );
+        return COMCORE::RPC_HANDLER_DONE;
+    }
+
+    /**
+     *  The report of a node. A token made with the lab secret is made by the machine itself, with a machine id of its
+     *  own choosing: its report is kept as unverified and cannot take the place of a node that was approved. A token
+     *  of an approval is bound to one machine id, which the report has to carry.
+     */
+    COMCORE::TRpcHandlerResult OnReport( COMCORE::CRpcServerCall& call )
+    {
+        if ( Refuse( call ) )
+            return COMCORE::RPC_HANDLER_DONE;
+        const COMCORE::CRpcPrincipal& principal = call.GetPrincipal();
+        const bool verified = principal.roles.find( RoleApproved ) != principal.roles.end() && principal.roles.find( RoleLab ) == principal.roles.end();
+
+        SNodeReport report;
+        if ( !NodeReportFromMessage( call.GetRequest(), report ) )
+        {
+            call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_INVALID_ARGUMENT, "a report needs a machine id" ) );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
+        if ( verified && MachineIdOf( principal.subject ) != report.machineId )
+        {
+            call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, "the report is of another machine than the one that was approved" ) );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
+
+        switch ( m_role.GetRegistry().OnReport( report, verified, m_role.GetLabPeerAddress( principal ), NowInMs(), NowInUnixSecs() ) )
+        {
+            case REPORT_ACCEPTED:
+            {
+                COMCORE::CRpcMessage response = call.NewResponse();
+                response.SetUInt64( 1, NowInUnixSecs() );
+                response.SetBool( 2, verified );
+                response.SetUInt32( 3, m_role.GetSettings().reportIntervalInSecs );
+                call.Reply( response );
+                break;
+            }
+            case REPORT_DUPLICATE_INSTANCE:
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: " << report.name << " (" << report.machineId << "): another instance of this machine id reports as well, refused (a cloned disk?)" );
+                call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_ALREADY_EXISTS, "another instance of this machine reports already" ) );
+                break;
+            }
+            case REPORT_UNVERIFIED_CLAIM:
+            {
+                call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, "this machine id belongs to a machine that was approved" ) );
+                break;
+            }
+            case REPORT_TABLE_FULL:
+            {
+                call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_RESOURCE_EXHAUSTED, "the hub knows as many nodes as it takes" ) );
+                break;
+            }
+            default:
+            {
+                call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_INVALID_ARGUMENT, "the report is not valid" ) );
+                break;
+            }
+        }
         return COMCORE::RPC_HANDLER_DONE;
     }
 
@@ -428,9 +497,29 @@ AddDiscoveryClients( const SSettings& settings, const CORE::CString& namePrefix,
 
 /*-------------------------------------------------------------------------*/
 
+/** A node that is silent for three report intervals is offline */
+static SRegistryLimits
+MakeRegistryLimits( const SSettings& settings )
+{GUCEF_TRACE;
+
+    SRegistryLimits limits;
+    limits.offlineAfterInSecs = 3 * ( settings.reportIntervalInSecs < 1 ? 1 : settings.reportIntervalInSecs );
+    return limits;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CClusterRole::CClusterRole( const SSettings& settings, CStore& store )
     : m_settings( settings )
     , m_store( store )
+    , m_registry( MakeRegistryLimits( settings ) )
+    , m_hubStore( GUCEF_NULL )
+    , m_nextEvaluationInMs( 0 )
+    , m_nextStoreOpenInMs( 0 )
+    , m_nextPurgeInMs( 0 )
+    , m_storeProblemReported( false )
+    , m_pendingEvents()
+    , m_pendingForgotten()
     , m_secret()
     , m_tokenKey()
     , m_k3sVersion()
@@ -446,6 +535,8 @@ CClusterRole::CClusterRole( const SSettings& settings, CStore& store )
     , m_accessService( GUCEF_NULL )
     , m_entry()
     , m_discoveryClients()
+    , m_hubView( GUCEF_NULL )
+    , m_web( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -489,6 +580,195 @@ CClusterRole::GetAccessPeerAddress( const COMCORE::CRpcPrincipal& principal ) co
     MT::CScopeMutex lock( m_accessNode->GetLock() );
     DRN::CDRNPeerLinkPtr link = m_accessSession->GetLinkToMember( peerId.AsUInt32() );
     return link.IsNULL() ? CORE::CString::Empty : link->GetRemoteEndpoint().GetHost();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CClusterRole::GetLabPeerAddress( const COMCORE::CRpcPrincipal& principal ) const
+{GUCEF_TRACE;
+
+    CORE::CValueList attributes = principal.attributes;
+    CORE::CVariant peerId;
+    if ( GUCEF_NULL == m_labSession || !attributes.TryGetValue( "drn.peerId", peerId ) )
+        return CORE::CString::Empty;
+    // the session is the node's: read under its lock, the call runs on a thread of the pool
+    MT::CScopeMutex lock( m_labNode->GetLock() );
+    DRN::CDRNPeerLinkPtr link = m_labSession->GetLinkToMember( peerId.AsUInt32() );
+    return link.IsNULL() ? CORE::CString::Empty : link->GetRemoteEndpoint().GetHost();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CNodeRegistry&
+CClusterRole::GetRegistry( void )
+{GUCEF_TRACE;
+
+    return m_registry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLabWebSite*
+CClusterRole::GetWebSite( void )
+{GUCEF_TRACE;
+
+    return m_web;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CClusterRole::StartWebSite( void )
+{GUCEF_TRACE;
+
+    if ( !m_settings.web.enabled )
+        return;
+    m_hubView = GUCEF_NEW CRegistryHubView( m_registry, m_settings.clusterName );
+    m_web = GUCEF_NEW CLabWebSite( m_settings.web, m_settings.allowedRanges, *m_hubView, m_store, m_settings.mcpDir,
+                                   CORE::CCoreGlobal::Instance()->GetPulseGenerator() );
+    CORE::CString problem;
+    if ( m_web->Start( problem ) )
+        return;
+    // the lab goes on without its website: linking, approvals and joining do not depend on it
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefLabLink: The website does not start: " << problem );
+    GUCEF_DELETE m_web;
+    m_web = GUCEF_NULL;
+    GUCEF_DELETE m_hubView;
+    m_hubView = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CClusterRole::Update( void )
+{GUCEF_TRACE;
+
+    const UInt64 now = NowInMs();
+    if ( now < m_nextEvaluationInMs )
+        return;
+    m_nextEvaluationInMs = now + 1000;
+    const UInt64 unixNow = NowInUnixSecs();
+
+    m_registry.Evaluate( now, unixNow );
+
+    vector< SNodeEvent > events;
+    m_registry.TakeEvents( events );
+    for ( size_t i=0; i<events.size(); ++i )
+    {
+        SNodeEntry entry;
+        const CORE::CString name = m_registry.Find( events[ i ].machineId, entry ) ? entry.report.name : events[ i ].machineId;
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Node " << name << ": " << events[ i ].kind << " (" << events[ i ].detail << ")" );
+        // what waits for the database is bounded, the oldest go first
+        if ( m_pendingEvents.size() >= 4096 )
+            m_pendingEvents.erase( m_pendingEvents.begin() );
+        m_pendingEvents.push_back( events[ i ] );
+    }
+    CORE::CString::StringVector forgotten;
+    m_registry.TakeForgotten( forgotten );
+    for ( size_t i=0; i<forgotten.size(); ++i )
+        m_pendingForgotten.push_back( forgotten[ i ] );
+
+    UpdateStore( now, unixNow );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CClusterRole::OpenStore( void )
+{GUCEF_TRACE;
+
+    if ( m_settings.dbType == "none" )
+        return;
+    if ( GUCEF_NULL == m_hubStore )
+        m_hubStore = GUCEF_NEW CHubStore( m_settings );
+    CORE::CString problem;
+    if ( !m_hubStore->Open( problem ) )
+    {
+        // the hub goes on with the nodes in memory; the database is tried again
+        if ( !m_storeProblemReported )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The nodes are kept in memory only, the database is not available: " << problem );
+        m_storeProblemReported = true;
+        m_nextStoreOpenInMs = NowInMs() + 60000;
+        return;
+    }
+    if ( m_storeProblemReported )
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The database is available again" );
+    m_storeProblemReported = false;
+
+    // what is stored is what this hub knew before; what it knows now is written again
+    vector< SNodeEntry > nodes;
+    if ( m_hubStore->LoadNodes( nodes, problem ) )
+    {
+        m_registry.Load( nodes, NowInMs() );
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: " << (UInt32) nodes.size() << " nodes were known before" );
+    }
+    else
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The stored nodes cannot be read: " << problem );
+    m_registry.MarkAllDirty();
+    m_nextPurgeInMs = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CClusterRole::UpdateStore( UInt64 monoNowInMs, UInt64 unixNowInSecs )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_hubStore )
+    {
+        m_pendingEvents.clear();
+        m_pendingForgotten.clear();
+        return;
+    }
+    if ( !m_hubStore->IsOpen() )
+    {
+        if ( monoNowInMs < m_nextStoreOpenInMs )
+            return;
+        OpenStore();
+        if ( !m_hubStore->IsOpen() )
+            return;
+    }
+
+    CORE::CString problem;
+    bool failed = false;
+    if ( !m_pendingEvents.empty() )
+    {
+        if ( m_hubStore->AppendEvents( m_pendingEvents, problem ) )
+            m_pendingEvents.clear();
+        else
+            failed = true;
+    }
+    if ( !failed && !m_pendingForgotten.empty() )
+    {
+        if ( m_hubStore->DeleteNodes( m_pendingForgotten, problem ) )
+            m_pendingForgotten.clear();
+        else
+            failed = true;
+    }
+    if ( !failed )
+    {
+        vector< SNodeEntry > entries;
+        m_registry.CollectForPersist( unixNowInSecs, entries );
+        if ( !entries.empty() && !m_hubStore->SaveNodes( entries, problem ) )
+        {
+            m_registry.MarkAllDirty();
+            failed = true;
+        }
+    }
+    if ( !failed && monoNowInMs >= m_nextPurgeInMs )
+    {
+        m_nextPurgeInMs = monoNowInMs + 3600 * 1000;
+        if ( !m_hubStore->PurgeEvents( unixNowInSecs, m_settings.eventRetentionInDays, m_settings.maxStoredEvents, problem ) )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The history of the nodes cannot be trimmed: " << problem );
+    }
+    if ( failed )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The nodes cannot be stored, they are kept in memory until the database is back: " << problem );
+        m_storeProblemReported = true;
+        m_hubStore->Close();
+        m_nextStoreOpenInMs = monoNowInMs + 60000;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -622,6 +902,8 @@ CClusterRole::Advertise( void )
     entry->GetAttributes().Set( AttributeKey, CORE::CVariant( GetLabKey() ) );
     entry->GetAttributes().Set( AttributeLabPort, CORE::CVariant( CORE::ToString( m_settings.labPort ) ) );
     entry->GetAttributes().Set( AttributeAccessPort, CORE::CVariant( CORE::ToString( m_settings.accessPort ) ) );
+    if ( GUCEF_NULL != m_web && m_web->GetPort() > 0 )
+        entry->GetAttributes().Set( AttributeWebPort, CORE::CVariant( CORE::ToString( m_web->GetPort() ) ) );
     m_entry = COMCORE::CIDiscoveryEntryPtr( entry );
     COMCORE::CComCoreGlobal::Instance()->GetDiscoveryManager().Advertise( m_entry );
 }
@@ -656,6 +938,9 @@ CClusterRole::Start( CORE::CString& problem )
             m_k3sVersion = words[ 2 ];
     }
 
+    // the nodes this hub knew before are loaded before any report arrives
+    OpenStore();
+
     if ( !StartEndpoint( true, problem ) || !StartEndpoint( false, problem ) )
     {
         Stop();
@@ -663,6 +948,7 @@ CClusterRole::Start( CORE::CString& problem )
     }
     if ( !AddDiscoveryClients( m_settings, "gucef-lablink", m_discoveryClients ) )
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: No discovery is available: machines find the cluster only when they are told where it is" );
+    StartWebSite();
     Advertise();
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Cluster " << m_settings.clusterName << " (k3s " << m_k3sVersion << ") answers machines in " <<
                       m_settings.allowedRanges.Describe() );
@@ -684,6 +970,11 @@ CClusterRole::Stop( void )
     for ( size_t i=0; i<m_discoveryClients.size(); ++i )
         manager.UnregisterDiscoveryClient( m_discoveryClients[ i ] );
     m_discoveryClients.clear();
+
+    GUCEF_DELETE m_web;
+    m_web = GUCEF_NULL;
+    GUCEF_DELETE m_hubView;
+    m_hubView = GUCEF_NULL;
 
     COMCORE::CRpcHost** hosts[ 2 ] = { &m_labHost, &m_accessHost };
     DRN::CDRNNode** nodes[ 2 ] = { &m_labNode, &m_accessNode };
@@ -711,6 +1002,23 @@ CClusterRole::Stop( void )
     m_labService = GUCEF_NULL;
     GUCEF_DELETE m_accessService;
     m_accessService = GUCEF_NULL;
+
+    // the last changes go to the database, and it is closed
+    if ( GUCEF_NULL != m_hubStore )
+    {
+        if ( m_hubStore->IsOpen() )
+        {
+            vector< SNodeEvent > events;
+            m_registry.TakeEvents( events );
+            for ( size_t i=0; i<events.size(); ++i )
+                m_pendingEvents.push_back( events[ i ] );
+            m_registry.Evaluate( NowInMs(), NowInUnixSecs() );
+            m_nextPurgeInMs = NowInMs() + 3600 * 1000;
+            UpdateStore( NowInMs(), NowInUnixSecs() );
+        }
+        GUCEF_DELETE m_hubStore;
+        m_hubStore = GUCEF_NULL;
+    }
 }
 
 /*-------------------------------------------------------------------------//

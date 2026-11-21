@@ -50,6 +50,8 @@
 #endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
 
 #include "TestLabLink.h"
+#include "TestLabLinkService.h"
+#include "TestLabLinkWeb.h"
 
 /*
  *      Application entry point
@@ -78,6 +80,8 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformLabLinkTests();
+        PerformLabLinkServiceTests();
+        PerformLabLinkWebTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

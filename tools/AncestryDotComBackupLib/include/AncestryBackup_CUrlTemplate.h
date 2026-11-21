@@ -25,13 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-
-#include <vector>
-#include <utility>
+#ifndef GUCEF_WEB_CURLPATHTEMPLATE_H
+#include "gucefWEB_CUrlPathTemplate.h"
+#define GUCEF_WEB_CURLPATHTEMPLATE_H
+#endif /* GUCEF_WEB_CURLPATHTEMPLATE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -48,25 +45,12 @@ namespace ANCESTRYBACKUP {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** The parts of a URL that matter when working out which kind of request it is */
-struct SUrlTemplate
-{
-    CORE::CString scheme;
-    CORE::CString host;                 /**< lower case, including the port if there is one */
-    CORE::CString path;                 /**< as it appeared in the URL */
-    CORE::CString pathTemplate;         /**< the path with identifiers replaced by {n}, {guid}, {hex} and {id} */
-    std::vector< std::pair< CORE::CString, CORE::CString > > queryParams;   /**< in the order they appeared, values are not decoded */
-
-    SUrlTemplate( void ) : scheme(), host(), path(), pathTemplate(), queryParams() {}
-
-    /** host + path template, what requests of the same kind have in common */
-    CORE::CString GetKey( void ) const { return host + pathTemplate; }
-};
+/** The parts of a URL that matter when working out which kind of request it is, see WEB::CUrlPathTemplate */
+typedef WEB::CUrlPathTemplate SUrlTemplate;
 
 /**
- *  Reduces URLs to the kind of request they are. The endpoints of a web application are shaped like
- *  /api/tree/1234567/person/89012345/facts, to describe the endpoint instead of one request the
- *  identifiers in the path have to go: /api/tree/{n}/person/{n}/facts
+ *  Reduces URLs to the kind of request they are: /api/tree/1234567/person/89012345/facts becomes
+ *  /api/tree/{n}/person/{n}/facts. The tool's name for WEB::CUrlPathTemplate, which does the work.
  */
 class CUrlTemplate
 {

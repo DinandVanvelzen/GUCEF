@@ -96,6 +96,9 @@
 
 #include "gucefLabLink_Cluster.h"
 #include "gucefLabLink_Machine.h"
+#include "gucefLabLink_PlatformDefaults.h"
+#include "gucefLabLink_ServiceHost.h"
+#include "gucefLabLink_WebCommands.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -141,6 +144,14 @@ using namespace GUCEFLabLink;
  *    --local-node NAME      machine: the node name of this machine, whose MCP service is registered locally
  *    --refresh SECONDS      machine: how often it visits the cluster again, default 600
  *    --retry SECONDS        machine: how often it tries again after a failure or while it waits for approval, default 30
+ *    --db TYPE              cluster: where the nodes are kept, vfstables (default), postgresql or none (memory only)
+ *    --db-dir DIR           cluster, vfstables: the directory, default db in the state directory
+ *    --db-host HOST, --db-port N, --db-name NAME, --db-user NAME, --db-ssl-mode MODE, --db-schema NAME, --db-password-file PATH
+ *                           cluster, postgresql: the server; the password is read from the file only
+ *    --history-days N, --history-max N   cluster: how long and how many of the events of the nodes are kept, default 30 and 20000
+ *    --no-report            machine: do not report this node to the cluster
+ *    --report-interval SECONDS   machine: how often it reports, default 20 (5 to 300); cluster: the interval its nodes are told
+ *    --web and its options, the user commands of the website: see gucefLabLink_WebCommands.h
  */
 struct SOptions
 {
@@ -169,8 +180,8 @@ ParseOptions( int argc, char* argv[], SOptions& options )
             value = equals + 1;
             arg = CORE::CString( argv[ i ], (UInt32) ( equals - argv[ i ] ) );
         }
-        const bool flag = arg == "--init" || arg == "--list" || arg == "--no-mdns" || arg == "--no-broadcast" || arg == "--permanent" ||
-                          arg == "--help" || arg == "--console";
+        const bool flag = arg == "--init" || arg == "--list" || arg == "--no-mdns" || arg == "--no-broadcast" || arg == "--permanent" || arg == "--no-report" ||
+                          arg == "--help" || arg == "--console" || CWebCommands::IsFlag( arg );
         if ( !flag && value.IsNULLOrEmpty() )
         {
             if ( i+1 >= argc )
@@ -203,6 +214,20 @@ ParseOptions( int argc, char* argv[], SOptions& options )
         else if ( arg == "--local-node" ) s.localMcpNode = value;
         else if ( arg == "--refresh" ) s.refreshIntervalInSecs = CORE::StringToUInt32( value, 600 );
         else if ( arg == "--retry" ) s.retryIntervalInSecs = CORE::StringToUInt32( value, 30 );
+        else if ( arg == "--db" ) s.dbType = value;
+        else if ( arg == "--db-dir" ) s.dbDirectory = value;
+        else if ( arg == "--db-host" ) s.dbHost = value;
+        else if ( arg == "--db-port" ) s.dbPort = (UInt16) CORE::StringToUInt32( value );
+        else if ( arg == "--db-name" ) s.dbName = value;
+        else if ( arg == "--db-user" ) s.dbUser = value;
+        else if ( arg == "--db-ssl-mode" ) s.dbSslMode = value;
+        else if ( arg == "--db-schema" ) s.dbSchema = value;
+        else if ( arg == "--db-password-file" ) s.dbPasswordFile = value;
+        else if ( arg == "--history-days" ) s.eventRetentionInDays = CORE::StringToUInt32( value, 30 );
+        else if ( arg == "--history-max" ) s.maxStoredEvents = CORE::StringToUInt32( value, 20000 );
+        else if ( arg == "--no-report" ) s.report = false;
+        else if ( arg == "--report-interval" ) s.reportIntervalInSecs = CORE::StringToUInt32( value, 20 );
+        else if ( CWebCommands::ParseOption( arg, value, s.web, options.command, options.commandArgument ) ) continue;
         else if ( arg == "--help" ) options.help = true;
         else if ( arg == "--console" ) continue;     // read by the entry point of the framework
         else return false;
@@ -220,7 +245,10 @@ PrintUsage( void )
                      "Service: --role cluster|machine, --state-dir DIR, --allow CIDR (repeatable), --cluster-name NAME, --lab-port N,\n"
                      "  --access-port N, --no-mdns, --no-broadcast, --broadcast-port N, --join-command PATH, --k3s-bin PATH, --mcp-dir DIR,\n"
                      "  --machine-name NAME, --join-script PATH, --permanent, --node-marker PATH, --claude-user NAME, --claude-command PATH, --claude-home DIR,\n"
-                     "  --local-node NAME, --refresh SECONDS, --retry SECONDS\n" );
+                     "  --local-node NAME, --refresh SECONDS, --retry SECONDS, --no-report, --report-interval SECONDS,\n"
+                     "  --db vfstables|postgresql|none, --db-dir DIR, --db-host HOST, --db-port N, --db-name NAME, --db-user NAME, --db-ssl-mode MODE,\n"
+                     "  --db-schema NAME, --db-password-file PATH, --history-days N, --history-max N\n" );
+    fprintf( stdout, "%s", CWebCommands::Usage() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -330,27 +358,63 @@ StopSignalHandler( int signal )
 
 /*-------------------------------------------------------------------------*/
 
+/** The options of the configuration file alone: settings the option parser knows, no commands */
+static bool
+ParseFileOptions( CServiceHost& host, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    SOptions fileOptions;
+    if ( ParseOptions( host.GetFileArgc(), host.GetFileArgv(), fileOptions ) && fileOptions.command.IsNULLOrEmpty() && !fileOptions.help )
+        return true;
+    problem = "the configuration file " + host.GetConfigFile() + " holds an option that is not known, has no value, or is a command";
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 /*
  *      Application entry point
+ *      Windows: the service gucefLabLink (projects/k3s/lablink/install.ps1), running once its role has started;
+ *      --console runs it in a console. Linux: a plain program, which systemd runs as the service gucef-lablink.
  */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+  /* started by the service control manager: the entry point registered its status handle */
+  #define GUCEF_LABLINK_IS_WINDOWS_SERVICE    ( GUCEF_NULL != g_win32ServiceStatusHandle )
+GUCEF_OSSERVICEMAIN_BEGIN_EX( "gucefLabLink", GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER )
+#else
+  #define GUCEF_LABLINK_IS_WINDOWS_SERVICE    ( false )
 GUCEF_OSMAIN_BEGIN
+#endif
 {GUCEF_TRACE;
 
     GUCEF_OSMAIN_SIGNAL_HANDLER( StopSignalHandler );
 
+    // the options of the configuration file, then those of the command line (see gucefLabLink_ServiceHost.h)
+    CServiceHost host( GUCEF_LABLINK_IS_WINDOWS_SERVICE );
     SOptions options;
-    const bool optionsValid = ParseOptions( argc, argv, options );
+    ApplyPlatformDefaults( options.settings );
+    CORE::CString optionsProblem;
+    const bool optionsValid = host.Prepare( argc, argv ) && ParseFileOptions( host, optionsProblem ) && ParseOptions( host.GetArgc(), host.GetArgv(), options );
+    host.StartLogging( options.settings.stateDir );
 
     // a service writes its log to standard error, which systemd keeps in the journal
     if ( CORE::GetEnv( "GUCEF_CONSOLE_LOGGER" ).IsNULLOrEmpty() )
         CORE::GUCEFSetEnv( "GUCEF_CONSOLE_LOGGER", "stderr" );
     CORE::CPlatformNativeConsoleLogger console;
-    CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
+    if ( host.UsesConsoleLog() )
+        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
     CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
 
     if ( !optionsValid || options.help )
     {
+        if ( !host.GetProblem().IsNULLOrEmpty() || !optionsProblem.IsNULLOrEmpty() )
+        {
+            const CORE::CString why = host.GetProblem().IsNULLOrEmpty() ? optionsProblem : host.GetProblem();
+            fprintf( stderr, "gucefLabLink: %s\n", why.C_String() );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefLabLink: " << why );
+        }
         PrintUsage();
+        CServiceHost::PrintUsage();
         return options.help ? 0 : 2;
     }
     CORE::CString problem;
@@ -400,11 +464,17 @@ GUCEF_OSMAIN_BEGIN
     }
     if ( options.command == "--approve" || options.command == "--revoke" || options.command == "--list" )
         return ChangeApprovals( store, options.command, options.commandArgument );
+    if ( CWebCommands::IsCommand( options.command ) )
+        return CWebCommands::Run( store, options.settings.web, options.command, options.commandArgument, options.role );
 
     // the service
     CORE::CString role = options.role;
     if ( role.IsNULLOrEmpty() )
-        role = CORE::FileExists( "/etc/systemd/system/k3s.service" ) ? "cluster" : "machine";
+        role = DefaultRole();
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    if ( GUCEF_LABLINK_IS_WINDOWS_SERVICE )
+        Win32ReportStatus( SERVICE_START_PENDING );     // the start goes on: the role starts
+    #endif
     int exitCode = 0;
     CClusterRole* cluster = GUCEF_NULL;
     CMachineRole* machine = GUCEF_NULL;
@@ -427,6 +497,11 @@ GUCEF_OSMAIN_BEGIN
         exitCode = 2;
     }
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    // GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER: the service runs once its role has started
+    if ( 0 == exitCode && GUCEF_LABLINK_IS_WINDOWS_SERVICE )
+        Win32ReportStatus( SERVICE_RUNNING );
+    #endif
     if ( 0 == exitCode )
     {
         CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
@@ -435,6 +510,8 @@ GUCEF_OSMAIN_BEGIN
             pulseGenerator->ForceDirectPulse();
             if ( GUCEF_NULL != machine )
                 machine->Update();
+            if ( GUCEF_NULL != cluster )
+                cluster->Update();
             MT::ThreadDelay( 10 );
         }
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Stopping" );
@@ -447,9 +524,14 @@ GUCEF_OSMAIN_BEGIN
     GUCEF_DELETE cluster;
     GUCEF_DELETE machine;
     CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs();
-    CORE::CCoreGlobal::Instance()->GetLogManager().RemoveLogger( console.GetLogger() );
+    if ( host.UsesConsoleLog() )
+        CORE::CCoreGlobal::Instance()->GetLogManager().RemoveLogger( console.GetLogger() );
     return exitCode;
 }
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+GUCEF_OSSERVICEMAIN_END
+#else
 GUCEF_OSMAIN_END
+#endif
 
 /*-------------------------------------------------------------------------*/

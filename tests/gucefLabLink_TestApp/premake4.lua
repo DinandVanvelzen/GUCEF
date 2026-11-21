@@ -44,11 +44,19 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefW
 configuration( {} )
 defines( { "GUCEF_LABLINK_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefLabLink_TestApp", "MODULE_NAME=gucefLabLink_TestApp" } )
 
+configuration( { "WIN32" } )
+links( { "Advapi32.lib" } )
+
+configuration( { "WIN64" } )
+links( { "Advapi32.lib" } )
+
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestLabLink.h"
+  "include/TestLabLink.h",
+  "include/TestLabLinkService.h",
+  "include/TestLabLinkWeb.h"
  } )
 
 
@@ -57,12 +65,49 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "../../tools/gucefLabLink/src/gucefLabLink_Cluster.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_ConfigFile.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_HubStore.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_HubView.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_LoginThrottle.cpp",
   "../../tools/gucefLabLink/src/gucefLabLink_Machine.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_NodeReport.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_PasswordHash.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_PlatformDefaults.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_Probes.cpp",
   "../../tools/gucefLabLink/src/gucefLabLink_Protocol.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_Registry.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_RegistryHubView.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_Reporter.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_ServiceHost.cpp",
   "../../tools/gucefLabLink/src/gucefLabLink_Store.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebApi.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebAssets.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebCommands.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebJson.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebSessions.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebSite.cpp",
+  "../../tools/gucefLabLink/src/gucefLabLink_WebUsers.cpp",
   "src/TestLabLink.cpp",
+  "src/TestLabLinkService.cpp",
+  "src/TestLabLinkWeb.cpp",
   "src/gucefLabLink_TestApp_main.cpp"
  } )
+
+
+
+configuration( { "WIN32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../tools/gucefLabLink/src/mswin/gucefLabLink_WindowsHost.cpp"
+    } )
+
+
+
+configuration( { "WIN64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../tools/gucefLabLink/src/mswin/gucefLabLink_WindowsHost.cpp"
+    } )
 
 
 configuration( {} )
