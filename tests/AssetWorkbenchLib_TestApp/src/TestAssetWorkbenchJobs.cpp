@@ -1577,6 +1577,55 @@ TestBulkPanel( void )
 /*-------------------------------------------------------------------------*/
 
 static void
+TestReprocessActions( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Reprocess actions: the words, the options of the console and the requests of the service: the asset form with assets, the plan, the caller" )
+    try
+    {
+        CWorkbenchReprocessActions::EReprocessAction action = CWorkbenchReprocessActions::REPROCESS_PLAN;
+        ASSERT_TRUE( CWorkbenchReprocessActions::Parse( "intermediate", action ) && CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE == action );
+        ASSERT_TRUE( CWorkbenchReprocessActions::Parse( "all", action ) && CWorkbenchReprocessActions::REPROCESS_ALL == action );
+        ASSERT_TRUE( CWorkbenchReprocessActions::ParseActionId( "Reprocess:redownload", action ) && CWorkbenchReprocessActions::REPROCESS_REDOWNLOAD == action );
+        ASSERT_FALSE( CWorkbenchReprocessActions::Parse( "nonsense", action ) );
+
+        CORE::CString::StringVector words;
+        words.push_back( "Content/SM_*.uasset" );
+        words.push_back( "--failed" );
+        words.push_back( "--kinds" );
+        words.push_back( "static-model,skeletal-model" );
+        words.push_back( "--targets" );
+        words.push_back( "ogre" );
+        words.push_back( "--no-cook" );
+        words.push_back( "--accept-errors" );
+        ASSETSTORE::CAssetReprocessRequest options;
+        CORE::CString problem;
+        ASSERT_TRUE( CWorkbenchReprocessActions::ParseOptions( words, options, problem ) );
+        ASSERT_TRUE( 1 == options.assets.size() && 2 == options.onlyStatuses.size() && 2 == options.kinds.size() && 1 == options.targets.size() && !options.cook && options.acceptErrors );
+        ASSETSTORE::CAssetPipelineRequest request;
+        CWorkbenchReprocessActions::MakePipelineRequest( CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE, "pk1", options, request );
+        ASSERT_TRUE( ASSETSTORE::CAssetPipelineOperations::AssetRegenerateIntermediate == request.operation && "pk1" == request.packId );
+        const ASSETSTORE::CAssetReprocessRequest back = ASSETSTORE::CAssetReprocessRequest::FromRequest( request );
+        ASSERT_TRUE( "workbench" == back.caller && !back.machine && 1 == back.assets.size() && !back.cook );
+        CWorkbenchReprocessActions::MakePipelineRequest( CWorkbenchReprocessActions::REPROCESS_REDOWNLOAD, "pk1", ASSETSTORE::CAssetReprocessRequest(), request );
+        ASSERT_TRUE( ASSETSTORE::CAssetPipelineOperations::PackRedownloadOriginal == request.operation );
+        CWorkbenchReprocessActions::MakePipelineRequest( CWorkbenchReprocessActions::REPROCESS_PLAN, "pk1", ASSETSTORE::CAssetReprocessRequest(), request );
+        ASSERT_TRUE( ASSETSTORE::CAssetPipelineOperations::ReprocessPlan == request.operation );
+        words.clear();
+        words.push_back( "--steps" );
+        ASSERT_FALSE( CWorkbenchReprocessActions::ParseOptions( words, options, problem ) );
+        ASSERT_TRUE( problem.HasSubstr( "--steps" ) >= 0 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
 TestRedoInShell( void )
 {GUCEF_TRACE;
 
@@ -1619,6 +1668,19 @@ TestRedoInShell( void )
                     ++matched;
         ASSERT_TRUE( expectedJobs == matched );
         shell.GetJobsForm()->Close();
+
+        // the reprocessing of a pack of the store: the menu items, no pack without a selection, a pack the store does not have is refused
+        for ( UInt32 i=0; i<(UInt32) CWorkbenchReprocessActions::REPROCESS_COUNT; ++i )
+        {
+            const CORE::CString actionId = CWorkbenchReprocessActions::GetActionId( (CWorkbenchReprocessActions::EReprocessAction) i );
+            ASSERT_TRUE( 0 == shell.GetMenuPathOfAction( actionId ).HasSubstr( "Jobs/Reprocess pack: " ) );
+        }
+        CORE::CString message;
+        ASSERT_FALSE( shell.ReprocessPack( CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE, CORE::CString::Empty, ASSETSTORE::CAssetReprocessRequest(), message ) );
+        ASSERT_TRUE( message.HasSubstr( "There is no pack" ) >= 0 );
+        ASSERT_FALSE( shell.ReprocessPack( CWorkbenchReprocessActions::REPROCESS_TARGET, "alpha", ASSETSTORE::CAssetReprocessRequest(), message ) );
+        ASSERT_TRUE( message.HasSubstr( "was refused" ) >= 0 );
+        ASSERT_FALSE( shell.ExecuteAction( "Reprocess:plan" ) );
 
     }
     catch ( ... )
@@ -1898,5 +1960,6 @@ PerformAssetWorkbenchJobTests( void )
     TestRedoActions();
     TestJobsPage();
     TestBulkPanel();
+    TestReprocessActions();
     TestRedoInShell();
 }

@@ -9,20 +9,20 @@
 --------------------------------------------------------------------
 --
 
--- Configuration for module: AssetViewerLib
+-- Configuration for module: AssetWorkbenchLib
 
 
 configuration( { "LINUX32" } )
-  project( "AssetViewerLib" )
+  project( "AssetWorkbenchLib" )
 
 configuration( { "LINUX64" } )
-  project( "AssetViewerLib" )
+  project( "AssetWorkbenchLib" )
 
 configuration( { "WIN32" } )
-  project( "AssetViewerLib" )
+  project( "AssetWorkbenchLib" )
 
 configuration( { "WIN64" } )
-  project( "AssetViewerLib" )
+  project( "AssetWorkbenchLib" )
 
 configuration( {} )
   location( os.getenv( "PM5OUTPUTDIR" ) )
@@ -74,7 +74,7 @@ links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSy
 
 
 configuration( { "LINUX32" } )
-defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
+defines( { "ASSETWORKBENCHLIB_BUILD_MODULE", "MODULE_NAME=AssetWorkbenchLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "LINUX64" } )
 links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
@@ -84,7 +84,7 @@ links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSy
 
 
 configuration( { "LINUX64" } )
-defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
+defines( { "ASSETWORKBENCHLIB_BUILD_MODULE", "MODULE_NAME=AssetWorkbenchLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN32" } )
 links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
@@ -94,7 +94,7 @@ links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSy
 
 
 configuration( { "WIN32" } )
-defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
+defines( { "ASSETWORKBENCHLIB_BUILD_MODULE", "MODULE_NAME=AssetWorkbenchLib", "MODULE_SEMVER=0_1_0_0" } )
 
 configuration( { "WIN64" } )
 links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSystem", "gucefASSETSTORE", "gucefAUTH", "gucefAUTHGUI", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefWEB", "guidriverImGuiOgre", "guidriverOgre", "pluginglueOGRE" } )
@@ -104,7 +104,7 @@ links( { "AssetConverterLib", "AssetStoreConverterHook", "Ogre", "OgreRTShaderSy
 
 
 configuration( { "WIN64" } )
-defines( { "ASSETVIEWERLIB_BUILD_MODULE", "MODULE_NAME=AssetViewerLib", "MODULE_SEMVER=0_1_0_0" } )
+defines( { "ASSETWORKBENCHLIB_BUILD_MODULE", "MODULE_NAME=AssetWorkbenchLib", "MODULE_SEMVER=0_1_0_0" } )
 
 
 configuration( { "LINUX32" } )
@@ -181,6 +181,7 @@ configuration( { "LINUX32" } )
       "include/AssetWorkbenchLib_CWorkbenchPreferences.h",
       "include/AssetWorkbenchLib_CWorkbenchRedoActions.h",
       "include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h",
+      "include/AssetWorkbenchLib_CWorkbenchReprocessActions.h",
       "include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h",
       "include/AssetWorkbenchLib_CWorkbenchShell.h",
       "include/AssetWorkbenchLib_CWorkbenchSignIn.h",
@@ -265,6 +266,7 @@ configuration( { "LINUX32" } )
       "src/AssetWorkbenchLib_CWorkbenchPreferences.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp",
+      "src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp",
       "src/AssetWorkbenchLib_CWorkbenchShell.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSignIn.cpp",
@@ -352,6 +354,7 @@ configuration( { "LINUX64" } )
       "include/AssetWorkbenchLib_CWorkbenchPreferences.h",
       "include/AssetWorkbenchLib_CWorkbenchRedoActions.h",
       "include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h",
+      "include/AssetWorkbenchLib_CWorkbenchReprocessActions.h",
       "include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h",
       "include/AssetWorkbenchLib_CWorkbenchShell.h",
       "include/AssetWorkbenchLib_CWorkbenchSignIn.h",
@@ -436,6 +439,7 @@ configuration( { "LINUX64" } )
       "src/AssetWorkbenchLib_CWorkbenchPreferences.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp",
+      "src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp",
       "src/AssetWorkbenchLib_CWorkbenchShell.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSignIn.cpp",
@@ -523,6 +527,7 @@ configuration( { "WIN32" } )
       "include/AssetWorkbenchLib_CWorkbenchPreferences.h",
       "include/AssetWorkbenchLib_CWorkbenchRedoActions.h",
       "include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h",
+      "include/AssetWorkbenchLib_CWorkbenchReprocessActions.h",
       "include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h",
       "include/AssetWorkbenchLib_CWorkbenchShell.h",
       "include/AssetWorkbenchLib_CWorkbenchSignIn.h",
@@ -607,6 +612,7 @@ configuration( { "WIN32" } )
       "src/AssetWorkbenchLib_CWorkbenchPreferences.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp",
+      "src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp",
       "src/AssetWorkbenchLib_CWorkbenchShell.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSignIn.cpp",
@@ -694,6 +700,7 @@ configuration( { "WIN64" } )
       "include/AssetWorkbenchLib_CWorkbenchPreferences.h",
       "include/AssetWorkbenchLib_CWorkbenchRedoActions.h",
       "include/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.h",
+      "include/AssetWorkbenchLib_CWorkbenchReprocessActions.h",
       "include/AssetWorkbenchLib_CWorkbenchSettingsLayer.h",
       "include/AssetWorkbenchLib_CWorkbenchShell.h",
       "include/AssetWorkbenchLib_CWorkbenchSignIn.h",
@@ -778,6 +785,7 @@ configuration( { "WIN64" } )
       "src/AssetWorkbenchLib_CWorkbenchPreferences.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRedoActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchRemoteStoreForm.cpp",
+      "src/AssetWorkbenchLib_CWorkbenchReprocessActions.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSettingsLayer.cpp",
       "src/AssetWorkbenchLib_CWorkbenchShell.cpp",
       "src/AssetWorkbenchLib_CWorkbenchSignIn.cpp",

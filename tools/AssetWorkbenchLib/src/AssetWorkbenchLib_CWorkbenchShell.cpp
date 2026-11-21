@@ -316,6 +316,12 @@ const SMenuItem g_menuItems[] =
     { "Jobs/Re-import", "Redo:reimport" },
     { "Jobs/Re-convert", "Redo:reconvert" },
     { "Jobs/Re-thumbnail", "Redo:rethumbnail" },
+    { "Jobs/Reprocess pack: plan", "Reprocess:plan" },
+    { "Jobs/Reprocess pack: regenerate intermediate", "Reprocess:intermediate" },
+    { "Jobs/Reprocess pack: regenerate target", "Reprocess:target" },
+    { "Jobs/Reprocess pack: download original again", "Reprocess:redownload" },
+    { "Jobs/Reprocess pack: all steps", "Reprocess:reprocess" },
+    { "Jobs/Reprocess pack: roll back regeneration", "Reprocess:rollback" },
     { "Jobs/Convert for Ogre", "ConvertForOgre" },
     { "Help/Help of this place", "Help" },
     { "Help/Keyboard shortcuts", "Help:workbench.shortcuts" },
@@ -3399,6 +3405,60 @@ CWorkbenchShell::RedoPack( CWorkbenchRedoActions::ERedoAction action )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CWorkbenchShell::ReprocessPack( CWorkbenchReprocessActions::EReprocessAction action, const CORE::CString& packId, const ASSETSTORE::CAssetReprocessRequest& options, CORE::CString& message )
+{GUCEF_TRACE;
+
+    ASSETSTORE::CIAssetStoreService* service = GUCEF_NULL != m_sources ? m_sources->GetService() : GUCEF_NULL;
+    if ( GUCEF_NULL == service )
+    {
+        message = "There is no asset store service";
+        return false;
+    }
+    ASSETSTORE::CAssetReprocessRequest scoped( options );
+    CORE::CString pack = packId;
+    if ( pack.IsNULLOrEmpty() )
+    {
+        // the pack of the sources tab, and the assets the browser has selected in it
+        const CBulkConversionSettings scope = MakeBulkScopeOfBrowser();
+        pack = scope.packId;
+        if ( scoped.assets.empty() && scoped.storeAssetIds.empty() && GUCEF_NULL != CWorkbenchReprocessActions::GetInfo( action ).assetOperation &&
+             CBulkConversionSettings::ScopeSelection == scope.scopeKind )
+            scoped.assets = scope.assets;
+    }
+    if ( pack.IsNULLOrEmpty() )
+    {
+        message = "There is no pack to do that for: name a pack of the store, or select one in the sources tab";
+        return false;
+    }
+    ASSETSTORE::CAssetPipelineRequest request;
+    CWorkbenchReprocessActions::MakePipelineRequest( action, pack, scoped, request );
+    if ( CWorkbenchReprocessActions::REPROCESS_PLAN == action )
+    {
+        ASSETSTORE::CAssetServiceDocument plan;
+        const ASSETSTORE::TAssetStoreStatus status = service->RunPipelineQuery( request, plan );
+        message = ASSETSTORE::ASSETSTORE_STATUS_OK == status ? plan.document.GetAttributeValueOrChildValueByName( "summary" ).AsString( plan.message, true ) : "The plan was refused: " + plan.message;
+        return ASSETSTORE::ASSETSTORE_STATUS_OK == status;
+    }
+    GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CWorkbenchShell: " << CWorkbenchReprocessActions::MakeConfirmation( action, pack, (UInt32) scoped.assets.size() ) );
+    if ( !service->IsInProcess() )
+    {
+        // a remote service answers later: the jobs view shows the job, or the refusal in the report
+        const bool queued = service->StartPipelineJobAsync( CORE::CString::Empty, request ).HasAFuture();
+        message = queued ? CORE::CString( CWorkbenchReprocessActions::GetInfo( action ).menuText ) + " of " + pack + " is asked of the service, see the jobs" : "The request could not be sent";
+        return queued;
+    }
+    ASSETSTORE::CAssetServiceResult result;
+    const bool started = ASSETSTORE::ASSETSTORE_STATUS_OK == service->StartPipelineJob( CORE::CString::Empty, request, result );
+    message = started ? CORE::CString( CWorkbenchReprocessActions::GetInfo( action ).menuText ) + " of " + pack + " is the job " + result.id + " now, see the jobs"
+                      : CORE::CString( CWorkbenchReprocessActions::GetInfo( action ).menuText ) + " of " + pack + " was refused: " + result.message;
+    if ( !started && GUCEF_NULL != m_report )
+        m_report->AddEntry( GUI::CReportViewForm::SEVERITY_WARNING, pack, CORE::CString( CWorkbenchReprocessActions::GetInfo( action ).menuText ) + " was refused", result.message );
+    return started;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CWorkbenchShell::RegisterEvents( void )
 {GUCEF_TRACE;
@@ -3484,6 +3544,17 @@ CWorkbenchShell::ExecuteAction( const CORE::CString& actionId )
     {
         CWorkbenchRedoActions::ERedoAction redo = CWorkbenchRedoActions::REDO_REINDEX;
         return CWorkbenchRedoActions::ParseActionId( actionId, redo ) && RedoPack( redo );
+    }
+    else
+    if ( 0 == actionId.HasSubstr( "Reprocess:" ) )
+    {
+        CWorkbenchReprocessActions::EReprocessAction reprocess = CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE;
+        if ( !CWorkbenchReprocessActions::ParseActionId( actionId, reprocess ) )
+            return false;
+        CORE::CString message;
+        const bool started = ReprocessPack( reprocess, CORE::CString::Empty, ASSETSTORE::CAssetReprocessRequest(), message );
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "CWorkbenchShell: " << message );
+        return started;
     }
     else
     if ( ActionReIndex == actionId )

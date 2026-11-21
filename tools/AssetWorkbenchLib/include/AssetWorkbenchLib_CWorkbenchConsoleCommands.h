@@ -116,6 +116,10 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchConsoleCommands : public CORE::CObs
     bool CommandPresentation( const CORE::CString& argument );
     bool CommandReIndex( const CORE::CString& argument );
     bool CommandRedo( const CORE::CString& argument );
+    bool CommandRedownload( const CORE::CString& argument );
+    bool CommandRegen( const CORE::CString& argument );
+    bool CommandReprocess( const CORE::CString& argument );
+    bool RunReprocess( CWorkbenchReprocessActions::EReprocessAction action, const CORE::CString::StringVector& words, const char* usage );
     bool CommandBulk( const CORE::CString& argument );
     bool CommandResourceView( const CORE::CString& argument );
     bool CommandThumbnails( const CORE::CString& argument );

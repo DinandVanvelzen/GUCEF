@@ -94,6 +94,9 @@ CWorkbenchConsoleCommands::GetCommands( UInt32& count )
         { "offline", "offline <pack id> [release]", "keeps the files of a pack of the remote asset store service in the cache of this computer so they open without the service, or lets them go again, as a job", &CWorkbenchConsoleCommands::CommandOffline },
         { "layout", "layout <Browse | Review | Preview | lint [on | off | report]>", "puts the window in a layout, or runs the layout lint", &CWorkbenchConsoleCommands::CommandLayout },
         { "redo", "redo <reindex | reanalyse | reimport | reconvert | rethumbnail>", "does a step of the pack work again (the pack of the resource view, or the pack selected in the sources tab) as a job", &CWorkbenchConsoleCommands::CommandRedo },
+        { "redownload", "redownload [<pack id>] [--no-convert] [--allow-large] [--no-repair]", "downloads the original of a pack of the store again from its store and verifies it: the same files change nothing (missing or damaged ones are put back), other files become a new pack, as a job", &CWorkbenchConsoleCommands::CommandRedownload },
+        { "regen", "regen <intermediate | target> [<pack id> | .] [<asset path or glob> ...] [--failed] [--statuses a,b] [--kinds a,b] [--targets ogre] [--no-cook] [--accept-errors]", "makes the intermediate or the engine target resources of a pack (or of assets of it) again with the converter as it is now, as a job; the replaced outputs are kept for a rollback", &CWorkbenchConsoleCommands::CommandRegen },
+        { "reprocess", "reprocess [plan | rollback] [<pack id> | .] [<asset path or glob> ...] [--steps redownload,intermediate,target] [the options of regen and redownload]", "the steps in a row as a job (by default intermediate and target); plan tells what would be done, rollback makes the previous generation of the outputs current again", &CWorkbenchConsoleCommands::CommandReprocess },
         { "bulk", "bulk [open | plan <pack id> | start <pack id>]", "opens the bulk conversion panel, or plans or starts the conversion of a pack of the store as a job", &CWorkbenchConsoleCommands::CommandBulk },
         { "reindex", "reindex", "builds the pack index of the pack in the resource view again (its resources by function)", &CWorkbenchConsoleCommands::CommandReIndex },
         { "resourceview", "resourceview [on | off | files | resources]", "tells or sets whether a pack that is opened starts in the resource view; files or resources switches the content browser now", &CWorkbenchConsoleCommands::CommandResourceView },
@@ -453,6 +456,82 @@ CWorkbenchConsoleCommands::CommandRedo( const CORE::CString& argument )
     const bool started = m_shell.RedoPack( action );
     m_console.AppendLine( started ? CORE::CString( CWorkbenchRedoActions::GetInfo( action ).menuText ) + " is a job now, see the jobs" : CORE::CString( "There is no pack to do that for: open a pack, or select one in the sources tab" ) );
     return started;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchConsoleCommands::RunReprocess( CWorkbenchReprocessActions::EReprocessAction action, const CORE::CString::StringVector& words, const char* usage )
+{GUCEF_TRACE;
+
+    // the pack id first ("." or nothing: the selected pack), then the options and the assets
+    CORE::CString packId;
+    CORE::CString::StringVector rest = words;
+    if ( !rest.empty() && 0 != rest[ 0 ].HasSubstr( "--", true ) )
+    {
+        packId = "." == rest[ 0 ] ? CORE::CString::Empty : rest[ 0 ];
+        rest.erase( rest.begin() );
+    }
+    ASSETSTORE::CAssetReprocessRequest options;
+    CORE::CString problem;
+    if ( !CWorkbenchReprocessActions::ParseOptions( rest, options, problem ) )
+    {
+        m_console.AppendLine( problem );
+        m_console.AppendLine( CORE::CString( "Usage: " ) + usage );
+        return false;
+    }
+    CORE::CString message;
+    const bool started = m_shell.ReprocessPack( action, packId, options, message );
+    m_console.AppendLine( message );
+    return started;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchConsoleCommands::CommandRedownload( const CORE::CString& argument )
+{GUCEF_TRACE;
+
+    RunReprocess( CWorkbenchReprocessActions::REPROCESS_REDOWNLOAD, TrimArgument( argument ).ParseElements( ' ', false ), "redownload [<pack id>] [--no-convert] [--allow-large] [--no-repair]" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchConsoleCommands::CommandRegen( const CORE::CString& argument )
+{GUCEF_TRACE;
+
+    static const char* usage = "regen <intermediate | target> [<pack id> | .] [<asset path or glob> ...] [--failed] [--statuses a,b] [--kinds a,b] [--targets ogre] [--no-cook] [--accept-errors]";
+    CORE::CString::StringVector words = TrimArgument( argument ).ParseElements( ' ', false );
+    CWorkbenchReprocessActions::EReprocessAction action = CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE;
+    if ( words.empty() || !CWorkbenchReprocessActions::Parse( words[ 0 ], action ) ||
+         ( CWorkbenchReprocessActions::REPROCESS_INTERMEDIATE != action && CWorkbenchReprocessActions::REPROCESS_TARGET != action ) )
+    {
+        m_console.AppendLine( CORE::CString( "Usage: " ) + usage );
+        return true;
+    }
+    words.erase( words.begin() );
+    RunReprocess( action, words, usage );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchConsoleCommands::CommandReprocess( const CORE::CString& argument )
+{GUCEF_TRACE;
+
+    static const char* usage = "reprocess [plan | rollback] [<pack id> | .] [<asset path or glob> ...] [--steps redownload,intermediate,target] [options]";
+    CORE::CString::StringVector words = TrimArgument( argument ).ParseElements( ' ', false );
+    CWorkbenchReprocessActions::EReprocessAction action = CWorkbenchReprocessActions::REPROCESS_ALL;
+    if ( !words.empty() && ( words[ 0 ].Equals( "plan", false ) || words[ 0 ].Equals( "rollback", false ) ) )
+    {
+        CWorkbenchReprocessActions::Parse( words[ 0 ], action );
+        words.erase( words.begin() );
+    }
+    RunReprocess( action, words, usage );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
