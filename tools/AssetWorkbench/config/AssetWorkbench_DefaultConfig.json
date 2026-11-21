@@ -1,0 +1,51 @@
+{
+    "AssetWorkbench": {
+        "thumbnailCache": "$CACHEDIR$/AssetWorkbench/thumbnails",
+        "captureTileSize": 256
+    },
+    "AssetSources": {
+        "downloadRoot": "",
+        "formatPreference": "gltf,glb,fbx,obj,usd",
+        "mountOnCompletion": true,
+        "conversionEnabled": true,
+        "keyringIdleLockInSeconds": 900,
+        "credentialFolder": "",
+        "conversion": {
+            "cookProfile": { "name": "desktop" },
+            "cookTarget": "",
+            "importer": "auto",
+            "exporter": "gltf"
+        },
+        "downloads": {
+            "maxConcurrentJobs": 4,
+            "maxConcurrentJobsPerProvider": 2
+        }
+    },
+    "Ogre": {
+        "renderSystems": [ "OpenGL 3+ Rendering Subsystem", "Vulkan Rendering Subsystem", "Direct3D11 Rendering Subsystem" ],
+        "workQueue": "Gucef",
+        "workerPool": "OgreWork",
+        "workerThreads": 2,
+        "mainThreadBudgetMs": 4,
+        "ResourceGroups": []
+    },
+    "VideoSettings": {
+        "fullscreen": false,
+        "vsync": true,
+        "width": 1600,
+        "height": 900,
+        "frequency": 60,
+        "renderer": ""
+    },
+    "GeneralSettings": {
+        "consoleLogWindow": false,
+        "developerConsole": false,
+        "windowSystem": "x11"
+    },
+    "Main": {
+        "AppArgs": {
+            "minimalLogLevel": 1,
+            "logFile": ""
+        }
+    }
+}

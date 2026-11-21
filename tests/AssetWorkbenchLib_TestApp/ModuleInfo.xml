@@ -1,0 +1,84 @@
+<ModuleInfoEntry>
+    <Module Name="AssetWorkbenchLib_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverImGuiOgre" />
+            <Dependency Name="AssetWorkbenchLib" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefAUTHGUI" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="AssetConverterLib" />
+            <Dependency Name="AssetStoreConverterHook" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverImGuiOgre" />
+            <Dependency Name="AssetWorkbenchLib" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETWORKBENCHLIB_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
+            <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
+            <RuntimeDependency Name="OgreRenderSystem_Vulkan" />
+            <RuntimeDependency Name="OgrePlugin_GLSLangProgramManager" />
+            <RuntimeDependency Name="OgrePlugin_GucefVFS" />
+            <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
+            <RuntimeDependency Name="OgreCodec_Assimp" />
+            <RuntimeDependency Name="OgrePlugin_DotScene" />
+            <RuntimeDependency Name="OgrePlugin_ParticleFX" />
+            <RuntimeDependency Name="fontpluginFREETYPE" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+            <RuntimeDependency Name="vfspluginUNITYPACKAGE" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverXWinGL" />
+            <RuntimeDependency Name="inputdriverXWINMSG" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverWin32" />
+            <RuntimeDependency Name="inputdriverMSWINMSG" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
