@@ -84,6 +84,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/ASSETS/assetpl
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/ASSETS/assetpluginGLTF ${CMAKE_BINARY_DIR}/assetpluginGLTF )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/ASSETS/assetpluginGODOT ${CMAKE_BINARY_DIR}/assetpluginGODOT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/ASSETS/assetpluginUNITY ${CMAKE_BINARY_DIR}/assetpluginUNITY )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/ASSETS/assetpluginUNREAL ${CMAKE_BINARY_DIR}/assetpluginUNREAL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiocodecpluginAU ${CMAKE_BINARY_DIR}/audiocodecpluginAU )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiocodecpluginFLAC ${CMAKE_BINARY_DIR}/audiocodecpluginFLAC )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiocodecpluginMP3 ${CMAKE_BINARY_DIR}/audiocodecpluginMP3 )

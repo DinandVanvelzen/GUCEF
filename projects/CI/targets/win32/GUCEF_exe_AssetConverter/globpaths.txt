@@ -8,6 +8,7 @@ dependencies/cgltf/*
 dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libarchive/*
+dependencies/ooz/*
 dependencies/ufbx/*
 dependencies/zlib/*
 platform/gucefCORE/*
@@ -21,6 +22,7 @@ plugins/ASSETS/assetpluginFBX/*
 plugins/ASSETS/assetpluginGLTF/*
 plugins/ASSETS/assetpluginGODOT/*
 plugins/ASSETS/assetpluginUNITY/*
+plugins/ASSETS/assetpluginUNREAL/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/IMAGE/imgpluginFreeImage/*

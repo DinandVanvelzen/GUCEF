@@ -1,1 +1,3 @@
+common/include/*
+dependencies/ooz/*
 dependencies/zlib/*

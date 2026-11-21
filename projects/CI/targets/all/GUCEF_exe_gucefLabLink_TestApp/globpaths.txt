@@ -1,5 +1,7 @@
 common/include/*
 common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
 dependencies/monocypher/*
 platform/gucefCOM/*
 platform/gucefCORE/*
@@ -8,7 +10,10 @@ platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*
+plugins/COMCORE/dbpluginVFSTABLES/*
 plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/dstorepluginJSONPARSER/*
+plugins/CORE/tablecodecpluginPARQUET/*
 tests/gucefLabLink_TestApp/*
 tools/gucefLabLink/include/*
 tools/gucefLabLink/src/*

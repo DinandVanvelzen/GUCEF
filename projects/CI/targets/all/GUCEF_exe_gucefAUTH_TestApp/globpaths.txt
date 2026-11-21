@@ -4,6 +4,7 @@ dependencies/curl/*
 dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/monocypher/*
+dependencies/stbrumme-hash-library/*
 platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
@@ -12,6 +13,7 @@ platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*
 plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/WEB/httpclientpluginCURL/*

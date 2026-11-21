@@ -10,6 +10,7 @@ platform/gucefASSETSTORE/*
 platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefDRN/*
 platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
@@ -22,4 +23,5 @@ plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/tablecodecpluginPARQUET/*
 tests/gucefASSETSTORE_TestApp/*
+tests/gucefAUTH_TestApp/src//*
 tools/MemoryLeakFinder/*

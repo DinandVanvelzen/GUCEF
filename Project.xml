@@ -480,7 +480,7 @@
 			</Includes>
 		</Module>
 	</ModuleInfoEntry>
-	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tools/AssetViewer" >
+	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tools/AssetWorkbench" >
 		<Module Platform="all" >
 			<Includes Count="19" Source="Dependency" >
 				<Include Path="../../common/include" />
@@ -504,9 +504,9 @@
 				<Include Path="../../platform/gucefVIDEO/include/c_api" />
 			</Includes>
 		</Module>
-		<Module BuildOrder="342" Name="AssetViewer" Platform="linux32" Tags="tools" Type="Executable" >
+		<Module BuildOrder="342" Name="AssetWorkbench" Platform="linux32" Tags="tools" Type="Executable" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Asset viewer: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
+				<DescriptionHeadline>Asset workbench: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
 				<DescriptionDetails>Mounts folders, zip and libarchive archives and Unity packages (also nested) in the VFS, browses them and shows Ogre meshes, scenes and textures, and every source model that the Assimp codec of Ogre reads. With --capture it renders each listed asset from fixed views into one PNG contact sheet and exits, without a window on the screen when there is no display.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -519,16 +519,16 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="1" Path="src" >
-					<File Name="AssetViewer_main.cpp" />
+					<File Name="AssetWorkbench_main.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../dependencies/Ogre/OgreMain/src" />
 				<Include Path="../../platform/gucefCORE/include/linux" />
-				<Include Path="../AssetViewerLib/include" />
+				<Include Path="../AssetWorkbenchLib/include" />
 			</Includes>
 			<Dependencies Count="8" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -562,12 +562,12 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWER_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewer" />
+				<Define String="ASSETWORKBENCH_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbench" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -578,9 +578,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="342" Name="AssetViewer" Platform="linux64" Tags="tools" Type="Executable" >
+		<Module BuildOrder="342" Name="AssetWorkbench" Platform="linux64" Tags="tools" Type="Executable" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Asset viewer: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
+				<DescriptionHeadline>Asset workbench: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
 				<DescriptionDetails>Mounts folders, zip and libarchive archives and Unity packages (also nested) in the VFS, browses them and shows Ogre meshes, scenes and textures, and every source model that the Assimp codec of Ogre reads. With --capture it renders each listed asset from fixed views into one PNG contact sheet and exits, without a window on the screen when there is no display.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -593,16 +593,16 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="1" Path="src" >
-					<File Name="AssetViewer_main.cpp" />
+					<File Name="AssetWorkbench_main.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../dependencies/Ogre/OgreMain/src" />
 				<Include Path="../../platform/gucefCORE/include/linux" />
-				<Include Path="../AssetViewerLib/include" />
+				<Include Path="../AssetWorkbenchLib/include" />
 			</Includes>
 			<Dependencies Count="8" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -636,12 +636,12 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWER_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewer" />
+				<Define String="ASSETWORKBENCH_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbench" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -652,9 +652,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="347" Name="AssetViewer" Platform="win32" Tags="tools" Type="Executable" >
+		<Module BuildOrder="347" Name="AssetWorkbench" Platform="win32" Tags="tools" Type="Executable" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Asset viewer: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
+				<DescriptionHeadline>Asset workbench: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
 				<DescriptionDetails>Mounts folders, zip and libarchive archives and Unity packages (also nested) in the VFS, browses them and shows Ogre meshes, scenes and textures, and every source model that the Assimp codec of Ogre reads. With --capture it renders each listed asset from fixed views into one PNG contact sheet and exits, without a window on the screen when there is no display.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -667,16 +667,16 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="1" Path="src" >
-					<File Name="AssetViewer_main.cpp" />
+					<File Name="AssetWorkbench_main.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../platform/gucefCORE/include/mswin" />
 				<Include Path="../../platform/gucefMT/include/mswin" />
-				<Include Path="../AssetViewerLib/include" />
+				<Include Path="../AssetWorkbenchLib/include" />
 			</Includes>
 			<Dependencies Count="8" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -710,12 +710,12 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWER_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewer" />
+				<Define String="ASSETWORKBENCH_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbench" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -726,9 +726,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="347" Name="AssetViewer" Platform="win64" Tags="tools" Type="Executable" >
+		<Module BuildOrder="347" Name="AssetWorkbench" Platform="win64" Tags="tools" Type="Executable" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Asset viewer: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
+				<DescriptionHeadline>Asset workbench: content browser and model, texture, material and scene views over the VFS, with headless contact sheet capture</DescriptionHeadline>
 				<DescriptionDetails>Mounts folders, zip and libarchive archives and Unity packages (also nested) in the VFS, browses them and shows Ogre meshes, scenes and textures, and every source model that the Assimp codec of Ogre reads. With --capture it renders each listed asset from fixed views into one PNG contact sheet and exits, without a window on the screen when there is no display.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -741,16 +741,16 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="1" Path="src" >
-					<File Name="AssetViewer_main.cpp" />
+					<File Name="AssetWorkbench_main.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../platform/gucefCORE/include/mswin" />
 				<Include Path="../../platform/gucefMT/include/mswin" />
-				<Include Path="../AssetViewerLib/include" />
+				<Include Path="../AssetWorkbenchLib/include" />
 			</Includes>
 			<Dependencies Count="8" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -784,12 +784,12 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWER_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewer" />
+				<Define String="ASSETWORKBENCH_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbench" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -801,7 +801,7 @@
 			<Compiler MinCppStandard="14" />
 		</Module>
 	</ModuleInfoEntry>
-	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tools/AssetViewerLib" >
+	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tools/AssetWorkbenchLib" >
 		<Module Platform="all" >
 			<Includes Count="28" Source="Dependency" >
 				<Include Path="../../common/include" />
@@ -834,9 +834,9 @@
 				<Include Path="../../plugins/SHARED/pluginglueOGRECOMMON/include" />
 			</Includes>
 		</Module>
-		<Module BuildOrder="327" Name="AssetViewerLib" Platform="linux32" Type="SharedLibrary" >
+		<Module BuildOrder="327" Name="AssetWorkbenchLib" Platform="linux32" Type="SharedLibrary" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Views and controllers of the asset viewer: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
+				<DescriptionHeadline>Views and controllers of the asset workbench: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
 				<DescriptionDetails>The orbit controller, the stage that renders an asset into a render texture (also for headless contact sheets and thumbnails), the model, texture, material and scene views with their statistics, the mounting of folders and archives in the VFS, the thumbnail provider with its cache keyed by the SHA-256 of the content, and the shell that composes the content browser, viewport, property inspector, image view, time line and report forms. A library so that test applications and later tools reuse the views. Needs the C++ standard of the Ogre glue.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -849,47 +849,47 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="20" Path="include" >
-					<File Name="AssetViewerLib.h" />
-					<File Name="AssetViewerLib_CAssetCapture.h" />
-					<File Name="AssetViewerLib_CAssetMounter.h" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.h" />
-					<File Name="AssetViewerLib_CBlockDecoder.h" />
-					<File Name="AssetViewerLib_CMaterialView.h" />
-					<File Name="AssetViewerLib_CMeshInspector.h" />
-					<File Name="AssetViewerLib_CModelView.h" />
-					<File Name="AssetViewerLib_COrbitController.h" />
-					<File Name="AssetViewerLib_CReportLogger.h" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.h" />
-					<File Name="AssetViewerLib_CSceneView.h" />
-					<File Name="AssetViewerLib_CTextureView.h" />
-					<File Name="AssetViewerLib_CThumbnailProvider.h" />
-					<File Name="AssetViewerLib_CViewerApp.h" />
-					<File Name="AssetViewerLib_CViewerMaterials.h" />
-					<File Name="AssetViewerLib_CViewerShell.h" />
-					<File Name="AssetViewerLib_CViewerStage.h" />
-					<File Name="AssetViewerLib_config.h" />
-					<File Name="AssetViewerLib_macros.h" />
+					<File Name="AssetWorkbenchLib.h" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.h" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.h" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.h" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.h" />
+					<File Name="AssetWorkbenchLib_CMaterialView.h" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.h" />
+					<File Name="AssetWorkbenchLib_CModelView.h" />
+					<File Name="AssetWorkbenchLib_COrbitController.h" />
+					<File Name="AssetWorkbenchLib_CReportLogger.h" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.h" />
+					<File Name="AssetWorkbenchLib_CSceneView.h" />
+					<File Name="AssetWorkbenchLib_CTextureView.h" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.h" />
+					<File Name="AssetWorkbenchLib_config.h" />
+					<File Name="AssetWorkbenchLib_macros.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="17" Path="src" >
-					<File Name="AssetViewerLib_CAssetCapture.cpp" />
-					<File Name="AssetViewerLib_CAssetMounter.cpp" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.cpp" />
-					<File Name="AssetViewerLib_CBlockDecoder.cpp" />
-					<File Name="AssetViewerLib_CMaterialView.cpp" />
-					<File Name="AssetViewerLib_CMeshInspector.cpp" />
-					<File Name="AssetViewerLib_CModelView.cpp" />
-					<File Name="AssetViewerLib_COrbitController.cpp" />
-					<File Name="AssetViewerLib_CReportLogger.cpp" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.cpp" />
-					<File Name="AssetViewerLib_CSceneView.cpp" />
-					<File Name="AssetViewerLib_CTextureView.cpp" />
-					<File Name="AssetViewerLib_CThumbnailProvider.cpp" />
-					<File Name="AssetViewerLib_CViewerApp.cpp" />
-					<File Name="AssetViewerLib_CViewerMaterials.cpp" />
-					<File Name="AssetViewerLib_CViewerShell.cpp" />
-					<File Name="AssetViewerLib_CViewerStage.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.cpp" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.cpp" />
+					<File Name="AssetWorkbenchLib_CMaterialView.cpp" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.cpp" />
+					<File Name="AssetWorkbenchLib_CModelView.cpp" />
+					<File Name="AssetWorkbenchLib_COrbitController.cpp" />
+					<File Name="AssetWorkbenchLib_CReportLogger.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneView.cpp" />
+					<File Name="AssetWorkbenchLib_CTextureView.cpp" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="2" Source="Dependency" >
@@ -916,8 +916,8 @@
 				<LogicalDependency Name="Ogre.CommonInclude" />
 			</LogicalDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib" />
+				<Define String="ASSETWORKBENCHLIB_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
@@ -935,9 +935,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="327" Name="AssetViewerLib" Platform="linux64" Type="SharedLibrary" >
+		<Module BuildOrder="327" Name="AssetWorkbenchLib" Platform="linux64" Type="SharedLibrary" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Views and controllers of the asset viewer: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
+				<DescriptionHeadline>Views and controllers of the asset workbench: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
 				<DescriptionDetails>The orbit controller, the stage that renders an asset into a render texture (also for headless contact sheets and thumbnails), the model, texture, material and scene views with their statistics, the mounting of folders and archives in the VFS, the thumbnail provider with its cache keyed by the SHA-256 of the content, and the shell that composes the content browser, viewport, property inspector, image view, time line and report forms. A library so that test applications and later tools reuse the views. Needs the C++ standard of the Ogre glue.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -950,47 +950,47 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="20" Path="include" >
-					<File Name="AssetViewerLib.h" />
-					<File Name="AssetViewerLib_CAssetCapture.h" />
-					<File Name="AssetViewerLib_CAssetMounter.h" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.h" />
-					<File Name="AssetViewerLib_CBlockDecoder.h" />
-					<File Name="AssetViewerLib_CMaterialView.h" />
-					<File Name="AssetViewerLib_CMeshInspector.h" />
-					<File Name="AssetViewerLib_CModelView.h" />
-					<File Name="AssetViewerLib_COrbitController.h" />
-					<File Name="AssetViewerLib_CReportLogger.h" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.h" />
-					<File Name="AssetViewerLib_CSceneView.h" />
-					<File Name="AssetViewerLib_CTextureView.h" />
-					<File Name="AssetViewerLib_CThumbnailProvider.h" />
-					<File Name="AssetViewerLib_CViewerApp.h" />
-					<File Name="AssetViewerLib_CViewerMaterials.h" />
-					<File Name="AssetViewerLib_CViewerShell.h" />
-					<File Name="AssetViewerLib_CViewerStage.h" />
-					<File Name="AssetViewerLib_config.h" />
-					<File Name="AssetViewerLib_macros.h" />
+					<File Name="AssetWorkbenchLib.h" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.h" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.h" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.h" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.h" />
+					<File Name="AssetWorkbenchLib_CMaterialView.h" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.h" />
+					<File Name="AssetWorkbenchLib_CModelView.h" />
+					<File Name="AssetWorkbenchLib_COrbitController.h" />
+					<File Name="AssetWorkbenchLib_CReportLogger.h" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.h" />
+					<File Name="AssetWorkbenchLib_CSceneView.h" />
+					<File Name="AssetWorkbenchLib_CTextureView.h" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.h" />
+					<File Name="AssetWorkbenchLib_config.h" />
+					<File Name="AssetWorkbenchLib_macros.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="17" Path="src" >
-					<File Name="AssetViewerLib_CAssetCapture.cpp" />
-					<File Name="AssetViewerLib_CAssetMounter.cpp" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.cpp" />
-					<File Name="AssetViewerLib_CBlockDecoder.cpp" />
-					<File Name="AssetViewerLib_CMaterialView.cpp" />
-					<File Name="AssetViewerLib_CMeshInspector.cpp" />
-					<File Name="AssetViewerLib_CModelView.cpp" />
-					<File Name="AssetViewerLib_COrbitController.cpp" />
-					<File Name="AssetViewerLib_CReportLogger.cpp" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.cpp" />
-					<File Name="AssetViewerLib_CSceneView.cpp" />
-					<File Name="AssetViewerLib_CTextureView.cpp" />
-					<File Name="AssetViewerLib_CThumbnailProvider.cpp" />
-					<File Name="AssetViewerLib_CViewerApp.cpp" />
-					<File Name="AssetViewerLib_CViewerMaterials.cpp" />
-					<File Name="AssetViewerLib_CViewerShell.cpp" />
-					<File Name="AssetViewerLib_CViewerStage.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.cpp" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.cpp" />
+					<File Name="AssetWorkbenchLib_CMaterialView.cpp" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.cpp" />
+					<File Name="AssetWorkbenchLib_CModelView.cpp" />
+					<File Name="AssetWorkbenchLib_COrbitController.cpp" />
+					<File Name="AssetWorkbenchLib_CReportLogger.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneView.cpp" />
+					<File Name="AssetWorkbenchLib_CTextureView.cpp" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="2" Source="Dependency" >
@@ -1017,8 +1017,8 @@
 				<LogicalDependency Name="Ogre.CommonInclude" />
 			</LogicalDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib" />
+				<Define String="ASSETWORKBENCHLIB_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
@@ -1036,9 +1036,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="333" Name="AssetViewerLib" Platform="win32" Type="SharedLibrary" >
+		<Module BuildOrder="333" Name="AssetWorkbenchLib" Platform="win32" Type="SharedLibrary" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Views and controllers of the asset viewer: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
+				<DescriptionHeadline>Views and controllers of the asset workbench: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
 				<DescriptionDetails>The orbit controller, the stage that renders an asset into a render texture (also for headless contact sheets and thumbnails), the model, texture, material and scene views with their statistics, the mounting of folders and archives in the VFS, the thumbnail provider with its cache keyed by the SHA-256 of the content, and the shell that composes the content browser, viewport, property inspector, image view, time line and report forms. A library so that test applications and later tools reuse the views. Needs the C++ standard of the Ogre glue.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -1051,47 +1051,47 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="20" Path="include" >
-					<File Name="AssetViewerLib.h" />
-					<File Name="AssetViewerLib_CAssetCapture.h" />
-					<File Name="AssetViewerLib_CAssetMounter.h" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.h" />
-					<File Name="AssetViewerLib_CBlockDecoder.h" />
-					<File Name="AssetViewerLib_CMaterialView.h" />
-					<File Name="AssetViewerLib_CMeshInspector.h" />
-					<File Name="AssetViewerLib_CModelView.h" />
-					<File Name="AssetViewerLib_COrbitController.h" />
-					<File Name="AssetViewerLib_CReportLogger.h" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.h" />
-					<File Name="AssetViewerLib_CSceneView.h" />
-					<File Name="AssetViewerLib_CTextureView.h" />
-					<File Name="AssetViewerLib_CThumbnailProvider.h" />
-					<File Name="AssetViewerLib_CViewerApp.h" />
-					<File Name="AssetViewerLib_CViewerMaterials.h" />
-					<File Name="AssetViewerLib_CViewerShell.h" />
-					<File Name="AssetViewerLib_CViewerStage.h" />
-					<File Name="AssetViewerLib_config.h" />
-					<File Name="AssetViewerLib_macros.h" />
+					<File Name="AssetWorkbenchLib.h" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.h" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.h" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.h" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.h" />
+					<File Name="AssetWorkbenchLib_CMaterialView.h" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.h" />
+					<File Name="AssetWorkbenchLib_CModelView.h" />
+					<File Name="AssetWorkbenchLib_COrbitController.h" />
+					<File Name="AssetWorkbenchLib_CReportLogger.h" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.h" />
+					<File Name="AssetWorkbenchLib_CSceneView.h" />
+					<File Name="AssetWorkbenchLib_CTextureView.h" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.h" />
+					<File Name="AssetWorkbenchLib_config.h" />
+					<File Name="AssetWorkbenchLib_macros.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="17" Path="src" >
-					<File Name="AssetViewerLib_CAssetCapture.cpp" />
-					<File Name="AssetViewerLib_CAssetMounter.cpp" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.cpp" />
-					<File Name="AssetViewerLib_CBlockDecoder.cpp" />
-					<File Name="AssetViewerLib_CMaterialView.cpp" />
-					<File Name="AssetViewerLib_CMeshInspector.cpp" />
-					<File Name="AssetViewerLib_CModelView.cpp" />
-					<File Name="AssetViewerLib_COrbitController.cpp" />
-					<File Name="AssetViewerLib_CReportLogger.cpp" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.cpp" />
-					<File Name="AssetViewerLib_CSceneView.cpp" />
-					<File Name="AssetViewerLib_CTextureView.cpp" />
-					<File Name="AssetViewerLib_CThumbnailProvider.cpp" />
-					<File Name="AssetViewerLib_CViewerApp.cpp" />
-					<File Name="AssetViewerLib_CViewerMaterials.cpp" />
-					<File Name="AssetViewerLib_CViewerShell.cpp" />
-					<File Name="AssetViewerLib_CViewerStage.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.cpp" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.cpp" />
+					<File Name="AssetWorkbenchLib_CMaterialView.cpp" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.cpp" />
+					<File Name="AssetWorkbenchLib_CModelView.cpp" />
+					<File Name="AssetWorkbenchLib_COrbitController.cpp" />
+					<File Name="AssetWorkbenchLib_CReportLogger.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneView.cpp" />
+					<File Name="AssetWorkbenchLib_CTextureView.cpp" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="2" Source="Dependency" >
@@ -1118,8 +1118,8 @@
 				<LogicalDependency Name="Ogre.CommonInclude" />
 			</LogicalDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib" />
+				<Define String="ASSETWORKBENCHLIB_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
@@ -1137,9 +1137,9 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="333" Name="AssetViewerLib" Platform="win64" Type="SharedLibrary" >
+		<Module BuildOrder="333" Name="AssetWorkbenchLib" Platform="win64" Type="SharedLibrary" >
 			<ModuleMetaData>
-				<DescriptionHeadline>Views and controllers of the asset viewer: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
+				<DescriptionHeadline>Views and controllers of the asset workbench: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
 				<DescriptionDetails>The orbit controller, the stage that renders an asset into a render texture (also for headless contact sheets and thumbnails), the model, texture, material and scene views with their statistics, the mounting of folders and archives in the VFS, the thumbnail provider with its cache keyed by the SHA-256 of the content, and the shell that composes the content browser, viewport, property inspector, image view, time line and report forms. A library so that test applications and later tools reuse the views. Needs the C++ standard of the Ogre glue.</DescriptionDetails>
 				<License>Apache 2.0</License>
 				<SemVer>0.1.0.0</SemVer>
@@ -1152,47 +1152,47 @@
 			</ModuleMetaData>
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="20" Path="include" >
-					<File Name="AssetViewerLib.h" />
-					<File Name="AssetViewerLib_CAssetCapture.h" />
-					<File Name="AssetViewerLib_CAssetMounter.h" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.h" />
-					<File Name="AssetViewerLib_CBlockDecoder.h" />
-					<File Name="AssetViewerLib_CMaterialView.h" />
-					<File Name="AssetViewerLib_CMeshInspector.h" />
-					<File Name="AssetViewerLib_CModelView.h" />
-					<File Name="AssetViewerLib_COrbitController.h" />
-					<File Name="AssetViewerLib_CReportLogger.h" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.h" />
-					<File Name="AssetViewerLib_CSceneView.h" />
-					<File Name="AssetViewerLib_CTextureView.h" />
-					<File Name="AssetViewerLib_CThumbnailProvider.h" />
-					<File Name="AssetViewerLib_CViewerApp.h" />
-					<File Name="AssetViewerLib_CViewerMaterials.h" />
-					<File Name="AssetViewerLib_CViewerShell.h" />
-					<File Name="AssetViewerLib_CViewerStage.h" />
-					<File Name="AssetViewerLib_config.h" />
-					<File Name="AssetViewerLib_macros.h" />
+					<File Name="AssetWorkbenchLib.h" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.h" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.h" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.h" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.h" />
+					<File Name="AssetWorkbenchLib_CMaterialView.h" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.h" />
+					<File Name="AssetWorkbenchLib_CModelView.h" />
+					<File Name="AssetWorkbenchLib_COrbitController.h" />
+					<File Name="AssetWorkbenchLib_CReportLogger.h" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.h" />
+					<File Name="AssetWorkbenchLib_CSceneView.h" />
+					<File Name="AssetWorkbenchLib_CTextureView.h" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.h" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.h" />
+					<File Name="AssetWorkbenchLib_config.h" />
+					<File Name="AssetWorkbenchLib_macros.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="17" Path="src" >
-					<File Name="AssetViewerLib_CAssetCapture.cpp" />
-					<File Name="AssetViewerLib_CAssetMounter.cpp" />
-					<File Name="AssetViewerLib_CAssetTypeResolver.cpp" />
-					<File Name="AssetViewerLib_CBlockDecoder.cpp" />
-					<File Name="AssetViewerLib_CMaterialView.cpp" />
-					<File Name="AssetViewerLib_CMeshInspector.cpp" />
-					<File Name="AssetViewerLib_CModelView.cpp" />
-					<File Name="AssetViewerLib_COrbitController.cpp" />
-					<File Name="AssetViewerLib_CReportLogger.cpp" />
-					<File Name="AssetViewerLib_CSceneTreeFileSystemAccess.cpp" />
-					<File Name="AssetViewerLib_CSceneView.cpp" />
-					<File Name="AssetViewerLib_CTextureView.cpp" />
-					<File Name="AssetViewerLib_CThumbnailProvider.cpp" />
-					<File Name="AssetViewerLib_CViewerApp.cpp" />
-					<File Name="AssetViewerLib_CViewerMaterials.cpp" />
-					<File Name="AssetViewerLib_CViewerShell.cpp" />
-					<File Name="AssetViewerLib_CViewerStage.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetCapture.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetMounter.cpp" />
+					<File Name="AssetWorkbenchLib_CAssetTypeResolver.cpp" />
+					<File Name="AssetWorkbenchLib_CBlockDecoder.cpp" />
+					<File Name="AssetWorkbenchLib_CMaterialView.cpp" />
+					<File Name="AssetWorkbenchLib_CMeshInspector.cpp" />
+					<File Name="AssetWorkbenchLib_CModelView.cpp" />
+					<File Name="AssetWorkbenchLib_COrbitController.cpp" />
+					<File Name="AssetWorkbenchLib_CReportLogger.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneTreeFileSystemAccess.cpp" />
+					<File Name="AssetWorkbenchLib_CSceneView.cpp" />
+					<File Name="AssetWorkbenchLib_CTextureView.cpp" />
+					<File Name="AssetWorkbenchLib_CThumbnailProvider.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchApp.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchMaterials.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchShell.cpp" />
+					<File Name="AssetWorkbenchLib_CWorkbenchStage.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="2" Source="Dependency" >
@@ -1219,8 +1219,8 @@
 				<LogicalDependency Name="Ogre.CommonInclude" />
 			</LogicalDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib" />
+				<Define String="ASSETWORKBENCHLIB_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib" />
 				<Define String="MODULE_SEMVER=0_1_0_0" />
 			</Preprocessor>
 			<Linker>
@@ -1239,7 +1239,7 @@
 			<Compiler MinCppStandard="14" />
 		</Module>
 	</ModuleInfoEntry>
-	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tests/AssetViewerLib_TestApp" >
+	<ModuleInfoEntry DefFileLastModified="2026-11-18T06:29:00.000Z" PlatformKeysAreExact="true" ProjRelRootDir="tests/AssetWorkbenchLib_TestApp" >
 		<Module Platform="all" >
 			<Includes Count="29" Source="Dependency" >
 				<Include Path="../../common/include" />
@@ -1273,36 +1273,36 @@
 				<Include Path="../../plugins/SHARED/pluginglueOGRECOMMON/include" />
 			</Includes>
 		</Module>
-		<Module BuildOrder="343" Name="AssetViewerLib_TestApp" Platform="linux32" Tags="test" Type="Executable" >
+		<Module BuildOrder="343" Name="AssetWorkbenchLib_TestApp" Platform="linux32" Tags="test" Type="Executable" >
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="5" Path="include" >
-					<File Name="TestAssetViewerAssets.h" />
-					<File Name="TestAssetViewerBasic.h" />
-					<File Name="TestAssetViewerRender.h" />
-					<File Name="TestAssetViewerShell.h" />
-					<File Name="TestAssetViewerSupport.h" />
+					<File Name="TestAssetWorkbenchAssets.h" />
+					<File Name="TestAssetWorkbenchBasic.h" />
+					<File Name="TestAssetWorkbenchRender.h" />
+					<File Name="TestAssetWorkbenchShell.h" />
+					<File Name="TestAssetWorkbenchSupport.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="6" Path="src" >
-					<File Name="AssetViewerLib_TestApp.cpp" />
-					<File Name="TestAssetViewerAssets.cpp" />
-					<File Name="TestAssetViewerBasic.cpp" />
-					<File Name="TestAssetViewerRender.cpp" />
-					<File Name="TestAssetViewerShell.cpp" />
-					<File Name="TestAssetViewerSupport.cpp" />
+					<File Name="AssetWorkbenchLib_TestApp.cpp" />
+					<File Name="TestAssetWorkbenchAssets.cpp" />
+					<File Name="TestAssetWorkbenchBasic.cpp" />
+					<File Name="TestAssetWorkbenchRender.cpp" />
+					<File Name="TestAssetWorkbenchShell.cpp" />
+					<File Name="TestAssetWorkbenchSupport.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../dependencies/Ogre/OgreMain/src" />
 				<Include Path="../../platform/gucefCORE/include/linux" />
-				<Include Path="../../tools/AssetViewerLib/include" />
+				<Include Path="../../tools/AssetWorkbenchLib/include" />
 			</Includes>
 			<Includes Count="1" Source="Self" >
 				<Include Path="include" />
 			</Includes>
 			<Dependencies Count="11" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1336,11 +1336,11 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_TESTAPP_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib_TestApp" />
+				<Define String="ASSETWORKBENCHLIB_TESTAPP_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib_TestApp" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1354,36 +1354,36 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="343" Name="AssetViewerLib_TestApp" Platform="linux64" Tags="test" Type="Executable" >
+		<Module BuildOrder="343" Name="AssetWorkbenchLib_TestApp" Platform="linux64" Tags="test" Type="Executable" >
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="5" Path="include" >
-					<File Name="TestAssetViewerAssets.h" />
-					<File Name="TestAssetViewerBasic.h" />
-					<File Name="TestAssetViewerRender.h" />
-					<File Name="TestAssetViewerShell.h" />
-					<File Name="TestAssetViewerSupport.h" />
+					<File Name="TestAssetWorkbenchAssets.h" />
+					<File Name="TestAssetWorkbenchBasic.h" />
+					<File Name="TestAssetWorkbenchRender.h" />
+					<File Name="TestAssetWorkbenchShell.h" />
+					<File Name="TestAssetWorkbenchSupport.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="6" Path="src" >
-					<File Name="AssetViewerLib_TestApp.cpp" />
-					<File Name="TestAssetViewerAssets.cpp" />
-					<File Name="TestAssetViewerBasic.cpp" />
-					<File Name="TestAssetViewerRender.cpp" />
-					<File Name="TestAssetViewerShell.cpp" />
-					<File Name="TestAssetViewerSupport.cpp" />
+					<File Name="AssetWorkbenchLib_TestApp.cpp" />
+					<File Name="TestAssetWorkbenchAssets.cpp" />
+					<File Name="TestAssetWorkbenchBasic.cpp" />
+					<File Name="TestAssetWorkbenchRender.cpp" />
+					<File Name="TestAssetWorkbenchShell.cpp" />
+					<File Name="TestAssetWorkbenchSupport.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../dependencies/Ogre/OgreMain/src" />
 				<Include Path="../../platform/gucefCORE/include/linux" />
-				<Include Path="../../tools/AssetViewerLib/include" />
+				<Include Path="../../tools/AssetWorkbenchLib/include" />
 			</Includes>
 			<Includes Count="1" Source="Self" >
 				<Include Path="include" />
 			</Includes>
 			<Dependencies Count="11" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1417,11 +1417,11 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_TESTAPP_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib_TestApp" />
+				<Define String="ASSETWORKBENCHLIB_TESTAPP_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib_TestApp" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1435,36 +1435,36 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="348" Name="AssetViewerLib_TestApp" Platform="win32" Tags="test" Type="Executable" >
+		<Module BuildOrder="348" Name="AssetWorkbenchLib_TestApp" Platform="win32" Tags="test" Type="Executable" >
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="5" Path="include" >
-					<File Name="TestAssetViewerAssets.h" />
-					<File Name="TestAssetViewerBasic.h" />
-					<File Name="TestAssetViewerRender.h" />
-					<File Name="TestAssetViewerShell.h" />
-					<File Name="TestAssetViewerSupport.h" />
+					<File Name="TestAssetWorkbenchAssets.h" />
+					<File Name="TestAssetWorkbenchBasic.h" />
+					<File Name="TestAssetWorkbenchRender.h" />
+					<File Name="TestAssetWorkbenchShell.h" />
+					<File Name="TestAssetWorkbenchSupport.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="6" Path="src" >
-					<File Name="AssetViewerLib_TestApp.cpp" />
-					<File Name="TestAssetViewerAssets.cpp" />
-					<File Name="TestAssetViewerBasic.cpp" />
-					<File Name="TestAssetViewerRender.cpp" />
-					<File Name="TestAssetViewerShell.cpp" />
-					<File Name="TestAssetViewerSupport.cpp" />
+					<File Name="AssetWorkbenchLib_TestApp.cpp" />
+					<File Name="TestAssetWorkbenchAssets.cpp" />
+					<File Name="TestAssetWorkbenchBasic.cpp" />
+					<File Name="TestAssetWorkbenchRender.cpp" />
+					<File Name="TestAssetWorkbenchShell.cpp" />
+					<File Name="TestAssetWorkbenchSupport.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../platform/gucefCORE/include/mswin" />
 				<Include Path="../../platform/gucefMT/include/mswin" />
-				<Include Path="../../tools/AssetViewerLib/include" />
+				<Include Path="../../tools/AssetWorkbenchLib/include" />
 			</Includes>
 			<Includes Count="1" Source="Self" >
 				<Include Path="include" />
 			</Includes>
 			<Dependencies Count="11" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1498,11 +1498,11 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_TESTAPP_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib_TestApp" />
+				<Define String="ASSETWORKBENCHLIB_TESTAPP_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib_TestApp" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1516,36 +1516,36 @@
 			</Linker>
 			<Compiler MinCppStandard="14" />
 		</Module>
-		<Module BuildOrder="348" Name="AssetViewerLib_TestApp" Platform="win64" Tags="test" Type="Executable" >
+		<Module BuildOrder="348" Name="AssetWorkbenchLib_TestApp" Platform="win64" Tags="test" Type="Executable" >
 			<Files DirCount="1" Type="Headers" >
 				<Dir FileCount="5" Path="include" >
-					<File Name="TestAssetViewerAssets.h" />
-					<File Name="TestAssetViewerBasic.h" />
-					<File Name="TestAssetViewerRender.h" />
-					<File Name="TestAssetViewerShell.h" />
-					<File Name="TestAssetViewerSupport.h" />
+					<File Name="TestAssetWorkbenchAssets.h" />
+					<File Name="TestAssetWorkbenchBasic.h" />
+					<File Name="TestAssetWorkbenchRender.h" />
+					<File Name="TestAssetWorkbenchShell.h" />
+					<File Name="TestAssetWorkbenchSupport.h" />
 				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="6" Path="src" >
-					<File Name="AssetViewerLib_TestApp.cpp" />
-					<File Name="TestAssetViewerAssets.cpp" />
-					<File Name="TestAssetViewerBasic.cpp" />
-					<File Name="TestAssetViewerRender.cpp" />
-					<File Name="TestAssetViewerShell.cpp" />
-					<File Name="TestAssetViewerSupport.cpp" />
+					<File Name="AssetWorkbenchLib_TestApp.cpp" />
+					<File Name="TestAssetWorkbenchAssets.cpp" />
+					<File Name="TestAssetWorkbenchBasic.cpp" />
+					<File Name="TestAssetWorkbenchRender.cpp" />
+					<File Name="TestAssetWorkbenchShell.cpp" />
+					<File Name="TestAssetWorkbenchSupport.cpp" />
 				</Dir>
 			</Files>
 			<Includes Count="3" Source="Dependency" >
 				<Include Path="../../platform/gucefCORE/include/mswin" />
 				<Include Path="../../platform/gucefMT/include/mswin" />
-				<Include Path="../../tools/AssetViewerLib/include" />
+				<Include Path="../../tools/AssetWorkbenchLib/include" />
 			</Includes>
 			<Includes Count="1" Source="Self" >
 				<Include Path="include" />
 			</Includes>
 			<Dependencies Count="11" >
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -1579,11 +1579,11 @@
 				<RuntimeDependency Name="vfspluginUNITYPACKAGE" />
 			</RuntimeDependencies>
 			<Preprocessor>
-				<Define String="ASSETVIEWERLIB_TESTAPP_BUILD_MODULE" />
-				<Define String="MODULE_NAME=AssetViewerLib_TestApp" />
+				<Define String="ASSETWORKBENCHLIB_TESTAPP_BUILD_MODULE" />
+				<Define String="MODULE_NAME=AssetWorkbenchLib_TestApp" />
 			</Preprocessor>
 			<Linker>
-				<Dependency Name="AssetViewerLib" />
+				<Dependency Name="AssetWorkbenchLib" />
 				<Dependency Name="Ogre" />
 				<Dependency Name="gucefCORE" />
 				<Dependency Name="gucefGUI" />
@@ -47573,11 +47573,13 @@
 					<File Name="gucefGEOMETRY_CModule.h" />
 					<File Name="gucefGEOMETRY_CQuickHull3DCore.h" />
 					<File Name="gucefGEOMETRY_CTAudioOcclusionEstimator.h" />
+					<File Name="gucefAUTH_CChromeSignInBrowser.h" />
 					<File Name="gucefGEOMETRY_CTAxisAlignedBox3D.h" />
 					<File Name="gucefGEOMETRY_CTBresenhamLine2D.h" />
 					<File Name="gucefGEOMETRY_CTBresenhamLine3D.h" />
 					<File Name="gucefGEOMETRY_CTCapsule.h" />
 					<File Name="gucefGEOMETRY_CTCellGrid.h" />
+					<File Name="gucefAUTH_CIWebSignInBrowser.h" />
 					<File Name="gucefGEOMETRY_CTCircle.h" />
 					<File Name="gucefGEOMETRY_CTCone.h" />
 					<File Name="gucefGEOMETRY_CTConstrainedDelaunay2D.h" />
@@ -47599,6 +47601,13 @@
 					<File Name="gucefGEOMETRY_CTGeoTriangleMesh.h" />
 					<File Name="gucefGEOMETRY_CTGeometry2D.h" />
 					<File Name="gucefGEOMETRY_CTGeometry3D.h" />
+					<File Name="gucefAUTH_CWebSession.h" />
+					<File Name="gucefAUTH_CWebSessionCookie.h" />
+					<File Name="gucefAUTH_CWebSessionSignIn.h" />
+					<File Name="gucefAUTH_CWebSessionSignInSettings.h" />
+					<File Name="gucefAUTH_CWebSessionSignInTaskConsumer.h" />
+					<File Name="gucefAUTH_CWebSessionSignInTaskData.h" />
+					<File Name="gucefAUTH_CWebSignInCredentials.h" />
 					<File Name="gucefGEOMETRY_CTGeometryTolerance.h" />
 					<File Name="gucefGEOMETRY_CTGjk.h" />
 					<File Name="gucefGEOMETRY_CTGridTraversal2D.h" />
@@ -47635,11 +47644,13 @@
 					<File Name="gucefGEOMETRY_CTSatBoxes.h" />
 					<File Name="gucefGEOMETRY_CTSegment2D.h" />
 					<File Name="gucefGEOMETRY_CTSegment3D.h" />
+					<File Name="gucefAUTH_CChromeSignInBrowser.cpp" />
 					<File Name="gucefGEOMETRY_CTShapeTraits.h" />
 					<File Name="gucefGEOMETRY_CTSpatialHash.h" />
 					<File Name="gucefGEOMETRY_CTSpatialItemStore.h" />
 					<File Name="gucefGEOMETRY_CTSphere.h" />
 					<File Name="gucefGEOMETRY_CTTriangle2D.h" />
+					<File Name="gucefAUTH_CIWebSignInBrowser.cpp" />
 					<File Name="gucefGEOMETRY_CTTriangle3D.h" />
 					<File Name="gucefGEOMETRY_CTTriangleMesh.h" />
 					<File Name="gucefGEOMETRY_CTUniformGrid2D.h" />
@@ -47661,6 +47672,13 @@
 					<File Name="gucefGEOMETRY_PolygonTriangulation.h" />
 					<File Name="gucefGEOMETRY_PolylineSimplification.h" />
 					<File Name="gucefGEOMETRY_Queries2D.h" />
+					<File Name="gucefAUTH_CWebSession.cpp" />
+					<File Name="gucefAUTH_CWebSessionCookie.cpp" />
+					<File Name="gucefAUTH_CWebSessionSignIn.cpp" />
+					<File Name="gucefAUTH_CWebSessionSignInSettings.cpp" />
+					<File Name="gucefAUTH_CWebSessionSignInTaskConsumer.cpp" />
+					<File Name="gucefAUTH_CWebSessionSignInTaskData.cpp" />
+					<File Name="gucefAUTH_CWebSignInCredentials.cpp" />
 					<File Name="gucefGEOMETRY_RayQueries.h" />
 					<File Name="gucefGEOMETRY_SGeoRayHit.h" />
 					<File Name="gucefGEOMETRY_SRayCastResult.h" />
@@ -48558,8 +48576,10 @@
 					<File Name="TestGuiArbitration.cpp" />
 					<File Name="TestGuiBrowser.cpp" />
 					<File Name="TestGuiChart.cpp" />
+					<File Name="TestFakeLoginSite.h" />
 					<File Name="TestGuiChartMarkers.cpp" />
 					<File Name="TestGuiCore.cpp" />
+					<File Name="TestFakeSignInBrowser.h" />
 					<File Name="TestGuiFileDialogs.cpp" />
 					<File Name="TestGuiFonts.cpp" />
 					<File Name="TestGuiGraphicsApi.cpp" />
@@ -48583,6 +48603,7 @@
 					<File Name="TestGuiUserActionLog.cpp" />
 					<File Name="TestGuiWidgets.cpp" />
 					<File Name="TestGuiWindow.cpp" />
+					<File Name="TestWebSessionSignIn.h" />
 					<File Name="gucefGUI_TestApp.cpp" />
 				</Dir>
 			</Files>
@@ -48596,8 +48617,10 @@
 			<Dependencies Count="15" >
 				<Dependency Name="RmlUI_Core" />
 				<Dependency Name="fontpluginFREETYPE" />
+					<File Name="TestFakeLoginSite.cpp" />
 				<Dependency Name="gucefAUDIO" />
 				<Dependency Name="gucefCORE" />
+					<File Name="TestFakeSignInBrowser.cpp" />
 				<Dependency Name="gucefGUI" />
 				<Dependency Name="gucefIMAGE" />
 				<Dependency Name="gucefINPUT" />
@@ -48611,6 +48634,7 @@
 				<Dependency Name="inputdriverEMSCRIPTEN" />
 			</Dependencies>
 			<LogicalDependencies Count="1" >
+					<File Name="TestWebSessionSignIn.cpp" />
 				<LogicalDependency Name="gucefTestHeaders" />
 			</LogicalDependencies>
 			<Preprocessor>
@@ -93989,9 +94013,9 @@
 					<ModuleName>AncestryDotComBackup_TestApp</ModuleName>
 					<ModuleName>ArchiveDiff</ModuleName>
 					<ModuleName>ArchiveDiffLib</ModuleName>
-					<ModuleName>AssetViewer</ModuleName>
-					<ModuleName>AssetViewerLib</ModuleName>
-					<ModuleName>AssetViewerLib_TestApp</ModuleName>
+					<ModuleName>AssetWorkbench</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
+					<ModuleName>AssetWorkbenchLib_TestApp</ModuleName>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.CommonDialogs</ModuleName>
 					<ModuleName>CEGUI.Includes</ModuleName>
@@ -94430,11 +94454,11 @@
 				</ModuleNames>
 			</PlatformTargetInfo>
 		</Target>
-		<Target name="GUCEF_exe_AssetViewer" >
-			<PlatformTargetInfo MainModuleName="AssetViewer" Platform="linux" ProjectName="GUCEF_exe_AssetViewer" >
+		<Target name="GUCEF_exe_AssetWorkbench" >
+			<PlatformTargetInfo MainModuleName="AssetWorkbench" Platform="linux" ProjectName="GUCEF_exe_AssetWorkbench" >
 				<ModuleNames>
-					<ModuleName>AssetViewer</ModuleName>
-					<ModuleName>AssetViewerLib</ModuleName>
+					<ModuleName>AssetWorkbench</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>Ogre</ModuleName>
 					<ModuleName>OgreCodec_Assimp</ModuleName>
@@ -94480,10 +94504,10 @@
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="AssetViewer" Platform="mswin" ProjectName="GUCEF_exe_AssetViewer" >
+			<PlatformTargetInfo MainModuleName="AssetWorkbench" Platform="mswin" ProjectName="GUCEF_exe_AssetWorkbench" >
 				<ModuleNames>
-					<ModuleName>AssetViewer</ModuleName>
-					<ModuleName>AssetViewerLib</ModuleName>
+					<ModuleName>AssetWorkbench</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>Ogre</ModuleName>
 					<ModuleName>OgreCodec_Assimp</ModuleName>
@@ -94530,11 +94554,11 @@
 				</ModuleNames>
 			</PlatformTargetInfo>
 		</Target>
-		<Target name="GUCEF_exe_AssetViewerLib_TestApp" >
-			<PlatformTargetInfo MainModuleName="AssetViewerLib_TestApp" Platform="linux" ProjectName="GUCEF_exe_AssetViewerLib_TestApp" >
+		<Target name="GUCEF_exe_AssetWorkbenchLib_TestApp" >
+			<PlatformTargetInfo MainModuleName="AssetWorkbenchLib_TestApp" Platform="linux" ProjectName="GUCEF_exe_AssetWorkbenchLib_TestApp" >
 				<ModuleNames>
-					<ModuleName>AssetViewerLib</ModuleName>
-					<ModuleName>AssetViewerLib_TestApp</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
+					<ModuleName>AssetWorkbenchLib_TestApp</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>Ogre</ModuleName>
 					<ModuleName>OgreCodec_Assimp</ModuleName>
@@ -94577,10 +94601,10 @@
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="AssetViewerLib_TestApp" Platform="mswin" ProjectName="GUCEF_exe_AssetViewerLib_TestApp" >
+			<PlatformTargetInfo MainModuleName="AssetWorkbenchLib_TestApp" Platform="mswin" ProjectName="GUCEF_exe_AssetWorkbenchLib_TestApp" >
 				<ModuleNames>
-					<ModuleName>AssetViewerLib</ModuleName>
-					<ModuleName>AssetViewerLib_TestApp</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
+					<ModuleName>AssetWorkbenchLib_TestApp</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>Ogre</ModuleName>
 					<ModuleName>OgreCodec_Assimp</ModuleName>
@@ -97907,8 +97931,8 @@
 			</PlatformTargetInfo>
 			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_test" >
 				<ModuleNames>
-					<ModuleName>AssetViewerLib</ModuleName>
-					<ModuleName>AssetViewerLib_TestApp</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
+					<ModuleName>AssetWorkbenchLib_TestApp</ModuleName>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
 					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
@@ -98031,8 +98055,8 @@
 			</PlatformTargetInfo>
 			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_tag_test" >
 				<ModuleNames>
-					<ModuleName>AssetViewerLib</ModuleName>
-					<ModuleName>AssetViewerLib_TestApp</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
+					<ModuleName>AssetWorkbenchLib_TestApp</ModuleName>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
 					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
@@ -98234,8 +98258,8 @@
 			</PlatformTargetInfo>
 			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_tools" >
 				<ModuleNames>
-					<ModuleName>AssetViewer</ModuleName>
-					<ModuleName>AssetViewerLib</ModuleName>
+					<ModuleName>AssetWorkbench</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>DevIL2</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
@@ -98289,8 +98313,8 @@
 			</PlatformTargetInfo>
 			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_tag_tools" >
 				<ModuleNames>
-					<ModuleName>AssetViewer</ModuleName>
-					<ModuleName>AssetViewerLib</ModuleName>
+					<ModuleName>AssetWorkbench</ModuleName>
+					<ModuleName>AssetWorkbenchLib</ModuleName>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>DevIL2</ModuleName>
 					<ModuleName>FreeImage</ModuleName>

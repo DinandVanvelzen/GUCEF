@@ -102,6 +102,7 @@ plugins/ASSETS/assetpluginFBX/*
 plugins/ASSETS/assetpluginGLTF/*
 plugins/ASSETS/assetpluginGODOT/*
 plugins/ASSETS/assetpluginUNITY/*
+plugins/ASSETS/assetpluginUNREAL/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiovoicecodecOPUS/*
 plugins/COMCORE/dbpluginPOSTGRESQL/*
@@ -131,7 +132,7 @@ plugins/SHARED/pluginglueOGRE/*
 plugins/VIDEO/videocodecpluginWEBM/*
 tests/AssetConverterLib_TestApp/*
 tests/AssetStoreConverterHook_TestApp/*
-tests/AssetViewerLib_TestApp/*
+tests/AssetWorkbenchLib_TestApp/*
 tests/MemoryLeakFinder_TestApp/*
 tests/OgreTools_TestApp/*
 tests/assetcookerOGRE_TestApp/*
@@ -139,10 +140,12 @@ tests/assetpluginFBX_TestApp/*
 tests/assetpluginGLTF_TestApp/*
 tests/assetpluginGODOT_TestApp/*
 tests/assetpluginUNITY_TestApp/*
+tests/assetpluginUNREAL_TestApp/*
 tests/dbpluginPOSTGRESQL_TestApp/*
 tests/gucefASSETSTORE_TestApp/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefCOMCORE_TestApp/include/*
+tests/gucefAUTH_TestApp/src//*
 tests/gucefCOM_TestApp/include/*
 tests/gucefCORE_TestApp/include/*
 tests/gucefDRNUTILSGUI_TestApp/*
@@ -162,5 +165,5 @@ tests/guidriverRmlUIOgre_TestApp/*
 tests/pluginglueOGRE_TestApp/*
 tools/AssetConverterLib/*
 tools/AssetStoreConverterHook/*
-tools/AssetViewerLib/*
+tools/AssetWorkbenchLib/*
 tools/MemoryLeakFinder/*

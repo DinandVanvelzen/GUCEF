@@ -7,6 +7,7 @@ platform/gucefASSETSTORE/*
 platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefDRN/*
 platform/gucefGEOMETRY/*
 platform/gucefIMAGE/*
 platform/gucefMATH/*
@@ -14,6 +15,7 @@ platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*
 plugins/ASSETS/assetpluginGLTF/*
+plugins/ASSETS/assetpluginUNREAL/*
 plugins/COMCORE/dbpluginVFSTABLES/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*

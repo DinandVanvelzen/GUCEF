@@ -1,0 +1,11 @@
+common/include/*
+dependencies/FreeImage/*
+dependencies/libpq/*
+dependencies/ooz/*
+dependencies/zlib/*
+platform/gucefCOMCORE/include/*
+platform/gucefCORE/include/*
+platform/gucefIMAGE/include/*
+platform/gucefMT/include/*
+plugins/COMCORE/dbpluginPOSTGRESQL/*
+plugins/IMAGE/imgpluginFreeImage/*

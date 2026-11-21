@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefASSETSTORE depends on
-set( MODULE_DEPENDENCIES gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefIMAGE gucefMT gucefVFS gucefWEB )
+set( MODULE_DEPENDENCIES gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefHeaders gucefIMAGE gucefMT gucefVFS gucefWEB )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

@@ -97,6 +97,7 @@ filter "ALL"
   include( "plugins/ASSETS/assetpluginGLTF" )
   include( "plugins/ASSETS/assetpluginGODOT" )
   include( "plugins/ASSETS/assetpluginUNITY" )
+  include( "plugins/ASSETS/assetpluginUNREAL" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
   include( "plugins/AUDIO/audiocodecpluginMP3" )

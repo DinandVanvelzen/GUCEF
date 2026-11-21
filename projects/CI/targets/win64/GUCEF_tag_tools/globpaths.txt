@@ -31,6 +31,7 @@ dependencies/libjpeg/*
 dependencies/libmng/*
 dependencies/libpng/*
 dependencies/libsquish/*
+dependencies/ooz/*
 dependencies/openexr/*
 dependencies/pugixml/*
 dependencies/tiff/libtiff/*
@@ -72,6 +73,6 @@ plugins/SHARED/pluginglueOGRE/*
 plugins/VFS/vfspluginUNITYPACKAGE/*
 tools/AssetConverter/*
 tools/AssetStoreConverterHook/*
-tools/AssetViewer/*
+tools/AssetWorkbench/*
 tools/CMakeListGenerator/*
 tools/PatchSetGenerator/*
