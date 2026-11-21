@@ -366,6 +366,186 @@ MakeGreyPng( UInt32 bits )
     return b;
 }
 
+/** A sample of 8 bits of the PNG variant test pictures: channel c (0 red or grey, 1 green, 2 blue, 3 alpha) at a texel */
+UInt8
+VariantSample( UInt32 x, UInt32 y, UInt32 c )
+{
+    return (UInt8) ( 17 + x * 31 + y * 7 + c * 60 );
+}
+
+/** The colours of the palette test picture: red, green, blue and the alpha of its tRNS chunk */
+const UInt8 VariantPalette[ 4 ][ 4 ] = { { 200, 30, 40, 255 }, { 20, 180, 60, 128 }, { 10, 20, 230, 0 }, { 250, 250, 10, 255 } };
+
+/** PNG colour types: 0 grey, 2 RGB, 3 palette, 4 grey with alpha, 6 RGBA */
+UInt32
+VariantChannels( UInt8 colourType )
+{
+    switch ( colourType )
+    {
+        case 0: return 1;
+        case 2: return 3;
+        case 3: return 1;
+        case 4: return 2;
+        default: return 4;
+    }
+}
+
+bool
+VariantHasAlpha( UInt8 colourType )
+{
+    return 3 == colourType || 0 != ( colourType & 4 );
+}
+
+/** What a PNG variant test picture holds at a texel: red, green, blue and alpha of 8 bits */
+void
+VariantTexel( UInt8 colourType, UInt32 x, UInt32 y, UInt8 rgba[ 4 ] )
+{
+    if ( 3 == colourType )
+    {
+        memcpy( rgba, VariantPalette[ ( x + y ) % 4 ], 4 );
+        return;
+    }
+    const UInt8 grey = VariantSample( x, y, 0 );
+    rgba[ 0 ] = grey;
+    rgba[ 1 ] = 0 != ( colourType & 2 ) ? VariantSample( x, y, 1 ) : grey;
+    rgba[ 2 ] = 0 != ( colourType & 2 ) ? VariantSample( x, y, 2 ) : grey;
+    rgba[ 3 ] = 0 != ( colourType & 4 ) ? VariantSample( x, y, 3 ) : (UInt8) 255;
+}
+
+/** Appends the samples of a texel to a scan line; 16 bit samples are big endian, the 8 bit value times 257 */
+void
+PutVariantTexel( TBytes& line, UInt8 colourType, UInt32 bits, UInt32 x, UInt32 y )
+{
+    if ( 3 == colourType )
+    {
+        line.push_back( (UInt8) ( ( x + y ) % 4 ) );
+        return;
+    }
+    const UInt32 channels = VariantChannels( colourType );
+    for ( UInt32 c=0; c<channels; ++c )
+    {
+        // grey with alpha is grey, then alpha
+        const UInt8 value = VariantSample( x, y, ( 4 == colourType && 1 == c ) ? 3 : c );
+        line.push_back( value );
+        if ( 16 == bits )
+            line.push_back( value );
+    }
+}
+
+/** A PNG of a colour type with 8 or 16 bits per sample (a palette with transparency for type 3), progressive or Adam7
+ *  interlaced, its image data in stored deflate blocks that are split into IDAT chunks of at most idatSize bytes */
+TBytes
+MakeVariantPng( UInt32 width, UInt32 height, UInt8 colourType, UInt32 bits, bool interlaced, UInt32 idatSize )
+{
+    TBytes b;
+    const UInt8 signature[ 8 ] = { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A };
+    b.insert( b.end(), signature, signature + 8 );
+    TBytes header;
+    PutU32BE( header, width ); PutU32BE( header, height );
+    header.push_back( (UInt8) bits ); header.push_back( colourType ); header.push_back( 0 ); header.push_back( 0 ); header.push_back( interlaced ? 1 : 0 );
+    PutPngChunk( b, "IHDR", header );
+    if ( 3 == colourType )
+    {
+        TBytes palette;
+        TBytes alpha;
+        for ( UInt32 i=0; i<4; ++i )
+        {
+            palette.insert( palette.end(), VariantPalette[ i ], VariantPalette[ i ] + 3 );
+            alpha.push_back( VariantPalette[ i ][ 3 ] );
+        }
+        PutPngChunk( b, "PLTE", palette );
+        PutPngChunk( b, "tRNS", alpha );
+    }
+
+    // the scan lines, filter type 0, of the whole picture or of the 7 passes of Adam7 (a pass without texels has no lines)
+    const UInt32 passX[ 7 ] = { 0, 4, 0, 2, 0, 1, 0 };
+    const UInt32 passY[ 7 ] = { 0, 0, 4, 0, 2, 0, 1 };
+    const UInt32 stepX[ 7 ] = { 8, 8, 4, 4, 2, 2, 1 };
+    const UInt32 stepY[ 7 ] = { 8, 8, 8, 4, 4, 2, 2 };
+    const UInt32 passes = interlaced ? 7 : 1;
+    TBytes scan;
+    scan.reserve( (size_t) height * ( width * VariantChannels( colourType ) * ( bits / 8 ) + 1 ) + 64 );
+    for ( UInt32 p=0; p<passes; ++p )
+    {
+        const UInt32 x0 = interlaced ? passX[ p ] : 0;
+        const UInt32 y0 = interlaced ? passY[ p ] : 0;
+        const UInt32 dx = interlaced ? stepX[ p ] : 1;
+        const UInt32 dy = interlaced ? stepY[ p ] : 1;
+        if ( x0 >= width || y0 >= height )
+            continue;
+        for ( UInt32 y=y0; y<height; y+=dy )
+        {
+            scan.push_back( 0 );
+            for ( UInt32 x=x0; x<width; x+=dx )
+                PutVariantTexel( scan, colourType, bits, x, y );
+        }
+    }
+
+    // a zlib stream of stored blocks of at most 65535 bytes
+    UInt32 a = 1, c = 0;
+    for ( size_t i=0; i<scan.size(); ++i )
+    {
+        a = ( a + scan[ i ] ) % 65521;
+        c = ( c + a ) % 65521;
+    }
+    TBytes zlib;
+    zlib.reserve( scan.size() + scan.size() / 65535 * 5 + 16 );
+    zlib.push_back( 0x78 ); zlib.push_back( 0x01 );
+    size_t at = 0;
+    do
+    {
+        const size_t block = scan.size() - at > 65535 ? 65535 : scan.size() - at;
+        zlib.push_back( at + block >= scan.size() ? 1 : 0 );
+        PutU16( zlib, (UInt32) block ); PutU16( zlib, (UInt32) ( ~block & 0xFFFF ) );
+        zlib.insert( zlib.end(), scan.begin() + at, scan.begin() + at + block );
+        at += block;
+    }
+    while ( at < scan.size() );
+    PutU32BE( zlib, ( c << 16 ) | a );
+
+    for ( size_t start=0; start<zlib.size(); start+=idatSize )
+    {
+        const size_t size = zlib.size() - start > idatSize ? idatSize : zlib.size() - start;
+        PutPngChunk( b, "IDAT", TBytes( zlib.begin() + start, zlib.begin() + start + size ) );
+    }
+    PutPngChunk( b, "IEND", TBytes() );
+    return b;
+}
+
+/** A texel of a decoded picture as red, green, blue and alpha of 8 bits (255 without alpha), from grey, RGB or RGBA of 8 or 16 bits */
+bool
+PictureTexel( const IMAGE::CPixelMap& picture, UInt32 x, UInt32 y, UInt8 rgba[ 4 ] )
+{
+    UInt32 channels = 0;
+    switch ( picture.GetPixelStorageFormat() )
+    {
+        case IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE: channels = 1; break;
+        case IMAGE::PSF_RGB: channels = 3; break;
+        case IMAGE::PSF_RGBA: channels = 4; break;
+        default: return false;
+    }
+    const size_t index = ( (size_t) y * picture.GetWidthInPixels() + x ) * channels;
+    UInt32 values[ 4 ] = { 0, 0, 0, 255 };
+    for ( UInt32 c=0; c<channels; ++c )
+    {
+        if ( GUCEF::DATATYPE_UINT8 == picture.GetPixelComponentDataType() )
+            values[ c ] = static_cast< const UInt8* >( picture.GetDataPtr() )[ index + c ];
+        else
+        if ( GUCEF_DATATYPE_UINT16 == picture.GetPixelComponentDataType() )
+            values[ c ] = ( (UInt32) static_cast< const UInt16* >( picture.GetDataPtr() )[ index + c ] + 128 ) / 257;
+        else
+            return false;
+    }
+    if ( 1 == channels )
+    {
+        values[ 1 ] = values[ 0 ];
+        values[ 2 ] = values[ 0 ];
+    }
+    for ( UInt32 c=0; c<4; ++c )
+        rgba[ c ] = (UInt8) values[ c ];
+    return true;
+}
+
 bool
 StoreBytes( const CORE::CString& vfsPath, const TBytes& bytes )
 {
@@ -1513,6 +1693,89 @@ PerformAssetConverterProcessingTests( void )
             ASSERT_TRUE( CTextureBaker::LoadPicture( texture.bakedPath, back ) && !back.IsNULL() && FormatSize == back->GetWidthInPixels() );
         }
         ASSERT_TRUE( 0 == CountItems( report, REPORTITEM_ERROR, "TextureBaker" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Texture formats: PNG variants (grey with alpha, 16 bits, palette with transparency, Adam7 interlaced, a large picture in many IDAT chunks) are read with their values; a PNG whose image data does not match its checksums is refused" )
+    try
+    {
+        MakeWorkFolder( "pngvariants" );
+        struct SVariant
+        {
+            const char* name;
+            UInt32 width;
+            UInt32 height;
+            UInt8 colourType;
+            UInt32 bits;
+            bool interlaced;
+            UInt32 idatSize;
+            UInt32 checkStep;
+        };
+        const SVariant variants[] =
+        {
+            { "greyalpha8", 13, 11, 4, 8, false, 1048576, 1 },
+            { "greyalpha16", 13, 11, 4, 16, false, 1048576, 1 },
+            { "grey16interlaced", 13, 11, 0, 16, true, 1048576, 1 },
+            { "rgb16", 13, 11, 2, 16, false, 1048576, 1 },
+            { "rgba16", 13, 11, 6, 16, false, 1048576, 1 },
+            { "palette", 13, 11, 3, 8, false, 1048576, 1 },
+            { "palette_interlaced", 13, 11, 3, 8, true, 1048576, 1 },
+            { "rgb_interlaced", 13, 11, 2, 8, true, 1048576, 1 },
+            { "rgba16_interlaced", 13, 11, 6, 16, true, 64, 1 },
+            { "large", 2048, 1024, 6, 8, false, 8192, 37 }
+        };
+        for ( UInt32 v=0; v<sizeof( variants ) / sizeof( variants[ 0 ] ); ++v )
+        {
+            const SVariant& variant = variants[ v ];
+            const CORE::CString source = "work/pngvariants/src/" + CORE::CString( variant.name ) + ".png";
+            ASSERT_TRUE( StoreBytes( source, MakeVariantPng( variant.width, variant.height, variant.colourType, variant.bits, variant.interlaced, variant.idatSize ) ) );
+            IMAGE::TPixelMapPtr picture;
+            CORE::CString problem;
+            const bool read = CTextureBaker::LoadPicture( source, picture, problem );
+            if ( !read )
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PNG variant " << variant.name << ": " << problem );
+            ASSERT_TRUE( read && !picture.IsNULL() );
+            if ( !read || picture.IsNULL() )
+                continue;
+            ASSERT_TRUE( variant.width == picture->GetWidthInPixels() && variant.height == picture->GetHeightInPixels() );
+            if ( variant.width != picture->GetWidthInPixels() || variant.height != picture->GetHeightInPixels() )
+                continue;
+            const bool hasAlpha = IMAGE::PSF_RGBA == picture->GetPixelStorageFormat();
+            if ( VariantHasAlpha( variant.colourType ) != hasAlpha )
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PNG variant " << variant.name << ": decoded with storage format " << (UInt32) picture->GetPixelStorageFormat() );
+            ASSERT_TRUE( VariantHasAlpha( variant.colourType ) == hasAlpha );
+            bool valuesRight = true;
+            for ( UInt32 y=0; y<variant.height && valuesRight; y+=variant.checkStep )
+                for ( UInt32 x=0; x<variant.width && valuesRight; x+=variant.checkStep )
+                {
+                    UInt8 expected[ 4 ];
+                    UInt8 decoded[ 4 ];
+                    VariantTexel( variant.colourType, x, y, expected );
+                    valuesRight = PictureTexel( *picture, x, y, decoded );
+                    for ( UInt32 c=0; c<4 && valuesRight; ++c )
+                        valuesRight = abs( (Int32) decoded[ c ] - (Int32) expected[ c ] ) <= 1;
+                    if ( !valuesRight )
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PNG variant " << variant.name << ": the texel " << x << "," << y << " is wrong" );
+                }
+            ASSERT_TRUE( valuesRight );
+        }
+
+        // image data that does not match the CRC of its IDAT chunk and the Adler-32 of its zlib stream, as when bytes of the
+        // file were changed after it was written: refused with the reason, not read as a picture
+        TBytes damaged = MakeVariantPng( 64, 64, 6, 8, false, 8192 );
+        const size_t firstScanByte = 8 + 25 + 8 + 2 + 5;     // signature, IHDR, IDAT length and type, zlib header, stored block header
+        damaged[ firstScanByte + 100 ] ^= 0x5A;
+        ASSERT_TRUE( StoreBytes( "work/pngvariants/src/damaged.png", damaged ) );
+        IMAGE::TPixelMapPtr picture;
+        CORE::CString problem;
+        ASSERT_FALSE( CTextureBaker::LoadPicture( "work/pngvariants/src/damaged.png", picture, problem ) );
+        if ( problem.HasSubstr( "cannot decode" ) < 0 )
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Damaged PNG: " << problem );
+        ASSERT_TRUE( problem.HasSubstr( "cannot decode" ) >= 0 );
     }
     catch ( ... )
     {

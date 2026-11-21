@@ -952,6 +952,20 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData      ,
 
             if ( FIT_BITMAP == fit )
             {
+                if ( ( bpp <= 8 ) && FreeImage_IsTransparent( dib ) )
+                {
+                    /* a palette or grey picture with transparency (a PNG tRNS chunk): RGBA keeps the alpha of every entry,
+                       which the conversions to 8 or 24 bits below would drop */
+                    FIBITMAP* newDIB = FreeImage_ConvertTo32Bits( dib );
+                    if ( NULL != newDIB )
+                    {
+                        FreeImage_Unload( dib );
+                        dib = newDIB;
+                        colourType = FreeImage_GetColorType( dib );
+                        bpp = FreeImage_GetBPP( dib );
+                    }
+                }
+
                 if ( bpp < 8 )
                 {
 				    /* we do not support a format that has less that 8 bits per pixel */

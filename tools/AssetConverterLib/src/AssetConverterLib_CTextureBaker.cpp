@@ -39,6 +39,16 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CCODECREGISTRY_H
+#include "CCodecRegistry.h"
+#define GUCEF_CORE_CCODECREGISTRY_H
+#endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
+
 #ifndef GUCEF_VFS_CVFSGLOBAL_H
 #include "gucefVFS_CVfsGlobal.h"
 #define GUCEF_VFS_CVFSGLOBAL_H
@@ -199,8 +209,18 @@ CTextureBaker::LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& p
     IMAGE::CImage image;
     if ( !image.Load( *resource->GetAccess(), extension, true, false ) || !image.HasFrames() )
     {
+        // CImage::Load uses a codec of the image codec registry, else one of the image codec family of the codec registry
+        // (a plugin loaded on the basic codec interface): with a codec in either, the file is one the codec cannot decode
         IMAGE::CImageCodecRegistry::TImageCodecPtr codec;
-        if ( !IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry().TryLookup( extension, codec, false ) )
+        bool haveCodec = IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry().TryLookup( extension, codec, false );
+        if ( !haveCodec )
+        {
+            CORE::CCodecRegistry::TCodecFamilyRegistryPtr family;
+            CORE::CCodecRegistry::TICodecPtr basicCodec;
+            haveCodec = CORE::CCoreGlobal::Instance()->GetCodecRegistry().TryLookup( IMAGE::CPngImageCodec::CodecFamilyName, family, false ) &&
+                        !family.IsNULL() && family->TryLookup( extension, basicCodec, false );
+        }
+        if ( !haveCodec )
             problem = "no image codec for ." + extension + " is loaded";
         else
             problem = "the image codec for ." + extension + " cannot decode the file (damaged, or a variant it does not support)";
