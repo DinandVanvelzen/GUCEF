@@ -469,11 +469,14 @@ DSTOREPLUG_Dest_File_Close( void** plugdata ,
             fd->jsonDoc = fd->currentJsonNode = GUCEF_NULL;
 
            /*
-            *   the json_measure and json_serialize functions include a null terminator
-            *   When writing to a file type media it is not appropriote to include a null terminator
+            *   json_measure() is an upper bound of the text, not its length: it counts room for a ".0" after every
+            *   number, which json_serialize() only writes when the number's text has no fraction or exponent. The
+            *   text ends at the null terminator json_serialize() writes; writing the measured size would put that
+            *   null and the bytes of the buffer behind it (uninitialised memory) after the text. The text holds no
+            *   other null: every string and name of the document is made from a null terminated string.
+            *   When writing to a file type media it is not appropriate to include the null terminator
             */
-           if ( measured > 0 )
-                --measured;
+            measured = strlen( serializationBuffer );
 
             fd->fptr->write( fd->fptr, serializationBuffer, 1, (UInt32) measured );
             fd->fptr->close( fd->fptr );
