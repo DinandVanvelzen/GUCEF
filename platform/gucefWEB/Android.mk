@@ -25,14 +25,23 @@ LOCAL_SRC_FILES := \
   src/gucefWEB.cpp \
   src/gucefWEB_CAsyncHttpServerRequestHandler.cpp \
   src/gucefWEB_CAsyncHttpServerResponseHandler.cpp \
+  src/gucefWEB_CBrowserDownloadCapture.cpp \
+  src/gucefWEB_CBrowserDownloadResult.cpp \
+  src/gucefWEB_CBrowserDownloadSettings.cpp \
+  src/gucefWEB_CChromeBrowserLocator.cpp \
   src/gucefWEB_CChromeDevToolsClient.cpp \
+  src/gucefWEB_CChromeNetworkRecorder.cpp \
   src/gucefWEB_CCodecBasedHTTPServerResource.cpp \
   src/gucefWEB_CConfigurableHttpServerResource.cpp \
+  src/gucefWEB_CControlInfo.cpp \
   src/gucefWEB_CDataNodeSerializableHttpServerResource.cpp \
   src/gucefWEB_CDefaultHTTPServerResource.cpp \
   src/gucefWEB_CDefaultHTTPServerRouter.cpp \
   src/gucefWEB_CDefaultHTTPServerRouterController.cpp \
   src/gucefWEB_CDefaultHttpServerRequestHandler.cpp \
+  src/gucefWEB_CDevToolsBrowser.cpp \
+  src/gucefWEB_CDevToolsPage.cpp \
+  src/gucefWEB_CDiscoveredEndpoint.cpp \
   src/gucefWEB_CDummyHTTPServerResource.cpp \
   src/gucefWEB_CGlobalHttpCodecLinks.cpp \
   src/gucefWEB_CHTTPClient.cpp \
@@ -58,6 +67,9 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CIHttpClientBackend.cpp \
   src/gucefWEB_CIHttpServerRequestHandler.cpp \
   src/gucefWEB_CIMcpHttpAuthenticator.cpp \
+  src/gucefWEB_CIWebObservationSink.cpp \
+  src/gucefWEB_CIWebResponseSink.cpp \
+  src/gucefWEB_CIWebSessionEndedCheck.cpp \
   src/gucefWEB_CIWebViewEngineLoop.cpp \
   src/gucefWEB_CIWebViewPresenter.cpp \
   src/gucefWEB_CIrcWebSocketTransport.cpp \
@@ -69,7 +81,19 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CMcpStreamableHttpTransport.cpp \
   src/gucefWEB_CModule.cpp \
   src/gucefWEB_CNativeHttpClientBackend.cpp \
+  src/gucefWEB_CNavigationGuard.cpp \
+  src/gucefWEB_CNavigationGuardSettings.cpp \
+  src/gucefWEB_CNavigationRefusal.cpp \
+  src/gucefWEB_CNavigationRule.cpp \
+  src/gucefWEB_CObservedResponseBody.cpp \
+  src/gucefWEB_CObservedUserAction.cpp \
+  src/gucefWEB_CObservedWebRequest.cpp \
   src/gucefWEB_CServiceHealthHttpEndpoints.cpp \
+  src/gucefWEB_CSiteDiscoveryJournal.cpp \
+  src/gucefWEB_CSiteDiscoveryRedactor.cpp \
+  src/gucefWEB_CSiteDiscoverySession.cpp \
+  src/gucefWEB_CSiteDiscoverySettings.cpp \
+  src/gucefWEB_CSiteEndpointCatalog.cpp \
   src/gucefWEB_CSseEventWriter.cpp \
   src/gucefWEB_CStdParamParser.cpp \
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp \
@@ -77,8 +101,21 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CTReadableMapIndexHttpServerResource.cpp \
   src/gucefWEB_CTaskDataCollectionServerResource.cpp \
   src/gucefWEB_CTaskManagerServerResource.cpp \
+  src/gucefWEB_CUrlPathTemplate.cpp \
+  src/gucefWEB_CUserActionTracker.cpp \
   src/gucefWEB_CVfsHttpServerResource.cpp \
+  src/gucefWEB_CWebBodyShape.cpp \
   src/gucefWEB_CWebGlobal.cpp \
+  src/gucefWEB_CWebJson.cpp \
+  src/gucefWEB_CWebLoginScript.cpp \
+  src/gucefWEB_CWebLoginScriptCondition.cpp \
+  src/gucefWEB_CWebLoginScriptStep.cpp \
+  src/gucefWEB_CWebPageScriptHelpers.cpp \
+  src/gucefWEB_CWebResponseTap.cpp \
+  src/gucefWEB_CWebSessionEndedCheck.cpp \
+  src/gucefWEB_CWebSignInBrowserSettings.cpp \
+  src/gucefWEB_CWebSignInEventData.cpp \
+  src/gucefWEB_CWebSignInResult.cpp \
   src/gucefWEB_CWebSocketClient.cpp \
   src/gucefWEB_CWebSocketConnection.cpp \
   src/gucefWEB_CWebSocketFrameCodec.cpp \

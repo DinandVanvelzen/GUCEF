@@ -152,7 +152,7 @@ IsColour( const UInt8* pixel, UInt8 r, UInt8 g, UInt8 b, Int32 tolerance = 2 )
 }
 
 /*
- *  The page queries of a sign-in, as the sign-in builds them (gucefASSETSTORE CWebPageScriptHelpers): fixed functions
+ *  The page queries of a sign-in, as the sign-in builds them (CWebPageScriptHelpers): fixed functions
  *  with one string literal argument. The fake engine knows them by their text, as a real engine runs them.
  */
 

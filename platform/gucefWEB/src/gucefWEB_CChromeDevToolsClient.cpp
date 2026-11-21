@@ -183,6 +183,7 @@ CChromeDevToolsClient::CChromeDevToolsClient( void )
     , m_discoverySucceeded( false )
     , m_waitingForDiscovery( false )
     , m_commandTimeoutInMs( 30000 )
+    , m_sessionId()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -212,6 +213,7 @@ CChromeDevToolsClient::CChromeDevToolsClient( const CORE::PulseGeneratorPtr& pul
     , m_discoverySucceeded( false )
     , m_waitingForDiscovery( false )
     , m_commandTimeoutInMs( 30000 )
+    , m_sessionId()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -505,10 +507,55 @@ void
 CChromeDevToolsClient::SetSessionId( const CORE::CString& sessionId )
 {GUCEF_TRACE;
 
+    m_sessionId = sessionId;
     if ( sessionId.IsNULLOrEmpty() )
         m_rpcClient.SetOutgoingCallField( CORE::CString::Empty, CORE::CVariant() );
     else
         m_rpcClient.SetOutgoingCallField( "sessionId", CORE::CVariant( sessionId ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CChromeDevToolsClient::GetSessionId( void ) const
+{GUCEF_TRACE;
+
+    return m_sessionId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::SendCommandOnSession( const CORE::CString& sessionId ,
+                                             const CORE::CString& method    ,
+                                             const CORE::CDataNode* params  ,
+                                             UInt64& commandId              )
+{GUCEF_TRACE;
+
+    // the session in use is put back, this may run inside an event that arrived while someone else waits for an answer
+    const CORE::CString previous = m_sessionId;
+    SetSessionId( sessionId );
+    const bool sent = SendCommand( method, params, commandId );
+    SetSessionId( previous );
+    return sent;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::SendCommandOnSessionAndWait( const CORE::CString& sessionId ,
+                                                    const CORE::CString& method    ,
+                                                    const CORE::CDataNode* params  ,
+                                                    CORE::CDataNode& result        ,
+                                                    COM::SJsonRpcError* error      ,
+                                                    UInt32 timeoutInMs             )
+{GUCEF_TRACE;
+
+    const CORE::CString previous = m_sessionId;
+    SetSessionId( sessionId );
+    const bool ok = SendCommandAndWait( method, params, result, error, timeoutInMs );
+    SetSessionId( previous );
+    return ok;
 }
 
 /*-------------------------------------------------------------------------*/

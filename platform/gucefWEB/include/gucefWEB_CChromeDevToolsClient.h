@@ -202,6 +202,26 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
      */
     void SetSessionId( const CORE::CString& sessionId );
 
+    /** The session commands are directed to, empty for the target we are connected to */
+    const CORE::CString& GetSessionId( void ) const;
+
+    /**
+     *  Sends a command on the given session without waiting for its answer, and puts back the session that was in use.
+     *  Safe inside the handler of a protocol event that arrived while another command waits for its answer
+     */
+    bool SendCommandOnSession( const CORE::CString& sessionId ,
+                               const CORE::CString& method    ,
+                               const CORE::CDataNode* params  ,
+                               UInt64& commandId              );
+
+    /** SendCommandAndWait() on the given session; the session that was in use is put back afterwards */
+    bool SendCommandOnSessionAndWait( const CORE::CString& sessionId          ,
+                                      const CORE::CString& method             ,
+                                      const CORE::CDataNode* params           ,
+                                      CORE::CDataNode& result                 ,
+                                      COM::SJsonRpcError* error = GUCEF_NULL  ,
+                                      UInt32 timeoutInMs = 30000              );
+
     /** The JSON-RPC client commands go through, for access to anything this class does not wrap */
     CJsonRpcClient& GetRpcClient( void );
 
@@ -345,6 +365,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     bool m_discoverySucceeded;
     bool m_waitingForDiscovery;
     UInt32 m_commandTimeoutInMs;
+    CORE::CString m_sessionId;
 };
 
 /*-------------------------------------------------------------------------//

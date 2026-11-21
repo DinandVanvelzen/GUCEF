@@ -21,9 +21,11 @@ LOCAL_MODULE := gucefWEB_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestBrowserAutomation.cpp \
   src/TestChromeDevTools.cpp \
   src/TestCode_CHTTPClient.cpp \
   src/TestCode_CHTTPServer.cpp \
+  src/TestFakeDevToolsBrowser.cpp \
   src/TestFakeWebSite.cpp \
   src/TestFakeWebView.cpp \
   src/TestFakeWebViewEngine.cpp \
@@ -31,12 +33,16 @@ LOCAL_SRC_FILES := \
   src/TestHttpHeaderParsing.cpp \
   src/TestHttpLogRedaction.cpp \
   src/TestHttpRedaction.cpp \
+  src/TestHttpResponseSizes.cpp \
   src/TestHttpServerBind.cpp \
   src/TestHttpServerBody.cpp \
   src/TestIrcWebSocket.cpp \
   src/TestJsonRpcWebSocket.cpp \
   src/TestMcpStreamableHttp.cpp \
+  src/TestRealBrowser.cpp \
   src/TestServiceHealthHttpEndpoints.cpp \
+  src/TestSiteDiscovery.cpp \
+  src/TestWebLoginScript.cpp \
   src/TestWebSocket.cpp \
   src/TestWebSocketCodec.cpp \
   src/TestWebViewConformance.cpp \

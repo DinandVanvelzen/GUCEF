@@ -15,14 +15,23 @@ set( HEADER_FILES
   include/gucefWEB.h
   include/gucefWEB_CAsyncHttpServerRequestHandler.h
   include/gucefWEB_CAsyncHttpServerResponseHandler.h
+  include/gucefWEB_CBrowserDownloadCapture.h
+  include/gucefWEB_CBrowserDownloadResult.h
+  include/gucefWEB_CBrowserDownloadSettings.h
+  include/gucefWEB_CChromeBrowserLocator.h
   include/gucefWEB_CChromeDevToolsClient.h
+  include/gucefWEB_CChromeNetworkRecorder.h
   include/gucefWEB_CCodecBasedHTTPServerResource.h
   include/gucefWEB_CConfigurableHttpServerResource.h
+  include/gucefWEB_CControlInfo.h
   include/gucefWEB_CDataNodeSerializableHttpServerResource.h
   include/gucefWEB_CDefaultHTTPServerResource.h
   include/gucefWEB_CDefaultHTTPServerRouter.h
   include/gucefWEB_CDefaultHTTPServerRouterController.h
   include/gucefWEB_CDefaultHttpServerRequestHandler.h
+  include/gucefWEB_CDevToolsBrowser.h
+  include/gucefWEB_CDevToolsPage.h
+  include/gucefWEB_CDiscoveredEndpoint.h
   include/gucefWEB_CDummyHTTPServerResource.h
   include/gucefWEB_CGlobalHttpCodecLinks.h
   include/gucefWEB_CHTTPClient.h
@@ -49,6 +58,9 @@ set( HEADER_FILES
   include/gucefWEB_CIHttpRequestTakeoverHandler.h
   include/gucefWEB_CIHttpServerRequestHandler.h
   include/gucefWEB_CIMcpHttpAuthenticator.h
+  include/gucefWEB_CIWebObservationSink.h
+  include/gucefWEB_CIWebResponseSink.h
+  include/gucefWEB_CIWebSessionEndedCheck.h
   include/gucefWEB_CIWebSocketUpgradeHandler.h
   include/gucefWEB_CIWebViewEngineLoop.h
   include/gucefWEB_CIWebViewPresenter.h
@@ -61,7 +73,19 @@ set( HEADER_FILES
   include/gucefWEB_CMcpStreamableHttpTransport.h
   include/gucefWEB_CModule.h
   include/gucefWEB_CNativeHttpClientBackend.h
+  include/gucefWEB_CNavigationGuard.h
+  include/gucefWEB_CNavigationGuardSettings.h
+  include/gucefWEB_CNavigationRefusal.h
+  include/gucefWEB_CNavigationRule.h
+  include/gucefWEB_CObservedResponseBody.h
+  include/gucefWEB_CObservedUserAction.h
+  include/gucefWEB_CObservedWebRequest.h
   include/gucefWEB_CServiceHealthHttpEndpoints.h
+  include/gucefWEB_CSiteDiscoveryJournal.h
+  include/gucefWEB_CSiteDiscoveryRedactor.h
+  include/gucefWEB_CSiteDiscoverySession.h
+  include/gucefWEB_CSiteDiscoverySettings.h
+  include/gucefWEB_CSiteEndpointCatalog.h
   include/gucefWEB_CSseEventWriter.h
   include/gucefWEB_CStdParamParser.h
   include/gucefWEB_CTConfigurableMapHttpServerResource.h
@@ -70,8 +94,21 @@ set( HEADER_FILES
   include/gucefWEB_CTReadableMapIndexHttpServerResource.h
   include/gucefWEB_CTaskDataCollectionServerResource.h
   include/gucefWEB_CTaskManagerServerResource.h
+  include/gucefWEB_CUrlPathTemplate.h
+  include/gucefWEB_CUserActionTracker.h
   include/gucefWEB_CVfsHttpServerResource.h
+  include/gucefWEB_CWebBodyShape.h
   include/gucefWEB_CWebGlobal.h
+  include/gucefWEB_CWebJson.h
+  include/gucefWEB_CWebLoginScript.h
+  include/gucefWEB_CWebLoginScriptCondition.h
+  include/gucefWEB_CWebLoginScriptStep.h
+  include/gucefWEB_CWebPageScriptHelpers.h
+  include/gucefWEB_CWebResponseTap.h
+  include/gucefWEB_CWebSessionEndedCheck.h
+  include/gucefWEB_CWebSignInBrowserSettings.h
+  include/gucefWEB_CWebSignInEventData.h
+  include/gucefWEB_CWebSignInResult.h
   include/gucefWEB_CWebSocketClient.h
   include/gucefWEB_CWebSocketConnection.h
   include/gucefWEB_CWebSocketFrameCodec.h
@@ -127,14 +164,23 @@ set( SOURCE_FILES
   src/gucefWEB.cpp
   src/gucefWEB_CAsyncHttpServerRequestHandler.cpp
   src/gucefWEB_CAsyncHttpServerResponseHandler.cpp
+  src/gucefWEB_CBrowserDownloadCapture.cpp
+  src/gucefWEB_CBrowserDownloadResult.cpp
+  src/gucefWEB_CBrowserDownloadSettings.cpp
+  src/gucefWEB_CChromeBrowserLocator.cpp
   src/gucefWEB_CChromeDevToolsClient.cpp
+  src/gucefWEB_CChromeNetworkRecorder.cpp
   src/gucefWEB_CCodecBasedHTTPServerResource.cpp
   src/gucefWEB_CConfigurableHttpServerResource.cpp
+  src/gucefWEB_CControlInfo.cpp
   src/gucefWEB_CDataNodeSerializableHttpServerResource.cpp
   src/gucefWEB_CDefaultHTTPServerResource.cpp
   src/gucefWEB_CDefaultHTTPServerRouter.cpp
   src/gucefWEB_CDefaultHTTPServerRouterController.cpp
   src/gucefWEB_CDefaultHttpServerRequestHandler.cpp
+  src/gucefWEB_CDevToolsBrowser.cpp
+  src/gucefWEB_CDevToolsPage.cpp
+  src/gucefWEB_CDiscoveredEndpoint.cpp
   src/gucefWEB_CDummyHTTPServerResource.cpp
   src/gucefWEB_CGlobalHttpCodecLinks.cpp
   src/gucefWEB_CHTTPClient.cpp
@@ -160,6 +206,9 @@ set( SOURCE_FILES
   src/gucefWEB_CIHttpClientBackend.cpp
   src/gucefWEB_CIHttpServerRequestHandler.cpp
   src/gucefWEB_CIMcpHttpAuthenticator.cpp
+  src/gucefWEB_CIWebObservationSink.cpp
+  src/gucefWEB_CIWebResponseSink.cpp
+  src/gucefWEB_CIWebSessionEndedCheck.cpp
   src/gucefWEB_CIWebViewEngineLoop.cpp
   src/gucefWEB_CIWebViewPresenter.cpp
   src/gucefWEB_CIrcWebSocketTransport.cpp
@@ -171,7 +220,19 @@ set( SOURCE_FILES
   src/gucefWEB_CMcpStreamableHttpTransport.cpp
   src/gucefWEB_CModule.cpp
   src/gucefWEB_CNativeHttpClientBackend.cpp
+  src/gucefWEB_CNavigationGuard.cpp
+  src/gucefWEB_CNavigationGuardSettings.cpp
+  src/gucefWEB_CNavigationRefusal.cpp
+  src/gucefWEB_CNavigationRule.cpp
+  src/gucefWEB_CObservedResponseBody.cpp
+  src/gucefWEB_CObservedUserAction.cpp
+  src/gucefWEB_CObservedWebRequest.cpp
   src/gucefWEB_CServiceHealthHttpEndpoints.cpp
+  src/gucefWEB_CSiteDiscoveryJournal.cpp
+  src/gucefWEB_CSiteDiscoveryRedactor.cpp
+  src/gucefWEB_CSiteDiscoverySession.cpp
+  src/gucefWEB_CSiteDiscoverySettings.cpp
+  src/gucefWEB_CSiteEndpointCatalog.cpp
   src/gucefWEB_CSseEventWriter.cpp
   src/gucefWEB_CStdParamParser.cpp
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp
@@ -179,8 +240,21 @@ set( SOURCE_FILES
   src/gucefWEB_CTReadableMapIndexHttpServerResource.cpp
   src/gucefWEB_CTaskDataCollectionServerResource.cpp
   src/gucefWEB_CTaskManagerServerResource.cpp
+  src/gucefWEB_CUrlPathTemplate.cpp
+  src/gucefWEB_CUserActionTracker.cpp
   src/gucefWEB_CVfsHttpServerResource.cpp
+  src/gucefWEB_CWebBodyShape.cpp
   src/gucefWEB_CWebGlobal.cpp
+  src/gucefWEB_CWebJson.cpp
+  src/gucefWEB_CWebLoginScript.cpp
+  src/gucefWEB_CWebLoginScriptCondition.cpp
+  src/gucefWEB_CWebLoginScriptStep.cpp
+  src/gucefWEB_CWebPageScriptHelpers.cpp
+  src/gucefWEB_CWebResponseTap.cpp
+  src/gucefWEB_CWebSessionEndedCheck.cpp
+  src/gucefWEB_CWebSignInBrowserSettings.cpp
+  src/gucefWEB_CWebSignInEventData.cpp
+  src/gucefWEB_CWebSignInResult.cpp
   src/gucefWEB_CWebSocketClient.cpp
   src/gucefWEB_CWebSocketConnection.cpp
   src/gucefWEB_CWebSocketFrameCodec.cpp

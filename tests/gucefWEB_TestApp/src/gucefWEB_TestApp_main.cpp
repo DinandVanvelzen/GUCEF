@@ -92,6 +92,21 @@
 #define GUCEF_WEB_TESTAPP_TESTCHROMEDEVTOOLS_H
 #endif /* GUCEF_WEB_TESTAPP_TESTCHROMEDEVTOOLS_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTSITEDISCOVERY_H
+#include "TestSiteDiscovery.h"
+#define GUCEF_WEB_TESTAPP_TESTSITEDISCOVERY_H
+#endif /* GUCEF_WEB_TESTAPP_TESTSITEDISCOVERY_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTBROWSERAUTOMATION_H
+#include "TestBrowserAutomation.h"
+#define GUCEF_WEB_TESTAPP_TESTBROWSERAUTOMATION_H
+#endif /* GUCEF_WEB_TESTAPP_TESTBROWSERAUTOMATION_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTREALBROWSER_H
+#include "TestRealBrowser.h"
+#define GUCEF_WEB_TESTAPP_TESTREALBROWSER_H
+#endif /* GUCEF_WEB_TESTAPP_TESTREALBROWSER_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
 #include "TestHttpClient.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
@@ -122,6 +137,11 @@
 #define GUCEF_WEB_TESTAPP_TESTHTTPSERVERBODY_H
 #endif /* GUCEF_WEB_TESTAPP_TESTHTTPSERVERBODY_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPRESPONSESIZES_H
+#include "TestHttpResponseSizes.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPRESPONSESIZES_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPRESPONSESIZES_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTMCPSTREAMABLEHTTP_H
 #include "TestMcpStreamableHttp.h"
 #define GUCEF_WEB_TESTAPP_TESTMCPSTREAMABLEHTTP_H
@@ -136,6 +156,11 @@
 #include "TestServiceHealthHttpEndpoints.h"
 #define GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H
 #endif /* GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTWEBLOGINSCRIPT_H
+#include "TestWebLoginScript.h"
+#define GUCEF_WEB_TESTAPP_TESTWEBLOGINSCRIPT_H
+#endif /* GUCEF_WEB_TESTAPP_TESTWEBLOGINSCRIPT_H ? */
 
 #ifndef GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
 #include "TestWebViewSuites.h"
@@ -220,15 +245,20 @@ GUCEF_OSMAIN_BEGIN
         PerformWebSocketTests();
         PerformJsonRpcWebSocketTests();
         PerformChromeDevToolsTests();
+        PerformSiteDiscoveryTests();
+        PerformBrowserAutomationTests();
+        PerformRealBrowserTests();
         PerformHttpRedactionTests();
         PerformHttpLogRedactionTests();
         PerformHttpClientTests();
         PerformHttpServerBindTests();
         PerformHttpServerBodyTests();
+        PerformHttpResponseSizeTests();
         PerformMcpStreamableHttpTests();
         PerformHttpHeaderParsingTests();
         PerformIrcWebSocketTests();
         PerformServiceHealthHttpEndpointsTests();
+        PerformWebLoginScriptTests();
 
         // the web views: the engines of the bootstrap of a real application, each allowed to be absent
         WEB::CWebViewGlobal::Instance()->SetApplicationName( "gucefWEB_TestApp" );
