@@ -68,32 +68,12 @@ static const UInt32 codecCount = sizeof( supportedTypes ) / sizeof(char*); // 31
 
 /*---------------------------------------------------------------------------*/
 
-static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamEncode( void* plugdata, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamDecode( void* pluginData, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 
-/* The codec link API: codecData is the type name, the image codec API below is called with it */
-static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
-ImageCodecLinkEncode( void* pluginData                   ,
-                      void* codecData                    ,
-                      const TVariantMapApi* params    ,
-                      TIOAccess* input                ,
-                      TIOAccess* output               ,
-                      TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    if ( 0 != ImageStreamEncode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
-        return GUCEF_CODEC_STATUS_OK;
-    if ( NULL != error )
-    {
-        strncpy( error->message, "Unable to encode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
-        error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
-    }
-    return GUCEF_CODEC_STATUS_FAILED;
-}
-
-/*---------------------------------------------------------------------------*/
-
+/* The codec link API: codecData is the type name, the image codec API below is called with it.
+   Encoding is not offered: the plugin neither advertises it nor provides an encode function */
 static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
 ImageCodecLinkDecode( void* pluginData                   ,
                       void* codecData                    ,
@@ -135,8 +115,8 @@ BuildCodecLinks( void )
         codecLinks[ i ].codecFamily = "ImageCodec";
         codecLinks[ i ].codecType = supportedTypes[ i ];
         codecLinks[ i ].codecData = (void*) supportedTypes[ i ];
-        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
-        codecLinks[ i ].encode = ImageCodecLinkEncode;
+        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_DECODE;
+        codecLinks[ i ].encode = NULL;
         codecLinks[ i ].decode = ImageCodecLinkDecode;
     }
     return GUCEF_CODEC_STATUS_OK;
@@ -208,20 +188,6 @@ CODECPLUGIN_Version( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     version.release = IMGPLUGIN_ITV_RELEASE_VERSION;
 
     return version;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-ImageStreamEncode( void* plugdata         ,
-                    void* codecData        ,
-                    const char* familyType ,
-                    const char* codecType  ,
-                    TIOAccess* input       ,
-                    TIOAccess* output      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    /* Saving images is not supported atm */
-    return 0;
 }
 
 /*---------------------------------------------------------------------------*/

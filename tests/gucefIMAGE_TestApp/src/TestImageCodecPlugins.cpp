@@ -60,7 +60,7 @@ using namespace GUCEF;
 /*-------------------------------------------------------------------------*/
 
 static bool
-LoadImageCodecPlugin( const CORE::CString& pluginName )
+LoadImageCodecPlugin( const CORE::CString& pluginName, const CORE::CString& groupName = "imagecodecplugintests" )
 {GUCEF_TRACE;
 
     CORE::CPluginMetaData pluginMetaData;
@@ -71,7 +71,7 @@ LoadImageCodecPlugin( const CORE::CString& pluginName )
     pluginMetaData.SetAllLinkBackModules( "gucefCORE,gucefIMAGE" );
 
     CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
-    return pluginControl.AddPluginMetaData( pluginMetaData, "imagecodecplugintests", true, true );
+    return pluginControl.AddPluginMetaData( pluginMetaData, groupName, true, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -328,6 +328,75 @@ TestImageLoadWithMetaDataAndSavePng( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** Whether the codec of a type that a plugin provides advertises encoding exactly when it can encode */
+static void
+CheckEncodeCapabilityMatchesBehaviour( const CORE::CString& type, bool shouldEncode )
+{GUCEF_TRACE;
+
+    CORE::CCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
+    CORE::CCodecRegistry::TICodecPtrVector providers;
+    GUCEF_TESTFW_ASSERT_TRUE( codecRegistry.GetCodecs( "ImageCodec", type, providers ) && !providers.empty() );
+    if ( providers.empty() )
+        return;
+
+    CORE::CICodec* codec = providers[ 0 ].GetPointer();
+    GUCEF_TESTFW_ASSERT_TRUE( GUCEF_NULL != codec );
+    if ( GUCEF_NULL == codec )
+        return;
+
+    GUCEF_TESTFW_ASSERT_TRUE( 0 != ( codec->GetCapabilities() & GUCEF_CODEC_CAPABILITY_DECODE ) );
+    GUCEF_TESTFW_ASSERT_TRUE( shouldEncode == ( 0 != ( codec->GetCapabilities() & GUCEF_CODEC_CAPABILITY_ENCODE ) ) );
+
+    CORE::CDynamicBuffer input( 64, true );
+    CORE::CDynamicBufferAccess inputAccess( &input, false );
+    CORE::CDynamicBuffer output;
+    CORE::CDynamicBufferAccess outputAccess( &output, false );
+    CORE::CValueList params;
+    const bool encoded = codec->Encode( inputAccess, outputAccess, params );
+    if ( !shouldEncode )
+    {
+        GUCEF_TESTFW_ASSERT_FALSE( encoded );
+        GUCEF_TESTFW_ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_UNSUPPORTED == codec->GetLastStatus() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestImageCodecEncodeCapabilities( void )
+{GUCEF_TRACE;
+
+    // The FLIC and ITV plugins only decode and used to advertise encoding anyway
+    GUCEF_TESTFW_TESTCASE( "Image codec plugins advertise encoding only when they can encode" )
+        try
+        {
+            IMAGE::CImageGlobal::Instance();
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFLIC", "imagecodeccapabilitytests" ) );
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginITV", "imagecodeccapabilitytests" ) );
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage", "imagecodeccapabilitytests" ) );
+
+            CheckEncodeCapabilityMatchesBehaviour( "flic", false );
+            CheckEncodeCapabilityMatchesBehaviour( "itv19", false );
+            CheckEncodeCapabilityMatchesBehaviour( "itv1", false );
+            CheckEncodeCapabilityMatchesBehaviour( "itv5", false );
+
+            // the control: a plugin that does encode keeps advertising it
+            CORE::CCodecRegistry::TICodecPtrVector providers;
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetCodecRegistry().GetCodecs( "ImageCodec", "png", providers ) && !providers.empty() );
+            GUCEF_TESTFW_ASSERT_TRUE( !providers.empty() && 0 != ( providers[ 0 ]->GetCapabilities() & GUCEF_CODEC_CAPABILITY_ENCODE ) );
+            providers.clear();
+
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "imagecodeccapabilitytests" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformImageCodecPluginTests( void )
 {GUCEF_TRACE;
@@ -337,6 +406,7 @@ PerformImageCodecPluginTests( void )
     TestUnlinkedImageCodecPlugin();
     TestImageCodecPluginsOnTheCodecInterface();
     TestImageLoadWithMetaDataAndSavePng();
+    TestImageCodecEncodeCapabilities();
 }
 
 /*-------------------------------------------------------------------------*/

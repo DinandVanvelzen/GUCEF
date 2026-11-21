@@ -294,32 +294,12 @@ InitCodecList( void )
 
 /*---------------------------------------------------------------------------*/
 
-static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamEncode( void* plugdata, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamDecode( void* pluginData, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 
-/* The codec link API: codecData is the type name, the image codec API below is called with it */
-static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
-ImageCodecLinkEncode( void* pluginData                   ,
-                      void* codecData                    ,
-                      const TVariantMapApi* params    ,
-                      TIOAccess* input                ,
-                      TIOAccess* output               ,
-                      TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    if ( 0 != ImageStreamEncode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
-        return GUCEF_CODEC_STATUS_OK;
-    if ( NULL != error )
-    {
-        strncpy( error->message, "Unable to encode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
-        error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
-    }
-    return GUCEF_CODEC_STATUS_FAILED;
-}
-
-/*---------------------------------------------------------------------------*/
-
+/* The codec link API: codecData is the type name, the image codec API below is called with it.
+   Encoding is not offered: the plugin neither advertises it nor provides an encode function */
 static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
 ImageCodecLinkDecode( void* pluginData                   ,
                       void* codecData                    ,
@@ -361,8 +341,8 @@ BuildCodecLinks( void )
         codecLinks[ i ].codecFamily = codecFamily;
         codecLinks[ i ].codecType = supportedTypes[ i ];
         codecLinks[ i ].codecData = (void*) supportedTypes[ i ];
-        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
-        codecLinks[ i ].encode = ImageCodecLinkEncode;
+        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_DECODE;
+        codecLinks[ i ].encode = NULL;
         codecLinks[ i ].decode = ImageCodecLinkDecode;
     }
     return GUCEF_CODEC_STATUS_OK;
@@ -540,156 +520,6 @@ ConvertGUCEFTypeToILType( Int32 gucefType )
         case GUCEF_DATATYPE_INT32 : return IL_INT;
         default: return -1;
     }
-}
-
-/*---------------------------------------------------------------------------*/
-
-static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-ImageStreamEncode( void* plugdata         ,
-                    void* codecData        ,
-                    const char* familyType ,
-                    const char* codecType  ,
-                    TIOAccess* input       ,
-                    TIOAccess* output      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    UInt32 i=0, n=0, m=0, readBytes=0, imageBufferSize=0, pixeMapSize=0;
-    TImageInfo imageInfo;
-    TImageFrame* imageFrames = NULL;
-    TImageFrameInfo* imageFrameInfo = NULL;
-    TImageMipMapLevelInfo* mipInfo = NULL;
-    void* imageBuffer = NULL;
-    
-    /* input sanity check */
-    if ( ( NULL == familyType ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == output ) ) return 0;
-    
-    /* read the image header */    
-    readBytes = input->read( input, &imageInfo, sizeof( TImageInfo ), 1 );
-    
-    /* sanity check */
-    if ( ( readBytes != sizeof( TImageInfo ) )                  ||
-         ( imageInfo.version != GUCEF_IMAGE_TIMAGEINFO_VERSION ) ) 
-    {
-        return 0;
-    }
-
-    /* First we gather all information */    
-    imageFrames = (TImageFrame*) malloc( sizeof( TImageFrame ) * imageInfo.nrOfFramesInImage );
-    for ( i=0; i<imageInfo.nrOfFramesInImage; ++i )
-    {
-        /* read the frame header */
-        readBytes = input->read( input, &imageFrames[ i ].frameInfo, sizeof( TImageFrameInfo ), 1 );
-        
-        /* sanity check */
-        if ( ( readBytes != sizeof( TImageFrameInfo ) )                  ||
-             ( imageInfo.version != GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION ) ) 
-        {
-            free( imageFrames );
-            return 0;
-        }
-
-        /* read the frame's mipmap info */
-        imageFrameInfo = &imageFrames[ i ].frameInfo;
-        imageFrames[ i ].mipmapLevel = (TImageMipMapLevel*) malloc( sizeof( TImageMipMapLevel ) * imageFrameInfo->nrOfMipmapLevels );        
-        for ( n=0; n<imageFrameInfo->nrOfMipmapLevels; ++n )
-        {
-            /* get a shortcut */
-            mipInfo = &imageFrames[ i ].mipmapLevel[ n ].mipLevelInfo;
-            
-            /* read the mipmap header */
-            readBytes = input->read( input, &mipInfo, sizeof( TImageMipMapLevelInfo ), 1 );
-            
-            /* sanity check */
-            if ( ( readBytes != sizeof( TImageMipMapLevelInfo ) )                  ||
-                 ( imageInfo.version != GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION ) ) 
-            {
-                for ( m=0; m<imageInfo.nrOfFramesInImage; ++m ) free( imageFrames[ i ].mipmapLevel );
-                free( imageFrames );
-                return 0;
-            }            
-        }
-    }
-    
-    /* generate an image ID and make that ID the ID of the current image */
-    ilBindImage( ilGenImage() );
-
-    /* Only 1 layer is supported atm */
-    ilActiveLayer( 0 );
-
-    imageBuffer = malloc( 10240 );
-    imageBufferSize = 10240;
-    for ( i=0; i<imageInfo.nrOfFramesInImage; ++i )
-    {
-        /* activate the frame */
-        ilActiveImage( i );        
-        
-        imageFrameInfo = &imageFrames[ i ].frameInfo;
-        for ( n=0; n<imageFrameInfo->nrOfMipmapLevels; ++n )
-        {
-            /* activate the mip-map */
-            ilActiveMipmap( n );
-            
-            /* create a shortcut */
-            mipInfo = &imageFrames[ i ].mipmapLevel[ n ].mipLevelInfo;
-            
-            /* calculate the size of the pixel map */
-            pixeMapSize = ( GetPixelChannelSize( mipInfo->pixelComponentDataType ) * GetChannelCountForFormat( mipInfo->pixelStorageFormat ) ) * 
-                          ( mipInfo->frameWidth * mipInfo->frameHeight )                    ;
-                          
-            /* check if our local buffer is large enough to hold the pixel data */
-            if ( imageBufferSize < pixeMapSize )
-            {
-                imageBuffer = realloc( imageBuffer, pixeMapSize );
-                imageBufferSize = pixeMapSize;
-            }
-            
-            /* read the pixel map */
-            readBytes = input->read( input, imageBuffer, pixeMapSize, 1 );
-            
-            /* sanity check */
-            if ( readBytes != pixeMapSize )
-            {
-                for ( m=n; m<imageInfo.nrOfFramesInImage; ++m ) free( imageFrames[ i ].mipmapLevel );
-                free( imageFrames );    
-                imageFrames = NULL;
-                free( imageBuffer );
-                return 0;
-            }
-            
-            /* hand the data over to DevIL */
-            if ( IL_TRUE != ilTexImage( (ILuint)mipInfo->frameWidth                                                   ,
-                                        (ILuint)mipInfo->frameHeight                                                  ,
-                                        (ILuint)1                                                                     ,
-                                        (ILubyte) GetChannelCountForFormat( mipInfo->pixelStorageFormat )             ,
-                                        (ILenum)ConvertGUCEFPixelFormatToILPixelFormat( mipInfo->pixelStorageFormat ) ,
-                                        (ILenum)ConvertGUCEFTypeToILType( mipInfo->pixelComponentDataType )           ,
-                                        (void*)imageBuffer                                                            ) )
-            {
-                /* Failed to transfer the data over to DevIL */
-                for ( m=n; m<imageInfo.nrOfFramesInImage; ++m ) free( imageFrames[ i ].mipmapLevel );
-                free( imageFrames );    
-                imageFrames = NULL;
-                free( imageBuffer );
-                return 0;
-            }
-                        
-        }
-        free( imageFrames[ i ].mipmapLevel );
-        imageFrames[ i ].mipmapLevel = NULL;
-    }
-    free( imageFrames );    
-    imageFrames = NULL;
-    free( imageBuffer );
-    
-    /* now we can perform the actual save */
-    currentResource = output;
-    if ( IL_TRUE == ilSaveF( ilTypeFromExt( codecType ), output ) )
-    {
-        currentResource = NULL;
-        return 1;
-    }
-    
-    currentResource = NULL;
-    return 0;
 }
 
 /*---------------------------------------------------------------------------*/
