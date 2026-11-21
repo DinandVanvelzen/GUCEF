@@ -438,7 +438,13 @@ int Log2RoundUp(uint32 v) {
 }
 
 #define ALIGN_16(x) (((x)+15)&~15)
-#define COPY_64(d, s) {*(uint64*)(d) = *(uint64*)(s); }
+// DV edit: the 8 byte copies go through memcpy instead of a uint64 dereference. Match sources and destinations are not
+// 8 byte aligned, and a match may overlap its own output at any distance of 8 bytes or more. A uint64 dereference tells
+// the compiler both pointers are 8 byte aligned; with that, the loop vectorizer of GCC (-O3) takes the distance between
+// them as a multiple of 8, checks only those distances before it copies 32 bytes per step, and an overlapping match at a
+// distance of 25 to 31 bytes reads bytes that were not written yet. memcpy makes no alignment claim and compiles to the
+// same unaligned 8 byte move.
+#define COPY_64(d, s) { memcpy((d), (s), 8); }
 #define COPY_64_BYTES(d, s) {                                                 \
         _mm_storeu_si128((__m128i*)d + 0, _mm_loadu_si128((__m128i*)s + 0));  \
         _mm_storeu_si128((__m128i*)d + 1, _mm_loadu_si128((__m128i*)s + 1));  \
@@ -4011,7 +4017,7 @@ void Kraken_CopyWholeMatch(byte *dst, uint32 offset, size_t length) {
   byte *src = dst - offset;
   if (offset >= 8) {
     for (; i + 8 <= length; i += 8)
-      *(uint64*)(dst + i) = *(uint64*)(src + i);
+      COPY_64(dst + i, src + i); // DV edit: was a uint64 dereference, see COPY_64
   } 
   for (; i < length; i++)
     dst[i] = src[i];

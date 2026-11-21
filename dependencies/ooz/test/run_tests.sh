@@ -110,6 +110,47 @@ cmp -s o.bin payload600k.bin && ok || bad "stored stream of 3 blocks: output dif
 rm -f o.bin; expect_rc 0 "memset quantum" "$BIN" --in memset.oz --decompressed-size 1000 --out o.bin
 [ "$(tr -d 'A' < o.bin | wc -c)" = "0" ] && [ "$(stat -c %s o.bin)" = "1000" ] && ok || bad "memset quantum: wrong output"
 
+# ---- synthetic streams: LZ matches that overlap at any distance ----
+# One LZ quantum of the Kraken format, made by hand: 8 raw bytes, a 16 byte match 8 back, 2 literals, a 16 byte match 8
+# back, then a 137 byte match <distance> back. The distance is coded in the scaled offset form (1 or 2 extra bits), the
+# long match length in the length stream. Mode 1 has plain literals, mode 0 adds each literal to the byte at the last
+# offset. A long match that overlaps its own output at a distance that is not a multiple of 8 (9..15, 25..31) is copied
+# wrong when the copy loop is vectorized on the assumption that both pointers are 8 byte aligned.
+mk_lz() # <file> <mode 0|1> <distance 8..42>
+{
+    local offs=$(( 8 + $3 )) sh=1
+    [ "$offs" -ge 32 ] && sh=2
+    local cmd=$(( ( sh << 3 ) | ( ( offs >> sh ) - 8 ) ))
+    local bits=$(( ( offs & ( ( 1 << sh ) - 1 ) ) << ( 8 - sh ) ))
+    local chunk=$(( 0x80 | ( $2 << 3 ) ))
+    printf "\\x8c\\x06\\x00\\x00\\x1d\\x$(printf %02x $chunk)\\x00\\x1bABCDEFGH\\x00\\x00\\x02IJ\\x80\\x03\\x38\\x3a\\xfc\\x80\\x80\\x01\\x$(printf %02x $cmd)\\x80\\x01\\x78\\x$(printf %02x $bits)\\x80" > "$1"
+}
+lz_bytes=()
+lz_match() # <distance> <length>: appends a byte by byte copy to lz_bytes
+{
+    local k
+    for (( k=0; k<$2; k++ )); do lz_bytes+=( "${lz_bytes[${#lz_bytes[@]} - $1]}" ); done
+}
+lz_expected() # <file> <mode 0|1> <distance>: what mk_lz decodes to
+{
+    local n v
+    lz_bytes=( 65 66 67 68 69 70 71 72 )
+    lz_match 8 16
+    for n in 73 74; do
+        if [ "$2" = "0" ]; then lz_bytes+=( $(( ( n + lz_bytes[${#lz_bytes[@]} - 8] ) & 255 )) ); else lz_bytes+=( "$n" ); fi
+    done
+    lz_match 8 16
+    lz_match "$3" 137
+    for v in "${lz_bytes[@]}"; do printf "\\x$(printf %02x "$v")"; done > "$1"
+}
+for mode in 1 0; do
+    for dist in 8 9 12 15 16 17 24 25 28 31 32 33 40; do
+        mk_lz lz.oz "$mode" "$dist"; lz_expected lz.expect "$mode" "$dist"
+        rm -f o.bin; expect_rc 0 "LZ quantum mode $mode, match $dist back" "$BIN" --in lz.oz --decompressed-size 179 --out o.bin
+        cmp -s o.bin lz.expect && ok || bad "LZ quantum mode $mode, match $dist back: output differs"
+    done
+done
+
 # ---- synthetic streams: invalid ----
 rm -f o.bin
 expect_rc 4 "decompressed size larger than the stream" "$BIN" --in s1k.oz --decompressed-size 1001 --out o.bin

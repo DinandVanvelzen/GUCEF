@@ -41,7 +41,8 @@ Files
 -----
 COPYING                  GPL-3 text
 ModuleInfo.xml           module description (executable, only the header location gucefHeaders as dependency, define OOZ_EXTRACT_NO_MAIN)
-src/kraken.cpp           upstream decompressor (DV edit: the original command line part is left out of the build)
+src/kraken.cpp           upstream decompressor (DV edit: the original command line part is left out of the build, 8 byte
+                         copies through memcpy)
 src/bitknit.cpp          upstream, unmodified
 src/lzna.cpp             upstream, unmodified
 src/stdafx.h             upstream (DV edit: non-Windows branch)
@@ -52,8 +53,8 @@ Not taken from upstream: stdafx.cpp (empty precompiled header source), the Visua
 generated from ModuleInfo.xml), the test data (not needed), the original command line tool and its use of the
 vendor library (the part of kraken.cpp after Kraken_Decompress, left out by OOZ_EXTRACT_NO_MAIN).
 
-DV edit: changes to the upstream files (the decoding code is untouched)
----------------------------------------------------------------------
+DV edit: changes to the upstream files (the decoding logic is untouched)
+------------------------------------------------------------------------
 1. src/stdafx.h: the platform and the CPU are detected with the macros of the GUCEF platform header (GUCEF_PLATFORM,
    GUCEF_CPU_ARCHITECTURE); on a CPU other than x86 and x86-64 the build stops with an #error. The original content is
    kept as the Windows branch (GUCEF_PLATFORM_MSWIN). A branch for other platforms was added that includes the system
@@ -65,6 +66,13 @@ DV edit: changes to the upstream files (the decoding code is untouched)
    inside #ifndef OOZ_EXTRACT_NO_MAIN, so that the wrapper provides main. The module defines OOZ_EXTRACT_NO_MAIN.
 3. ModuleInfo.xml adds -fno-strict-aliasing (the decoder reads through casted pointers), -fno-aggressive-loop-optimizations
    (the initialisation of the LZNA tables in lzna.cpp loops past a table that GCC can see) and -msse2 for GCC and Clang.
+4. src/kraken.cpp: COPY_64 and the 8 byte loop of Kraken_CopyWholeMatch copy through memcpy instead of a uint64 pointer
+   dereference. The pointers of a match are not 8 byte aligned and a match may overlap its own output at any distance
+   of 8 or more. The dereference claims 8 byte alignment, and the loop vectorizer of GCC (seen with GCC 14 and 15 at -O3,
+   the release build) then takes the distance of an overlapping copy as a multiple of 8: it copies 32 bytes per step
+   where the distance is 25 to 31 bytes, so the match reads bytes that are not written yet and the output is corrupt
+   without any error (debug builds at -O0 are not affected). memcpy of 8 bytes compiles to the same unaligned move and
+   makes no alignment claim. The upstream commit named above has the dereference as well. The tests decode hand made LZ quanta with matches at such distances.
 Known limits of upstream, unchanged: it needs an x86 or x86-64 CPU (SSE2 intrinsics), and it was written for trusted
 input, see "Corrupt input" below.
 
@@ -128,8 +136,8 @@ Generated build files: projects/CMake/targets/GUCEF_exe_ooz_extract (cmake -G Ni
 -B common/bin/CBNINJA_ooz_exe_oz -DCMAKE_POLICY_VERSION_MINIMUM=3.5, then ninja -j2 -C common/bin/CBNINJA_ooz_exe_oz).
 The program builds as C++98.
 Tests: test/run_tests.sh [path of ooz_extract]. It needs bash, coreutils, xxd and grep. Synthetic tests build streams of stored and
-memset quanta of the format (no data files needed): usage, limits, I/O errors, truncated and invalid streams, the batch
-protocol with an interactive process (answers arrive per line), and a fuzz loop (OOZ_FUZZ_ITERATIONS, default 300) over
+memset quanta and hand made LZ quanta with overlapping matches (no data files needed): usage, limits, I/O errors,
+truncated and invalid streams, the batch protocol with an interactive process (answers arrive per line), and a fuzz loop (OOZ_FUZZ_ITERATIONS, default 300) over
 truncated and bit flipped streams, run under timeout. With OOZ_TEST_PACKAGE (and OOZ_TEST_ENTRY for an entry of a zip
 archive with stored entries) it also searches a file for a compressed buffer header (a container with the magic
 B7 75 63 62, method 3 (Oodle) and blocks of 256 KiB), decodes all its blocks through the batch
