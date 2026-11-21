@@ -28,6 +28,10 @@
 
 #include <assert.h>
 
+#if defined( _MSC_VER ) && ( _MSC_VER >= 1800 )
+#include <type_traits>
+#define GUCEF_CORE_SHAREDOBJ_DEFAULT_CTOR_CHECK 1
+#endif
 #ifndef GUCEF_CORE_CTBASICSHAREDPTR_H
 #include "CTBasicSharedPtr.h"
 #define GUCEF_CORE_CTBASICSHAREDPTR_H
@@ -318,6 +322,15 @@ class CTSharedObjCreator : public CTSharedPtrCreator< T, LockType >
 
     private:
 
+    #ifdef GUCEF_CORE_SHAREDOBJ_DEFAULT_CTOR_CHECK
+    // Member templates so that only the overload that is used gets instantiated. Members rather than a helper class
+    // so friend access to the constructor of T is retained
+    template< typename U >
+    static CTSharedPtr< T, LockType > CreateDefaultSharedObj( const std::true_type&, const U* );
+    template< typename U >
+    static CTSharedPtr< T, LockType > CreateDefaultSharedObj( const std::false_type&, const U* );
+    #endif
+
     CTSharedObjCreator( void ) GUCEF_DELETED_MEMBER;                                       /**< dont use */
     CTSharedObjCreator( const CTSharedObjCreator& src ) GUCEF_DELETED_MEMBER;              /**< dont use */
     CTSharedObjCreator& operator=( const CTSharedObjCreator& src ) GUCEF_DELETED_MEMBER;   /**< dont use */
@@ -595,6 +608,35 @@ operator!=( const Int64 ptr, const CTSharedPtr< T, LockType >& other )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_NULLPTR_IS_SUPPORTED
+
+/*
+ *  GUCEF_NULL on the left hand side: without these overloads the nullptr_t overloads of the CTBasicSharedPtr base
+ *  and the const void* overloads above are ambiguous for a CTSharedPtr
+ */
+
+template< typename T, class LockType >
+inline bool
+operator==( std::nullptr_t, const CTSharedPtr< T, LockType >& other )
+{GUCEF_TRACE;
+
+    return other.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+inline bool
+operator!=( std::nullptr_t, const CTSharedPtr< T, LockType >& other )
+{GUCEF_TRACE;
+
+    return !other.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_NULLPTR_IS_SUPPORTED ? */
+
 template< typename T, class LockType >
 inline T&
 CTSharedPtr< T, LockType >::operator*( void )
@@ -722,6 +764,39 @@ CTSharedPtrCreator< T, LockType >::~CTSharedPtrCreator( void )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_CORE_SHAREDOBJ_DEFAULT_CTOR_CHECK
+
+/**
+ *  MSVC instantiates every member of a class template base when a class deriving from it is dllexport'ed,
+ *  including CreateSharedObj() for types that have no default constructor or are abstract.
+ *  These overloads allow CreateSharedObj() to compile for such types, in which case it yields an empty pointer.
+ */
+template< typename T, class LockType >
+template< typename U >
+CTSharedPtr< T, LockType >
+CTSharedObjCreator< T, LockType >::CreateDefaultSharedObj( const std::false_type&, const U* )
+{GUCEF_TRACE;
+
+    return CTSharedPtr< T, LockType >();
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+template< typename U >
+CTSharedPtr< T, LockType >
+CTSharedObjCreator< T, LockType >::CreateDefaultSharedObj( const std::true_type&, const U* )
+{GUCEF_TRACE;
+
+    return CTSharedPtr< T, LockType >( static_cast< CTBasicSharedPtrCreator< T, LockType, T >* >( ( GUCEF_NEW T() ) )->CreateBasicSharedPtr() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_CORE_SHAREDOBJ_DEFAULT_CTOR_CHECK ? */
+
+/*-------------------------------------------------------------------------*/
+
 template< typename T, class LockType >
 CTSharedPtr< T, LockType >
 CTSharedObjCreator< T, LockType >::CreateSharedObj( const T* dummyForCppNameMangling )
@@ -731,8 +806,12 @@ CTSharedObjCreator< T, LockType >::CreateSharedObj( const T* dummyForCppNameMang
     try
     {
         GUCEF_ASSERT( GUCEF_NULL == dummyForCppNameMangling );
+        #ifdef GUCEF_CORE_SHAREDOBJ_DEFAULT_CTOR_CHECK
+        return CreateDefaultSharedObj( std::integral_constant< bool, std::is_default_constructible< T >::value >(), static_cast< const T* >( GUCEF_NULL ) );
+        #else
         CTSharedPtr< T, LockType > retVal( static_cast< CTBasicSharedPtrCreator< T, LockType, T >* >( ( GUCEF_NEW T() ) )->CreateBasicSharedPtr() );
         return retVal;
+        #endif
     }
     catch ( const std::exception& )
     {

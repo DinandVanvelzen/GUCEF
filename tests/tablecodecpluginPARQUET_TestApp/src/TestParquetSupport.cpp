@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <limits>
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
@@ -326,7 +327,7 @@ MakeRandomBatch( const CDataTableSchemaPtr& schema, UInt32 rows, UInt32 nullPerc
                     Float64 v = (Float64) (Int64) ( bits >> 11 ) / 1048576.0 - 1.0e9;
                     if ( 0 == pick ) { UInt64 nan = 0x7FF8000000000001ULL; memcpy( &v, &nan, 8 ); }
                     else if ( 1 == pick ) v = -0.0;
-                    else if ( 2 == pick ) v = 1.0 / 0.0 * ( ( bits & 2 ) ? 1 : -1 );
+                    else if ( 2 == pick ) v = std::numeric_limits< Float64 >::infinity() * ( ( bits & 2 ) ? 1 : -1 );
                     column.AppendFloat64( v );
                     break;
                 }

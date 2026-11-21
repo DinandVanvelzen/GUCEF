@@ -62,7 +62,7 @@ class GUCEF_GUI_PUBLIC_CPP CBitmapFont
 {
     public:
 
-    struct SGlyph
+    struct GUCEF_GUI_PUBLIC_CPP SGlyph
     {
         CRect source;       /**< where the glyph is in the atlas */
         Int32 offsetX;      /**< where the top left of the glyph goes relative to the pen position */

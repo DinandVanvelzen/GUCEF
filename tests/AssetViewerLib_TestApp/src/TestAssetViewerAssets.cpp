@@ -316,7 +316,12 @@ WriteTestPng( const CORE::CString& path, UInt32 width, UInt32 height )
     }
     CORE::CreatePathDirectories( path.SubstrToChar( '/', false ) );
     CORE::CString problem;
-    return IMAGE::CPngImageCodec::WritePixelMapToFile( *pixels, path, problem );
+    if ( !IMAGE::CPngImageCodec::WritePixelMapToFile( *pixels, path, problem ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WriteTestPng: " << problem );
+        return false;
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -103,7 +103,7 @@ CReportLogger::Keep( const CORE::TLogMsgType logMsgType, const CORE::CString& lo
         message = logMessage.SubstrFromRange( 0, (UInt32) lineEnd );
         details = logMessage;
     }
-    m_pending.push_back( GUI::CReportViewForm::TEntry( isError ? GUI::CReportViewForm::SEVERITY_ERROR : GUI::CReportViewForm::SEVERITY_WARNING, CORE::CString::Empty, message, details ) );
+    m_pending.push_back( GUI::CReportViewForm::TEntry( isError ? GUI::CReportViewForm::SEVERITY_FAILURE : GUI::CReportViewForm::SEVERITY_WARNING, CORE::CString::Empty, message, details ) );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -55,9 +55,9 @@ FillReport( GUI::CReportViewForm& form )
 {
     form.AddEntry( GUI::CReportViewForm::SEVERITY_INFO, "textures/rock.png", "Converted", "Converted to BC7 in 0.4 s" );
     form.AddEntry( GUI::CReportViewForm::SEVERITY_WARNING, "textures/sand.png", "Not a power of two", "The size 100x60 was kept\nMips are made for it" );
-    form.AddEntry( GUI::CReportViewForm::SEVERITY_ERROR, "meshes/tree.obj", "No normals", "The mesh has no normals and none can be made" );
+    form.AddEntry( GUI::CReportViewForm::SEVERITY_FAILURE, "meshes/tree.obj", "No normals", "The mesh has no normals and none can be made" );
     form.AddEntry( GUI::CReportViewForm::SEVERITY_INFO, "meshes/rock.obj", "Converted", "" );
-    form.AddEntry( GUI::CReportViewForm::SEVERITY_ERROR, "textures/moss.png", "Unreadable", "End of file at 1024" );
+    form.AddEntry( GUI::CReportViewForm::SEVERITY_FAILURE, "textures/moss.png", "Unreadable", "End of file at 1024" );
     form.Refresh();
 }
 
@@ -120,15 +120,15 @@ PerformGuiReportViewFormTests( void )
         GUI::CColour colour;
         ASSERT_TRUE( grid->GetRowColour( 0, colour ) && colour == form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_INFO ) );
         ASSERT_TRUE( grid->GetRowColour( 1, colour ) && colour == form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_WARNING ) );
-        ASSERT_TRUE( grid->GetRowColour( 2, colour ) && colour == form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_ERROR ) );
-        ASSERT_TRUE( form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_INFO ) != form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_ERROR ) );
+        ASSERT_TRUE( grid->GetRowColour( 2, colour ) &&         colour == form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_FAILURE ) );
+                ASSERT_TRUE( form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_INFO ) != form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_FAILURE ) );
 
         // and the painter of the grid draws a marker and the text in that colour
         context->RenderFrame( 16 );
         GUI::CDrawSurface::TCommandVector commands;
         GUI::CWidgetPainter::Paint( *grid, *context, commands );
         bool markerFound = false, textInColour = false;
-        const GUI::CColour error = form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_ERROR );
+        const GUI::CColour error = form.GetSeverityColour( GUI::CReportViewForm::SEVERITY_FAILURE );
         for ( size_t i=0; i<commands.size(); ++i )
         {
             if ( GUI::CDrawSurface::COMMAND_FILLRECT == commands[ i ].type && commands[ i ].colour == error && 4 == commands[ i ].rect.width )
@@ -180,7 +180,7 @@ PerformGuiReportViewFormTests( void )
         form.SetEntries( list );
         ASSERT_TRUE( 3 == form.GetEntryCount() && 3 == grid->GetRowCount() );
         ASSERT_TRUE( GUI::CReportViewForm::SEVERITY_WARNING == form.GetEntry( 0 ).severity && "the artist" == form.GetEntry( 0 ).GetValue( "owner" ) );
-        ASSERT_TRUE( GUI::CReportViewForm::SEVERITY_ERROR == form.GetEntry( 1 ).severity && "No such file" == form.GetEntry( 1 ).details );
+        ASSERT_TRUE( GUI::CReportViewForm::SEVERITY_FAILURE == form.GetEntry( 1 ).severity && "No such file" == form.GetEntry( 1 ).details );
         ASSERT_TRUE( GUI::CReportViewForm::SEVERITY_INFO == form.GetEntry( 2 ).severity );
 
         // one by one: the counts are up to date at once, the grid after the interval
@@ -194,7 +194,7 @@ PerformGuiReportViewFormTests( void )
         ASSERT_TRUE( 0 == grid->GetRowCount() );
         form.Update( 70 );
         ASSERT_TRUE( 50 == grid->GetRowCount() );
-        form.AddEntry( GUI::CReportViewForm::SEVERITY_ERROR, "late", "late" );
+        form.AddEntry( GUI::CReportViewForm::SEVERITY_FAILURE, "late", "late" );
         ASSERT_TRUE( 50 == grid->GetRowCount() );
         context->RenderFrame( 150 );                  // the frame time of the context does it
         ASSERT_TRUE( 51 == grid->GetRowCount() );
@@ -245,12 +245,12 @@ PerformGuiReportViewFormTests( void )
         const CORE::CString details = form.GetWidget( "Details" )->GetProperty( "Text" );
         ASSERT_TRUE( details.HasSubstr( "No normals" ) >= 0 && details.HasSubstr( "meshes/tree.obj" ) >= 0 && details.HasSubstr( "none can be made" ) >= 0 );
         ASSERT_FALSE( form.SelectEntry( 9 ) );
-        form.SetSeverityShown( GUI::CReportViewForm::SEVERITY_ERROR, false );
+        form.SetSeverityShown( GUI::CReportViewForm::SEVERITY_FAILURE, false );
         ASSERT_TRUE( -1 == form.GetSelectedEntry() );       // the selected entry is not shown any more
         ASSERT_TRUE( form.GetWidget( "Details" )->GetProperty( "Text" ).IsNULLOrEmpty() );
 
         // a click on a row selects its entry
-        form.SetSeverityShown( GUI::CReportViewForm::SEVERITY_ERROR, true );
+        form.SetSeverityShown( GUI::CReportViewForm::SEVERITY_FAILURE, true );
         ClickRow( context, grid, 4 );
         ASSERT_TRUE( 4 == form.GetSelectedEntry() );
         ASSERT_TRUE( form.GetWidget( "Details" )->GetProperty( "Text" ).HasSubstr( "End of file at 1024" ) >= 0 );
@@ -341,7 +341,7 @@ PerformGuiReportViewFormTests( void )
 
         GUI::CReportViewForm second( context );
         ASSERT_TRUE( second.LoadLayout( layout ) && second.Show() );
-        second.AddEntry( GUI::CReportViewForm::SEVERITY_ERROR, "b", "c", "d" );
+        second.AddEntry( GUI::CReportViewForm::SEVERITY_FAILURE, "b", "c", "d" );
         second.Refresh();
         GUI::CGridView* grid = second.GetWidgetAs< GUI::CGridView >( "Entries" );
         ASSERT_TRUE( 1 == grid->GetRowCount() && "error" == grid->GetText( 0, 0 ) );

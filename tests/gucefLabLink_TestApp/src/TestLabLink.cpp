@@ -84,6 +84,14 @@
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
+/* near and far are macros of the Windows headers, undefine them so they can be used as identifiers */
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
 using namespace GUCEF;
 using namespace GUCEFLabLink;
 
@@ -126,8 +134,10 @@ WriteText( const CORE::CString& path, const CORE::CString& text, bool executable
         return false;
     fwrite( text.C_String(), 1, text.Length(), file );
     fclose( file );
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
     if ( executable )
         chmod( path.C_String(), 0755 );
+    #endif
     return true;
 }
 

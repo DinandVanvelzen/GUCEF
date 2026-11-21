@@ -392,7 +392,8 @@ TestOpenCommandLineAndSettings( void )
         }
 
         // the settings: places that exist stay in the order they were kept in, each once, those that are gone are dropped
-        const CORE::CString dir = MakeCleanTestDir( "open_settings" );
+        // the recent places are kept with '/' as separator, on every platform
+        const CORE::CString dir = MakeCleanTestDir( "open_settings" ).ReplaceChar( '\\', '/' );
         ASSERT_TRUE( WriteTestFolder( dir + "/one" ) && WriteTestFolder( dir + "/two" ) && WriteTestFile( dir + "/three.zip", "x" ) );
         CORE::CString::StringVector stored;
         stored.push_back( dir + "/two" );

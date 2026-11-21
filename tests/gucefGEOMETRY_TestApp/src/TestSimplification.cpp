@@ -231,7 +231,7 @@ SpecialCases( void )
     // a negative epsilon and not a number keep every point
     if ( 40 != SimplifyPolylineIndices( &circle[ 0 ], 40, -1.0, kept ) )
         return false;
-    const Float64 zero = 0.0;
+    volatile Float64 zero = 0.0;
     if ( 40 != SimplifyPolylineIndices( &circle[ 0 ], 40, zero / zero, kept ) )
         return false;
     // one and two points

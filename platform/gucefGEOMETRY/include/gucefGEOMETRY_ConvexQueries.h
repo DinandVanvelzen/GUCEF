@@ -195,15 +195,26 @@ ComputeSupportContact( const TSA& a, const TSB& b, const CTGeometryTolerance< ty
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  Yields the result type only when the value type of the contact manifold is the value type of the shape, so that the
+ *  generic ComputeContact below does not take part in overload resolution for anything else. The manifold value type
+ *  is deduced rather than derived from the shape since compilers (MSVC) cannot order such a candidate against the
+ *  dedicated overloads of the box pairs, which makes calls to those ambiguous.
+ */
+template < typename TManifoldValue, typename TShapeValue >
+struct CTConvexContactResult {};
+
+template < typename T >
+struct CTConvexContactResult< T, T > { typedef bool type; };
+
+/**
  *  The contact of two bounded convex shapes (see the header comment): true when they touch or overlap. False for a
  *  shape without points (no manifold points) and for separated shapes (one point, negative depth). The status of the
  *  query is in manifold.status (see ComputeSupportContact).
  */
-template < typename TA, typename TB >
-GUCEF_GEOMETRY_PRECISE_INLINE bool
-ComputeContact( const TA& a, const TB& b, CTContactManifold< typename TA::TValue >& manifold ) GUCEF_GEOMETRY_REALTIME_CONTEXT
+template < typename TA, typename TB, typename T >
+GUCEF_GEOMETRY_PRECISE_INLINE typename CTConvexContactResult< T, typename TA::TValue >::type
+ComputeContact( const TA& a, const TB& b, CTContactManifold< T >& manifold ) GUCEF_GEOMETRY_REALTIME_CONTEXT
 {
-    typedef typename TA::TValue T;
     manifold.Clear();
     if ( !IsQueryableConvex( a ) || !IsQueryableConvex( b ) )
         return false;

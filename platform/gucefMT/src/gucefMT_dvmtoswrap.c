@@ -1259,7 +1259,8 @@ PrecisionDelay( UInt32 delayInMs )
             {
                 Sleep( 0 );  /* causes thread to give up its time slice */
             }
-            return;
+
+            /* no return here: the loop goes on until the time asked for has passed, also for delays of 2 ms or less */
         }
     }
 

@@ -25,10 +25,18 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
-#include <fcntl.h>
 #include <stdio.h>
+
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) )
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#endif
 
 #ifndef GUCEF_CORE_BROWSERLAUNCHER_H
 #include "gucefCORE_BrowserLauncher.h"

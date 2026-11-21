@@ -808,6 +808,8 @@ CTGeoObjectBase< T >::GetDistance( const TPoint& worldPoint ) const
 
 GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( CTGeoObjectBase< Float32 > )
 GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( CTGeoObjectBase< Float64 > )
+GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( CTGeoObjectStructure< Float32 > )
+GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( CTGeoObjectStructure< Float64 > )
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

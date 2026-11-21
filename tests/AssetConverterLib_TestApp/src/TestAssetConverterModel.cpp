@@ -169,7 +169,7 @@ PerformAssetConverterModelTests( void )
         const Float32 third = 1.0f / 3.0f;
         ASSERT_TRUE( third == (Float32) atof( CCanonicalJson::FormatFloat32( third ).C_String() ) );
         ASSERT_TRUE( "1e-07" == CCanonicalJson::FormatFloat32( 1e-7f ) || "1e-7" == CCanonicalJson::FormatFloat32( 1e-7f ) );
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         ASSERT_TRUE( "null" == CCanonicalJson::FormatFloat32( zero / zero ) );
         ASSERT_TRUE( "\"\\u0001x\"" == CCanonicalJson::QuoteString( CORE::CString( "\x01x" ) ) );
 

@@ -9,6 +9,7 @@
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="MemoryLeakFinder" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_DRGUP_TESTAPP_BUILD_MODULE" />

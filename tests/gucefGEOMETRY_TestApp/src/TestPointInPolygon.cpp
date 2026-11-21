@@ -376,7 +376,7 @@ HandCases( void )
     square.points.push_back( CTPoint2D< Float64 >( 1, 0 ) );
     square.points.push_back( CTPoint2D< Float64 >( 1, 1 ) );
     square.points.push_back( CTPoint2D< Float64 >( 0, 1 ) );
-    const Float64 zero = 0.0;
+    volatile Float64 zero = 0.0;
     const Float64 nan = zero / zero;
     if ( POINTINPOLYGON_OUTSIDE != ClassifyPointInPolygon( square, CTPoint2D< Float64 >( nan, 0.5 ) ) ) return false;
     if ( POINTINPOLYGON_OUTSIDE != ClassifyPointInPolygon( square, CTPoint2D< Float64 >( 0.5, 1.0 / zero ) ) ) return false;

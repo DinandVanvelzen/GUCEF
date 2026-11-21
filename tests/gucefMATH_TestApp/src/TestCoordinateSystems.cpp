@@ -149,11 +149,11 @@ PerformCoordinateSystemsTests( void )
     try
     {
         // acceptance 12: handedness of every preset
-        ASSERT_TRUE( HANDEDNESS_RIGHT == CCoordinateSystem::GucefDefault().GetHandedness() );
-        ASSERT_TRUE( HANDEDNESS_LEFT == CCoordinateSystem::Unity().GetHandedness() );
-        ASSERT_TRUE( HANDEDNESS_LEFT == CCoordinateSystem::Unreal().GetHandedness() );
-        ASSERT_TRUE( HANDEDNESS_RIGHT == CCoordinateSystem::Blender().GetHandedness() );
-        ASSERT_TRUE( HANDEDNESS_RIGHT == CCoordinateSystem::Godot().GetHandedness() );
+        ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == CCoordinateSystem::GucefDefault().GetHandedness() );
+        ASSERT_TRUE( MATH::HANDEDNESS_LEFT == CCoordinateSystem::Unity().GetHandedness() );
+        ASSERT_TRUE( MATH::HANDEDNESS_LEFT == CCoordinateSystem::Unreal().GetHandedness() );
+        ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == CCoordinateSystem::Blender().GetHandedness() );
+        ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == CCoordinateSystem::Godot().GetHandedness() );
         ASSERT_TRUE( CCoordinateSystem::GucefDefault().IsValid() && CCoordinateSystem::Unreal().IsValid() && 100.0 == CCoordinateSystem::Unreal().GetUnitsPerMetre() );
         ASSERT_TRUE( CCoordinateSystem() == CCoordinateSystem::GucefDefault() && CCoordinateSystem::Godot() == CCoordinateSystem::GucefDefault() && CCoordinateSystem::Unity() != CCoordinateSystem::GucefDefault() );
         ASSERT_TRUE( SIGNEDAXIS_POSITIVE_Y == CCoordinateSystem::Unreal().GetRightAxis() && SIGNEDAXIS_POSITIVE_Z == CCoordinateSystem::Unreal().GetUpAxis() && SIGNEDAXIS_POSITIVE_X == CCoordinateSystem::Unreal().GetForwardAxis() );
@@ -170,7 +170,7 @@ PerformCoordinateSystemsTests( void )
                     CCoordinateSystem system( (TSignedAxis) r, (TSignedAxis) u, (TSignedAxis) f, 1.0 );
                     TFloat64Vector3D cross = system.GetRight< Float64 >().Cross( system.GetUp< Float64 >() );
                     bool right = cross == -system.GetForward< Float64 >();
-                    if ( !system.IsValid() || right != ( HANDEDNESS_RIGHT == system.GetHandedness() ) )
+                    if ( !system.IsValid() || right != ( MATH::HANDEDNESS_RIGHT == system.GetHandedness() ) )
                         ++failures;
                 }
         ASSERT_TRUE( 0 == failures && 48 == valid );

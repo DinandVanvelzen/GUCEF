@@ -40,7 +40,9 @@
 #define GUCEF_PLUGINGLUE_OGRE_MACROS_H
 #endif /* GUCEF_PLUGINGLUE_OGRE_MACROS_H ? */
 
-namespace Ogre { class Root; class RenderSystem; }
+#include "OgrePrerequisites.h"   /* forward declares Ogre::Root, which lives in a build dependent namespace of Ogre */
+
+namespace Ogre { class RenderSystem; }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

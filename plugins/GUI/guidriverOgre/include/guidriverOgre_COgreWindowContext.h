@@ -68,7 +68,9 @@
 #define GUIDRIVEROGRE_COGRESURFACESTATE_H
 #endif /* GUIDRIVEROGRE_COGRESURFACESTATE_H ? */
 
-namespace Ogre { class RenderWindow; class Root; class Viewport; class SceneManager; }
+#include "OgrePrerequisites.h"   /* forward declares Ogre::Root, which lives in a build dependent namespace of Ogre */
+
+namespace Ogre { class RenderWindow; class Viewport; class SceneManager; }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

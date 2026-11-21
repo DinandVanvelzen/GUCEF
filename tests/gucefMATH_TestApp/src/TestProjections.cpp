@@ -94,8 +94,8 @@ RealtimeProjectionWork( Float32 aspect ) GUCEF_MATH_REALTIME_CONTEXT
 {
     TFloat32Matrix4D p = TFloat32Matrix4D::Perspective( TFloat32Radian( 1.0f ), aspect, 0.1f, 100.0f, SProjectionConvention::Vulkan() );
     TFloat32Matrix4D o = TFloat32Matrix4D::Orthographic( -1, 1, -1, 1, 0.1f, 10.0f, SProjectionConvention::OpenGL() );
-    TFloat32Matrix4D f = TFloat32Matrix4D::PerspectiveOffCenter( -1, 2, -1, 1, 0.5f, 50.0f, SProjectionConvention::ReversedZInfinite( HANDEDNESS_LEFT ) );
-    TFloat32Matrix4D v = TFloat32Matrix4D::LookAt( TFloat32Point3D( 1, 2, 3 ), TFloat32Point3D( 0, 0, 0 ), TFloat32Vector3D::Up(), HANDEDNESS_RIGHT );
+    TFloat32Matrix4D f = TFloat32Matrix4D::PerspectiveOffCenter( -1, 2, -1, 1, 0.5f, 50.0f, SProjectionConvention::    ReversedZInfinite( MATH::HANDEDNESS_LEFT ) );
+        TFloat32Matrix4D v = TFloat32Matrix4D::LookAt( TFloat32Point3D( 1, 2, 3 ), TFloat32Point3D( 0, 0, 0 ), TFloat32Vector3D::Up(), MATH::HANDEDNESS_RIGHT );
     return ( p * v )( 2, 2 ) + o( 2, 3 ) + f( 3, 2 ) + (Float32) SProjectionConvention::Direct3D().GetFarDepth();
 }
 
@@ -117,11 +117,11 @@ PerformProjectionsTests( void )
         SProjectionConvention gl = SProjectionConvention::OpenGL();
         SProjectionConvention vk = SProjectionConvention::Vulkan();
         SProjectionConvention dx = SProjectionConvention::Direct3D();
-        SProjectionConvention rz = SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT );
-        ASSERT_TRUE( HANDEDNESS_RIGHT == gl.handedness && DEPTHRANGE_MINUS_ONE_TO_ONE == gl.depthRange && !gl.reversedZ && !gl.infiniteFar && !gl.flipY );
-        ASSERT_TRUE( HANDEDNESS_RIGHT == vk.handedness && DEPTHRANGE_ZERO_TO_ONE == vk.depthRange && !vk.reversedZ && !vk.infiniteFar && vk.flipY );
-        ASSERT_TRUE( HANDEDNESS_LEFT == dx.handedness && DEPTHRANGE_ZERO_TO_ONE == dx.depthRange && !dx.reversedZ && !dx.infiniteFar && !dx.flipY );
-        ASSERT_TRUE( HANDEDNESS_RIGHT == rz.handedness && DEPTHRANGE_ZERO_TO_ONE == rz.depthRange && rz.reversedZ && rz.infiniteFar && !rz.flipY );
+        SProjectionConvention rz = SProjectionConvention::        ReversedZInfinite( MATH::HANDEDNESS_RIGHT );
+                ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == gl.handedness && DEPTHRANGE_MINUS_ONE_TO_ONE == gl.depthRange && !gl.reversedZ && !gl.infiniteFar && !gl.flipY );
+                ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == vk.handedness && DEPTHRANGE_ZERO_TO_ONE == vk.depthRange && !vk.reversedZ && !vk.infiniteFar && vk.flipY );
+                ASSERT_TRUE( MATH::HANDEDNESS_LEFT == dx.handedness && DEPTHRANGE_ZERO_TO_ONE == dx.depthRange && !dx.reversedZ && !dx.infiniteFar && !dx.flipY );
+                ASSERT_TRUE( MATH::HANDEDNESS_RIGHT == rz.handedness && DEPTHRANGE_ZERO_TO_ONE == rz.depthRange && rz.reversedZ && rz.infiniteFar && !rz.flipY );
         ASSERT_TRUE( -1 == gl.GetNearDepth() && 1 == gl.GetFarDepth() && 0 == vk.GetNearDepth() && 1 == vk.GetFarDepth() && 1 == rz.GetNearDepth() && 0 == rz.GetFarDepth() );
         ASSERT_TRUE( gl == SProjectionConvention::OpenGL() && gl != vk );
     }
@@ -145,13 +145,13 @@ PerformProjectionsTests( void )
         TFloat64Matrix4D dx = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Direct3D() );
         ASSERT_TRUE( fabs( Ndc( dx, 0, 0, n ).z ) < 1e-12 && fabs( Ndc( dx, 0, 0, f ).z - 1.0 ) < 1e-12 );
         // reversed Z: near -> 1, far -> 0, both depth ranges
-        TFloat64Matrix4D reversed = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false ) );
+        TFloat64Matrix4D reversed = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false ) );
         ASSERT_TRUE( fabs( Ndc( reversed, 0, 0, -n ).z - 1.0 ) < 1e-12 && fabs( Ndc( reversed, 0, 0, -f ).z ) < 1e-12 );
-        TFloat64Matrix4D reversedGl = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_MINUS_ONE_TO_ONE, true, false, false ) );
+        TFloat64Matrix4D reversedGl = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_MINUS_ONE_TO_ONE, true, false, false ) );
         ASSERT_TRUE( fabs( Ndc( reversedGl, 0, 0, -n ).z - 1.0 ) < 1e-12 && fabs( Ndc( reversedGl, 0, 0, -f ).z + 1.0 ) < 1e-12 );
         // infinite far plane: depth approaches the far value monotonically, the far argument is ignored
-        TFloat64Matrix4D infinite = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT ) );
-        ASSERT_TRUE( infinite == TFloat64Matrix4D::Perspective( fov, 1.5, n, 1e9, SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT ) ) );
+        TFloat64Matrix4D infinite = TFloat64Matrix4D::Perspective( fov, 1.5, n, f,         SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_RIGHT ) );
+                ASSERT_TRUE( infinite == TFloat64Matrix4D::Perspective( fov, 1.5, n, 1e9, SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_RIGHT ) ) );
         ASSERT_TRUE( fabs( Ndc( infinite, 0, 0, -n ).z - 1.0 ) < 1e-12 );
         Float64 previous = 1.0;
         bool monotonic = true;
@@ -163,7 +163,7 @@ PerformProjectionsTests( void )
             previous = depth;
         }
         ASSERT_TRUE( monotonic && previous < 1e-11 );
-        TFloat64Matrix4D infiniteGl = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_MINUS_ONE_TO_ONE, false, true, false ) );
+        TFloat64Matrix4D infiniteGl = TFloat64Matrix4D::Perspective( fov, 1.5, n, f, SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_MINUS_ONE_TO_ONE, false, true, false ) );
         ASSERT_TRUE( fabs( Ndc( infiniteGl, 0, 0, -n ).z + 1.0 ) < 1e-12 && fabs( Ndc( infiniteGl, 0, 0, -1e12 ).z - 1.0 ) < 1e-11 );
         // Float32 within 1e-6
         TFloat32Matrix4D gl32 = TFloat32Matrix4D::Perspective( TFloat32Radian( 1.2f ), 1.5f, 0.5f, 200.0f, SProjectionConvention::OpenGL() );
@@ -211,7 +211,7 @@ PerformProjectionsTests( void )
         ASSERT_TRUE( fabs( a.x - 1.0 ) < 1e-15 && fabs( a.y - 1.0 ) < 1e-15 && fabs( a.z + 1.0 ) < 1e-15 && fabs( b.x + 1.0 ) < 1e-15 && fabs( b.y + 1.0 ) < 1e-15 && fabs( b.z - 1.0 ) < 1e-15 );
         TFloat64Matrix4D orthoDx = TFloat64Matrix4D::Orthographic( -4, 4, -2, 6, 1, 11, SProjectionConvention::Direct3D() );
         ASSERT_TRUE( fabs( Ndc( orthoDx, 0, 0, 1 ).z ) < 1e-15 && fabs( Ndc( orthoDx, 0, 0, 11 ).z - 1.0 ) < 1e-15 );
-        TFloat64Matrix4D orthoReversed = TFloat64Matrix4D::Orthographic( -4, 4, -2, 6, 1, 11, SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, true ) );
+        TFloat64Matrix4D orthoReversed = TFloat64Matrix4D::Orthographic( -4, 4, -2, 6, 1, 11, SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, true ) );
         ASSERT_TRUE( fabs( Ndc( orthoReversed, 0, 0, -1 ).z - 1.0 ) < 1e-15 && fabs( Ndc( orthoReversed, 0, 0, -11 ).z ) < 1e-15 && fabs( Ndc( orthoReversed, 0, 6, -1 ).y + 1.0 ) < 1e-15 );
         ASSERT_TRUE( ortho.IsAffine() && !gl.IsAffine() );
     }
@@ -225,24 +225,24 @@ PerformProjectionsTests( void )
     try
     {
         // acceptance 11: LookAt( ( 0, 0, 5 ), origin, Up ) maps the origin to ( 0, 0, -5 )
-        TFloat64Matrix4D view = TFloat64Matrix4D::LookAt( TFloat64Point3D( 0, 0, 5 ), TFloat64Point3D::Origin(), TFloat64Vector3D::Up(), HANDEDNESS_RIGHT );
+        TFloat64Matrix4D view = TFloat64Matrix4D::LookAt( TFloat64Point3D( 0, 0, 5 ), TFloat64Point3D::Origin(), TFloat64Vector3D::Up(), MATH::HANDEDNESS_RIGHT );
         ASSERT_TRUE( TFloat64Point3D( 0, 0, -5 ) == view * TFloat64Point3D::Origin() );
         ASSERT_TRUE( view * TFloat64Point3D( 0, 0, 5 ) == TFloat64Point3D::Origin() );
         // left-handed views look down +Z
-        TFloat64Matrix4D left = TFloat64Matrix4D::LookAt( TFloat64Point3D( 0, 0, 5 ), TFloat64Point3D::Origin(), TFloat64Vector3D::Up(), HANDEDNESS_LEFT );
+        TFloat64Matrix4D left = TFloat64Matrix4D::LookAt( TFloat64Point3D( 0, 0, 5 ), TFloat64Point3D::Origin(), TFloat64Vector3D::Up(), MATH::HANDEDNESS_LEFT );
         ASSERT_TRUE( TFloat64Point3D( 0, 0, 5 ) == left * TFloat64Point3D::Origin() );
         // a general view: the target lies on the view axis, up stays up, the matrix is rigid
         TFloat64Point3D eye( 3, 4, -2 );
         TFloat64Point3D target( -1, 0.5, 6 );
-        TFloat64Matrix4D general = TFloat64Matrix4D::LookAt( eye, target, TFloat64Vector3D::Up(), HANDEDNESS_RIGHT );
+        TFloat64Matrix4D general = TFloat64Matrix4D::LookAt( eye, target, TFloat64Vector3D::Up(), MATH::HANDEDNESS_RIGHT );
         TFloat64Point3D inView = general * target;
         ASSERT_TRUE( fabs( inView.x ) < 1e-14 && fabs( inView.y ) < 1e-14 && fabs( inView.z + ( target - eye ).GetLength() ) < 1e-13 );
         ASSERT_TRUE( ( general * ( eye + TFloat64Vector3D::Up() ) ).y > 0.0 && fabs( general.GetLinear().GetDeterminant() - 1.0 ) < 1e-14 );
         ASSERT_TRUE( fabs( ( general.InverseRigid() * general ).GetDeterminant() - 1.0 ) < 1e-14 );
         // degenerate input still gives a rigid view
-        TFloat64Matrix4D straight = TFloat64Matrix4D::LookAt( eye, eye + TFloat64Vector3D( 0, 3, 0 ), TFloat64Vector3D::Up(), HANDEDNESS_RIGHT );
+        TFloat64Matrix4D straight = TFloat64Matrix4D::LookAt( eye, eye + TFloat64Vector3D( 0, 3, 0 ), TFloat64Vector3D::Up(), MATH::HANDEDNESS_RIGHT );
         ASSERT_TRUE( fabs( straight.GetLinear().GetDeterminant() - 1.0 ) < 1e-14 );
-        ASSERT_TRUE( fabs( TFloat64Matrix4D::LookAt( eye, eye, TFloat64Vector3D::Up(), HANDEDNESS_RIGHT ).GetLinear().GetDeterminant() - 1.0 ) < 1e-14 );
+        ASSERT_TRUE( fabs( TFloat64Matrix4D::LookAt( eye, eye, TFloat64Vector3D::Up(), MATH::HANDEDNESS_RIGHT ).GetLinear().GetDeterminant() - 1.0 ) < 1e-14 );
     }
     catch( ... )
     {

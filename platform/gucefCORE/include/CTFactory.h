@@ -127,8 +127,8 @@ CTFactory< BaseClassType, ConcreteClassType, LockType >::CTFactory( void )
 template< class BaseClassType, class ConcreteClassType, class LockType >
 CTFactory< BaseClassType, ConcreteClassType, LockType >::CTFactory( const CTFactory< BaseClassType, ConcreteClassType, LockType >& src )
     : CTFactoryBase< BaseClassType, LockType >( src )
-    , CTTypeNamedDynamicDestructorBase< ConcreteClassType >( src )
-    , CTDynamicDestructorBase< ConcreteClassType >( src )
+    , CTTypeNamedDynamicDestructorBase< ConcreteClassType >() // destructor bases are stateless and not copyable
+    , CTDynamicDestructorBase< ConcreteClassType >()
 {GUCEF_TRACE;
 
 }

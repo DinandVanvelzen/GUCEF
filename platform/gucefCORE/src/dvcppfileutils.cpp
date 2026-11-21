@@ -456,7 +456,7 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
         return false;
     }
 
-    resolvedPath = ToString( path );
+    resolvedPath = ToString( std::wstring( path ) );
     ::CoTaskMemFree( path );
     return true;
 
@@ -1709,7 +1709,7 @@ ReadOwnerOnlyFile( const CString& path      ,
         safe = false;
         problem = "the owner and the access list of the file cannot be read";
     }
-    if ( safe && ( GUCEF_NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
+    if ( safe && ( GUCEF_NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !GUCEF::CORE::IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
     {
         safe = false;
         problem = "the file is not owned by the user of the process";
@@ -1740,7 +1740,7 @@ ReadOwnerOnlyFile( const CString& path      ,
             break;
         }
         PSID sid = (PSID) &( static_cast< ACCESS_ALLOWED_ACE* >( ace )->SidStart );
-        if ( FALSE == ::EqualSid( sid, userSid ) && !IsWellKnownSid( sid, WinLocalSystemSid ) && !IsWellKnownSid( sid, WinBuiltinAdministratorsSid ) )
+        if ( FALSE == ::EqualSid( sid, userSid ) && !GUCEF::CORE::IsWellKnownSid( sid, WinLocalSystemSid ) && !GUCEF::CORE::IsWellKnownSid( sid, WinBuiltinAdministratorsSid ) )
         {
             safe = false;
             problem = "others than the user of the process can access the file";
@@ -2192,17 +2192,9 @@ DirExists( const CString& path )
 
         std::wstring wPath = ToWString( path );
 
-        WIN32_FIND_DATAW FileInfo;
-        HANDLE hFind = GUCEF_NULL;
-        hFind = FindFirstFileW( wPath.c_str(), &FileInfo );
-        if ( hFind != INVALID_HANDLE_VALUE )
-        {
-            FindClose( hFind );
-
-            /* make sure we found a directory not a file */
-            return ( FileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) > 0;
-        }
-        return false;
+        // FindFirstFile() fails on a path with a trailing separator whereas the other platforms accept them for directories
+        const DWORD attributes = GetFileAttributesW( wPath.c_str() );
+        return INVALID_FILE_ATTRIBUTES != attributes && ( attributes & FILE_ATTRIBUTE_DIRECTORY ) > 0;
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -2258,8 +2250,15 @@ CreatePathDirectories( const CString& path )
 {GUCEF_TRACE;
 
     Int32 delimIndex = path.HasChar( GUCEF_DIRSEPCHAR, false );
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    // both are separators here and paths mix them: the last of either ends the directory part
+    const Int32 oppositeIndex = path.HasChar( GUCEF_DIRSEPCHAROPPOSITE, false );
+    if ( oppositeIndex > delimIndex )
+        delimIndex = oppositeIndex;
+    #else
     if ( delimIndex < 0 )
         delimIndex = path.HasChar( GUCEF_DIRSEPCHAROPPOSITE, false );
+    #endif
 
     if ( delimIndex >= 0 )
     {
@@ -4508,7 +4507,7 @@ CFileSystemIterator::FindClose( void )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     ::_findclose( m_osData->find_handle );
-    m_osData->find_handle = GUCEF_NULL;
+    m_osData->find_handle = 0; // find_handle is an integer type (intptr_t), not a pointer
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 

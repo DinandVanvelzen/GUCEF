@@ -94,10 +94,10 @@ GetConvention( UInt32 index )
         case 0: return SProjectionConvention::OpenGL();
         case 1: return SProjectionConvention::Vulkan();
         case 2: return SProjectionConvention::Direct3D();
-        case 3: return SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT );
-        case 4: return SProjectionConvention::ReversedZInfinite( HANDEDNESS_LEFT );
-        case 5: return SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false );
-        default: return SProjectionConvention::Make( HANDEDNESS_LEFT, DEPTHRANGE_MINUS_ONE_TO_ONE, false, true, true );
+        case 3: return SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_RIGHT );
+        case 4: return SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_LEFT );
+        case 5: return SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false );
+        default: return SProjectionConvention::Make( MATH::HANDEDNESS_LEFT, DEPTHRANGE_MINUS_ONE_TO_ONE, false, true, true );
     }
 }
 
@@ -107,7 +107,7 @@ GetConvention( UInt32 index )
 static Float64
 ViewZ( const SProjectionConvention& convention, Float64 distance )
 {
-    return HANDEDNESS_LEFT == convention.handedness ? distance : -distance;
+    return MATH::HANDEDNESS_LEFT == convention.handedness ? distance : -distance;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -118,7 +118,7 @@ RealtimeProjectionHelpersWork( Float32 distance ) GUCEF_MATH_REALTIME_CONTEXT
 {
     const SProjectionConvention convention = SProjectionConvention::Vulkan();
     const TFloat32Matrix4D vp = TFloat32Matrix4D::Perspective( TFloat32Radian( 1.0f ), 1.5f, 0.1f, 100.0f, convention ) *
-                                TFloat32Matrix4D::LookAt( TFloat32Point3D( 0, 1, 2 ), TFloat32Point3D( 0, 0, -distance ), TFloat32Vector3D::Up(), HANDEDNESS_RIGHT );
+                                TFloat32Matrix4D::LookAt( TFloat32Point3D( 0, 1, 2 ), TFloat32Point3D( 0, 0, -distance ), TFloat32Vector3D::Up(), MATH::HANDEDNESS_RIGHT );
     TFloat32Matrix4D inverse;
     if ( !vp.TryInverse( inverse, 0.0f ) )
         return 0.0f;
@@ -398,12 +398,12 @@ PerformProjectionHelpersTests( void )
 
             // the near depth is in front of the camera and projects back to the view of the camera
             ASSERT_TRUE( Unproject( screen, nearDepth, inverse, viewport, world ) );
-            const Float64 viewDistance = HANDEDNESS_LEFT == convention.handedness ? world.z : -world.z;
+            const Float64 viewDistance = MATH::HANDEDNESS_LEFT == convention.handedness ? world.z : -world.z;
             ASSERT_TRUE( fabs( viewDistance - 0.1 ) < 1e-6 );
 
             // a depth beyond the far depth: finite projections still have a point there until the depth of infinity, an
             // infinite projection has w <= 0 as soon as the depth leaves the range; far beyond it all of them have w < 0
-            TFloat64Point3D far( 9.0, 9.0, 9.0 );
+            TFloat64Point3D farWorld( 9.0, 9.0, 9.0 );
             if ( convention.infiniteFar )
             {
                 const Float64 noise[ 3 ] = { 1.0e-9, 1.0e-6, 1.0e-3 };
@@ -415,12 +415,12 @@ PerformProjectionHelpersTests( void )
                 }
                 // just inside the range the point is in front of the camera
                 ASSERT_TRUE( Unproject( screen, farDepth - towardsFar * 1.0e-3, inverse, viewport, world ) );
-                ASSERT_TRUE( ( HANDEDNESS_LEFT == convention.handedness ? world.z : -world.z ) > 0.0 );
+                ASSERT_TRUE( ( MATH::HANDEDNESS_LEFT == convention.handedness ? world.z : -world.z ) > 0.0 );
             }
             else
             {
-                ASSERT_TRUE( Unproject( screen, farDepth, inverse, viewport, far ) );
-                ASSERT_TRUE( fabs( ( HANDEDNESS_LEFT == convention.handedness ? far.z : -far.z ) - 100.0 ) < 1e-4 );
+                ASSERT_TRUE( Unproject( screen, farDepth, inverse, viewport, farWorld ) );
+                ASSERT_TRUE( fabs( ( MATH::HANDEDNESS_LEFT == convention.handedness ? farWorld.z : -farWorld.z ) - 100.0 ) < 1e-4 );
             }
             world = TFloat64Point3D( 9.0, 9.0, 9.0 );
             ASSERT_FALSE( Unproject( screen, farDepth + towardsFar * 0.5, inverse, viewport, world ) );
@@ -512,7 +512,7 @@ PerformProjectionHelpersTests( void )
             TFloat64Point3D origin;
             TFloat64DirectionVector3D direction;
             ASSERT_TRUE( GetPickRay( TFloat64Point2D( 50.0, 50.0 ), inverse, viewport, convention, origin, direction ) );
-            const Float64 sign = HANDEDNESS_LEFT == convention.handedness ? 1.0 : -1.0;
+            const Float64 sign = MATH::HANDEDNESS_LEFT == convention.handedness ? 1.0 : -1.0;
             ASSERT_TRUE( fabs( origin.x ) < 1e-9 && fabs( origin.y ) < 1e-9 && fabs( origin.z - sign * 0.5 ) < 1e-9 );
             ASSERT_TRUE( fabs( direction.GetX() ) < 1e-9 && fabs( direction.GetY() ) < 1e-9 && fabs( direction.GetZ() - sign ) < 1e-9 );
             // the top left corner of the screen looks up and to the left

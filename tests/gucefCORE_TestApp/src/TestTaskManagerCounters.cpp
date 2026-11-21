@@ -26,6 +26,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 #include <unistd.h>
 #endif

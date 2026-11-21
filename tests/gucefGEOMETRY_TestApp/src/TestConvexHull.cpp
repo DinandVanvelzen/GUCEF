@@ -649,7 +649,7 @@ QuickHullLowerDimensions( void )
             tilted.push_back( TP3( i, j, 2 * i - 3 * j ) );
     if ( QUICKHULL_PLANE != builder.Build( &tilted[ 0 ], (UInt32) tilted.size() ) || 4 != builder.GetHull().GetVertexCount() )
         return false;
-    const Float64 zero = 0.0;
+    volatile Float64 zero = 0.0;
     const TP3 bad[ 4 ] = { TP3( 0, 0, 0 ), TP3( 1, 0, 0 ), TP3( 0, 1, 0 ), TP3( 0, 0, zero / zero ) };
     if ( QUICKHULL_NOT_FINITE != builder.Build( bad, 4 ) )
         return false;

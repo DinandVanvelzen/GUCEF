@@ -75,7 +75,7 @@ class ASSETVIEWERLIB_PUBLIC_CPP CTextureView
 {
     public:
 
-    struct SInfo
+    struct ASSETVIEWERLIB_PUBLIC_CPP SInfo
     {
         CORE::CString path;
         CORE::CString formatName;       /**< the pixel format as the codec has it ("PF_R8G8B8A8", "PF_DXT1") */

@@ -24,7 +24,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 #include <dirent.h>
+#define GUCEF_DRNUTILS_TEST_HAS_PROCFS
+#endif
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -103,6 +112,7 @@ ReadFigures( void )
     figures.rssKiB = 0;
     figures.threads = 0;
     figures.fds = 0;
+    #ifdef GUCEF_DRNUTILS_TEST_HAS_PROCFS
     FILE* status = fopen( "/proc/self/status", "r" );
     if ( GUCEF_NULL != status )
     {
@@ -124,6 +134,7 @@ ReadFigures( void )
             ++figures.fds;
         closedir( fds );
     }
+    #endif /* GUCEF_DRNUTILS_TEST_HAS_PROCFS ? */
     return figures;
 }
 

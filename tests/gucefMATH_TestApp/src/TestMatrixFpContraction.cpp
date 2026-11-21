@@ -185,7 +185,7 @@ struct SMatrixPreciseResults
         CTTransform3D< T > t( V( a, -c, T( 1 ) ), qa.Normalized(), V( a, c, T( 1 ) ) );                                   \
         out.Add3( t.TransformPoint( CTPoint3D< T >( a, T( 1 ), -c ) ) );                                                  \
         out.AddMatrix( t.ToMatrix(), 4 );                                                                                 \
-        out.AddMatrix( M4::LookAt( CTPoint3D< T >( a, T( 1 ), c ), CTPoint3D< T >( c, T( 0 ), a ), V::Up(), HANDEDNESS_RIGHT ), 4 ); \
+        out.AddMatrix( M4::LookAt( CTPoint3D< T >( a, T( 1 ), c ), CTPoint3D< T >( c, T( 0 ), a ), V::Up(), MATH::HANDEDNESS_RIGHT ), 4 ); \
         out.AddMatrix( M4::Perspective( CTRadian< T >( a ), c, T( 0.5 ), T( 100 ), SProjectionConvention::OpenGL() ), 4 ); \
     }
 

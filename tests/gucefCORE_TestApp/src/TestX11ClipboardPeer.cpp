@@ -22,7 +22,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <poll.h>
 #include <string.h>
 #include <time.h>
 
@@ -33,6 +32,7 @@
 
 #ifdef GUCEF_LINUX_BUILD
 
+#include <poll.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 

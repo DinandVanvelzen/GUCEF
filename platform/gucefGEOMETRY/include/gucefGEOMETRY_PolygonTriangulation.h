@@ -507,8 +507,8 @@ CTPolygonTriangulator< T >::RingBlocks( UInt32 first, const TPoint& v, const TPo
             const TPoint& other = aShared ? b : a;
             if ( 0 == TPredicates::Orient2D( v, m, other ) && SegmentsTouch( v, m, other, other ) )
                 return true;
-            const TPoint& far = SamePosition( shared, v ) ? m : v;
-            if ( 0 == TPredicates::Orient2D( shared, other, far ) && SegmentsTouch( shared, other, far, far ) )
+            const TPoint& farPoint = SamePosition( shared, v ) ? m : v;
+            if ( 0 == TPredicates::Orient2D( shared, other, farPoint ) && SegmentsTouch( shared, other, farPoint, farPoint ) )
                 return true;
         }
         else

@@ -439,10 +439,14 @@ CMutex::IsLocked( void ) const
     #if ( GUCEF_MT_MUTEX_WINDOWS_LOCK_IMPLEMENTATION == GUCEF_MT_MUTEX_LOCK_IMPLEMENTATION_WIN32_MUTEX )
 
     /* lock with a timeout of 0. Note this is not a cheap operation */
-    if ( WaitForSingleObject( ((TMutexData*)_mutexdata)->id , 0 ) == WAIT_FAILED )
-        return true;
-    ReleaseMutex( ((TMutexData*)_mutexdata)->id );
-    return false;
+    const DWORD waitResult = WaitForSingleObject( ((TMutexData*)_mutexdata)->id , 0 );
+    if ( WAIT_OBJECT_0 == waitResult || WAIT_ABANDONED == waitResult )
+    {
+        // we got the lock which means nobody else had it: give it back
+        ReleaseMutex( ((TMutexData*)_mutexdata)->id );
+        return false;
+    }
+    return true;
 
     #elif ( GUCEF_MT_MUTEX_WINDOWS_LOCK_IMPLEMENTATION == GUCEF_MT_MUTEX_LOCK_IMPLEMENTATION_WIN32_CRITICAL_SECTION )
     

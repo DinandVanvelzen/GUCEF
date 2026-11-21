@@ -443,3 +443,27 @@ int main(int numargs, char** args)
     return retCode;
 }
 
+#if defined( _WIN32 )
+/*
+ *  The Windows project that is generated for an executable is a GUI subsystem application: it has the WinMain entry
+ *  point. Forward it to main() and attach to the console of the parent so this command line tool can still write to it.
+ *  Declared by hand since the Windows headers conflict with the 'using namespace std' of this tool.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+
+extern "C" __declspec( dllimport ) int __stdcall AttachConsole( unsigned long processId );
+
+int __stdcall
+WinMain( void*, void*, char*, int )
+{
+    if ( AttachConsole( (unsigned long) -1 ) ) /* ATTACH_PARENT_PROCESS */
+    {
+        freopen( "CONOUT$", "w", stdout );
+        freopen( "CONOUT$", "w", stderr );
+        freopen( "CONIN$", "r", stdin );
+    }
+    return main( __argc, __argv );
+}
+#endif
+

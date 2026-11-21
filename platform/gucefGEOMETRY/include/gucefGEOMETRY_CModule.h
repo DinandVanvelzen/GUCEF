@@ -52,10 +52,10 @@ class GUCEF_GEOMETRY_PRIVATE_CPP CModule
 {
     public:
 
-    /** Loading more than once is harmless: the work is done the first time */
-    static bool Load( void );
+    /** Loading more than once is harmless: the work is done the first time. Exported for the tests of the module */
+    GUCEF_GEOMETRY_PUBLIC_CPP static bool Load( void );
 
-    static bool Unload( void );
+    GUCEF_GEOMETRY_PUBLIC_CPP static bool Unload( void );
 
     private:
 

@@ -34,6 +34,16 @@
 
 #include "gucefCORE_CTask.h"
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+  #ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef NOMINMAX
+  #define NOMINMAX
+  #endif
+  #include <windows.h>
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -42,6 +52,29 @@
 
 namespace GUCEF {
 namespace CORE {
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+/**
+ *  Whether the process is being torn down, as in global destructors that run at the exit of the process. Windows has ended
+ *  the other threads of the process by then: a task that was running on one of them never gets to an end state
+ */
+static bool
+IsProcessExiting( void )
+{
+    typedef BOOLEAN ( NTAPI* TRtlDllShutdownInProgress )( void );
+    static TRtlDllShutdownInProgress shutdownInProgress = reinterpret_cast< TRtlDllShutdownInProgress >(
+        reinterpret_cast< void* >( ::GetProcAddress( ::GetModuleHandleW( L"ntdll.dll" ), "RtlDllShutdownInProgress" ) ) );
+    return GUCEF_NULL != shutdownInProgress && FALSE != shutdownInProgress();
+}
+
+#endif /* Windows ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -731,6 +764,11 @@ CTask::WaitForTaskToFinish( Int32 timeoutInMs ) const
     UInt64 startTicks = MT::PrecisionTickCount();
     while ( !IsTaskInEndState() )
     {
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+        if ( IsProcessExiting() )
+            return MT::LOCKSTATUS_OPERATION_FAILED;
+        #endif
+
         MT::PrecisionDelay( 10 );
 
         UInt64 ticksNow = MT::PrecisionTickCount();

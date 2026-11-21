@@ -45,16 +45,16 @@
  *      Macros for dynamic linking or static linking. Use the switches in the
  *      config file to control the export type.
  */
-#undef GUCEF_EXPORTSPEC
+#undef GUCEF_guidriverMyGUI_EXPORTSPEC
 #if defined( GUIDRIVERMYGUI_BUILD_MODULE ) || defined( GUCEF_guidriverMyGUI_BUILD_MODULE )
-  #define GUCEF_EXPORTSPEC GUCEF_EXPORT
+  #define GUCEF_guidriverMyGUI_EXPORTSPEC GUCEF_EXPORT
 #else
-  #define GUCEF_EXPORTSPEC GUCEF_IMPORT
+  #define GUCEF_guidriverMyGUI_EXPORTSPEC GUCEF_IMPORT
 #endif /* GUIDRIVERMYGUI_BUILD_MODULE ? */
 
 #undef GUCEF_guidriverMyGUI_PUBLIC_CPP
 #ifdef GUCEF_guidriverMyGUI_PUBLIC_CPP_CODE
-  #define GUCEF_guidriverMyGUI_PUBLIC_CPP GUCEF_EXPORTSPEC
+  #define GUCEF_guidriverMyGUI_PUBLIC_CPP GUCEF_guidriverMyGUI_EXPORTSPEC
 #else
   #define GUCEF_guidriverMyGUI_PUBLIC_CPP GUCEF_HIDDEN
 #endif /* GUCEF_guidriverMyGUI_PUBLIC_CPP_CODE ? */
@@ -64,7 +64,7 @@
 
 #undef GUCEF_guidriverMyGUI_PUBLIC_C
 #ifdef GUCEF_guidriverMyGUI_PUBLIC_C_CODE
-  #define GUCEF_guidriverMyGUI_PUBLIC_C GUCEF_EXPORTSPEC
+  #define GUCEF_guidriverMyGUI_PUBLIC_C GUCEF_guidriverMyGUI_EXPORTSPEC
 #else
   #define GUCEF_guidriverMyGUI_PUBLIC_C GUCEF_HIDDEN
 #endif /* GUCEF_guidriverMyGUI_PUBLIC_C_CODE ? */

@@ -60,7 +60,7 @@ class GUCEF_GUI_PUBLIC_CPP CFontRasterizer
     public:
 
     /** The code points first .. last, both included */
-    struct SCodePointRange
+    struct GUCEF_GUI_PUBLIC_CPP SCodePointRange
     {
         UInt32 first;
         UInt32 last;

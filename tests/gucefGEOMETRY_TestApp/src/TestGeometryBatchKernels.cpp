@@ -125,7 +125,7 @@ RandomBox( CRandom& random, Float32* box )
         box[ random.Index( 6 ) ] = specials[ random.Index( 6 ) ];
     else if ( 2 == kind )
     {
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         box[ random.Index( 6 ) ] = random.Chance( 0.5 ) ? zero / zero : 1.0f / zero;
     }
 }

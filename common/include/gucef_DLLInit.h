@@ -39,7 +39,27 @@
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
   #define WIN32_LEAN_AND_MEAN
+
+  /*
+   *  The Windows headers define a global 'INPUT' type which makes the name ambiguous with the GUCEF::INPUT namespace
+   *  in all code that has 'using namespace GUCEF'. This header leaks the Windows headers into everything that includes
+   *  the GUCEF headers so we rename the Windows type while it gets defined.
+   */
+  #ifndef INPUT
+  #define INPUT GUCEF_WINDOWS_INPUT
   #include <windows.h>
+  #undef INPUT
+  #else
+  #include <windows.h>
+  #endif
+
+  /*
+   *  GUCEF classes (and the AWS SDK we use) have GetMessage() methods, the Windows macro of the same name would
+   *  rename them to GetMessageA() depending on the include order of the code that uses them which breaks linking
+   */
+  #ifdef GetMessage
+  #undef GetMessage
+  #endif
 
   #define GUCEF_DLL_INIT_FUNC( ns )                    \
                                                        \

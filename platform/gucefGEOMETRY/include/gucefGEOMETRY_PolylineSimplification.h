@@ -206,33 +206,33 @@ SimplifyPolygonIndices( const MATH::CTPoint2D< T >* points, UInt32 count, const 
             kept.push_back( i );
         return count;
     }
-    UInt32 far = 1;
+    UInt32 farIndex = 1;
     T farSquared = ( points[ 1 ] - points[ 0 ] ).GetSquaredLength();
     for ( UInt32 i=2; i<count; ++i )
     {
         const T d = ( points[ i ] - points[ 0 ] ).GetSquaredLength();
         if ( d > farSquared )
         {
-            far = i;
+            farIndex = i;
             farSquared = d;
         }
     }
-    // half one: points 0 .. far, half two: points far .. count - 1 and back to 0
+    // half one: points 0 .. farIndex, half two: points farIndex .. count - 1 and back to 0
     GUCEF::vector< MATH::CTPoint2D< T > > half;
     GUCEF::vector< UInt32 > halfKept;
-    for ( UInt32 i=0; i<=far; ++i )
+    for ( UInt32 i=0; i<=farIndex; ++i )
         half.push_back( points[ i ] );
     SimplifyPolylineIndices( &half[ 0 ], (UInt32) half.size(), epsilon, halfKept );
     for ( size_t i=0; i<halfKept.size(); ++i )
         kept.push_back( halfKept[ i ] );
     half.clear();
-    for ( UInt32 i=far; i<count; ++i )
+    for ( UInt32 i=farIndex; i<count; ++i )
         half.push_back( points[ i ] );
     half.push_back( points[ 0 ] );
     SimplifyPolylineIndices( &half[ 0 ], (UInt32) half.size(), epsilon, halfKept );
     for ( size_t i=1; i<halfKept.size(); ++i )
-        if ( far + halfKept[ i ] < count )
-            kept.push_back( far + halfKept[ i ] );
+        if ( farIndex + halfKept[ i ] < count )
+            kept.push_back( farIndex + halfKept[ i ] );
     return (UInt32) kept.size();
 }
 

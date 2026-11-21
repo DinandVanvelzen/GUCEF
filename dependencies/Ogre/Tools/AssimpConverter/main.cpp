@@ -271,3 +271,25 @@ int main(int numargs, char** args)
 
     return retCode;
 }
+
+#if defined( _WIN32 )
+/*
+ *  The Windows project that is generated for an executable is a GUI subsystem application: it has the WinMain entry
+ *  point. Forward it to main() and attach to the console of the parent so this command line tool can still write to it.
+ */
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int WINAPI
+WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
+{
+    if ( AttachConsole( ATTACH_PARENT_PROCESS ) )
+    {
+        freopen( "CONOUT$", "w", stdout );
+        freopen( "CONOUT$", "w", stderr );
+        freopen( "CONIN$", "r", stdin );
+    }
+    return main( __argc, __argv );
+}
+#endif

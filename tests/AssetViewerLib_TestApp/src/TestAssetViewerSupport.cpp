@@ -137,6 +137,8 @@ GetTestWindowMode( void )
     if ( HasDisplay() )
         return EnvIs( "GUCEF_TEST_X11_WINDOWS", '1' ) ? TESTWINDOWMODE_X11 : TESTWINDOWMODE_NONE;
     return TESTWINDOWMODE_OFFSCREEN;
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    return TESTWINDOWMODE_WIN32;
     #else
     return TESTWINDOWMODE_NONE;
     #endif
@@ -212,6 +214,8 @@ SetUpViewerTests( void )
     LoadGuiPlugin( "guidriverOgre" );
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     LoadGuiPlugin( "guidriverXWinGL" );
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    LoadGuiPlugin( "guidriverWin32" );
     #endif
     LoadGuiPlugin( "guidriverImGuiOgre" );
 
@@ -278,7 +282,7 @@ GetMainTestWindow( void )
     if ( TESTWINDOWMODE_OFFSCREEN == GetTestWindowMode() )
         params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, GUIDRIVEROGRE::COgreWindowContext::OffscreenPlatformBackend );
     else
-        params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, "XWinGL" );
+        params.Set( GUIDRIVEROGRE::COgreWindowContext::PlatformBackendParameterName, TESTWINDOWMODE_WIN32 == GetTestWindowMode() ? "Win32" : "XWinGL" );
     g_mainWindow = backend->CreateWindowContext( "ViewerTest", settings, &params );
     return g_mainWindow;
 }

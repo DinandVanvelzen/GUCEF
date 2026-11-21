@@ -182,7 +182,7 @@ struct SSpatialPreciseResults
         CTOrthonormalFrame3D< T >::TryFromForwardUp( V( a, T( 1 ), -c ), V( c, a, T( 1 ) ), frame );                      \
         out.Add( frame.GetRight().GetX() ); out.Add( frame.GetUp().GetY() ); out.Add( frame.GetForward().GetZ() );        \
         CTOrthonormalFrame3D< T > leftFrame;                                                                              \
-        CTOrthonormalFrame3D< T >::TryFromForwardUp( V( c, a, T( 1 ) ), V( a, T( 1 ), c ), HANDEDNESS_LEFT, leftFrame );   \
+        CTOrthonormalFrame3D< T >::TryFromForwardUp( V( c, a, T( 1 ) ), V( a, T( 1 ), c ), MATH::HANDEDNESS_LEFT, leftFrame );   \
         out.Add( leftFrame.GetRight().GetX() ); out.Add( leftFrame.GetUp().GetY() ); out.Add( leftFrame.GetForward().GetZ() ); \
         V world( a, -c, T( 2 ) );                                                                                         \
         out.Add3( frame.ToFrameCoordinates( world ) ); out.Add3( frame.FromFrameCoordinates( world ) );                   \
@@ -192,7 +192,7 @@ struct SSpatialPreciseResults
         out.Add( DopplerRatio( P( a, c, T( 0 ) ), V( c, a, T( 3 ) ), P( -c, T( 5 ), a ), V( a, -c, T( 7 ) ), T( 343.3 ), T( 1 ), T( 0.5 ), T( 2 ) ) ); \
         SProjectionConvention convention = SProjectionConvention::Vulkan();                                               \
         M4 projection = M4::Perspective( CTRadian< T >( a ), c, T( 0.5 ), T( 100 ), convention );                         \
-        M4 view = M4::LookAt( P( a, T( 1 ), c ), P( c, T( 0 ), a ), V::Up(), HANDEDNESS_RIGHT );                           \
+        M4 view = M4::LookAt( P( a, T( 1 ), c ), P( c, T( 0 ), a ), V::Up(), MATH::HANDEDNESS_RIGHT );                           \
         M4 viewProjection = projection * view;                                                                            \
         M4 inverse;                                                                                                       \
         viewProjection.TryInverse( inverse, T( 0 ) );                                                                     \

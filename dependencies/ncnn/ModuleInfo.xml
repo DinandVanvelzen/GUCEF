@@ -33,6 +33,7 @@
     <Module Platform="mswin">
         <Preprocessor>
             <Define String="GLSLANG_OSINCLUDE_WIN32" />
+            <Define String="NOMINMAX" />
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>

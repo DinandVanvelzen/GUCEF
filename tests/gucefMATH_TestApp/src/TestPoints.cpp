@@ -152,8 +152,8 @@ PerformPointsTests( void )
         ASSERT_TRUE( P::AffineCombination( points, barycentric, 3 ).Equals( P( 1.2f, 2.0f, 0 ) ) );
 
         // large coordinates: formed relative to the first point, so a far away cluster keeps its precision
-        const P far[ 2 ] = { P( 1.0e6f, 0, 0 ), P( 1.0e6f + 1.0f, 0, 0 ) };
-        ASSERT_TRUE( P::Centroid( far, 2 ) == P( 1.0e6f + 0.5f, 0, 0 ) );
+        const P farPoints[ 2 ] = { P( 1.0e6f, 0, 0 ), P( 1.0e6f + 1.0f, 0, 0 ) };
+        ASSERT_TRUE( P::Centroid( farPoints, 2 ) == P( 1.0e6f + 0.5f, 0, 0 ) );
 
         TFloat64Point2D q[ 3 ] = { TFloat64Point2D( 0, 0 ), TFloat64Point2D( 3, 0 ), TFloat64Point2D( 0, 3 ) };
         ASSERT_TRUE( TFloat64Point2D::Centroid( q, 3 ) == TFloat64Point2D( 1, 1 ) );

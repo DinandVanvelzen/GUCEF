@@ -51,16 +51,16 @@
  *      Macros for dynamic linking or static linking. Use the switches in the
  *      config file to control the export type.
  */
-#undef GUCEF_EXPORTSPEC
+#undef GUCEF_guidriverRmlUI_EXPORTSPEC
 #if defined( GUCEF_guidriverRmlUI_BUILD_MODULE ) || defined( GUCEF_GUIDRIVERRMLUI_BUILD_MODULE )
-  #define GUCEF_EXPORTSPEC GUCEF_EXPORT
+  #define GUCEF_guidriverRmlUI_EXPORTSPEC GUCEF_EXPORT
 #else
-  #define GUCEF_EXPORTSPEC GUCEF_IMPORT
+  #define GUCEF_guidriverRmlUI_EXPORTSPEC GUCEF_IMPORT
 #endif /* GUCE_MYGUIOGRE_BUILD_MODULE ? */
 
 #undef GUCEF_guidriverRmlUI_PUBLIC_CPP
 #ifdef GUCEF_guidriverRmlUI_PUBLIC_CPP_CODE
-  #define GUCEF_guidriverRmlUI_PUBLIC_CPP GUCEF_EXPORTSPEC
+  #define GUCEF_guidriverRmlUI_PUBLIC_CPP GUCEF_guidriverRmlUI_EXPORTSPEC
 #else
   #define GUCEF_guidriverRmlUI_PUBLIC_CPP GUCEF_HIDDEN
 #endif /* GUCEF_guidriverRmlUI_PUBLIC_CPP_CODE */
@@ -70,7 +70,7 @@
 
 #undef GUCEF_guidriverRmlUI_PUBLIC_C
 #ifdef GUCEF_guidriverRmlUI_PUBLIC_C_CODE
-  #define GUCEF_guidriverRmlUI_PUBLIC_C GUCEF_EXPORTSPEC
+  #define GUCEF_guidriverRmlUI_PUBLIC_C GUCEF_guidriverRmlUI_EXPORTSPEC
 #else
   #define GUCEF_guidriverRmlUI_PUBLIC_C GUCEF_HIDDEN
 #endif /* GUCEF_guidriverRmlUI_PUBLIC_C_CODE */

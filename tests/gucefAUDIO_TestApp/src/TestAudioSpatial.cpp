@@ -24,6 +24,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <limits>
 
 #ifndef GUCEFAUDIO_H
 #include "gucefAUDIO.h"
@@ -499,7 +500,7 @@ PerformAudioSpatialTests( void )
         limited.SetRolloff( -1.0f );
         ASSERT_TRUE( 0.0f == limited.GetMinDistance() && 0.0f == limited.GetMaxDistance() && 0.0f == limited.GetRolloff() );
         limited.SetMinDistance( 3.0f );
-        limited.SetMinDistance( 0.0f / 0.0f );
+        limited.SetMinDistance( std::numeric_limits< Float32 >::quiet_NaN() );
         ASSERT_TRUE( 3.0f == limited.GetMinDistance() );
         const Float32 gain = RtAttenuate( limited, 7.0f );
         ASSERT_TRUE( gain == gain && gain >= 0.0f && gain < 1.0e30f );
@@ -539,7 +540,7 @@ PerformAudioSpatialTests( void )
             ASSERT_TRUE( curve.AddCurvePoint( (Float32) i / 16.0f, -(Float32) i ) );
         ASSERT_FALSE( curve.AddCurvePoint( 0.99f, -1.0f ) );
         ASSERT_TRUE( curve.AddCurvePoint( 0.0f, -3.0f ) && -3.0f == curve.GetCurvePointGainInDecibels( 0 ) && 16 == curve.GetCurvePointCount() );
-        ASSERT_FALSE( curve.AddCurvePoint( 0.0f / 0.0f, 0.0f ) );
+        ASSERT_FALSE( curve.AddCurvePoint( std::numeric_limits< Float32 >::quiet_NaN(), 0.0f ) );
 
         // the cutoff goes from the near value at dMin to the far value at dMax, logarithmically
         AUDIO::CAudioAttenuation attenuation( MATH::DISTANCEMODEL_INVERSE_CLAMPED, 1.0f, 101.0f, 1.0f );
@@ -1149,8 +1150,8 @@ PerformAudioSpatialTests( void )
 
         // what is not valid is refused and changes nothing: not a number, infinity, no direction, forward along up, no width
         listener.GetState( state );
-        const Float32 nan = 0.0f / 0.0f;
-        const Float32 infinity = 1.0f / 0.0f;
+        const Float32 nan = std::numeric_limits< Float32 >::quiet_NaN();
+        const Float32 infinity = std::numeric_limits< Float32 >::infinity();
         ASSERT_FALSE( listener.SetPosition( P( nan, 0.0f, 0.0f ) ) );
         ASSERT_FALSE( listener.SetPosition( P( 0.0f, infinity, 0.0f ) ) );
         ASSERT_FALSE( listener.SetVelocity( V( 0.0f, 0.0f, nan ) ) );
@@ -1226,8 +1227,8 @@ PerformAudioSpatialTests( void )
         AUDIO::SEmitterState before;
         emitter.GetState( before );
         RtReadEmitter( emitter, read );
-        const Float32 nan = 0.0f / 0.0f;
-        const Float32 infinity = 1.0f / 0.0f;
+        const Float32 nan = std::numeric_limits< Float32 >::quiet_NaN();
+        const Float32 infinity = std::numeric_limits< Float32 >::infinity();
         ASSERT_FALSE( emitter.SetPositionAndVelocity( P( 5.0f, 5.0f, 5.0f ), V( nan, 0.0f, 0.0f ) ) );
         ASSERT_FALSE( emitter.SetPosition( P( 0.0f, infinity, 0.0f ) ) );
         ASSERT_FALSE( emitter.SetVelocity( V( 0.0f, 0.0f, nan ) ) );
@@ -1295,7 +1296,7 @@ PerformAudioSpatialTests( void )
         ASSERT_TRUE( 1.0f == params.GetSpeedOfSound() );
         params.SetSpeedOfSound( 1.0e9f );
         ASSERT_TRUE( 100000.0f == params.GetSpeedOfSound() );
-        params.SetSpeedOfSound( 0.0f / 0.0f );
+        params.SetSpeedOfSound( std::numeric_limits< Float32 >::quiet_NaN() );
         ASSERT_TRUE( 100000.0f == params.GetSpeedOfSound() );
         params.SetUnitsPerMeter( -1.0f );
         ASSERT_TRUE( params.GetUnitsPerMeter() > 0.0f );

@@ -30,6 +30,7 @@
 			<Dependency Name="winmm.lib" Scope="private" />
 			<Dependency Name="PowrProf.lib" Scope="private" />		
 			<Dependency Name="Shlwapi.lib" Scope="private" />
+			<Dependency Name="Bcrypt.lib" Scope="private" />
         </Linker>
     </Module>  	
     <Module Platform="linux">

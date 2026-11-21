@@ -881,7 +881,7 @@ CPdhDevicePerfStatAccessImpl::InitForDeviceId( UInt32 deviceIndex     ,
                 {
                     PDH_STATUS status = pdhApi->m_pdhAddCounterW( pdhApi->m_realtimeQuery, 
                                                                   counterInfo[ n ].name.c_str(), 
-                                                                  GUCEF_NULL, 
+                                                                  0, // dwUserData is DWORD_PTR, an integer type
                                                                   &counterInfo[ n ].handle );
                     if ( status != ERROR_SUCCESS )
                     {

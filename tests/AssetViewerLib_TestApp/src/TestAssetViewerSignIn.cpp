@@ -956,7 +956,7 @@ TestSignInFailures( void )
         ASSERT_TRUE( fixture.WaitFor( [&]() { return signIn.GetNoticeBox()->IsOpen(); } ) );
         ASSERT_TRUE( fixture.BoxText( signIn.GetNoticeBox() ).HasSubstr( "did not succeed" ) >= 0 && fixture.BoxText( signIn.GetNoticeBox() ).HasSubstr( "refused" ) >= 0 );
         GUI::CReportViewForm::ESeverity severity = GUI::CReportViewForm::SEVERITY_INFO;
-        ASSERT_TRUE( fixture.ReportHas( "The sign in did not succeed", &severity ) && GUI::CReportViewForm::SEVERITY_ERROR == severity );
+        ASSERT_TRUE( fixture.ReportHas( "The sign in did not succeed", &severity ) && GUI::CReportViewForm::        SEVERITY_FAILURE == severity );
         ASSERT_TRUE( fixture.WaitFor( [&]() { return !fixture.WebSignIn()->IsSignInRunning(); } ) );
         ASSERT_TRUE( "Fake web store - sign in required" == fixture.WebLine() && 2 == fixture.browser.GetStartCount() );
         signIn.GetNoticeBox()->Choose( GUI::CMessageBoxForm::MESSAGEBOXRESULT_OK );
@@ -1092,7 +1092,7 @@ TestSignInAutomaticNeedsOwner( void )
         ASSERT_TRUE( fixture.browser.GetLastSettings().headless && 2 == fixture.browser.GetFillCount() );
         ASSERT_TRUE( fixture.BoxText( signIn.GetQuestionBox() ).HasSubstr( "could not finish by itself" ) >= 0 && fixture.BoxText( signIn.GetQuestionBox() ).HasSubstr( "Sign in with a browser window?" ) >= 0 );
         GUI::CReportViewForm::ESeverity severity = GUI::CReportViewForm::SEVERITY_INFO;
-        ASSERT_TRUE( fixture.ReportHas( "The sign in did not succeed", &severity ) && GUI::CReportViewForm::SEVERITY_ERROR == severity );
+        ASSERT_TRUE( fixture.ReportHas( "The sign in did not succeed", &severity ) && GUI::CReportViewForm::        SEVERITY_FAILURE == severity );
         DumpPicture( fixture.Frames( 3 ), "signin-06-automatic-needs-owner" );
 
         // the answer No leaves the row as it is; Yes goes on with the window

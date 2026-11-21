@@ -58,7 +58,8 @@ enum ETestWindowMode
 {
     TESTWINDOWMODE_NONE = 0 ,   /**< no windows: GUCEF_TEST_RENDER_GPU=0, or a display server the tests may not use */
     TESTWINDOWMODE_X11      ,   /**< on XWinGL windows of the X server of DISPLAY, when GUCEF_TEST_X11_WINDOWS=1 (Xvfb) */
-    TESTWINDOWMODE_OFFSCREEN    /**< Ogre's headless EGL surface, without any display server */
+    TESTWINDOWMODE_OFFSCREEN,   /**< Ogre's headless EGL surface, without any display server */
+    TESTWINDOWMODE_WIN32        /**< on Win32 windows of the desktop of the session (Windows has no headless surface) */
 };
 
 ETestWindowMode GetTestWindowMode( void );

@@ -231,7 +231,7 @@ KdSpecialCases( void )
     if ( !tree.FindNearest( P( 0, 0, 0 ), index, d ) || 0 != index )
         return false;
     // a point that is not finite is skipped in the build and refused as a query
-    const Float64 zero = 0.0;
+    volatile Float64 zero = 0.0;
     const P bad[ 3 ] = { P( 0, 0, 0 ), P( zero / zero, 0, 0 ), P( 3, 0, 0 ) };
     tree.Build( bad, 3 );
     if ( 2 != tree.GetPointCount() || !tree.FindNearest( P( 2, 0, 0 ), index, d ) || 2 != index )

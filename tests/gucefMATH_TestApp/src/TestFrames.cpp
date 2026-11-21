@@ -171,7 +171,7 @@ RealtimeFrameWork( Float32 x ) GUCEF_MATH_REALTIME_CONTEXT
 {
     TFloat32OrthonormalFrame3D frame = TFloat32OrthonormalFrame3D::FromForwardUp( TFloat32Vector3D( 0.2f, 0.1f, -1.0f ), TFloat32Vector3D::Up() );
     TFloat32OrthonormalFrame3D other;
-    const bool ok = TFloat32OrthonormalFrame3D::TryFromForwardUp( TFloat32Vector3D( 1.0f, 0.0f, 0.0f ), TFloat32Vector3D::Up(), HANDEDNESS_LEFT, other );
+    const bool ok = TFloat32OrthonormalFrame3D::TryFromForwardUp( TFloat32Vector3D( 1.0f, 0.0f, 0.0f ), TFloat32Vector3D::Up(), MATH::HANDEDNESS_LEFT, other );
     TFloat32OrthonormalFrame3D fromQuaternion = TFloat32OrthonormalFrame3D::FromQuaternion( TFloat32Quaternion::FromAxisAngle( TFloat32DirectionVector3D::Up(), TFloat32Radian( 0.5f ) ), CCoordinateSystem::GucefDefault() );
     TFloat32OrthonormalFrame3D identity = TFloat32OrthonormalFrame3D::Identity( CCoordinateSystem::Unity() );
     const TFloat32Vector3D world( x, 1.0f, -3.0f );
@@ -285,7 +285,7 @@ PerformFramesTests( void )
                 worst = distance;
             // the left-handed system: forward is +Z
             const TFloat64OrthonormalFrame3D leftFromQuaternion = TFloat64OrthonormalFrame3D::FromQuaternion( q, unity );
-            const TFloat64OrthonormalFrame3D leftFromVectors = TFloat64OrthonormalFrame3D::FromForwardUp( q.GetForward( unity ).AsVector(), q.GetUp( unity ).AsVector(), HANDEDNESS_LEFT );
+            const TFloat64OrthonormalFrame3D leftFromVectors = TFloat64OrthonormalFrame3D::FromForwardUp( q.GetForward( unity ).AsVector(), q.GetUp( unity ).AsVector(), MATH::HANDEDNESS_LEFT );
             if ( distance > 1e-9 || FrameDistance( leftFromQuaternion, leftFromVectors ) > 1e-9 || Orthonormality( fromQuaternion ) > 1e-12 || Orthonormality( leftFromQuaternion ) > 1e-12 )
                 ++failures;
             // the frame of a quaternion turns the system axes: its forward is the rotated forward of the system
@@ -331,15 +331,15 @@ PerformFramesTests( void )
         ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 0, 0, 0 ), TFloat64Vector3D( 0, 1, 0 ), out ) );
         ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 1, 0, 0 ), TFloat64Vector3D( 0, 0, 0 ), out ) );
         ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( nan, 0, 0 ), TFloat64Vector3D( 0, 1, 0 ), out ) );
-        ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 1, 0, 0 ), TFloat64Vector3D( 0, nan, 0 ), HANDEDNESS_LEFT, out ) );
-        ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 2, 0, 0 ), TFloat64Vector3D( 5, 0, 0 ), HANDEDNESS_LEFT, out ) );
+        ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 1, 0, 0 ),         TFloat64Vector3D( 0, nan, 0 ), MATH::HANDEDNESS_LEFT, out ) );
+                ASSERT_FALSE( TFloat64OrthonormalFrame3D::TryFromForwardUp( TFloat64Vector3D( 2, 0, 0 ), TFloat64Vector3D( 5, 0, 0 ), MATH::HANDEDNESS_LEFT, out ) );
         ASSERT_TRUE( out == before );
 
         #ifndef GUCEF_MATH_DEBUG_MODE
         // the infallible form gives the identity frame of the default convention (debug builds assert)
         ASSERT_TRUE( TFloat64OrthonormalFrame3D::FromForwardUp( TFloat64Vector3D( 0, 1, 0 ), TFloat64Vector3D( 0, 2, 0 ) ) == identity );
         ASSERT_TRUE( TFloat64OrthonormalFrame3D::FromForwardUp( TFloat64Vector3D( 0, 0, 0 ), TFloat64Vector3D( 0, 1, 0 ) ) == identity );
-        ASSERT_TRUE( TFloat64OrthonormalFrame3D::FromForwardUp( TFloat64Vector3D( 1, 0, 0 ), TFloat64Vector3D( 1, 0, 0 ), HANDEDNESS_LEFT ) == identity );
+        ASSERT_TRUE( TFloat64OrthonormalFrame3D::FromForwardUp( TFloat64Vector3D( 1, 0, 0 ), TFloat64Vector3D( 1, 0, 0 ), MATH::HANDEDNESS_LEFT ) == identity );
         #endif
 
         // nearly parallel is fine: still orthonormal, the forward axis is kept
@@ -376,7 +376,7 @@ PerformFramesTests( void )
             const TFloat64Vector3D up( generator.NextFloat64( -1, 1 ) * scaleU, generator.NextFloat64( -1, 1 ) * scaleU, generator.NextFloat64( -1, 1 ) * scaleU );
             for ( UInt32 h = 0; h < 2; ++h )
             {
-                const THandedness handedness = 0 == h ? HANDEDNESS_RIGHT : HANDEDNESS_LEFT;
+                const THandedness handedness = 0 == h ? MATH::HANDEDNESS_RIGHT : MATH::HANDEDNESS_LEFT;
                 TFloat64OrthonormalFrame3D frame;
                 const bool created = TFloat64OrthonormalFrame3D::TryFromForwardUp( forward, up, handedness, frame );
                 const TFloat64Vector3D f = forward.Normalized();

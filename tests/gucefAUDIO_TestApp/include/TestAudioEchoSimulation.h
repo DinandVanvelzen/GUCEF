@@ -255,7 +255,7 @@ struct SEchoRigConfig
  *  buffer
  */
 inline TSamples
-Played( const TSamples& far, const SEchoRigConfig& config, size_t length )
+Played( const TSamples& farEnd, const SEchoRigConfig& config, size_t length )
 {
     const size_t buffer = (size_t) config.playbackPeriods * config.period;
     TSamples played( length, 0.0f );
@@ -265,10 +265,10 @@ Played( const TSamples& far, const SEchoRigConfig& config, size_t length )
         if ( 0.0 == config.driftPpm )
         {
             const size_t r = n - buffer;
-            played[ n ] = r < far.size() ? far[ r ] : 0.0f;
+            played[ n ] = r < farEnd.size() ? farEnd[ r ] : 0.0f;
         }
         else
-            played[ n ] = (GUCEF::Float32) Interpolate( far, (GUCEF::Float64) ( n - buffer ) * ratio );
+            played[ n ] = (GUCEF::Float32) Interpolate( farEnd, (GUCEF::Float64) ( n - buffer ) * ratio );
     }
     return played;
 }
@@ -301,8 +301,8 @@ class CEchoRig
         return m_canceller.Prepare( m_config.rate, 4096, m_config.rate, 1, 4096 );
     }
 
-    /** Runs over all of 'mic' (output in 'out', the same length); 'far' is the reference at the render clock */
-    void Run( const TSamples& far, const TSamples& mic, TSamples& out )
+    /** Runs over all of 'mic' (output in 'out', the same length);     'farEnd' is the reference at the render clock */
+        void Run( const TSamples& farEnd, const TSamples& mic, TSamples& out )
     {
         out = mic;
         const GUCEF::Float64 ratio = 1.0 + m_config.driftPpm * 1.0e-6;
@@ -317,7 +317,7 @@ class CEchoRig
             for ( GUCEF::UInt32 i=0; i<frames; ++i )
             {
                 const size_t r = (size_t) m_rendered + i;
-                reference[ i ] = r < far.size() ? far[ r ] : 0.0f;
+                reference[ i ] = r < farEnd.size() ? farEnd[ r ] : 0.0f;
             }
             m_canceller.WriteReference( &reference[ 0 ], frames );
             m_rendered += frames;

@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
   #ifndef _GNU_SOURCE
     #define _GNU_SOURCE

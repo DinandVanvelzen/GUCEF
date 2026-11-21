@@ -44,6 +44,12 @@
 
 #ifdef __cplusplus
 
+#if defined( _WIN32 )
+
+#include "gucef_test_tcp_server_mswin.h"
+
+#else /* not Windows */
+
 #if defined( __linux__ )
 
   #include <string.h>
@@ -848,6 +854,8 @@ CTestServerConnection::Close( void )
 
 } /* namespace TESTFW */
 } /* namespace GUCEF */
+
+#endif /* Windows or not ? */
 
 #endif /* __cplusplus ? */
 

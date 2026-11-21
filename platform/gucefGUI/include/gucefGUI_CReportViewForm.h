@@ -85,7 +85,7 @@ class GUCEF_GUI_PUBLIC_CPP CReportViewForm : public CFormEx
     {
         SEVERITY_INFO = 0   ,
         SEVERITY_WARNING    ,
-        SEVERITY_ERROR      ,
+        SEVERITY_FAILURE    ,   /**< not named SEVERITY_ERROR as that is a macro of the Windows headers */
 
         SEVERITY_COUNT
     };

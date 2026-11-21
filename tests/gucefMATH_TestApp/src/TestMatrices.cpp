@@ -1011,12 +1011,12 @@ PerformMatricesTests( void )
         ASSERT_TRUE( m.IsAffine() && !m.IsIdentity() && m.IsFinite() && m.HasUniformScale( 1e-6f ) );
         ASSERT_FALSE( TFloat32Matrix4D::Scale( TFloat32Vector3D( 1, 2, 1 ) ).HasUniformScale( 0.1f ) );
         ASSERT_TRUE( TFloat32Matrix4D::Scale( TFloat32Vector3D( 1, 1.05f, 1 ) ).HasUniformScale( 0.1f ) );
-        TFloat32Matrix4D near = m;
-        near( 0, 0 ) += 1e-7f;
-        ASSERT_TRUE( near.Equals( m ) && !( near == m ) && near != m );
-        near( 0, 0 ) += 1e-3f;
-        ASSERT_FALSE( near.Equals( m ) );
-        ASSERT_TRUE( near.Equals( m, 0.01f, 0.0f ) );
+        TFloat32Matrix4D nearMatrix = m;
+        nearMatrix( 0, 0 ) += 1e-7f;
+        ASSERT_TRUE( nearMatrix.Equals( m ) && !( nearMatrix == m ) && nearMatrix != m );
+        nearMatrix( 0, 0 ) += 1e-3f;
+        ASSERT_FALSE( nearMatrix.Equals( m ) );
+        ASSERT_TRUE( nearMatrix.Equals( m, 0.01f, 0.0f ) );
         TFloat32Matrix4D projective = m;
         projective( 3, 0 ) = 0.1f;
         ASSERT_FALSE( projective.IsAffine() );

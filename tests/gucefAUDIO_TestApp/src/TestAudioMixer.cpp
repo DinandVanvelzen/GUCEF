@@ -162,7 +162,7 @@ class CNotANumberSource : public AUDIO::IAudioSource
     {
         const UInt32 n = ( m_left < frameCapacity ) ? m_left : frameCapacity;
         Float32* out = static_cast< Float32* >( destination );
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         for ( UInt32 i=0; i<n; ++i )
             out[ i ] = zero / zero;
         m_left -= n;

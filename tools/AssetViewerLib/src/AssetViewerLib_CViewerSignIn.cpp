@@ -726,7 +726,7 @@ CViewerSignIn::OnWebSignInFailed( CORE::CNotifier* notifier, const CORE::CEvent&
     if ( automatic )
         m_automaticStore.Clear();
     const CORE::CString name = GetStoreName( result->storeId );
-    Report( GUI::CReportViewForm::SEVERITY_ERROR, name, "The sign in did not succeed: " + CORE::CString( ASSETSTORE::AssetStoreStatusToString( result->status ) ), result->message );
+    Report( GUI::CReportViewForm::SEVERITY_FAILURE, name, "The sign in did not succeed: " + CORE::CString( ASSETSTORE::AssetStoreStatusToString( result->status ) ), result->message );
     RefreshSettings();
     if ( ASSETSTORE::ASSETSTORE_STATUS_CANCELLED == result->status )
         return;
@@ -933,7 +933,7 @@ CViewerSignIn::DoSaveCredentials( void )
     if ( saved )
         Report( GUI::CReportViewForm::SEVERITY_INFO, GetStoreName( storeId ), "Credentials saved for the automatic sign in" );
     else
-        Report( GUI::CReportViewForm::SEVERITY_ERROR, GetStoreName( storeId ), "The credentials could not be saved" );
+        Report( GUI::CReportViewForm::SEVERITY_FAILURE, GetStoreName( storeId ), "The credentials could not be saved" );
     RefreshSettings();
 }
 
@@ -976,7 +976,7 @@ CViewerSignIn::DoForgetCredentials( void )
     const bool forgotten = GUCEF_NULL != signIn && signIn->ForgetCredentials();
     if ( GUCEF_NULL != m_settings )
         m_settings->ShowMessage( forgotten ? CORE::CString( "The saved credentials are forgotten." ) : CORE::CString( "The saved credentials could not be forgotten." ), !forgotten );
-    Report( forgotten ? GUI::CReportViewForm::SEVERITY_INFO : GUI::CReportViewForm::SEVERITY_ERROR, GetStoreName( storeId ),
+    Report( forgotten ? GUI::CReportViewForm::SEVERITY_INFO : GUI::CReportViewForm::SEVERITY_FAILURE, GetStoreName( storeId ),
             forgotten ? CORE::CString( "The saved credentials are forgotten" ) : CORE::CString( "The saved credentials could not be forgotten" ) );
     RefreshSettings();
 }
@@ -1047,7 +1047,7 @@ CViewerSignIn::BeginOAuthSignIn( const CORE::CString& storeId )
     Watch( provider.GetPointerAlways(), GUCEF_NULL );
     if ( GUCEF_NULL == m_authManager )
     {
-        Report( GUI::CReportViewForm::SEVERITY_ERROR, name, "The sign in service of this viewer is not set up for this store" );
+        Report( GUI::CReportViewForm::SEVERITY_FAILURE, name, "The sign in service of this viewer is not set up for this store" );
         ShowNotice( "Sign in to " + name, "Signing in to " + name + " needs a sign in service that this viewer has not set up." );
         return false;
     }
@@ -1068,7 +1068,7 @@ CViewerSignIn::BeginOAuthSignIn( const CORE::CString& storeId )
         {
             m_oauthStore.Clear();
             m_oauthProvider.Clear();
-            Report( GUI::CReportViewForm::SEVERITY_ERROR, name, "The sign in could not be started" );
+            Report( GUI::CReportViewForm::SEVERITY_FAILURE, name, "The sign in could not be started" );
         }
         return false;
     }
@@ -1141,7 +1141,7 @@ CViewerSignIn::OnAuthLoginFailed( CORE::CNotifier* notifier, const CORE::CEvent&
         Report( GUI::CReportViewForm::SEVERITY_INFO, name, "The sign in was cancelled" );
         return;
     }
-    Report( GUI::CReportViewForm::SEVERITY_ERROR, name, "The sign in did not succeed", failure->message );
+    Report( GUI::CReportViewForm::SEVERITY_FAILURE, name, "The sign in did not succeed", failure->message );
     ShowNotice( "Sign in to " + name, "The sign in did not succeed: " + failure->message + ". Press Sign in to try again." );
 }
 

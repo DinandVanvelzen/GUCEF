@@ -187,6 +187,18 @@ class GUCEF_AUTH_EXPORT_CPP CIAuthProvider : public CORE::CTSGNotifier ,
 typedef CORE::CTAbstractFactory< CORE::CString, CIAuthProvider, MT::CMutex > CAuthProviderFactory;
 typedef CAuthProviderFactory::TProductPtr                                    CIAuthProviderPtr;
 
+/*-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) && !defined( GUCEF_AUTH_BUILD_MODULE )
+
+/*
+ *  The module exports this base class instantiation through its exported factory classes. Code that makes factories of
+ *  its own providers instantiates the same base: import it, or the export library and that code both define it.
+ */
+extern template class GUCEF_AUTH_EXPORT_CPP CORE::CTFactoryBase< CIAuthProvider, MT::CMutex >;
+
+#endif /* MS Windows consumer ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

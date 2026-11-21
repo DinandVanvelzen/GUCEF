@@ -24,7 +24,6 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
-#include <unistd.h>
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
@@ -32,6 +31,7 @@
 #endif /* GUCEF_CORE_MACROS_H ? */
 
 #ifdef GUCEF_LINUX_BUILD
+#include <unistd.h>
 #ifndef GUCEF_CORE_CX11EVENTDISPATCHER_H
 #include "gucefCORE_CX11EventDispatcher.h"
 #define GUCEF_CORE_CX11EVENTDISPATCHER_H

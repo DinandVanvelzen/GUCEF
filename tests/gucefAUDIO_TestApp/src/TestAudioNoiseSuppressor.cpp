@@ -750,7 +750,7 @@ PerformRobustnessTests( void )
         TVS::MixInto( x, TVS::MakeWhiteNoise( x.size(), 0.002, 9 ) );
         for ( size_t i=Rate; i<2 * Rate; ++i )
             x[ i ] = ( i & 1 ) ? 1.0e-39f : -1.0e-40f;
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         x[ 3 * Rate ] = zero / zero;
         x[ 3 * Rate + 100 ] = 1.0f / zero;
         x[ 3 * Rate + 200 ] = -1.0f / zero;

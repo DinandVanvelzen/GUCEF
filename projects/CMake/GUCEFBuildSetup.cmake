@@ -100,7 +100,8 @@ include(CheckCXXCompilerFlag)
 
 if (USE_SIMD)
   if (MSVC)
-    add_compile_options(/fp:fast)
+    # Not /fp:fast: it lets the compiler assume there are no NaNs and infinities which GUCEF code checks for
+    add_compile_options(/fp:precise)
 
   elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
           CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

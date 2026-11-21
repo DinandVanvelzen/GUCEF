@@ -380,7 +380,7 @@ PerformRotationSerializationTests( void )
         ASSERT_TRUE( TFloat32EulerAngles().ToString() == "(YXZ, intrinsic, 0 rad, 0 rad, 0 rad)" );
         ASSERT_TRUE( TFloat32AxisAngle().ToString() == "((1, 0, 0), 0 rad)" );
         ASSERT_TRUE( CCoordinateSystem::Unreal().ToString() == "(+Y, +Z, +X, 100)" );
-        ASSERT_TRUE( SProjectionConvention::Vulkan().ToString() == "(right, 0..1, flipY)" && SProjectionConvention::ReversedZInfinite( HANDEDNESS_LEFT ).ToString() == "(left, 0..1, reversedZ, infiniteFar)" );
+        ASSERT_TRUE( SProjectionConvention::Vulkan().ToString() == "(right, 0..1, flipY)" && SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_LEFT ).ToString() == "(left, 0..1, reversedZ, infiniteFar)" );
 
         // white space, degrees on input
         TFloat64Matrix3D m3;
@@ -398,7 +398,7 @@ PerformRotationSerializationTests( void )
         CCoordinateSystem system;
         ASSERT_TRUE( system.FromString( "( -X , +Z, -Y, 0.0254 )" ) && SIGNEDAXIS_NEGATIVE_Y == system.GetForwardAxis() && 0.0254 == system.GetUnitsPerMetre() );
         SProjectionConvention convention = SProjectionConvention::OpenGL();
-        ASSERT_TRUE( convention.FromString( "( left , -1..1, flipY , reversedZ )" ) && HANDEDNESS_LEFT == convention.handedness && convention.flipY && convention.reversedZ && !convention.infiniteFar );
+        ASSERT_TRUE( convention.FromString( "( left , -1..1, flipY , reversedZ )" ) && MATH::HANDEDNESS_LEFT == convention.handedness && convention.flipY && convention.reversedZ && !convention.infiniteFar );
     }
     catch( ... )
     {

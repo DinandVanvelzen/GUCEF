@@ -53,6 +53,17 @@
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
+/* near and far are macros of the Windows headers, undefine them so they can be used as identifiers */
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
+/* Polygon is a GDI function of the Windows headers, so this file names its polygon type differently */
+#define Polygon TestPolygon2D
+
 using namespace GUCEF;
 using namespace GUCEF::MATH;
 using namespace GUCEF::GEOMETRY;

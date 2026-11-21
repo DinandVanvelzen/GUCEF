@@ -637,6 +637,7 @@ inline CString ToString( Float64 value ) { return DoubleToString( value ); }
 inline CString ToString( bool value ) { return BoolToString( value ); }
 inline CString ToString( const char* value ) { return CString( value ); }
 inline CString ToString( const wchar_t* value ) { return CString( value ); }
+inline CString ToString( wchar_t* value ) { return ToString( static_cast< const wchar_t* >( value ) ); } /* else the catch-all pointer overload below is the better match */
 inline CString ToString( const TVersion& value ) { return VersionToString( value ); }
 inline CString ToString( const std::string& value ) { return CString( value ); }
 inline CString ToString( const std::wstring& value ) { std::string out; Utf16toUtf8( value, out ); return out; }

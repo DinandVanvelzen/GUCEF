@@ -553,6 +553,10 @@ PerformFileUtilsTests( void )
 
             CORE::CFileAccess reader( target, "rb" );
             ASSERT_TRUE( reader.IsValid() );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+            // Windows refuses to replace a file that is open (sharing violation), so the reader cannot stay open over the move
+            reader.Close();
+            #endif
             ASSERT_TRUE( CORE::MoveFile( replacement, target, true ) );
             ASSERT_FALSE( CORE::FileExists( replacement ) );
 

@@ -53,6 +53,14 @@
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
+/* near and far are macros of the Windows headers, undefine them so they can be used as identifiers */
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
 using namespace GUCEF;
 using namespace GUCEF::MATH;
 using namespace GUCEF::GEOMETRY;
@@ -73,7 +81,7 @@ CameraRight( const SCamera< T >& camera )
 {
     const V3 f = camera.forward.AsVector();
     const V3 u = camera.up.AsVector();
-    return THandedness( HANDEDNESS_RIGHT ) == camera.convention.handedness ? f.Cross( u ) : u.Cross( f );
+    return THandedness( MATH::HANDEDNESS_RIGHT ) == camera.convention.handedness ? f.Cross( u ) : u.Cross( f );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -207,7 +215,7 @@ OrthographicSweep( UInt64 seed, UInt32 cameras, UInt32& inside, UInt32& outside 
             ++bad;
             continue;
         }
-        const V3 right = HANDEDNESS_RIGHT == convention.handedness ? forward.AsVector().Cross( up.AsVector() ) : up.AsVector().Cross( forward.AsVector() );
+        const V3 right = MATH::HANDEDNESS_RIGHT == convention.handedness ? forward.AsVector().Cross( up.AsVector() ) : up.AsVector().Cross( forward.AsVector() );
         for ( UInt32 k=0; k<100; ++k )
         {
             const Float64 depth = random.Uniform( -1.0, farDistance * 1.3 );
@@ -317,8 +325,8 @@ InfiniteFarSweep( UInt64 seed, UInt32 count, UInt32& visible )
         const Float64 fov = random.Uniform( 0.5, 1.6 );
         const Float64 aspect = random.Uniform( 0.7, 2.0 );
         const Float64 nearDistance = random.Uniform( 0.05, 0.5 );
-        const SProjectionConvention infinite = SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT );
-        const SProjectionConvention finite = SProjectionConvention::Make( HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false );
+        const SProjectionConvention infinite = SProjectionConvention::        ReversedZInfinite( MATH::HANDEDNESS_RIGHT );
+                const SProjectionConvention finite = SProjectionConvention::Make( MATH::HANDEDNESS_RIGHT, DEPTHRANGE_ZERO_TO_ONE, true, false, false );
         const CTFrustum< T > inf = CTFrustum< T >::FromViewProjection( TMatrix::Perspective( CTRadian< T >( (T) fov ), (T) aspect, (T) nearDistance, (T) 1000, infinite ), infinite );
         const CTFrustum< T > fin = CTFrustum< T >::FromViewProjection( TMatrix::Perspective( CTRadian< T >( (T) fov ), (T) aspect, (T) nearDistance, (T) 1000, finite ), finite );
         if ( !inf.IsFarInfinite() || fin.IsFarInfinite() )
@@ -392,11 +400,11 @@ PerformFrustumTests( void )
     {
         typedef CTMatrix4D< Float64 > M;
         const SProjectionConvention conventions[ 5 ] = { SProjectionConvention::OpenGL(), SProjectionConvention::Vulkan(), SProjectionConvention::Direct3D(),
-                                                         SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT ), SProjectionConvention::ReversedZInfinite( HANDEDNESS_LEFT ) };
+                                                         SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_RIGHT ), SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_LEFT ) };
         for ( UInt32 c=0; c<5; ++c )
         {
             const SProjectionConvention convention = conventions[ c ];
-            const Float64 forwardZ = HANDEDNESS_RIGHT == convention.handedness ? -1.0 : 1.0;      /* the view looks down -Z or +Z */
+            const Float64 forwardZ = MATH::HANDEDNESS_RIGHT == convention.handedness ? -1.0 : 1.0;      /* the view looks down -Z or +Z */
             const M projection = M::Perspective( CTRadian< Float64 >( 1.5707963267948966 ), 1.0, 1.0, 10.0, convention );
             const CTFrustum< Float64 > frustum = CTFrustum< Float64 >::FromViewProjection( projection, convention );
             /* a 90 degree field of view: the half width at depth d is d */
@@ -552,7 +560,7 @@ PerformFrustumTests( void )
     {
         typedef CTMatrix4D< Float32 > M32;
         /* the case of the review: a sphere and a box overlapping the near face right at the apex */
-        const SProjectionConvention infinite = SProjectionConvention::ReversedZInfinite( HANDEDNESS_RIGHT );
+        const SProjectionConvention infinite =         SProjectionConvention::ReversedZInfinite( MATH::HANDEDNESS_RIGHT );
         const SProjectionConvention finite = SProjectionConvention::OpenGL();
         const CTFrustum< Float32 > inf = CTFrustum< Float32 >::FromViewProjection( M32::Perspective( CTRadian< Float32 >( 1.0f ), 1.0f, 0.1f, 1000.0f, infinite ), infinite );
         const CTFrustum< Float32 > fin = CTFrustum< Float32 >::FromViewProjection( M32::Perspective( CTRadian< Float32 >( 1.0f ), 1.0f, 0.1f, 1000.0f, finite ), finite );

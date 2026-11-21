@@ -422,7 +422,7 @@ TestShellReportAndThumbnails( void )
 
         // the report starts with what the viewer says of itself
         ASSERT_TRUE( shell.GetReport()->GetEntryCount() >= 1 );
-        const UInt32 errorsBefore = shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_ERROR );
+        const UInt32 errorsBefore = shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_FAILURE );
         const UInt32 warningsBefore = shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_WARNING );
 
         // what has no view, and what cannot be read, is refused and reported
@@ -432,7 +432,7 @@ TestShellReportAndThumbnails( void )
         ASSERT_FALSE( shell.OpenAsset( "/nomount/model.gltf" ) );
         ASSERT_TRUE( ASSETKIND_OTHER == shell.GetShownKind() );
         shell.Update( 0 );
-        ASSERT_TRUE( shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_ERROR ) >= errorsBefore + 4 );
+        ASSERT_TRUE( shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_FAILURE ) >= errorsBefore + 4 );
 
         // a warning of any part of the program arrives too
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "shell test: a warning of the viewer" );

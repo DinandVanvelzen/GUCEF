@@ -211,7 +211,7 @@ PerformParameterTests( void )
         const AUDIO::CAudioEffectParameterInfo& gain = infos[ CTestAudioEffect::PARAMETER_GAIN ];
         ASSERT_TRUE( gain.GetName() == "gain" && AUDIO::AUDIOPARAMUNIT_LINEAR_GAIN == gain.GetUnit() && 1.0f == gain.GetDefaultValue() );
         ASSERT_TRUE( 4.0f == gain.Clamp( 9.0f ) && 0.0f == gain.Clamp( -1.0f ) && 0.25f == gain.Clamp( 0.25f ) );
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         ASSERT_TRUE( 1.0f == gain.Clamp( zero / zero ) );                                  // not a number gives the default
 
         const AUDIO::CAudioEffectParameterInfo& pair = infos[ CTestAudioEffect::PARAMETER_PAIR_A ];

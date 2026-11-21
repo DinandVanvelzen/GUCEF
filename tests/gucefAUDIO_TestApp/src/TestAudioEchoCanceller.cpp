@@ -85,6 +85,14 @@
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
+/* near and far are macros of the Windows headers, undefine them so they can be used as identifiers */
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
 using namespace GUCEF;
 using namespace EchoTest;
 
@@ -377,7 +385,7 @@ PerformComponentTests( void )
         settings.SetFilterLengthInMs( 2000.0f );
         settings.SetBlockFrames( 100 );
         settings.SetAdaptEveryBlocks( 9 );
-        const Float32 zero = 0.0f;
+        volatile Float32 zero = 0.0f;
         settings.SetEchoSuppressionInDecibels( zero / zero );
         ASSERT_TRUE( 512.0f == settings.GetFilterLengthInMs() && 64 == settings.GetBlockFrames() && 4 == settings.GetAdaptEveryBlocks() && -40.0f == settings.GetEchoSuppressionInDecibels() );
         settings.SetBlockFrames( 5000 );

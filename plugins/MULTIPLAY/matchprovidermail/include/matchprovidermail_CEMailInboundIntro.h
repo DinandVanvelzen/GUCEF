@@ -28,6 +28,12 @@
 #include "matchprovidermail_CEMailIntroRequest.h"
 #define GUCEF_MULTIPLAYPLUGIN_MAIL_CEMAILINTROREQUEST_H
 #endif /* GUCEF_MULTIPLAYPLUGIN_MAIL_CEMAILINTROREQUEST_H ? */
+
+// The Windows headers define this as a macro
+#ifdef STATUS_PENDING
+#undef STATUS_PENDING
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

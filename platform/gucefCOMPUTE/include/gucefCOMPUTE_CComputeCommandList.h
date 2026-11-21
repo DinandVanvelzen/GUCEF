@@ -102,7 +102,7 @@ class GUCEF_COMPUTE_PUBLIC_CPP CComputeCommandList
     };
 
     /** One command as backends read it back with ReadCommand(); only the fields of its type are set */
-    struct SCommand
+    struct GUCEF_COMPUTE_PUBLIC_CPP SCommand
     {
         TCommandType type;
         CComputeBuffer* buffer;             /**< write, read, fill: the buffer; copy: the destination */

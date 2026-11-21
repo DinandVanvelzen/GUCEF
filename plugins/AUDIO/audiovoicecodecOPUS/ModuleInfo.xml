@@ -19,6 +19,9 @@
             <Dependency Name="opus" />
         </Dependencies>
         <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
             <Dependency Name="opus" />
         </Linker>
         <Preprocessor>

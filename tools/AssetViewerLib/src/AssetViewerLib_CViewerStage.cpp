@@ -24,6 +24,21 @@
 
 #include <Ogre.h>
 
+#ifndef PLUGINGLUE_OGRE_COGREGLOBAL_H
+#include "pluginglueOGRE_COgreGlobal.h"
+#define PLUGINGLUE_OGRE_COGREGLOBAL_H
+#endif /* PLUGINGLUE_OGRE_COGREGLOBAL_H ? */
+
+#ifndef PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#include "pluginglueOGRE_COgreRootSetup.h"
+#define PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#endif /* PLUGINGLUE_OGRE_COGREROOTSETUP_H ? */
+
+#ifndef PLUGINGLUE_OGRE_COGRESHADERGENERATORSCENETRACKER_H
+#include "pluginglueOGRE_COgreShaderGeneratorSceneTracker.h"
+#define PLUGINGLUE_OGRE_COGRESHADERGENERATORSCENETRACKER_H
+#endif /* PLUGINGLUE_OGRE_COGRESHADERGENERATORSCENETRACKER_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -147,6 +162,13 @@ CViewerStage::Initialize( UInt32 width, UInt32 height )
     {
         Ogre::Root& root = Ogre::Root::getSingleton();
         m_sceneManager = root.createSceneManager( "DefaultSceneManager", m_name.STL_String() );
+
+        // the shader generator knows a scene manager once it is tracked, which the tracker does at the next frame of the Root:
+        // a stage that is drawn before that frame (a render texture update) would draw without an active scene manager there
+        PLUGINGLUE::OGRE::COgreGlobal* ogreGlobal = PLUGINGLUE::OGRE::COgreGlobal::Instance();
+        PLUGINGLUE::OGRE::COgreShaderGeneratorSceneTracker* tracker = GUCEF_NULL == ogreGlobal ? GUCEF_NULL : ogreGlobal->GetRootSetup().GetShaderGeneratorSceneTracker();
+        if ( GUCEF_NULL != tracker )
+            tracker->AddNewSceneManagers();
         m_camera = m_sceneManager->createCamera( "Camera" );
         m_cameraNode = m_sceneManager->getRootSceneNode()->createChildSceneNode();
         m_cameraNode->attachObject( m_camera );

@@ -145,7 +145,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMatchListForm : public GUI::CFormEx
     static const char* const ItemRematch;
 
     /** A row of the list as it is shown: a group header or a match */
-    struct SRowInfo
+    struct GUCEF_GAMEGUI_EXPORT_CPP SRowInfo
     {
         CORE::CString matchId;                  /**< empty for a header */
         MULTIPLAY::TMatchGroup group;

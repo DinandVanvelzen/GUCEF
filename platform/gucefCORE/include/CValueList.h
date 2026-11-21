@@ -179,6 +179,15 @@ class GUCEF_CORE_PUBLIC_CPP CValueList : public CIConfigurable          ,
     const CVariant& GetValue( const char* key ) const;
 
     /**
+     *  Returns the first value associated with the
+     *  given key.
+     *  This non-const overload keeps a literal key on a non-const list from being ambiguous between
+     *  the const char* const version and the non-const CString and CVariant versions
+     *
+     *  @exception EUnknownKey thrown if the given key is unknown
+     */
+    CVariant& GetValue( const char* key );
+    /**
      *  Attempt to assign or link the first value associated with the given key.
      *  Note that this non-const version will be potentially more performant since its able to link data vs a deep copy
      */

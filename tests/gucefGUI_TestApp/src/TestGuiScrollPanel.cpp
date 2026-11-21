@@ -50,6 +50,14 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/* near and far are macros of the Windows headers, undefine them so they can be used as identifiers */
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
+
 using namespace GUCEF;
 
 /*-------------------------------------------------------------------------//

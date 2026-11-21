@@ -22,6 +22,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <limits>
 
 #ifndef GUCEF_CORE_CDATE_H
 #include "gucefCORE_CDate.h"
@@ -310,7 +311,7 @@ PerformDataTableBatchBuilderTests( void )
             ASSERT_FALSE( builder.GetColumn( COL_U64 ).AppendInt64( -1 ) );
             ASSERT_FALSE( builder.GetColumn( COL_F32 ).AppendFloat64( 0.1 ) );                  // not exact in a float
             ASSERT_FALSE( builder.GetColumn( COL_F32 ).AppendFloat64( 1e40 ) );
-            ASSERT_TRUE( builder.GetColumn( COL_F32 ).AppendFloat64( 1.0 / 0.0 ) );
+            ASSERT_TRUE( builder.GetColumn( COL_F32 ).AppendFloat64( std::numeric_limits< Float64 >::infinity() ) );
             ASSERT_FALSE( builder.GetColumn( COL_I64 ).AppendFloat64( 1.0 ) );                  // typed appends do not convert
             ASSERT_FALSE( builder.GetColumn( COL_F64 ).AppendInt64( 1 ) );
             ASSERT_FALSE( builder.GetColumn( COL_B ).AppendInt64( 1 ) );

@@ -86,7 +86,7 @@ RunPatcherApp( void )
 {GUCEF_TRACE;
 
     // the test dir path is based on a CMake win32 build
-    LOADER::Int32 appReturnCode = LOADER::LoadAndRunGucefPlatformApp( "gucefPATCHERAPP", "$MODULEDIR$/../../../TestData/gucefPATCHERAPP_TestApp/mswin", 0, 0, 0, 0, 0, 0 );
+    GUCEF::LOADER::Int32 appReturnCode = GUCEF::LOADER::LoadAndRunGucefPlatformApp( "gucefPATCHERAPP", "$MODULEDIR$/../../../TestData/gucefPATCHERAPP_TestApp/mswin", 0, 0, 0, 0, 0, 0 );
     return appReturnCode;
 }
 

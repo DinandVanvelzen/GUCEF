@@ -39,7 +39,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-namespace Ogre { class Root; namespace RTShader { class ShaderGenerator; } }
+namespace Ogre { namespace RTShader { class ShaderGenerator; } }
 
 namespace GUCEF {
 namespace PLUGINGLUE {

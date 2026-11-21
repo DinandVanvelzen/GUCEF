@@ -65,7 +65,7 @@ class GUCEF_COMPUTE_PUBLIC_CPP CComputeTolerance
     typedef enum EStatistic TStatistic;
 
     /** What a comparison of two arrays found */
-    struct SComparison
+    struct GUCEF_COMPUTE_PUBLIC_CPP SComparison
     {
         UInt32 count;                   /**< elements compared */
         UInt32 outsideCount;            /**< elements outside the tolerance */

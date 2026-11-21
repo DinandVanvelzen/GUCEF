@@ -24,6 +24,11 @@
 
 #include <stdlib.h>
 
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 #include "fontpluginFREETYPE_pluginAPI.h"
 #endif
