@@ -20,14 +20,11 @@
 #define TESTWEBSIGNIN_H
 
 /**
- *  Web session sign in (section 12.1 of the design): login scripts (parsing, validation, malformed and hostile
- *  scripts), the fixed page queries, sessions and credentials in the credential store, and CWebSessionSignIn against a
- *  fake login site through a test double of the browser: automatic sign in, session reuse, re-sign in after expiry,
- *  hand over for a captcha and an e-mail code, manual sign in, a refused password, cancel, time outs, a closed window,
- *  the provider base class, and that nothing secret reaches a log or a file.
- *
- *  With GUCEF_TEST_BROWSER=1 and a Chrome, Chromium, Edge or Brave on this computer the same site is also signed in to
- *  with the real browser, headless (--headless=new) and kept off every network but the loopback; skipped otherwise.
+ *  The web session sign in of a store (section 12.1 of the design) on the provider base class
+ *  (CWebSessionAssetStoreProvider) against a fake login site through a test double of the browser: the sign in kind,
+ *  the session cookies on requests, renewal after the session ended and sign out, and that nothing secret reaches a log
+ *  or a file. The login scripts are tested in gucefWEB_TestApp, the sign in itself (AUTH::CWebSessionSignIn) in
+ *  gucefAUTH_TestApp.
  */
 void PerformWebSignInTests( void );
 

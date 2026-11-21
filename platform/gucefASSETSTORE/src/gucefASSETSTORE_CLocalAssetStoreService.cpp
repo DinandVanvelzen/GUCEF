@@ -52,6 +52,11 @@
 #define GUCEF_VFS_CVFS_H
 #endif /* GUCEF_VFS_CVFS_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#include "gucefASSETSTORE_CPackStorageLayout.h"
+#include "gucefASSETSTORE_CAssetThumbnailFiles.h"
+#define GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#endif /* GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
 #include "gucefASSETSTORE_CAssetStoreGlobal.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
@@ -72,10 +77,10 @@
 #include "gucefASSETSTORE_CAssetConversionEventData.h"
 #define GUCEF_ASSETSTORE_CASSETCONVERSIONEVENTDATA_H
 #endif /* GUCEF_ASSETSTORE_CASSETCONVERSIONEVENTDATA_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#include "gucefASSETSTORE_CWebSessionSignIn.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#include "gucefAUTH_CWebSessionSignIn.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNIN_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETDIGEST_H
 #include "gucefASSETSTORE_CAssetDigest.h"
 #define GUCEF_ASSETSTORE_CASSETDIGEST_H
@@ -92,10 +97,65 @@
 #include "gucefASSETSTORE_CLocalAssetStoreServiceOperationData.h"
 #define GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICEOPERATIONDATA_H
 #endif /* GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICEOPERATIONDATA_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCJOB_H
+#include "gucefASSETSTORE_CAssetLibrarySyncJob.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCJOB_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCJOB_H ? */
+
+#ifndef GUCEF_CORE_CCRONSCHEDULE_H
+#include "gucefCORE_CCronSchedule.h"
+#define GUCEF_CORE_CCRONSCHEDULE_H
+#endif /* GUCEF_CORE_CCRONSCHEDULE_H ? */
+
+#ifndef GUCEF_CORE_CSCHEDULE_H
+#include "gucefCORE_CSchedule.h"
+#define GUCEF_CORE_CSCHEDULE_H
+#endif /* GUCEF_CORE_CSCHEDULE_H ? */
+
+#ifndef GUCEF_CORE_CJOBTRIGGER_H
+#include "gucefCORE_CJobTrigger.h"
+#define GUCEF_CORE_CJOBTRIGGER_H
+#endif /* GUCEF_CORE_CJOBTRIGGER_H ? */
+
+#ifndef GUCEF_CORE_CJOBDEFINITION_H
+#include "gucefCORE_CJobDefinition.h"
+#define GUCEF_CORE_CJOBDEFINITION_H
+#endif /* GUCEF_CORE_CJOBDEFINITION_H ? */
+
+#ifndef GUCEF_CORE_CJOBSCHEDULERSETTINGS_H
+#include "gucefCORE_CJobSchedulerSettings.h"
+#define GUCEF_CORE_CJOBSCHEDULERSETTINGS_H
+#endif /* GUCEF_CORE_CJOBSCHEDULERSETTINGS_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICE_H
 #include "gucefASSETSTORE_CLocalAssetStoreService.h"
 #define GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICE_H
 #endif /* GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICE_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKDATA_H
+#include "gucefASSETSTORE_CAssetLibrarySyncScheduleTaskData.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKDATA_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKDATA_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKCONSUMER_H
+#include "gucefASSETSTORE_CAssetLibrarySyncScheduleTaskConsumer.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKCONSUMER_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSCHEDULETASKCONSUMER_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
+#include "gucefASSETSTORE_CAssetServiceNotice.h"
+#define GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
+#endif /* GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H ? */
+
+#ifndef GUCEF_AUTH_CKEYRINGSESSION_H
+#include "gucefAUTH_CKeyringSession.h"
+#define GUCEF_AUTH_CKEYRINGSESSION_H
+#endif /* GUCEF_AUTH_CKEYRINGSESSION_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#include "gucefASSETSTORE_CAssetStoreSignInContext.h"
+#define GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -118,16 +178,98 @@ const CORE::CString CLocalAssetStoreService::PipelineJobPrefix = "pipeline:";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CLASSES                                                            //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/**
+ *  Brings a call of another thread to the thread of the pulse generator of the service: Wake() mails an event there, where
+ *  the service takes the calls that wait. The sign in flows of gucefAUTH run on that thread.
+ */
+class CSignInWakeup : public CORE::CTSGNotifier
+{
+    public:
+
+    static const CORE::CEvent WakeEvent;
+
+    explicit CSignInWakeup( CORE::PulseGeneratorPtr pulseGenerator )
+        : CORE::CTSGNotifier( pulseGenerator )
+    {GUCEF_TRACE;
+
+        WakeEvent.Initialize();
+    }
+
+    virtual ~CSignInWakeup() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        SignalUpcomingDestruction();
+    }
+
+    void Wake( void )
+    {GUCEF_TRACE;
+
+        NotifyObserversFromThread( WakeEvent );
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        static const CORE::CString classTypeName = "GUCEF::ASSETSTORE::CSignInWakeup";
+        return classTypeName;
+    }
+};
+
+const CORE::CEvent CSignInWakeup::WakeEvent = "GUCEF::ASSETSTORE::CSignInWakeup::WakeEvent";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 namespace {
 
+/** The open services by the key of their schedule, for the runs of the job scheduler */
+typedef GUCEF::map< CORE::CString, CLocalAssetStoreService* > TScheduleRegistry;
+
+TScheduleRegistry&
+ScheduleRegistry( void )
+{
+    static TScheduleRegistry registry;
+    return registry;
+}
+
+MT::CMutex&
+ScheduleRegistryLock( void )
+{
+    static MT::CMutex lock;
+    return lock;
+}
+
+UInt32 g_scheduleKeyCounter = 0;
+
 const UInt32 IngestStepCount = 8;
 const UInt32 MaxSuggestions = 64;
 const UInt32 MaxBlockBytes = 4 * 1024 * 1024;
 const UInt32 MaxStatPaths = 256;
+
+/** The name of the mount of the state folder of the service in the VFS */
+const char* const StateMountNameText = "AssetStoreServiceState";
+
+CORE::CString
+StateMountName( void )
+{
+    return StateMountNameText;
+}
+
+/** The name of the mount of the thumbnails folder of the service in the VFS */
+const char* const ThumbnailsMountNameText = "AssetStoreServiceThumbnails";
+
+CORE::CString
+ThumbnailsMountName( void )
+{
+    return ThumbnailsMountNameText;
+}
 
 CORE::CString
 JoinVfsPath( const CORE::CString& left, const CORE::CString& right )
@@ -201,6 +343,67 @@ class CPipelineJobObserver : public CIAssetConversionObserver
     CORE::CString m_key;
 };
 
+/** The scope of a pipeline job in words: the pack and, when the run is limited, how many assets filters it has */
+CORE::CString
+DescribePipelineScope( const CAssetPipelineRequest& request )
+{GUCEF_TRACE;
+
+    CORE::CString scope = request.packId.IsNULLOrEmpty() ? request.sourcePath : request.packId;
+    if ( request.assets.size() == 1 )
+        scope += ": " + request.assets[ 0 ];
+    else
+    if ( request.assets.size() > 1 )
+        scope += ": " + CORE::ToString( (UInt32) request.assets.size() ) + " asset filters";
+    return scope;
+}
+
+/** What the job does within the kind pipeline: the redo flags of the request make an index run of a conversion run */
+CORE::CString
+DescribePipelineSubKind( const CAssetPipelineRequest& request )
+{GUCEF_TRACE;
+
+    const bool indexOnly = request.arguments.GetAttributeValueOrChildValueByName( "indexOnly" ).AsBool( false, true );
+    if ( indexOnly )
+    {
+        if ( request.arguments.GetAttributeValueOrChildValueByName( "reanalyse" ).AsBool( false, true ) ||
+             request.arguments.GetAttributeValueOrChildValueByName( "analyse" ).AsBool( false, true ) )
+            return "analyse";
+        if ( request.arguments.GetAttributeValueOrChildValueByName( "rethumbnail" ).AsBool( false, true ) )
+            return "thumbnail";
+        return "index";
+    }
+    if ( CAssetPipelineOperations::CookPack == request.operation )
+        return "cook";
+    if ( CAssetPipelineOperations::ValidatePack == request.operation )
+        return "validate";
+    return "convert";
+}
+
+/** The outcome of a run in words, from the counts of its result */
+CORE::CString
+DescribePipelineResult( const CAssetServiceDocument& result, TAssetStoreStatus status )
+{GUCEF_TRACE;
+
+    const CORE::CString summary = result.document.GetAttributeValueOrChildValueByName( "summary" ).AsString();
+    if ( !summary.IsNULLOrEmpty() )
+        return summary;
+    const CORE::CDataNode* counts = result.document.FindChild( "counts" );
+    CORE::CString text;
+    if ( GUCEF_NULL != counts )
+    {
+        static const char* const names[] = { "converted", "cached", "approximated", "failed", "refused", "skipped" };
+        for ( UInt32 i=0; i<6; ++i )
+        {
+            const UInt32 count = counts->GetAttributeValueOrChildValueByName( names[ i ] ).AsUInt32( 0, true );
+            if ( count > 0 )
+                text += ( text.IsNULLOrEmpty() ? "" : ", " ) + CORE::ToString( count ) + " " + names[ i ];
+        }
+    }
+    if ( text.IsNULLOrEmpty() )
+        text = ASSETSTORE_STATUS_OK == status ? CORE::CString( "done" ) : result.message;
+    return text;
+}
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -253,10 +456,51 @@ CLocalAssetStoreService::SPipelineJob::SPipelineJob( void )
     , total( 0 )
     , state( ASSETJOB_STATE_QUEUED )
     , status( ASSETSTORE_STATUS_OK )
+    , resultText()
+    , failedCount( 0 )
     , result()
     , source( CORE::TASKSTATUS_QUEUED )
     , createdAtMs( 0 )
     , updatedAtMs( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLocalAssetStoreService::SSignInCommand::SSignInCommand( void )
+    : kind( KIND_BEGIN )
+    , storeId()
+    , promptId()
+    , answer()
+    , status( ASSETSTORE_STATUS_OK )
+    , message()
+    , id()
+    , done( 0 )
+    , abandoned( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLocalAssetStoreService::SSignInRun::SSignInRun( void )
+    : provider()
+    , storeId()
+    , promptIds()
+    , expiresMs( 0 )
+    , wrongAnswers( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLocalAssetStoreService::SStoreSignInInfo::SStoreSignInInfo( void )
+    : state( ASSETSTORE_SIGNINSTATE_SIGNED_OUT )
+    , message()
+    , problem()
+    , wasSignedIn( false )
 {GUCEF_TRACE;
 
 }
@@ -276,9 +520,21 @@ CLocalAssetStoreService::CLocalAssetStoreService( const CAssetStoreServiceConfig
     , m_ingests()
     , m_conversions()
     , m_pipelineJobs()
+    , m_syncJobs()
+    , m_syncProfiles()
+    , m_syncCheckpoints()
+    , m_syncLedgers()
+    , m_scheduleKey()
+    , m_syncScheduler()
+    , m_syncSchedules()
+    , m_syncNoticesRaised()
     , m_pendingConversions( CORE::TASKSTATUS_QUEUEING_FAILED )
     , m_rates()
     , m_addJobs()
+    , m_stateKept( false )
+    , m_thumbnailsMounted( false )
+    , m_runtimePolicies()
+    , m_ingestResumes()
     , m_conversionCounter( 0 )
     , m_pipelineCounter( 0 )
     , m_endedSessions()
@@ -290,6 +546,14 @@ CLocalAssetStoreService::CLocalAssetStoreService( const CAssetStoreServiceConfig
     , m_commandOrder()
     , m_ownerThread( MT::GetCurrentThreadID() )
     , m_pendingCalls( 0 )
+    , m_signInRuns()
+    , m_signInInfos()
+    , m_prompts()
+    , m_signInQueue()
+    , m_configuredProviders()
+    , m_promptCounter( 0 )
+    , m_signInWakeup( GUCEF_NULL )
+    , m_signInTimer( GUCEF_NULL )
     , m_lock()
 {GUCEF_TRACE;
 
@@ -411,6 +675,12 @@ CLocalAssetStoreService::Open( void )
     if ( m_open )
         return m_catalogueOpen ? ASSETSTORE_STATUS_OK : ASSETSTORE_STATUS_UNAVAILABLE;
 
+    // the state of an earlier run: the policies set through the service apply to the store that is made below
+    m_stateKept = MountStateDirectory();
+    m_thumbnailsMounted = MountThumbnailsDirectory();
+    if ( m_stateKept )
+        LoadServiceState();
+
     CPrimaryAssetStore* store = GUCEF_NEW CPrimaryAssetStore();
     m_storePtr = TPrimaryAssetStorePtr( store );
     m_store = store;
@@ -459,6 +729,8 @@ CLocalAssetStoreService::Open( void )
         SubscribeTo( m_store, CPrimaryAssetStore::ConversionFailedEvent, conversionFailed );
         TEventCallback locationCallback( this, &CLocalAssetStoreService::OnLocationStateChanged );
         SubscribeTo( m_store, CPrimaryAssetStore::LocationStateChangedEvent, locationCallback );
+        TEventCallback packIndexCallback( this, &CLocalAssetStoreService::OnPackIndexUpdated );
+        SubscribeTo( m_store, CPrimaryAssetStore::PackIndexUpdatedEvent, packIndexCallback );
     }
 
     CAssetStoreRegistry& registry = CAssetStoreGlobal::Instance()->GetRegistry();
@@ -477,8 +749,28 @@ CLocalAssetStoreService::Open( void )
         m_manager->LoadQueue();
     if ( m_config.startDownloads )
         m_manager->Start();
+
+    // the work that a restart left half done: downloads that finished with no ingest, staged ingests
+    if ( m_catalogueOpen )
+        ResumePendingWork();
+
+    // the sign in: calls of other threads are brought to the thread of the pulse generator, where the timer follows the sign ins that run
+    m_signInWakeup = GUCEF_NEW CSignInWakeup( GetPulseGenerator() );
+    TEventCallback wakeCallback( this, &CLocalAssetStoreService::OnSignInWake );
+    SubscribeTo( m_signInWakeup, CSignInWakeup::WakeEvent, wakeCallback );
+    m_signInTimer = GUCEF_NEW CORE::CTimer( GetPulseGenerator(), 100 );
+    TEventCallback timerCallback( this, &CLocalAssetStoreService::OnSignInTimer );
+    SubscribeTo( m_signInTimer, CORE::CTimer::TimerUpdateEvent, timerCallback );
+
     m_open = true;
     WatchProviders();
+    {
+        // the runs of the schedules find the service by its key while it is open
+        MT::CScopeMutex registryLock( ScheduleRegistryLock() );
+        m_scheduleKey = "svc" + CORE::ToString( ++g_scheduleKeyCounter );
+        ScheduleRegistry()[ m_scheduleKey ] = this;
+    }
+    UpdateSyncSchedules();
     return m_catalogueOpen ? ASSETSTORE_STATUS_OK : status;
 }
 
@@ -490,10 +782,58 @@ CLocalAssetStoreService::Close( void )
 
     if ( !m_open )
         return;
+    {
+        // no run of a schedule reaches the service from here on (one that is in StartScheduledSync() is waited for)
+        MT::CScopeMutex registryLock( ScheduleRegistryLock() );
+        ScheduleRegistry().erase( m_scheduleKey );
+        m_scheduleKey.Clear();
+    }
+    StopSyncSchedules();
     // the calls that run use the parts below
     while ( m_pendingCalls.Load() > 0 )
         MT::ThreadDelay( 2 );
     UnsubscribeAllFromObserver();
+    {
+        // the library syncs end with the service; their downloads stay in the queue of the manager
+        GUCEF::map< CORE::CString, CAssetLibrarySyncJob* > syncJobs;
+        {
+            MT::CScopeMutex lock( m_lock );
+            syncJobs = m_syncJobs;
+            m_syncJobs.clear();
+        }
+        for ( GUCEF::map< CORE::CString, CAssetLibrarySyncJob* >::iterator j = syncJobs.begin(); j != syncJobs.end(); ++j )
+            GUCEF_DELETE (*j).second;
+    }
+    {
+        // the sign ins that run end with the service, a call that waits for the thread of the pulse generator is answered
+        TSignInCommandVector waiting;
+        TSignInRunMap runs;
+        {
+            MT::CScopeMutex lock( m_lock );
+            waiting = m_signInQueue;
+            m_signInQueue.clear();
+            runs = m_signInRuns;
+            m_signInRuns.clear();
+            m_prompts.clear();
+            m_configuredProviders.clear();
+        }
+        for ( size_t i=0; i<waiting.size(); ++i )
+        {
+            waiting[ i ]->status = ASSETSTORE_STATUS_UNAVAILABLE;
+            waiting[ i ]->message = "The asset store service closed";
+            waiting[ i ]->done.Store( 1 );
+        }
+        for ( TSignInRunMap::iterator r = runs.begin(); r != runs.end(); ++r )
+        {
+            CIAssetStoreInteractiveSignIn* signIn = (*r).second.provider->GetInteractiveSignIn();
+            if ( GUCEF_NULL != signIn )
+                signIn->Cancel();
+        }
+    }
+    GUCEF_DELETE m_signInTimer;
+    m_signInTimer = GUCEF_NULL;
+    GUCEF_DELETE m_signInWakeup;
+    m_signInWakeup = GUCEF_NULL;
     {
         // the conversions that run end with the store
         MT::CScopeMutex lock( m_lock );
@@ -515,6 +855,8 @@ CLocalAssetStoreService::Close( void )
     m_storePtr.Unlink();
     m_store = GUCEF_NULL;
     m_catalogueOpen = false;
+    UnmountStateDirectory();
+    UnmountThumbnailsDirectory();
 
     MT::CScopeMutex lock( m_lock );
     m_watchedProviders.clear();
@@ -808,7 +1150,11 @@ CLocalAssetStoreService::GetServiceInfo( CAssetServiceInfo& result )
     result.roles.insert( "admin" );
     result.maxPageEntries = MaxPageEntries;
     result.catalogueRevision = GetCatalogueRevision();
-    result.keyringState = "none";
+    result.keyringState = GetKeyringState();
+    if ( GUCEF_NULL != m_config.signIn.keyringSession )
+        result.capabilities.insert( "keyring" );
+    if ( GUCEF_NULL != m_config.signIn.authManager )
+        result.capabilities.insert( "signIn" );
     GetLocationInfos( result.locations );
     CAssetStoreInfoPage stores;
     ListStores( stores );
@@ -840,6 +1186,10 @@ CLocalAssetStoreService::GetServiceInfo( CAssetServiceInfo& result )
         result.capabilities.insert( "removePack" );
         result.capabilities.insert( "locations" );
         result.capabilities.insert( "ingest" );
+        if ( m_store->GetCatalogue().GetSchemaVersion() >= 4 )
+            result.capabilities.insert( "packIndex" );
+        if ( m_store->GetSyncStore().IsAvailable() )
+            result.capabilities.insert( "librarySync" );
     }
     result.capabilities.insert( "files.read" );
     result.capabilities.insert( "jobs" );
@@ -1192,13 +1542,14 @@ CLocalAssetStoreService::GetAssetFileSet( const CORE::CString& assetId, CAssetFi
     result.packId = asset.packId;
     result.mainStatus = m_store->GetAssetVfsPath( assetId, result.mainVfsPath, result.mainMessage );
     result.convertedStatus = m_store->GetAssetConvertedVfsPath( assetId, result.convertedVfsPath, result.convertedMessage );
-    const CORE::CString packRoot = JoinVfsPath( m_store->GetLocationRoot( pack.locationId ), pack.rootPath );
+    const CPackStorageLayout packLayout( pack.rootPath );
+    const CORE::CString packLocationRoot = m_store->GetLocationRoot( pack.locationId );
 
     // its own files, then the main files of the assets it uses
     for ( size_t f=0; f<asset.files.size(); ++f )
     {
         CAssetFileRecord file = asset.files[ f ];
-        file.path = JoinVfsPath( packRoot, file.path );
+        file.path = packLayout.Resolve( packLocationRoot, file.path );
         result.totalBytes += file.sizeBytes > 0 ? (UInt64) file.sizeBytes : 0;
         result.files.push_back( file );
     }
@@ -1209,29 +1560,19 @@ CLocalAssetStoreService::GetAssetFileSet( const CORE::CString& assetId, CAssetFi
         converted.role = "converted";
         result.files.push_back( converted );
     }
-    CAssetRelationPage relations;
-    if ( ASSETSTORE_STATUS_OK == GetRelations( assetId, CORE::CString::Empty, MaxPageEntries, relations ) )
+    // the companion files: the main files of the assets it uses, transitively over the relations of the catalogue (pack index design 2.12)
+    TAssetFileRecordVector companions;
+    if ( ASSETSTORE_STATUS_OK == m_store->GetCompanionFiles( assetId, companions, result.relationCount, result.companionsTruncated ) )
     {
-        for ( size_t r=0; r<relations.entries.size(); ++r )
+        CORE::CString::StringSet listed;
+        for ( size_t f=0; f<result.files.size(); ++f )
+            listed.insert( result.files[ f ].path );
+        for ( size_t f=0; f<companions.size(); ++f )
         {
-            const CAssetRelationRecord& relation = relations.entries[ r ];
-            if ( relation.fromAssetId != assetId || relation.toAssetId == assetId )
+            if ( !listed.insert( companions[ f ].path ).second )
                 continue;
-            CAssetRecord used;
-            CAssetPackRecord usedPack;
-            if ( ASSETSTORE_STATUS_OK != GetAsset( relation.toAssetId, used ) || ASSETSTORE_STATUS_OK != m_store->GetPack( used.packId, usedPack ) )
-                continue;
-            const CORE::CString usedRoot = JoinVfsPath( m_store->GetLocationRoot( usedPack.locationId ), usedPack.rootPath );
-            for ( size_t f=0; f<used.files.size(); ++f )
-            {
-                if ( "main" != used.files[ f ].role )
-                    continue;
-                CAssetFileRecord file = used.files[ f ];
-                file.path = JoinVfsPath( usedRoot, file.path );
-                file.role = "referenced";
-                result.totalBytes += file.sizeBytes > 0 ? (UInt64) file.sizeBytes : 0;
-                result.files.push_back( file );
-            }
+            result.totalBytes += companions[ f ].sizeBytes > 0 ? (UInt64) companions[ f ].sizeBytes : 0;
+            result.files.push_back( companions[ f ] );
         }
     }
     return ASSETSTORE_STATUS_OK;
@@ -1271,6 +1612,201 @@ CLocalAssetStoreService::GetLicence( const CORE::CString& licenceOrPackId, CAsse
     result.text = CAssetCatalogue::GetText( rows[ 0 ], "text" );
     result.restrictions = CAssetCatalogue::SplitSet( CAssetCatalogue::GetText( rows[ 0 ], "restrictions" ) );
     return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** Whether the pack is there for the consumer: a pack with noMachineLearning is not there for a machine learning consumer */
+TAssetStoreStatus
+CheckPackVisible( CPrimaryAssetStore& store, const CORE::CString& packId, bool forLearning )
+{
+    if ( packId.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    CAssetPackRecord pack;
+    const TAssetStoreStatus status = store.GetPack( packId, pack );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    if ( forLearning && !pack.licence.AllowsMachineLearning() )
+        return ASSETSTORE_STATUS_NOT_FOUND;
+    return ASSETSTORE_STATUS_OK;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::GetPackIndex( const CORE::CString& packId, bool forLearning, CAssetPackIndexInfo& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    CORE::CString message;
+    const TAssetStoreStatus available = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != available )
+        return available;
+    TAssetStoreStatus status = CheckPackVisible( *m_store, packId, forLearning );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    return m_store->GetPackIndexInfo( packId, true, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::GetResourceGroups( const CORE::CString& packId, bool forLearning, CAssetPackGroupPage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    CORE::CString message;
+    const TAssetStoreStatus available = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != available )
+        return available;
+    TAssetStoreStatus status = CheckPackVisible( *m_store, packId, forLearning );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    CAssetPackIndexInfo info;
+    status = m_store->GetPackIndexInfo( packId, false, info );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    result.revision = GetCatalogueRevision();
+    result.entries = info.groups;
+    result.total = info.groups.size();
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::GetResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken,
+                                       UInt32 maxEntries, bool forLearning, CAssetPackResourcePage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    CORE::CString message;
+    const TAssetStoreStatus available = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != available )
+        return available;
+    TAssetStoreStatus status = CheckPackVisible( *m_store, packId, forLearning );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    CAssetPackIndexInfo info;
+    status = m_store->GetPackIndexInfo( packId, false, info );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    result.revision = GetCatalogueRevision();
+    TAssetPackResourceVector resources;
+    status = m_store->GetPackIndexResources( packId, groupId, subGroup, resources );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    FillPage( resources, pageToken, maxEntries, result );
+    if ( forLearning )
+    {
+        // the index served to a learning consumer carries no thumbnails
+        for ( size_t r=0; r<result.entries.size(); ++r )
+            result.entries[ r ].hasThumbnail = false;
+    }
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::OnPackIndexUpdated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* packId = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL != packId && !packId->GetData().IsNULLOrEmpty() )
+        RecordChange( ASSETCHANGE_PACK_INDEX_UPDATED, packId->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::RunIndexPackJob( const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, const CORE::CFutureResultSource& source, CAssetServiceDocument& document )
+{GUCEF_TRACE;
+
+    document.Clear();
+    document.document.SetName( "result" );
+    document.document.SetNodeType( GUCEF_DATATYPE_OBJECT );
+    CORE::CString message;
+    const TAssetStoreStatus available = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != available )
+    {
+        document.status = available;
+        document.message = message;
+        return available;
+    }
+    typedef const CORE::CDataNode& TArgs;
+    TArgs args = request.arguments;
+    CAssetPackIndexOptions options;
+    options.observer = observer;
+    options.force = request.force || args.GetAttributeValueOrChildValueByName( "force" ).AsBool( false, true );
+    options.reindex = args.GetAttributeValueOrChildValueByName( "reindex" ).AsBool( false, true );
+    options.reanalyse = args.GetAttributeValueOrChildValueByName( "reanalyse" ).AsBool( false, true );
+    options.derive = args.GetAttributeValueOrChildValueByName( "derive" ).AsBool( false, true );
+    options.analyse = args.GetAttributeValueOrChildValueByName( "analyse" ).AsBool( false, true ) || options.reanalyse || "analysis" == args.GetAttributeValueOrChildValueByName( "level" ).AsString();
+    {
+        // the redo set of the design (section 5.3): "index" regroups, "analyse" reads the files again
+        CORE::CString::StringVector redo;
+        args.GetValuesOfChildByName( "redo", redo );
+        for ( size_t r=0; r<redo.size(); ++r )
+        {
+            if ( "index" == redo[ r ] )
+                options.reindex = true;
+            if ( "analyse" == redo[ r ] )
+            {
+                options.reanalyse = true;
+                options.analyse = true;
+            }
+        }
+    }
+    const bool fromStorage = args.GetAttributeValueOrChildValueByName( "fromStorage" ).AsBool( false, true );
+    const bool missing = args.GetAttributeValueOrChildValueByName( "missing" ).AsBool( false, true );
+    TAssetStoreStatus status = ASSETSTORE_STATUS_OK;
+    if ( fromStorage || missing )
+    {
+        CAssetPackIndexReport report;
+        if ( fromStorage )
+            status = m_store->RunReindexFromStorage( true, options, report, &source );
+        else
+            status = m_store->RunIndexPacksWithoutIndex( options, report, &source );
+        document.document.SetAttribute( "summary", report.ToSummaryText() );
+        document.document.SetAttribute( "packsSeen", report.packsSeen );
+        document.document.SetAttribute( "packsLoaded", report.packsLoaded );
+        document.document.SetAttribute( "packsUnchanged", report.packsUnchanged );
+        document.document.SetAttribute( "packsBuilt", report.packsBuilt );
+        document.document.SetAttribute( "packsDerived", report.packsDerived );
+        document.document.SetAttribute( "packsSkipped", report.packsSkipped );
+        document.document.SetAttribute( "documentsWithoutPack", report.documentsWithoutPack );
+        CORE::CDataNode* counts = document.document.AddChild( "counts", GUCEF_DATATYPE_OBJECT );
+        if ( GUCEF_NULL != counts )
+            counts->SetAttribute( "failed", report.packsFailed );
+        document.document.SetValuesOfChildByName( "problems", report.problems );
+        document.message = report.message;
+        document.status = status;
+        return status;
+    }
+    if ( request.packId.IsNULLOrEmpty() )
+    {
+        document.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        document.message = "The job index-pack needs a pack, or the argument fromStorage or missing";
+        return document.status;
+    }
+    CAssetPackIndexOutcome outcome;
+    status = m_store->RunIndexPack( request.packId, options, outcome, &source );
+    document.document.SetAttribute( "packId", request.packId );
+    document.document.SetAttribute( "reused", outcome.reused );
+    document.document.SetAttribute( "built", outcome.built );
+    document.document.SetAttribute( "loaded", outcome.loaded );
+    document.document.SetAttribute( "derived", outcome.derived );
+    document.document.SetAttribute( "resources", outcome.resourceCount );
+    document.document.SetAttribute( "indexKey", outcome.indexKey );
+    document.document.SetAttribute( "summary", ASSETSTORE_STATUS_OK == status ? CORE::CString( outcome.reused ? "the pack index stood, " : "the pack index was made, " ) + CORE::ToString( outcome.resourceCount ) + " resource(s)" : outcome.message );
+    document.message = outcome.message;
+    document.status = status;
+    return status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1665,6 +2201,17 @@ CLocalAssetStoreService::SetSourcePolicy( const CORE::CString& commandId, const 
     {
         MT::CScopeMutex lock( m_lock );
         m_config.primaryStore.SetPolicy( policy );
+        bool replaced = false;
+        for ( size_t p=0; p<m_runtimePolicies.size(); ++p )
+        {
+            if ( m_runtimePolicies[ p ].sourceId == policy.sourceId.Lowercase() )
+            {
+                m_runtimePolicies[ p ] = policy;
+                replaced = true;
+            }
+        }
+        if ( !replaced )
+            m_runtimePolicies.push_back( policy );
     }
     if ( GUCEF_NULL != m_store )
     {
@@ -1672,6 +2219,7 @@ CLocalAssetStoreService::SetSourcePolicy( const CORE::CString& commandId, const 
         settings.SetPolicy( policy );
         m_store->SetSettings( settings );
     }
+    SaveServiceState();
     result.status = ASSETSTORE_STATUS_OK;
     result.id = policy.sourceId;
     RememberCommand( commandId, CAssetServiceOperations::SetSourcePolicy, result );
@@ -1790,19 +2338,36 @@ CLocalAssetStoreService::MakePipelineEntry( const SPipelineJob& job, CAssetJobEn
 
     entry.Clear();
     entry.jobId = PipelineJobPrefix + job.key;
-    entry.kind = "pipeline";
+    entry.kind = CAssetPipelineOperations::IndexPack == job.request.operation ? CORE::CString( "index-pack" ) : CORE::CString( "pipeline" );
     entry.name = job.name;
     entry.detail = job.request.operation;
+    entry.packId = job.request.packId;
+    entry.scope = DescribePipelineScope( job.request );
+    entry.subKind = DescribePipelineSubKind( job.request );
     entry.state = job.state;
     entry.status = job.status;
     entry.fraction = ASSETJOB_STATE_DONE == job.state ? 1.0f : ( job.total > 0 ? (Float32) job.done / (Float32) job.total : 0.0f );
     entry.itemsDone = job.done;
     entry.itemsTotal = job.total;
     entry.message = job.message;
+    entry.resultText = job.resultText;
+    entry.folder = job.result.document.GetAttributeValueOrChildValueByName( "intermediateFolder" ).AsString();
     entry.createdAtMs = job.createdAtMs;
     entry.updatedAtMs = job.updatedAtMs;
+    const CAssetLibrarySyncJob* syncJob = CAssetPipelineOperations::SyncLibrary == job.request.operation ? FindSyncJobLocked( job.key ) : GUCEF_NULL;
+    if ( GUCEF_NULL != syncJob )
+    {
+        // the progress of a library sync: its state, the downloads of its plan and their bytes
+        syncJob->FillEntry( entry );
+        entry.resultText = job.resultText;
+    }
     entry.SetActionAvailable( ASSETJOB_ACTION_CANCEL, !entry.IsEnded() );
     entry.SetActionAvailable( ASSETJOB_ACTION_REMOVE, entry.IsEnded() );
+    // an ended run is taken up again: what the cache holds is kept, so a cancelled or failed run goes on where it stopped, and a failed one can do its failed assets alone
+    entry.SetActionAvailable( ASSETJOB_ACTION_RESUME, ASSETJOB_STATE_CANCELLED == job.state || ASSETJOB_STATE_FAILED == job.state );
+    entry.SetActionAvailable( ASSETJOB_ACTION_RETRY, entry.IsEnded() && job.failedCount > 0 );
+    if ( ASSETJOB_STATE_DONE == job.state && job.failedCount > 0 )
+        entry.stateText = "partly failed";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2048,6 +2613,12 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
         CAssetJobEntry removed;
         bool wasRemoved = false;
         bool changed = false;
+        bool restart = false;
+        bool restartFailedOnly = false;
+        CAssetLibrarySyncJob* cancelSync = GUCEF_NULL;
+        CAssetLibrarySyncJob* removedSync = GUCEF_NULL;
+        CAssetLibrarySyncJob* pauseSync = GUCEF_NULL;
+        CAssetLibrarySyncJob* resumeSync = GUCEF_NULL;
         {
             MT::CScopeMutex lock( m_lock );
             for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
@@ -2055,7 +2626,32 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
                 if ( m_pipelineJobs[ i ].key != key )
                     continue;
                 SPipelineJob& job = m_pipelineJobs[ i ];
+                CAssetLibrarySyncJob* syncJob = FindSyncJobLocked( key );
                 result.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+                // the state of a library sync is the job's own: the entry of the list follows it through events
+                const TAssetJobState liveState = GUCEF_NULL != syncJob ? syncJob->GetState() : job.state;
+                if ( ASSETJOB_ACTION_PAUSE == action && GUCEF_NULL != syncJob && !AssetJobStateIsFinal( liveState ) && ASSETJOB_STATE_PAUSED != liveState )
+                {
+                    // a library sync stops queueing; what it queued goes on
+                    pauseSync = syncJob;
+                    result.status = ASSETSTORE_STATUS_OK;
+                }
+                else
+                if ( ASSETJOB_ACTION_RESUME == action && GUCEF_NULL != syncJob && ASSETJOB_STATE_PAUSED == liveState )
+                {
+                    resumeSync = syncJob;
+                    result.status = ASSETSTORE_STATUS_OK;
+                }
+                else
+                if ( ASSETJOB_ACTION_CANCEL == action && !AssetJobStateIsFinal( job.state ) && GUCEF_NULL != syncJob )
+                {
+                    // a library sync stops on its own thread
+                    job.message = "Cancelling";
+                    cancelSync = syncJob;
+                    result.status = ASSETSTORE_STATUS_OK;
+                    changed = true;
+                }
+                else
                 if ( ASSETJOB_ACTION_CANCEL == action && !AssetJobStateIsFinal( job.state ) )
                 {
                     job.message = "Cancelling";
@@ -2063,20 +2659,48 @@ CLocalAssetStoreService::ControlJob( const CORE::CString& commandId, const CORE:
                     changed = true;
                 }
                 else
+                if ( ( ASSETJOB_ACTION_RESUME == action && ( ASSETJOB_STATE_CANCELLED == job.state || ASSETJOB_STATE_FAILED == job.state ) ) ||
+                     ( ASSETJOB_ACTION_RETRY == action && AssetJobStateIsFinal( job.state ) && job.failedCount > 0 ) )
+                {
+                    restart = true;
+                    restartFailedOnly = ASSETJOB_ACTION_RETRY == action;
+                }
+                else
                 if ( ASSETJOB_ACTION_REMOVE == action && AssetJobStateIsFinal( job.state ) )
                 {
                     MakePipelineEntry( job, removed );
                     m_pipelineJobs.erase( m_pipelineJobs.begin() + i );
+                    if ( GUCEF_NULL != syncJob )
+                    {
+                        removedSync = syncJob;
+                        m_syncJobs.erase( key );
+                    }
                     wasRemoved = true;
                     result.status = ASSETSTORE_STATUS_OK;
                 }
                 break;
             }
         }
+        if ( GUCEF_NULL != cancelSync )
+            cancelSync->RequestCancel();
+        if ( GUCEF_NULL != pauseSync )
+            pauseSync->RequestPause();
+        if ( GUCEF_NULL != resumeSync )
+            resumeSync->RequestResume();
+        if ( GUCEF_NULL != removedSync )
+            GUCEF_DELETE removedSync;
         if ( changed )
             NotifyJobChanged( jobId );
         if ( wasRemoved )
             NotifyJobRemoved( removed );
+        if ( restart )
+        {
+            CORE::CString newId;
+            CORE::CString problem;
+            result.status = RestartPipelineJob( key, restartFailedOnly, newId, problem );
+            result.id = newId;
+            result.message = problem;
+        }
     }
     else
     if ( GUCEF_NULL != m_manager )
@@ -2113,9 +2737,16 @@ CLocalAssetStoreService::GetJobResult( const CORE::CString& jobId, const CORE::C
     result.document.SetNodeType( GUCEF_DATATYPE_OBJECT );
     if ( 0 == jobId.HasSubstr( PipelineJobPrefix ) )
     {
-        // the result the converter gave, as it gave it
+        // the result the converter gave, as it gave it; that of a library sync from the sync
         MT::CScopeMutex lock( m_lock );
         const CORE::CString key = jobId.CutChars( PipelineJobPrefix.Length(), true );
+        const CAssetLibrarySyncJob* syncJob = FindSyncJobLocked( key );
+        if ( GUCEF_NULL != syncJob )
+        {
+            const TAssetStoreStatus status = syncJob->GetResult( section, pageToken, maxEntries, result );
+            result.jobId = jobId;
+            return status;
+        }
         for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
             if ( m_pipelineJobs[ i ].key == key )
             {
@@ -2157,7 +2788,11 @@ CLocalAssetStoreService::OnDownloadJobEvent( CORE::CNotifier* notifier, const CO
 
     const CAssetStoreDownloadJobEventData* data = CORE::CICloneable::CloneableAs< CAssetStoreDownloadJobEventData >( eventData );
     if ( GUCEF_NULL != data )
+    {
+        if ( CAssetStoreDownloadManager::JobFailedEvent == eventId )
+            NoteStoreStatus( data->job.providerId, data->job.status );
         NotifyJobChanged( data->job.jobId );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2193,7 +2828,16 @@ CLocalAssetStoreService::OnDownloadJobRemoved( CORE::CNotifier* notifier, const 
         MT::CScopeMutex lock( m_lock );
         MakeDownloadEntry( data->job, entry );
         m_rates.erase( data->job.jobId );
+        for ( size_t i=0; i<m_addJobs.size(); ++i )
+        {
+            if ( m_addJobs[ i ].jobId == data->job.jobId )
+            {
+                m_addJobs.erase( m_addJobs.begin() + i );
+                break;
+            }
+        }
     }
+    SaveServiceState();
     NotifyJobRemoved( entry );
 }
 
@@ -2213,27 +2857,33 @@ CLocalAssetStoreService::OnDownloadJobFinished( CORE::CNotifier* notifier, const
 /*-------------------------------------------------------------------------*/
 
 void
-CLocalAssetStoreService::IngestFinishedDownload( const CAssetStoreDownloadJob& job )
+CLocalAssetStoreService::IngestFinishedDownload( const CAssetStoreDownloadJob& job, bool atStart )
 {GUCEF_TRACE;
 
     SAddJob add;
     bool found = false;
+    bool automatic = false;
     {
         MT::CScopeMutex lock( m_lock );
+        automatic = ASSETINGEST_MODE_AUTOMATIC == m_config.primaryStore.GetPolicy( job.providerId ).mode;
         for ( size_t i=0; i<m_addJobs.size(); ++i )
         {
             if ( m_addJobs[ i ].jobId == job.jobId && !m_addJobs[ i ].ingestRequested )
             {
                 add = m_addJobs[ i ];
                 found = true;
-                // a source with the automatic policy is ingested by the store itself
-                if ( ASSETINGEST_MODE_AUTOMATIC != m_config.primaryStore.GetPolicy( job.providerId ).mode )
+                // a source with the automatic policy is ingested by the store itself, on the event of the finished download; the
+                // download is accounted for either way, so that a restart does not ingest it again
+                if ( IsCatalogueAvailable() )
                     m_addJobs[ i ].ingestRequested = true;
                 break;
             }
         }
     }
-    if ( !found || !IsCatalogueAvailable() || ASSETINGEST_MODE_AUTOMATIC == m_config.primaryStore.GetPolicy( job.providerId ).mode )
+    if ( found )
+        SaveServiceState();
+    // an automatic source has the event of the store; at a start there is no event for a download that finished before
+    if ( !found || !IsCatalogueAvailable() || ( automatic && !atStart ) )
         return;
     CAssetIngestRequest request = CPrimaryAssetStore::MakeIngestRequest( job );
     if ( !add.keep.IsNULLOrEmpty() )
@@ -2241,6 +2891,366 @@ CLocalAssetStoreService::IngestFinishedDownload( const CAssetStoreDownloadJob& j
     request.locationId = add.locationId;
     m_store->IngestAsync( request );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The download " << job.jobId << " is done, its ingest started" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::MountStateDirectory( void )
+{GUCEF_TRACE;
+
+    if ( m_config.stateDirectory.IsNULLOrEmpty() )
+        return false;
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString folder = CORE::RelativePath( CORE::ResolveVars( m_config.stateDirectory ) );
+    if ( !CORE::DirExists( folder ) )
+        CORE::CreateDirs( folder );
+    if ( !CORE::DirExists( folder ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The state folder " << folder << " cannot be made, nothing is kept over a restart" );
+        return false;
+    }
+    if ( !vfs.IsMountedArchive( StateMountName() ) && !vfs.AddRoot( folder, StateMountName(), true, false, CAssetStoreServiceConfig::StateVfsRoot ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The state folder " << folder << " cannot be mounted, nothing is kept over a restart" );
+        return false;
+    }
+    if ( m_config.downloads.queueFilePath.IsNULLOrEmpty() )
+        m_config.downloads.queueFilePath = JoinVfsPath( CAssetStoreServiceConfig::StateVfsRoot, CAssetStoreServiceConfig::QueueFileName );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::UnmountStateDirectory( void )
+{GUCEF_TRACE;
+
+    if ( !m_stateKept )
+        return;
+    VFS::CVfsGlobal::Instance()->GetVfs().UnmountArchiveByName( StateMountName() );
+    m_stateKept = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::MountThumbnailsDirectory( void )
+{GUCEF_TRACE;
+
+    if ( m_config.thumbnailsDirectory.IsNULLOrEmpty() )
+        return false;
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString folder = CORE::RelativePath( CORE::ResolveVars( m_config.thumbnailsDirectory ) );
+    if ( !CORE::DirExists( folder ) )
+        CORE::CreateDirs( folder );
+    if ( !CORE::DirExists( folder ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The thumbnails folder " << folder << " cannot be made, the thumbnails are kept in the storage location" );
+        return false;
+    }
+    if ( !vfs.IsMountedArchive( ThumbnailsMountName() ) && !vfs.AddRoot( folder, ThumbnailsMountName(), true, false, CAssetStoreServiceConfig::ThumbnailsVfsRoot ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The thumbnails folder " << folder << " cannot be mounted, the thumbnails are kept in the storage location" );
+        return false;
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The thumbnails are kept in " << folder );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::UnmountThumbnailsDirectory( void )
+{GUCEF_TRACE;
+
+    if ( !m_thumbnailsMounted )
+        return;
+    VFS::CVfsGlobal::Instance()->GetVfs().UnmountArchiveByName( ThumbnailsMountName() );
+    m_thumbnailsMounted = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::LoadServiceState( void )
+{GUCEF_TRACE;
+
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString path = JoinVfsPath( CAssetStoreServiceConfig::StateVfsRoot, CAssetStoreServiceConfig::ServiceStateFileName );
+    if ( !vfs.FileExists( path ) )
+        return;
+    CORE::CDataNode root;
+    if ( !vfs.LoadFile( root, path, "json" ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The state file " << path << " cannot be read" );
+        return;
+    }
+    CORE::CDataNodeSerializableSettings serializerSettings;
+    UInt32 policies = 0;
+    UInt32 adds = 0;
+    MT::CScopeMutex lock( m_lock );
+    const CORE::CDataNode* policyNode = root.FindChild( "policies" );
+    if ( GUCEF_NULL != policyNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = policyNode->ConstBegin(); i != policyNode->ConstEnd(); ++i )
+        {
+            CAssetSourcePolicy policy;
+            if ( !policy.Deserialize( *(*i), serializerSettings ) )
+                continue;
+            m_config.primaryStore.SetPolicy( policy );
+            bool replaced = false;
+            for ( size_t p=0; p<m_runtimePolicies.size(); ++p )
+            {
+                if ( m_runtimePolicies[ p ].sourceId == policy.sourceId )
+                {
+                    m_runtimePolicies[ p ] = policy;
+                    replaced = true;
+                }
+            }
+            if ( !replaced )
+                m_runtimePolicies.push_back( policy );
+            ++policies;
+        }
+    }
+    const CORE::CDataNode* addNode = root.FindChild( "addJobs" );
+    if ( GUCEF_NULL != addNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = addNode->ConstBegin(); i != addNode->ConstEnd(); ++i )
+        {
+            SAddJob add;
+            add.jobId = (*i)->GetAttributeValueOrChildValueByName( "jobId" ).AsString();
+            add.keep = (*i)->GetAttributeValueOrChildValueByName( "keep" ).AsString();
+            add.locationId = (*i)->GetAttributeValueOrChildValueByName( "locationId" ).AsString();
+            add.ingestRequested = (*i)->GetAttributeValueOrChildValueByName( "ingestRequested" ).AsBool( false, true );
+            if ( add.jobId.IsNULLOrEmpty() )
+                continue;
+            bool known = false;
+            for ( size_t a=0; a<m_addJobs.size(); ++a )
+                known = known || m_addJobs[ a ].jobId == add.jobId;
+            if ( !known )
+            {
+                m_addJobs.push_back( add );
+                ++adds;
+            }
+        }
+    }
+    const CORE::CDataNode* profilesNode = root.FindChild( "syncProfiles" );
+    if ( GUCEF_NULL != profilesNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = profilesNode->ConstBegin(); i != profilesNode->ConstEnd(); ++i )
+        {
+            const CORE::CString storeId = (*i)->GetAttributeValueOrChildValueByName( "storeId" ).AsString().Lowercase();
+            const CORE::CDataNode* profileNode = (*i)->FindChild( "profile" );
+            CAssetLibrarySyncProfile profile;
+            if ( storeId.IsNULLOrEmpty() || GUCEF_NULL == profileNode || !profile.Deserialize( *profileNode, serializerSettings ) )
+                continue;
+            m_syncProfiles[ storeId ] = profile;
+        }
+    }
+    const CORE::CDataNode* syncJobsNode = root.FindChild( "syncJobs" );
+    if ( GUCEF_NULL != syncJobsNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = syncJobsNode->ConstBegin(); i != syncJobsNode->ConstEnd(); ++i )
+        {
+            const CORE::CString jobId = (*i)->GetAttributeValueOrChildValueByName( "jobId" ).AsString();
+            if ( 0 == jobId.HasSubstr( PipelineJobPrefix ) && GUCEF_NULL != (*i)->FindChild( "spec" ) )
+                m_syncCheckpoints[ jobId.CutChars( PipelineJobPrefix.Length(), true ) ] = *(*i);
+        }
+    }
+    const CORE::CDataNode* ledgersNode = root.FindChild( "syncLedgers" );
+    if ( GUCEF_NULL != ledgersNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = ledgersNode->ConstBegin(); i != ledgersNode->ConstEnd(); ++i )
+        {
+            const CORE::CString storeId = (*i)->GetAttributeValueOrChildValueByName( "storeId" ).AsString();
+            const CORE::CDataNode* entries = (*i)->FindChild( "entries" );
+            if ( storeId.IsNULLOrEmpty() || GUCEF_NULL == entries )
+                continue;
+            CAssetLibrarySyncAdmission::TLedgerVector& ledger = m_syncLedgers[ storeId ];
+            ledger.clear();
+            for ( CORE::CDataNode::const_iterator e = entries->ConstBegin(); e != entries->ConstEnd(); ++e )
+            {
+                CAssetLibrarySyncAdmission::SLedgerEntry entry;
+                entry.queuedMs = (*e)->GetAttributeValueOrChildValueByName( "queuedMs" ).AsInt64( 0, true );
+                entry.bytes = (*e)->GetAttributeValueOrChildValueByName( "bytes" ).AsUInt64( 0, true );
+                ledger.push_back( entry );
+            }
+        }
+    }
+    const CORE::CDataNode* resumeNode = root.FindChild( "ingestResumes" );
+    if ( GUCEF_NULL != resumeNode )
+    {
+        for ( CORE::CDataNode::const_iterator i = resumeNode->ConstBegin(); i != resumeNode->ConstEnd(); ++i )
+        {
+            const CORE::CString ingestId = (*i)->GetAttributeValueOrChildValueByName( "ingestId" ).AsString();
+            if ( !ingestId.IsNULLOrEmpty() )
+                m_ingestResumes[ ingestId ] = (*i)->GetAttributeValueOrChildValueByName( "attempts" ).AsUInt32( 0, true );
+        }
+    }
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Took " << policies << " source policie(s) and " << adds << " download(s) to ingest back from the state file " << path );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::SaveServiceState( void )
+{GUCEF_TRACE;
+
+    if ( !m_stateKept )
+        return;
+    CORE::CDataNode root( "serviceState", GUCEF_DATATYPE_OBJECT );
+    root.SetAttribute( "version", (UInt32) 1 );
+    CORE::CDataNodeSerializableSettings serializerSettings;
+    {
+        MT::CScopeMutex lock( m_lock );
+        CORE::CDataNode* policies = root.AddChild( "policies", GUCEF_DATATYPE_ARRAY );
+        for ( size_t p=0; p<m_runtimePolicies.size(); ++p )
+            m_runtimePolicies[ p ].Serialize( *policies->AddChild( "policy", GUCEF_DATATYPE_OBJECT ), serializerSettings );
+        CORE::CDataNode* adds = root.AddChild( "addJobs", GUCEF_DATATYPE_ARRAY );
+        for ( size_t a=0; a<m_addJobs.size(); ++a )
+        {
+            CORE::CDataNode* add = adds->AddChild( "addJob", GUCEF_DATATYPE_OBJECT );
+            add->SetAttribute( "jobId", m_addJobs[ a ].jobId );
+            add->SetAttribute( "keep", m_addJobs[ a ].keep );
+            add->SetAttribute( "locationId", m_addJobs[ a ].locationId );
+            add->SetAttribute( "ingestRequested", m_addJobs[ a ].ingestRequested );
+        }
+        CORE::CDataNode* profiles = root.AddChild( "syncProfiles", GUCEF_DATATYPE_ARRAY );
+        for ( GUCEF::map< CORE::CString, CAssetLibrarySyncProfile >::const_iterator p = m_syncProfiles.begin(); p != m_syncProfiles.end(); ++p )
+        {
+            CORE::CDataNode* entry = profiles->AddChild( "syncProfile", GUCEF_DATATYPE_OBJECT );
+            entry->SetAttribute( "storeId", (*p).first );
+            (*p).second.Serialize( *entry->AddChild( "profile", GUCEF_DATATYPE_OBJECT ), serializerSettings );
+        }
+        CORE::CDataNode* syncJobs = root.AddChild( "syncJobs", GUCEF_DATATYPE_ARRAY );
+        for ( GUCEF::map< CORE::CString, CORE::CDataNode >::const_iterator c = m_syncCheckpoints.begin(); c != m_syncCheckpoints.end(); ++c )
+            syncJobs->AddChild( (*c).second );
+        CORE::CDataNode* ledgers = root.AddChild( "syncLedgers", GUCEF_DATATYPE_ARRAY );
+        for ( GUCEF::map< CORE::CString, CAssetLibrarySyncAdmission::TLedgerVector >::const_iterator l = m_syncLedgers.begin(); l != m_syncLedgers.end(); ++l )
+        {
+            if ( (*l).second.empty() )
+                continue;
+            CORE::CDataNode* ledger = ledgers->AddChild( "syncLedger", GUCEF_DATATYPE_OBJECT );
+            ledger->SetAttribute( "storeId", (*l).first );
+            CORE::CDataNode* entries = ledger->AddChild( "entries", GUCEF_DATATYPE_ARRAY );
+            for ( size_t e=0; e<(*l).second.size(); ++e )
+            {
+                CORE::CDataNode* entry = entries->AddChild( "entry", GUCEF_DATATYPE_OBJECT );
+                entry->SetAttribute( "queuedMs", (*l).second[ e ].queuedMs );
+                entry->SetAttribute( "bytes", (*l).second[ e ].bytes );
+            }
+        }
+        CORE::CDataNode* resumes = root.AddChild( "ingestResumes", GUCEF_DATATYPE_ARRAY );
+        for ( GUCEF::map< CORE::CString, UInt32 >::const_iterator r = m_ingestResumes.begin(); r != m_ingestResumes.end(); ++r )
+        {
+            CORE::CDataNode* resume = resumes->AddChild( "ingestResume", GUCEF_DATATYPE_OBJECT );
+            resume->SetAttribute( "ingestId", (*r).first );
+            resume->SetAttribute( "attempts", (*r).second );
+        }
+    }
+    MT::CScopeMutex saveLock( m_stateLock );
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString path = JoinVfsPath( CAssetStoreServiceConfig::StateVfsRoot, CAssetStoreServiceConfig::ServiceStateFileName );
+    if ( !vfs.StoreAsFile( path, root, "json", true ) )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The state file " << path << " could not be saved" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ResumePendingWork( void )
+{GUCEF_TRACE;
+
+    // the library syncs that did not end go on first: they follow the downloads and ingests that are taken up below
+    RestoreSyncJobs();
+
+    // the downloads of the queue file that finished with no ingest requested (the process ended between the two), and the add
+    // records of downloads that are gone from the queue
+    TAddJobVector adds;
+    {
+        MT::CScopeMutex lock( m_lock );
+        adds = m_addJobs;
+    }
+    CORE::CString::StringSet gone;
+    UInt32 ingests = 0;
+    for ( size_t a=0; a<adds.size(); ++a )
+    {
+        CAssetStoreDownloadJob job;
+        if ( !m_manager->GetJob( adds[ a ].jobId, job ) )
+        {
+            gone.insert( adds[ a ].jobId );
+            continue;
+        }
+        if ( !adds[ a ].ingestRequested && ASSETDOWNLOAD_STATE_DONE == job.state )
+        {
+            IngestFinishedDownload( job, true );
+            ++ingests;
+        }
+    }
+    if ( !gone.empty() )
+    {
+        {
+            MT::CScopeMutex lock( m_lock );
+            for ( size_t i=m_addJobs.size(); i>0; --i )
+                if ( gone.end() != gone.find( m_addJobs[ i-1 ].jobId ) )
+                    m_addJobs.erase( m_addJobs.begin() + ( i - 1 ) );
+        }
+        SaveServiceState();
+    }
+    if ( ingests > 0 )
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: " << ingests << " finished download(s) had no ingest requested before the start, the ingest is started now" );
+
+    // the ingests that stayed staged: resumed from the step that did not complete, a limited number of starts each
+    if ( !m_config.resumeIngestsOnStart )
+        return;
+    CORE::CString::StringVector pending;
+    m_store->GetPendingIngests( pending );
+    bool changed = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( GUCEF::map< CORE::CString, UInt32 >::iterator r = m_ingestResumes.begin(); r != m_ingestResumes.end(); )
+        {
+            bool stillPending = false;
+            for ( size_t p=0; p<pending.size() && !stillPending; ++p )
+                stillPending = pending[ p ] == (*r).first;
+            if ( stillPending )
+                ++r;
+            else
+            {
+                m_ingestResumes.erase( r++ );
+                changed = true;
+            }
+        }
+    }
+    CORE::CString::StringVector resumable;
+    for ( size_t p=0; p<pending.size(); ++p )
+    {
+        UInt32 attempts = 0;
+        {
+            MT::CScopeMutex lock( m_lock );
+            attempts = m_ingestResumes[ pending[ p ] ];
+            if ( attempts < m_config.ingestResumeAttempts )
+                m_ingestResumes[ pending[ p ] ] = attempts + 1;
+        }
+        changed = true;
+        if ( attempts >= m_config.ingestResumeAttempts )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The staged ingest " << pending[ p ] << " was resumed by " << attempts << " start(s) already and is left as it is: resume it through the service" );
+        }
+        else
+        {
+            resumable.push_back( pending[ p ] );
+        }
+    }
+    // the count is saved before the ingests run: an ingest that ends the process counts as an attempt
+    if ( changed )
+        SaveServiceState();
+    for ( size_t r=0; r<resumable.size(); ++r )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Resumes the staged ingest " << resumable[ r ] );
+        m_store->ResumeIngestAsync( resumable[ r ] );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2306,7 +3316,14 @@ CLocalAssetStoreService::OnIngestFinished( CORE::CNotifier* notifier, const CORE
     const CAssetIngestEventData* data = static_cast< const CAssetIngestEventData* >( eventData );
     // a duplicate adds nothing to the catalogue
     if ( GUCEF_NULL != data && !data->packId.IsNULLOrEmpty() && ASSETSTORE_STATUS_OK == AssetStoreStatusFromString( data->status ) )
+    {
         RecordChange( ASSETCHANGE_PACK_ADDED, data->packId );
+
+        // the index of the pack came with the ingest: said after the pack was added
+        CAssetPackIndexInfo indexInfo;
+        if ( ASSETSTORE_STATUS_OK == m_store->GetPackIndexInfo( data->packId, false, indexInfo ) )
+            RecordChange( ASSETCHANGE_PACK_INDEX_UPDATED, data->packId );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2588,15 +3605,29 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
         return result.status;
     if ( !CAssetPipelineOperations::IsJob( request.operation ) )
         return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The operation " + request.operation + " is not a job", result );
+    if ( CAssetPipelineOperations::SyncLibrary == request.operation )
+        return StartSyncJob( commandId, request, result );
     CIAssetConverterHook* hook = GetConverterHook();
-    if ( GUCEF_NULL == hook )
-        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The store has no converter", result );
-    if ( !hook->SupportsPipelineOperation( request.operation ) )
-        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The converter " + hook->GetName() + " does not carry out the operation \"" + request.operation + "\"", result );
+    const bool serviceJob = CAssetPipelineOperations::IsServiceJob( request.operation );
+    if ( serviceJob )
+    {
+        // the index of the packs is a job of the service itself: it needs the catalogue, the converter only builds what is missing
+        CORE::CString unavailable;
+        const TAssetStoreStatus available = NeedCatalogue( unavailable );
+        if ( ASSETSTORE_STATUS_OK != available )
+            return Refuse( available, unavailable, result );
+    }
+    else
+    {
+        if ( GUCEF_NULL == hook )
+            return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The store has no converter", result );
+        if ( !hook->SupportsPipelineOperation( request.operation ) )
+            return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The converter " + hook->GetName() + " does not carry out the operation \"" + request.operation + "\"", result );
+    }
 
     SPipelineJob job;
     job.request = request;
-    job.name = request.packId.IsNULLOrEmpty() ? request.sourcePath : request.packId;
+    job.name = request.packId.IsNULLOrEmpty() ? ( serviceJob ? CORE::CString( "pack indexes" ) : request.sourcePath ) : request.packId;
     job.message = "Waiting for its turn";
     job.createdAtMs = NowMs();
     job.updatedAtMs = job.createdAtMs;
@@ -2630,6 +3661,653 @@ CLocalAssetStoreService::StartPipelineJob( const CORE::CString& commandId, const
 
 /*-------------------------------------------------------------------------*/
 
+CAssetLibrarySyncJob*
+CLocalAssetStoreService::FindSyncJobLocked( const CORE::CString& key ) const
+{GUCEF_TRACE;
+
+    GUCEF::map< CORE::CString, CAssetLibrarySyncJob* >::const_iterator i = m_syncJobs.find( key );
+    return i == m_syncJobs.end() ? GUCEF_NULL : (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::StartSyncJob( const CORE::CString& commandId, const CAssetPipelineRequest& request, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    CORE::CString unavailable;
+    const TAssetStoreStatus available = NeedCatalogue( unavailable );
+    if ( ASSETSTORE_STATUS_OK != available )
+        return Refuse( available, unavailable, result );
+    CAssetLibrarySyncSpec spec = CAssetLibrarySyncSpec::FromRequest( request );
+    if ( spec.useStoreProfile )
+    {
+        // the profile the service keeps for the store; the job carries it from here on, so a restart runs with the same one
+        spec.profile = GetStoredSyncProfile( spec.storeId );
+        spec.useStoreProfile = false;
+    }
+    CORE::CString problem;
+    if ( !spec.IsValid( problem ) )
+        return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, problem, result );
+    TAssetStoreProviderPtr provider;
+    if ( !GetStoreProvider( spec.storeId, provider ) )
+        return Refuse( ASSETSTORE_STATUS_NOT_FOUND, "There is no store " + spec.storeId, result );
+
+    SPipelineJob job;
+    job.request = request;
+    job.request.storeId = spec.storeId;
+    job.name = ( spec.IsPlanOnly() ? "Library plan of " : "Library sync of " ) + provider->GetDisplayName();
+    job.state = ASSETJOB_STATE_RUNNING;
+    job.message.Clear();
+    job.createdAtMs = NowMs();
+    job.updatedAtMs = job.createdAtMs;
+    CAssetLibrarySyncJob* syncJob = GUCEF_NULL;
+    CORE::CString runningKey;
+    {
+        MT::CScopeMutex lock( m_lock );
+        // one sync of a store at a time: the key of the one that runs is the answer
+        for ( size_t i=0; i<m_pipelineJobs.size() && runningKey.IsNULLOrEmpty(); ++i )
+        {
+            const SPipelineJob& other = m_pipelineJobs[ i ];
+            if ( CAssetPipelineOperations::SyncLibrary == other.request.operation && spec.storeId == other.request.storeId && !AssetJobStateIsFinal( other.state ) )
+                runningKey = other.key;
+        }
+        if ( runningKey.IsNULLOrEmpty() )
+        {
+            job.key = "pj" + CORE::ToString( ++m_pipelineCounter );
+            syncJob = GUCEF_NEW CAssetLibrarySyncJob( *this, PipelineJobPrefix + job.key, spec );
+            m_syncJobs[ job.key ] = syncJob;
+            m_pipelineJobs.push_back( job );
+        }
+    }
+    if ( !runningKey.IsNULLOrEmpty() )
+    {
+        result.id = PipelineJobPrefix + runningKey;
+        result.relatedId = result.id;
+        result.status = ASSETSTORE_STATUS_ALREADY_EXISTS;
+        result.message = "A sync of the store " + spec.storeId + " runs already: " + result.id;
+        RememberCommand( commandId, CAssetServiceOperations::StartPipelineJob, result );
+        return result.status;
+    }
+    TEventCallback changedCallback( this, &CLocalAssetStoreService::OnSyncJobChanged );
+    SubscribeTo( syncJob, CAssetLibrarySyncJob::SyncJobChangedEvent, changedCallback );
+    result.id = PipelineJobPrefix + job.key;
+    result.status = syncJob->Start( problem );
+    if ( ASSETSTORE_STATUS_OK != result.status )
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+            if ( m_pipelineJobs[ i ].key == job.key )
+            {
+                m_pipelineJobs[ i ].state = ASSETJOB_STATE_FAILED;
+                m_pipelineJobs[ i ].status = result.status;
+                m_pipelineJobs[ i ].message = problem;
+            }
+        result.message = problem;
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Started the " << ( spec.IsPlanOnly() ? "plan" : "sync" ) << " of the library of store " << spec.storeId << " as job " << result.id );
+    NotifyJobChanged( result.id );
+    RememberCommand( commandId, CAssetServiceOperations::StartPipelineJob, result );
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAssetLibrarySyncProfile
+CLocalAssetStoreService::GetStoredSyncProfile( const CORE::CString& storeId ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    GUCEF::map< CORE::CString, CAssetLibrarySyncProfile >::const_iterator i = m_syncProfiles.find( storeId.Lowercase() );
+    return i == m_syncProfiles.end() ? CAssetLibrarySyncProfile() : (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::GetSyncMarks( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries, CAssetSyncMarkPage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    CORE::CString message;
+    TAssetStoreStatus status = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    if ( storeId.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    if ( !m_store->GetSyncStore().IsAvailable() )
+        return ASSETSTORE_STATUS_UNSUPPORTED;
+    TAssetSyncMarkVector marks;
+    status = m_store->GetSyncStore().GetMarks( storeId.Lowercase(), marks );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    FillPage( marks, pageToken, maxEntries, result );
+    result.revision = GetCatalogueRevision();
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    if ( ReplayCommand( commandId, CAssetServiceOperations::SetSyncMarks, result ) )
+        return result.status;
+    CORE::CString message;
+    TAssetStoreStatus status = NeedCatalogue( message );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return Refuse( status, message, result );
+    if ( !m_store->GetSyncStore().IsAvailable() )
+        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The catalogue has no tables of the library sync (schema version 5)", result );
+    const CORE::CString defaultStoreId = storeId.Lowercase();
+    // everything is checked before anything is written: a call either applies all of its marks or none
+    for ( size_t i=0; i<marks.entries.size(); ++i )
+    {
+        const CAssetSyncMark& entry = marks.entries[ i ];
+        if ( entry.itemId.IsNULLOrEmpty() || ( entry.sourceId.IsNULLOrEmpty() && defaultStoreId.IsNULLOrEmpty() ) )
+            return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "A mark names no store or no item", result );
+        if ( !entry.mark.IsNULLOrEmpty() && CAssetSyncMark::Ignore != entry.mark && CAssetSyncMark::Pin != entry.mark )
+            return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The mark \"" + entry.mark + "\" is not known: ignore, pin, or none to remove one", result );
+    }
+    UInt32 set = 0;
+    UInt32 removed = 0;
+    const Int64 now = (Int64) NowMs();
+    status = ASSETSTORE_STATUS_OK;
+    for ( size_t i=0; i<marks.entries.size() && ASSETSTORE_STATUS_OK == status; ++i )
+    {
+        CAssetSyncMark mark = marks.entries[ i ];
+        mark.sourceId = mark.sourceId.IsNULLOrEmpty() ? defaultStoreId : mark.sourceId.Lowercase();
+        if ( mark.mark.IsNULLOrEmpty() )
+        {
+            status = m_store->GetSyncStore().RemoveMark( mark.sourceId, mark.itemId );
+            if ( ASSETSTORE_STATUS_NOT_FOUND == status )
+                status = ASSETSTORE_STATUS_OK;
+            else
+            if ( ASSETSTORE_STATUS_OK == status )
+                ++removed;
+        }
+        else
+        {
+            if ( 0 == mark.markedMs )
+                mark.markedMs = now;
+            status = m_store->GetSyncStore().SetMark( mark );
+            if ( ASSETSTORE_STATUS_OK == status )
+                ++set;
+        }
+    }
+    result.status = status;
+    result.id = defaultStoreId;
+    result.message = ASSETSTORE_STATUS_OK == status ? CORE::ToString( set ) + " mark(s) set, " + CORE::ToString( removed ) + " removed"
+                                                    : "The marks could not all be written: " + m_store->GetLastErrorMessage();
+    result.revision = GetCatalogueRevision();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: Sync marks of store " << defaultStoreId << ": " << result.message );
+    RememberCommand( commandId, CAssetServiceOperations::SetSyncMarks, result );
+    return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result )
+{GUCEF_TRACE;
+
+    result = CAssetLibrarySyncProfile();
+    if ( storeId.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    result = GetStoredSyncProfile( storeId );
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    if ( ReplayCommand( commandId, CAssetServiceOperations::SetSyncProfile, result ) )
+        return result.status;
+    if ( storeId.IsNULLOrEmpty() )
+        return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The profile names no store", result );
+    CORE::CString problem;
+    if ( !profile.IsValid( problem ) )
+        return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, problem, result );
+    TAssetStoreProviderPtr provider;
+    if ( !GetStoreProvider( storeId, provider ) )
+        return Refuse( ASSETSTORE_STATUS_NOT_FOUND, "There is no store " + storeId, result );
+    const CORE::CString key = storeId.Lowercase();
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_syncProfiles[ key ] = profile;
+    }
+    SaveServiceState();
+    UpdateSyncSchedules();
+    result.status = ASSETSTORE_STATUS_OK;
+    result.id = key;
+    result.message = "The sync profile of store " + key + " is set";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: " << result.message << ( profile.enabled ? " (enabled)" : " (not enabled)" ) );
+    RememberCommand( commandId, CAssetServiceOperations::SetSyncProfile, result );
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::NoteSyncCheckpoint( const CORE::CString& jobId, const CORE::CString& storeId, const CORE::CDataNode& checkpoint, const CAssetLibrarySyncAdmission::TLedgerVector& ledger )
+{GUCEF_TRACE;
+
+    if ( !m_stateKept )
+        return;
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_syncCheckpoints[ jobId.CutChars( PipelineJobPrefix.Length(), true ) ] = checkpoint;
+        m_syncLedgers[ storeId ] = ledger;
+    }
+    SaveServiceState();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::NoteSyncEnded( const CORE::CString& jobId, const CORE::CString& storeId, const CAssetLibrarySyncAdmission::TLedgerVector& ledger )
+{GUCEF_TRACE;
+
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_syncCheckpoints.erase( jobId.CutChars( PipelineJobPrefix.Length(), true ) );
+        m_syncLedgers[ storeId ] = ledger;
+    }
+    if ( !m_stateKept )
+        return;
+    const CORE::CString worklist = GetSyncWorklistPath( jobId );
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    if ( !worklist.IsNULLOrEmpty() && vfs.FileExists( worklist ) )
+        vfs.DeleteFile( worklist, true );
+    SaveServiceState();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAssetLibrarySyncAdmission::TLedgerVector
+CLocalAssetStoreService::GetSyncLedger( const CORE::CString& storeId ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    GUCEF::map< CORE::CString, CAssetLibrarySyncAdmission::TLedgerVector >::const_iterator i = m_syncLedgers.find( storeId );
+    return i == m_syncLedgers.end() ? CAssetLibrarySyncAdmission::TLedgerVector() : (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalAssetStoreService::GetSyncWorklistPath( const CORE::CString& jobId ) const
+{GUCEF_TRACE;
+
+    if ( !m_stateKept || 0 != jobId.HasSubstr( PipelineJobPrefix ) )
+        return CORE::CString::Empty;
+    return JoinVfsPath( CAssetStoreServiceConfig::StateVfsRoot, "syncjob_" + jobId.CutChars( PipelineJobPrefix.Length(), true ) + ".json" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CLocalAssetStoreService::GetScheduleKey( void ) const
+{GUCEF_TRACE;
+
+    return m_scheduleKey;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::JobSchedulerPtr
+CLocalAssetStoreService::GetSyncScheduler( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_syncScheduler;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalAssetStoreService::MakeScheduleJobId( const CORE::CString& storeId )
+{GUCEF_TRACE;
+
+    // a job id is [a-z][a-z0-9._-]*: other characters of a store id become '-'
+    CORE::CString id = "sync-library.";
+    const CORE::CString lower = storeId.Lowercase();
+    for ( UInt32 i=0; i<lower.Length(); ++i )
+    {
+        const char c = lower[ i ];
+        id += ( ( c >= 'a' && c <= 'z' ) || ( c >= '0' && c <= '9' ) || '.' == c || '_' == c || '-' == c ) ? c : '-';
+    }
+    return id.SubstrToIndex( CORE::CJobDefinition::MaxJobIdLength, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::StartScheduledSync( const CORE::CString& serviceKey, const CORE::CString& storeId, CORE::CString& jobId, CORE::CString& message )
+{GUCEF_TRACE;
+
+    // the start counts as a call of the service: Close() takes the service out of the registry and then waits for
+    // the calls, so the service stays whole until the start is done (the registry lock is not held during the start)
+    CLocalAssetStoreService* service = GUCEF_NULL;
+    {
+        MT::CScopeMutex registryLock( ScheduleRegistryLock() );
+        TScheduleRegistry::iterator i = ScheduleRegistry().find( serviceKey );
+        if ( i != ScheduleRegistry().end() )
+        {
+            service = (*i).second;
+            ++service->m_pendingCalls;
+        }
+    }
+    if ( GUCEF_NULL == service )
+    {
+        message = "the service of the schedule is not open";
+        return ASSETSTORE_STATUS_UNAVAILABLE;
+    }
+    CAssetLibrarySyncSpec spec;
+    spec.storeId = storeId;
+    spec.mode = CAssetLibrarySyncSpec::ModeRun;
+    spec.useStoreProfile = true;
+    spec.scheduled = true;
+    CAssetPipelineRequest request;
+    spec.ToRequest( request );
+    CAssetServiceResult started;
+    TAssetStoreStatus status = ASSETSTORE_STATUS_FAILED;
+    try
+    {
+        status = service->StartPipelineJob( CORE::CString::Empty, request, started );
+        message = started.message;
+    }
+    catch ( const std::exception& e )
+    {
+        message = CORE::CString( "an exception ended the start: " ) + e.what();
+    }
+    jobId = started.id;
+    service->CallEnded();
+    return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::UpdateSyncSchedules( void )
+{GUCEF_TRACE;
+
+    // the schedules the profiles ask for: enabled stores with a cron expression
+    GUCEF::map< CORE::CString, CORE::CString > wanted;
+    CORE::CString key;
+    {
+        MT::CScopeMutex lock( m_lock );
+        key = m_scheduleKey;
+        for ( GUCEF::map< CORE::CString, CAssetLibrarySyncProfile >::const_iterator p = m_syncProfiles.begin(); p != m_syncProfiles.end(); ++p )
+            if ( (*p).second.enabled && !(*p).second.schedule.IsNULLOrEmpty() )
+                wanted[ (*p).first ] = (*p).second.schedule;
+    }
+    if ( key.IsNULLOrEmpty() )
+        return;
+    CORE::JobSchedulerPtr scheduler = GetSyncScheduler();
+    if ( scheduler.IsNULL() && wanted.empty() )
+        return;
+    if ( scheduler.IsNULL() )
+    {
+        CORE::CJobSchedulerSettings settings;
+        settings.SetHostName( "assetstore-sync-" + key );
+        scheduler = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateJobScheduler( settings, GetPulseGenerator() );
+        CORE::CString error;
+        if ( scheduler.IsNULL() || !scheduler->Start( error ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The scheduler of the library sync cannot start: " << error );
+            return;
+        }
+        MT::CScopeMutex lock( m_lock );
+        m_syncScheduler = scheduler;
+    }
+    GUCEF::map< CORE::CString, CORE::CString > current;
+    {
+        MT::CScopeMutex lock( m_lock );
+        current = m_syncSchedules;
+    }
+    // jobs that are not wanted any more or whose schedule changed go; the wanted ones that are missing come
+    for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator c = current.begin(); c != current.end(); ++c )
+    {
+        GUCEF::map< CORE::CString, CORE::CString >::const_iterator w = wanted.find( (*c).first );
+        if ( w != wanted.end() && (*w).second == (*c).second )
+            continue;
+        scheduler->RemoveJob( MakeScheduleJobId( (*c).first ) );
+        MT::CScopeMutex lock( m_lock );
+        m_syncSchedules.erase( (*c).first );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The schedule of the library sync of store " << (*c).first << " is removed" );
+    }
+    for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator w = wanted.begin(); w != wanted.end(); ++w )
+    {
+        {
+            MT::CScopeMutex lock( m_lock );
+            if ( m_syncSchedules.end() != m_syncSchedules.find( (*w).first ) )
+                continue;
+        }
+        CORE::CCronSchedule cron;
+        if ( !cron.FromCronString( (*w).second ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The schedule \"" << (*w).second << "\" of store " << (*w).first << " is not a cron expression; the store has no schedule" );
+            continue;
+        }
+        CAssetLibrarySyncScheduleTaskData data;
+        data.serviceKey = key;
+        data.storeId = (*w).first;
+        CORE::CDataNode payload;
+        data.ToPayload( payload );
+        CORE::CJobDefinition job;
+        job.SetId( MakeScheduleJobId( (*w).first ) );
+        job.SetTitle( "Library sync of " + (*w).first );
+        job.SetTaskTypeName( CAssetLibrarySyncScheduleTaskConsumer::TaskType );
+        job.SetPayload( payload );
+        job.SetTrigger( CORE::CJobTrigger::Schedule( CORE::CSchedule( cron ) ) );
+        job.SetMissedRunPolicy( CORE::JOBMISSEDRUNPOLICY_RUN_ONCE );
+        CORE::CString error;
+        if ( !scheduler->AddJob( job, error ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The schedule of store " << (*w).first << " cannot be added: " << error );
+            continue;
+        }
+        MT::CScopeMutex lock( m_lock );
+        m_syncSchedules[ (*w).first ] = (*w).second;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The library sync of store " << (*w).first << " is scheduled at \"" << (*w).second << "\" (UTC) as job " << job.GetId() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::StopSyncSchedules( void )
+{GUCEF_TRACE;
+
+    CORE::JobSchedulerPtr scheduler;
+    {
+        MT::CScopeMutex lock( m_lock );
+        scheduler = m_syncScheduler;
+        m_syncScheduler.Unlink();
+        m_syncSchedules.clear();
+    }
+    if ( scheduler.IsNULL() )
+        return;
+    const CORE::CString hostName = scheduler->GetName();
+    scheduler.Unlink();
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterJobScheduler( hostName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::NoteSyncNotice( const CORE::CString& jobId, const CORE::CString& storeId, TAssetJobState state, TAssetStoreStatus status, const CORE::CString& text )
+{GUCEF_TRACE;
+
+    CAssetServiceNotice notice;
+    if ( ASSETJOB_STATE_DONE == state )
+    {
+        notice.level = "info";
+        notice.code = "SYNC_DONE";
+    }
+    else
+    if ( ASSETJOB_STATE_FAILED == state )
+    {
+        notice.level = "error";
+        notice.code = "SYNC_FAILED";
+    }
+    else
+    if ( ASSETJOB_STATE_CANCELLED == state )
+    {
+        notice.level = "warning";
+        notice.code = "SYNC_CANCELLED";
+    }
+    else
+    if ( ASSETSTORE_STATUS_OWNER_ACTION_NEEDED == status )
+    {
+        notice.level = "warning";
+        notice.code = "SYNC_SIGN_IN_NEEDED";
+    }
+    else
+        return;
+    {
+        // once per job and code; the set is bounded for a service that runs for months (a job that is still known
+        // after a reset can raise its notice once more, which is harmless)
+        MT::CScopeMutex lock( m_lock );
+        if ( m_syncNoticesRaised.size() >= 4096 )
+            m_syncNoticesRaised.clear();
+        if ( !m_syncNoticesRaised.insert( jobId + "|" + notice.code ).second )
+            return;
+    }
+    notice.text = "Library sync of " + storeId + " (" + jobId + "): " + text;
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: " << notice.code << ": " << notice.text );
+    Raise( NoticeEvent, notice );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::RestoreSyncJobs( void )
+{GUCEF_TRACE;
+
+    GUCEF::map< CORE::CString, CORE::CDataNode > checkpoints;
+    {
+        MT::CScopeMutex lock( m_lock );
+        checkpoints = m_syncCheckpoints;
+    }
+    for ( GUCEF::map< CORE::CString, CORE::CDataNode >::const_iterator c = checkpoints.begin(); c != checkpoints.end(); ++c )
+    {
+        const CORE::CString& key = (*c).first;
+        const CORE::CDataNode& checkpoint = (*c).second;
+        const CORE::CString jobId = PipelineJobPrefix + key;
+        CAssetLibrarySyncSpec spec;
+        CORE::CDataNodeSerializableSettings settings;
+        spec.Deserialize( *checkpoint.FindChild( "spec" ), settings );
+        TAssetStoreProviderPtr provider;
+        const bool knownStore = GetStoreProvider( spec.storeId, provider );
+
+        SPipelineJob job;
+        job.key = key;
+        spec.ToRequest( job.request );
+        job.name = ( spec.IsPlanOnly() ? "Library plan of " : "Library sync of " ) + ( knownStore ? provider->GetDisplayName() : spec.storeId );
+        job.state = ASSETJOB_STATE_RUNNING;
+        job.createdAtMs = NowMs();
+        job.updatedAtMs = job.createdAtMs;
+        CAssetLibrarySyncJob* syncJob = GUCEF_NEW CAssetLibrarySyncJob( *this, jobId, spec );
+        {
+            MT::CScopeMutex lock( m_lock );
+            if ( m_syncJobs.end() != m_syncJobs.find( key ) )
+            {
+                GUCEF_DELETE syncJob;
+                continue;
+            }
+            // later jobs get keys after the restored ones
+            const UInt32 number = CORE::StringToUInt32( key.CutChars( 2, true ), 0 );
+            if ( number > m_pipelineCounter )
+                m_pipelineCounter = number;
+            m_syncJobs[ key ] = syncJob;
+            m_pipelineJobs.push_back( job );
+        }
+        TEventCallback changedCallback( this, &CLocalAssetStoreService::OnSyncJobChanged );
+        SubscribeTo( syncJob, CAssetLibrarySyncJob::SyncJobChangedEvent, changedCallback );
+        CORE::CString problem;
+        const TAssetStoreStatus status = syncJob->Restore( checkpoint, problem );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CLocalAssetStoreService: The library sync " << jobId << " of store " << spec.storeId << " cannot go on after the restart: " << problem );
+            UnsubscribeFrom( syncJob );
+            {
+                // the entry of the job list says why; the job object goes
+                MT::CScopeMutex lock( m_lock );
+                m_syncCheckpoints.erase( key );
+                m_syncJobs.erase( key );
+                for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+                    if ( m_pipelineJobs[ i ].key == key )
+                    {
+                        m_pipelineJobs[ i ].state = ASSETJOB_STATE_FAILED;
+                        m_pipelineJobs[ i ].status = status;
+                        m_pipelineJobs[ i ].message = problem;
+                    }
+            }
+            GUCEF_DELETE syncJob;
+            SaveServiceState();
+        }
+        else
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: The library sync " << jobId << " of store " << spec.storeId << " goes on after the restart" );
+        }
+        NotifyJobChanged( jobId );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::OnSyncJobChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    const CORE::TCloneableString* jobId = static_cast< const CORE::TCloneableString* >( eventData );
+    if ( GUCEF_NULL == jobId )
+        return;
+    const CORE::CString key = jobId->GetDataCopy().CutChars( PipelineJobPrefix.Length(), true );
+    bool haveNotice = false;
+    TAssetJobState noticeState = ASSETJOB_STATE_QUEUED;
+    TAssetStoreStatus noticeStatus = ASSETSTORE_STATUS_OK;
+    CORE::CString noticeStore;
+    CORE::CString noticeText;
+    {
+        // the entry of the job list follows the sync
+        MT::CScopeMutex lock( m_lock );
+        const CAssetLibrarySyncJob* syncJob = FindSyncJobLocked( key );
+        if ( GUCEF_NULL == syncJob )
+            return;
+        for ( size_t i=0; i<m_pipelineJobs.size(); ++i )
+        {
+            if ( m_pipelineJobs[ i ].key != key )
+                continue;
+            SPipelineJob& job = m_pipelineJobs[ i ];
+            job.state = syncJob->GetState();
+            job.status = syncJob->GetStatus();
+            job.message = syncJob->GetMessage();
+            job.failedCount = syncJob->GetFailedCount();
+            job.resultText = AssetJobStateIsFinal( job.state ) ? syncJob->GetResultText() : CORE::CString::Empty;
+            job.updatedAtMs = NowMs();
+            noticeState = job.state;
+            noticeStatus = job.status;
+            noticeStore = job.request.storeId;
+            noticeText = AssetJobStateIsFinal( job.state ) ? job.resultText + ( job.message.IsNULLOrEmpty() ? CORE::CString::Empty : " (" + job.message + ")" ) : job.message;
+            haveNotice = true;
+        }
+    }
+    if ( haveNotice )
+        NoteSyncNotice( jobId->GetDataCopy(), noticeStore, noticeState, noticeStatus, noticeText );
+    NotifyJobChanged( jobId->GetDataCopy() );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
 {GUCEF_TRACE;
@@ -2656,6 +4334,19 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
     TAssetStoreStatus status = ASSETSTORE_STATUS_UNSUPPORTED;
     CIAssetConverterHook* hook = GetConverterHook();
     CPipelineJobObserver observer( source, this, &CLocalAssetStoreService::NotePipelineProgress, key );
+    if ( CAssetPipelineOperations::IndexPack == request.operation )
+    {
+        try
+        {
+            status = RunIndexPackJob( request, &observer, source, document );
+        }
+        catch ( ... )
+        {
+            status = ASSETSTORE_STATUS_FAILED;
+            document.message = "An exception ended the job";
+        }
+    }
+    else
     if ( GUCEF_NULL != hook )
     {
         try
@@ -2679,13 +4370,92 @@ CLocalAssetStoreService::RunPipelineJob( const CORE::CString& key )
             job.result = document;
             job.result.status = status;
             job.message = document.message;
+            {
+                const CORE::CDataNode* counts = job.result.document.FindChild( "counts" );
+                job.failedCount = GUCEF_NULL != counts ? counts->GetAttributeValueOrChildValueByName( "failed" ).AsUInt32( 0, true ) : 0;
+            }
             job.state = ASSETSTORE_STATUS_OK == status ? ASSETJOB_STATE_DONE : ( ASSETSTORE_STATUS_CANCELLED == status ? ASSETJOB_STATE_CANCELLED : ASSETJOB_STATE_FAILED );
+            job.resultText = DescribePipelineResult( job.result, status );
             job.updatedAtMs = NowMs();
         }
     }
     CAssetServiceCall call( CAssetServiceOperations::StartPipelineJob );
     CompleteCall( source, call, status, document.Clone(), document.message );
     NotifyJobChanged( PipelineJobPrefix + key );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::RestartPipelineJob( const CORE::CString& key, bool failedOnly, CORE::CString& newJobId, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    CAssetPipelineRequest request;
+    bool found = false;
+    CORE::CString::StringVector failedAssets;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( size_t i=0; i<m_pipelineJobs.size() && !found; ++i )
+        {
+            if ( m_pipelineJobs[ i ].key != key )
+                continue;
+            found = true;
+            request = m_pipelineJobs[ i ].request;
+            if ( failedOnly )
+            {
+                // the assets the run reported as failed, once each
+                const CORE::CDataNode* resultAssets = m_pipelineJobs[ i ].result.document.FindChild( "assets" );
+                if ( GUCEF_NULL != resultAssets )
+                {
+                    CORE::CDataNode::const_iterator a = resultAssets->ConstBegin();
+                    for ( ; a != resultAssets->ConstEnd(); ++a )
+                    {
+                        const CORE::CString path = (*a)->GetAttributeValueOrChildValueByName( "assetPath" ).AsString();
+                        if ( "failed" == (*a)->GetAttributeValueOrChildValueByName( "state" ).AsString() && !path.IsNULLOrEmpty() )
+                            failedAssets.push_back( path );
+                    }
+                }
+                const CORE::CDataNode* failures = m_pipelineJobs[ i ].result.document.FindChild( "failures" );
+                if ( GUCEF_NULL != failures )
+                {
+                    CORE::CDataNode::const_iterator f = failures->ConstBegin();
+                    for ( ; f != failures->ConstEnd(); ++f )
+                    {
+                        const CORE::CString path = (*f)->GetAttributeValueOrChildValueByName( "assetPath" ).AsString();
+                        if ( path.IsNULLOrEmpty() || "pack" == path )
+                            continue;
+                        bool known = false;
+                        for ( size_t k=0; k<failedAssets.size() && !known; ++k )
+                            known = failedAssets[ k ] == path;
+                        if ( !known )
+                            failedAssets.push_back( path );
+                    }
+                }
+            }
+        }
+    }
+    if ( !found )
+    {
+        problem = "There is no job " + PipelineJobPrefix + key;
+        return ASSETSTORE_STATUS_NOT_FOUND;
+    }
+    if ( CAssetPipelineOperations::SyncLibrary == request.operation )
+    {
+        // a library sync plans again; a retry of the failed items resets their counters
+        request.arguments.SetName( "arguments" );
+        request.arguments.SetAttribute( "retryFailed", failedOnly );
+    }
+    else
+    if ( failedOnly && !failedAssets.empty() )
+    {
+        request.assets = failedAssets;
+        request.arguments.SetAttribute( "retryFailed", true );
+    }
+    CAssetServiceResult started;
+    const TAssetStoreStatus status = StartPipelineJob( CORE::CString::Empty, request, started );
+    newJobId = started.id;
+    problem = started.message;
+    return status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2737,9 +4507,43 @@ CLocalAssetStoreService::MakeStoreInfo( const TAssetStoreProviderPtr& provider, 
     info.homePageUrl = provider->GetHomePageUrl();
     info.signInKind = provider->GetSignInKind();
     info.signedIn = provider->IsSignedIn();
+
     MT::CScopeMutex lock( m_lock );
     // what the store told of the end of its session holds until it is signed in again
     info.sessionEnded = m_endedSessions.find( info.storeId ) != m_endedSessions.end();
+
+    const TSignInRunMap::const_iterator run = m_signInRuns.find( info.storeId );
+    const TStoreSignInInfoMap::const_iterator known = m_signInInfos.find( info.storeId );
+    if ( run != m_signInRuns.end() )
+    {
+        info.signInState = ASSETSTORE_SIGNINSTATE_IN_PROGRESS;
+        info.message = "Waiting for the person to finish the sign in";
+    }
+    else
+    if ( info.sessionEnded || ( !info.signedIn && known != m_signInInfos.end() && ASSETSTORE_SIGNINSTATE_EXPIRED == (*known).second.state ) )
+    {
+        // the store refused the session: it is not one that works, whatever the provider still holds
+        info.signedIn = false;
+        info.signInState = ASSETSTORE_SIGNINSTATE_EXPIRED;
+        info.message = "The session ended: sign in again";
+    }
+    else
+    if ( info.signedIn )
+        info.signInState = ASSETSTORE_SIGNINSTATE_SIGNED_IN;
+    else
+    if ( known != m_signInInfos.end() && ASSETSTORE_SIGNINSTATE_FAILED == (*known).second.state )
+    {
+        info.signInState = ASSETSTORE_SIGNINSTATE_FAILED;
+        info.message = (*known).second.message;
+    }
+    else
+    {
+        info.signInState = ASSETSTORE_SIGNINSTATE_SIGNED_OUT;
+        if ( known != m_signInInfos.end() )
+            info.message = (*known).second.problem.IsNULLOrEmpty() ? (*known).second.message : (*known).second.problem;
+        if ( info.message.IsNULLOrEmpty() && ASSETSTORE_SIGNIN_WEB_SESSION == info.signInKind )
+            info.message = "Signed out: signing in to this store needs the browser sidecar, which is not available on this service";
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2766,11 +4570,48 @@ CLocalAssetStoreService::WatchProviders( void )
         TEventCallback callback( this, &CLocalAssetStoreService::OnSessionStateChanged );
         SubscribeTo( provider.GetPointerAlways(), CIAssetStoreProvider::SessionStateChangedEvent, callback );
         // a store that signs in on its web site tells when the session ended, as apart from a sign out
-        CWebSessionSignIn* webSignIn = ASSETSTORE_SIGNIN_WEB_SESSION == provider->GetSignInKind() ? provider->GetWebSessionSignIn() : GUCEF_NULL;
+        AUTH::CWebSessionSignIn* webSignIn = ASSETSTORE_SIGNIN_WEB_SESSION == provider->GetSignInKind() ? provider->GetWebSessionSignIn() : GUCEF_NULL;
         if ( GUCEF_NULL != webSignIn )
         {
             TEventCallback endedCallback( this, &CLocalAssetStoreService::OnWebSessionEnded );
-            SubscribeTo( webSignIn, CWebSessionSignIn::SessionEndedEvent, endedCallback );
+            SubscribeTo( webSignIn, AUTH::CWebSessionSignIn::SessionEndedEvent, endedCallback );
+        }
+    }
+    ConfigureProviders();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ConfigureProviders( void )
+{GUCEF_TRACE;
+
+    // what the stores need to sign in on the server, once per provider
+    CAssetStoreRegistry& registry = CAssetStoreGlobal::Instance()->GetRegistry();
+    CORE::CString::StringVector ids;
+    registry.GetProviderIds( ids );
+    for ( size_t i=0; i<ids.size(); ++i )
+    {
+        TAssetStoreProviderPtr provider;
+        if ( !registry.TryGetProvider( ids[ i ], provider ) || provider.IsNULL() )
+            continue;
+        {
+            MT::CScopeMutex lock( m_lock );
+            if ( m_configuredProviders.find( ids[ i ] ) != m_configuredProviders.end() )
+                continue;
+            m_configuredProviders.insert( ids[ i ] );
+        }
+        CORE::CString problem;
+        const bool configured = provider->ConfigureSignIn( m_config.signIn, problem );
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_signInInfos[ ids[ i ] ].wasSignedIn = provider->IsSignedIn();
+        }
+        if ( !configured || !problem.IsNULLOrEmpty() )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the store " << ids[ i ] << " cannot sign in on this service: " << problem );
+            MT::CScopeMutex lock( m_lock );
+            m_signInInfos[ ids[ i ] ].problem = problem.IsNULLOrEmpty() ? CORE::CString( "The store cannot sign in on this service" ) : problem;
         }
     }
 }
@@ -2799,11 +4640,25 @@ CLocalAssetStoreService::OnSessionStateChanged( CORE::CNotifier* notifier, const
     if ( GUCEF_NULL == storeId )
         return;
     TAssetStoreProviderPtr provider;
-    if ( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( storeId->GetData(), provider ) && !provider.IsNULL() && provider->IsSignedIn() )
+    if ( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( storeId->GetData(), provider ) && !provider.IsNULL() )
     {
-        // a sign in ends what is known of the end of the session
+        const bool signedIn = provider->IsSignedIn();
         MT::CScopeMutex lock( m_lock );
-        m_endedSessions.erase( storeId->GetData() );
+        SStoreSignInInfo& info = m_signInInfos[ storeId->GetData() ];
+        if ( signedIn )
+        {
+            // a sign in ends what is known of the end of the session
+            m_endedSessions.erase( storeId->GetData() );
+            info.state = ASSETSTORE_SIGNINSTATE_SIGNED_IN;
+            info.message.Clear();
+        }
+        else
+        if ( info.wasSignedIn && m_signInRuns.find( storeId->GetData() ) == m_signInRuns.end() && ASSETSTORE_SIGNINSTATE_SIGNED_OUT != info.state )
+        {
+            // a session that was there and is gone without a sign out: it ended
+            info.state = ASSETSTORE_SIGNINSTATE_EXPIRED;
+        }
+        info.wasSignedIn = signedIn;
     }
     NotifyStoreState( storeId->GetData() );
 }
@@ -2930,7 +4785,9 @@ CLocalAssetStoreService::QueryLibrary( const CORE::CString& storeId, const CAsse
     TAssetStoreProviderPtr provider;
     if ( !GetStoreProvider( storeId, provider ) )
         return ASSETSTORE_STATUS_NOT_FOUND;
-    return provider->QueryLibrary( query, result );
+    const TAssetStoreStatus status = provider->QueryLibrary( query, result );
+    NoteStoreStatus( storeId, status );
+    return status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2942,7 +4799,9 @@ CLocalAssetStoreService::GetStoreItem( const CORE::CString& storeId, const CORE:
     TAssetStoreProviderPtr provider;
     if ( !GetStoreProvider( storeId, provider ) )
         return ASSETSTORE_STATUS_NOT_FOUND;
-    return provider->GetItem( itemId, result );
+    const TAssetStoreStatus status = provider->GetItem( itemId, result );
+    NoteStoreStatus( storeId, status );
+    return status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2965,7 +4824,7 @@ CLocalAssetStoreService::EnqueueDownload( const CORE::CString& commandId, const 
         status = NeedCatalogue( message );
         if ( ASSETSTORE_STATUS_OK != status )
             return Refuse( status, message, result );
-        status = m_store->EnqueueDownload( *m_manager, request.providerId, request.itemId, request.formatId, request.fileIds, result.id );
+        status = m_store->EnqueueDownload( *m_manager, request, result.id );
         if ( ASSETSTORE_STATUS_OK == status )
         {
             SAddJob add;
@@ -2973,8 +4832,11 @@ CLocalAssetStoreService::EnqueueDownload( const CORE::CString& commandId, const 
             add.keep = request.keep;
             add.locationId = request.locationId;
             add.ingestRequested = false;
-            MT::CScopeMutex lock( m_lock );
-            m_addJobs.push_back( add );
+            {
+                MT::CScopeMutex lock( m_lock );
+                m_addJobs.push_back( add );
+            }
+            SaveServiceState();
         }
     }
     else
@@ -3038,11 +4900,8 @@ CLocalAssetStoreService::SignOut( const CORE::CString& commandId, const CORE::CS
     result.Clear();
     if ( ReplayCommand( commandId, CAssetServiceOperations::SignOut, result ) )
         return result.status;
-    TAssetStoreProviderPtr provider;
-    if ( !GetStoreProvider( storeId, provider ) )
-        return Refuse( ASSETSTORE_STATUS_NOT_FOUND, "The store " + storeId + " is not known", result );
-    result.status = provider->SignOut() ? ASSETSTORE_STATUS_OK : ASSETSTORE_STATUS_FAILED;
-    result.id = storeId;
+    // the provider ends its session on the thread of the pulse generator, where its sign in flows run
+    RunSignInCommand( SSignInCommand::KIND_SIGN_OUT, storeId, CORE::CString::Empty, AUTH::CSecretString(), result );
     RememberCommand( commandId, CAssetServiceOperations::SignOut, result );
     return result.status;
 }
@@ -3053,9 +4912,534 @@ TAssetStoreStatus
 CLocalAssetStoreService::GetSignInPrompts( CAssetSignInPromptPage& result )
 {GUCEF_TRACE;
 
-    // the application of this process signs in to its stores itself: the service has no prompts of its own
     result.Clear();
+    MT::CScopeMutex lock( m_lock );
+    result.entries = m_prompts;
+    result.total = result.entries.size();
     return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalAssetStoreService::GetKeyringState( void ) const
+{GUCEF_TRACE;
+
+    const AUTH::CKeyringSession* session = m_config.signIn.keyringSession;
+    if ( GUCEF_NULL == session )
+        return "none";
+    if ( !session->IsSetUp() )
+        return "notSetUp";
+    return session->IsLocked() ? "locked" : "unlocked";
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CLocalAssetStoreService::RunSignInCommand( SSignInCommand::EKind kind, const CORE::CString& storeId, const CORE::CString& promptId,
+                                           const AUTH::CSecretString& answer, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    TSignInCommandPtr command( GUCEF_NEW SSignInCommand() );
+    command->kind = kind;
+    command->storeId = storeId;
+    command->promptId = promptId;
+    command->answer = answer;
+
+    if ( !m_open )
+    {
+        command->status = ASSETSTORE_STATUS_UNAVAILABLE;
+        command->message = "The asset store service is not open";
+    }
+    else
+    if ( IsOnNotificationThread() )
+    {
+        // the thread where the sign in flows run: at once
+        ExecuteSignInCommand( *command );
+    }
+    else
+    {
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_signInQueue.push_back( command );
+        }
+        CSignInWakeup* wakeup = m_signInWakeup;
+        if ( GUCEF_NULL != wakeup )
+            wakeup->Wake();
+
+        // the pulse generator runs on its own thread: this one waits for it, it never pumps it
+        const UInt32 maxWaitMs = 30000;
+        UInt32 waitedMs = 0;
+        while ( 0 == command->done.Load() && waitedMs < maxWaitMs )
+        {
+            MT::ThreadDelay( 2 );
+            waitedMs += 2;
+        }
+        if ( 0 == command->done.Load() )
+        {
+            command->abandoned.Store( 1 );
+            command->status = ASSETSTORE_STATUS_TIMED_OUT;
+            command->message = "The service did not take up the sign in in time";
+        }
+    }
+
+    result.status = command->status;
+    result.message = command->message;
+    result.id = command->id;
+    command->answer.Clear();
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::OnSignInWake( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ProcessSignInCommands();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::OnSignInTimer( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    PollSignInRuns();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ProcessSignInCommands( void )
+{GUCEF_TRACE;
+
+    TSignInCommandVector commands;
+    {
+        MT::CScopeMutex lock( m_lock );
+        commands = m_signInQueue;
+        m_signInQueue.clear();
+    }
+    for ( size_t i=0; i<commands.size(); ++i )
+    {
+        if ( 0 == commands[ i ]->abandoned.Load() )
+            ExecuteSignInCommand( *commands[ i ] );
+        commands[ i ]->answer.Clear();
+        commands[ i ]->done.Store( 1 );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ExecuteSignInCommand( SSignInCommand& command )
+{GUCEF_TRACE;
+
+    switch ( command.kind )
+    {
+        case SSignInCommand::KIND_BEGIN:        BeginSignInOnThread( command ); break;
+        case SSignInCommand::KIND_ANSWER:       AnswerPromptOnThread( command ); break;
+        case SSignInCommand::KIND_CANCEL:       CancelSignInOnThread( command ); break;
+        case SSignInCommand::KIND_SIGN_OUT:     SignOutOnThread( command ); break;
+        default:
+        {
+            command.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+            command.message = "The sign in operation is not known";
+        }
+    }
+    UpdateSignInTimer();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::UpdateSignInTimer( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_signInTimer )
+        return;
+    bool running = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        running = !m_signInRuns.empty();
+    }
+    if ( running != m_signInTimer->GetEnabled() )
+        m_signInTimer->SetEnabled( running );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::BeginSignInOnThread( SSignInCommand& command )
+{GUCEF_TRACE;
+
+    TAssetStoreProviderPtr provider;
+    if ( !GetStoreProvider( command.storeId, provider ) )
+    {
+        command.status = ASSETSTORE_STATUS_NOT_FOUND;
+        command.message = "The store " + command.storeId + " is not known";
+        return;
+    }
+    command.id = command.storeId;
+    const TAssetStoreSignInKind kind = provider->GetSignInKind();
+    if ( ASSETSTORE_SIGNIN_NONE == kind )
+    {
+        command.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        command.message = "The store " + provider->GetDisplayName() + " needs no sign in";
+        return;
+    }
+    if ( ASSETSTORE_SIGNIN_WEB_SESSION == kind )
+    {
+        command.status = ASSETSTORE_STATUS_BROWSER_UNAVAILABLE;
+        command.message = "Signing in to " + provider->GetDisplayName() + " needs the browser sidecar, which is not available on this service";
+        return;
+    }
+    CIAssetStoreInteractiveSignIn* signIn = provider->GetInteractiveSignIn();
+    if ( GUCEF_NULL == signIn )
+    {
+        command.status = ASSETSTORE_STATUS_UNSUPPORTED;
+        command.message = "The store " + provider->GetDisplayName() + " cannot be signed in through the service";
+        return;
+    }
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( m_signInRuns.find( command.storeId ) != m_signInRuns.end() )
+        {
+            // the person finishes the one that runs
+            command.status = ASSETSTORE_STATUS_OK;
+            command.message = "A sign in to " + provider->GetDisplayName() + " runs already";
+            return;
+        }
+    }
+
+    TAssetSignInPromptVector prompts;
+    CORE::CString reason;
+    if ( !signIn->Begin( prompts, reason ) )
+    {
+        command.status = ASSETSTORE_STATUS_UNAVAILABLE;
+        command.message = reason.IsNULLOrEmpty() ? CORE::CString( "The sign in could not start" ) : reason;
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the sign in to the store " << command.storeId << " could not start: " << command.message );
+        {
+            MT::CScopeMutex lock( m_lock );
+            SStoreSignInInfo& info = m_signInInfos[ command.storeId ];
+            info.state = ASSETSTORE_SIGNINSTATE_FAILED;
+            info.message = command.message;
+        }
+        NotifyStoreState( command.storeId );
+        return;
+    }
+
+    const Int64 now = NowMs();
+    const Int64 expires = now + (Int64) m_config.signInPromptSeconds * 1000;
+    SSignInRun run;
+    run.provider = provider;
+    run.storeId = command.storeId;
+    run.expiresMs = expires;
+    TAssetSignInPromptVector raised;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( size_t i=0; i<prompts.size(); ++i )
+        {
+            CAssetSignInPrompt prompt = prompts[ i ];
+            prompt.storeId = command.storeId;
+            prompt.promptId = command.storeId + "-" + CORE::ToString( ++m_promptCounter );
+            if ( 0 == prompt.expiresUtcMs || prompt.expiresUtcMs > expires )
+                prompt.expiresUtcMs = expires;
+            run.promptIds.push_back( prompt.promptId );
+            m_prompts.push_back( prompt );
+            raised.push_back( prompt );
+        }
+        m_signInRuns[ command.storeId ] = run;
+        SStoreSignInInfo& info = m_signInInfos[ command.storeId ];
+        info.state = ASSETSTORE_SIGNINSTATE_IN_PROGRESS;
+        info.message.Clear();
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the sign in to the store " << command.storeId << " began, " << raised.size() << " steps wait for the person" );
+    for ( size_t i=0; i<raised.size(); ++i )
+        Raise( SignInPromptEvent, raised[ i ] );
+    NotifyStoreState( command.storeId );
+    command.status = ASSETSTORE_STATUS_OK;
+    command.message = "The sign in began: the steps of the person come as prompts";
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::AnswerPromptOnThread( SSignInCommand& command )
+{GUCEF_TRACE;
+
+    CAssetSignInPrompt prompt;
+    bool found = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( size_t i=0; i<m_prompts.size() && !found; ++i )
+            if ( m_prompts[ i ].promptId == command.promptId )
+            {
+                prompt = m_prompts[ i ];
+                found = true;
+            }
+    }
+    if ( !found )
+    {
+        command.status = ASSETSTORE_STATUS_NOT_FOUND;
+        command.message = "The step " + command.promptId + " is not known or it ended";
+        return;
+    }
+    command.id = prompt.storeId;
+    if ( prompt.expiresUtcMs > 0 && NowMs() >= prompt.expiresUtcMs )
+    {
+        EndSignInRun( prompt.storeId, ASSETSTORE_SIGNINSTATE_FAILED, "The step of the sign in was not finished in time: start the sign in again" );
+        command.status = ASSETSTORE_STATUS_TIMED_OUT;
+        command.message = "The step of the sign in expired: start the sign in again";
+        return;
+    }
+    if ( !prompt.sensitiveAnswer )
+    {
+        command.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        command.message = "This step takes no answer";
+        return;
+    }
+
+    TAssetStoreProviderPtr provider;
+    CIAssetStoreInteractiveSignIn* signIn = GUCEF_NULL;
+    if ( GetStoreProvider( prompt.storeId, provider ) )
+        signIn = provider->GetInteractiveSignIn();
+    if ( GUCEF_NULL == signIn )
+    {
+        command.status = ASSETSTORE_STATUS_NOT_FOUND;
+        command.message = "The store of the step is gone";
+        return;
+    }
+
+    CORE::CString reason;
+    if ( !signIn->Answer( prompt.kind, command.answer, reason ) )
+    {
+        // the step stays open for another try, up to a few
+        UInt32 wrong = 0;
+        {
+            MT::CScopeMutex lock( m_lock );
+            TSignInRunMap::iterator run = m_signInRuns.find( prompt.storeId );
+            if ( run != m_signInRuns.end() )
+                wrong = ++(*run).second.wrongAnswers;
+        }
+        command.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        command.message = reason.IsNULLOrEmpty() ? CORE::CString( "The answer was not taken" ) : reason;
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: an answer to the sign in to the store " << prompt.storeId << " was not taken" );
+        if ( wrong >= 5 )
+        {
+            signIn->Cancel();
+            EndSignInRun( prompt.storeId, ASSETSTORE_SIGNINSTATE_FAILED, "Too many wrong answers: start the sign in again" );
+            command.message = "Too many wrong answers: the sign in ended, start it again";
+        }
+        return;
+    }
+    // the answer is taken: its step is done, the sign in goes on at the store (the timer follows it)
+    ClosePrompt( prompt.promptId );
+    command.status = ASSETSTORE_STATUS_OK;
+    command.message = "The answer was taken: signing in";
+    PollSignInRuns();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::CancelSignInOnThread( SSignInCommand& command )
+{GUCEF_TRACE;
+
+    command.id = command.storeId;
+    TAssetStoreProviderPtr provider;
+    if ( !GetStoreProvider( command.storeId, provider ) )
+    {
+        command.status = ASSETSTORE_STATUS_NOT_FOUND;
+        command.message = "The store " + command.storeId + " is not known";
+        return;
+    }
+    bool running = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        running = m_signInRuns.find( command.storeId ) != m_signInRuns.end();
+    }
+    command.status = ASSETSTORE_STATUS_OK;
+    if ( !running )
+    {
+        command.message = "No sign in runs";
+        return;
+    }
+    CIAssetStoreInteractiveSignIn* signIn = provider->GetInteractiveSignIn();
+    if ( GUCEF_NULL != signIn )
+        signIn->Cancel();
+    EndSignInRun( command.storeId, ASSETSTORE_SIGNINSTATE_SIGNED_OUT, "The sign in was cancelled" );
+    command.message = "The sign in was cancelled";
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::SignOutOnThread( SSignInCommand& command )
+{GUCEF_TRACE;
+
+    command.id = command.storeId;
+    TAssetStoreProviderPtr provider;
+    if ( !GetStoreProvider( command.storeId, provider ) )
+    {
+        command.status = ASSETSTORE_STATUS_NOT_FOUND;
+        command.message = "The store " + command.storeId + " is not known";
+        return;
+    }
+    CIAssetStoreInteractiveSignIn* signIn = provider->GetInteractiveSignIn();
+    bool running = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        running = m_signInRuns.find( command.storeId ) != m_signInRuns.end();
+    }
+    if ( running )
+    {
+        if ( GUCEF_NULL != signIn )
+            signIn->Cancel();
+        EndSignInRun( command.storeId, ASSETSTORE_SIGNINSTATE_SIGNED_OUT, CORE::CString::Empty );
+    }
+    const bool done = provider->SignOut();
+    command.status = done ? ASSETSTORE_STATUS_OK : ASSETSTORE_STATUS_FAILED;
+    {
+        MT::CScopeMutex lock( m_lock );
+        SStoreSignInInfo& info = m_signInInfos[ command.storeId ];
+        info.state = ASSETSTORE_SIGNINSTATE_SIGNED_OUT;
+        info.message.Clear();
+        info.wasSignedIn = provider->IsSignedIn();
+        m_endedSessions.erase( command.storeId );
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: signed out of the store " << command.storeId );
+    NotifyStoreState( command.storeId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::PollSignInRuns( void )
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector storeIds;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( TSignInRunMap::const_iterator r = m_signInRuns.begin(); r != m_signInRuns.end(); ++r )
+            storeIds.push_back( (*r).first );
+    }
+    const Int64 now = NowMs();
+    for ( size_t i=0; i<storeIds.size(); ++i )
+    {
+        TAssetStoreProviderPtr provider;
+        Int64 expires = 0;
+        {
+            MT::CScopeMutex lock( m_lock );
+            TSignInRunMap::const_iterator run = m_signInRuns.find( storeIds[ i ] );
+            if ( run == m_signInRuns.end() )
+                continue;
+            provider = (*run).second.provider;
+            expires = (Int64) (*run).second.expiresMs;
+        }
+        CIAssetStoreInteractiveSignIn* signIn = provider->GetInteractiveSignIn();
+        if ( GUCEF_NULL == signIn )
+        {
+            EndSignInRun( storeIds[ i ], ASSETSTORE_SIGNINSTATE_FAILED, "The sign in of the store is gone" );
+            continue;
+        }
+        CORE::CString message;
+        const TAssetStoreSignInState state = signIn->Update( message );
+        if ( ASSETSTORE_SIGNINSTATE_SIGNED_IN == state )
+            EndSignInRun( storeIds[ i ], ASSETSTORE_SIGNINSTATE_SIGNED_IN, message );
+        else
+        if ( ASSETSTORE_SIGNINSTATE_FAILED == state )
+            EndSignInRun( storeIds[ i ], ASSETSTORE_SIGNINSTATE_FAILED, message.IsNULLOrEmpty() ? CORE::CString( "The sign in did not succeed" ) : message );
+        else
+        if ( ASSETSTORE_SIGNINSTATE_IN_PROGRESS != state )
+            EndSignInRun( storeIds[ i ], ASSETSTORE_SIGNINSTATE_SIGNED_OUT, message );
+        else
+        if ( now >= expires )
+        {
+            // a person who does not come back: the step expires and the sign in ends, a new one gives new steps
+            signIn->Cancel();
+            EndSignInRun( storeIds[ i ], ASSETSTORE_SIGNINSTATE_FAILED, "The sign in was not finished in time: start it again" );
+        }
+    }
+    UpdateSignInTimer();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::EndSignInRun( const CORE::CString& storeId, TAssetStoreSignInState state, const CORE::CString& message )
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector promptIds;
+    TAssetStoreProviderPtr provider;
+    {
+        MT::CScopeMutex lock( m_lock );
+        TSignInRunMap::iterator run = m_signInRuns.find( storeId );
+        if ( run == m_signInRuns.end() )
+            return;
+        promptIds = (*run).second.promptIds;
+        provider = (*run).second.provider;
+        m_signInRuns.erase( run );
+        SStoreSignInInfo& info = m_signInInfos[ storeId ];
+        info.state = state;
+        info.message = message;
+        if ( ASSETSTORE_SIGNINSTATE_SIGNED_IN == state )
+        {
+            info.wasSignedIn = true;
+            m_endedSessions.erase( storeId );
+        }
+    }
+    for ( size_t i=0; i<promptIds.size(); ++i )
+        ClosePrompt( promptIds[ i ] );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the sign in to the store " << storeId << " ended: " << AssetStoreSignInStateToString( state ) );
+    NotifyStoreState( storeId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::ClosePrompt( const CORE::CString& promptId )
+{GUCEF_TRACE;
+
+    CAssetSignInPrompt prompt;
+    bool found = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        for ( TAssetSignInPromptVector::iterator i = m_prompts.begin(); i != m_prompts.end(); ++i )
+            if ( (*i).promptId == promptId )
+            {
+                prompt = (*i);
+                m_prompts.erase( i );
+                found = true;
+                break;
+            }
+    }
+    if ( found )
+        Raise( SignInPromptClosedEvent, prompt );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalAssetStoreService::NoteStoreStatus( const CORE::CString& storeId, TAssetStoreStatus status )
+{GUCEF_TRACE;
+
+    // the store refused the session of the person: it ended, and says so until a sign in makes a new one
+    if ( ASSETSTORE_STATUS_SESSION_EXPIRED != status )
+        return;
+    bool changed = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        SStoreSignInInfo& info = m_signInInfos[ storeId ];
+        changed = ASSETSTORE_SIGNINSTATE_EXPIRED != info.state;
+        info.state = ASSETSTORE_SIGNINSTATE_EXPIRED;
+        info.message = "The session ended: sign in again";
+        m_endedSessions.insert( storeId );
+    }
+    if ( changed )
+        NotifyStoreState( storeId );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3161,7 +5545,36 @@ CLocalAssetStoreService::PutThumbnail( const CORE::CString& commandId, const CAs
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The thumbnail store of the catalogue is not available in this version: the thumbnails of the catalogue are rendered by the application from the files", result );
+    if ( ReplayCommand( commandId, CAssetServiceOperations::PutThumbnail, result ) )
+        return result.status;
+    const CORE::CString folder = GetThumbnailFolder();
+    if ( folder.IsNULLOrEmpty() )
+        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "This store keeps no thumbnails of the catalogue: the pictures are rendered from the files", result );
+    CORE::CString digest;
+    CORE::CString message;
+    if ( !GetThumbnailDigest( thumbnail.assetId, digest, message ) )
+        return Refuse( ASSETSTORE_STATUS_NOT_FOUND, message, result );
+    if ( !thumbnail.key.digest.IsNULLOrEmpty() && thumbnail.key.digest.Lowercase() != digest )
+        return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The picture is of other content than the file of the asset in the catalogue", result );
+    CAssetThumbnailKey key( thumbnail.key );
+    key.digest = digest;
+    if ( 0 == key.size )
+        key.size = thumbnail.size;
+    CORE::CString vfsPath;
+    const TAssetStoreStatus status = CAssetThumbnailFiles::Put( folder, key, thumbnail.encoded, vfsPath, message );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return Refuse( status, message, result );
+    result.id = thumbnail.assetId;
+    result.message = "The thumbnail is stored";
+    RememberCommand( commandId, CAssetServiceOperations::PutThumbnail, result );
+    CAssetThumbnail updated;
+    updated.assetId = thumbnail.assetId;
+    updated.key = key;
+    updated.size = key.size;
+    updated.kind = thumbnail.kind;
+    updated.vfsPath = vfsPath;
+    Raise( ThumbnailUpdatedEvent, updated );
+    return ASSETSTORE_STATUS_OK;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3211,7 +5624,11 @@ CLocalAssetStoreService::BeginSignIn( const CORE::CString& commandId, const CORE
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "A sign in through the service is a function of a remote service: the application of this process signs in to its stores itself", result );
+    if ( ReplayCommand( commandId, CAssetServiceOperations::BeginSignIn, result ) )
+        return result.status;
+    RunSignInCommand( SSignInCommand::KIND_BEGIN, storeId, CORE::CString::Empty, AUTH::CSecretString(), result );
+    RememberCommand( commandId, CAssetServiceOperations::BeginSignIn, result );
+    return result.status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3221,7 +5638,11 @@ CLocalAssetStoreService::CancelSignIn( const CORE::CString& commandId, const COR
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "A sign in through the service is a function of a remote service: the application of this process signs in to its stores itself", result );
+    if ( ReplayCommand( commandId, CAssetServiceOperations::CancelSignIn, result ) )
+        return result.status;
+    RunSignInCommand( SSignInCommand::KIND_CANCEL, storeId, CORE::CString::Empty, AUTH::CSecretString(), result );
+    RememberCommand( commandId, CAssetServiceOperations::CancelSignIn, result );
+    return result.status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3231,7 +5652,11 @@ CLocalAssetStoreService::AnswerPrompt( const CORE::CString& commandId, const COR
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "A sign in through the service is a function of a remote service: the application of this process signs in to its stores itself", result );
+    if ( ReplayCommand( commandId, CAssetServiceOperations::AnswerPrompt, result ) )
+        return result.status;
+    RunSignInCommand( SSignInCommand::KIND_ANSWER, CORE::CString::Empty, promptId, answer, result );
+    RememberCommand( commandId, CAssetServiceOperations::AnswerPrompt, result );
+    return result.status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3261,7 +5686,13 @@ CLocalAssetStoreService::LockKeyring( const CORE::CString& commandId, CAssetServ
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The keyring of the saved store passwords belongs to the application in this process", result );
+    AUTH::CKeyringSession* session = m_config.signIn.keyringSession;
+    if ( GUCEF_NULL == session )
+        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "This service has no keyring of saved store passwords", result );
+    session->LockNow();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the keyring of the saved store passwords is locked" );
+    result.message = "The keyring is locked";
+    return ASSETSTORE_STATUS_OK;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3271,7 +5702,37 @@ CLocalAssetStoreService::UnlockKeyring( const CORE::CString& commandId, const AU
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "The keyring of the saved store passwords belongs to the application in this process", result );
+    AUTH::CKeyringSession* session = m_config.signIn.keyringSession;
+    if ( GUCEF_NULL == session )
+        return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "This service has no keyring of saved store passwords", result );
+    // the derivation of the key takes a while and runs on this thread: a thread of the RPC pool for a remote caller; the code is never kept
+    const AUTH::TKeyringResult outcome = session->UnlockWithCode( code );
+    switch ( outcome )
+    {
+        case AUTH::KEYRING_OK:
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: the keyring of the saved store passwords is unlocked" );
+            result.message = "The keyring is unlocked";
+            return ASSETSTORE_STATUS_OK;
+        }
+        case AUTH::KEYRING_WRONG_CODE:
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CLocalAssetStoreService: a wrong keyring code was given" );
+            return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The keyring code is wrong", result );
+        }
+        case AUTH::KEYRING_THROTTLED:
+            return Refuse( ASSETSTORE_STATUS_RATE_LIMITED, "Too many wrong keyring codes: try again in " + CORE::ToString( ( session->GetRetryWaitInMs() + 999 ) / 1000 ) + " seconds", result );
+        case AUTH::KEYRING_NOT_SET_UP:
+            return Refuse( ASSETSTORE_STATUS_UNAVAILABLE, "The keyring has no code yet: set it up on the server first", result );
+        case AUTH::KEYRING_BUSY:
+            return Refuse( ASSETSTORE_STATUS_UNAVAILABLE, "The keyring is busy: try again", result );
+        case AUTH::KEYRING_INVALID_CODE:
+            return Refuse( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The keyring code is empty or too long", result );
+        case AUTH::KEYRING_TAMPERED:
+            return Refuse( ASSETSTORE_STATUS_FAILED, "The file of the keyring fails its check", result );
+        default:
+            return Refuse( ASSETSTORE_STATUS_FAILED, "The keyring cannot be unlocked here", result );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3281,7 +5742,16 @@ CLocalAssetStoreService::ReindexFromStorage( const CORE::CString& commandId, CAs
 {GUCEF_TRACE;
 
     result.Clear();
-    return Refuse( ASSETSTORE_STATUS_UNSUPPORTED, "A reindex from storage is not available in the store of this process in this version", result );
+    if ( ReplayCommand( commandId, CAssetServiceOperations::ReindexFromStorage, result ) )
+        return result.status;
+    CAssetPipelineRequest request;
+    request.operation = CAssetPipelineOperations::IndexPack;
+    request.force = true;
+    request.arguments.SetName( "arguments" );
+    request.arguments.SetAttribute( "fromStorage", true );
+    StartPipelineJob( CORE::CString::Empty, request, result );
+    RememberCommand( commandId, CAssetServiceOperations::ReindexFromStorage, result );
+    return result.status;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3310,13 +5780,136 @@ CLocalAssetStoreService::GetAuditRecords( const CORE::CString& pageToken, UInt32
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CLocalAssetStoreService::GetThumbnailFolder( void ) const
+{GUCEF_TRACE;
+
+    if ( m_thumbnailsMounted )
+        return CAssetStoreServiceConfig::ThumbnailsVfsRoot;
+    if ( GUCEF_NULL == m_store )
+        return CORE::CString::Empty;
+    const CORE::CString root = m_store->GetLocationRoot( m_config.primaryStore.defaultLocationId.IsNULLOrEmpty() && !m_config.primaryStore.locations.empty() ?
+                                                         m_config.primaryStore.locations[ 0 ].locationId : m_config.primaryStore.defaultLocationId );
+    return CAssetThumbnailFiles::MakeFolder( root );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::GetThumbnailDigest( const CORE::CString& id, CORE::CString& digest, CORE::CString& message ) const
+{GUCEF_TRACE;
+
+    static const CORE::CString packPrefix = "pack:";
+    if ( 0 == id.HasSubstr( packPrefix ) && id.Length() > packPrefix.Length() )
+    {
+        digest = CAssetThumbnailFiles::MakePackDigest( id.CutChars( packPrefix.Length(), true ) );
+        return true;
+    }
+    CAssetRecord asset;
+    if ( ASSETSTORE_STATUS_OK != const_cast< CLocalAssetStoreService* >( this )->GetAsset( id, asset ) )
+    {
+        message = "There is no asset " + id;
+        return false;
+    }
+    for ( size_t f=0; f<asset.files.size(); ++f )
+    {
+        if ( "main" == asset.files[ f ].role && !asset.files[ f ].digest.IsNULLOrEmpty() )
+        {
+            digest = asset.files[ f ].digest.Lowercase();
+            return true;
+        }
+    }
+    for ( size_t f=0; f<asset.files.size(); ++f )
+    {
+        if ( !asset.files[ f ].digest.IsNULLOrEmpty() )
+        {
+            digest = asset.files[ f ].digest.Lowercase();
+            return true;
+        }
+    }
+    message = "The asset " + id + " has no file with a digest";
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 TAssetStoreStatus
 CLocalAssetStoreService::GetThumbnails( const CORE::CString::StringVector& assetIds, UInt32 size, CAssetThumbnailPage& result )
 {GUCEF_TRACE;
 
-    // the thumbnail store of the catalogue is not available in this version
+    // the stored pictures of the catalogue: found by the digest of the content; one entry per id, in the order of the ids
     result.Clear();
-    return ASSETSTORE_STATUS_UNSUPPORTED;
+    const CORE::CString folder = GetThumbnailFolder();
+    if ( folder.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_UNSUPPORTED;
+    if ( assetIds.size() > MaxStatPaths )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    for ( size_t i=0; i<assetIds.size(); ++i )
+    {
+        CAssetThumbnail entry;
+        entry.assetId = assetIds[ i ];
+        entry.kind = 0 == assetIds[ i ].HasSubstr( "pack:" ) ? "auto" : "thumbnail";
+        entry.size = size;
+        CORE::CString digest;
+        CORE::CString message;
+        if ( !GetThumbnailDigest( assetIds[ i ], digest, message ) )
+        {
+            entry.status = ASSETSTORE_STATUS_NOT_FOUND;
+            entry.message = message;
+        }
+        else
+        if ( CAssetThumbnailFiles::Find( folder, digest, size, entry.key, entry.vfsPath ) )
+        {
+            entry.size = entry.key.size;
+            entry.status = ASSETSTORE_STATUS_OK;
+        }
+        else
+        {
+            entry.key.digest = digest;
+            entry.status = ASSETSTORE_STATUS_NOT_FOUND;
+            entry.message = "No thumbnail is stored for this asset yet";
+        }
+        result.entries.push_back( entry );
+    }
+    result.total = result.entries.size();
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const
+{GUCEF_TRACE;
+
+    flags.clear();
+    if ( GUCEF_NULL == m_store )
+        return false;
+    // the answer per pack folder is kept while the catalogue does not change
+    const UInt64 revision = GetCatalogueRevision();
+    const CORE::CString cacheKey = m_store->GetPackFolderOfVfsPath( vfsPath.ReplaceChar( '\\', '/' ) );
+    if ( cacheKey.IsNULLOrEmpty() )
+    {
+        // a path that is in no pack folder of the area layout: the catalogue is asked (the legacy layout), nothing is kept
+        return m_store->GetRestrictionsOfVfsPath( vfsPath, flags );
+    }
+    {
+        MT::CScopeMutex lock( m_restrictionLock );
+        TPathRestrictionMap::const_iterator i = m_pathRestrictions.find( cacheKey );
+        if ( i != m_pathRestrictions.end() && i->second.revision == revision )
+        {
+            flags = i->second.flags;
+            return i->second.inPack;
+        }
+    }
+    SPathRestriction entry;
+    entry.revision = revision;
+    entry.inPack = m_store->GetRestrictionsOfVfsPath( vfsPath, entry.flags );
+    MT::CScopeMutex lock( m_restrictionLock );
+    if ( m_pathRestrictions.size() > 4096 )
+        m_pathRestrictions.clear();
+    m_pathRestrictions[ cacheKey ] = entry;
+    flags = entry.flags;
+    return entry.inPack;
 }
 
 /*-------------------------------------------------------------------------*/

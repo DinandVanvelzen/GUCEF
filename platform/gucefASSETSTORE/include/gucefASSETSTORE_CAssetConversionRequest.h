@@ -54,11 +54,12 @@ namespace ASSETSTORE {
  *  What a converter hook is asked to convert (CIAssetConverterHook::ConvertPack()): the pack with its licence, where
  *  its original files are now and where the converted files go.
  *
- *  The paths in the records of the assets are relative to the root of the pack. 'sourceVfsPath' is the VFS folder that
- *  holds the original files, and 'sourcePrefix' the start of the original paths of the assets that this folder stands
- *  for: "original/" when the pack is placed in its storage location (the folder is then "<pack root>/original"), empty
- *  while the pack is still staged. The hook writes below 'convertedVfsFolder' and sets the converted path of an asset
- *  as 'convertedPathPrefix' followed by the path below that folder, which makes it relative to the root of the pack.
+ *  The paths in the records of the assets are logical paths of the layout of the pack (CPackStorageLayout). 'sourceVfsPath'
+ *  is the VFS folder that holds the original files, and 'sourcePrefix' the start of the original paths of the assets that
+ *  this folder stands for: "original/" when the pack is placed in its storage location, empty while the pack is still
+ *  staged. The hook writes the intermediate files, the report, the licence record and the manifest below 'convertedVfsFolder'
+ *  and the cooked files below 'cookedVfsFolder' (below 'convertedVfsFolder' when that is empty), and sets the converted
+ *  path of an asset as the prefix of the folder of its main file followed by the path below that folder.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetConversionRequest
 {
@@ -67,8 +68,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetConversionRequest
     CAssetPackRecord pack;
     CORE::CString sourceVfsPath;                    /**< VFS folder with the original files */
     CORE::CString sourcePrefix;                     /**< the start of original paths of the assets that sourceVfsPath stands for */
-    CORE::CString convertedVfsFolder;               /**< VFS folder for the results: "<pack root>/converted/<profile>" or its staged equivalent */
-    CORE::CString convertedPathPrefix;              /**< "converted/<profile>": convertedVfsFolder relative to the root of the pack */
+    CORE::CString convertedVfsFolder;               /**< VFS folder for the results: the intermediate folder of the pack ("<pack root>/converted/<profile>" in the earlier layout), or its staged equivalent */
+    CORE::CString convertedPathPrefix;              /**< the logical path of convertedVfsFolder: "converted/<profile>" (layout 1) or "intermediate" */
+    CORE::CString cookedVfsFolder;                  /**< VFS folder for the cooked files when it is not convertedVfsFolder (layout 2: "<location>/gucef-ogre3d/<pack folder>"); empty: the cooked files go below convertedVfsFolder */
+    CORE::CString cookedPathPrefix;                 /**< the logical path of cookedVfsFolder: "gucef-ogre3d" */
     CIAssetConversionObserver* observer;            /**< cancel and progress, not owned, may be GUCEF_NULL */
     bool reconvert;                                 /**< convert again, also what the cache of the converter says is unchanged */
 

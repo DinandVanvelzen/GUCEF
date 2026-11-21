@@ -50,6 +50,7 @@ CAssetIngestEventData::CAssetIngestEventData( void )
     , step()
     , status()
     , message()
+    , downloadJobId()
 {GUCEF_TRACE;
 
 }
@@ -83,6 +84,8 @@ CAssetIngestEventData::Serialize( CORE::CDataNode& domRootNode                  
     success = domRootNode.SetAttribute( "step", step ) && success;
     success = domRootNode.SetAttribute( "status", status ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
+    if ( !downloadJobId.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "downloadJobId", downloadJobId ) && success;
     return success;
 }
 
@@ -99,6 +102,7 @@ CAssetIngestEventData::Deserialize( const CORE::CDataNode& domRootNode          
     step = domRootNode.GetAttributeValueOrChildValueByName( "step" ).AsString( defaults.step );
     status = domRootNode.GetAttributeValueOrChildValueByName( "status" ).AsString( defaults.status );
     message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString( defaults.message );
+    downloadJobId = domRootNode.GetAttributeValueOrChildValueByName( "downloadJobId" ).AsString( defaults.downloadJobId );
     return true;
 }
 

@@ -65,6 +65,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreInfo : public CORE::CIDataNodeSeria
     CORE::CString iconName;              /**< a generic icon name, may be empty */
     CORE::CString homePageUrl;
     TAssetStoreSignInKind signInKind;
+    TAssetStoreSignInState signInState;  /**< where the sign in stands: signed out, in progress, signed in, expired or failed */
     bool signedIn;
     bool sessionEnded;                   /**< the store told that its session ended (as apart from never signed in), until it is signed in again */
     CORE::CString message;               /**< what the service knows of the state, may be empty */

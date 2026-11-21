@@ -59,6 +59,12 @@ CAssetStoreItem::CAssetStoreItem( void )
     , tags()
     , formats()
     , storeAttributes( "storeAttributes", GUCEF_DATATYPE_OBJECT )
+    , changedAtMs( 0 )
+    , revision()
+    , acquiredAtMs( 0 )
+    , downloadable( true )
+    , unavailableReason()
+    , formatsLevel( 0 )
 {GUCEF_TRACE;
 
 }
@@ -80,6 +86,23 @@ CAssetStoreItem::FindFormat( const CORE::CString& formatId ) const
         if ( formats[ i ].formatId == formatId )
             return &formats[ i ];
     return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt8
+CAssetStoreItem::GetEffectiveFormatsLevel( void ) const
+{GUCEF_TRACE;
+
+    if ( formatsLevel > 0 )
+        return formatsLevel;
+    if ( formats.empty() )
+        return 0;
+    for ( size_t f=0; f<formats.size(); ++f )
+        for ( size_t i=0; i<formats[ f ].files.size(); ++i )
+            if ( formats[ f ].files[ i ].size > 0 )
+                return 2;
+    return 1;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,6 +142,19 @@ CAssetStoreItem::Serialize( CORE::CDataNode& domRootNode                        
         if ( GUCEF_NULL != attributesNode )
             attributesNode->SetName( "storeAttributes" );
     }
+    // the members of the library sync: only when they are not the default, so an older reader sees the record it knows
+    if ( 0 != changedAtMs )
+        success = domRootNode.SetAttribute( "changedAtMs", changedAtMs ) && success;
+    if ( !revision.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "revision", revision ) && success;
+    if ( 0 != acquiredAtMs )
+        success = domRootNode.SetAttribute( "acquiredAtMs", acquiredAtMs ) && success;
+    if ( !downloadable )
+        success = domRootNode.SetAttribute( "downloadable", downloadable ) && success;
+    if ( !unavailableReason.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "unavailableReason", unavailableReason ) && success;
+    if ( 0 != formatsLevel )
+        success = domRootNode.SetAttribute( "formatsLevel", (UInt32) formatsLevel ) && success;
     return success;
 }
 
@@ -167,6 +203,13 @@ CAssetStoreItem::Deserialize( const CORE::CDataNode& domRootNode                
         storeAttributes.Copy( *attributesNode );
         storeAttributes.SetName( "storeAttributes" );
     }
+    changedAtMs = domRootNode.GetAttributeValueOrChildValueByName( "changedAtMs" ).AsInt64( 0, true );
+    revision = domRootNode.GetAttributeValueOrChildValueByName( "revision" ).AsString();
+    acquiredAtMs = domRootNode.GetAttributeValueOrChildValueByName( "acquiredAtMs" ).AsInt64( 0, true );
+    downloadable = domRootNode.GetAttributeValueOrChildValueByName( "downloadable" ).AsBool( true, true );
+    unavailableReason = domRootNode.GetAttributeValueOrChildValueByName( "unavailableReason" ).AsString();
+    const UInt32 level = domRootNode.GetAttributeValueOrChildValueByName( "formatsLevel" ).AsUInt32( 0, true );
+    formatsLevel = (UInt8) ( level > 2 ? 2 : level );
     return true;
 }
 

@@ -44,6 +44,10 @@ namespace ASSETSTORE {
 
 const CORE::CString CAssetStoreServiceConfig::LocalImplementationId = "local";
 const CORE::CString CAssetStoreServiceConfig::RemoteImplementationId = "remote";
+const CORE::CString CAssetStoreServiceConfig::StateVfsRoot = "assetstore-state";
+const CORE::CString CAssetStoreServiceConfig::ThumbnailsVfsRoot = "assetstore-thumbnails/thumbnails";
+const CORE::CString CAssetStoreServiceConfig::QueueFileName = "downloads.json";
+const CORE::CString CAssetStoreServiceConfig::ServiceStateFileName = "service-state.json";
 
 /*-------------------------------------------------------------------------*/
 
@@ -56,11 +60,17 @@ CAssetStoreServiceConfig::CAssetStoreServiceConfig( void )
     , threadPoolName( "AssetStoreService" )
     , loadDownloadQueue( true )
     , startDownloads( true )
+    , stateDirectory()
+    , thumbnailsDirectory()
+    , resumeIngestsOnStart( true )
+    , ingestResumeAttempts( 3 )
     , implementationSettings( "implementationSettings", GUCEF_DATATYPE_OBJECT )
     , pulseGenerator()
     , credentialStore( GUCEF_NULL )
     , converterHook( GUCEF_NULL )
     , renderHook( GUCEF_NULL )
+    , signIn()
+    , signInPromptSeconds( 600 )
 {GUCEF_TRACE;
 
 }
@@ -84,6 +94,11 @@ CAssetStoreServiceConfig::Serialize( CORE::CDataNode& domRootNode               
     success = domRootNode.SetAttribute( "threadPoolName", threadPoolName ) && success;
     success = domRootNode.SetAttribute( "loadDownloadQueue", loadDownloadQueue ) && success;
     success = domRootNode.SetAttribute( "startDownloads", startDownloads ) && success;
+    success = domRootNode.SetAttribute( "stateDirectory", stateDirectory ) && success;
+    success = domRootNode.SetAttribute( "thumbnailsDirectory", thumbnailsDirectory ) && success;
+    success = domRootNode.SetAttribute( "resumeIngestsOnStart", resumeIngestsOnStart ) && success;
+    success = domRootNode.SetAttribute( "ingestResumeAttempts", ingestResumeAttempts ) && success;
+    success = domRootNode.SetAttribute( "signInPromptSeconds", signInPromptSeconds ) && success;
     CORE::CDataNode* store = domRootNode.AddChild( "primaryStore", GUCEF_DATATYPE_OBJECT );
     CORE::CDataNode* downloadNode = domRootNode.AddChild( "downloads", GUCEF_DATATYPE_OBJECT );
     if ( GUCEF_NULL == store || GUCEF_NULL == downloadNode )
@@ -108,6 +123,11 @@ CAssetStoreServiceConfig::Deserialize( const CORE::CDataNode& domRootNode       
     threadPoolName = domRootNode.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( threadPoolName, true );
     loadDownloadQueue = domRootNode.GetAttributeValueOrChildValueByName( "loadDownloadQueue" ).AsBool( loadDownloadQueue, true );
     startDownloads = domRootNode.GetAttributeValueOrChildValueByName( "startDownloads" ).AsBool( startDownloads, true );
+    stateDirectory = domRootNode.GetAttributeValueOrChildValueByName( "stateDirectory" ).AsString( stateDirectory, true );
+    thumbnailsDirectory = domRootNode.GetAttributeValueOrChildValueByName( "thumbnailsDirectory" ).AsString( thumbnailsDirectory, true );
+    resumeIngestsOnStart = domRootNode.GetAttributeValueOrChildValueByName( "resumeIngestsOnStart" ).AsBool( resumeIngestsOnStart, true );
+    ingestResumeAttempts = domRootNode.GetAttributeValueOrChildValueByName( "ingestResumeAttempts" ).AsUInt32( ingestResumeAttempts, true );
+    signInPromptSeconds = domRootNode.GetAttributeValueOrChildValueByName( "signInPromptSeconds" ).AsUInt32( signInPromptSeconds, true );
     bool success = true;
     const CORE::CDataNode* store = domRootNode.FindChild( "primaryStore" );
     if ( GUCEF_NULL != store )

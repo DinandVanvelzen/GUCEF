@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -86,6 +88,10 @@
 #include "gucefASSETSTORE_CAssetStoreSafeNames.h"
 #define GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H
 #endif /* GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H ? */
+#ifndef GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#include "gucefASSETSTORE_CPackStorageLayout.h"
+#define GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#endif /* GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREITEMNORMALIZER_H
 #include "gucefASSETSTORE_CAssetStoreItemNormalizer.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREITEMNORMALIZER_H
@@ -102,6 +108,11 @@
 #include "gucefASSETSTORE_CAssetPackConversion.h"
 #define GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H
 #endif /* GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETITEMREVISION_H
+#include "gucefASSETSTORE_CAssetItemRevision.h"
+#define GUCEF_ASSETSTORE_CASSETITEMREVISION_H
+#endif /* GUCEF_ASSETSTORE_CASSETITEMREVISION_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H
 #include "gucefASSETSTORE_CPrimaryAssetStore.h"
 #define GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H
@@ -176,6 +187,13 @@ LastPartOf( const CORE::CString& path )
     const CORE::CString normalized = NormalizeVfsPath( path );
     const Int32 slash = normalized.HasChar( '/', false );
     return slash >= 0 ? normalized.CutChars( (UInt32) slash + 1, true ) : normalized;
+}
+
+/** The name of a pack that comes from disk: the title of the request when it has one (an upload is staged in a folder of its own, "files"), else the last part of its path */
+CORE::CString
+SourceNameOf( const CAssetIngestJob& job )
+{
+    return job.request.sourceId == CPrimaryAssetStoreSettings::DiskSourceId && !job.request.item.title.IsNULLOrEmpty() ? job.request.item.title : LastPartOf( job.request.contentPath );
 }
 
 CORE::CString
@@ -559,10 +577,11 @@ CAssetIngestPipeline::Run( CAssetIngestJob& job, CAssetIngestResult& result )
             m_store.RemovePackRows( job.pack.packId );
             job.problems.push_back( "a duplicate of pack " + result.duplicateOfPackId );
             Record( job, "duplicate", step, recordMessage );
+            RevalidateDuplicate( job, result.duplicateOfPackId );
             result.status = ASSETSTORE_STATUS_DUPLICATE;
             result.message = message;
             result.problems = job.problems;
-            m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFinishedEvent, job.ingestId, job.pack.packId, step, status, message );
+            m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFinishedEvent, job.ingestId, job.pack.packId, step, status, message, job.request.downloadJobId );
             return status;
         }
         if ( ASSETSTORE_STATUS_OK != status )
@@ -586,13 +605,13 @@ CAssetIngestPipeline::Run( CAssetIngestJob& job, CAssetIngestResult& result )
             result.message = message;
             result.problems = job.problems;
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Ingest " << job.ingestId << " failed in step " << AssetIngestStepToString( step ) << ": " << message );
-            m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFailedEvent, job.ingestId, job.pack.packId, step, status, message );
+            m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFailedEvent, job.ingestId, job.pack.packId, step, status, message, job.request.downloadJobId );
             return status;
         }
         job.lastStep = step;
         if ( step < ASSETINGEST_STEP_RECORD )
             SaveManifest( job );
-        m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestProgressEvent, job.ingestId, job.pack.packId, step, status, CORE::CString::Empty );
+        m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestProgressEvent, job.ingestId, job.pack.packId, step, status, CORE::CString::Empty, job.request.downloadJobId );
     }
     UnmountArchives();
 
@@ -601,7 +620,7 @@ CAssetIngestPipeline::Run( CAssetIngestJob& job, CAssetIngestResult& result )
     result.assetCount = (UInt32) job.assets.size();
     result.problems = job.problems;
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Ingested pack " << job.pack.packId << " \"" << job.pack.title << "\" with " << job.assets.size() << " asset(s)" );
-    m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFinishedEvent, job.ingestId, job.pack.packId, ASSETINGEST_STEP_DONE, ASSETSTORE_STATUS_OK, CORE::CString::Empty );
+    m_store.NotifyIngestEvent( CPrimaryAssetStore::IngestFinishedEvent, job.ingestId, job.pack.packId, ASSETINGEST_STEP_DONE, ASSETSTORE_STATUS_OK, CORE::CString::Empty, job.request.downloadJobId );
     return ASSETSTORE_STATUS_OK;
 }
 
@@ -826,9 +845,21 @@ CAssetIngestPipeline::FindDuplicate( const CAssetIngestJob& job, CORE::CString& 
     duplicateOfPackId.Clear();
     CAssetCatalogue& catalogue = m_store.GetCatalogue();
 
-    // the same item of the same store
+    // the same item of the same store: with the store facts of the library sync (schema 5) a pack of another format or of
+    // another revision of the item is not the same; a download of the sync is the same only as a current pack of its format
+    // with the revision it expects (a newer revision is a new version of the item)
     if ( job.pack.sourceId != CPrimaryAssetStoreSettings::DiskSourceId && !job.request.item.itemId.IsNULLOrEmpty() )
     {
+        GUCEF::map< CORE::CString, CAssetPackSourceRecord > factsOfPacks;
+        CAssetSyncMarkStore& syncStore = m_store.GetSyncStore();
+        if ( syncStore.IsAvailable() )
+        {
+            TAssetPackSourceRecordVector facts;
+            if ( ASSETSTORE_STATUS_OK == syncStore.GetPackSourcesOfItem( job.pack.sourceId, job.request.item.itemId, facts ) )
+                for ( size_t f=0; f<facts.size(); ++f )
+                    factsOfPacks[ facts[ f ].packId ] = facts[ f ];
+        }
+        const bool fromSync = !job.request.expectedRevision.IsNULLOrEmpty();
         CORE::CDataTableQuery query;
         query.WhereEquals( "source_id", CORE::CVariant( job.pack.sourceId ) );
         query.WhereEquals( "source_item_id", CORE::CVariant( job.request.item.itemId ) );
@@ -843,6 +874,21 @@ CAssetIngestPipeline::FindDuplicate( const CAssetIngestJob& job, CORE::CString& 
             const CORE::CString version = CAssetCatalogue::GetText( rows[ r ], "source_version" );
             if ( packId == job.pack.packId || !AssetPackStateIsIngested( state ) )
                 continue;
+            GUCEF::map< CORE::CString, CAssetPackSourceRecord >::const_iterator fact = factsOfPacks.find( packId );
+            const bool hasFact = fact != factsOfPacks.end();
+            if ( hasFact && !(*fact).second.IsCurrent() )
+                continue;
+            if ( hasFact && !(*fact).second.MatchesFormat( job.request.formatId ) )
+                continue;
+            if ( fromSync )
+            {
+                if ( hasFact && CAssetItemRevision::COMPARISON_SAME == CAssetItemRevision::Compare( (*fact).second.revision, job.request.expectedRevision ) )
+                {
+                    duplicateOfPackId = packId;
+                    return ASSETSTORE_STATUS_OK;
+                }
+                continue;
+            }
             if ( version == job.request.item.version )
             {
                 duplicateOfPackId = packId;
@@ -896,7 +942,7 @@ CAssetIngestPipeline::Normalise( CAssetIngestJob& job, CORE::CString& message )
     CAssetNormalizationInput input;
     input.sourceId = job.pack.sourceId;
     input.item = job.request.item;
-    input.packName = LastPartOf( job.request.contentPath );
+    input.packName = SourceNameOf( job );
     const CORE::CString packJsonPath = JoinVfs( job.contentRoot, "pack.json" );
     if ( vfs.FileExists( packJsonPath ) )
     {
@@ -1076,8 +1122,10 @@ CAssetIngestPipeline::Convert( CAssetIngestJob& job, CORE::CString& message )
     request.pack = job.pack;
     request.sourceVfsPath = job.contentRoot;
     request.sourcePrefix = job.contentPrefix;
-    request.convertedVfsFolder = JoinVfs( job.stagingFolder, "converted/" + profile );
-    request.convertedPathPrefix = "converted/" + profile;
+    request.convertedVfsFolder = JoinVfs( job.stagingFolder, CPackStorageLayout::IntermediateArea );
+    request.convertedPathPrefix = CPackStorageLayout::IntermediateArea;
+    request.cookedVfsFolder = JoinVfs( job.stagingFolder, CPackStorageLayout::CookedArea );
+    request.cookedPathPrefix = CPackStorageLayout::CookedArea;
     CIngestConversionObserver observer( m_store, job.ingestId, job.pack.packId, m_cancel );
     request.observer = &observer;
     request.reconvert = false;
@@ -1116,15 +1164,13 @@ CAssetIngestPipeline::Place( CAssetIngestJob& job, CORE::CString& message )
     }
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     const CORE::CString locationRoot = m_store.GetLocationRoot( job.locationId );
-    const CORE::CString packRoot = "packs/" + CAssetStoreSafeNames::MakeSafePart( job.pack.sourceId ) + "/" +
-                                   CAssetStoreSafeNames::MakeSafePart( job.pack.seller.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : job.pack.seller ) + "/" +
-                                   CAssetStoreSafeNames::MakeSafePart( job.pack.title, 100 ) + " [" + job.pack.packId + "]";
-    const CORE::CString target = JoinVfs( locationRoot, packRoot );
-    const CORE::CString originalFolder = JoinVfs( target, "original" );
+    const bool sourceIsFile = vfs.FileExists( job.request.contentPath ) && !vfs.DirExists( job.request.contentPath );
+    const CORE::CString sourceName = job.request.sourceId == CPrimaryAssetStoreSettings::DiskSourceId || sourceIsFile ?
+                                     SourceNameOf( job ) : job.pack.title;
+    const CPackStorageLayout layout( CPackStorageLayout::MakeRootPath( m_store.ChoosePackFolder( job.locationId, sourceName, job.pack.packId ) ) );
+    const CORE::CString originalFolder = layout.GetOriginalFolder( locationRoot );
 
     UnmountArchives();
-    if ( !vfs.DirExists( target ) )
-        vfs.CreateDir( target );
     if ( !vfs.DirExists( originalFolder ) )
     {
         if ( !vfs.MoveDir( job.contentRoot, originalFolder ) )
@@ -1138,13 +1184,16 @@ CAssetIngestPipeline::Place( CAssetIngestJob& job, CORE::CString& message )
             vfs.DeleteDir( job.contentRoot, true );
         }
     }
-    const CORE::CString convertedStaging = JoinVfs( job.stagingFolder, "converted" );
-    if ( vfs.DirExists( convertedStaging ) && !vfs.MoveDir( convertedStaging, JoinVfs( target, "converted" ) ) )
-        job.problems.push_back( "the converted files could not be placed" );
+    const CORE::CString intermediateStaging = JoinVfs( job.stagingFolder, CPackStorageLayout::IntermediateArea );
+    if ( vfs.DirExists( intermediateStaging ) && !vfs.MoveDir( intermediateStaging, layout.GetIntermediateFolder( locationRoot, CORE::CString::Empty ) ) )
+        job.problems.push_back( "the intermediate files could not be placed" );
+    const CORE::CString cookedStaging = JoinVfs( job.stagingFolder, CPackStorageLayout::CookedArea );
+    if ( vfs.DirExists( cookedStaging ) && !vfs.MoveDir( cookedStaging, layout.GetCookedFolder( locationRoot, CORE::CString::Empty ) ) )
+        job.problems.push_back( "the cooked files could not be placed" );
 
     job.contentRoot = originalFolder;
-    job.contentPrefix = "original/";
-    job.pack.rootPath = packRoot;
+    job.contentPrefix = CPackStorageLayout::OriginalArea + "/";
+    job.pack.rootPath = layout.GetStoredRootPath();
     for ( size_t a=0; a<job.assets.size(); ++a )
     {
         CAssetRecord& asset = job.assets[ a ];
@@ -1427,18 +1476,43 @@ CAssetIngestPipeline::Index( CAssetIngestJob& job, CORE::CString& message )
     CORE::CString::StringVector removals;
     if ( ASSETKEEP_CONVERTED == job.pack.keep && CAssetConversionRecord::OutcomeConverted == job.pack.conversion.outcome && !job.inPlace )
     {
-        const CORE::CString packRoot = JoinVfs( m_store.GetLocationRoot( job.locationId ), job.pack.rootPath );
+        const CPackStorageLayout layout( job.pack.rootPath );
+        const CORE::CString locationRoot = m_store.GetLocationRoot( job.locationId );
         for ( size_t a=0; a<job.assets.size(); ++a )
         {
             if ( job.assets[ a ].convertedPath.IsNULLOrEmpty() || job.assets[ a ].files.empty() || IsInsideArchive( job, job.assets[ a ] ) )
                 continue;
             for ( size_t f=0; f<job.assets[ a ].files.size(); ++f )
-                removals.push_back( JoinVfs( packRoot, job.assets[ a ].files[ f ].path ) );
+                removals.push_back( layout.Resolve( locationRoot, job.assets[ a ].files[ f ].path ) );
             rowsJob.assets[ a ].files.clear();
         }
     }
 
     const TAssetStoreStatus status = IndexRows( job, rowsJob, message );
+    if ( ASSETSTORE_STATUS_OK == status )
+        m_store.ReleasePackFolder( job.pack.packId );
+    if ( ASSETSTORE_STATUS_OK == status )
+    {
+        // the pack index: the document that the conversion wrote is loaded (work once); nothing is built here, the job index-pack
+        // builds what is missing; a pack without an index is still an ingested pack
+        CAssetPackIndexOptions indexOptions;
+        indexOptions.notify = false;
+        indexOptions.allowBuild = false;
+        CAssetPackIndexOutcome indexOutcome;
+        TAssetStoreStatus indexStatus = m_store.RunIndexPack( job.pack.packId, indexOptions, indexOutcome, m_cancel );
+        if ( ASSETSTORE_STATUS_UNSUPPORTED == indexStatus && m_store.GetSettings().indexAfterIngest )
+        {
+            // the conversion wrote no document (the pack was not converted, or the converter makes none): the converter hook builds
+            // the index now, as the job index-pack would; without a hook the pack stays without one
+            indexOptions.allowBuild = true;
+            indexOptions.notify = true;
+            indexStatus = m_store.RunIndexPack( job.pack.packId, indexOptions, indexOutcome, m_cancel );
+            if ( ASSETSTORE_STATUS_OK == indexStatus )
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Ingest " << job.ingestId << " made the pack index of pack " << job.pack.packId << ": " << indexOutcome.resourceCount << " resource(s)" );
+        }
+        if ( ASSETSTORE_STATUS_OK != indexStatus && ASSETSTORE_STATUS_UNSUPPORTED != indexStatus )
+            job.problems.push_back( "the pack index could not be made: " + indexOutcome.message );
+    }
     if ( ASSETSTORE_STATUS_OK == status && !removals.empty() )
     {
         VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
@@ -1550,6 +1624,9 @@ CAssetIngestPipeline::Record( CAssetIngestJob& job, const CORE::CString& outcome
         return status;
     }
 
+    if ( outcome == "ingested" )
+        RecordSourceFacts( job );
+
     // a finished ingest leaves nothing in the staging area
     if ( outcome != "failed" )
     {
@@ -1565,6 +1642,101 @@ CAssetIngestPipeline::Record( CAssetIngestJob& job, const CORE::CString& outcome
         }
     }
     return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetIngestPipeline::RecordSourceFacts( CAssetIngestJob& job )
+{GUCEF_TRACE;
+
+    const CAssetStoreItem& item = job.request.item;
+    CAssetSyncMarkStore& syncStore = m_store.GetSyncStore();
+    if ( job.pack.sourceId == CPrimaryAssetStoreSettings::DiskSourceId || item.itemId.IsNULLOrEmpty() || !syncStore.IsAvailable() )
+        return;
+
+    CAssetPackSourceRecord facts;
+    facts.packId = job.pack.packId;
+    facts.sourceId = job.pack.sourceId.Lowercase();
+    facts.sourceItemId = item.itemId;
+    facts.sourceFormatId = job.request.formatId;
+    facts.revision = job.request.expectedRevision.IsNULLOrEmpty() ? CAssetItemRevision::GetEffectiveRevision( item ) : job.request.expectedRevision;
+    facts.changedMs = item.changedAtMs > 0 ? item.changedAtMs : CAssetItemRevision::GetChangedMs( facts.revision );
+    facts.syncedMs = NowUtcMs();
+    facts.syncJobId = job.request.syncJobId;
+
+    // the content: the SHA-256 over the sorted digests of the original files, newline joined
+    CORE::CString::StringVector digests;
+    for ( size_t a=0; a<job.assets.size(); ++a )
+        if ( !job.assets[ a ].digest.IsNULLOrEmpty() )
+            digests.push_back( job.assets[ a ].digest.Lowercase() );
+    std::sort( digests.begin(), digests.end() );
+    CORE::CString joined;
+    for ( size_t d=0; d<digests.size(); ++d )
+        joined += digests[ d ] + "\n";
+    CAssetDigest contentDigest( CAssetDigest::Sha256 );
+    contentDigest.Update( joined.C_String(), ByteLengthOf( joined ) );
+    facts.contentDigest = contentDigest.FinalHex();
+
+    TAssetStoreStatus status = syncStore.WritePackSource( facts );
+    if ( ASSETSTORE_STATUS_OK != status )
+    {
+        job.problems.push_back( "the store facts of the pack could not be written" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: The store facts of pack " << job.pack.packId << " could not be written: " << m_store.GetCatalogue().GetLastErrorMessage() );
+        return;
+    }
+    UInt32 superseded = 0;
+    status = syncStore.SupersedeOlderPacks( facts, facts.syncedMs, superseded );
+    if ( ASSETSTORE_STATUS_OK != status )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: The older packs of item " << item.itemId << " could not be marked as superseded by pack " << job.pack.packId );
+    }
+    else
+    if ( superseded > 0 )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Pack " << job.pack.packId << " supersedes " << superseded << " older pack(s) of item " << item.itemId << " of store " << facts.sourceId );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetIngestPipeline::RevalidateDuplicate( CAssetIngestJob& job, const CORE::CString& duplicateOfPackId )
+{GUCEF_TRACE;
+
+    const CAssetStoreItem& item = job.request.item;
+    CAssetSyncMarkStore& syncStore = m_store.GetSyncStore();
+    if ( job.request.expectedRevision.IsNULLOrEmpty() || duplicateOfPackId.IsNULLOrEmpty() || item.itemId.IsNULLOrEmpty() || !syncStore.IsAvailable() )
+        return;
+    CAssetPackSourceRecord facts;
+    const TAssetStoreStatus found = syncStore.GetPackSource( duplicateOfPackId, facts );
+    if ( ASSETSTORE_STATUS_OK == found )
+    {
+        // only a pack of the same item stands for the item; the same files under another item stay that item's
+        if ( facts.sourceId != job.pack.sourceId.Lowercase() || facts.sourceItemId != item.itemId )
+            return;
+        if ( !facts.MatchesFormat( job.request.formatId ) )
+            return;
+        const Int64 changedMs = item.changedAtMs > 0 ? item.changedAtMs : CAssetItemRevision::GetChangedMs( job.request.expectedRevision );
+        m_store.ConfirmSourceRevision( duplicateOfPackId, job.request.expectedRevision, changedMs );
+        return;
+    }
+    if ( ASSETSTORE_STATUS_NOT_FOUND != found )
+        return;
+
+    // a pack from before the facts were kept: when it is a pack of the item it gets its facts now (adoption)
+    CAssetPackRecord pack;
+    if ( ASSETSTORE_STATUS_OK != m_store.GetPack( duplicateOfPackId, pack ) || pack.sourceId.Lowercase() != job.pack.sourceId.Lowercase() || pack.sourceItemId != item.itemId )
+        return;
+    facts.packId = duplicateOfPackId;
+    facts.sourceId = job.pack.sourceId.Lowercase();
+    facts.sourceItemId = item.itemId;
+    facts.sourceFormatId = job.request.formatId;
+    facts.revision = job.request.expectedRevision;
+    facts.changedMs = item.changedAtMs;
+    facts.syncedMs = NowUtcMs();
+    facts.syncJobId = job.request.syncJobId;
+    syncStore.WritePackSource( facts );
 }
 
 /*-------------------------------------------------------------------------//

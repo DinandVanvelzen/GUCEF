@@ -50,6 +50,7 @@ CAssetStoreInfo::CAssetStoreInfo( void )
     , iconName()
     , homePageUrl()
     , signInKind( ASSETSTORE_SIGNIN_NONE )
+    , signInState( ASSETSTORE_SIGNINSTATE_SIGNED_OUT )
     , signedIn( false )
     , sessionEnded( false )
     , message()
@@ -86,6 +87,7 @@ CAssetStoreInfo::Serialize( CORE::CDataNode& domRootNode                        
     success = domRootNode.SetAttribute( "iconName", iconName ) && success;
     success = domRootNode.SetAttribute( "homePageUrl", homePageUrl ) && success;
     success = domRootNode.SetAttribute( "signInKind", CORE::CString( AssetStoreSignInKindToString( signInKind ) ) ) && success;
+    success = domRootNode.SetAttribute( "signInState", CORE::CString( AssetStoreSignInStateToString( signInState ) ) ) && success;
     success = domRootNode.SetAttribute( "signedIn", signedIn ) && success;
     success = domRootNode.SetAttribute( "sessionEnded", sessionEnded ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
@@ -108,8 +110,15 @@ CAssetStoreInfo::Deserialize( const CORE::CDataNode& domRootNode                
     text = domRootNode.GetAttributeValueOrChildValueByName( "signInKind" ).AsString();
     if ( !text.IsNULLOrEmpty() )
         signInKind = AssetStoreSignInKindFromString( text );
+    text = domRootNode.GetAttributeValueOrChildValueByName( "signInState" ).AsString();
+    const bool hasState = !text.IsNULLOrEmpty();
+    if ( hasState )
+        signInState = AssetStoreSignInStateFromString( text );
     signedIn = domRootNode.GetAttributeValueOrChildValueByName( "signedIn" ).AsBool( signedIn, true );
     sessionEnded = domRootNode.GetAttributeValueOrChildValueByName( "sessionEnded" ).AsBool( sessionEnded, true );
+    // a record of an older sender has no state: it follows from the flags
+    if ( !hasState )
+        signInState = signedIn ? ASSETSTORE_SIGNINSTATE_SIGNED_IN : ( sessionEnded ? ASSETSTORE_SIGNINSTATE_EXPIRED : ASSETSTORE_SIGNINSTATE_SIGNED_OUT );
     message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString( message );
     return true;
 }

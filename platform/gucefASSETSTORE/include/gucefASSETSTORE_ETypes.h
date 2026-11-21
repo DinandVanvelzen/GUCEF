@@ -29,6 +29,10 @@
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
+#ifndef GUCEF_WEB_ETYPES_H
+#include "gucefWEB_ETypes.h"
+#define GUCEF_WEB_ETYPES_H
+#endif /* GUCEF_WEB_ETYPES_H ? */
 #ifndef GUCEF_ASSETSTORE_MACROS_H
 #include "gucefASSETSTORE_macros.h"
 #define GUCEF_ASSETSTORE_MACROS_H
@@ -159,24 +163,33 @@ enum EAssetStoreSignInKind
 };
 typedef enum EAssetStoreSignInKind TAssetStoreSignInKind;
 
-/** How a web session sign in runs */
-enum EWebSignInMode
+/** Where the sign in of a store stands, as the service lists it (the remote design, section 5.7) */
+enum EAssetStoreSignInState
 {
-    WEBSIGNIN_MODE_INTERACTIVE = 0  ,   /**< the owner started it: a browser window, saved credentials filled in, steps of a person handed over */
-    WEBSIGNIN_MODE_UNATTENDED           /**< nobody watches: a browser without a window, saved credentials only, a step of a person ends it */
+    ASSETSTORE_SIGNINSTATE_SIGNED_OUT = 0   ,   /**< no session: never signed in, signed out, or a sign in that cannot be done here (the message says why) */
+    ASSETSTORE_SIGNINSTATE_IN_PROGRESS      ,   /**< a sign in runs and waits for the person or for the store */
+    ASSETSTORE_SIGNINSTATE_SIGNED_IN        ,   /**< a session that works */
+    ASSETSTORE_SIGNINSTATE_EXPIRED          ,   /**< the session ended and has to be made again */
+    ASSETSTORE_SIGNINSTATE_FAILED               /**< the last sign in ended without a session (the message says why) */
 };
-typedef enum EWebSignInMode TWebSignInMode;
+typedef enum EAssetStoreSignInState TAssetStoreSignInState;
 
-/** What a page shows of the element a selector names */
-enum EWebElementState
-{
-    WEBELEMENT_STATE_NO_ANSWER = 0      ,   /**< the page could not be asked: no connection, or the page was being replaced */
-    WEBELEMENT_STATE_INVALID_SELECTOR   ,   /**< the page refused the selector */
-    WEBELEMENT_STATE_ABSENT             ,
-    WEBELEMENT_STATE_PRESENT            ,   /**< in the page, not shown or disabled */
-    WEBELEMENT_STATE_VISIBLE                /**< in the page, shown and enabled */
-};
-typedef enum EWebElementState TWebElementState;
+/*
+ *  Deprecated: the mode of a web session sign in and the state of a page element are types of gucefWEB
+ *  (gucefWEB_ETypes.h). These names in GUCEF::ASSETSTORE are kept for one release so old code still compiles;
+ *  use the GUCEF::WEB names.
+ */
+using WEB::EWebSignInMode;
+using WEB::TWebSignInMode;
+using WEB::WEBSIGNIN_MODE_INTERACTIVE;
+using WEB::WEBSIGNIN_MODE_UNATTENDED;
+using WEB::EWebElementState;
+using WEB::TWebElementState;
+using WEB::WEBELEMENT_STATE_NO_ANSWER;
+using WEB::WEBELEMENT_STATE_INVALID_SELECTOR;
+using WEB::WEBELEMENT_STATE_ABSENT;
+using WEB::WEBELEMENT_STATE_PRESENT;
+using WEB::WEBELEMENT_STATE_VISIBLE;
 
 /** The states of a job of the asset store service: a download, an ingest, a conversion, a pipeline run, ... (section 4.3 of the service design) */
 enum EAssetJobState
@@ -210,7 +223,8 @@ enum EAssetCatalogueChangeKind
     ASSETCHANGE_PACK_REMOVED    ,
     ASSETCHANGE_VOCABULARY      ,
     ASSETCHANGE_SAVED_SEARCHES  ,
-    ASSETCHANGE_RESYNC              /**< the changes since a revision are no longer known: everything that is cached is to be read again */
+    ASSETCHANGE_RESYNC          ,   /**< the changes since a revision are no longer known: everything that is cached is to be read again */
+    ASSETCHANGE_PACK_INDEX_UPDATED  /**< the pack index of a pack (its groups and resources) was loaded or changed: a view of the resources reads it again */
 };
 typedef enum EAssetCatalogueChangeKind TAssetCatalogueChangeKind;
 
@@ -259,9 +273,20 @@ GUCEF_ASSETSTORE_PUBLIC_CPP bool AssetPackStateIsIngested( const CORE::CString& 
 GUCEF_ASSETSTORE_PUBLIC_CPP const char* AssetStoreSignInKindToString( TAssetStoreSignInKind kind );
 GUCEF_ASSETSTORE_PUBLIC_CPP TAssetStoreSignInKind AssetStoreSignInKindFromString( const CORE::CString& text );
 
-/** "interactive", "unattended" */
-GUCEF_ASSETSTORE_PUBLIC_CPP const char* WebSignInModeToString( TWebSignInMode mode );
-GUCEF_ASSETSTORE_PUBLIC_CPP TWebSignInMode WebSignInModeFromString( const CORE::CString& text, TWebSignInMode defaultMode = WEBSIGNIN_MODE_INTERACTIVE );
+/** "signedOut", "inProgress", "signedIn", "expired", "failed" */
+GUCEF_ASSETSTORE_PUBLIC_CPP const char* AssetStoreSignInStateToString( TAssetStoreSignInState state );
+GUCEF_ASSETSTORE_PUBLIC_CPP TAssetStoreSignInState AssetStoreSignInStateFromString( const CORE::CString& text );
+
+/* Deprecated, kept for one release: the texts of the mode of a web session sign in are those of gucefWEB */
+using WEB::WebSignInModeToString;
+using WEB::WebSignInModeFromString;
+
+/**
+ *  The outcome of a web session sign in (WEB::TWebSignInStatus) as the outcome of an operation of a store: the same
+ *  value and name. The other way around a status that is no outcome of a sign in becomes WEB::WEBSIGNIN_STATUS_FAILED.
+ */
+GUCEF_ASSETSTORE_PUBLIC_CPP TAssetStoreStatus AssetStoreStatusFromWebSignInStatus( WEB::TWebSignInStatus status );
+GUCEF_ASSETSTORE_PUBLIC_CPP WEB::TWebSignInStatus WebSignInStatusFromAssetStoreStatus( TAssetStoreStatus status );
 
 /** "queued", "running", "paused", "finishing", "done", "failed", "cancelled" */
 GUCEF_ASSETSTORE_PUBLIC_CPP const char* AssetJobStateToString( TAssetJobState state );

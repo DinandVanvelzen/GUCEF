@@ -75,6 +75,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetPipelineOperations
     static const CORE::CString ConvertFile;          /**< "convert_file": a job */
     static const CORE::CString CookPack;             /**< "cook_pack": a job */
     static const CORE::CString ValidatePack;         /**< "validate_pack": a job */
+    static const CORE::CString IndexPack;            /**< "index-pack": a job of the service itself (not of the converter): loads or builds the pack index of a pack, or of every pack with the argument "fromStorage" or "missing" */
+    static const CORE::CString SyncLibrary;          /**< "sync-library": a job of the service itself (not of the converter): the library sync of a store, its spec (CAssetLibrarySyncSpec) in the arguments */
     static const CORE::CString CompareRoutes;        /**< "compare_routes" */
     static const CORE::CString ManifestPropose;      /**< "manifest_propose" */
     static const CORE::CString ManifestCreate;       /**< "manifest_create": a write */
@@ -85,8 +87,11 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetPipelineOperations
     static const CORE::CString ReadResource;         /**< "read_resource": the argument "uri" names the resource */
     static const CORE::CString RenderSheet;          /**< "render_sheet": carried out by the render hook */
 
-    /** Whether the operation runs as a job: convert_pack, convert_file, cook_pack, validate_pack */
+    /** Whether the operation runs as a job: convert_pack, convert_file, cook_pack, validate_pack, index-pack and sync-library (the last two are carried out by the service itself) */
     static bool IsJob( const CORE::CString& operation );
+
+    /** Whether the operation is a job that the service carries out itself, not the converter: index-pack, sync-library */
+    static bool IsServiceJob( const CORE::CString& operation );
 
     /** Whether the operation writes (previewed unless applied): manifest_create, manifest_edit, override_write, override_remove */
     static bool IsWrite( const CORE::CString& operation );

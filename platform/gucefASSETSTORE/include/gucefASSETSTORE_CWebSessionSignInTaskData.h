@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSessionSignInTaskData moved to gucefAUTH, header gucefAUTH_CWebSessionSignInTaskData.h, name GUCEF::AUTH::CWebSessionSignInTaskData.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefAUTH header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKDATA_H
 #define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKDATA_H
 
@@ -25,18 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CICLONEABLE_H
-#include "CICloneable.h"
-#define GUCEF_CORE_CICLONEABLE_H
-#endif /* GUCEF_CORE_CICLONEABLE_H ? */
-#ifndef GUCEF_CORE_CFUTURERESULTSOURCE_H
-#include "gucefCORE_CFutureResultSource.h"
-#define GUCEF_CORE_CFUTURERESULTSOURCE_H
-#endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
-#ifndef GUCEF_ASSETSTORE_ETYPES_H
-#include "gucefASSETSTORE_ETypes.h"
-#define GUCEF_ASSETSTORE_ETYPES_H
-#endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNINTASKDATA_H
+#include "gucefAUTH_CWebSessionSignInTaskData.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNINTASKDATA_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNINTASKDATA_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,28 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CWebSessionSignIn;
-
-/** The task data of CWebSessionSignIn::SignInAsync() */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionSignInTaskData : public CORE::CICloneable
-{
-    public:
-
-    CWebSessionSignIn* signIn;
-    TWebSignInMode mode;
-    CORE::CFutureResultSource source;
-
-    CWebSessionSignInTaskData( void );
-    virtual ~CWebSessionSignInTaskData() GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
+/* deprecated: use the names of GUCEF::AUTH */
+using AUTH::CWebSessionSignInTaskData;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

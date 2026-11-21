@@ -82,6 +82,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
+namespace AUTH { class CWebSessionSignIn; }
 namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
@@ -93,7 +94,9 @@ namespace ASSETSTORE {
 class CIAssetMetadataNormalizer;
 class CIAssetStoreTransferSource;
 class CAssetStoreProviderOperationTaskConsumer;
-class CWebSessionSignIn;
+class CIAssetStoreProbe;
+class CIAssetStoreInteractiveSignIn;
+class CAssetStoreSignInContext;
 
 /**
  *  A store of assets (section 4.1 of the design): its identity, the sign in it needs, its library, the details of an
@@ -152,9 +155,25 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
 
     /**
      *  The web session sign in of a store whose kind is ASSETSTORE_SIGNIN_WEB_SESSION: the application starts it
-     *  (CWebSessionSignIn::SignInAsync()) when the owner asks to sign in and shows its events. GUCEF_NULL by default
+     *  (AUTH::CWebSessionSignIn::SignInAsync()) when the owner asks to sign in and shows its events. GUCEF_NULL by default
      */
-    virtual CWebSessionSignIn* GetWebSessionSignIn( void );
+    virtual AUTH::CWebSessionSignIn* GetWebSessionSignIn( void );
+
+    /**
+     *  The sign in with steps of a person (an address to open, a code to paste) of a store whose kind is
+     *  ASSETSTORE_SIGNIN_AUTH_PROVIDER, which the asset store service drives and shows to a remote client as prompts. Owned by
+     *  the provider. GUCEF_NULL by default: the application signs in to the store itself
+     */
+    virtual CIAssetStoreInteractiveSignIn* GetInteractiveSignIn( void );
+
+    /**
+     *  What the application that hosts the service gives the store for signing in on the server: the manager of the flows of
+     *  gucefAUTH, the credential stores, the settings of the store (CAssetStoreSignInContext). Called by the service once when it
+     *  opens, or when the provider joins. A store that finds its client credentials in a file reads them here; the reason it
+     *  cannot be signed in then goes into 'problem' (plain text, never a secret) and the service shows it as the message of the
+     *  store. True by default
+     */
+    virtual bool ConfigureSignIn( const CAssetStoreSignInContext& context, CORE::CString& problem );
 
     virtual bool IsSignedIn( void ) const = 0;
 
@@ -186,6 +205,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
     /** Makes the plan again after an address expired; by default PlanDownload() with the item, format and files of the plan */
     virtual TAssetStoreStatus RenewPlan( CAssetStoreDownloadPlan& plan );
 
+    /**
+     *  Why the last PlanDownload() of the format of the item was refused or failed, in words for people (never an address,
+     *  a cookie or a token), for example that a size limit of the store plugin refused it. The download manager adds it to
+     *  the message of the download, so a sync records the reason. Empty by default: the status says it all
+     */
+    virtual CORE::CString GetPlanProblem( const CORE::CString& itemId, const CORE::CString& formatId ) const;
+
     /** The normaliser of the metadata of the items of the store (section 7.2); GUCEF_NULL by default: the generic one is used */
     virtual CIAssetMetadataNormalizer* GetMetadataNormalizer( void );
 
@@ -200,6 +226,18 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
 
     /** Whether a response to a download request means that its address expired; by default HTTP 403 and 410 */
     virtual bool IsExpiredUrlResponse( const CAssetStoreTransfer& transfer, const WEB::CHttpResponseData& response );
+
+    /**
+     *  The "test connection" of the store, GUCEF_NULL by default: a store plugin that can check the shape of its answers (the sign in,
+     *  the library listing) returns its probe, which is owned by the provider and lives as long as it does. See CIAssetStoreProbe
+     */
+    virtual CIAssetStoreProbe* GetProbe( void );
+
+    /**
+     *  Runs the probe of the store as a task on the thread pool; the result data of the completed future is a CAssetStoreProbeResult.
+     *  A store without a probe ends the future in the error state UNSUPPORTED
+     */
+    CORE::CFutureResult RunProbeAsync( void );
 
     CORE::CFutureResult QueryLibraryAsync( const CAssetStoreQuery& query );
 

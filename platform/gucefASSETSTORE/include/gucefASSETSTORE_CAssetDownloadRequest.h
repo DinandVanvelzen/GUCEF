@@ -66,6 +66,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetDownloadRequest : public CORE::CIDataNod
     bool forIngest;                         /**< into the staging area of the primary store, ingested when it is done */
     CORE::CString keep;                     /**< keep policy name of the ingest; empty: the policy of the source */
     CORE::CString locationId;               /**< empty: the default location */
+    CORE::CString expectedRevision;         /**< the tagged effective revision of the item the library sync planned with (CAssetItemRevision); empty for a manual download */
+    CORE::CString syncJobId;                /**< the library sync job that queued the download, empty for a manual download */
+    UInt64 expectedBytes;                   /**< the size the download is expected to have, 0 when not known: chooses whether the scratch staging area has room for it */
 
     CAssetDownloadRequest( void );
     virtual ~CAssetDownloadRequest() GUCEF_VIRTUAL_OVERRIDE;

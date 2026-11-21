@@ -182,6 +182,15 @@
 #include "gucefASSETSTORE_AssetServicePages.h"
 #define GUCEF_ASSETSTORE_ASSETSERVICEPAGES_H
 #endif /* GUCEF_ASSETSTORE_ASSETSERVICEPAGES_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXINFO_H
+#include "gucefASSETSTORE_CAssetPackIndexInfo.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXINFO_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXINFO_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCPROFILE_H
+#include "gucefASSETSTORE_CAssetLibrarySyncProfile.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCPROFILE_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCPROFILE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -360,6 +369,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
      *  Handles and pictures that are not calls
      */
 
+    /**
+     *  The licence restriction flags of the pack that holds a VFS path of the storage locations of this service, for the gate of the files
+     *  that a host serves; false when the path is in no pack. Not an operation of the wire: the host asks the service it serves. The
+     *  default has no pack for any path
+     */
+    virtual bool GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const;
+
     /** The provider of an online store for the browsing of its library (CAssetStoreLibraryFileSystemAccess); false for an unknown store */
     virtual bool GetStoreProvider( const CORE::CString& storeId, TAssetStoreProviderPtr& provider ) = 0;
 
@@ -444,6 +460,29 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     virtual TAssetStoreStatus GetLicence( const CORE::CString& licenceOrPackId, CAssetLicence& result ) = 0;
     CORE::CFutureResult GetLicenceAsync( const CORE::CString& licenceOrPackId );
 
+    /**
+     *  The pack index of a pack (section 6 of the pack index design): the row of its index in the catalogue with the summaries of
+     *  its groups and, when the document can be read, its manifest (identity, producer, profile, licence flags, counts, shard
+     *  list) without the records. NOT_FOUND for a pack that has no index (or that the caller may not see). 'forLearning' says the
+     *  caller is a machine learning consumer: a pack whose licence carries noMachineLearning is then not there for it (NOT_FOUND),
+     *  here and in the two operations below; a remote host sets it itself for the devices of the learning roles, whatever the
+     *  client says. Implementations without a pack index answer UNSUPPORTED (the default).
+     */
+    virtual TAssetStoreStatus GetPackIndex( const CORE::CString& packId, bool forLearning, CAssetPackIndexInfo& result );
+    CORE::CFutureResult GetPackIndexAsync( const CORE::CString& packId, bool forLearning );
+
+    /** The group summaries of the pack index of a pack: the function groups in their fixed order, each followed by its sub-groups; the revision is that of the catalogue */
+    virtual TAssetStoreStatus GetResourceGroups( const CORE::CString& packId, bool forLearning, CAssetPackGroupPage& result );
+    CORE::CFutureResult GetResourceGroupsAsync( const CORE::CString& packId, bool forLearning );
+
+    /**
+     *  A page of the resources of the pack index of a pack in the canonical order (group in the fixed order, sub-group, path); with
+     *  a group id only those of the group, with a sub-group as well only those of it. Paged like every list; every page carries the
+     *  catalogue revision it was read at.
+     */
+    virtual TAssetStoreStatus GetResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken, UInt32 maxEntries, bool forLearning, CAssetPackResourcePage& result );
+    CORE::CFutureResult GetResourcesAsync( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken, UInt32 maxEntries, bool forLearning );
+
     // Curation
 
     /** Changes what a person may change of a pack (title, categories, themes, styles, keywords, licence class and flags), refused when the catalogue is at another revision than expected (0: no check) */
@@ -517,6 +556,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     /** Starts an upload of a pack from the caller's disk; result.id is the upload */
     virtual TAssetStoreStatus BeginUpload( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount, CAssetServiceResult& result ) = 0;
     CORE::CFutureResult BeginUploadAsync( const CORE::CString& commandId, const CORE::CString& name, UInt64 totalBytes, UInt32 fileCount );
+
+    /**
+     *  Starts an upload with its file list: each entry the relative path in the upload (path), the size (sizeBytes) and
+     *  the SHA-256 digest (digest, 64 lower case hexadecimal characters). The service checks the digests when the upload
+     *  is committed; result.id is the upload. Implementations without uploads answer UNSUPPORTED (the default)
+     */
+    virtual TAssetStoreStatus BeginUploadFiles( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files, CAssetServiceResult& result );
+    CORE::CFutureResult BeginUploadFilesAsync( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files );
 
     /** The files of an upload with the bytes received of each */
     virtual TAssetStoreStatus QueryUpload( const CORE::CString& uploadId, CAssetFileStatPage& result ) = 0;
@@ -691,6 +738,32 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     /** Counts of what the service holds and does: operations under way, jobs, caches */
     virtual TAssetStoreStatus GetResourceStatus( CAssetServiceDocument& result ) = 0;
     CORE::CFutureResult GetResourceStatusAsync(  );
+
+    /*
+     *  Sync: the persistent state of the library sync (library sync design, section 7.1). A run or a dry run of the sync of
+     *  a store is the pipeline job "sync-library" (StartPipelineJob() with a CAssetLibrarySyncSpec as the arguments); its
+     *  progress is that of every job (JobChangedEvent, GetJob(), ListJobs()), its plan and its lines are the sections "plan"
+     *  and "items" of GetJobResult(). Implementations without the library sync answer UNSUPPORTED (the default).
+     */
+
+    /** A page of the ignore and pin marks of the items of a store */
+    virtual TAssetStoreStatus GetSyncMarks( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries, CAssetSyncMarkPage& result );
+    CORE::CFutureResult GetSyncMarksAsync( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries );
+
+    /**
+     *  Sets the marks of items of a store: an entry with the mark "ignore" or "pin" sets it (with its reason), an entry
+     *  without a mark removes the mark of its item. The store id of an entry is that of the call when the entry has none
+     */
+    virtual TAssetStoreStatus SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result );
+    CORE::CFutureResult SetSyncMarksAsync( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks );
+
+    /** The sync profile the service keeps for a store: the defaults when none was set */
+    virtual TAssetStoreStatus GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result );
+    CORE::CFutureResult GetSyncProfileAsync( const CORE::CString& storeId );
+
+    /** Replaces the sync profile of a store; kept over a restart of the service. A sync whose spec says useStoreProfile runs with it */
+    virtual TAssetStoreStatus SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result );
+    CORE::CFutureResult SetSyncProfileAsync( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile );
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

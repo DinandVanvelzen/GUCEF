@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSessionSignIn moved to gucefAUTH, header gucefAUTH_CWebSessionSignIn.h, name GUCEF::AUTH::CWebSessionSignIn.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefAUTH header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
 #define GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
 
@@ -25,66 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CMUTEX_H
-#include "gucefMT_CMutex.h"
-#define GUCEF_MT_CMUTEX_H
-#endif /* GUCEF_MT_CMUTEX_H ? */
-#ifndef GUCEF_MT_CTATOMIC_H
-#include "gucefMT_CTAtomic.h"
-#define GUCEF_MT_CTATOMIC_H
-#endif /* GUCEF_MT_CTATOMIC_H ? */
-#ifndef GUCEF_CORE_CTSGNOTIFIER_H
-#include "CTSGNotifier.h"
-#define GUCEF_CORE_CTSGNOTIFIER_H
-#endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
-#ifndef GUCEF_CORE_CFUTURERESULT_H
-#include "gucefCORE_CFutureResult.h"
-#define GUCEF_CORE_CFUTURERESULT_H
-#endif /* GUCEF_CORE_CFUTURERESULT_H ? */
-#ifndef GUCEF_AUTH_ICREDENTIALSTORE_H
-#include "gucefAUTH_ICredentialStore.h"
-#define GUCEF_AUTH_ICREDENTIALSTORE_H
-#endif /* GUCEF_AUTH_ICREDENTIALSTORE_H ? */
-#ifndef GUCEF_WEB_CHTTPCOOKIEJAR_H
-#include "gucefWEB_CHttpCookieJar.h"
-#define GUCEF_WEB_CHTTPCOOKIEJAR_H
-#endif /* GUCEF_WEB_CHTTPCOOKIEJAR_H ? */
-#ifndef GUCEF_WEB_CHTTPRESPONSEDATA_H
-#include "gucefWEB_CHttpResponseData.h"
-#define GUCEF_WEB_CHTTPRESPONSEDATA_H
-#endif /* GUCEF_WEB_CHTTPRESPONSEDATA_H ? */
-#ifndef GUCEF_ASSETSTORE_ETYPES_H
-#include "gucefASSETSTORE_ETypes.h"
-#define GUCEF_ASSETSTORE_ETYPES_H
-#endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINSETTINGS_H
-#include "gucefASSETSTORE_CWebSessionSignInSettings.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINSETTINGS_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNINSETTINGS_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSIGNINCREDENTIALS_H
-#include "gucefASSETSTORE_CWebSignInCredentials.h"
-#define GUCEF_ASSETSTORE_CWEBSIGNINCREDENTIALS_H
-#endif /* GUCEF_ASSETSTORE_CWEBSIGNINCREDENTIALS_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSION_H
-#include "gucefASSETSTORE_CWebSession.h"
-#define GUCEF_ASSETSTORE_CWEBSESSION_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSION_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONENDEDCHECK_H
-#include "gucefASSETSTORE_CWebSessionEndedCheck.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONENDEDCHECK_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONENDEDCHECK_H ? */
-#ifndef GUCEF_ASSETSTORE_CIWEBSIGNINBROWSER_H
-#include "gucefASSETSTORE_CIWebSignInBrowser.h"
-#define GUCEF_ASSETSTORE_CIWEBSIGNINBROWSER_H
-#endif /* GUCEF_ASSETSTORE_CIWEBSIGNINBROWSER_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSIGNINEVENTDATA_H
-#include "gucefASSETSTORE_CWebSignInEventData.h"
-#define GUCEF_ASSETSTORE_CWEBSIGNINEVENTDATA_H
-#endif /* GUCEF_ASSETSTORE_CWEBSIGNINEVENTDATA_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSIGNINRESULT_H
-#include "gucefASSETSTORE_CWebSignInResult.h"
-#define GUCEF_ASSETSTORE_CWEBSIGNINRESULT_H
-#endif /* GUCEF_ASSETSTORE_CWEBSIGNINRESULT_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#include "gucefAUTH_CWebSessionSignIn.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNIN_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -97,206 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Signs in to a store that only has a login on its web site, through a browser (section 12.1 of the design), and
- *  keeps the web session: the cookies of the store's domains.
- *
- *  A sign in starts a browser (CIWebSignInBrowser; by default CChromeSignInBrowser: Chrome, Chromium, Edge or Brave with
- *  a profile folder used only for the store and a debugging port on the loopback interface), opens the start page of
- *  the login script and runs the script:
- *  - with saved credentials (SetCredentialStore(), SaveCredentials()) or credentials given for this sign in
- *    (SetCredentials()) the fill steps type them in: automatic sign in;
- *  - without them, or when the page does not show what the script expects, an interactive sign in hands the rest
- *    over to the owner in the browser window (OwnerActionNeededEvent) and waits until the signed in condition holds;
- *  - a personCheck step that holds (a captcha, a code sent by e-mail, a second factor) hands over in the same way and
- *    the sign in continues when the signed in condition appears; a failCheck step that holds ends it.
- *  Then the cookies of the store's domains are taken as the session (CWebSession), kept in the session store
- *  (SetSessionStore(), a gucefAUTH credential store: sealed, never in the clear) and the browser is closed (unless
- *  CWebSignInBrowserSettings::keepOpen). The session goes into the cookie jar of the store plugin with ApplySessionTo().
- *
- *  An unattended sign in (WEBSIGNIN_MODE_UNATTENDED, used by RenewSession()) has a browser without a window, needs
- *  saved credentials and ends with ASSETSTORE_STATUS_OWNER_ACTION_NEEDED where a person would have to act. So a window
- *  only appears when the owner starts a sign in; SignInStartingEvent is raised before the browser starts, so an
- *  application can say that a window is about to open.
- *
- *  The session ended when the store says so: CheckResponse() with every answer to a request made with the session
- *  (CIWebSessionEndedCheck: 401 or a redirect to the login page by default, from the script) forgets the session,
- *  raises SessionEndedEvent and has the browser cookies cleared before the next sign in.
- *
- *  Threading: SignIn() runs on the calling thread and blocks it for as long as the sign in takes (minutes when the owner
- *  acts): never call it on the thread of a user interface; SignInAsync() runs it as a task on a thread pool (the pool
- *  of SetThreadPoolName(), "WebSignIn" by default) and returns a CFutureResult whose result data is a CWebSignInResult.
- *  The browser is driven on the thread that runs the sign in, with a pulse generator of its own. Events are raised on
- *  the thread of the global pulse generator. Cancel() and the session members can be used from any thread. One sign
- *  in at a time per object.
- *
- *  Nothing secret is logged: not the credentials, not the cookies; the log says which step runs and why it stopped.
- *
- *  Events:
- *    SignInStartingEvent       CWebSignInEventData: a sign in starts, a browser (window, unless headless) opens next
- *    ProgressEvent             CWebSignInEventData: what the sign in does now
- *    OwnerActionNeededEvent    CWebSignInEventData: "owner action needed": the message says what to do in the window
- *    SignedInEvent             CWebSignInResult
- *    SignInFailedEvent         CWebSignInResult: failed, timed out, cancelled, owner action needed (unattended)
- *    SessionEndedEvent         CORE::TCloneableString: the store id
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionSignIn : public CORE::CTSGNotifier
-{
-    public:
-
-    static const CORE::CEvent SignInStartingEvent;
-    static const CORE::CEvent ProgressEvent;
-    static const CORE::CEvent OwnerActionNeededEvent;
-    static const CORE::CEvent SignedInEvent;
-    static const CORE::CEvent SignInFailedEvent;
-    static const CORE::CEvent SessionEndedEvent;
-
-    static const CORE::CString DefaultThreadPoolName;      /**< "WebSignIn" */
-
-    static void RegisterEvents( void );
-
-    CWebSessionSignIn( void );
-    explicit CWebSessionSignIn( const CWebSessionSignInSettings& settings );
-    virtual ~CWebSessionSignIn() GUCEF_VIRTUAL_OVERRIDE;
-
-    /** False while a sign in runs or when the settings are not valid (the problems say why) */
-    bool SetSettings( const CWebSessionSignInSettings& settings, CORE::CString::StringVector* problems = GUCEF_NULL );
-    CWebSessionSignInSettings GetSettings( void ) const;
-    CORE::CString GetStoreId( void ) const;
-
-    /** Reads the login script of the settings from a JSON file (CWebLoginScript::LoadFromFile()) */
-    bool LoadLoginScript( const CORE::CString& path, CORE::CString::StringVector& problems );
-
-    /** The browser to drive instead of a CChromeSignInBrowser per sign in, for tests; not owned, GUCEF_NULL for the default */
-    void SetBrowser( CIWebSignInBrowser* browser );
-
-    /** Where saved credentials are read from and saved to (CWebSignInCredentials); not owned, GUCEF_NULL for none */
-    void SetCredentialStore( AUTH::ICredentialStore* credentialStore );
-
-    /** Where the session is kept between runs of the application; not owned, GUCEF_NULL for none */
-    void SetSessionStore( AUTH::ICredentialStore* sessionStore );
-
-    /** The check of the answers of the store; not owned, GUCEF_NULL for the default made from the script */
-    void SetSessionEndedCheck( const CIWebSessionEndedCheck* check );
-
-    /** Credentials for the sign ins of this object, kept in memory only (wiped on Clear and destruction); they come before saved ones */
-    void SetCredentials( const CWebSignInCredentials& credentials );
-    void ClearCredentials( void );
-
-    /** Saves the credentials in the credential store under the store id */
-    bool SaveCredentials( const CWebSignInCredentials& credentials );
-
-    /** Whether credentials for every slot of the script are given or saved */
-    bool HasCredentials( void ) const;
-
-    /** Removes the saved credentials of the store */
-    bool ForgetCredentials( void );
-
-    /**
-     *  Signs in on the calling thread, which it blocks until done (see the class comment)
-     *  @param message  why it failed, or a remark; never a secret
-     */
-    TAssetStoreStatus SignIn( TWebSignInMode mode, CORE::CString* message = GUCEF_NULL );
-
-    /** Signs in as a task; the future completes with a CWebSignInResult or fails with "status: message" */
-    CORE::CFutureResult SignInAsync( TWebSignInMode mode );
-
-    /** Ends a sign in that runs, from any thread: it ends with ASSETSTORE_STATUS_CANCELLED and closes the browser */
-    void Cancel( void );
-
-    bool IsSignInRunning( void ) const;
-
-    /** Waits until no async sign in of this object runs; false when the time ran out */
-    bool WaitForAsyncSignIn( UInt32 timeoutInMs );
-
-    void SetThreadPoolName( const CORE::CString& threadPoolName );
-    CORE::CString GetThreadPoolName( void ) const;
-
-    /** Whether there is a session with at least one cookie */
-    bool HasSession( void ) const;
-
-    /** A copy of the session; false when there is none */
-    bool GetSession( CWebSession& session ) const;
-
-    /** Reads the session of the store from the session store; true when there is one */
-    bool LoadSavedSession( void );
-
-    /** Puts the cookies of the session into the jar; the number put in */
-    UInt32 ApplySessionTo( WEB::CHttpCookieJar& jar ) const;
-
-    /** Forgets the session, here and in the session store; the browser cookies are cleared before the next sign in */
-    bool ForgetSession( void );
-
-    /**
-     *  Checks an answer of the store to a request made with the session; when it means the session ended, forgets it
-     *  and raises SessionEndedEvent. Any thread
-     *  @return whether the session ended
-     */
-    bool CheckResponse( const WEB::CHttpResponseData& response );
-
-    /**
-     *  After the store refused the session: forgets it and signs in again without the owner (unattended), when the
-     *  settings allow it and credentials for every slot are given or saved; otherwise ASSETSTORE_STATUS_NOT_SIGNED_IN:
-     *  the owner has to sign in. When a sign in runs already it waits for that one and uses its session, so requests
-     *  that find the session ended at the same time sign in once. Blocks the calling thread
-     */
-    TAssetStoreStatus RenewSession( CORE::CString* message = GUCEF_NULL );
-
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    private:
-
-    friend class CWebSessionSignInTaskConsumer;
-
-    struct SRunContext;
-
-    /** The sign in itself, on the calling thread; the run must have been begun (TryBeginRun()) */
-    TAssetStoreStatus RunSignIn( TWebSignInMode mode, bool startNoticeRaised, CWebSignInResult& result );
-    TAssetStoreStatus RunScript( SRunContext& context );
-    TAssetStoreStatus RunStep( SRunContext& context, UInt32 stepIndex, bool& signedIn );
-    TAssetStoreStatus CheckRunning( SRunContext& context );
-    TAssetStoreStatus WaitForCondition( SRunContext& context, const CWebLoginScriptCondition& condition, UInt32 timeoutInMs, bool checkWatchers );
-    TAssetStoreStatus WaitForSignedIn( SRunContext& context, UInt32 timeoutInMs );
-    TAssetStoreStatus HandOver( SRunContext& context, const CORE::CString& prompt, const CORE::CString& kind );
-    TAssetStoreStatus Stuck( SRunContext& context, TAssetStoreStatus unattendedStatus, const CORE::CString& reason );
-    TAssetStoreStatus CheckWatchers( SRunContext& context );
-    Int32 CheckCondition( SRunContext& context, const CWebLoginScriptCondition& condition );
-    bool IsSignedInNow( SRunContext& context, Int32& state );
-    bool CaptureSession( SRunContext& context, CWebSession& session );
-    void Pause( SRunContext& context, UInt32 milliseconds );
-    void Progress( SRunContext& context, UInt32 stepNumber, const CORE::CString& message );
-    void Notify( const CORE::CEvent& eventId, CORE::CICloneable& eventData );
-    CWebSignInEventData MakeEventData( const CWebSessionSignInSettings& settings, TWebSignInMode mode ) const;
-
-    bool TryBeginRun( void );
-    void EndRun( void );
-    void AsyncEnded( void );
-    void LoadCredentials( const CWebSessionSignInSettings& settings, CWebSignInCredentials& credentials ) const;
-
-    CWebSessionSignIn( const CWebSessionSignIn& src );              /**< not implemented */
-    CWebSessionSignIn& operator=( const CWebSessionSignIn& src );   /**< not implemented */
-
-    private:
-
-    mutable MT::CMutex m_dataLock;
-    CWebSessionSignInSettings m_settings;
-    CIWebSignInBrowser* m_browser;
-    AUTH::ICredentialStore* m_credentialStore;
-    AUTH::ICredentialStore* m_sessionStore;
-    const CIWebSessionEndedCheck* m_sessionEndedCheck;
-    CWebSessionEndedCheck m_defaultSessionEndedCheck;
-    CWebSignInCredentials m_credentials;
-    CWebSession m_session;
-    bool m_clearBrowserCookies;
-    bool m_running;
-    CORE::CString m_threadPoolName;
-    MT::CTAtomic< UInt32 > m_cancelRequested;
-    MT::CTAtomic< UInt32 > m_pendingAsync;
-};
+/* deprecated: use the names of GUCEF::AUTH */
+using AUTH::CWebSessionSignIn;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

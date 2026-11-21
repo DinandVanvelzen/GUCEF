@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSignInResult moved to gucefWEB, header gucefWEB_CWebSignInResult.h, name GUCEF::WEB::CWebSignInResult.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSIGNINRESULT_H
 #define GUCEF_ASSETSTORE_CWEBSIGNINRESULT_H
 
@@ -25,18 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CICLONEABLE_H
-#include "CICloneable.h"
-#define GUCEF_CORE_CICLONEABLE_H
-#endif /* GUCEF_CORE_CICLONEABLE_H ? */
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-#ifndef GUCEF_ASSETSTORE_ETYPES_H
-#include "gucefASSETSTORE_ETypes.h"
-#define GUCEF_ASSETSTORE_ETYPES_H
-#endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
+#ifndef GUCEF_WEB_CWEBSIGNINRESULT_H
+#include "gucefWEB_CWebSignInResult.h"
+#define GUCEF_WEB_CWEBSIGNINRESULT_H
+#endif /* GUCEF_WEB_CWEBSIGNINRESULT_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,32 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  How a web session sign in ended: the result data of the future of CWebSessionSignIn::SignInAsync() and the data
- *  of SignedInEvent and SignInFailedEvent. The session itself is not part of it: it stays with the sign in
- *  (CWebSessionSignIn::GetSession()) and in the session store.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSignInResult : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString storeId;
-    TAssetStoreStatus status;
-    CORE::CString message;          /**< why it failed, or a remark for the owner; never a secret */
-    UInt32 cookieCount;             /**< the cookies of the session */
-    bool handedOver;                /**< the owner did a step of a person or finished the sign in */
-
-    CWebSignInResult( void );
-    virtual ~CWebSignInResult() GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CWebSignInResult;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

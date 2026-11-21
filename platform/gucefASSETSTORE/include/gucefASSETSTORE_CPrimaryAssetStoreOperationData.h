@@ -37,6 +37,10 @@
 #include "gucefASSETSTORE_CAssetSearchQuery.h"
 #define GUCEF_ASSETSTORE_CASSETSEARCHQUERY_H
 #endif /* GUCEF_ASSETSTORE_CASSETSEARCHQUERY_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H
+#include "gucefASSETSTORE_CAssetPackIndexOptions.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H ? */
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -66,7 +70,11 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStoreOperationData : public CORE:
         OPERATION_SEARCH        ,
         OPERATION_VERIFY        ,
         OPERATION_CONVERT_PACK  ,
-        OPERATION_CONVERT_PENDING
+        OPERATION_CONVERT_PENDING ,
+        OPERATION_MIGRATE_LAYOUT ,
+        OPERATION_INDEX_PACK    ,
+        OPERATION_INDEX_MISSING ,
+        OPERATION_REINDEX_FROM_STORAGE
     };
 
     CPrimaryAssetStore* store;
@@ -76,6 +84,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStoreOperationData : public CORE:
     CAssetSearchQuery query;
     CORE::CString locationId;
     CORE::CString packId;
+    bool dryRun;
+    CAssetPackIndexOptions indexOptions;
+    bool buildMissing;
     CORE::CFutureResultSource source;
 
     CPrimaryAssetStoreOperationData( void );

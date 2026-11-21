@@ -74,6 +74,19 @@ CIAssetConverterHook::RunPipelineOperation( const CAssetPipelineRequest& request
     return result.status;
 }
 
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetConverterHook::BuildPackIndex( const CAssetPackIndexRequest& request, CAssetPackIndexOutcome& outcome )
+{GUCEF_TRACE;
+
+    outcome = CAssetPackIndexOutcome();
+    outcome.packId = request.pack.packId;
+    outcome.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    outcome.message = "The converter " + GetName() + " does not build pack indexes";
+    return outcome.status;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

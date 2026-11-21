@@ -356,7 +356,7 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( pack.formatsConverted.end() != pack.formatsConverted.find( "gltf" ) && 1 == pack.formatsConverted.size() );
             ASSERT_TRUE( CAssetConversionRecord::OutcomeConverted == pack.conversion.outcome && "test" == pack.conversion.profile );
             ASSERT_TRUE( pack.conversion.converters.end() != pack.conversion.converters.find( "importer:test/1" ) );
-            ASSERT_TRUE( 2 == pack.conversion.convertedCount && pack.conversion.reportPath == "converted/test/report.json" && pack.conversion.convertedAtMs > 0 );
+            ASSERT_TRUE( 2 == pack.conversion.convertedCount && pack.conversion.reportPath == "intermediate/report.json" && pack.conversion.convertedAtMs > 0 );
             ASSERT_TRUE( 1 == CountRows( store, "pack_conversions" ) );
 
             TAssetRecordVector assets;
@@ -366,15 +366,16 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( GUCEF_NULL != sword && GUCEF_NULL != texture );
             if ( GUCEF_NULL != sword && GUCEF_NULL != texture )
             {
-                ASSERT_TRUE( "converted/test/SM_Wep_Sword_01.gltf" == sword->convertedPath && "gltf" == sword->convertedFormat && "fbx" == sword->sourceFormat );
+                ASSERT_TRUE( "intermediate/SM_Wep_Sword_01.gltf" == sword->convertedPath && "gltf" == sword->convertedFormat && "fbx" == sword->sourceFormat );
                 ASSERT_TRUE( texture->convertedPath.IsNULLOrEmpty() && texture->convertedFormat.IsNULLOrEmpty() );
                 ASSERT_TRUE( 1 == sword->files.size() );
             }
 
             // the placed layout: originals and converted files side by side
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Meshes/SM_Wep_Sword_01.fbx" ) );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/test/SM_Wep_Sword_01.gltf" ) && vfs.FileExists( root + "/converted/test/report.json" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Meshes/SM_Wep_Sword_01.fbx" ) ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/SM_Wep_Sword_01.gltf" ) ) && vfs.FileExists( layout.Resolve( root, "intermediate/report.json" ) ) );
             CString::StringVector pending;
             store.GetPendingIngests( pending );
             ASSERT_TRUE( pending.empty() );
@@ -384,7 +385,7 @@ RunConversionSuite( SConversionFixture& fixture )
             {
                 CString vfsPath, message;
                 ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssetConvertedVfsPath( sword->assetId, vfsPath, message ) );
-                ASSERT_TRUE( vfsPath == root + "/converted/test/SM_Wep_Sword_01.gltf" && vfs.FileExists( vfsPath ) );
+                ASSERT_TRUE( vfsPath == layout.Resolve( root, "intermediate/SM_Wep_Sword_01.gltf" ) && vfs.FileExists( vfsPath ) );
                 ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssetVfsPath( sword->assetId, vfsPath, message ) && vfs.FileExists( vfsPath ) );
             }
             if ( GUCEF_NULL != texture )
@@ -423,7 +424,8 @@ RunConversionSuite( SConversionFixture& fixture )
             onlyId = result.packId;
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( onlyId, pack ) && ASSETKEEP_CONVERTED == pack.keep );
-            const CString root = base + "/main/" + pack.rootPath;
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( onlyId, assets ) );
             const CAssetRecord* sword = FindAsset( assets, "SM_Wep_Sword_01" );
@@ -433,10 +435,10 @@ RunConversionSuite( SConversionFixture& fixture )
             {
                 ASSERT_TRUE( !sword->convertedPath.IsNULLOrEmpty() && sword->files.empty() );
                 ASSERT_TRUE( texture->convertedPath.IsNULLOrEmpty() && 1 == texture->files.size() );
-                ASSERT_FALSE( vfs.FileExists( root + "/original/Meshes/SM_Wep_Sword_01.fbx" ) );
-                ASSERT_FALSE( vfs.FileExists( root + "/original/Meshes/SM_Wep_Axe_01.fbx" ) );
-                ASSERT_TRUE( vfs.FileExists( root + "/original/Textures/T_Sword_D.png" ) );
-                ASSERT_TRUE( vfs.FileExists( root + "/converted/test/SM_Wep_Sword_01.gltf" ) );
+                ASSERT_FALSE( vfs.FileExists( layout.Resolve( root, "original/Meshes/SM_Wep_Sword_01.fbx" ) ) );
+                ASSERT_FALSE( vfs.FileExists( layout.Resolve( root, "original/Meshes/SM_Wep_Axe_01.fbx" ) ) );
+                ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Textures/T_Sword_D.png" ) ) );
+                ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/SM_Wep_Sword_01.gltf" ) ) );
                 CString vfsPath, message;
                 ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssetConvertedVfsPath( sword->assetId, vfsPath, message ) && vfs.FileExists( vfsPath ) );
             }
@@ -463,7 +465,7 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == result.state && calls == hook.GetCallCount() );
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) );
-            ASSERT_TRUE( pack.formatsConverted.empty() && !pack.conversion.IsSet() && 0 == vfs.DirExists( base + "/main/" + pack.rootPath + "/converted" ) );
+            ASSERT_TRUE( pack.formatsConverted.empty() && !pack.conversion.IsSet() && !vfs.DirExists( CPackStorageLayout( pack.rootPath ).GetIntermediateFolder( base + "/main", "test" ) ) && !vfs.DirExists( CPackStorageLayout( pack.rootPath ).GetCookedFolder( base + "/main", "test" ) ) );
         }
         catch ( ... )
         {
@@ -486,9 +488,10 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) );
             ASSERT_TRUE( ASSETPACK_STATE_CONVERSION_REFUSED == pack.state && pack.stateReason == "conversion refused: the licence record does not allow it" );
             ASSERT_TRUE( CAssetConversionRecord::OutcomeRefused == pack.conversion.outcome && pack.formatsConverted.empty() );
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Meshes/SM_Wep_Sword_01.fbx" ) );
-            ASSERT_FALSE( vfs.FileExists( root + "/converted/test/SM_Wep_Sword_01.gltf" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Meshes/SM_Wep_Sword_01.fbx" ) ) );
+            ASSERT_FALSE( vfs.FileExists( layout.Resolve( root, "intermediate/SM_Wep_Sword_01.gltf" ) ) );
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( result.packId, assets ) );
             for ( size_t a=0; a<assets.size(); ++a )
@@ -505,7 +508,7 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == outcome.state && 2 == outcome.record.convertedCount );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) );
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == pack.state && pack.stateReason.IsNULLOrEmpty() && CAssetConversionRecord::OutcomeConverted == pack.conversion.outcome );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/test/SM_Wep_Sword_01.gltf" ) && !pack.formatsConverted.empty() );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/SM_Wep_Sword_01.gltf" ) ) && !pack.formatsConverted.empty() );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetIngestHistory( history, result.packId ) && 2 == history.size() && "converted" == history[ 1 ].outcome );
         }
         catch ( ... )
@@ -529,8 +532,9 @@ RunConversionSuite( SConversionFixture& fixture )
             for ( size_t p=0; p<result.problems.size(); ++p )
                 kept = kept || result.problems[ p ].HasSubstr( "kept as original" ) >= 0;
             ASSERT_TRUE( kept );
-            const CString root = base + "/main/" + pack.rootPath;
-            ASSERT_TRUE( vfs.FileExists( root + "/original/Meshes/SM_Wep_Sword_01.fbx" ) && vfs.FileExists( root + "/original/Textures/T_Sword_D.png" ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Meshes/SM_Wep_Sword_01.fbx" ) ) && vfs.FileExists( layout.Resolve( root, "original/Textures/T_Sword_D.png" ) ) );
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( result.packId, assets ) );
             for ( size_t a=0; a<assets.size(); ++a )
@@ -552,7 +556,7 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.ConvertPendingPacks( batch ) );
             ASSERT_TRUE( 1 == batch.packsConverted && 0 == batch.packsFailed && 0 == batch.packsRefused );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( result.packId, pack ) && ASSETPACK_STATE_INGESTED == pack.state && !pack.formatsConverted.empty() );
-            ASSERT_TRUE( vfs.FileExists( root + "/converted/test/SM_Wep_Axe_01.gltf" ) );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "intermediate/SM_Wep_Axe_01.gltf" ) ) );
             store.GetPacksPendingConversion( pendingPacks );
             ASSERT_TRUE( pendingPacks.empty() );
         }
@@ -594,7 +598,7 @@ RunConversionSuite( SConversionFixture& fixture )
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == resumed.state );
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( resumed.packId, pack ) && !pack.formatsConverted.empty() );
-            ASSERT_TRUE( vfs.FileExists( base + "/main/" + pack.rootPath + "/converted/test/SM_Wep_Sword_01.gltf" ) );
+            ASSERT_TRUE( vfs.FileExists( CPackStorageLayout( pack.rootPath ).Resolve( base + "/main", "intermediate/SM_Wep_Sword_01.gltf" ) ) );
             store.GetPendingIngests( pending );
             ASSERT_TRUE( pending.empty() );
         }
@@ -657,8 +661,8 @@ RunConversionSuite( SConversionFixture& fixture )
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( laterId, assets ) );
             const CAssetRecord* sword = FindAsset( assets, "SM_Wep_Sword_01" );
-            ASSERT_TRUE( GUCEF_NULL != sword && sword->convertedPath == "converted/test/SM_Wep_Sword_01.gltf" );
-            ASSERT_TRUE( vfs.FileExists( base + "/main/" + pack.rootPath + "/converted/test/SM_Wep_Sword_01.gltf" ) );
+            ASSERT_TRUE( GUCEF_NULL != sword && sword->convertedPath == "intermediate/SM_Wep_Sword_01.gltf" );
+            ASSERT_TRUE( vfs.FileExists( CPackStorageLayout( pack.rootPath ).Resolve( base + "/main", "intermediate/SM_Wep_Sword_01.gltf" ) ) );
             GUCEF::vector< CAssetIngestHistoryEntry > history;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetIngestHistory( history, laterId ) && 2 == history.size() );
             ASSERT_TRUE( 2 == history.size() && "ingested" == history[ 0 ].outcome && "converted" == history[ 1 ].outcome && "conversion" == history[ 1 ].origin );
@@ -682,7 +686,7 @@ RunConversionSuite( SConversionFixture& fixture )
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( laterId, pack ) );
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == pack.state && CAssetConversionRecord::OutcomeConverted == pack.conversion.outcome && !pack.formatsConverted.empty() );
-            ASSERT_TRUE( vfs.FileExists( base + "/main/" + pack.rootPath + "/converted/test/SM_Wep_Sword_01.gltf" ) );
+            ASSERT_TRUE( vfs.FileExists( CPackStorageLayout( pack.rootPath ).Resolve( base + "/main", "intermediate/SM_Wep_Sword_01.gltf" ) ) );
             GUCEF::vector< CAssetIngestHistoryEntry > history;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetIngestHistory( history, laterId ) && 4 == history.size() );
             ASSERT_TRUE( 4 == history.size() && "conversionRefused" == history[ 2 ].outcome && "conversionFailed" == history[ 3 ].outcome );
@@ -837,6 +841,25 @@ PerformConversionPostgreSqlTests( void )
             GUCEF_TESTFW_SKIP( "GUCEF_TEST_POSTGRESQL is not set" );
         GUCEF_TESTFW_TESTCASE_END;
         return;
+    }
+
+    {
+        CString reachReason;
+        if ( !IsPostgreSqlReachable( connectionString, reachReason ) )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConversionPostgreSql: the test database cannot be reached: " << reachReason );
+            GUCEF_TESTFW_TESTCASE( "PostgreSQL: the test database can be reached" )
+                try
+                {
+                    ASSERT_TRUE( reachReason.IsNULLOrEmpty() );
+                }
+                catch ( ... )
+                {
+                    ERRORHERE;
+                }
+            GUCEF_TESTFW_TESTCASE_END;
+            return;
+        }
     }
 
     SConversionFixture fixture;

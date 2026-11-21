@@ -40,7 +40,7 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 CAssetIngestResult::CAssetIngestResult( void )
-    : CORE::CICloneable()
+    : CORE::CIDataNodeSerializable()
     , ingestId()
     , packId()
     , status( ASSETSTORE_STATUS_OK )
@@ -59,6 +59,62 @@ CAssetIngestResult::CAssetIngestResult( void )
 CAssetIngestResult::~CAssetIngestResult()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetIngestResult::Serialize( CORE::CDataNode& domRootNode                        ,
+                               const CORE::CDataNodeSerializableSettings& settings ) const
+{GUCEF_TRACE;
+
+    bool success = true;
+    success = domRootNode.SetAttribute( "ingestId", ingestId ) && success;
+    success = domRootNode.SetAttribute( "packId", packId ) && success;
+    success = domRootNode.SetAttribute( "status", CORE::CString( AssetStoreStatusToString( status ) ) ) && success;
+    success = domRootNode.SetAttribute( "state", CORE::CString( AssetPackStateToString( state ) ) ) && success;
+    success = domRootNode.SetAttribute( "failedStep", CORE::CString( AssetIngestStepToString( failedStep ) ) ) && success;
+    success = domRootNode.SetAttribute( "message", message ) && success;
+    success = domRootNode.SetAttribute( "duplicateOfPackId", duplicateOfPackId ) && success;
+    success = domRootNode.SetAttribute( "assetCount", assetCount ) && success;
+    success = domRootNode.SetValuesOfChildByName( "problems", problems ) && success;
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetIngestResult::Deserialize( const CORE::CDataNode& domRootNode                  ,
+                                 const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    *this = CAssetIngestResult();
+    ingestId = domRootNode.GetAttributeValueOrChildValueByName( "ingestId" ).AsString( ingestId );
+    packId = domRootNode.GetAttributeValueOrChildValueByName( "packId" ).AsString( packId );
+    CORE::CString text = domRootNode.GetAttributeValueOrChildValueByName( "status" ).AsString();
+    if ( !text.IsNULLOrEmpty() )
+        status = AssetStoreStatusFromString( text );
+    text = domRootNode.GetAttributeValueOrChildValueByName( "state" ).AsString();
+    if ( !text.IsNULLOrEmpty() )
+        state = AssetPackStateFromString( text );
+    text = domRootNode.GetAttributeValueOrChildValueByName( "failedStep" ).AsString();
+    if ( !text.IsNULLOrEmpty() )
+        failedStep = AssetIngestStepFromString( text );
+    message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString( message );
+    duplicateOfPackId = domRootNode.GetAttributeValueOrChildValueByName( "duplicateOfPackId" ).AsString( duplicateOfPackId );
+    assetCount = domRootNode.GetAttributeValueOrChildValueByName( "assetCount" ).AsUInt32( assetCount, true );
+    domRootNode.GetValuesOfChildByName( "problems", problems );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CAssetIngestResult::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    static const CORE::CString classTypeName = "GUCEF::ASSETSTORE::CAssetIngestResult";
+    return classTypeName;
 }
 
 /*-------------------------------------------------------------------------*/

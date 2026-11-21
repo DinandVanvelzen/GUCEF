@@ -73,7 +73,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetConversionRecord : public CORE::CIDataNo
     CORE::CString::StringSet converters;                /**< "name/version" of the parts that made the conversion */
     CORE::CString outcome;                              /**< "converted", "refused" or "failed"; empty: never converted */
     CORE::CString reason;                               /**< why it was refused or failed */
-    CORE::CString reportPath;                           /**< relative to the root of the pack, empty without a report */
+    CORE::CString reportPath;                           /**< logical path of the layout of the pack ("intermediate/report.json"), empty without a report */
     Int64 convertedAtMs;                                /**< UTC milliseconds since the Unix epoch */
     UInt32 convertedCount;                              /**< assets converted */
     UInt32 approximatedCount;                           /**< assets converted with approximations */

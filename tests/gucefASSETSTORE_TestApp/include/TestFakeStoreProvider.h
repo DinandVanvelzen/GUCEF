@@ -37,6 +37,14 @@
 #include "gucefASSETSTORE_CIAssetStoreProvider.h"
 #define GUCEF_ASSETSTORE_CIASSETSTOREPROVIDER_H
 #endif /* GUCEF_ASSETSTORE_CIASSETSTOREPROVIDER_H ? */
+#ifndef GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H
+#include "gucefASSETSTORE_CIAssetStoreInteractiveSignIn.h"
+#define GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H
+#endif /* GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#include "gucefASSETSTORE_CAssetStoreSignInContext.h"
+#define GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H ? */
 #ifndef TESTFAKESTORESERVER_H
 #include "TestFakeStoreServer.h"
 #define TESTFAKESTORESERVER_H
@@ -117,6 +125,125 @@ class CFakeStoreProviderFactory : public GUCEF::CORE::CTFactory< GUCEF::ASSETSTO
     private:
 
     GUCEF::CORE::CString m_providerId;
+};
+
+/*-------------------------------------------------------------------------*/
+
+class CFakeSignInStoreProvider;
+
+/**
+ *  The sign in of a store with steps of a person, as a store plugin of the OAuth kind has it: an address to open and a code to
+ *  paste. A well shaped code is "exchanged" at the store (two polls later): the right code (RightCode()) gives a session, any
+ *  other well shaped code is refused by the store; a text that is no code is not taken at all. Everything of the store is in memory.
+ */
+class CFakeInteractiveSignIn : public GUCEF::ASSETSTORE::CIAssetStoreInteractiveSignIn
+{
+    public:
+
+    static const char* RightCode( void );
+    static const char* WrongCode( void );
+    static const char* LoginUrl( void );
+
+    explicit CFakeInteractiveSignIn( CFakeSignInStoreProvider& provider );
+    virtual ~CFakeInteractiveSignIn();
+
+    virtual bool Begin( GUCEF::ASSETSTORE::TAssetSignInPromptVector& prompts, GUCEF::CORE::CString& reason ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool Answer( const GUCEF::CORE::CString& promptKind, const GUCEF::AUTH::CSecretString& answer, GUCEF::CORE::CString& reason ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Cancel( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::TAssetStoreSignInState Update( GUCEF::CORE::CString& message ) GUCEF_VIRTUAL_OVERRIDE;
+
+    GUCEF::UInt32 GetBeginCount( void ) const;
+    GUCEF::UInt32 GetCancelCount( void ) const;
+
+    private:
+
+    CFakeSignInStoreProvider& m_provider;
+    bool m_running;
+    bool m_exchanging;
+    GUCEF::UInt32 m_polls;
+    GUCEF::CORE::CString m_received;
+    GUCEF::UInt32 m_beginCount;
+    GUCEF::UInt32 m_cancelCount;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A store that signs in with steps of a person (kind authProvider, CFakeInteractiveSignIn) or on its web site (kind webSession, no
+ *  sign in object: the service has no browser). Its library answers NOT_SIGNED_IN without a session and SESSION_EXPIRED after
+ *  RefuseSession(). ConfigureSignIn() wants the child of the store in the settings of the sign in context, as a store that reads its
+ *  client credentials from a file would: without it the store says why it cannot sign in.
+ */
+class CFakeSignInStoreProvider : public GUCEF::ASSETSTORE::CIAssetStoreProvider
+{
+    public:
+
+    CFakeSignInStoreProvider( void );
+    virtual ~CFakeSignInStoreProvider();
+
+    void SetProviderId( const GUCEF::CORE::CString& providerId );
+    void SetWebSession( bool webSession );
+
+    /** The session ends at the store: the provider is signed out and says so (the service learns it from the event) */
+    void ExpireSession( void );
+    /** The store refuses the session of the provider with 401 until a sign in: IsSignedIn() stays true */
+    void RefuseSession( void );
+    void SetSignedIn( bool signedIn );
+
+    bool WasConfigured( void ) const;
+    GUCEF::CORE::CString GetClientIdFile( void ) const;
+    bool IsProvisioned( void ) const;
+    CFakeInteractiveSignIn& GetFakeSignIn( void );
+
+    virtual const GUCEF::CORE::CString& GetProviderId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::CORE::CString GetDisplayName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::CORE::CString GetAuthProviderName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::TAssetStoreSignInKind GetSignInKind( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::CIAssetStoreInteractiveSignIn* GetInteractiveSignIn( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool ConfigureSignIn( const GUCEF::ASSETSTORE::CAssetStoreSignInContext& context, GUCEF::CORE::CString& problem ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsSignedIn( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool SignOut( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::TAssetStoreStatus QueryLibrary( const GUCEF::ASSETSTORE::CAssetStoreQuery& query, GUCEF::ASSETSTORE::CAssetStoreLibraryPage& page ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::TAssetStoreStatus GetItem( const GUCEF::CORE::CString& itemId, GUCEF::ASSETSTORE::CAssetStoreItem& item ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual GUCEF::ASSETSTORE::TAssetStoreStatus PlanDownload( const GUCEF::CORE::CString& itemId, const GUCEF::CORE::CString& formatId,
+                                                               const GUCEF::CORE::CString::StringVector& fileIds, GUCEF::ASSETSTORE::CAssetStoreDownloadPlan& plan ) GUCEF_VIRTUAL_OVERRIDE;
+    /** Why PlanDownload() refused: "the fake sign in store has no downloads (<item> <format>)" */
+    virtual GUCEF::CORE::CString GetPlanProblem( const GUCEF::CORE::CString& itemId, const GUCEF::CORE::CString& formatId ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Raises the event of a change of the session, from the sign in */
+    void SessionChanged( void );
+
+    private:
+
+    GUCEF::CORE::CString m_providerId;
+    bool m_webSession;
+    bool m_signedIn;
+    bool m_refused;
+    bool m_configured;
+    bool m_provisioned;
+    GUCEF::CORE::CString m_clientIdFile;
+    CFakeInteractiveSignIn m_signIn;
+    mutable GUCEF::MT::CMutex m_lock;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Makes fake sign in stores with an id and a kind, as the concrete factory of a store plugin */
+class CFakeSignInStoreProviderFactory : public GUCEF::CORE::CTFactory< GUCEF::ASSETSTORE::CIAssetStoreProvider, CFakeSignInStoreProvider, GUCEF::MT::CMutex >
+{
+    public:
+
+    typedef GUCEF::CORE::CTFactory< GUCEF::ASSETSTORE::CIAssetStoreProvider, CFakeSignInStoreProvider, GUCEF::MT::CMutex > TBase;
+
+    CFakeSignInStoreProviderFactory( const GUCEF::CORE::CString& providerId, bool webSession );
+    virtual ~CFakeSignInStoreProviderFactory();
+
+    virtual TProductPtr Create( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
+
+    GUCEF::CORE::CString m_providerId;
+    bool m_webSession;
 };
 
 /*-------------------------------------------------------------------------//

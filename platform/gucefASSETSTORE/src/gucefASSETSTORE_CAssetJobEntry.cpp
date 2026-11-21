@@ -49,6 +49,9 @@ CAssetJobEntry::CAssetJobEntry( void )
     , kind()
     , name()
     , detail()
+    , scope()
+    , subKind()
+    , resultText()
     , state( ASSETJOB_STATE_QUEUED )
     , stateText()
     , message()
@@ -133,6 +136,9 @@ CAssetJobEntry::Serialize( CORE::CDataNode& domRootNode                        ,
     success = domRootNode.SetAttribute( "kind", kind ) && success;
     success = domRootNode.SetAttribute( "name", name ) && success;
     success = domRootNode.SetAttribute( "detail", detail ) && success;
+    success = domRootNode.SetAttribute( "scope", scope ) && success;
+    success = domRootNode.SetAttribute( "subKind", subKind ) && success;
+    success = domRootNode.SetAttribute( "resultText", resultText ) && success;
     success = domRootNode.SetAttribute( "state", CORE::CString( AssetJobStateToString( state ) ) ) && success;
     success = domRootNode.SetAttribute( "stateText", stateText ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
@@ -171,6 +177,9 @@ CAssetJobEntry::Deserialize( const CORE::CDataNode& domRootNode                 
     kind = domRootNode.GetAttributeValueOrChildValueByName( "kind" ).AsString( kind );
     name = domRootNode.GetAttributeValueOrChildValueByName( "name" ).AsString( name );
     detail = domRootNode.GetAttributeValueOrChildValueByName( "detail" ).AsString( detail );
+    scope = domRootNode.GetAttributeValueOrChildValueByName( "scope" ).AsString( scope );
+    subKind = domRootNode.GetAttributeValueOrChildValueByName( "subKind" ).AsString( subKind );
+    resultText = domRootNode.GetAttributeValueOrChildValueByName( "resultText" ).AsString( resultText );
     text = domRootNode.GetAttributeValueOrChildValueByName( "state" ).AsString();
     if ( !text.IsNULLOrEmpty() )
         state = AssetJobStateFromString( text );

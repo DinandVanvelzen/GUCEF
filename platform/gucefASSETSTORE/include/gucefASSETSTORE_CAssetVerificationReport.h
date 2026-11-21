@@ -25,10 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CICLONEABLE_H
-#include "CICloneable.h"
-#define GUCEF_CORE_CICLONEABLE_H
-#endif /* GUCEF_CORE_CICLONEABLE_H ? */
+#ifndef GUCEF_CORE_CIDATANODESERIALIZABLE_H
+#include "gucefCORE_CIDataNodeSerializable.h"
+#define GUCEF_CORE_CIDATANODESERIALIZABLE_H
+#endif /* GUCEF_CORE_CIDATANODESERIALIZABLE_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 #ifndef GUCEF_ASSETSTORE_ETYPES_H
 #include "gucefASSETSTORE_ETypes.h"
 #define GUCEF_ASSETSTORE_ETYPES_H
@@ -52,7 +57,7 @@ namespace ASSETSTORE {
  *  The outcome of the verification of a storage location (section 9.7): every file of every pack in the location
  *  checked for its existence and its digest. The result data of CPrimaryAssetStore::VerifyLocationAsync().
  */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetVerificationReport : public CORE::CICloneable
+class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetVerificationReport : public CORE::CIDataNodeSerializable
 {
     public:
 
@@ -68,6 +73,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetVerificationReport : public CORE::CIClon
 
     /** No file missing and none with another digest */
     bool IsIntact( void ) const;
+
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

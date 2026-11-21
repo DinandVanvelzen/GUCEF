@@ -70,6 +70,26 @@
 #define GUCEF_ASSETSTORE_CASSETPIPELINEOPERATIONS_H
 #endif /* GUCEF_ASSETSTORE_CASSETPIPELINEOPERATIONS_H ? */
 
+#ifndef GUCEF_AUTH_CFILECREDENTIALSTORE_H
+#include "gucefAUTH_CFileCredentialStore.h"
+#define GUCEF_AUTH_CFILECREDENTIALSTORE_H
+#endif /* GUCEF_AUTH_CFILECREDENTIALSTORE_H ? */
+
+#ifndef GUCEF_AUTH_CKEYRINGSESSION_H
+#include "gucefAUTH_CKeyringSession.h"
+#define GUCEF_AUTH_CKEYRINGSESSION_H
+#endif /* GUCEF_AUTH_CKEYRINGSESSION_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
+#include "gucefASSETSTORE_CAssetServiceNotice.h"
+#define GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H
+#endif /* GUCEF_ASSETSTORE_CASSETSERVICENOTICE_H ? */
+
+#ifndef GUCEF_TEST_LOG_CAPTURE_H
+#include "gucef_test_log_capture.h"
+#define GUCEF_TEST_LOG_CAPTURE_H
+#endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
+
 #ifndef TESTASSETSTORESUPPORT_H
 #include "TestAssetStoreSupport.h"
 #define TESTASSETSTORESUPPORT_H
@@ -133,6 +153,9 @@ class CAssetStoreServiceSuiteTarget
 
     /** Pulses what delivers the events of the service, for the time */
     virtual void Pump( GUCEF::UInt32 durationInMs ) = 0;
+
+    /** A second service of the same store for a caller that is a machine learning consumer (the host forces the licence gate on it); null when the implementation has no callers to tell apart */
+    virtual GUCEF::ASSETSTORE::TAssetStoreServicePtr MakeLearningClient( void ) { return GUCEF::ASSETSTORE::TAssetStoreServicePtr(); }
 };
 
 /*-------------------------------------------------------------------------*/
@@ -205,6 +228,109 @@ class CServiceEventRecorder : public GUCEF::CORE::CObservingNotifier
         const GUCEF::ASSETSTORE::CAssetJobEntry* job = GUCEF::CORE::CICloneable::CloneableAs< GUCEF::ASSETSTORE::CAssetJobEntry >( eventData );
         if ( GUCEF_NULL != job )
             lastRemovedJob = *job;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Keeps what a service raised of the sign in of its stores: the prompts, the prompts that closed, the states of the stores, the
+ *  notices, and one text of everything raised (to check that no secret was in it)
+ */
+class CSignInEventRecorder : public GUCEF::CORE::CObservingNotifier
+{
+    public:
+
+    typedef GUCEF::CORE::CTEventHandlerFunctor< CSignInEventRecorder > TEventCallback;
+
+    GUCEF::ASSETSTORE::TAssetSignInPromptVector prompts;
+    GUCEF::ASSETSTORE::TAssetSignInPromptVector closed;
+    GUCEF::ASSETSTORE::TAssetStoreInfoVector states;
+    GUCEF::CORE::CString dump;
+
+    explicit CSignInEventRecorder( GUCEF::ASSETSTORE::CIAssetStoreService& service )
+        : GUCEF::CORE::CObservingNotifier()
+        , prompts()
+        , closed()
+        , states()
+        , dump()
+    {
+        TEventCallback prompt( this, &CSignInEventRecorder::OnPrompt );
+        SubscribeTo( &service, GUCEF::ASSETSTORE::CIAssetStoreService::SignInPromptEvent, prompt );
+        TEventCallback done( this, &CSignInEventRecorder::OnClosed );
+        SubscribeTo( &service, GUCEF::ASSETSTORE::CIAssetStoreService::SignInPromptClosedEvent, done );
+        TEventCallback state( this, &CSignInEventRecorder::OnState );
+        SubscribeTo( &service, GUCEF::ASSETSTORE::CIAssetStoreService::StoreStateChangedEvent, state );
+        TEventCallback notice( this, &CSignInEventRecorder::OnNotice );
+        SubscribeTo( &service, GUCEF::ASSETSTORE::CIAssetStoreService::NoticeEvent, notice );
+    }
+
+    virtual ~CSignInEventRecorder()
+    {
+        UnsubscribeAllFromObserver();
+    }
+
+    /** The states of the store in the order they were raised */
+    GUCEF::CORE::CString StatesOf( const GUCEF::CORE::CString& storeId ) const
+    {
+        GUCEF::CORE::CString text;
+        for ( size_t i=0; i<states.size(); ++i )
+            if ( states[ i ].storeId == storeId )
+                text += GUCEF::CORE::CString( GUCEF::ASSETSTORE::AssetStoreSignInStateToString( states[ i ].signInState ) ) + ",";
+        return text;
+    }
+
+    private:
+
+    static void Append( const GUCEF::CORE::CDataNode& node, GUCEF::CORE::CString& text )
+    {
+        for ( GUCEF::CORE::CDataNode::TAttributeMap::const_iterator a = node.AttributeBegin(); a != node.AttributeEnd(); ++a )
+            text += (*a).first + "=" + (*a).second.AsString() + ";";
+        for ( GUCEF::CORE::CDataNode::const_iterator c = node.ConstBegin(); c != node.ConstEnd(); ++c )
+            Append( *(*c), text );
+    }
+
+    void Note( const GUCEF::CORE::CIDataNodeSerializable& record )
+    {
+        GUCEF::CORE::CDataNode node( "event", GUCEF_DATATYPE_OBJECT );
+        GUCEF::CORE::CDataNodeSerializableSettings settings;
+        record.Serialize( node, settings );
+        Append( node, dump );
+        dump += "\n";
+    }
+
+    void OnPrompt( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData )
+    {
+        const GUCEF::ASSETSTORE::CAssetSignInPrompt* prompt = GUCEF::CORE::CICloneable::CloneableAs< GUCEF::ASSETSTORE::CAssetSignInPrompt >( eventData );
+        if ( GUCEF_NULL == prompt )
+            return;
+        prompts.push_back( *prompt );
+        Note( *prompt );
+    }
+
+    void OnClosed( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData )
+    {
+        const GUCEF::ASSETSTORE::CAssetSignInPrompt* prompt = GUCEF::CORE::CICloneable::CloneableAs< GUCEF::ASSETSTORE::CAssetSignInPrompt >( eventData );
+        if ( GUCEF_NULL == prompt )
+            return;
+        closed.push_back( *prompt );
+        Note( *prompt );
+    }
+
+    void OnState( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData )
+    {
+        const GUCEF::ASSETSTORE::CAssetStoreInfo* info = GUCEF::CORE::CICloneable::CloneableAs< GUCEF::ASSETSTORE::CAssetStoreInfo >( eventData );
+        if ( GUCEF_NULL == info )
+            return;
+        states.push_back( *info );
+        Note( *info );
+    }
+
+    void OnNotice( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData )
+    {
+        const GUCEF::ASSETSTORE::CAssetServiceNotice* notice = GUCEF::CORE::CICloneable::CloneableAs< GUCEF::ASSETSTORE::CAssetServiceNotice >( eventData );
+        if ( GUCEF_NULL != notice )
+            Note( *notice );
     }
 };
 
@@ -300,6 +426,66 @@ ServiceSuiteFindJob( GUCEF::ASSETSTORE::CIAssetStoreService& service, const GUCE
     return false;
 }
 
+/** The entry of a store in the list of the stores of the service */
+inline bool
+ServiceSuiteFindStore( GUCEF::ASSETSTORE::CIAssetStoreService& service, const GUCEF::CORE::CString& storeId, GUCEF::ASSETSTORE::CAssetStoreInfo& store )
+{
+    GUCEF::ASSETSTORE::CAssetStoreInfoPage page;
+    if ( GUCEF::ASSETSTORE::ASSETSTORE_STATUS_OK != service.ListStores( page ) )
+        return false;
+    for ( size_t i=0; i<page.entries.size(); ++i )
+        if ( page.entries[ i ].storeId == storeId )
+        {
+            store = page.entries[ i ];
+            return true;
+        }
+    return false;
+}
+
+/** Pumps until the store has the sign in state (or the time is up); true when it has */
+inline bool
+ServiceSuiteWaitForStoreState( CAssetStoreServiceSuiteTarget& target, GUCEF::ASSETSTORE::CIAssetStoreService& service, const GUCEF::CORE::CString& storeId,
+                               GUCEF::ASSETSTORE::TAssetStoreSignInState state, GUCEF::UInt32 timeoutInMs = 15000 )
+{
+    GUCEF::ASSETSTORE::CAssetStoreInfo store;
+    for ( GUCEF::UInt32 waited=0; waited<timeoutInMs; waited+=10 )
+    {
+        if ( ServiceSuiteFindStore( service, storeId, store ) && store.signInState == state )
+            return true;
+        target.Pump( 10 );
+    }
+    return false;
+}
+
+/** Pumps until the recorder holds the number of prompts, or of closed prompts (or the time is up); true when it does */
+inline bool
+ServiceSuiteWaitForPrompts( CAssetStoreServiceSuiteTarget& target, const CSignInEventRecorder& recorder, size_t prompts, size_t closed, GUCEF::UInt32 timeoutInMs = 15000 )
+{
+    for ( GUCEF::UInt32 waited=0; waited<timeoutInMs; waited+=10 )
+    {
+        if ( recorder.prompts.size() >= prompts && recorder.closed.size() >= closed )
+            return true;
+        target.Pump( 10 );
+    }
+    return false;
+}
+
+/** The prompt of the kind among the open prompts of the service for the store; false when there is none */
+inline bool
+ServiceSuiteFindPrompt( GUCEF::ASSETSTORE::CIAssetStoreService& service, const GUCEF::CORE::CString& storeId, const GUCEF::CORE::CString& kind, GUCEF::ASSETSTORE::CAssetSignInPrompt& prompt )
+{
+    GUCEF::ASSETSTORE::CAssetSignInPromptPage page;
+    if ( GUCEF::ASSETSTORE::ASSETSTORE_STATUS_OK != service.GetSignInPrompts( page ) )
+        return false;
+    for ( size_t i=0; i<page.entries.size(); ++i )
+        if ( page.entries[ i ].storeId == storeId && page.entries[ i ].kind == kind )
+        {
+            prompt = page.entries[ i ];
+            return true;
+        }
+    return false;
+}
+
 /*-------------------------------------------------------------------------*/
 
 /**
@@ -370,6 +556,13 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
     const bool serverStarted = server.Start();
     CFakeStoreProvider::SetServer( &server );
     CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "svcstore", &storeFactory );
+    // the stores that sign in with steps of a person: one with its client credentials provisioned, one without, one that signs in on its web site
+    CFakeSignInStoreProviderFactory signInFactory( "signstore", false );
+    CFakeSignInStoreProviderFactory unprovisionedFactory( "signstore2", false );
+    CFakeSignInStoreProviderFactory webFactory( "webstorefake", true );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "signstore", &signInFactory );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "signstore2", &unprovisionedFactory );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "webstorefake", &webFactory );
     CAssetStoreGlobal::Instance()->GetRegistry().RefreshProviders();
 
     // the configuration of the run
@@ -396,10 +589,26 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
     config.converterHook = &hook;
     target.ConfigureDatabase( config );
 
+    // what the stores get to sign in on the server: the settings of one store, and the keyring of the saved passwords (a code is set up and the keyring locked)
+    const CString keyringCode = "KEYRING-CODE-123";
+    const CString keyringDirectory = TestDirectory( "svc_" + label + "_keyring" );
+    DeleteDir( keyringDirectory, true );
+    CreateDirs( keyringDirectory );
+    AUTH::CFileCredentialStore keyringStore( keyringDirectory );
+    keyringStore.SetKeyMode( AUTH::CFileCredentialStore::KEYMODE_KEYRING_CODE );
+    keyringStore.SetKeyringParameters( 64, 1, 1 );
+    AUTH::CKeyringSession keyringSession( &keyringStore );
+    const bool keyringReady = AUTH::CFileCredentialStore::IsKeyringAvailable() && AUTH::KEYRING_OK == keyringSession.SetUpCode( AUTH::CSecretString( keyringCode ) );
+    if ( keyringReady )
+        keyringSession.LockNow();
+    config.signIn.keyringSession = keyringReady ? &keyringSession : GUCEF_NULL;
+    config.signIn.storeSettings.AddChild( "signstore", GUCEF_DATATYPE_OBJECT )->SetAttribute( "clientIdFile", "/run/secrets/fake/clientId" );
+    config.signInPromptSeconds = 4;
+
     TAssetStoreServicePtr servicePtr = target.MakeService( config );
     CString packAId, packBId, swordId, ingestJobId;
 
-    GUCEF_TESTFW_TESTCASE( ( label + " service: made by the factory, opened, it describes itself; an implementation that is not built is refused with the reason" ).C_String() )
+    GUCEF_TESTFW_TESTCASE( ( label + " service: made by the factory, opened, it describes itself; an implementation id without an implementation is refused with the reason" ).C_String() )
         try
         {
             ASSERT_TRUE( written && serverStarted );
@@ -423,10 +632,12 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
                 CAssetServiceInfo asyncInfo;
                 ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( future, asyncInfo ) && asyncInfo.locations.size() == info.locations.size() );
             }
-            CAssetStoreServiceConfig remote;
-            remote.implementationId = CAssetStoreServiceConfig::RemoteImplementationId;
+            // both implementations are in the build; an id without an implementation is refused with the reason
+            CAssetStoreServiceConfig unknown;
+            unknown.implementationId = "no-such-implementation";
             CString error;
-            ASSERT_TRUE( CAssetStoreGlobal::Instance()->CreateService( remote, error ).IsNULL() && "remote service not available in this build" == error );
+            ASSERT_TRUE( CAssetStoreGlobal::Instance()->CreateService( unknown, error ).IsNULL() && !error.IsNULLOrEmpty() );
+            ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetServiceFactory().IsConstructible( CAssetStoreServiceConfig::RemoteImplementationId ) );
         }
         catch ( ... )
         {
@@ -669,6 +880,67 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( ( label + " service: reads of a file by range (the end, beyond the end) and the stored thumbnails: put, found by the digest of the content and the size, read as a file of the service" ).C_String() )
+        try
+        {
+            CAssetFileSet files;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetAssetFileSet( swordId, files ) && !files.files.empty() );
+            const UInt64 size = (UInt64) files.files[ 0 ].sizeBytes;
+            CAssetFileBlock whole;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, 0, (UInt32) size, whole ) && whole.endOfFile && size == whole.data.GetDataSize() && size == whole.fileSize );
+            ASSERT_TRUE( Sha256Of( whole.data ) == files.files[ 0 ].digest );
+            CAssetFileBlock tail;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, size - 3, 100, tail ) && tail.endOfFile && 3 == tail.data.GetDataSize() && size - 3 == tail.offset );
+            CAssetFileBlock atEnd;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( files.mainVfsPath, size, 16, atEnd ) && atEnd.endOfFile && 0 == atEnd.data.GetDataSize() );
+            CAssetFileBlock none;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.ReadFileBlock( base + "/main/nothing.bin", 0, 16, none ) );
+
+            CString::StringVector ids;
+            ids.push_back( swordId );
+            ids.push_back( "pack:" + packAId );
+            CAssetThumbnailPage page;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 64, page ) && 2 == page.entries.size() && ASSETSTORE_STATUS_NOT_FOUND == page.entries[ 0 ].status );
+            CDynamicBuffer png32, png96;
+            ASSERT_TRUE( MakePng( 32, 32, false, png32 ) && MakePng( 96, 96, true, png96 ) );
+            CAssetThumbnail thumbnail;
+            thumbnail.assetId = swordId;
+            thumbnail.kind = "thumbnail";
+            thumbnail.size = 32;
+            thumbnail.key.size = 32;
+            thumbnail.key.rendererId = "suite";
+            thumbnail.key.rendererVersion = "2";
+            thumbnail.encoded = png32;
+            CAssetServiceResult put;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.PutThumbnail( "suite-thumb-1", thumbnail, put ) );
+            thumbnail.size = 96;
+            thumbnail.key.size = 96;
+            thumbnail.encoded = png96;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.PutThumbnail( "suite-thumb-2", thumbnail, put ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 64, page ) && ASSETSTORE_STATUS_OK == page.entries[ 0 ].status && 96 == page.entries[ 0 ].key.size );
+            ASSERT_TRUE( "suite" == page.entries[ 0 ].key.rendererId && "2" == page.entries[ 0 ].key.rendererVersion && files.files[ 0 ].digest == page.entries[ 0 ].key.digest );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 16, page ) && 32 == page.entries[ 0 ].key.size );
+            CAssetFileBlock picture;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReadFileBlock( page.entries[ 0 ].vfsPath, 0, 1048576, picture ) && picture.endOfFile && Sha256Of( picture.data ) == Sha256Of( png32 ) );
+            CFutureResult future = service.GetThumbnailsAsync( ids, 96 );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, future ) );
+            CAssetThumbnailPage asyncPage;
+            ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( future, asyncPage ) && 96 == asyncPage.entries[ 0 ].key.size );
+            CAssetThumbnail bad;
+            bad.assetId = swordId;
+            bad.size = 32;
+            bad.key.size = 32;
+            bad.encoded.CopyFrom( 40, "this is not a picture, it is a text..." );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.PutThumbnail( "suite-thumb-bad", bad, put ) && !put.message.IsNULLOrEmpty() );
+            thumbnail.assetId = "no-such-asset";
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.PutThumbnail( "suite-thumb-3", thumbnail, put ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( ( label + " service: storage locations with their state, a refresh and a verification in both forms" ).C_String() )
         try
         {
@@ -805,8 +1077,10 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
 
             CAssetServiceResult signOut;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.SignOut( CString::Empty, "svcstore", signOut ) );
+            // a store that needs no sign in is not signed in to; there are no prompts of a sign in that never began
             CAssetServiceResult signIn;
-            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == service.BeginSignIn( CString::Empty, "svcstore", signIn ) && !signIn.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.BeginSignIn( CString::Empty, "svcstore", signIn ) && !signIn.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.BeginSignIn( CString::Empty, "no-such-store", signIn ) );
             CAssetSignInPromptPage prompts;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( prompts ) && prompts.entries.empty() );
             CAssetThumbnail picture;
@@ -818,7 +1092,7 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
-    GUCEF_TESTFW_TESTCASE( ( label + " service: operations of the converter pipeline through the hook, a pipeline job with progress; render, thumbnails, uploads and the keyring say what is not available" ).C_String() )
+    GUCEF_TESTFW_TESTCASE( ( label + " service: operations of the converter pipeline through the hook, a pipeline job with progress; render, thumbnails and uploads say what is not available" ).C_String() )
         try
         {
             CAssetPipelineRequest list;
@@ -843,6 +1117,11 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StartPipelineJob( "pipeline-1", convert, started ) && 0 == started.id.HasSubstr( "pipeline:" ) );
             CAssetJobEntry job;
             ASSERT_TRUE( ServiceSuiteWaitForJob( target, service, started.id, job ) && ASSETJOB_STATE_DONE == job.state && 2 == job.itemsDone && 2 == job.itemsTotal );
+            // the jobs list says what the job works on and does, when it ended, and a job that is done is not taken up again
+            ASSERT_TRUE( "converter-pack" == job.scope && "convert" == job.subKind && "converter-pack" == job.packId && !job.resultText.IsNULLOrEmpty() && job.updatedAtMs >= job.createdAtMs && job.createdAtMs > 0 );
+            ASSERT_FALSE( job.IsActionAvailable( ASSETJOB_ACTION_RESUME ) || job.IsActionAvailable( ASSETJOB_ACTION_RETRY ) );
+            CAssetServiceResult notRestarted;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK != service.ControlJob( CString::Empty, started.id, ASSETJOB_ACTION_RESUME, notRestarted ) );
             CAssetServiceDocument result;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetJobResult( started.id, "summary", CString::Empty, 0, result ) && 2 == result.document.GetAttributeValueOrChildValueByName( "converted" ).AsUInt32() );
             CAssetServiceResult removed;
@@ -859,13 +1138,366 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
             CString::StringVector ids;
             ids.push_back( swordId );
             CAssetThumbnailPage thumbnails;
-            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == service.GetThumbnails( ids, 128, thumbnails ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetThumbnails( ids, 128, thumbnails ) && 1 == thumbnails.entries.size() );
             CAssetServiceResult upload;
             ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == service.BeginUpload( CString::Empty, "pack", 10, 1, upload ) && !upload.message.IsNULLOrEmpty() );
-            CAssetServiceResult keyring;
-            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == service.UnlockKeyring( CString::Empty, AUTH::CSecretString( CString( "code" ) ), keyring ) );
             CAssetServiceDocument resources;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResourceStatus( resources ) && resources.document.GetAttributeValueOrChildValueByName( "catalogueAvailable" ).AsBool() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " service: the pack index: the job index-pack and its event, groups and resources in pages, the group filter of the search, the reindex from the storage, the licence gate" ).C_String() )
+        try
+        {
+            hook.SetIndexMode( CTestConverterHook::INDEX_BUILD );
+
+            // before the job the packs have no index
+            CAssetPackIndexInfo none;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetPackIndex( packAId, false, none ) );
+            CAssetPackGroupPage noGroups;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetResourceGroups( packAId, false, noGroups ) );
+            CAssetPackResourcePage noResources;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetResources( packAId, CString::Empty, CString::Empty, CString::Empty, 0, false, noResources ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetPackIndex( "no-such-pack", false, none ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.GetPackIndex( CString::Empty, false, none ) );
+
+            // the job index-pack for one pack: the kind of the job, its event, a repeat with the command id
+            CAssetPipelineRequest index;
+            index.operation = CAssetPipelineOperations::IndexPack;
+            index.packId = packAId;
+            CAssetServiceResult started;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StartPipelineJob( "index-a", index, started ) && 0 == started.id.HasSubstr( "pipeline:" ) );
+            CAssetServiceResult repeated;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StartPipelineJob( "index-a", index, repeated ) && repeated.id == started.id );
+            CAssetJobEntry job;
+            ASSERT_TRUE( ServiceSuiteWaitForJob( target, service, started.id, job ) && ASSETJOB_STATE_DONE == job.state );
+            ASSERT_TRUE( "index-pack" == job.kind && packAId == job.packId && !job.resultText.IsNULLOrEmpty() );
+            target.Pump( 100 );
+            ASSERT_TRUE( events.HasChange( ASSETCHANGE_PACK_INDEX_UPDATED, packAId ) );
+
+            // the index of the pack
+            CAssetPackIndexInfo info;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetPackIndex( packAId, false, info ) );
+            ASSERT_TRUE( packAId == info.packId && CAssetPackIndexInfo::StateLoaded == info.state && !info.stale && 3 == info.resourceCount && !info.indexKey.IsNULLOrEmpty() );
+            ASSERT_TRUE( info.hasManifest && info.HasLicenceRestriction( CAssetLicence::NoMachineLearning ) && 4 == info.groups.size() );
+            ASSERT_TRUE( 2 == info.levels.size() );
+            CFutureResult infoFuture = service.GetPackIndexAsync( packAId, false );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, infoFuture ) );
+            CAssetPackIndexInfo asyncInfo;
+            ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( infoFuture, asyncInfo ) && asyncInfo.indexKey == info.indexKey && asyncInfo.hasManifest && asyncInfo.groups.size() == info.groups.size() );
+
+            // the groups: the fixed order, the function group before its sub-groups
+            CAssetPackGroupPage groups;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResourceGroups( packAId, false, groups ) && 4 == groups.entries.size() && groups.revision > 0 );
+            ASSERT_TRUE( "static-models" == groups.entries[ 0 ].groupId && groups.entries[ 0 ].subGroup.IsNULLOrEmpty() && 2 == groups.entries[ 0 ].resourceCount );
+            ASSERT_TRUE( "meshes" == groups.entries[ 1 ].subGroup && "textures" == groups.entries[ 2 ].groupId && 1 == groups.entries[ 2 ].resourceCount );
+            CFutureResult groupFuture = service.GetResourceGroupsAsync( packAId, false );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, groupFuture ) );
+            CAssetPackGroupPage asyncGroups;
+            ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( groupFuture, asyncGroups ) && 4 == asyncGroups.entries.size() );
+
+            // the resources in pages, of a group and of a sub-group
+            CAssetPackResourcePage page;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResources( packAId, CString::Empty, CString::Empty, CString::Empty, 2, false, page ) );
+            ASSERT_TRUE( 2 == page.entries.size() && 3 == page.total && !page.nextPageToken.IsNULLOrEmpty() && page.revision > 0 );
+            ASSERT_TRUE( "Meshes/SM_Wep_Axe_01.fbx" == page.entries[ 0 ].path && "static-models" == page.entries[ 0 ].groupId && "meshes" == page.entries[ 0 ].subGroup && "model" == page.entries[ 0 ].kind );
+            CAssetPackResourcePage second;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResources( packAId, CString::Empty, CString::Empty, page.nextPageToken, 2, false, second ) );
+            ASSERT_TRUE( 1 == second.entries.size() && second.nextPageToken.IsNULLOrEmpty() && "textures" == second.entries[ 0 ].groupId );
+            CAssetPackResourcePage textures;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResources( packAId, "textures", CString::Empty, CString::Empty, 0, false, textures ) && 1 == textures.entries.size() );
+            CAssetPackResourcePage meshes;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResources( packAId, "static-models", "meshes", CString::Empty, 0, false, meshes ) && 2 == meshes.entries.size() );
+            bool swordIsResource = false;
+            for ( size_t e=0; e<meshes.entries.size(); ++e )
+                swordIsResource = swordIsResource || ( swordId == meshes.entries[ e ].assetId && swordId == meshes.entries[ e ].resourceId );
+            ASSERT_TRUE( swordIsResource );
+            CFutureResult pageFuture = service.GetResourcesAsync( packAId, "static-models", CString::Empty, CString::Empty, 0, false );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, pageFuture ) );
+            CAssetPackResourcePage asyncPage;
+            ASSERT_TRUE( CIAssetStoreService::TryGetFutureResult( pageFuture, asyncPage ) && 2 == asyncPage.entries.size() );
+
+            // the group filter of the search
+            CAssetSearchQuery query;
+            query.pageSize = 100;
+            query.groups.insert( "static-models" );
+            query.packIds.insert( packAId );
+            CAssetSearchResultPage hits;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.Search( query, hits ) && 2 == hits.hits.size() );
+            query.groups.clear();
+            query.groups.insert( "textures" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.Search( query, hits ) && 1 == hits.hits.size() );
+            query.groups.clear();
+            query.subGroups.insert( "meshes" );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.Search( query, hits ) && 2 == hits.hits.size() );
+
+            // the licence gate: a pack with noMachineLearning is not there for a machine learning consumer, one without is, and what it gets has no thumbnails
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetPackIndex( packAId, true, none ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetResourceGroups( packAId, true, noGroups ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.GetResources( packAId, CString::Empty, CString::Empty, CString::Empty, 0, true, noResources ) );
+            CFutureResult hidden = service.GetPackIndexAsync( packAId, true );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, hidden ) && ASSETSTORE_STATUS_NOT_FOUND == CIAssetStoreService::GetStatusOfFuture( hidden ) );
+            CAssetPipelineRequest indexB;
+            indexB.operation = CAssetPipelineOperations::IndexPack;
+            indexB.packId = packBId;
+            CAssetServiceResult startedB;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StartPipelineJob( "index-b", indexB, startedB ) );
+            CAssetJobEntry jobB;
+            ASSERT_TRUE( ServiceSuiteWaitForJob( target, service, startedB.id, jobB ) && ASSETJOB_STATE_DONE == jobB.state );
+            CAssetPackIndexInfo infoB;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetPackIndex( packBId, true, infoB ) && 2 == infoB.resourceCount && 1 == infoB.groups.size() && !infoB.HasLicenceRestriction( CAssetLicence::NoMachineLearning ) );
+            // the host decides for a caller of a learning role, whatever the client says
+            GUCEF::ASSETSTORE::TAssetStoreServicePtr learnerPtr = target.MakeLearningClient();
+            ASSERT_TRUE( service.IsInProcess() || !learnerPtr.IsNULL() );
+            if ( !learnerPtr.IsNULL() )
+            {
+                CIAssetStoreService& learner = *learnerPtr;
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == learner.Open() );
+                CAssetPackIndexInfo seen;
+                ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == learner.GetPackIndex( packAId, false, seen ) );
+                CAssetPackGroupPage seenGroups;
+                ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == learner.GetResourceGroups( packAId, false, seenGroups ) );
+                CAssetPackResourcePage seenResources;
+                ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == learner.GetResources( packAId, CString::Empty, CString::Empty, CString::Empty, 0, false, seenResources ) );
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == learner.GetPackIndex( packBId, false, seen ) && 2 == seen.resourceCount );
+                CAssetSearchQuery everything;
+                everything.pageSize = 100;
+                CAssetSearchResultPage ownerHits;
+                CAssetSearchResultPage learnerHits;
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.Search( everything, ownerHits ) && ASSETSTORE_STATUS_OK == learner.Search( everything, learnerHits ) );
+                bool ownerSeesA = false;
+                bool learnerSeesA = false;
+                for ( size_t h=0; h<ownerHits.hits.size(); ++h )
+                    ownerSeesA = ownerSeesA || packAId == ownerHits.hits[ h ].packId;
+                for ( size_t h=0; h<learnerHits.hits.size(); ++h )
+                    learnerSeesA = learnerSeesA || packAId == learnerHits.hits[ h ].packId;
+                ASSERT_TRUE( ownerSeesA && !learnerSeesA && !learnerHits.hits.empty() );
+                learner.Close();
+            }
+            CAssetPackResourcePage learning;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetResources( packBId, CString::Empty, CString::Empty, CString::Empty, 0, true, learning ) && 2 == learning.entries.size() );
+            for ( size_t e=0; e<learning.entries.size(); ++e )
+                ASSERT_FALSE( learning.entries[ e ].hasThumbnail );
+
+            // the job over every pack that has no index, and the reindex from the storage (the rows are written again from the documents)
+            CAssetPipelineRequest missing;
+            missing.operation = CAssetPipelineOperations::IndexPack;
+            missing.arguments.SetName( "arguments" );
+            missing.arguments.SetAttribute( "missing", true );
+            CAssetServiceResult startedMissing;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.StartPipelineJob( CString::Empty, missing, startedMissing ) );
+            CAssetJobEntry jobMissing;
+            ASSERT_TRUE( ServiceSuiteWaitForJob( target, service, startedMissing.id, jobMissing ) && ASSETJOB_STATE_DONE == jobMissing.state && !jobMissing.resultText.IsNULLOrEmpty() );
+            CAssetServiceResult reindex;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReindexFromStorage( "reindex-1", reindex ) && !reindex.id.IsNULLOrEmpty() );
+            CAssetServiceResult reindexAgain;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.ReindexFromStorage( "reindex-1", reindexAgain ) && reindexAgain.id == reindex.id );
+            CAssetJobEntry jobReindex;
+            ASSERT_TRUE( ServiceSuiteWaitForJob( target, service, reindex.id, jobReindex ) && ASSETJOB_STATE_DONE == jobReindex.state && "index-pack" == jobReindex.kind );
+            CAssetPackIndexInfo infoAfter;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetPackIndex( packAId, false, infoAfter ) && infoAfter.indexKey == info.indexKey && 3 == infoAfter.resourceCount );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " service: the sign in of an online store through prompts: an address and a code, a text that is no code, a code the store refuses, the right code, the end of the session, a new sign in, cancel and sign out" ).C_String() )
+        try
+        {
+            TESTFW::CLogTextCapture* capture = GUCEF_NEW TESTFW::CLogTextCapture();
+            CSignInEventRecorder recorder( service );
+
+            // the store as the service lists it: how it signs in, signed out, and what the settings gave it
+            CAssetStoreInfo store;
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore", store ) );
+            ASSERT_TRUE( ASSETSTORE_SIGNIN_AUTH_PROVIDER == store.signInKind && ASSETSTORE_SIGNINSTATE_SIGNED_OUT == store.signInState && !store.signedIn );
+            CAssetStoreLibraryPage library;
+            CAssetStoreQuery query;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_SIGNED_IN == service.QueryLibrary( "signstore", query, library ) );
+            {
+                TAssetStoreProviderPtr provider;
+                ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( "signstore", provider ) );
+                CFakeSignInStoreProvider* fake = static_cast< CFakeSignInStoreProvider* >( provider.GetPointerAlways() );
+                ASSERT_TRUE( fake->WasConfigured() && fake->IsProvisioned() && "/run/secrets/fake/clientId" == fake->GetClientIdFile() );
+            }
+
+            // the sign in begins: the person gets the address to open and the field for the code, as events and as the list of the open prompts
+            CAssetServiceResult begun;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( "signin-1", "signstore", begun ) && "signstore" == begun.id );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 2, 0 ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_IN_PROGRESS ) );
+            CAssetSignInPrompt urlPrompt, codePrompt;
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "openUrl", urlPrompt ) && ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+            ASSERT_TRUE( urlPrompt.url == CFakeInteractiveSignIn::LoginUrl() && !urlPrompt.sensitiveAnswer && !urlPrompt.promptId.IsNULLOrEmpty() );
+            ASSERT_TRUE( codePrompt.sensitiveAnswer && codePrompt.url.IsNULLOrEmpty() && codePrompt.promptId != urlPrompt.promptId );
+            ASSERT_TRUE( urlPrompt.expiresUtcMs > 0 && codePrompt.expiresUtcMs > 0 );
+            // the same command id answers the first outcome and does not start another sign in
+            CAssetServiceResult repeated;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( "signin-1", "signstore", repeated ) && repeated.replayed );
+            // another begin while one runs keeps the one that runs
+            CAssetServiceResult again;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( CString::Empty, "signstore", again ) );
+            CAssetSignInPromptPage open;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( open ) && 2 == open.entries.size() );
+
+            // a step that is not there, a step that takes no answer, a text that is no code: refused, and the step stays open for the next try
+            CAssetServiceResult answered;
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.AnswerPrompt( CString::Empty, "no-such-prompt", AUTH::CSecretString( CString( "RIGHTCODE1234" ) ), answered ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.AnswerPrompt( CString::Empty, urlPrompt.promptId, AUTH::CSecretString( CString( "RIGHTCODE1234" ) ), answered ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.AnswerPrompt( CString::Empty, codePrompt.promptId, AUTH::CSecretString( CString( "!! not a code" ) ), answered ) && !answered.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+
+            // a code that has the shape of one and that the store refuses: the sign in ends as failed with the reason, its prompts close
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.AnswerPrompt( "answer-1", codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::WrongCode() ) ), answered ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_FAILED ) );
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore", store ) && !store.signedIn && !store.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 2, 2 ) );
+            CAssetSignInPromptPage none;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( none ) && none.entries.empty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.AnswerPrompt( CString::Empty, codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::RightCode() ) ), answered ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_SIGNED_IN == service.QueryLibrary( "signstore", query, library ) );
+
+            // a new sign in has new steps; with the right code the store has a session and the library opens
+            CAssetServiceResult second;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( "signin-2", "signstore", second ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 4, 2 ) );
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.AnswerPrompt( "answer-2", codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::RightCode() ) ), answered ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_SIGNED_IN ) );
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore", store ) && store.signedIn );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 4, 4 ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.QueryLibrary( "signstore", query, library ) );
+            CFutureResult asyncAnswer = service.AnswerPromptAsync( CString::Empty, "no-such-prompt", AUTH::CSecretString( CString( "RIGHTCODE1234" ) ) );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, asyncAnswer ) && ASSETSTORE_STATUS_NOT_FOUND == CIAssetStoreService::GetStatusOfFuture( asyncAnswer ) );
+
+            // the store refuses the session (HTTP 401 and no renewal): the state is expired, whatever the provider holds, until a sign in
+            {
+                TAssetStoreProviderPtr provider;
+                ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( "signstore", provider ) );
+                static_cast< CFakeSignInStoreProvider* >( provider.GetPointerAlways() )->RefuseSession();
+            }
+            ASSERT_TRUE( ASSETSTORE_STATUS_SESSION_EXPIRED == service.QueryLibrary( "signstore", query, library ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_EXPIRED ) );
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore", store ) && !store.signedIn && store.sessionEnded );
+
+            // the renewal is a new sign in; the session ends once more at the store itself and is renewed the same way
+            CAssetServiceResult third;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( CString::Empty, "signstore", third ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 6, 4 ) );
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.AnswerPrompt( CString::Empty, codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::RightCode() ) ), answered ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_SIGNED_IN ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.QueryLibrary( "signstore", query, library ) );
+            {
+                TAssetStoreProviderPtr provider;
+                ASSERT_TRUE( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( "signstore", provider ) );
+                static_cast< CFakeSignInStoreProvider* >( provider.GetPointerAlways() )->ExpireSession();
+            }
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_EXPIRED ) );
+
+            // cancel: the steps close and the store is signed out; with no sign in running it answers that none runs
+            CAssetServiceResult fourth;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( CString::Empty, "signstore", fourth ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 8, 6 ) );
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+            CAssetServiceResult cancelled;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.CancelSignIn( "cancel-1", "signstore", cancelled ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 8, 8 ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_SIGNED_OUT ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.AnswerPrompt( CString::Empty, codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::RightCode() ) ), answered ) );
+            CAssetServiceResult nothing;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.CancelSignIn( CString::Empty, "signstore", nothing ) && !nothing.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == service.CancelSignIn( CString::Empty, "no-such-store", nothing ) );
+
+            // a step that nobody answers expires: the sign in ends as failed and the steps close; a new sign in works again
+            CAssetServiceResult fifth;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( CString::Empty, "signstore", fifth ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 10, 8 ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_FAILED, 15000 ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 10, 10 ) );
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore", store ) && !store.message.IsNULLOrEmpty() );
+            CAssetServiceResult sixth;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.BeginSignIn( CString::Empty, "signstore", sixth ) );
+            ASSERT_TRUE( ServiceSuiteWaitForPrompts( target, recorder, 12, 10 ) );
+            ASSERT_TRUE( ServiceSuiteFindPrompt( service, "signstore", "enterCode", codePrompt ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.AnswerPrompt( CString::Empty, codePrompt.promptId, AUTH::CSecretString( CString( CFakeInteractiveSignIn::RightCode() ) ), answered ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_SIGNED_IN ) );
+
+            // sign out forgets the session
+            CAssetServiceResult signedOut;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.SignOut( CString::Empty, "signstore", signedOut ) );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore", ASSETSTORE_SIGNINSTATE_SIGNED_OUT ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_NOT_SIGNED_IN == service.QueryLibrary( "signstore", query, library ) );
+            ASSERT_TRUE( recorder.StatesOf( "signstore" ).HasSubstr( "inProgress,failed" ) >= 0 && recorder.StatesOf( "signstore" ).HasSubstr( "signedIn" ) >= 0 );
+
+            // no secret was in anything that was raised or logged: not a code that was answered, not a prompt that closed
+            target.Pump( 100 );
+            const CString shown = recorder.dump;
+            ASSERT_TRUE( !shown.IsNULLOrEmpty() && shown.HasSubstr( CFakeInteractiveSignIn::RightCode() ) < 0 && shown.HasSubstr( CFakeInteractiveSignIn::WrongCode() ) < 0 );
+            ASSERT_TRUE( capture->GetText().HasSubstr( CFakeInteractiveSignIn::RightCode() ) < 0 && capture->GetText().HasSubstr( CFakeInteractiveSignIn::WrongCode() ) < 0 );
+            ASSERT_TRUE( !capture->GetText().IsNULLOrEmpty() );
+            GUCEF_DELETE capture;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " service: a store that cannot sign in here says why: client credentials that are not provisioned, a web site sign in without a browser" ).C_String() )
+        try
+        {
+            CAssetStoreInfo store;
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "signstore2", store ) );
+            ASSERT_TRUE( ASSETSTORE_SIGNINSTATE_SIGNED_OUT == store.signInState && store.message.HasSubstr( "not provisioned" ) >= 0 );
+            CAssetServiceResult begun;
+            ASSERT_TRUE( ASSETSTORE_STATUS_UNAVAILABLE == service.BeginSignIn( CString::Empty, "signstore2", begun ) && begun.message.HasSubstr( "not provisioned" ) >= 0 );
+            ASSERT_TRUE( ServiceSuiteWaitForStoreState( target, service, "signstore2", ASSETSTORE_SIGNINSTATE_FAILED ) );
+            CAssetSignInPromptPage none;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( none ) && none.entries.empty() );
+
+            // the sign in on a web site needs the browser, which a service of this kind does not have: signed out, with the reason, and no prompt
+            ASSERT_TRUE( ServiceSuiteFindStore( service, "webstorefake", store ) );
+            ASSERT_TRUE( ASSETSTORE_SIGNIN_WEB_SESSION == store.signInKind && ASSETSTORE_SIGNINSTATE_SIGNED_OUT == store.signInState && store.message.HasSubstr( "browser sidecar" ) >= 0 );
+            CAssetServiceResult web;
+            ASSERT_TRUE( ASSETSTORE_STATUS_BROWSER_UNAVAILABLE == service.BeginSignIn( CString::Empty, "webstorefake", web ) && web.message.HasSubstr( "browser sidecar" ) >= 0 );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetSignInPrompts( none ) && none.entries.empty() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " service: the keyring of the saved store passwords: locked, a wrong code, the right code, locked again; the code is in no log and no event" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( keyringReady );
+            TESTFW::CLogTextCapture* capture = GUCEF_NEW TESTFW::CLogTextCapture();
+            CSignInEventRecorder recorder( service );
+            CAssetServiceInfo info;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetServiceInfo( info ) && "locked" == info.keyringState );
+            CAssetServiceResult keyring;
+            ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == service.UnlockKeyring( CString::Empty, AUTH::CSecretString( CString( "WRONG-KEYRING-CODE" ) ), keyring ) && !keyring.message.IsNULLOrEmpty() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetServiceInfo( info ) && "locked" == info.keyringState );
+            // the wrong code counted: the next try is not made at once, so the right one is given after the wait of the session or a lock and unlock of the test
+            for ( UInt32 waited=0; waited<10000 && 0 != keyringSession.GetRetryWaitInMs(); waited+=50 )
+                target.Pump( 50 );
+            CFutureResult unlocking = service.UnlockKeyringAsync( CString::Empty, AUTH::CSecretString( keyringCode ) );
+            ASSERT_TRUE( ServiceSuiteWaitForFuture( target, unlocking ) && ASSETSTORE_STATUS_OK == CIAssetStoreService::GetStatusOfFuture( unlocking ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetServiceInfo( info ) && "unlocked" == info.keyringState && info.HasCapability( "keyring" ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.LockKeyring( CString::Empty, keyring ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == service.GetServiceInfo( info ) && "locked" == info.keyringState );
+            target.Pump( 100 );
+            ASSERT_TRUE( capture->GetText().HasSubstr( keyringCode ) < 0 && capture->GetText().HasSubstr( "WRONG-KEYRING-CODE" ) < 0 && !capture->GetText().IsNULLOrEmpty() );
+            ASSERT_TRUE( recorder.dump.HasSubstr( keyringCode ) < 0 && recorder.dump.HasSubstr( "WRONG-KEYRING-CODE" ) < 0 );
+            GUCEF_DELETE capture;
         }
         catch ( ... )
         {
@@ -897,10 +1529,268 @@ RunAssetStoreServiceSuite( CAssetStoreServiceSuiteTarget& target )
     servicePtr->Close();
     CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "svcstore" );
     CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "svcstore" );
+    CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "signstore" );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "signstore" );
+    CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "signstore2" );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "signstore2" );
+    CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "webstorefake" );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "webstorefake" );
     CFakeStoreProvider::SetServer( GUCEF_NULL );
     server.Stop();
     if ( ownAnalyzer )
         analyzers.Unregister( analyzer->GetName() );
+}
+
+/** The configuration of the restart tests: the library below the base, the state folder, the converter hook; the downloads start or not, the staged ingests resume or not */
+inline GUCEF::ASSETSTORE::CAssetStoreServiceConfig
+MakeRestartServiceConfig( CAssetStoreServiceSuiteTarget& target, const GUCEF::CORE::CString& base, const GUCEF::CORE::CString& stateDirectory,
+                          GUCEF::ASSETSTORE::CIAssetConverterHook* hook, bool startDownloads, bool resumeIngests, GUCEF::UInt32 resumeAttempts )
+{
+    GUCEF::ASSETSTORE::CAssetStoreServiceConfig config;
+    config.primaryStore.locations.clear();
+    GUCEF::ASSETSTORE::CAssetStorageLocation main;
+    main.locationId = "main";
+    main.name = "Main";
+    main.vfsRoot = base + "/main";
+    config.primaryStore.locations.push_back( main );
+    config.primaryStore.defaultLocationId = "main";
+    config.primaryStore.analysisConcurrency = 2;
+    GUCEF::ASSETSTORE::CAssetSourcePolicy policy;
+    policy.sourceId = "restartstore";
+    policy.mode = GUCEF::ASSETSTORE::ASSETINGEST_MODE_MANUAL;
+    config.primaryStore.SetPolicy( policy );
+    config.converterHook = hook;
+    config.stateDirectory = stateDirectory;
+    config.loadDownloadQueue = true;
+    config.startDownloads = startDownloads;
+    config.resumeIngestsOnStart = resumeIngests;
+    config.ingestResumeAttempts = resumeAttempts;
+    target.ConfigureDatabase( config );
+    return config;
+}
+
+/** The text of a file of the state folder, through the VFS; empty when it is not there */
+inline GUCEF::CORE::CString
+ReadStateFile( const GUCEF::CORE::CString& name )
+{
+    GUCEF::CORE::CDynamicBuffer content;
+    GUCEF::CORE::CString text;
+    if ( ReadVfsFile( GUCEF::ASSETSTORE::CAssetStoreServiceConfig::StateVfsRoot + "/" + name, content ) )
+        text.Set( (const char*) content.GetConstBufferPtr(), content.GetDataSize() );
+    return text;
+}
+
+/**
+ *  What a restart of the service must not lose, for a service on the database of the target: the queue of the downloads, the
+ *  downloads that are to be ingested and the source policies set through the service (the state folder), the ingests that stayed
+ *  staged. Each service of the test is the one process of a run; the next one is its restart.
+ */
+inline void
+RunAssetStoreServiceRestartSuite( CAssetStoreServiceSuiteTarget& target )
+{
+    using namespace GUCEF;
+    using namespace GUCEF::CORE;
+    using namespace GUCEF::ASSETSTORE;
+
+    const CString label = target.GetLabel();
+    const CString base = "astest/svcrs_" + label;
+    MountFreshDirectory( "svcrs_" + label + "_main", base + "/main" );
+    MountFreshDirectory( "svcrs_" + label + "_source", base + "/source" );
+    const CString stateDirectory = TestDirectory( "svcrs_" + label + "_state" );
+    DeleteDir( stateDirectory, true );
+
+    // the analyzer of this suite is the registered one (FailNext() is on it)
+    CTestModelAnalyzer* analyzer = GUCEF_NEW CTestModelAnalyzer();
+    CAssetContentAnalyzerRegistry& analyzers = CAssetStoreGlobal::Instance()->GetContentAnalyzerRegistry();
+    analyzers.Unregister( analyzer->GetName() );
+    TAssetContentAnalyzerPtr analyzerPtr( analyzer );
+    analyzers.Register( analyzerPtr );
+
+    const CString packStaged = base + "/source/Resume_Pack";
+    bool written = WriteVfsFile( packStaged + "/Meshes/SM_Resume_01.fbx", CString( "triangles=301;vertices=201" ) );
+    written = WriteVfsFile( packStaged + "/Meshes/SM_Resume_02.fbx", CString( "triangles=311;vertices=211" ) ) && written;
+
+    CFakeStoreServer server;
+    CFakeStoreProviderFactory storeFactory( "restartstore" );
+    {
+        CAssetStoreItem item;
+        item.itemId = "rs-item-1";
+        item.title = "Restart Crate";
+        item.seller = "Test Seller";
+        item.listingType = "3d-model";
+        item.licenceName = "Standard License";
+        CAssetStoreFormat format;
+        format.formatId = "fbx";
+        format.name = "FBX";
+        CDynamicBuffer content;
+        content.Append( "triangles=97;vertices=65", 24 );
+        server.SetFileContent( "rsf1", content );
+        CAssetStoreFile file;
+        file.fileId = "rsf1";
+        file.name = "SM_Restart_01.fbx";
+        file.size = content.GetDataSize();
+        file.digestAlgorithm = "sha256";
+        file.digest = Sha256Of( content );
+        format.files.push_back( file );
+        item.formats.push_back( format );
+        server.AddItem( item );
+    }
+    const bool serverStarted = server.Start();
+    CFakeStoreProvider::SetServer( &server );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "restartstore", &storeFactory );
+    CAssetStoreGlobal::Instance()->GetRegistry().RefreshProviders();
+
+    CTestConverterHook hook;
+    CString downloadJobId;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " restart: the queue of the downloads, the download that is to be ingested and a source policy survive the end of the service; the download resumes and its pack is ingested" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( written && serverStarted );
+            CAssetStoreServiceConfig first = MakeRestartServiceConfig( target, base, stateDirectory, &hook, false, true, 3 );
+            TAssetStoreServicePtr before = target.MakeService( first );
+            ASSERT_FALSE( before.IsNULL() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == before->Open() && before->IsCatalogueAvailable() );
+
+            // a policy set while it ran, and a download that does not start (the downloads of this service are held)
+            CAssetSourcePolicy policy;
+            policy.sourceId = "othersource";
+            policy.mode = ASSETINGEST_MODE_AUTOMATIC;
+            policy.keep = ASSETKEEP_ORIGINAL;
+            CAssetServiceResult policyResult;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == before->SetSourcePolicy( "restart-policy", policy, policyResult ) );
+            CAssetDownloadRequest download;
+            download.providerId = "restartstore";
+            download.itemId = "rs-item-1";
+            download.itemTitle = "Restart Crate";
+            download.formatId = "fbx";
+            download.forIngest = true;
+            download.keep = "original";
+            download.locationId = "main";
+            CAssetServiceResult queued;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == before->EnqueueDownload( "restart-download", download, queued ) && !queued.id.IsNULLOrEmpty() );
+            downloadJobId = queued.id;
+            CAssetJobEntry job;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == before->GetJob( downloadJobId, job ) && ASSETJOB_STATE_QUEUED == job.state && !job.ingestRequested );
+
+            // the files are in the state folder, not in the library
+            ASSERT_TRUE( FileExists( CombinePath( stateDirectory, CAssetStoreServiceConfig::QueueFileName ) ) );
+            const CString stateText = ReadStateFile( CAssetStoreServiceConfig::ServiceStateFileName );
+            ASSERT_TRUE( stateText.HasSubstr( downloadJobId ) >= 0 && stateText.HasSubstr( "othersource" ) >= 0 && stateText.HasSubstr( "automatic" ) >= 0 );
+            before->Close();
+            before.Unlink();
+
+            // the restart: the same state folder, the downloads run now
+            CAssetStoreServiceConfig second = MakeRestartServiceConfig( target, base, stateDirectory, &hook, true, true, 3 );
+            TAssetStoreServicePtr after = target.MakeService( second );
+            ASSERT_FALSE( after.IsNULL() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == after->Open() && after->IsCatalogueAvailable() );
+            ASSERT_TRUE( ServiceSuiteWaitForJob( target, *after, downloadJobId, job, 60000 ) && ASSETJOB_STATE_DONE == job.state && job.forIngest );
+            bool ingested = false;
+            for ( UInt32 waited=0; waited<60000 && !ingested; waited+=20 )
+            {
+                CAssetSearchQuery crates;
+                crates.text = "restart crate";
+                CAssetSearchResultPage page;
+                ingested = ASSETSTORE_STATUS_OK == after->Search( crates, page ) && !page.hits.empty();
+                if ( !ingested )
+                    target.Pump( 20 );
+            }
+            ASSERT_TRUE( ingested );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == after->GetJob( downloadJobId, job ) && job.ingestRequested );
+            // the policy of the first run is still there
+            ASSERT_TRUE( ReadStateFile( CAssetStoreServiceConfig::ServiceStateFileName ).HasSubstr( "othersource" ) >= 0 );
+            after->Close();
+            after.Unlink();
+
+            // a third start does not ingest the finished download again: it is accounted for in the state file
+            CAssetStoreServiceConfig third = MakeRestartServiceConfig( target, base, stateDirectory, &hook, true, true, 3 );
+            TAssetStoreServicePtr again = target.MakeService( third );
+            ASSERT_FALSE( again.IsNULL() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == again->Open() );
+            target.Pump( 300 );
+            CAssetJobEntry ingestJob;
+            ASSERT_FALSE( ServiceSuiteFindJob( *again, "ingest", ingestJob ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == again->GetJob( downloadJobId, job ) && job.ingestRequested );
+            again->Close();
+            again.Unlink();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( label + " restart: an ingest that stayed staged resumes when the service opens, a limited number of starts; with the resume off it is left" ).C_String() )
+        try
+        {
+            // an ingest that fails in the analysis stays staged
+            analyzer->FailNext( 1 );
+            CAssetStoreServiceConfig held = MakeRestartServiceConfig( target, base, stateDirectory, &hook, false, false, 3 );
+            TAssetStoreServicePtr first = target.MakeService( held );
+            ASSERT_FALSE( first.IsNULL() );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == first->Open() );
+            CAssetIngestRequest request;
+            request.sourceId = CPrimaryAssetStoreSettings::DiskSourceId;
+            request.contentPath = packStaged;
+            request.keep = "original";
+            CAssetIngestResult result;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK != first->Ingest( "staged-ingest", request, result ) );
+            CAssetServiceStringList pending;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == first->GetPendingIngests( pending ) && 1 == pending.values.size() );
+            first->Close();
+            first.Unlink();
+
+            // the resume is off: the start leaves it staged
+            CAssetStoreServiceConfig off = MakeRestartServiceConfig( target, base, stateDirectory, &hook, false, false, 3 );
+            TAssetStoreServicePtr left = target.MakeService( off );
+            ASSERT_TRUE( !left.IsNULL() && ASSETSTORE_STATUS_OK == left->Open() );
+            target.Pump( 300 );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == left->GetPendingIngests( pending ) && 1 == pending.values.size() );
+            left->Close();
+            left.Unlink();
+
+            // no attempts left: the start leaves it staged as well
+            CAssetStoreServiceConfig none = MakeRestartServiceConfig( target, base, stateDirectory, &hook, false, true, 0 );
+            TAssetStoreServicePtr noAttempts = target.MakeService( none );
+            ASSERT_TRUE( !noAttempts.IsNULL() && ASSETSTORE_STATUS_OK == noAttempts->Open() );
+            target.Pump( 300 );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == noAttempts->GetPendingIngests( pending ) && 1 == pending.values.size() );
+            noAttempts->Close();
+            noAttempts.Unlink();
+
+            // the resume is on: the ingest runs from the step that failed, and the pack is in the catalogue
+            CAssetStoreServiceConfig on = MakeRestartServiceConfig( target, base, stateDirectory, &hook, false, true, 3 );
+            TAssetStoreServicePtr resumed = target.MakeService( on );
+            ASSERT_TRUE( !resumed.IsNULL() && ASSETSTORE_STATUS_OK == resumed->Open() );
+            bool done = false;
+            for ( UInt32 waited=0; waited<60000 && !done; waited+=20 )
+            {
+                done = ASSETSTORE_STATUS_OK == resumed->GetPendingIngests( pending ) && pending.values.empty();
+                if ( !done )
+                    target.Pump( 20 );
+            }
+            ASSERT_TRUE( done );
+            CAssetSearchQuery query;
+            query.text = "resume";
+            CAssetSearchResultPage page;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == resumed->Search( query, page ) && !page.hits.empty() );
+            resumed->Close();
+            resumed.Unlink();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "restartstore" );
+    CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "restartstore" );
+    CFakeStoreProvider::SetServer( GUCEF_NULL );
+    server.Stop();
+    analyzers.Unregister( analyzer->GetName() );
+    UnmountDirectory( "svcrs_" + label + "_source" );
+    UnmountDirectory( "svcrs_" + label + "_main" );
 }
 
 /*-------------------------------------------------------------------------//

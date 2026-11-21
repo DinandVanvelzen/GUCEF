@@ -85,6 +85,21 @@
 #define GUCEF_ASSETSTORE_CASSETSIGNINPROMPT_H
 #endif /* GUCEF_ASSETSTORE_CASSETSIGNINPROMPT_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETPACKGROUP_H
+#include "gucefASSETSTORE_CAssetPackGroup.h"
+#define GUCEF_ASSETSTORE_CASSETPACKGROUP_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKGROUP_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETPACKRESOURCE_H
+#include "gucefASSETSTORE_CAssetPackResource.h"
+#define GUCEF_ASSETSTORE_CASSETPACKRESOURCE_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKRESOURCE_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSYNCMARK_H
+#include "gucefASSETSTORE_CAssetSyncMark.h"
+#define GUCEF_ASSETSTORE_CASSETSYNCMARK_H
+#endif /* GUCEF_ASSETSTORE_CASSETSYNCMARK_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -140,6 +155,14 @@ typedef CTAssetServicePage< CAssetThumbnail, SAssetThumbnailPageName > CAssetThu
 struct SAssetCatalogueChangePageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetCatalogueChangePage"; } };
 typedef CTAssetServicePage< CAssetCatalogueChange, SAssetCatalogueChangePageName > CAssetCatalogueChangePage;
 
+/** A page of the group summaries of a pack index: the function groups and their sub-groups with their counts */
+struct SAssetPackGroupPageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetPackGroupPage"; } };
+typedef CTAssetServicePage< CAssetPackGroup, SAssetPackGroupPageName > CAssetPackGroupPage;
+
+/** A page of the resources of a pack index */
+struct SAssetPackResourcePageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetPackResourcePage"; } };
+typedef CTAssetServicePage< CAssetPackResource, SAssetPackResourcePageName > CAssetPackResourcePage;
+
 /** A page of files of the service: VFS path, size, SHA-256 digest and the role "file", "directory" or "missing" */
 struct SAssetFileStatPageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetFileStatPage"; } };
 typedef CTAssetServicePage< CAssetFileRecord, SAssetFileStatPageName > CAssetFileStatPage;
@@ -147,6 +170,10 @@ typedef CTAssetServicePage< CAssetFileRecord, SAssetFileStatPageName > CAssetFil
 /** A page of open sign in prompts */
 struct SAssetSignInPromptPageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetSignInPromptPage"; } };
 typedef CTAssetServicePage< CAssetSignInPrompt, SAssetSignInPromptPageName > CAssetSignInPromptPage;
+
+/** A page of the marks of the owner on items of a store (library sync): ignore or pin; an entry without a mark removes one in SetSyncMarks() */
+struct SAssetSyncMarkPageName { static const char* Name( void ) { return "GUCEF::ASSETSTORE::CAssetSyncMarkPage"; } };
+typedef CTAssetServicePage< CAssetSyncMark, SAssetSyncMarkPageName > CAssetSyncMarkPage;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

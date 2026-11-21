@@ -48,6 +48,9 @@ CPrimaryAssetStoreOperationData::CPrimaryAssetStoreOperationData( void )
     , query()
     , locationId()
     , packId()
+    , dryRun( false )
+    , indexOptions()
+    , buildMissing( false )
     , source()
 {GUCEF_TRACE;
 

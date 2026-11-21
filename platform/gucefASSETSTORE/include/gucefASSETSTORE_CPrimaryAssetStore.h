@@ -57,6 +57,16 @@
 #include "gucefASSETSTORE_CAssetCatalogue.h"
 #define GUCEF_ASSETSTORE_CASSETCATALOGUE_H
 #endif /* GUCEF_ASSETSTORE_CASSETCATALOGUE_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETDOWNLOADREQUEST_H
+#include "gucefASSETSTORE_CAssetDownloadRequest.h"
+#define GUCEF_ASSETSTORE_CASSETDOWNLOADREQUEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETDOWNLOADREQUEST_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSYNCMARKSTORE_H
+#include "gucefASSETSTORE_CAssetSyncMarkStore.h"
+#define GUCEF_ASSETSTORE_CASSETSYNCMARKSTORE_H
+#endif /* GUCEF_ASSETSTORE_CASSETSYNCMARKSTORE_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETVOCABULARY_H
 #include "gucefASSETSTORE_CAssetVocabulary.h"
 #define GUCEF_ASSETSTORE_CASSETVOCABULARY_H
@@ -98,6 +108,30 @@
 #include "gucefASSETSTORE_CAssetPackRecord.h"
 #define GUCEF_ASSETSTORE_CASSETPACKRECORD_H
 #endif /* GUCEF_ASSETSTORE_CASSETPACKRECORD_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETLAYOUTMIGRATIONREPORT_H
+#include "gucefASSETSTORE_CAssetLayoutMigrationReport.h"
+#define GUCEF_ASSETSTORE_CASSETLAYOUTMIGRATIONREPORT_H
+#endif /* GUCEF_ASSETSTORE_CASSETLAYOUTMIGRATIONREPORT_H ? */
+#ifndef GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#include "gucefASSETSTORE_CPackStorageLayout.h"
+#define GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#endif /* GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H
+#include "gucefASSETSTORE_CAssetPackIndexOptions.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXOPTIONS_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H
+#include "gucefASSETSTORE_CAssetPackIndexOutcome.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXREPORT_H
+#include "gucefASSETSTORE_CAssetPackIndexReport.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXREPORT_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXREPORT_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXLOADER_H
+#include "gucefASSETSTORE_CAssetPackIndexLoader.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXLOADER_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXLOADER_H ? */
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -144,7 +178,7 @@ class CPrimaryAssetStoreOperationTaskConsumer;
  *  pack that is "conversion pending" (also: no converter at the time of the ingest) can be converted later with
  *  ConvertPack() or ConvertPendingPacks(), as a job on the calling thread or as a pool task (ConvertPackAsync(): the
  *  future's RequestCancellation() stops it, GetResult() has a CAssetConversionOutcome). The conversion of a pack that
- *  is placed is written to "converted/<profile>/" of the pack, the converted paths and formats of its assets and the
+ *  is placed is written to the intermediate and cooked areas of the pack (CPackStorageLayout), the converted paths and formats of its assets and the
  *  versions of the converter parts that made it (pack.conversion) go into the catalogue, and IsConversionStale() says
  *  when a part of the converter has another version since. Progress and the end of a conversion are the events
  *  ConversionProgressEvent, ConversionFinishedEvent and ConversionFailedEvent (CAssetConversionEventData); those of the
@@ -176,6 +210,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     static const CORE::CEvent ConversionFinishedEvent;      /**< CAssetConversionEventData: converted, or refused (the status says) */
     static const CORE::CEvent ConversionFailedEvent;        /**< CAssetConversionEventData: failed or cancelled (the status says) */
     static const CORE::CEvent LocationStateChangedEvent;
+    static const CORE::CEvent PackIndexUpdatedEvent;        /**< TCloneableString: the id of the pack whose pack index was loaded or changed in the catalogue */
 
     static void RegisterEvents( void );
 
@@ -204,6 +239,15 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     CAssetCatalogue& GetCatalogue( void );
     CAssetVocabulary& GetVocabulary( void );
 
+    /** The tables of the library sync (schema version 5): the store facts of the packs, the marks of the owner, the observations of the items */
+    CAssetSyncMarkStore& GetSyncStore( void );
+
+    /**
+     *  The library sync confirms that a pack still is the listed item (library sync design section 4.6): a download whose
+     *  content duplicated the pack advances the revision and the time of the change it holds, and the time of the confirmation
+     */
+    TAssetStoreStatus ConfirmSourceRevision( const CORE::CString& packId, const CORE::CString& revision, Int64 changedMs );
+
     // storage locations
 
     /** Checks which locations are reachable, raising LocationStateChangedEvent for those that changed */
@@ -221,8 +265,27 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     TAssetStoreStatus VerifyLocation( const CORE::CString& locationId, CAssetVerificationReport& report );
     CORE::CFutureResult VerifyLocationAsync( const CORE::CString& locationId );
 
+    /**
+     *  Moves the packs of the location (every location when empty) from the layout with a folder per pack to the layout
+     *  with the three areas (CPackStorageLayout). A pack whose target folders exist already is refused; a dry run only reports.
+     *  Packs that are in the new layout are left alone: it can run again.
+     */
+    TAssetStoreStatus MigrateStorageLayout( const CORE::CString& locationId, bool dryRun, CAssetLayoutMigrationReport& report );
+    CORE::CFutureResult MigrateStorageLayoutAsync( const CORE::CString& locationId, bool dryRun );
+
     /** A new VFS folder in the staging area of the location (the default location when empty) for a download */
     CORE::CString MakeDownloadStagingPath( const CORE::CString& locationId = CORE::CString::Empty ) const;
+
+    /**
+     *  The VFS folder a download of the expected size (0: not known) is staged in: a new folder of the scratch staging area
+     *  (CPrimaryAssetStoreSettings::scratchStagingPath) when one is set, writable and has room for it, otherwise a new folder in
+     *  the staging area of the location. The scratch area is a preference only: when it cannot take the download the location's
+     *  staging is used without an error and without a wait; the ingest copies a download from the scratch area into its location
+     */
+    CORE::CString ChooseDownloadStagingPath( const CORE::CString& locationId, UInt64 expectedBytes );
+
+    /** The VFS root of the scratch staging area while it is mounted, empty otherwise */
+    static const CORE::CString ScratchStagingVfsRoot;       /**< "assetstore-scratch-staging" */
 
     // ingest
 
@@ -262,6 +325,42 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     /** The ids of the packs whose conversion is stale */
     TAssetStoreStatus GetStaleConversions( CORE::CString::StringVector& packIds ) const;
 
+    // the pack index (the document of a pack and its derived copy in the catalogue, schema version 4)
+
+    /**
+     *  Indexes a pack that is placed in the store: work once. The document of the pack in its intermediate folder
+     *  (CPackStorageLayout::GetPackIndexPath()) is loaded into the catalogue when it is there and fresh (nothing is built); else the
+     *  converter hook builds it (BuildPackIndex()) and it is loaded. Without a hook a pack that has no document stays without
+     *  an index (UNSUPPORTED). The outcome says whether the document was reused, built, loaded or derived. PackIndexUpdatedEvent
+     *  follows a load that changed the rows. Runs on the calling thread; the future of IndexPackAsync() has the outcome as its result.
+     */
+    TAssetStoreStatus IndexPack( const CORE::CString& packId, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome );
+    CORE::CFutureResult IndexPackAsync( const CORE::CString& packId, const CAssetPackIndexOptions& options );
+
+    /** IndexPack() for every pack that has no pack index row (the derivation for catalogues that are older than the index); the report has the counts */
+    TAssetStoreStatus IndexPacksWithoutIndex( const CAssetPackIndexOptions& options, CAssetPackIndexReport& report );
+    CORE::CFutureResult IndexPacksWithoutIndexAsync( const CAssetPackIndexOptions& options );
+
+    /**
+     *  Rebuilds the derived rows of the pack index from the documents on the storage: for every pack of the catalogue the document
+     *  in its intermediate folder is loaded again (documents are the primary store, the database is the search layer); a pack
+     *  that has no document gets one through IndexPack() when 'buildMissing' and a hook can; documents in the locations that
+     *  no pack owns are counted and not loaded. Locations that are not reachable are skipped.
+     */
+    TAssetStoreStatus ReindexFromStorage( bool buildMissing, const CAssetPackIndexOptions& options, CAssetPackIndexReport& report );
+    CORE::CFutureResult ReindexFromStorageAsync( bool buildMissing, const CAssetPackIndexOptions& options );
+
+    /** The forms of the three operations above that a job runs: 'cancel' (may be GUCEF_NULL) is the future of the job, whose cancel request ends the run between two packs */
+    TAssetStoreStatus RunIndexPack( const CORE::CString& packId, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome, const CORE::CFutureResultSource* cancel );
+    TAssetStoreStatus RunIndexPacksWithoutIndex( const CAssetPackIndexOptions& options, CAssetPackIndexReport& report, const CORE::CFutureResultSource* cancel );
+    TAssetStoreStatus RunReindexFromStorage( bool buildMissing, const CAssetPackIndexOptions& options, CAssetPackIndexReport& report, const CORE::CFutureResultSource* cancel );
+
+    /** The pack index of a pack as the catalogue holds it (see CAssetPackIndexLoader) */
+    TAssetStoreStatus GetPackIndexInfo( const CORE::CString& packId, bool withManifest, CAssetPackIndexInfo& info );
+    TAssetStoreStatus GetPackIndexGroups( const CORE::CString& packId, TAssetPackGroupVector& groups );
+    TAssetStoreStatus GetPackIndexResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, TAssetPackResourceVector& resources );
+    TAssetStoreStatus GetPackIndexResource( const CORE::CString& resourceId, CAssetPackResource& resource );
+
     /** Takes a pack out of the catalogue; with 'deleteFiles' its placed files go as well */
     TAssetStoreStatus RemovePack( const CORE::CString& packId, bool deleteFiles );
 
@@ -276,6 +375,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
 
     /** The ingest request for a completed download job */
     static CAssetIngestRequest MakeIngestRequest( const CAssetStoreDownloadJob& job );
+
+    /**
+     *  Queues a download for the primary store as the other form does, from a request: the store, item, title, format and
+     *  files of it and the members of the library sync (expectedRevision, syncJobId), which reach the ingest of the download
+     */
+    TAssetStoreStatus EnqueueDownload( CAssetStoreDownloadManager& downloadManager, const CAssetDownloadRequest& request, CORE::CString& jobId );
 
     // search
 
@@ -301,6 +406,21 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     /** The VFS path of the converted file of an asset; NOT_FOUND when the asset was not converted, UNAVAILABLE as GetAssetVfsPath() */
     TAssetStoreStatus GetAssetConvertedVfsPath( const CORE::CString& assetId, CORE::CString& vfsPath, CORE::CString& message ) const;
 
+    /**
+     *  The companion files of an asset (pack index design 2.12, converter design 5.8.4): the main files of the assets it uses, transitively
+     *  over the table relations, as VFS paths with the role "referenced", in the order of a breadth first walk over the relations in their
+     *  canonical order. The kinds followed are those of the vocabulary but inScene and fitsSkeleton; every asset is visited once, so a cycle
+     *  ends; at most MaxCompanionDepth steps and MaxCompanionFiles files. 'relationCount' is the number of relations followed (0: the asset
+     *  has none), 'truncated' true when a bound stopped the walk. The files of the asset itself are not in the list
+     */
+    TAssetStoreStatus GetCompanionFiles( const CORE::CString& assetId, TAssetFileRecordVector& files, UInt32& relationCount, bool& truncated ) const;
+
+    static const UInt32 MaxCompanionDepth;      /**< 8 relation steps */
+    static const UInt32 MaxCompanionFiles;      /**< 4096 files */
+
+    /** Whether the companion files follow a relation of the kind: the kinds of the vocabulary but inScene and fitsSkeleton */
+    static bool IsCompanionRelationKind( const CORE::CString& kind );
+
     // licence restrictions
 
     /** The packs whose licence does not have the restriction flag, for features that must respect it */
@@ -308,6 +428,16 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
 
     /** Whether the licence of the pack is without the restriction flag */
     TAssetStoreStatus IsUseAllowed( const CORE::CString& packId, const CORE::CString& restrictionFlag, bool& allowed ) const;
+
+    /**
+     *  The licence restriction flags of the pack whose folder holds a VFS path of a storage location (layout version 2: the folder of the
+     *  pack in an area of the location; the legacy layout: the folder of the pack); false when the path is in no pack (the root of a
+     *  location, a folder that is no pack)
+     */
+    bool GetRestrictionsOfVfsPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const;
+
+    /** The folder of the pack that holds a VFS path of layout version 2 as "<root of the location>/<folder of the pack>"; empty for a path that is in no pack folder of that layout */
+    CORE::CString GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const;
 
     /** Adds the exclusion of packs with the flag to a search query */
     static void ExcludeRestricted( CAssetSearchQuery& query, const CORE::CString& restrictionFlag );
@@ -342,16 +472,25 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     TAssetStoreStatus RunResumeIngest( const CORE::CString& ingestId, CAssetIngestResult& result, const CORE::CFutureResultSource* cancel );
     TAssetStoreStatus RunConvertPack( const CORE::CString& packId, CAssetConversionOutcome& outcome, const CORE::CFutureResultSource* cancel );
     TAssetStoreStatus RunConvertPending( CAssetConversionOutcome& outcome, const CORE::CFutureResultSource* cancel );
+    TAssetStoreStatus FindPackIndexPath( const CAssetPackRecord& pack, CORE::CString& indexPath ) const;
+    TAssetStoreStatus IndexPackRecord( const CAssetPackRecord& pack, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome, const CORE::CFutureResultSource* cancel );
+    void NotifyPackIndexUpdated( const CORE::CString& packId );
+    TAssetStoreStatus LoadPackIndexDocument( const CORE::CString& packId, const CORE::CString& manifestPath, bool force, CAssetPackIndexOutcome& outcome );
+    void RepairInterruptedIndexes( void );
     TAssetStoreStatus RepairInterruptedPacks( void );
     TAssetStoreStatus RemovePackRows( const CORE::CString& packId );
     void SyncLocationAndSourceRows( void );
     CORE::CFutureResult QueueOperation( CORE::CICloneable* operationData );
     void OperationEnded( void );
     void NotifyIngestEvent( const CORE::CEvent& eventId, const CORE::CString& ingestId, const CORE::CString& packId,
-                            TAssetIngestStep step, TAssetStoreStatus status, const CORE::CString& message );
+                            TAssetIngestStep step, TAssetStoreStatus status, const CORE::CString& message,
+                            const CORE::CString& downloadJobId = CORE::CString::Empty );
     CAssetSearchEngine::TLocationStateMap GetLocationStates( void ) const;
     CIAssetConverterHook* GetConverterHook( void ) const;
     MT::CMutex& GetIndexLock( void );
+    /** The folder of a pack that is placed in a location (CPackStorageLayout), reserved for the pack until its row is written */
+    CORE::CString ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId );
+    void ReleasePackFolder( const CORE::CString& packId );
     CORE::CString FindLocationOfVfsPath( const CORE::CString& vfsPath ) const;
     static CAssetPackRecord PackFromRow( const CAssetCatalogue::TRow& row );
     static CAssetRecord AssetFromRow( const CAssetCatalogue::TRow& row );
@@ -370,12 +509,17 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     CAssetCatalogue m_catalogue;
     CAssetVocabulary m_vocabulary;
     CAssetSearchEngine m_searchEngine;
+    CAssetSyncMarkStore m_syncStore;
     GUCEF::map< CORE::CString, bool > m_locationOnline;
     CORE::CString::StringSet m_mountedLocations;
     MT::CTAtomic< UInt32 > m_pendingOperations;
     mutable CORE::CString m_lastError;
+    bool m_scratchMounted;
+    bool m_scratchWarned;
     mutable MT::CMutex m_lock;
     MT::CMutex m_indexLock;
+    MT::CMutex m_folderLock;
+    GUCEF::map< CORE::CString, CORE::CString > m_reservedFolders;     /**< pack id to "location id\nfolder in lower case" */
 };
 
 typedef CORE::CTSharedPtr< CPrimaryAssetStore, MT::CMutex > TPrimaryAssetStorePtr;

@@ -68,6 +68,16 @@
 #include "gucefAUTH_CAuthGlobal.h"
 #define GUCEF_AUTH_CAUTHGLOBAL_H
 #endif /* GUCEF_AUTH_CAUTHGLOBAL_H ? */
+
+#ifndef GUCEF_DRN_CDRNGLOBAL_H
+#include "gucefDRN_CDRNGlobal.h"
+#define GUCEF_DRN_CDRNGLOBAL_H
+#endif /* GUCEF_DRN_CDRNGLOBAL_H ? */
+
+#ifndef GUCEF_DRNUTILS_CDRNUTILSGLOBAL_H
+#include "gucefDRNUTILS_CDrnUtilsGlobal.h"
+#define GUCEF_DRNUTILS_CDRNUTILSGLOBAL_H
+#endif /* GUCEF_DRNUTILS_CDRNUTILSGLOBAL_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREREGISTRY_H
 #include "gucefASSETSTORE_CAssetStoreRegistry.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREREGISTRY_H
@@ -88,10 +98,6 @@
 #include "gucefASSETSTORE_CPrimaryAssetStore.h"
 #define GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H
 #endif /* GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#include "gucefASSETSTORE_CWebSessionSignIn.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H ? */
 #include "gucefASSETSTORE_CAssetStoreGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -126,10 +132,13 @@ CAssetStoreGlobal::CAssetStoreGlobal( void )
     , m_downloadTaskFactory()
     , m_primaryStoreOperationFactory()
     , m_analysisTaskFactory()
-    , m_webSignInTaskFactory()
     , m_serviceOperationFactory()
+    , m_remoteFileTransferFactory()
+    , m_syncScheduleTaskFactory()
+    , m_syncScheduleTaskDataFactory()
     , m_serviceFactory( GUCEF_NULL )
     , m_localServiceFactory()
+    , m_remoteServiceFactory()
     , m_webSessionStore( GUCEF_NULL )
     , m_webCredentialStore( GUCEF_NULL )
     , m_webStoreLock()
@@ -150,7 +159,9 @@ CAssetStoreGlobal::Initialize( void )
     COMCORE::CComCoreGlobal::Instance();
     COM::CComGlobal::Instance();
     WEB::CWebGlobal::Instance();
-    AUTH::CAuthGlobal::Instance();
+    AUTH::CAuthGlobal::Instance();     // also the events and the task of the web session sign ins (AUTH::CWebSessionSignIn)
+    DRN::CDRNGlobal::Instance();
+    DRNUTILS::CDrnUtilsGlobal::Instance();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefASSETSTORE Global systems initializing" );
 
@@ -158,7 +169,6 @@ CAssetStoreGlobal::Initialize( void )
     CAssetStoreRegistry::RegisterEvents();
     CAssetStoreDownloadManager::RegisterEvents();
     CPrimaryAssetStore::RegisterEvents();
-    CWebSessionSignIn::RegisterEvents();
     CIAssetStoreService::RegisterEvents();
 
     m_providerFactory = GUCEF_NEW CAssetStoreProviderFactory();
@@ -171,12 +181,15 @@ CAssetStoreGlobal::Initialize( void )
     taskManager.RegisterTaskConsumerFactory( CAssetStoreDownloadTaskConsumer::TaskType, &m_downloadTaskFactory );
     taskManager.RegisterTaskConsumerFactory( CPrimaryAssetStoreOperationTaskConsumer::TaskType, &m_primaryStoreOperationFactory );
     taskManager.RegisterTaskConsumerFactory( CAssetAnalysisTaskConsumer::TaskType, &m_analysisTaskFactory );
-    taskManager.RegisterTaskConsumerFactory( CWebSessionSignInTaskConsumer::TaskType, &m_webSignInTaskFactory );
     taskManager.RegisterTaskConsumerFactory( CLocalAssetStoreServiceOperationTaskConsumer::TaskType, &m_serviceOperationFactory );
+    taskManager.RegisterTaskConsumerFactory( CRemoteFileTransferTaskConsumer::TaskType, &m_remoteFileTransferFactory );
+    taskManager.RegisterTaskConsumerFactory( CAssetLibrarySyncScheduleTaskConsumer::TaskType, &m_syncScheduleTaskFactory );
+    taskManager.RegisterTaskDataFactory( CAssetLibrarySyncScheduleTaskConsumer::TaskType, &m_syncScheduleTaskDataFactory );
 
     // the implementations of the service: the one in this process; another registers itself under its own id
     m_serviceFactory = GUCEF_NEW CAssetStoreServiceFactory();
     m_serviceFactory->RegisterConcreteFactory( CAssetStoreServiceConfig::LocalImplementationId, &m_localServiceFactory );
+    m_serviceFactory->RegisterConcreteFactory( CAssetStoreServiceConfig::RemoteImplementationId, &m_remoteServiceFactory );
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefASSETSTORE" );
 }
@@ -191,8 +204,10 @@ CAssetStoreGlobal::~CAssetStoreGlobal()
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefASSETSTORE" );
 
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
+    taskManager.UnregisterTaskDataFactory( CAssetLibrarySyncScheduleTaskConsumer::TaskType );
+    taskManager.UnregisterTaskConsumerFactory( CAssetLibrarySyncScheduleTaskConsumer::TaskType );
+    taskManager.UnregisterTaskConsumerFactory( CRemoteFileTransferTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CLocalAssetStoreServiceOperationTaskConsumer::TaskType );
-    taskManager.UnregisterTaskConsumerFactory( CWebSessionSignInTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CAssetAnalysisTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CPrimaryAssetStoreOperationTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CAssetStoreDownloadTaskConsumer::TaskType );

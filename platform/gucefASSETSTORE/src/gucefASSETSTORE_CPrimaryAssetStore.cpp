@@ -116,6 +116,7 @@
 #endif /* GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H ? */
 #ifndef GUCEF_ASSETSTORE_CIASSETCONVERTERHOOK_H
 #include "gucefASSETSTORE_CIAssetConverterHook.h"
+#include "gucefASSETSTORE_CAssetPackIndexLoader.h"
 #define GUCEF_ASSETSTORE_CIASSETCONVERTERHOOK_H
 #endif /* GUCEF_ASSETSTORE_CIASSETCONVERTERHOOK_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETINGESTPIPELINE_H
@@ -126,6 +127,11 @@
 #include "gucefASSETSTORE_CPrimaryAssetStoreOperationTaskConsumer.h"
 #define GUCEF_ASSETSTORE_CPRIMARYASSETSTOREOPERATIONTASKCONSUMER_H
 #endif /* GUCEF_ASSETSTORE_CPRIMARYASSETSTOREOPERATIONTASKCONSUMER_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
+#include "gucefASSETSTORE_CAssetLibrarySyncAdmission.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H ? */
+
 #include "gucefASSETSTORE_CPrimaryAssetStore.h"
 
 /*-------------------------------------------------------------------------//
@@ -144,6 +150,7 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString CPrimaryAssetStore::ProviderId = "primary";
+const CORE::CString CPrimaryAssetStore::ScratchStagingVfsRoot = "assetstore-scratch-staging";
 const CORE::CEvent CPrimaryAssetStore::IngestProgressEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::IngestProgressEvent";
 const CORE::CEvent CPrimaryAssetStore::IngestFinishedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::IngestFinishedEvent";
 const CORE::CEvent CPrimaryAssetStore::IngestFailedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::IngestFailedEvent";
@@ -151,6 +158,7 @@ const CORE::CEvent CPrimaryAssetStore::ConversionProgressEvent = "GUCEF::ASSETST
 const CORE::CEvent CPrimaryAssetStore::ConversionFinishedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::ConversionFinishedEvent";
 const CORE::CEvent CPrimaryAssetStore::ConversionFailedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::ConversionFailedEvent";
 const CORE::CEvent CPrimaryAssetStore::LocationStateChangedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::LocationStateChangedEvent";
+const CORE::CEvent CPrimaryAssetStore::PackIndexUpdatedEvent = "GUCEF::ASSETSTORE::CPrimaryAssetStore::PackIndexUpdatedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -197,6 +205,12 @@ LocationMountName( const CORE::CString& locationId )
     return "assetstore-location-" + locationId;
 }
 
+const char* const ScratchStagingMountName = "assetstore-scratch-staging";
+
+/** The room a scratch staging area must have beyond the download: a download whose size is not known counts as this much */
+const UInt64 ScratchStagingMarginBytes = 64ULL * 1024ULL * 1024ULL;
+const UInt64 ScratchStagingUnknownSizeBytes = 1024ULL * 1024ULL * 1024ULL;
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -216,6 +230,7 @@ CPrimaryAssetStore::RegisterEvents( void )
     ConversionFinishedEvent.Initialize();
     ConversionFailedEvent.Initialize();
     LocationStateChangedEvent.Initialize();
+    PackIndexUpdatedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -230,12 +245,17 @@ CPrimaryAssetStore::CPrimaryAssetStore( void )
     , m_catalogue()
     , m_vocabulary()
     , m_searchEngine( m_catalogue, m_vocabulary )
+    , m_syncStore( m_catalogue )
     , m_locationOnline()
     , m_mountedLocations()
     , m_pendingOperations( 0 )
     , m_lastError()
+    , m_scratchMounted( false )
+    , m_scratchWarned( false )
     , m_lock()
     , m_indexLock()
+    , m_folderLock()
+    , m_reservedFolders()
 {GUCEF_TRACE;
 
     CAssetStoreGlobal::Instance();
@@ -340,6 +360,53 @@ CPrimaryAssetStore::GetIndexLock( void )
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId )
+{GUCEF_TRACE;
+
+    const CORE::CString clean = CPackStorageLayout::MakePackFolderName( sourceName );
+    MT::CScopeMutex lock( m_folderLock );
+
+    // the folders of the other packs of the location: in the catalogue and reserved by ingests that did not write their row yet
+    CORE::CString::StringSet taken;
+    CORE::CDataTableQuery query;
+    query.WhereEquals( "location_id", CORE::CVariant( locationId ) );
+    CAssetCatalogue::TRowVector rows;
+    if ( ASSETSTORE_STATUS_OK == m_catalogue.Select( "packs", query, rows ) )
+    {
+        for ( size_t r=0; r<rows.size(); ++r )
+        {
+            const CPackStorageLayout layout( CAssetCatalogue::GetText( rows[ r ], "root_path" ) );
+            if ( !layout.IsAreaLayout() )
+                continue;
+            if ( CAssetCatalogue::GetText( rows[ r ], "pack_id" ) == packId )
+                return layout.GetPackFolder();      // placed before (an ingest that is resumed): the same folder
+            taken.insert( layout.GetPackFolder().Lowercase() );
+        }
+    }
+    const CORE::CString prefix = locationId + "\n";
+    for ( GUCEF::map< CORE::CString, CORE::CString >::const_iterator i=m_reservedFolders.begin(); i!=m_reservedFolders.end(); ++i )
+    {
+        if ( (*i).first != packId && 0 == (*i).second.HasSubstr( prefix, true ) )
+            taken.insert( (*i).second.CutChars( prefix.Length(), true ) );
+    }
+    const CORE::CString folder = CPackStorageLayout::ChoosePackFolderName( clean, packId, taken );
+    m_reservedFolders[ packId ] = prefix + folder.Lowercase();
+    return folder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPrimaryAssetStore::ReleasePackFolder( const CORE::CString& packId )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_folderLock );
+    m_reservedFolders.erase( packId );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CAssetCatalogue&
 CPrimaryAssetStore::GetCatalogue( void )
 {GUCEF_TRACE;
@@ -430,6 +497,7 @@ CPrimaryAssetStore::Open( UInt32 targetSchemaVersion )
         SyncLocationAndSourceRows();
         RefreshLocationStates();
         RepairInterruptedPacks();
+        RepairInterruptedIndexes();
     }
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Opened, catalogue schema version " << m_catalogue.GetSchemaVersion() );
     return ASSETSTORE_STATUS_OK;
@@ -440,6 +508,11 @@ CPrimaryAssetStore::Open( UInt32 targetSchemaVersion )
 void
 CPrimaryAssetStore::Close( void )
 {GUCEF_TRACE;
+
+    // the operations that run (ingests, conversions, migrations) end before the catalogue and the locations go: an ingest that
+    // ran on after the close wrote into a closed catalogue and kept files and tables of the location busy for the next owner
+    while ( m_pendingOperations.Load() > 0 )
+        MT::ThreadDelay( 2 );
 
     COMCORE::CIDatabaseClientPtr client = m_catalogue.GetClient();
     m_catalogue.Close();
@@ -456,6 +529,15 @@ CPrimaryAssetStore::Close( void )
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     for ( CORE::CString::StringSet::const_iterator m=mounted.begin(); m!=mounted.end(); ++m )
         vfs.UnmountArchiveByName( LocationMountName( (*m) ) );
+    bool scratchMounted = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        scratchMounted = m_scratchMounted;
+        m_scratchMounted = false;
+        m_scratchWarned = false;
+    }
+    if ( scratchMounted )
+        vfs.UnmountArchiveByName( ScratchStagingMountName );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -667,7 +749,7 @@ CPrimaryAssetStore::VerifyLocation( const CORE::CString& locationId, CAssetVerif
         if ( !AssetPackStateIsIngested( state ) )
             continue;
         ++report.packsChecked;
-        const CORE::CString packRoot = JoinVfs( root, CAssetCatalogue::GetText( packs[ p ], "root_path" ) );
+        const CPackStorageLayout layout( CAssetCatalogue::GetText( packs[ p ], "root_path" ) );
         CAssetCatalogue::TRowVector files;
         CORE::CDataTableQuery fileQuery;
         fileQuery.WhereEquals( "pack_id", CORE::CVariant( CAssetCatalogue::GetText( packs[ p ], "pack_id" ) ) );
@@ -675,9 +757,9 @@ CPrimaryAssetStore::VerifyLocation( const CORE::CString& locationId, CAssetVerif
             return report.status = status;
         for ( size_t f=0; f<files.size(); ++f )
         {
-            const CORE::CString path = JoinVfs( packRoot, CAssetCatalogue::GetText( files[ f ], "path" ) );
+            const CORE::CString path = layout.Resolve( root, CAssetCatalogue::GetText( files[ f ], "path" ) );
             const CORE::CString lower = path.Lowercase();
-            if ( lower.HasSubstr( ".zip/", true ) >= 0 || lower.HasSubstr( ".7z/", true ) >= 0 || lower.HasSubstr( ".rar/", true ) >= 0 || lower.HasSubstr( ".unitypackage/", true ) >= 0 )
+            if ( lower.HasSubstr( ".zip/", true ) >= 0 || lower.HasSubstr( ".7z/", true ) >= 0 || lower.HasSubstr( ".rar/", true ) >= 0 || lower.HasSubstr( ".unitypackage/", true ) >= 0 || lower.HasSubstr( ".mhpkg/", true ) >= 0 )
                 continue;       // inside an archive: the archive itself is checked
             ++report.filesChecked;
             if ( !vfs.FileExists( path ) )
@@ -709,6 +791,125 @@ CPrimaryAssetStore::VerifyLocationAsync( const CORE::CString& locationId )
 
 /*-------------------------------------------------------------------------*/
 
+TAssetStoreStatus
+CPrimaryAssetStore::MigrateStorageLayout( const CORE::CString& locationId, bool dryRun, CAssetLayoutMigrationReport& report )
+{GUCEF_TRACE;
+
+    report = CAssetLayoutMigrationReport();
+    report.locationId = locationId;
+    report.dryRun = dryRun;
+    if ( !IsOpen() )
+        return report.status = Fail( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The primary store is not open" );
+
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    MT::CScopeMutex indexLock( m_indexLock );
+    CORE::CDataTableQuery query;
+    if ( !locationId.IsNULLOrEmpty() )
+        query.WhereEquals( "location_id", CORE::CVariant( locationId ) );
+    CAssetCatalogue::TRowVector packs;
+    TAssetStoreStatus status = m_catalogue.Select( "packs", query, packs );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return report.status = status;
+
+    CORE::CString::StringVector reserved;
+    for ( size_t p=0; p<packs.size(); ++p )
+    {
+        const CORE::CString packId = CAssetCatalogue::GetText( packs[ p ], "pack_id" );
+        const CORE::CString rootPath = CAssetCatalogue::GetText( packs[ p ], "root_path" );
+        const CPackStorageLayout layout( rootPath );
+        if ( layout.IsAreaLayout() || 0 != layout.GetLegacyRoot().HasSubstr( "packs/", true ) )
+            continue;       // in the new layout already, or referenced in place: not the store's to move
+        ++report.packsInOldLayout;
+
+        const CORE::CString packLocation = CAssetCatalogue::GetText( packs[ p ], "location_id" );
+        const CORE::CString root = GetLocationRoot( packLocation );
+        if ( root.IsNULLOrEmpty() || !IsLocationOnline( packLocation ) )
+        {
+            ++report.packsRefused;
+            report.problems.push_back( packId + ": the storage location " + packLocation + " is not reachable" );
+            continue;
+        }
+        const CORE::CString oldRoot = CPackStorageLayout::Join( root, layout.GetLegacyRoot() );
+        const CORE::CString oldOriginal = CPackStorageLayout::Join( oldRoot, "original" );
+        const CORE::CString oldConverted = CPackStorageLayout::Join( oldRoot, "converted" );
+        const CORE::CString leaf = layout.GetLegacyRoot().ReplaceChar( '\\', '/' );
+        const CORE::CString::StringVector parts = leaf.ParseElements( '/', false );
+        const CORE::CString folder = ChoosePackFolder( packLocation, parts.empty() ? packId : parts.back(), packId );
+        reserved.push_back( packId );
+        const CPackStorageLayout target( CPackStorageLayout::MakeRootPath( folder ) );
+        const CORE::CString newOriginal = target.GetOriginalFolder( root );
+        const CORE::CString newIntermediate = target.GetIntermediateFolder( root, CORE::CString::Empty );
+        const CORE::CString newConverted = CPackStorageLayout::Join( newIntermediate, "converted" );
+
+        const bool originalToMove = vfs.DirExists( oldOriginal );
+        const bool convertedToMove = vfs.DirExists( oldConverted );
+        if ( ( originalToMove && vfs.DirExists( newOriginal ) ) || ( convertedToMove && vfs.DirExists( newConverted ) ) )
+        {
+            ++report.packsRefused;
+            report.problems.push_back( packId + ": a target folder exists already (" + folder + "), nothing was moved" );
+            continue;
+        }
+        report.actions.push_back( packId + ": " + layout.GetLegacyRoot() + " -> " + target.GetStoredRootPath() );
+        if ( dryRun )
+        {
+            ++report.packsMigrated;
+            continue;
+        }
+        bool moved = true;
+        if ( originalToMove )
+        {
+            vfs.CreateDir( CPackStorageLayout::Join( root, CPackStorageLayout::OriginalArea ) );
+            moved = vfs.MoveDir( oldOriginal, newOriginal );
+        }
+        if ( moved && convertedToMove )
+        {
+            vfs.CreateDir( newIntermediate );
+            moved = vfs.MoveDir( oldConverted, newConverted );
+        }
+        if ( !moved )
+        {
+            ++report.packsRefused;
+            report.problems.push_back( packId + ": the folders could not be moved" );
+            continue;
+        }
+        CAssetCatalogue::TRowVector rows( 1, packs[ p ] );
+        rows[ 0 ][ "root_path" ] = CORE::CVariant( target.GetStoredRootPath() );
+        if ( ASSETSTORE_STATUS_OK != ( status = m_catalogue.Write( "packs", rows ) ) )
+        {
+            report.problems.push_back( packId + ": the row of the pack cannot be written, run the migration again" );
+            ++report.packsRefused;
+            continue;
+        }
+
+        // the old folder goes when nothing is left in it
+        VFS::CVFS::TStringVector left;
+        vfs.GetFileList( left, oldRoot, true, true, CORE::CString::Empty, 1 );
+        if ( left.empty() )
+            vfs.DeleteDir( oldRoot, true );
+        ++report.packsMigrated;
+    }
+    for ( size_t r=0; r<reserved.size(); ++r )
+        ReleasePackFolder( reserved[ r ] );
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Storage layout migration" << ( dryRun ? " (dry run)" : "" ) << ": " << report.packsInOldLayout <<
+                      " pack(s) in the old layout, " << report.packsMigrated << " moved, " << report.packsRefused << " refused" );
+    return report.status = ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CPrimaryAssetStore::MigrateStorageLayoutAsync( const CORE::CString& locationId, bool dryRun )
+{GUCEF_TRACE;
+
+    CPrimaryAssetStoreOperationData* data = GUCEF_NEW CPrimaryAssetStoreOperationData();
+    data->operation = CPrimaryAssetStoreOperationData::OPERATION_MIGRATE_LAYOUT;
+    data->locationId = locationId;
+    data->dryRun = dryRun;
+    return QueueOperation( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CPrimaryAssetStore::MakeDownloadStagingPath( const CORE::CString& locationId ) const
 {GUCEF_TRACE;
@@ -719,6 +920,75 @@ CPrimaryAssetStore::MakeDownloadStagingPath( const CORE::CString& locationId ) c
         return CORE::CString::Empty;
     const UInt64 now = CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
     return JoinVfs( root, "staging/dl" + CORE::ToString( now ) + "-" + CORE::ToString( CORE::CRandom::GetRandomUInt32( 0, 999999 ) ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPrimaryAssetStore::ChooseDownloadStagingPath( const CORE::CString& locationId, UInt64 expectedBytes )
+{GUCEF_TRACE;
+
+    const CORE::CString scratch = GetSettings().scratchStagingPath;
+    if ( scratch.IsNULLOrEmpty() )
+        return MakeDownloadStagingPath( locationId );
+
+    // the scratch area is a preference: whatever stands in its way sends the download to the staging of its location
+    CORE::CString why;
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString folder = CORE::RelativePath( CORE::ResolveVars( scratch ) );
+    bool mounted = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        mounted = m_scratchMounted;
+    }
+    if ( !mounted )
+    {
+        if ( !CORE::DirExists( folder ) )
+            CORE::CreateDirs( folder );
+        if ( !CORE::DirExists( folder ) )
+            why = "the folder " + folder + " cannot be made";
+        else
+        if ( !vfs.IsMountedArchive( ScratchStagingMountName ) && !vfs.AddRoot( folder, ScratchStagingMountName, true, false, ScratchStagingVfsRoot ) )
+            why = "the folder " + folder + " cannot be mounted";
+        else
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_scratchMounted = true;
+        }
+    }
+    UInt64 freeBytes = 0;
+    UInt64 totalBytes = 0;
+    const UInt64 needed = ( 0 == expectedBytes ? ScratchStagingUnknownSizeBytes : expectedBytes ) + ScratchStagingMarginBytes;
+    if ( why.IsNULLOrEmpty() && !CAssetLibrarySyncAdmission::ReadVolume( folder, freeBytes, totalBytes ) )
+        why = "the free space of " + folder + " cannot be read";
+    else
+    if ( why.IsNULLOrEmpty() && freeBytes < needed )
+        why = "it has " + CORE::ToString( freeBytes ) + " bytes free, the download needs " + CORE::ToString( needed );
+    CORE::CString path;
+    if ( why.IsNULLOrEmpty() )
+    {
+        const UInt64 now = CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
+        path = JoinVfs( ScratchStagingVfsRoot, "dl" + CORE::ToString( now ) + "-" + CORE::ToString( CORE::CRandom::GetRandomUInt32( 0, 999999 ) ) );
+        // writable: the folder of the download can be made there
+        if ( !vfs.CreateDir( path ) || !vfs.DirExists( path ) )
+        {
+            why = "a folder cannot be written in " + folder;
+            path.Clear();
+        }
+    }
+    if ( !why.IsNULLOrEmpty() )
+    {
+        bool warn = false;
+        {
+            MT::CScopeMutex lock( m_lock );
+            warn = !m_scratchWarned;
+            m_scratchWarned = true;
+        }
+        if ( warn )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: The scratch staging area is not used for a download (" << why << "): it is staged in its storage location; this is said once" );
+        return MakeDownloadStagingPath( locationId );
+    }
+    return path;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -970,6 +1240,39 @@ CPrimaryAssetStore::GetPendingIngests( CORE::CString::StringVector& ingestIds ) 
 
 /*-------------------------------------------------------------------------*/
 
+CAssetSyncMarkStore&
+CPrimaryAssetStore::GetSyncStore( void )
+{GUCEF_TRACE;
+
+    return m_syncStore;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::ConfirmSourceRevision( const CORE::CString& packId, const CORE::CString& revision, Int64 changedMs )
+{GUCEF_TRACE;
+
+    if ( !IsOpen() )
+        return Fail( ASSETSTORE_STATUS_INVALID_ARGUMENT, "The primary store is not open" );
+    CAssetPackSourceRecord record;
+    TAssetStoreStatus status = m_syncStore.GetPackSource( packId, record );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+    record.revision = revision;
+    if ( changedMs > record.changedMs )
+        record.changedMs = changedMs;
+    record.syncedMs = (Int64) CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
+    status = m_syncStore.WritePackSource( record );
+    if ( ASSETSTORE_STATUS_OK == status )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Confirmed the revision " << revision << " of pack " << packId );
+    }
+    return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
 TAssetStoreStatus
 CPrimaryAssetStore::RemovePackRows( const CORE::CString& packId )
 {GUCEF_TRACE;
@@ -982,6 +1285,30 @@ CPrimaryAssetStore::RemovePackRows( const CORE::CString& packId )
         const TAssetStoreStatus status = m_catalogue.DeleteWhereEquals( tables[ t-1 ], "pack_id", CORE::CVariant( packId ) );
         if ( ASSETSTORE_STATUS_OK != status )
             result = status;
+    }
+    if ( m_catalogue.GetSchemaVersion() >= 4 )
+    {
+        // the rows of the pack index, a derived copy of its document
+        CORE::CString::StringVector indexTables;
+        CAssetCatalogue::GetPackIndexTables( indexTables );
+        for ( size_t t=0; t<indexTables.size(); ++t )
+        {
+            const TAssetStoreStatus status = m_catalogue.DeleteWhereEquals( indexTables[ t ], "pack_id", CORE::CVariant( packId ) );
+            if ( ASSETSTORE_STATUS_OK != status )
+                result = status;
+        }
+    }
+    if ( m_catalogue.GetSchemaVersion() >= 5 )
+    {
+        // the store facts of the pack (the library sync)
+        CORE::CString::StringVector sourceTables;
+        CAssetCatalogue::GetPackSourceTables( sourceTables );
+        for ( size_t t=0; t<sourceTables.size(); ++t )
+        {
+            const TAssetStoreStatus status = m_catalogue.DeleteWhereEquals( sourceTables[ t ], "pack_id", CORE::CVariant( packId ) );
+            if ( ASSETSTORE_STATUS_OK != status )
+                result = status;
+        }
     }
     const TAssetStoreStatus status = m_catalogue.DeleteWhereEquals( "packs", "pack_id", CORE::CVariant( packId ) );
     return ASSETSTORE_STATUS_OK != status ? status : result;
@@ -1022,14 +1349,615 @@ CPrimaryAssetStore::RemovePack( const CORE::CString& packId, bool deleteFiles )
     TAssetStoreStatus status = GetPack( packId, pack );
     if ( ASSETSTORE_STATUS_OK != status )
         return status;
-    if ( deleteFiles && 0 == pack.rootPath.HasSubstr( "packs/", true ) )
+    if ( deleteFiles )
     {
+        // only folders that the store made: the folders of a pack that is referenced in place are not its own
         const CORE::CString root = GetLocationRoot( pack.locationId );
-        if ( !root.IsNULLOrEmpty() )
-            VFS::CVfsGlobal::Instance()->GetVfs().DeleteDir( JoinVfs( root, pack.rootPath ), true );
+        CORE::CString::StringVector folders;
+        CPackStorageLayout( pack.rootPath ).GetOwnedFolders( root, folders );
+        for ( size_t f=0; f<folders.size() && !root.IsNULLOrEmpty(); ++f )
+            VFS::CVfsGlobal::Instance()->GetVfs().DeleteDir( folders[ f ], true );
     }
     MT::CScopeMutex indexLock( m_indexLock );
     return RemovePackRows( packId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      THE PACK INDEX                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The name of the last folder of a path of a folder listing, which may end with a separator */
+CORE::CString
+LastFolderName( const CORE::CString& path )
+{
+    CORE::CString text = path.ReplaceChar( '\\', '/' );
+    while ( text.Length() > 0 && '/' == text.C_String()[ text.Length() - 1 ] )
+        text = text.SubstrToIndex( text.Length() - 1, true );
+    return text.SubstrToChar( '/', false );
+}
+
+/** The observer of the indexing of a pack: the cancel request of the job's future, and the observer of the caller */
+class CIndexPackObserver : public CIAssetConversionObserver
+{
+    public:
+
+    CIndexPackObserver( const CORE::CFutureResultSource* cancel, CIAssetConversionObserver* inner )
+        : CIAssetConversionObserver()
+        , m_cancel( cancel )
+        , m_inner( inner )
+    {
+
+    }
+
+    virtual bool IsCancelRequested( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        return ( GUCEF_NULL != m_cancel && m_cancel->IsCancellationRequested() ) || ( GUCEF_NULL != m_inner && m_inner->IsCancelRequested() );
+    }
+
+    virtual void OnConversionProgress( UInt32 done, UInt32 total, const CORE::CString& assetPath ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL != m_inner )
+            m_inner->OnConversionProgress( done, total, assetPath );
+    }
+
+    private:
+
+    const CORE::CFutureResultSource* m_cancel;
+    CIAssetConversionObserver* m_inner;
+};
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPrimaryAssetStore::NotifyPackIndexUpdated( const CORE::CString& packId )
+{GUCEF_TRACE;
+
+    CORE::TCloneableString eventData( packId );
+    NotifyObserversFromThread( PackIndexUpdatedEvent, &eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::LoadPackIndexDocument( const CORE::CString& packId, const CORE::CString& manifestPath, bool force, CAssetPackIndexOutcome& outcome )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex indexLock( m_indexLock );
+    CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+    return loader.Load( packId, manifestPath, force, outcome );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::FindPackIndexPath( const CAssetPackRecord& pack, CORE::CString& indexPath ) const
+{GUCEF_TRACE;
+
+    indexPath.Clear();
+    const CORE::CString root = GetLocationRoot( pack.locationId );
+    if ( root.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_UNAVAILABLE;
+    const CPackStorageLayout layout( pack.rootPath );
+    CIAssetConverterHook* hook = GetConverterHook();
+    const CORE::CString profile = GUCEF_NULL != hook ? hook->GetProfileName() : CORE::CString::Empty;
+    indexPath = layout.GetPackIndexPath( root, profile );
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    if ( !layout.IsAreaLayout() && !vfs.FileExists( indexPath ) )
+    {
+        // a pack of the earlier layout: the index is in the folder of the profile that converted it
+        const CORE::CString converted = CPackStorageLayout::Join( CPackStorageLayout::Join( root, layout.GetLegacyRoot() ), "converted" );
+        VFS::CVFS::TStringVector folders;
+        vfs.GetDirList( folders, converted, false, false, CORE::CString::Empty );
+        for ( size_t f=0; f<folders.size(); ++f )
+        {
+            const CORE::CString candidate = CPackStorageLayout::Join( CPackStorageLayout::Join( converted, LastFolderName( folders[ f ] ) ), "pack-index.json" );
+            if ( vfs.FileExists( candidate ) )
+            {
+                indexPath = candidate;
+                break;
+            }
+        }
+    }
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::IndexPackRecord( const CAssetPackRecord& pack, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome, const CORE::CFutureResultSource* cancel )
+{GUCEF_TRACE;
+
+    const CORE::CString packId = pack.packId;
+    outcome = CAssetPackIndexOutcome();
+    outcome.packId = packId;
+    const UInt64 startedMs = (UInt64) CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
+    if ( !m_catalogue.IsOpen() || m_catalogue.GetSchemaVersion() < 4 )
+    {
+        outcome.message = "the catalogue has no pack index tables (schema version 4)";
+        return outcome.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    }
+    if ( !AssetPackStateIsIngested( pack.state ) )
+    {
+        outcome.message = "the pack is not ingested (its state is " + CORE::CString( AssetPackStateToString( pack.state ) ) + ")";
+        return outcome.status = ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    }
+    if ( !IsLocationOnline( pack.locationId ) )
+    {
+        outcome.message = "the storage location " + pack.locationId + " that holds the pack is not reachable";
+        return outcome.status = ASSETSTORE_STATUS_UNAVAILABLE;
+    }
+    CORE::CString indexPath;
+    TAssetStoreStatus status = FindPackIndexPath( pack, indexPath );
+    if ( ASSETSTORE_STATUS_OK != status )
+    {
+        outcome.message = "the folder of the pack index is not known";
+        return outcome.status = status;
+    }
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const bool redo = options.reindex || options.reanalyse || ( options.verify && GUCEF_NULL != GetConverterHook() );
+    const bool exists = vfs.FileExists( indexPath );
+
+    // work once: the document that is there and fresh is loaded, nothing is built
+    CORE::CString loadProblem;
+    if ( exists && !redo )
+    {
+        CAssetPackIndexOutcome loaded;
+        status = LoadPackIndexDocument( packId, indexPath, options.force, loaded );
+        if ( ASSETSTORE_STATUS_OK == status )
+        {
+            CAssetPackIndexInfo info;
+            GetPackIndexInfo( packId, false, info );
+            if ( !info.stale || GUCEF_NULL == GetConverterHook() || !options.allowBuild )
+            {
+                outcome = loaded;
+                outcome.reused = true;
+                outcome.durationMs = (UInt32) ( (UInt64) CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs() - startedMs );
+                if ( outcome.loaded && options.notify )
+                    NotifyPackIndexUpdated( packId );
+                return outcome.status;
+            }
+            loadProblem = info.stateReason;
+        }
+        else
+            loadProblem = loaded.message;
+    }
+
+    // the converter hook builds it (a document that is stale, damaged or not there)
+    if ( !options.allowBuild )
+    {
+        outcome.message = "there is no pack index document of the pack" + ( loadProblem.IsNULLOrEmpty() ? CORE::CString::Empty : " (" + loadProblem + ")" );
+        return outcome.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    }
+    CIAssetConverterHook* hook = GetConverterHook();
+    if ( GUCEF_NULL == hook )
+    {
+        outcome.message = "there is no pack index of the pack and no converter is attached to the store to build one" + ( loadProblem.IsNULLOrEmpty() ? CORE::CString::Empty : " (" + loadProblem + ")" );
+        return outcome.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    }
+    const CPackStorageLayout layout( pack.rootPath );
+    const CORE::CString root = GetLocationRoot( pack.locationId );
+    const CORE::CString profile = hook->GetProfileName();
+    CAssetPackIndexRequest request;
+    request.pack = pack;
+    request.sourceVfsPath = layout.GetOriginalFolder( root );
+    request.sourcePrefix = layout.GetOriginalPrefix() + "/";
+    request.intermediateVfsFolder = layout.GetIntermediateFolder( root, profile );
+    if ( layout.IsAreaLayout() )
+        request.cookedVfsFolder = layout.GetCookedFolder( root, profile );
+    request.reindex = options.reindex;
+    request.reanalyse = options.reanalyse;
+    request.analyse = options.analyse;
+    request.derive = options.derive || !vfs.DirExists( request.sourceVfsPath );
+    if ( request.derive )
+    {
+        status = GetAssets( packId, request.assets );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            outcome.message = "the assets of the pack cannot be read: " + GetLastErrorMessage();
+            return outcome.status = status;
+        }
+        // the relations the catalogue has, so a derived document keeps them (pack index design 2.12)
+        CAssetCatalogue::TRowVector relationRows;
+        CORE::CDataTableQuery relationQuery;
+        relationQuery.WhereEquals( "pack_id", CORE::CVariant( packId ) );
+        if ( ASSETSTORE_STATUS_OK == m_catalogue.Select( "relations", relationQuery, relationRows ) )
+        {
+            for ( size_t r=0; r<relationRows.size(); ++r )
+            {
+                CAssetRelationRecord relation;
+                relation.fromAssetId = CAssetCatalogue::GetText( relationRows[ r ], "from_asset" );
+                relation.kind = CAssetCatalogue::GetText( relationRows[ r ], "kind" );
+                relation.toAssetId = CAssetCatalogue::GetText( relationRows[ r ], "to_asset" );
+                request.relations.push_back( relation );
+            }
+        }
+    }
+    CIndexPackObserver observer( cancel, options.observer );
+    request.observer = &observer;
+    CAssetPackIndexOutcome built;
+    TAssetStoreStatus hookStatus = ASSETSTORE_STATUS_FAILED;
+    try
+    {
+        hookStatus = hook->BuildPackIndex( request, built );
+    }
+    catch ( ... )
+    {
+        hookStatus = ASSETSTORE_STATUS_FAILED;
+        built.message = "an exception ended the indexing";
+    }
+    if ( ASSETSTORE_STATUS_OK != hookStatus )
+    {
+        outcome = built;
+        outcome.packId = packId;
+        outcome.status = hookStatus;
+        if ( outcome.message.IsNULLOrEmpty() )
+            outcome.message = "the converter could not index the pack";
+        return outcome.status;
+    }
+    const CORE::CString documentPath = built.documentPath.IsNULLOrEmpty() ? indexPath : built.documentPath;
+    CAssetPackIndexOutcome loaded;
+    status = LoadPackIndexDocument( packId, documentPath, options.force || built.built, loaded );
+    outcome = loaded;
+    outcome.packId = packId;
+    outcome.reused = built.reused;
+    outcome.built = built.built;
+    outcome.derived = built.derived;
+    outcome.locked = built.locked;
+    outcome.durationMs = (UInt32) ( (UInt64) CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs() - startedMs );
+    if ( ASSETSTORE_STATUS_OK == status && outcome.loaded && options.notify )
+        NotifyPackIndexUpdated( packId );
+    return outcome.status = status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::IndexPack( const CORE::CString& packId, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome )
+{GUCEF_TRACE;
+
+    return RunIndexPack( packId, options, outcome, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::RunIndexPack( const CORE::CString& packId, const CAssetPackIndexOptions& options, CAssetPackIndexOutcome& outcome, const CORE::CFutureResultSource* cancel )
+{GUCEF_TRACE;
+
+    outcome = CAssetPackIndexOutcome();
+    outcome.packId = packId;
+    CAssetPackRecord pack;
+    const TAssetStoreStatus status = GetPack( packId, pack );
+    if ( ASSETSTORE_STATUS_OK != status )
+    {
+        outcome.message = "there is no pack " + packId + " in the catalogue";
+        return outcome.status = status;
+    }
+    return IndexPackRecord( pack, options, outcome, cancel );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CPrimaryAssetStore::IndexPackAsync( const CORE::CString& packId, const CAssetPackIndexOptions& options )
+{GUCEF_TRACE;
+
+    CPrimaryAssetStoreOperationData* data = GUCEF_NEW CPrimaryAssetStoreOperationData();
+    data->operation = CPrimaryAssetStoreOperationData::OPERATION_INDEX_PACK;
+    data->packId = packId;
+    data->indexOptions = options;
+    return QueueOperation( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** Counts what an outcome of the indexing of one pack says into the report of a run over many */
+void
+CountOutcome( const CAssetPackIndexOutcome& outcome, const CORE::CString& packId, CAssetPackIndexReport& report )
+{GUCEF_TRACE;
+
+    ++report.packsSeen;
+    if ( ASSETSTORE_STATUS_OK == outcome.status )
+    {
+        if ( outcome.derived )
+            ++report.packsDerived;
+        else
+        if ( outcome.built )
+            ++report.packsBuilt;
+        else
+        if ( outcome.loaded )
+            ++report.packsLoaded;
+        else
+            ++report.packsUnchanged;
+        return;
+    }
+    if ( ASSETSTORE_STATUS_UNSUPPORTED == outcome.status || ASSETSTORE_STATUS_UNAVAILABLE == outcome.status )
+        ++report.packsSkipped;
+    else
+        ++report.packsFailed;
+    if ( report.problems.size() < 50 )
+        report.problems.push_back( packId + ": " + outcome.message );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::IndexPacksWithoutIndex( const CAssetPackIndexOptions& options, CAssetPackIndexReport& report )
+{GUCEF_TRACE;
+
+    return RunIndexPacksWithoutIndex( options, report, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::RunIndexPacksWithoutIndex( const CAssetPackIndexOptions& options, CAssetPackIndexReport& report, const CORE::CFutureResultSource* cancel )
+{GUCEF_TRACE;
+
+    report = CAssetPackIndexReport();
+    if ( !m_catalogue.IsOpen() || m_catalogue.GetSchemaVersion() < 4 )
+    {
+        report.message = "the catalogue has no pack index tables (schema version 4)";
+        return report.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    }
+    CORE::CString::StringVector packIds;
+    {
+        MT::CScopeMutex indexLock( m_indexLock );
+        CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+        const TAssetStoreStatus status = loader.GetPacksWithoutIndex( packIds );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            report.message = "the packs without an index cannot be listed: " + m_catalogue.GetLastErrorMessage();
+            return report.status = status;
+        }
+    }
+    for ( size_t p=0; p<packIds.size(); ++p )
+    {
+        if ( GUCEF_NULL != cancel && cancel->IsCancellationRequested() )
+        {
+            report.message = "cancelled";
+            return report.status = ASSETSTORE_STATUS_CANCELLED;
+        }
+        if ( GUCEF_NULL != options.observer )
+            options.observer->OnConversionProgress( (UInt32) p, (UInt32) packIds.size(), packIds[ p ] );
+        CAssetPackIndexOutcome outcome;
+        RunIndexPack( packIds[ p ], options, outcome, cancel );
+        if ( ASSETSTORE_STATUS_CANCELLED == outcome.status )
+        {
+            report.message = "cancelled";
+            return report.status = ASSETSTORE_STATUS_CANCELLED;
+        }
+        CountOutcome( outcome, packIds[ p ], report );
+    }
+    report.message = report.ToSummaryText();
+    return report.status = ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CPrimaryAssetStore::IndexPacksWithoutIndexAsync( const CAssetPackIndexOptions& options )
+{GUCEF_TRACE;
+
+    CPrimaryAssetStoreOperationData* data = GUCEF_NEW CPrimaryAssetStoreOperationData();
+    data->operation = CPrimaryAssetStoreOperationData::OPERATION_INDEX_MISSING;
+    data->indexOptions = options;
+    return QueueOperation( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::ReindexFromStorage( bool buildMissing, const CAssetPackIndexOptions& options, CAssetPackIndexReport& report )
+{GUCEF_TRACE;
+
+    return RunReindexFromStorage( buildMissing, options, report, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::RunReindexFromStorage( bool buildMissing, const CAssetPackIndexOptions& options, CAssetPackIndexReport& report, const CORE::CFutureResultSource* cancel )
+{GUCEF_TRACE;
+
+    report = CAssetPackIndexReport();
+    if ( !m_catalogue.IsOpen() || m_catalogue.GetSchemaVersion() < 4 )
+    {
+        report.message = "the catalogue has no pack index tables (schema version 4)";
+        return report.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    }
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    CORE::CDataTableQuery query;
+    query.Select( "pack_id" );
+    CAssetCatalogue::TRowVector rows;
+    TAssetStoreStatus status = m_catalogue.Select( "packs", query, rows );
+    if ( ASSETSTORE_STATUS_OK != status )
+    {
+        report.message = "the packs cannot be listed: " + m_catalogue.GetLastErrorMessage();
+        return report.status = status;
+    }
+    CORE::CString::StringSet ownedFolders;      // per location, as "location id and a line feed and the folder"
+    for ( size_t r=0; r<rows.size(); ++r )
+    {
+        if ( GUCEF_NULL != cancel && cancel->IsCancellationRequested() )
+        {
+            report.message = "cancelled";
+            return report.status = ASSETSTORE_STATUS_CANCELLED;
+        }
+        const CORE::CString packId = CAssetCatalogue::GetText( rows[ r ], "pack_id" );
+        CAssetPackRecord pack;
+        if ( ASSETSTORE_STATUS_OK != GetPack( packId, pack ) )
+            continue;
+        const CPackStorageLayout layout( pack.rootPath );
+        if ( layout.IsAreaLayout() )
+            ownedFolders.insert( pack.locationId + "\n" + layout.GetPackFolder().Lowercase() );
+        if ( GUCEF_NULL != options.observer )
+            options.observer->OnConversionProgress( (UInt32) r, (UInt32) rows.size(), packId );
+        CAssetPackIndexOutcome outcome;
+        CORE::CString indexPath;
+        if ( AssetPackStateIsIngested( pack.state ) && IsLocationOnline( pack.locationId ) && ASSETSTORE_STATUS_OK == FindPackIndexPath( pack, indexPath ) && vfs.FileExists( indexPath ) )
+        {
+            // the document is the primary store: its rows are written from it again
+            outcome.packId = packId;
+            status = LoadPackIndexDocument( packId, indexPath, options.force, outcome );
+            outcome.status = status;
+            if ( ASSETSTORE_STATUS_OK == status && outcome.loaded && options.notify )
+                NotifyPackIndexUpdated( packId );
+        }
+        else
+        if ( buildMissing && AssetPackStateIsIngested( pack.state ) )
+        {
+            RunIndexPack( packId, options, outcome, cancel );
+            if ( ASSETSTORE_STATUS_CANCELLED == outcome.status )
+            {
+                report.message = "cancelled";
+                return report.status = ASSETSTORE_STATUS_CANCELLED;
+            }
+        }
+        else
+        {
+            outcome.packId = packId;
+            outcome.status = ASSETSTORE_STATUS_UNSUPPORTED;
+            outcome.message = "the pack has no pack index document in the storage";
+        }
+        CountOutcome( outcome, packId, report );
+    }
+
+    // the documents that no pack of the catalogue owns: reported, not loaded
+    const CPrimaryAssetStoreSettings settings = GetSettings();
+    for ( size_t l=0; l<settings.locations.size(); ++l )
+    {
+        const CORE::CString root = GetLocationRoot( settings.locations[ l ].locationId );
+        if ( root.IsNULLOrEmpty() || !IsLocationOnline( settings.locations[ l ].locationId ) )
+            continue;
+        VFS::CVFS::TStringVector folders;
+        vfs.GetDirList( folders, CPackStorageLayout::Join( root, CPackStorageLayout::IntermediateArea ), false, false, CORE::CString::Empty );
+        for ( size_t f=0; f<folders.size(); ++f )
+        {
+            const CORE::CString name = LastFolderName( folders[ f ] );
+            if ( ownedFolders.end() != ownedFolders.find( settings.locations[ l ].locationId + "\n" + name.Lowercase() ) )
+                continue;
+            if ( vfs.FileExists( CPackStorageLayout::Join( CPackStorageLayout::Join( CPackStorageLayout::Join( root, CPackStorageLayout::IntermediateArea ), name ), "pack-index.json" ) ) )
+            {
+                ++report.documentsWithoutPack;
+                if ( report.problems.size() < 50 )
+                    report.problems.push_back( "the folder " + name + " of the location " + settings.locations[ l ].locationId + " has a pack index and no pack of the catalogue owns it" );
+            }
+        }
+    }
+    report.message = report.ToSummaryText();
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Reindex from the storage: " << report.message );
+    return report.status = ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CPrimaryAssetStore::ReindexFromStorageAsync( bool buildMissing, const CAssetPackIndexOptions& options )
+{GUCEF_TRACE;
+
+    CPrimaryAssetStoreOperationData* data = GUCEF_NEW CPrimaryAssetStoreOperationData();
+    data->operation = CPrimaryAssetStoreOperationData::OPERATION_REINDEX_FROM_STORAGE;
+    data->indexOptions = options;
+    data->buildMissing = buildMissing;
+    return QueueOperation( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPrimaryAssetStore::RepairInterruptedIndexes( void )
+{GUCEF_TRACE;
+
+    // a load of a pack index that was interrupted (a backend without transactions) is made again from the document
+    if ( m_catalogue.GetSchemaVersion() < 4 )
+        return;
+    CORE::CString::StringVector packIds;
+    {
+        CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+        if ( ASSETSTORE_STATUS_OK != loader.GetPacksInState( CAssetPackIndexInfo::StateLoading, packIds ) )
+            return;
+    }
+    for ( size_t p=0; p<packIds.size(); ++p )
+    {
+        CAssetPackIndexInfo info;
+        GetPackIndexInfo( packIds[ p ], false, info );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Repairing the pack index of pack " << packIds[ p ] << ": its load was interrupted" );
+        CAssetPackIndexOutcome outcome;
+        const TAssetStoreStatus status = LoadPackIndexDocument( packIds[ p ], info.documentPath, true, outcome );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            MT::CScopeMutex indexLock( m_indexLock );
+            CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+            loader.Remove( packIds[ p ] );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::GetPackIndexInfo( const CORE::CString& packId, bool withManifest, CAssetPackIndexInfo& info )
+{GUCEF_TRACE;
+
+    CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+    const TAssetStoreStatus status = loader.GetInfo( packId, false, info );
+    if ( ASSETSTORE_STATUS_OK != status )
+        return status;
+
+    // where the document is now: the path in the row is where it was when it was loaded, and a location that was relocated or a pack that was
+    // moved to another layout has it elsewhere
+    CAssetPackRecord pack;
+    CORE::CString currentPath;
+    if ( ASSETSTORE_STATUS_OK == GetPack( packId, pack ) && ASSETSTORE_STATUS_OK == FindPackIndexPath( pack, currentPath ) && VFS::CVfsGlobal::Instance()->GetVfs().FileExists( currentPath ) )
+        info.documentPath = currentPath;
+    if ( withManifest && !info.documentPath.IsNULLOrEmpty() )
+        loader.ReadManifest( info.documentPath, info );
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::GetPackIndexGroups( const CORE::CString& packId, TAssetPackGroupVector& groups )
+{GUCEF_TRACE;
+
+    CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+    return loader.GetGroups( packId, groups );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::GetPackIndexResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, TAssetPackResourceVector& resources )
+{GUCEF_TRACE;
+
+    CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+    return loader.GetResources( packId, groupId, subGroup, resources );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::GetPackIndexResource( const CORE::CString& resourceId, CAssetPackResource& resource )
+{GUCEF_TRACE;
+
+    CAssetPackIndexLoader loader( m_catalogue, &m_vocabulary.GetKeywordNormalizer() );
+    return loader.GetResource( resourceId, resource );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1080,7 +2008,36 @@ CPrimaryAssetStore::MakeIngestRequest( const CAssetStoreDownloadJob& job )
     request.itemId = job.itemId;
     request.contentPath = job.destination;
     request.downloadJobId = job.jobId;
+    request.formatId = job.formatId;
+    request.expectedRevision = job.expectedRevision;
+    request.syncJobId = job.syncJobId;
     return request;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::EnqueueDownload( CAssetStoreDownloadManager& downloadManager, const CAssetDownloadRequest& request, CORE::CString& jobId )
+{GUCEF_TRACE;
+
+    const CAssetSourcePolicy policy = GetSettings().GetPolicy( request.providerId );
+    const CORE::CString destination = ChooseDownloadStagingPath( policy.locationId, request.expectedBytes );
+    if ( destination.IsNULLOrEmpty() )
+        return Fail( ASSETSTORE_STATUS_NOT_FOUND, "There is no storage location for downloads of " + request.providerId );
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    if ( !vfs.DirExists( destination ) && !vfs.CreateDir( destination ) )
+        return Fail( ASSETSTORE_STATUS_IO_ERROR, "The staging folder " + destination + " cannot be made" );
+    CAssetStoreDownloadJob job;
+    job.providerId = request.providerId;
+    job.itemId = request.itemId;
+    job.itemTitle = request.itemTitle;
+    job.formatId = request.formatId;
+    job.fileIds = request.fileIds;
+    job.destination = destination;
+    job.forIngest = true;
+    job.expectedRevision = request.expectedRevision;
+    job.syncJobId = request.syncJobId;
+    return downloadManager.Enqueue( job, jobId );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1091,7 +2048,7 @@ CPrimaryAssetStore::EnqueueDownload( CAssetStoreDownloadManager& downloadManager
 {GUCEF_TRACE;
 
     const CAssetSourcePolicy policy = GetSettings().GetPolicy( providerId );
-    const CORE::CString destination = MakeDownloadStagingPath( policy.locationId );
+    const CORE::CString destination = ChooseDownloadStagingPath( policy.locationId, 0 );
     if ( destination.IsNULLOrEmpty() )
         return Fail( ASSETSTORE_STATUS_NOT_FOUND, "There is no storage location for downloads of " + providerId );
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
@@ -1474,11 +2431,122 @@ CPrimaryAssetStore::GetAssetVfsPath( const CORE::CString& assetId, CORE::CString
     status = GetPack( CAssetCatalogue::GetText( rows[ 0 ], "pack_id" ), pack );
     if ( ASSETSTORE_STATUS_OK != status )
         return status;
-    vfsPath = JoinVfs( JoinVfs( GetLocationRoot( pack.locationId ), pack.rootPath ), CAssetCatalogue::GetText( rows[ 0 ], "original_path" ) );
+    vfsPath = CPackStorageLayout( pack.rootPath ).Resolve( GetLocationRoot( pack.locationId ), CAssetCatalogue::GetText( rows[ 0 ], "original_path" ) );
     if ( !IsLocationOnline( pack.locationId ) )
     {
         message = "the storage location " + pack.locationId + " that holds the pack is not reachable";
         return ASSETSTORE_STATUS_UNAVAILABLE;
+    }
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const UInt32 CPrimaryAssetStore::MaxCompanionDepth = 8;
+const UInt32 CPrimaryAssetStore::MaxCompanionFiles = 4096;
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPrimaryAssetStore::IsCompanionRelationKind( const CORE::CString& kind )
+{GUCEF_TRACE;
+
+    return "usesMaterial" == kind || "usesTexture" == kind || "usesMesh" == kind || "usesSkeleton" == kind || "usesAnimation" == kind ||
+           "instancesPrefab" == kind || "dependsOn" == kind || "usesFile" == kind;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CPrimaryAssetStore::GetCompanionFiles( const CORE::CString& assetId, TAssetFileRecordVector& files, UInt32& relationCount, bool& truncated ) const
+{GUCEF_TRACE;
+
+    files.clear();
+    relationCount = 0;
+    truncated = false;
+    if ( assetId.IsNULLOrEmpty() )
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+
+    // the records of the packs met, read once: a pack has many companions of one asset
+    typedef GUCEF::map< CORE::CString, const CAssetRecord* > TAssetIndex;
+    GUCEF::map< CORE::CString, TAssetRecordVector > packAssets;
+    TAssetIndex assetIndex;
+    GUCEF::map< CORE::CString, CAssetPackRecord > packs;
+
+    CORE::CString::StringSet listed;
+    CORE::CString::StringSet visited;
+    visited.insert( assetId );
+    GUCEF::vector< std::pair< CORE::CString, UInt32 > > pending;
+    pending.push_back( std::make_pair( assetId, (UInt32) 0 ) );
+    for ( size_t next=0; next<pending.size(); ++next )
+    {
+        const CORE::CString from = pending[ next ].first;
+        const UInt32 depth = pending[ next ].second;
+        CORE::CDataTableQuery query;
+        query.WhereEquals( "from_asset", CORE::CVariant( from ) );
+        CAssetCatalogue::TRowVector rows;
+        const TAssetStoreStatus status = m_catalogue.Select( "relations", query, rows );
+        if ( ASSETSTORE_STATUS_OK != status )
+            return status;
+        GUCEF::vector< std::pair< CORE::CString, CORE::CString > > edges;      // the canonical order: kind, then target
+        for ( size_t r=0; r<rows.size(); ++r )
+            edges.push_back( std::make_pair( CAssetCatalogue::GetText( rows[ r ], "kind" ), CAssetCatalogue::GetText( rows[ r ], "to_asset" ) ) );
+        std::sort( edges.begin(), edges.end() );
+        for ( size_t r=0; r<edges.size(); ++r )
+        {
+            const CORE::CString& toAsset = edges[ r ].second;
+            if ( !IsCompanionRelationKind( edges[ r ].first ) || toAsset.IsNULLOrEmpty() )
+                continue;
+            ++relationCount;
+            if ( visited.find( toAsset ) != visited.end() )
+                continue;
+            if ( depth + 1 > MaxCompanionDepth || files.size() >= MaxCompanionFiles )
+            {
+                truncated = true;
+                continue;
+            }
+            visited.insert( toAsset );
+
+            // the record of the asset, through the assets of its pack
+            TAssetIndex::const_iterator known = assetIndex.find( toAsset );
+            if ( known == assetIndex.end() )
+            {
+                CORE::CDataTableQuery assetQuery;
+                assetQuery.WhereEquals( "asset_id", CORE::CVariant( toAsset ) );
+                CAssetCatalogue::TRowVector assetRows;
+                if ( ASSETSTORE_STATUS_OK != m_catalogue.Select( "assets", assetQuery, assetRows ) || assetRows.empty() )
+                    continue;
+                const CORE::CString packId = CAssetCatalogue::GetText( assetRows[ 0 ], "pack_id" );
+                if ( packAssets.find( packId ) != packAssets.end() )
+                    continue;                                       // read before, the asset is not in it
+                TAssetRecordVector& assets = packAssets[ packId ];
+                CAssetPackRecord pack;
+                if ( ASSETSTORE_STATUS_OK != GetPack( packId, pack ) || ASSETSTORE_STATUS_OK != GetAssets( packId, assets ) )
+                    continue;
+                packs[ packId ] = pack;
+                for ( size_t a=0; a<assets.size(); ++a )
+                    assetIndex[ assets[ a ].assetId ] = &assets[ a ];
+                known = assetIndex.find( toAsset );
+                if ( known == assetIndex.end() )
+                    continue;
+            }
+            const CAssetRecord& used = *(*known).second;
+            const CAssetPackRecord& usedPack = packs[ used.packId ];
+            const CPackStorageLayout usedLayout( usedPack.rootPath );
+            const CORE::CString usedLocationRoot = GetLocationRoot( usedPack.locationId );
+            for ( size_t f=0; f<used.files.size() && files.size() < MaxCompanionFiles; ++f )
+            {
+                if ( "main" != used.files[ f ].role )
+                    continue;
+                CAssetFileRecord file = used.files[ f ];
+                file.path = usedLayout.Resolve( usedLocationRoot, file.path );
+                if ( !listed.insert( file.path ).second )
+                    continue;
+                file.role = "referenced";
+                files.push_back( file );
+            }
+            pending.push_back( std::make_pair( toAsset, depth + 1 ) );
+        }
     }
     return ASSETSTORE_STATUS_OK;
 }
@@ -1507,7 +2575,7 @@ CPrimaryAssetStore::GetAssetConvertedVfsPath( const CORE::CString& assetId, CORE
     status = GetPack( CAssetCatalogue::GetText( rows[ 0 ], "pack_id" ), pack );
     if ( ASSETSTORE_STATUS_OK != status )
         return status;
-    vfsPath = JoinVfs( JoinVfs( GetLocationRoot( pack.locationId ), pack.rootPath ), convertedPath );
+    vfsPath = CPackStorageLayout( pack.rootPath ).Resolve( GetLocationRoot( pack.locationId ), convertedPath );
     if ( !IsLocationOnline( pack.locationId ) )
     {
         message = "the storage location " + pack.locationId + " that holds the pack is not reachable";
@@ -1550,6 +2618,79 @@ CPrimaryAssetStore::GetPacksAllowingUse( const CORE::CString& restrictionFlag, C
             packIds.insert( packId );
     }
     return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPrimaryAssetStore::GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const
+{GUCEF_TRACE;
+
+    // layout version 2: "<root of the location>/<area>/<folder of the pack>/..." with the areas original, intermediate and the cooked area
+    const CORE::CString locationId = FindLocationOfVfsPath( vfsPath );
+    if ( locationId.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+    const CORE::CString root = GetLocationRoot( locationId );
+    const CORE::CString path = NormalizeVfsPath( vfsPath );
+    if ( path.Length() <= root.Length() + 1 )
+        return CORE::CString::Empty;
+    const CORE::CString relative = path.CutChars( root.Length() + 1, true );
+    const Int32 firstSlash = relative.HasChar( '/', true );
+    if ( firstSlash <= 0 || !CPackStorageLayout::IsAreaName( relative.SubstrFromRange( 0, (UInt32) firstSlash ) ) )
+        return CORE::CString::Empty;
+    CORE::CString folder = relative.CutChars( (UInt32) firstSlash + 1, true );
+    const Int32 secondSlash = folder.HasChar( '/', true );
+    if ( secondSlash > 0 )
+        folder = folder.SubstrFromRange( 0, (UInt32) secondSlash );
+    return folder.IsNULLOrEmpty() ? CORE::CString::Empty : root + "/" + folder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPrimaryAssetStore::GetRestrictionsOfVfsPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const
+{GUCEF_TRACE;
+
+    flags.clear();
+    const CORE::CString locationId = FindLocationOfVfsPath( vfsPath );
+    if ( locationId.IsNULLOrEmpty() )
+        return false;
+    const CORE::CString root = GetLocationRoot( locationId );
+    const CORE::CString path = NormalizeVfsPath( vfsPath );
+    CORE::CString packId;
+    const CORE::CString areaKey = GetPackFolderOfVfsPath( vfsPath );
+    CORE::CDataTableQuery packQuery;
+    packQuery.WhereEquals( "location_id", CORE::CVariant( locationId ) );
+    if ( !areaKey.IsNULLOrEmpty() )
+        packQuery.WhereEquals( "root_path", CORE::CVariant( CPackStorageLayout::MakeRootPath( areaKey.CutChars( root.Length() + 1, true ) ) ) );
+    CAssetCatalogue::TRowVector packs;
+    if ( ASSETSTORE_STATUS_OK != m_catalogue.Select( "packs", packQuery, packs ) )
+        return false;
+    for ( size_t p=0; p<packs.size() && packId.IsNULLOrEmpty(); ++p )
+    {
+        if ( !areaKey.IsNULLOrEmpty() )
+        {
+            packId = CAssetCatalogue::GetText( packs[ p ], "pack_id" );
+            continue;
+        }
+        // a pack of the legacy layout has its folder in the root of the location
+        const CPackStorageLayout layout( CAssetCatalogue::GetText( packs[ p ], "root_path" ) );
+        if ( layout.IsAreaLayout() )
+            continue;
+        const CORE::CString folder = NormalizeVfsPath( layout.GetBrowseFolder( root ) );
+        if ( !folder.IsNULLOrEmpty() && ( path == folder || 0 == path.HasSubstr( folder + "/", true ) ) )
+            packId = CAssetCatalogue::GetText( packs[ p ], "pack_id" );
+    }
+    if ( packId.IsNULLOrEmpty() )
+        return false;
+    CORE::CDataTableQuery facetQuery;
+    facetQuery.WhereEquals( "facet", CORE::CVariant( CORE::CString( "licenceRestriction" ) ) );
+    facetQuery.WhereEquals( "object_id", CORE::CVariant( packId ) );
+    CAssetCatalogue::TRowVector rows;
+    if ( ASSETSTORE_STATUS_OK == m_catalogue.Select( "facets", facetQuery, rows ) )
+        for ( size_t r=0; r<rows.size(); ++r )
+            flags.insert( CAssetCatalogue::GetText( rows[ r ], "value" ) );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1775,7 +2916,8 @@ CPrimaryAssetStore::OperationEnded( void )
 
 void
 CPrimaryAssetStore::NotifyIngestEvent( const CORE::CEvent& eventId, const CORE::CString& ingestId, const CORE::CString& packId,
-                                       TAssetIngestStep step, TAssetStoreStatus status, const CORE::CString& message )
+                                       TAssetIngestStep step, TAssetStoreStatus status, const CORE::CString& message,
+                                       const CORE::CString& downloadJobId )
 {GUCEF_TRACE;
 
     CAssetIngestEventData eventData;
@@ -1784,6 +2926,7 @@ CPrimaryAssetStore::NotifyIngestEvent( const CORE::CEvent& eventId, const CORE::
     eventData.step = AssetIngestStepToString( step );
     eventData.status = AssetStoreStatusToString( status );
     eventData.message = message;
+    eventData.downloadJobId = downloadJobId;
     NotifyObserversFromThread( eventId, &eventData );
 }
 

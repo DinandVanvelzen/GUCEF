@@ -47,6 +47,14 @@
 #include "gucefASSETSTORE_CAssetServiceDocument.h"
 #define GUCEF_ASSETSTORE_CASSETSERVICEDOCUMENT_H
 #endif /* GUCEF_ASSETSTORE_CASSETSERVICEDOCUMENT_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXREQUEST_H
+#include "gucefASSETSTORE_CAssetPackIndexRequest.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXREQUEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXREQUEST_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H
+#include "gucefASSETSTORE_CAssetPackIndexOutcome.h"
+#define GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKINDEXOUTCOME_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -95,7 +103,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetConverterHook
 
     virtual CORE::CString GetName( void ) const = 0;
 
-    /** The folder name of the cook profile below "converted/" */
+    /** The name of the cook profile: the folder of its cooked files in the cooked area (below "converted/" in the earlier layout) */
     virtual CORE::CString GetProfileName( void ) const = 0;
 
     /** Whether the converter has something to do with the asset (a model, a scene or a prefab it has an importer for) */
@@ -133,6 +141,15 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetConverterHook
     virtual TAssetStoreStatus RunPipelineOperation( const CAssetPipelineRequest& request    ,
                                                     CIAssetConversionObserver* observer     ,
                                                     CAssetServiceDocument& result           );
+
+    /**
+     *  Builds the pack index of a pack of the store (the document "pack-index.json" of the pack index design) in the
+     *  intermediate folder of the request, or finds that the stored one is fresh and leaves it (work once: the outcome says
+     *  reused). The store loads the document into the catalogue itself, it cannot read the converter. Runs on the calling
+     *  thread and blocks until it is done, takes cancellation from the observer of the request. ASSETSTORE_STATUS_UNSUPPORTED
+     *  by default: a hook without the operation leaves the packs of the store without an index, the ingest goes on.
+     */
+    virtual TAssetStoreStatus BuildPackIndex( const CAssetPackIndexRequest& request, CAssetPackIndexOutcome& outcome );
 
     private:
 

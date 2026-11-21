@@ -45,6 +45,11 @@
 #define GUCEF_AUTH_CMEMORYCREDENTIALSTORE_H
 #endif /* GUCEF_AUTH_CMEMORYCREDENTIALSTORE_H ? */
 
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETSERVICEOPERATIONS_H
 #include "gucefASSETSTORE_CAssetServiceOperations.h"
 #define GUCEF_ASSETSTORE_CASSETSERVICEOPERATIONS_H
@@ -290,11 +295,75 @@ PerformAssetStoreServiceUnitTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Service settings: the folder of the thumbnails is empty by default (the storage location), set by the key thumbnailsDirectory and kept by the serialised form" )
+        try
+        {
+            CAssetStoreServiceConfig defaults;
+            ASSERT_TRUE( defaults.thumbnailsDirectory.IsNULLOrEmpty() );
+            CDataNode tree;
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{ \"AssetStoreService\": { \"thumbnailsDirectory\": \"/data/thumbnails\" } }", tree ) );
+            const CDataNode* section = tree.FindChild( "AssetStoreService" );
+            ASSERT_TRUE( GUCEF_NULL != section );
+            CDataNodeSerializableSettings serializerSettings;
+            CAssetStoreServiceConfig config;
+            ASSERT_TRUE( config.Deserialize( *section, serializerSettings ) && "/data/thumbnails" == config.thumbnailsDirectory );
+            // a section without the key leaves the default as it is
+            CDataNode withoutKey;
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{ \"AssetStoreService\": { \"resumeIngestsOnStart\": true } }", withoutKey ) );
+            CAssetStoreServiceConfig plain;
+            ASSERT_TRUE( GUCEF_NULL != withoutKey.FindChild( "AssetStoreService" ) && plain.Deserialize( *withoutKey.FindChild( "AssetStoreService" ), serializerSettings ) && plain.thumbnailsDirectory.IsNULLOrEmpty() );
+            // the settings survive their own serialised form
+            CDataNode saved( "AssetStoreService", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( config.Serialize( saved, serializerSettings ) );
+            CAssetStoreServiceConfig again;
+            ASSERT_TRUE( again.Deserialize( saved, serializerSettings ) && "/data/thumbnails" == again.thumbnailsDirectory );
+            // the mount point ends in the folder name that the licence gate recognises as a picture
+            ASSERT_TRUE( CAssetStoreServiceConfig::ThumbnailsVfsRoot.HasSubstr( "/thumbnails" ) >= 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Service settings: the section of the site file sets the automatic policy of a source, the state folder, the queue file, the resume of the ingests and the index after an ingest" )
+        try
+        {
+            CDataNode tree;
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText(
+                "{ \"AssetStoreService\": { \"stateDirectory\": \"/data/state/assetstore\", \"resumeIngestsOnStart\": false, \"ingestResumeAttempts\": 5,\n"
+                "    \"downloads\": { \"queueFilePath\": \"assetstore-state/downloads.json\", \"autoSaveQueue\": true },\n"
+                "    \"primaryStore\": { \"indexAfterIngest\": true, \"sources\": [ { \"sourceId\": \"ExampleStore\", \"mode\": \"automatic\", \"keep\": \"original\" }, { \"sourceId\": \"other\", \"mode\": \"manual\" } ] } } }", tree ) );
+            const CDataNode* section = tree.FindChild( "AssetStoreService" );
+            ASSERT_TRUE( GUCEF_NULL != section );
+            CAssetStoreServiceConfig defaults;
+            ASSERT_TRUE( defaults.stateDirectory.IsNULLOrEmpty() && defaults.resumeIngestsOnStart && 3 == defaults.ingestResumeAttempts && defaults.downloads.queueFilePath.IsNULLOrEmpty() && !defaults.primaryStore.indexAfterIngest );
+            CAssetStoreServiceConfig config;
+            CDataNodeSerializableSettings serializerSettings;
+            ASSERT_TRUE( GUCEF_NULL != section && config.Deserialize( *section, serializerSettings ) );
+            ASSERT_TRUE( "/data/state/assetstore" == config.stateDirectory && !config.resumeIngestsOnStart && 5 == config.ingestResumeAttempts );
+            ASSERT_TRUE( "assetstore-state/downloads.json" == config.downloads.queueFilePath && config.primaryStore.indexAfterIngest );
+            // the policy of a source, by its id in any letter case; a source without one is manual
+            ASSERT_TRUE( ASSETINGEST_MODE_AUTOMATIC == config.primaryStore.GetPolicy( "examplestore" ).mode && ASSETKEEP_ORIGINAL == config.primaryStore.GetPolicy( "examplestore" ).keep );
+            ASSERT_TRUE( ASSETINGEST_MODE_MANUAL == config.primaryStore.GetPolicy( "other" ).mode && ASSETINGEST_MODE_MANUAL == config.primaryStore.GetPolicy( "unlisted" ).mode );
+            // the settings survive their own serialised form
+            CDataNode saved( "AssetStoreService", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( config.Serialize( saved, serializerSettings ) );
+            CAssetStoreServiceConfig again;
+            ASSERT_TRUE( again.Deserialize( saved, serializerSettings ) && again.stateDirectory == config.stateDirectory && 5 == again.ingestResumeAttempts && again.primaryStore.indexAfterIngest );
+            ASSERT_TRUE( ASSETINGEST_MODE_AUTOMATIC == again.primaryStore.GetPolicy( "examplestore" ).mode );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Service seam: the factory of the module makes the local implementation by id; a service without a catalogue says why and still lists its stores" )
         try
         {
             CAssetStoreServiceFactory& factory = CAssetStoreGlobal::Instance()->GetServiceFactory();
-            ASSERT_TRUE( factory.IsConstructible( CAssetStoreServiceConfig::LocalImplementationId ) && !factory.IsConstructible( CAssetStoreServiceConfig::RemoteImplementationId ) );
+            ASSERT_TRUE( factory.IsConstructible( CAssetStoreServiceConfig::LocalImplementationId ) && factory.IsConstructible( CAssetStoreServiceConfig::RemoteImplementationId ) );
             CAssetStoreServiceConfig config;
             config.implementationId.Clear();
             config.primaryStore.database.backendName = "nosuchbackend";
@@ -342,6 +411,7 @@ PerformAssetStoreServiceVfsTablesTests( void )
     target.database.backendOptions.SetAllowMultipleValues( false );
     target.database.backendOptions.Set( "syncWrites", CVariant( "false" ) );
     RunAssetStoreServiceSuite( target );
+    RunAssetStoreServiceRestartSuite( target );
     UnmountDirectory( "svc_vfstables_catalogue" );
 }
 
@@ -360,6 +430,25 @@ PerformAssetStoreServicePostgreSqlTests( void )
             GUCEF_TESTFW_SKIP( "GUCEF_TEST_POSTGRESQL is not set" );
         GUCEF_TESTFW_TESTCASE_END;
         return;
+    }
+
+    {
+        CString reachReason;
+        if ( !IsPostgreSqlReachable( connectionString, reachReason ) )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "AssetStoreServicePostgreSql: the test database cannot be reached: " << reachReason );
+            GUCEF_TESTFW_TESTCASE( "PostgreSQL: the test database can be reached" )
+                try
+                {
+                    ASSERT_TRUE( reachReason.IsNULLOrEmpty() );
+                }
+                catch ( ... )
+                {
+                    ERRORHERE;
+                }
+            GUCEF_TESTFW_TESTCASE_END;
+            return;
+        }
     }
 
     CLocalServiceTarget target;
@@ -389,6 +478,7 @@ PerformAssetStoreServicePostgreSqlTests( void )
     }
     GUCEF_LOG( LOGLEVEL_NORMAL, "AssetStoreServicePostgreSql: testing in schema \"" << schema << "\"" );
     RunAssetStoreServiceSuite( target );
+    RunAssetStoreServiceRestartSuite( target );
 
     // the schema of this run goes
     GUCEF_TESTFW_TESTCASE( "PostgreSQL: the schema of the run of the service suite is dropped" )

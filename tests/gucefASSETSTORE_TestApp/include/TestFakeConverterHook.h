@@ -67,6 +67,17 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
 
     void SetMode( EMode mode );
     void SetVersion( GUCEF::UInt32 version );
+
+    /** What BuildPackIndex() does: not carried out (the default, as a hook without the operation), builds a document, or fails */
+    enum EIndexMode
+    {
+        INDEX_UNSUPPORTED = 0   ,
+        INDEX_BUILD             ,
+        INDEX_FAIL
+    };
+    void SetIndexMode( EIndexMode mode );
+    GUCEF::UInt32 GetIndexCallCount( void ) const;      /**< calls of BuildPackIndex() */
+    GUCEF::UInt32 GetIndexBuildCount( void ) const;     /**< documents it wrote: a call that found the document there builds nothing */
     GUCEF::UInt32 GetCallCount( void ) const;
     GUCEF::UInt32 GetStartedWaitCount( void ) const;
 
@@ -78,12 +89,21 @@ class CTestConverterHook : public GUCEF::ASSETSTORE::CIAssetConverterHook
                                                               GUCEF::ASSETSTORE::CAssetConversionOutcome& outcome       ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool IsConversionStale( const GUCEF::ASSETSTORE::CAssetConversionRecord& recorded, GUCEF::CORE::CString& reason ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** With the mode INDEX_BUILD: the document of the pack from the files of the source folder, or from the assets of the request when it derives; reused when it is there already */
+    virtual GUCEF::ASSETSTORE::TAssetStoreStatus BuildPackIndex( const GUCEF::ASSETSTORE::CAssetPackIndexRequest& request ,
+                                                                 GUCEF::ASSETSTORE::CAssetPackIndexOutcome& outcome       ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
+
+    GUCEF::ASSETSTORE::TAssetStoreStatus MakeIndexDocument( const GUCEF::ASSETSTORE::CAssetPackIndexRequest& request, GUCEF::ASSETSTORE::CAssetPackIndexOutcome& outcome, bool countBuild );
 
     EMode m_mode;
     GUCEF::UInt32 m_version;
     GUCEF::UInt32 m_calls;
     GUCEF::UInt32 m_waits;
+    EIndexMode m_indexMode;
+    GUCEF::UInt32 m_indexCalls;
+    GUCEF::UInt32 m_indexBuilds;
     mutable GUCEF::MT::CMutex m_lock;
 };
 

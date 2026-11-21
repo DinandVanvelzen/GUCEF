@@ -428,6 +428,7 @@ CAssetStoreDownloadManager::Schedule( void )
 {GUCEF_TRACE;
 
     GUCEF::vector< CAssetStoreDownloadJob > started;
+    CORE::CString::StringVector launching;
     {
         MT::CScopeMutex lock( m_lock );
         if ( !m_started || m_stopping )
@@ -452,8 +453,8 @@ CAssetStoreDownloadManager::Schedule( void )
                 break;
             if ( m_settings.maxConcurrentJobsPerProvider > 0 && CountActiveTasks( entry.job.providerId ) >= m_settings.maxConcurrentJobsPerProvider )
                 continue;
-            if ( !LaunchJobTask( entry ) )
-                continue;
+            MarkJobLaunching( entry );
+            launching.push_back( entry.job.jobId );
             started.push_back( entry.job );
 
             const UInt32 running = CountActiveTasks( CORE::CString::Empty );
@@ -464,29 +465,28 @@ CAssetStoreDownloadManager::Schedule( void )
                 m_peakRunningOfProvider = runningOfProvider;
         }
     }
+    // the tasks go to the pool outside the lock (a new pool or worker registers with the pulse generator)
+    for ( size_t l=0; l<launching.size(); ++l )
+    {
+        if ( !QueueJobTask( launching[ l ] ) )
+        {
+            for ( size_t s=0; s<started.size(); ++s )
+                if ( started[ s ].jobId == launching[ l ] )
+                {
+                    started.erase( started.begin() + s );
+                    break;
+                }
+        }
+    }
     for ( size_t s=0; s<started.size(); ++s )
         NotifyJobEvent( JobStateChangedEvent, started[ s ] );
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CAssetStoreDownloadManager::LaunchJobTask( SJobEntry& entry )
+void
+CAssetStoreDownloadManager::MarkJobLaunching( SJobEntry& entry )
 {GUCEF_TRACE;
-
-    CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
-    CORE::ThreadPoolPtr threadPool = taskManager.GetOrCreateThreadPool( m_settings.threadPoolName );
-    if ( threadPool.IsNULL() )
-        return false;
-
-    // a pool has one worker unless asked for more: the jobs run side by side
-    const UInt32 workers = 0 == m_settings.maxConcurrentJobs ? 16 : m_settings.maxConcurrentJobs;
-    if ( threadPool->GetDesiredMinNrOfWorkerThreads() < workers )
-        threadPool->SetDesiredMinNrOfWorkerThreads( workers );
-
-    CAssetStoreDownloadTaskData* data = GUCEF_NEW CAssetStoreDownloadTaskData();
-    data->manager = this;
-    data->jobId = entry.job.jobId;
 
     entry.taskActive = true;
     entry.cancelRequested = false;
@@ -496,18 +496,46 @@ CAssetStoreDownloadManager::LaunchJobTask( SJobEntry& entry )
     entry.job.message.Clear();
     entry.job.updatedAtMs = NowUtcMs();
     ++m_activeTasks;
+}
 
-    CORE::CFutureResult queued = threadPool->QueueTask( CAssetStoreDownloadTaskConsumer::TaskType, data, GUCEF_NULL, true );
-    if ( queued.HasNoFuture() )
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetStoreDownloadManager::QueueJobTask( const CORE::CString& jobId )
+{GUCEF_TRACE;
+
+    CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
+    CORE::ThreadPoolPtr threadPool = taskManager.GetOrCreateThreadPool( m_settings.threadPoolName );
+    CAssetStoreDownloadTaskData* data = GUCEF_NULL;
+    if ( !threadPool.IsNULL() )
     {
-        GUCEF_DELETE data;
-        entry.taskActive = false;
-        entry.job.state = ASSETDOWNLOAD_STATE_QUEUED;
-        --m_activeTasks;
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreDownloadManager: The task of job " << entry.job.jobId << " could not be queued" );
-        return false;
+        // a pool has one worker unless asked for more: the jobs run side by side
+        const UInt32 workers = 0 == m_settings.maxConcurrentJobs ? 16 : m_settings.maxConcurrentJobs;
+        if ( threadPool->GetDesiredMinNrOfWorkerThreads() < workers )
+            threadPool->SetDesiredMinNrOfWorkerThreads( workers );
+        data = GUCEF_NEW CAssetStoreDownloadTaskData();
+        data->manager = this;
+        data->jobId = jobId;
+        CORE::CFutureResult queued = threadPool->QueueTask( CAssetStoreDownloadTaskConsumer::TaskType, data, GUCEF_NULL, true );
+        if ( !queued.HasNoFuture() )
+            return true;
     }
-    return true;
+
+    GUCEF_DELETE data;
+    {
+        MT::CScopeMutex lock( m_lock );
+        TJobMap::iterator i = m_jobs.find( jobId );
+        if ( i != m_jobs.end() && (*i).second->taskActive )
+        {
+            SJobEntry& entry = *(*i).second;
+            entry.taskActive = false;
+            entry.job.state = ASSETDOWNLOAD_STATE_QUEUED;
+            if ( m_activeTasks > 0 )
+                --m_activeTasks;
+        }
+    }
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreDownloadManager: The task of job " << jobId << " could not be queued" );
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -523,6 +551,26 @@ CAssetStoreDownloadManager::Enqueue( const CORE::CString& providerId            
                                      const CORE::CString& itemTitle                 )
 {GUCEF_TRACE;
 
+    CAssetStoreDownloadJob request;
+    request.providerId = providerId;
+    request.itemId = itemId;
+    request.itemTitle = itemTitle;
+    request.formatId = formatId;
+    request.fileIds = fileIds;
+    request.destination = destination;
+    request.forIngest = forIngest;
+    return Enqueue( request, jobId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CAssetStoreDownloadManager::Enqueue( const CAssetStoreDownloadJob& request, CORE::CString& jobId )
+{GUCEF_TRACE;
+
+    const CORE::CString& providerId = request.providerId;
+    const CORE::CString& itemId = request.itemId;
+    const CORE::CString& destination = request.destination;
     if ( itemId.IsNULLOrEmpty() || destination.IsNULLOrEmpty() )
         return ASSETSTORE_STATUS_INVALID_ARGUMENT;
     if ( FindProvider( providerId ).IsNULL() )
@@ -540,11 +588,13 @@ CAssetStoreDownloadManager::Enqueue( const CORE::CString& providerId            
     CAssetStoreDownloadJob& job = entry->job;
     job.providerId = providerId.Lowercase();
     job.itemId = itemId;
-    job.itemTitle = itemTitle;
-    job.formatId = formatId;
-    job.fileIds = fileIds;
+    job.itemTitle = request.itemTitle;
+    job.formatId = request.formatId;
+    job.fileIds = request.fileIds;
     job.destination = destination.ReplaceChar( '\\', '/' );
-    job.forIngest = forIngest;
+    job.forIngest = request.forIngest;
+    job.expectedRevision = request.expectedRevision;
+    job.syncJobId = request.syncJobId;
     job.state = ASSETDOWNLOAD_STATE_QUEUED;
     job.createdAtMs = NowUtcMs();
     job.updatedAtMs = job.createdAtMs;
@@ -1108,6 +1158,9 @@ CAssetStoreDownloadManager::PlanJob( SJobRun& run, CORE::CString& message )
         message = "the store could not plan the download";
         if ( ASSETSTORE_STATUS_SESSION_EXPIRED == status || ASSETSTORE_STATUS_NOT_SIGNED_IN == status )
             message = "sign in again";
+        const CORE::CString problem = run.provider->GetPlanProblem( run.job.itemId, run.job.formatId );
+        if ( !problem.IsNULLOrEmpty() )
+            message += ": " + problem;
         return status;
     }
 }

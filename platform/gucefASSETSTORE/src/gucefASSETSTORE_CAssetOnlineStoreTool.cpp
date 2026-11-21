@@ -242,6 +242,139 @@ CAssetOnlineStoreTool::Compute( COM::CMcpRequestContext& context      ,
         return COM::MCP_EXECUTE_COMPLETE;
     }
 
+    if ( "sync_marks" == m_name )
+    {
+        const CORE::CString storeId = GetStringArgument( arguments, "storeId" );
+        UInt32 offset = 0;
+        if ( !ParseOffset( GetStringArgument( arguments, "cursor" ), offset ) )
+        {
+            m_context.SetError( result, "invalid-arguments", "The cursor is not one this tool gave", false );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        const UInt32 limit = m_context.GetPageLimit( GetUInt32Argument( arguments, "limit", 0 ) );
+        CAssetSyncMarkPage marks;
+        const TAssetStoreStatus status = service.GetSyncMarks( storeId, CIAssetStoreService::MakePageToken( offset ), limit, marks );
+        if ( ASSETSTORE_STATUS_OK != status )
+        {
+            SetStoreError( status, storeId, result );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        CORE::CDataNode* items = document.AddChild( "items", GUCEF_DATATYPE_ARRAY );
+        for ( size_t m=0; m<marks.entries.size(); ++m )
+        {
+            CORE::CDataNode* item = items->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            item->SetAttribute( "itemId", marks.entries[ m ].itemId );
+            item->SetAttribute( "mark", marks.entries[ m ].mark );
+            item->SetAttribute( "markedMs", marks.entries[ m ].markedMs );
+            item->AddChild( MakeUntrusted( "sync-mark-reason", marks.entries[ m ].reason ) )->SetName( "reason" );
+        }
+        document.SetAttribute( "total", marks.total );
+        if ( !marks.nextPageToken.IsNULLOrEmpty() )
+            document.SetAttribute( "nextCursor", "o" + marks.nextPageToken );
+        else
+            SetNull( document, "nextCursor" );
+        SetStructured( result, document );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+
+    if ( "sync_status" == m_name )
+    {
+        // the job: by its id, or the last sync job of the store (one that runs first)
+        CORE::CString jobId = GetStringArgument( arguments, "jobId" );
+        const CORE::CString storeId = GetStringArgument( arguments, "storeId" ).Lowercase();
+        if ( jobId.IsNULLOrEmpty() )
+        {
+            CAssetJobPage jobs;
+            if ( ASSETSTORE_STATUS_OK == service.ListJobs( CORE::CString::Empty, CIAssetStoreService::MaxPageEntries, jobs ) )
+            {
+                UInt64 newest = 0;
+                bool running = false;
+                for ( size_t j=0; j<jobs.entries.size(); ++j )
+                {
+                    const CAssetJobEntry& job = jobs.entries[ j ];
+                    if ( "sync" != job.subKind || ( !storeId.IsNULLOrEmpty() && storeId != job.providerId ) )
+                        continue;
+                    const bool jobRunning = !job.IsEnded();
+                    if ( jobId.IsNULLOrEmpty() || ( jobRunning && !running ) || ( jobRunning == running && job.createdAtMs >= newest ) )
+                    {
+                        jobId = job.jobId;
+                        newest = job.createdAtMs;
+                        running = jobRunning;
+                    }
+                }
+            }
+        }
+        if ( jobId.IsNULLOrEmpty() )
+        {
+            m_context.SetError( result, "not-found", storeId.IsNULLOrEmpty() ? CORE::CString( "Name a jobId or a storeId" ) : "There is no sync job of the store " + storeId, false );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        CAssetJobEntry job;
+        TAssetStoreStatus status = service.GetJob( jobId, job );
+        if ( ASSETSTORE_STATUS_OK != status || "sync" != job.subKind )
+        {
+            m_context.SetError( result, "not-found", "There is no sync job " + jobId, false );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        UInt32 offset = 0;
+        if ( !ParseOffset( GetStringArgument( arguments, "cursor" ), offset ) )
+        {
+            m_context.SetError( result, "invalid-arguments", "The cursor is not one this tool gave", false );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        CORE::CDataNode* jobNode = document.AddChild( "job", GUCEF_DATATYPE_OBJECT );
+        jobNode->SetAttribute( "jobId", job.jobId );
+        jobNode->SetAttribute( "store", job.providerId );
+        jobNode->SetAttribute( "state", CORE::CString( AssetJobStateToString( job.state ) ) );
+        jobNode->SetAttribute( "itemsDone", job.itemsDone );
+        jobNode->SetAttribute( "itemsTotal", job.itemsTotal );
+        SetTextOrNull( *jobNode, "stateText", m_context.GetRedaction().ForResult( job.stateText ) );
+        SetTextOrNull( *jobNode, "message", m_context.GetRedaction().ForResult( job.message ) );
+        CAssetServiceDocument plan;
+        if ( ASSETSTORE_STATUS_OK == service.GetJobResult( jobId, "plan", CORE::CString::Empty, 0, plan ) )
+        {
+            const CORE::CDataNode* planNode = plan.document.FindChild( "plan" );
+            if ( GUCEF_NULL != planNode )
+            {
+                CORE::CDataNode* counts = document.AddChild( "plan", GUCEF_DATATYPE_OBJECT );
+                counts->SetAttribute( "listed", planNode->GetAttributeValueOrChildValueByName( "listed" ).AsUInt32( 0, true ) );
+                counts->SetAttribute( "queuedDownloads", planNode->GetAttributeValueOrChildValueByName( "queuedDownloads" ).AsUInt32( 0, true ) );
+                counts->SetAttribute( "estimatedBytes", planNode->GetAttributeValueOrChildValueByName( "estimatedBytes" ).AsUInt64( 0, true ) );
+                const CORE::CDataNode* byState = planNode->FindChild( "counts" );
+                if ( GUCEF_NULL != byState )
+                    counts->AddChild( *byState );
+                const CORE::CDataNode* storage = planNode->FindChild( "storage" );
+                if ( GUCEF_NULL != storage )
+                    counts->AddChild( *storage );
+            }
+            const CORE::CDataNode* run = plan.document.FindChild( "run" );
+            if ( GUCEF_NULL != run )
+                document.AddChild( *run );
+        }
+        const UInt32 limit = m_context.GetPageLimit( GetUInt32Argument( arguments, "limit", 0 ) );
+        CAssetServiceDocument lines;
+        CORE::CDataNode* items = document.AddChild( "items", GUCEF_DATATYPE_ARRAY );
+        status = service.GetJobResult( jobId, "items", CIAssetStoreService::MakePageToken( offset ), limit, lines );
+        const CORE::CDataNode* lineNodes = ASSETSTORE_STATUS_OK == status ? lines.document.FindChild( "items" ) : GUCEF_NULL;
+        if ( GUCEF_NULL != lineNodes )
+        {
+            for ( CORE::CDataNode::const_iterator l = lineNodes->ConstBegin(); l != lineNodes->ConstEnd(); ++l )
+            {
+                CORE::CDataNode* item = items->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+                item->SetAttribute( "itemId", (*l)->GetAttributeValueOrChildValueByName( "itemId" ).AsString() );
+                item->SetAttribute( "state", (*l)->GetAttributeValueOrChildValueByName( "state" ).AsString() );
+                SetTextOrNull( *item, "reason", (*l)->GetAttributeValueOrChildValueByName( "reason" ).AsString() );
+                item->AddChild( MakeUntrusted( "store-title", (*l)->GetAttributeValueOrChildValueByName( "title" ).AsString() ) )->SetName( "title" );
+            }
+        }
+        if ( !lines.nextPageToken.IsNULLOrEmpty() )
+            document.SetAttribute( "nextCursor", "o" + lines.nextPageToken );
+        else
+            SetNull( document, "nextCursor" );
+        SetStructured( result, document );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+
     // transfer_queue
     UInt32 offset = 0;
     if ( !ParseOffset( GetStringArgument( arguments, "cursor" ), offset ) )

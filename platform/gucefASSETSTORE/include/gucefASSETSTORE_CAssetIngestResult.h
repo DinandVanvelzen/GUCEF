@@ -25,10 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CICLONEABLE_H
-#include "CICloneable.h"
-#define GUCEF_CORE_CICLONEABLE_H
-#endif /* GUCEF_CORE_CICLONEABLE_H ? */
+#ifndef GUCEF_CORE_CIDATANODESERIALIZABLE_H
+#include "gucefCORE_CIDataNodeSerializable.h"
+#define GUCEF_CORE_CIDATANODESERIALIZABLE_H
+#endif /* GUCEF_CORE_CIDATANODESERIALIZABLE_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 #ifndef GUCEF_ASSETSTORE_ETYPES_H
 #include "gucefASSETSTORE_ETypes.h"
 #define GUCEF_ASSETSTORE_ETYPES_H
@@ -53,7 +58,7 @@ namespace ASSETSTORE {
  *  failed), the state of the pack, the step it failed in, the pack it duplicates and the problems it noted. The
  *  result data of CPrimaryAssetStore::IngestAsync() and ResumeIngestAsync().
  */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestResult : public CORE::CICloneable
+class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestResult : public CORE::CIDataNodeSerializable
 {
     public:
 
@@ -69,6 +74,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestResult : public CORE::CICloneable
 
     CAssetIngestResult( void );
     virtual ~CAssetIngestResult() GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

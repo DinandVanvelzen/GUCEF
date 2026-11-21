@@ -30,6 +30,16 @@
 #define GUCEF_CORE_CTFACTORYWITHPARAM_H
 #endif /* GUCEF_CORE_CTFACTORYWITHPARAM_H ? */
 
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
+
+#ifndef GUCEF_CORE_CTIMER_H
+#include "CTimer.h"
+#define GUCEF_CORE_CTIMER_H
+#endif /* GUCEF_CORE_CTIMER_H ? */
+
 #ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
 #include "gucefCORE_CTEventHandlerFunctor.h"
 #define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
@@ -51,6 +61,11 @@
 #include "gucefASSETSTORE_CAssetStoreImageCache.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREIMAGECACHE_H
 #endif /* GUCEF_ASSETSTORE_CASSETSTOREIMAGECACHE_H ? */
+#ifndef GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H
+#include "gucefASSETSTORE_CIAssetStoreInteractiveSignIn.h"
+#define GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H
+#endif /* GUCEF_ASSETSTORE_CIASSETSTOREINTERACTIVESIGNIN_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CIASSETCONVERTERHOOK_H
 #include "gucefASSETSTORE_CIAssetConverterHook.h"
 #define GUCEF_ASSETSTORE_CIASSETCONVERTERHOOK_H
@@ -59,6 +74,16 @@
 #include "gucefASSETSTORE_CIAssetRenderHook.h"
 #define GUCEF_ASSETSTORE_CIASSETRENDERHOOK_H
 #endif /* GUCEF_ASSETSTORE_CIASSETRENDERHOOK_H ? */
+
+#ifndef GUCEF_CORE_CJOBSCHEDULER_H
+#include "gucefCORE_CJobScheduler.h"
+#define GUCEF_CORE_CJOBSCHEDULER_H
+#endif /* GUCEF_CORE_CJOBSCHEDULER_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
+#include "gucefASSETSTORE_CAssetLibrarySyncAdmission.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -76,6 +101,8 @@ namespace ASSETSTORE {
 //-------------------------------------------------------------------------*/
 
 class CLocalAssetStoreServiceOperationTaskConsumer;
+class CSignInWakeup;
+class CAssetLibrarySyncJob;
 
 /**
  *  The asset store service in this process (section 4.4 of the service design): the primary store of the settings, the
@@ -104,9 +131,32 @@ class CLocalAssetStoreServiceOperationTaskConsumer;
  *  otherwise. Thread safe.
  *
  *  Operations without an in-process implementation in this version answer ASSETSTORE_STATUS_UNSUPPORTED with the reason:
- *  thumbnails of the catalogue (the thumbnail store), uploads, sign in prompts (the application signs in to the stores of
- *  its process itself), exports, local copies, curation beyond mappings, synonyms and rules, the keyring, the audit and
- *  the reindex; the pipeline operations and renders answer what the converter hook and the render hook answer.
+ *  thumbnails of the catalogue (the thumbnail store), uploads, exports, local copies, curation beyond mappings, synonyms and
+ *  rules and the audit; the pipeline operations and renders answer what the converter hook and the render hook answer.
+ *
+ *  Sign in (the remote design, section 5.7): BeginSignIn() starts the sign in object of a store (CIAssetStoreProvider::
+ *  GetInteractiveSignIn()), whose steps of a person come as SignInPromptEvent (an address to open, a code to enter) and are
+ *  answered with AnswerPrompt(); the end of the sign in closes its prompts (SignInPromptClosedEvent) and changes the state of
+ *  the store (StoreStateChangedEvent, CAssetStoreInfo::signInState). The sign in objects and the flows of gucefAUTH they use run
+ *  on the thread that pumps the pulse generator of the service: a call from another thread waits for it (a call on that thread
+ *  runs at once). A step that is not answered within CAssetStoreServiceConfig::signInPromptSeconds ends the sign in as failed.
+ *  A store that signs in on its web site needs a browser beside the service, which this version does not have: its sign in answers
+ *  BROWSER_UNAVAILABLE and the store says so in its state. The keyring (UnlockKeyring(), LockKeyring()) is the session of
+ *  CAssetStoreSignInContext::keyringSession; its code is never kept or logged.
+ *
+ *  The pack index (pack index design, section 6): GetPackIndex(), GetResourceGroups() and GetResources() answer from the
+ *  catalogue and the document of the pack; the job "index-pack" (StartPipelineJob() with that operation, of the kind
+ *  "index-pack" in the list of jobs) loads or builds the index of one pack, of every pack without one (argument "missing") or
+ *  of every pack from the documents on the storage (argument "fromStorage", which ReindexFromStorage() starts). The change
+ *  ASSETCHANGE_PACK_INDEX_UPDATED follows every load that changed rows, after ASSETCHANGE_PACK_ADDED for an ingest.
+ *
+ *  The library sync (library sync design): the job "sync-library" (StartPipelineJob() with that operation and a
+ *  CAssetLibrarySyncSpec in the arguments, of the kind "pipeline" and sub kind "sync" in the list of jobs) lists the whole
+ *  library of a store, plans it against the primary store and, in the mode "run", downloads and ingests every format of
+ *  every item that is missing or changed through EnqueueDownload(), a window of items at a time (CAssetLibrarySyncJob).
+ *  It runs on the pulse generator of the service, not on the pool; one sync of a store at a time. CANCEL stops it and
+ *  cancels its downloads that have not finished, RETRY of an ended sync plans again with the items that failed before.
+ *  GetJobResult() gives the plan and the counts (section "plan") and the lines of the items in pages (section "items").
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreService
 {
@@ -132,6 +182,44 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     CPrimaryAssetStore* GetPrimaryStore( void ) const;
     CAssetStoreDownloadManager* GetDownloadManager( void ) const;
     CAssetStoreImageCache* GetImageCache( void ) const;
+
+    /*
+     *  The library sync jobs (CAssetLibrarySyncJob) and the restart: a job reports what a restart needs to go on as a
+     *  checkpoint, which the service keeps in its state file ("syncJobs") with the ledger of the caps per store
+     *  ("syncLedgers"); its work list goes to a file of its own in the state folder. The start of the service restores
+     *  the jobs of the checkpoints (ResumePendingWork()) under their ids. Without a state folder nothing is kept.
+     */
+
+    /** Keeps the checkpoint of a sync job and the ledger of its store; on the thread of the pulse generator */
+    void NoteSyncCheckpoint( const CORE::CString& jobId, const CORE::CString& storeId, const CORE::CDataNode& checkpoint, const CAssetLibrarySyncAdmission::TLedgerVector& ledger );
+
+    /** A sync job ended: its checkpoint and work list file go, the ledger of its store stays */
+    void NoteSyncEnded( const CORE::CString& jobId, const CORE::CString& storeId, const CAssetLibrarySyncAdmission::TLedgerVector& ledger );
+
+    /** The ledger of the caps of a store over its runs, empty when none was kept */
+    CAssetLibrarySyncAdmission::TLedgerVector GetSyncLedger( const CORE::CString& storeId ) const;
+
+    /** The VFS path of the work list file of a sync job, empty when the service keeps no state */
+    CORE::CString GetSyncWorklistPath( const CORE::CString& jobId ) const;
+
+    /*
+     *  The schedule of the library sync (library sync design, section 6.4): a store whose profile is enabled and has a
+     *  schedule (a cron expression in UTC) is a job "sync-library.<store>" of the job scheduler of the service, whose run
+     *  starts the sync of the store with its profile (CAssetLibrarySyncScheduleTaskConsumer). No schedule by default. The end
+     *  of a sync is a NoticeEvent (codes SYNC_DONE, SYNC_FAILED, SYNC_CANCELLED; SYNC_SIGN_IN_NEEDED while one waits).
+     */
+
+    /** The key under which the open service is found by the runs of its schedule; empty while it is not open */
+    const CORE::CString& GetScheduleKey( void ) const;
+
+    /** The job scheduler of the schedules of the library sync; null while no store has a schedule */
+    CORE::JobSchedulerPtr GetSyncScheduler( void ) const;
+
+    /** The id of the job of the schedule of a store */
+    static CORE::CString MakeScheduleJobId( const CORE::CString& storeId );
+
+    /** A run of a schedule: starts the scheduled sync of the store on the open service of the key */
+    static TAssetStoreStatus StartScheduledSync( const CORE::CString& serviceKey, const CORE::CString& storeId, CORE::CString& jobId, CORE::CString& message );
 
     /** Another converter hook (not owned, must outlive the service); GUCEF_NULL takes the converter away */
     void SetConverterHook( CIAssetConverterHook* converterHook );
@@ -186,6 +274,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     virtual TAssetStoreStatus RunSavedSearch( const CORE::CString& searchId, UInt32 pageIndex, CAssetSearchResultPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetAssetFileSet( const CORE::CString& assetId, CAssetFileSet& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetLicence( const CORE::CString& licenceOrPackId, CAssetLicence& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus GetPackIndex( const CORE::CString& packId, bool forLearning, CAssetPackIndexInfo& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus GetResourceGroups( const CORE::CString& packId, bool forLearning, CAssetPackGroupPage& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus GetResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken, UInt32 maxEntries, bool forLearning, CAssetPackResourcePage& result ) GUCEF_VIRTUAL_OVERRIDE;
 
     // Curation
 
@@ -203,6 +294,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     // Thumbnails
 
     virtual TAssetStoreStatus GetThumbnails( const CORE::CString::StringVector& assetIds, UInt32 size, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus PutThumbnail( const CORE::CString& commandId, const CAssetThumbnail& thumbnail, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetMissingThumbnails( const CORE::CString& rendererId, const CORE::CString& rendererVersion, UInt32 size, UInt32 maxEntries, CAssetThumbnailPage& result ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -281,6 +373,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     virtual TAssetStoreStatus GetAuditRecords( const CORE::CString& pageToken, UInt32 maxEntries, CAssetServiceDocument& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus ReindexFromStorage( const CORE::CString& commandId, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus GetResourceStatus( CAssetServiceDocument& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus GetSyncMarks( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries, CAssetSyncMarkPage& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -333,6 +429,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
         UInt32 total;
         TAssetJobState state;
         TAssetStoreStatus status;
+        CORE::CString resultText;
+        UInt32 failedCount;
         CAssetServiceDocument result;
         CORE::CFutureResultSource source;
         Int64 createdAtMs;
@@ -364,6 +462,57 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     };
     typedef GUCEF::map< CORE::CString, SCommand > TCommandMap;
 
+    /** A call of the sign in that is carried out on the thread of the pulse generator */
+    struct SSignInCommand
+    {
+        enum EKind
+        {
+            KIND_BEGIN = 0  ,
+            KIND_ANSWER     ,
+            KIND_CANCEL     ,
+            KIND_SIGN_OUT
+        };
+
+        EKind kind;
+        CORE::CString storeId;
+        CORE::CString promptId;
+        AUTH::CSecretString answer;
+        TAssetStoreStatus status;
+        CORE::CString message;
+        CORE::CString id;
+        MT::CTAtomic< UInt32 > done;
+        MT::CTAtomic< UInt32 > abandoned;
+
+        SSignInCommand( void );
+    };
+    typedef CORE::CTSharedPtr< SSignInCommand, MT::CMutex > TSignInCommandPtr;
+    typedef GUCEF::vector< TSignInCommandPtr > TSignInCommandVector;
+
+    /** A sign in that runs */
+    struct SSignInRun
+    {
+        TAssetStoreProviderPtr provider;
+        CORE::CString storeId;
+        CORE::CString::StringVector promptIds;
+        Int64 expiresMs;                        /**< UTC milliseconds; the step of the person that is not answered by then ends the sign in */
+        UInt32 wrongAnswers;
+
+        SSignInRun( void );
+    };
+    typedef GUCEF::map< CORE::CString, SSignInRun > TSignInRunMap;
+
+    /** What the service knows of the sign in of a store besides what its provider says */
+    struct SStoreSignInInfo
+    {
+        TAssetStoreSignInState state;           /**< of the last sign in that ended: failed, expired or signed out; signed in follows the provider */
+        CORE::CString message;
+        CORE::CString problem;                  /**< why the store cannot sign in here, from CIAssetStoreProvider::ConfigureSignIn() */
+        bool wasSignedIn;
+
+        SStoreSignInInfo( void );
+    };
+    typedef GUCEF::map< CORE::CString, SStoreSignInInfo > TStoreSignInInfoMap;
+
     // events of the parts
     void OnDownloadJobEvent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnDownloadJobProgress( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
@@ -376,10 +525,26 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void OnConversionFinished( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnConversionFailed( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnLocationStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPackIndexUpdated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    TAssetStoreStatus RunIndexPackJob( const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, const CORE::CFutureResultSource& source, CAssetServiceDocument& document );
+    TAssetStoreStatus StartSyncJob( const CORE::CString& commandId, const CAssetPipelineRequest& request, CAssetServiceResult& result );
+    void OnSyncJobChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    CAssetLibrarySyncJob* FindSyncJobLocked( const CORE::CString& key ) const;
+    /** The profile kept for the store, the defaults when none was set */
+    CAssetLibrarySyncProfile GetStoredSyncProfile( const CORE::CString& storeId ) const;
+    /** Makes the sync jobs of the checkpoints of the state file again, under their ids; they go on where they were */
+    void RestoreSyncJobs( void );
+    /** Brings the jobs of the scheduler in line with the profiles: a job per enabled profile with a schedule */
+    void UpdateSyncSchedules( void );
+    void StopSyncSchedules( void );
+    /** The notice of a sync job whose state changed (its end, or the wait for a sign in) */
+    void NoteSyncNotice( const CORE::CString& jobId, const CORE::CString& storeId, TAssetJobState state, TAssetStoreStatus status, const CORE::CString& text );
     void OnProviderAdded( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnProviderRemoved( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnSessionStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnWebSessionEnded( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSignInWake( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSignInTimer( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnImageReady( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     // the jobs
@@ -387,8 +552,28 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void NoteConversion( CORE::CICloneable* eventData, TAssetJobState state );
     SConversion* FindConversionOfEventLocked( const CORE::CString& jobId, const CORE::CString& packId );
     TAssetStoreStatus StartConversionJob( const CORE::CString& packId, CORE::CString& jobId );
-    void IngestFinishedDownload( const CAssetStoreDownloadJob& job );
+    void IngestFinishedDownload( const CAssetStoreDownloadJob& job, bool atStart = false );
+
+    /** The state folder of the settings: mounted in the VFS, true when the service keeps its restart state */
+    bool MountStateDirectory( void );
+    void UnmountStateDirectory( void );
+
+    /** The thumbnails folder of the settings: mounted in the VFS, true when the pictures are kept there instead of in the storage location */
+    bool MountThumbnailsDirectory( void );
+    void UnmountThumbnailsDirectory( void );
+
+    /** Reads the state file: the policies set while the service ran, the downloads that are to be ingested and the resumes that were tried */
+    void LoadServiceState( void );
+
+    /** Writes the state file (when the service keeps one); called after each change of what it holds */
+    void SaveServiceState( void );
+
+    /** After a start: the downloads that finished with no ingest requested are ingested, the staged ingests resume */
+    void ResumePendingWork( void );
     void RunPipelineJob( const CORE::CString& key );
+
+    /** Starts the request of an ended pipeline job again as a job of its own (what the cache holds is kept); with failedOnly, only the assets that failed. Answers the status and the id of the new job */
+    TAssetStoreStatus RestartPipelineJob( const CORE::CString& key, bool failedOnly, CORE::CString& newJobId, CORE::CString& problem );
     void NotePipelineProgress( const CORE::CString& key, UInt32 done, UInt32 total, const CORE::CString& assetPath );
     void MakeDownloadEntry( const CAssetStoreDownloadJob& job, CAssetJobEntry& entry ) const;
     void MakeIngestEntry( const SIngest& ingest, CAssetJobEntry& entry ) const;
@@ -404,6 +589,21 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void WatchProviders( void );
     void MakeStoreInfo( const TAssetStoreProviderPtr& provider, CAssetStoreInfo& info ) const;
     void NotifyStoreState( const CORE::CString& storeId );
+    void ConfigureProviders( void );
+    // the sign in
+    TAssetStoreStatus RunSignInCommand( SSignInCommand::EKind kind, const CORE::CString& storeId, const CORE::CString& promptId, const AUTH::CSecretString& answer, CAssetServiceResult& result );
+    void ExecuteSignInCommand( SSignInCommand& command );
+    void ProcessSignInCommands( void );
+    void BeginSignInOnThread( SSignInCommand& command );
+    void AnswerPromptOnThread( SSignInCommand& command );
+    void CancelSignInOnThread( SSignInCommand& command );
+    void SignOutOnThread( SSignInCommand& command );
+    void PollSignInRuns( void );
+    void EndSignInRun( const CORE::CString& storeId, TAssetStoreSignInState state, const CORE::CString& message );
+    void ClosePrompt( const CORE::CString& promptId );
+    void NoteStoreStatus( const CORE::CString& storeId, TAssetStoreStatus status );
+    void UpdateSignInTimer( void );
+    CORE::CString GetKeyringState( void ) const;
 
     // the journal, the commands and the events
     void RecordChange( TAssetCatalogueChangeKind kind, const CORE::CString& id );
@@ -414,6 +614,19 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     TAssetStoreStatus Refuse( TAssetStoreStatus status, const CORE::CString& message, CAssetServiceResult& result ) const;
     TAssetStoreStatus NeedCatalogue( CORE::CString& message ) const;
     CORE::CFutureResult QueueCall( const CAssetServiceCall& call, const CORE::CString& pipelineJobKey );
+
+    // the stored thumbnails and the licence gate of paths
+    CORE::CString GetThumbnailFolder( void ) const;
+    bool GetThumbnailDigest( const CORE::CString& id, CORE::CString& digest, CORE::CString& message ) const;
+
+    struct SPathRestriction
+    {
+        bool inPack;
+        CORE::CString::StringSet flags;
+        UInt64 revision;
+        SPathRestriction( void ) : inPack( false ), flags(), revision( 0 ) {}
+    };
+    typedef GUCEF::map< CORE::CString, SPathRestriction > TPathRestrictionMap;
     void CallEnded( void );
     void GetLocationInfos( TAssetLocationInfoVector& locations ) const;
 
@@ -433,9 +646,22 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     TIngestVector m_ingests;
     TConversionVector m_conversions;
     TPipelineJobVector m_pipelineJobs;
+    GUCEF::map< CORE::CString, CAssetLibrarySyncJob* > m_syncJobs;    /**< the library syncs by the key of their pipeline job; owned */
+    GUCEF::map< CORE::CString, CAssetLibrarySyncProfile > m_syncProfiles;   /**< the sync profiles of the stores by store id, kept in the state file */
+    GUCEF::map< CORE::CString, CORE::CDataNode > m_syncCheckpoints;         /**< the checkpoints of the sync jobs that did not end, by job key, kept in the state file */
+    GUCEF::map< CORE::CString, CAssetLibrarySyncAdmission::TLedgerVector > m_syncLedgers;  /**< the ledgers of the caps by store id, kept in the state file */
+    CORE::CString m_scheduleKey;
+    CORE::JobSchedulerPtr m_syncScheduler;
+    GUCEF::map< CORE::CString, CORE::CString > m_syncSchedules;          /**< the stores with a schedule job and its cron expression */
+    CORE::CString::StringSet m_syncNoticesRaised;                       /**< "<jobId>|<code>" of the notices raised, once each */
     CORE::CFutureResult m_pendingConversions;
     TRateMap m_rates;
     TAddJobVector m_addJobs;
+    bool m_stateKept;
+    bool m_thumbnailsMounted;
+    GUCEF::vector< CAssetSourcePolicy > m_runtimePolicies;     /**< the policies set through the service, kept in the state file */
+    GUCEF::map< CORE::CString, UInt32 > m_ingestResumes;       /**< per staged ingest: the starts that resumed it, kept in the state file */
+    MT::CMutex m_stateLock;
     UInt32 m_conversionCounter;
     UInt32 m_pipelineCounter;
     CORE::CString::StringSet m_endedSessions;
@@ -447,7 +673,17 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     CORE::CString::StringVector m_commandOrder;
     TThreadId m_ownerThread;
     MT::CTAtomic< UInt32 > m_pendingCalls;
+    TSignInRunMap m_signInRuns;
+    TStoreSignInInfoMap m_signInInfos;
+    TAssetSignInPromptVector m_prompts;
+    TSignInCommandVector m_signInQueue;
+    CORE::CString::StringSet m_configuredProviders;
+    UInt32 m_promptCounter;
+    CSignInWakeup* m_signInWakeup;
+    CORE::CTimer* m_signInTimer;
     mutable MT::CMutex m_lock;
+    mutable MT::CMutex m_restrictionLock;
+    mutable TPathRestrictionMap m_pathRestrictions;
 };
 
 /** The factory of the in-process implementation, registered under "local" by CAssetStoreGlobal */

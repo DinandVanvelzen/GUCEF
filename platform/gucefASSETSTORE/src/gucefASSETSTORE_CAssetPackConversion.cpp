@@ -471,8 +471,9 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
         return FailOutcome( outcome, ASSETSTORE_STATUS_UNAVAILABLE, "the storage location " + pack.locationId + " that holds the pack is not reachable" );
 
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
-    const CORE::CString packRoot = JoinVfs( m_store.GetLocationRoot( pack.locationId ), pack.rootPath );
-    const CORE::CString originalFolder = JoinVfs( packRoot, "original" );
+    const CPackStorageLayout layout( pack.rootPath );
+    const CORE::CString locationRoot = m_store.GetLocationRoot( pack.locationId );
+    const CORE::CString originalFolder = layout.GetOriginalFolder( locationRoot );
     if ( !vfs.DirExists( originalFolder ) )
         return FailOutcome( outcome, ASSETSTORE_STATUS_UNSUPPORTED, "the pack is referenced in place: its converted files would have to go into the folder of the pack, which the store does not write to" );
 
@@ -498,10 +499,15 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
     CAssetConversionRequest request;
     request.pack = pack;
     request.sourceVfsPath = originalFolder;
-    request.sourcePrefix = "original/";
+    request.sourcePrefix = layout.GetOriginalPrefix() + "/";
     const CORE::CString profile = hook->GetProfileName();
-    request.convertedVfsFolder = JoinVfs( packRoot, "converted/" + profile );
-    request.convertedPathPrefix = "converted/" + profile;
+    request.convertedVfsFolder = layout.GetIntermediateFolder( locationRoot, profile );
+    request.convertedPathPrefix = layout.GetIntermediatePrefix( profile );
+    if ( layout.IsAreaLayout() )
+    {
+        request.cookedVfsFolder = layout.GetCookedFolder( locationRoot, profile );
+        request.cookedPathPrefix = layout.GetCookedPrefix( profile );
+    }
     CStoredPackObserver observer( m_store, outcome.jobId, packId, m_cancel );
     request.observer = &observer;
     request.reconvert = false;
@@ -559,7 +565,7 @@ CAssetPackConversion::Convert( const CORE::CString& packId, CAssetConversionOutc
                 continue;
             removedAssetIds.insert( updatedAssets[ a ].assetId );
             for ( size_t f=0; f<updatedAssets[ a ].files.size(); ++f )
-                removedPaths.push_back( JoinVfs( packRoot, updatedAssets[ a ].files[ f ].path ) );
+                removedPaths.push_back( layout.Resolve( locationRoot, updatedAssets[ a ].files[ f ].path ) );
             updatedAssets[ a ].files.clear();
         }
     }

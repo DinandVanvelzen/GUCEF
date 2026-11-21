@@ -28,6 +28,10 @@
 #include "gucefASSETSTORE_CAssetVocabulary.h"
 #define GUCEF_ASSETSTORE_CASSETVOCABULARY_H
 #endif /* GUCEF_ASSETSTORE_CASSETVOCABULARY_H ? */
+#ifndef GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#include "gucefASSETSTORE_CPackStorageLayout.h"
+#define GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
+#endif /* GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H ? */
 #include "gucefASSETSTORE_CAssetSearchEngine.h"
 
 /*-------------------------------------------------------------------------//
@@ -390,6 +394,27 @@ CAssetSearchEngine::Search( const CAssetSearchQuery& query, const TLocationState
             Intersect( assetFilter, familyAssets, hasAssetFilter );
     }
 
+    // the groups of the pack index: the assets that are resources of them
+    if ( !query.groups.empty() || !query.subGroups.empty() )
+    {
+        TIdSet ids;
+        if ( m_catalogue.GetSchemaVersion() >= 4 )
+        {
+            CORE::CDataTableQuery groupQuery;
+            groupQuery.Select( "asset_id" );
+            if ( !query.groups.empty() )
+                groupQuery.WhereIn( "group_id", ToVariants( query.groups ) );
+            if ( !query.subGroups.empty() )
+                groupQuery.WhereIn( "sub_group", ToVariants( query.subGroups ) );
+            if ( !query.packIds.empty() )
+                groupQuery.WhereIn( "pack_id", ToVariants( query.packIds ) );
+            if ( ASSETSTORE_STATUS_OK != ( status = SelectIds( "pack_resources", groupQuery, "asset_id", ids ) ) )
+                return status;
+            ids.erase( CORE::CString::Empty );
+        }
+        Intersect( assetFilter, ids, hasAssetFilter );
+    }
+
     // the filters on packs
     TIdSet packFilter;
     bool hasPackFilter = false;
@@ -628,7 +653,7 @@ CAssetSearchEngine::Search( const CAssetSearchQuery& query, const TLocationState
         TLocationStateMap::const_iterator location = locations.find( locationId );
         const CORE::CString locationRoot = location == locations.end() ? CORE::CString::Empty : (*location).second.vfsRoot;
         const bool online = location != locations.end() && (*location).second.online;
-        const CORE::CString packRoot = JoinVfsPath( locationRoot, CAssetCatalogue::GetText( pack, "root_path" ) );
+        const CPackStorageLayout layout( CAssetCatalogue::GetText( pack, "root_path" ) );
 
         if ( packsMode )
         {
@@ -648,7 +673,7 @@ CAssetSearchEngine::Search( const CAssetSearchQuery& query, const TLocationState
             scored.hit.ingestedAtMs = CAssetCatalogue::GetInt( pack, "ingested_ms" );
             const CORE::CString::StringSet categories = CAssetCatalogue::SplitSet( CAssetCatalogue::GetText( pack, "categories" ) );
             scored.hit.categoryId = categories.empty() ? CORE::CString::Empty : *categories.begin();
-            scored.hit.vfsPath = packRoot;
+            scored.hit.vfsPath = layout.GetBrowseFolder( locationRoot );
             scored.hit.score = scores[ (*a).first ];
             scored.hit.sourceId = CAssetCatalogue::GetText( pack, "source_id" );
             scored.hit.seller = CAssetCatalogue::GetText( pack, "seller" );
@@ -685,7 +710,7 @@ CAssetSearchEngine::Search( const CAssetSearchQuery& query, const TLocationState
         scored.hit.packTitle = CAssetCatalogue::GetText( pack, "title" );
         scored.hit.licenceClass = CAssetCatalogue::GetText( pack, "licence_class" );
         scored.hit.locationId = locationId;
-        scored.hit.vfsPath = JoinVfsPath( packRoot, CAssetCatalogue::GetText( asset, "original_path" ) );
+        scored.hit.vfsPath = layout.Resolve( locationRoot, CAssetCatalogue::GetText( asset, "original_path" ) );
         scored.hit.available = online;
         scored.hit.score = scores[ (*a).first ];
         scored.hit.sizeBytes = CAssetCatalogue::GetInt( asset, "size_bytes" );

@@ -66,6 +66,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetJobEntry : public CORE::CIDataNodeSerial
     CORE::CString kind;                   /**< "download", "ingest", "conversion", "pipeline", "verification", "upload", "fetch" */
     CORE::CString name;                   /**< what the person knows it by */
     CORE::CString detail;                 /**< a second line: where it comes from, what it is for */
+    CORE::CString scope;                  /**< what the job works on, in words: a pack, a folder, an asset filter; empty when not known */
+    CORE::CString subKind;                /**< what the job does within its kind: "convert", "cook", "validate", "index", "analyse" of a pipeline job; empty for the kind itself */
+    CORE::CString resultText;             /**< the outcome in words once the job ended ("12 converted, 2 failed"); empty before and when there is nothing to say */
     TAssetJobState state;
     CORE::CString stateText;              /**< the state in words of the service ("planning", an ingest step); empty for the standard word */
     CORE::CString message;                /**< why it failed, or a note; never holds a secret */

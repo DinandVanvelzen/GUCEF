@@ -77,12 +77,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetThumbnail : public CORE::CIDataNodeSeria
     CORE::CString assetId;
     CAssetThumbnailKey key;
     CORE::CString url;               /**< the address of a listing picture */
+    CORE::CString vfsPath;           /**< the VFS path of the stored picture of a thumbnail of the catalogue: the client reads it like any other file of the service */
     UInt32 size;                     /**< the size asked for: the most pixels on the longest side */
     CORE::CString kind;              /**< "thumbnail", "sheet", "listing" */
     TAssetStoreStatus status;
     CORE::CString message;           /**< what went wrong, empty on success */
     IMAGE::TPixelMapPtr pixels;      /**< 8 bit RGBA, null without a picture; not serialised */
-    CORE::CDynamicBuffer encoded;    /**< PNG bytes when the producer has them; not serialised */
+    CORE::CDynamicBuffer encoded;    /**< PNG bytes when the producer has them; serialised (base64) only when a picture is sent to the service (PutThumbnail) */
 
     CAssetThumbnail( void );
     virtual ~CAssetThumbnail() GUCEF_VIRTUAL_OVERRIDE;

@@ -55,6 +55,8 @@ CAssetFileSet::CAssetFileSet( void )
     , convertedMessage()
     , files()
     , totalBytes( 0 )
+    , relationCount( 0 )
+    , companionsTruncated( false )
 {GUCEF_TRACE;
 
 }
@@ -95,6 +97,9 @@ CAssetFileSet::Serialize( CORE::CDataNode& domRootNode                        ,
     for ( size_t i=0; GUCEF_NULL != filesNode && i<files.size(); ++i )
         success = files[ i ].Serialize( *filesNode->AddChild( "file", GUCEF_DATATYPE_OBJECT ), settings ) && success;
     success = domRootNode.SetAttribute( "totalBytes", totalBytes ) && success;
+    success = domRootNode.SetAttribute( "relationCount", relationCount ) && success;
+    if ( companionsTruncated )
+        success = domRootNode.SetAttribute( "companionsTruncated", true ) && success;
     return success;
 }
 
@@ -132,6 +137,8 @@ CAssetFileSet::Deserialize( const CORE::CDataNode& domRootNode                  
         }
     }
     totalBytes = domRootNode.GetAttributeValueOrChildValueByName( "totalBytes" ).AsUInt64( totalBytes, true );
+    relationCount = domRootNode.GetAttributeValueOrChildValueByName( "relationCount" ).AsUInt32( relationCount, true );
+    companionsTruncated = domRootNode.GetAttributeValueOrChildValueByName( "companionsTruncated" ).AsBool( false, true );
     return true;
 }
 

@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSessionEndedCheck moved to gucefWEB, header gucefWEB_CWebSessionEndedCheck.h, name GUCEF::WEB::CWebSessionEndedCheck.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONENDEDCHECK_H
 #define GUCEF_ASSETSTORE_CWEBSESSIONENDEDCHECK_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_ASSETSTORE_CIWEBSESSIONENDEDCHECK_H
-#include "gucefASSETSTORE_CIWebSessionEndedCheck.h"
-#define GUCEF_ASSETSTORE_CIWEBSESSIONENDEDCHECK_H
-#endif /* GUCEF_ASSETSTORE_CIWEBSESSIONENDEDCHECK_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H
-#include "gucefASSETSTORE_CWebLoginScript.h"
-#define GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H
-#endif /* GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H ? */
+#ifndef GUCEF_WEB_CWEBSESSIONENDEDCHECK_H
+#include "gucefWEB_CWebSessionEndedCheck.h"
+#define GUCEF_WEB_CWEBSESSIONENDEDCHECK_H
+#endif /* GUCEF_WEB_CWEBSESSIONENDEDCHECK_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,39 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  The default CIWebSessionEndedCheck: the session ended when the store answers with one of the status codes (401 by
- *  default), or redirects (a 3xx with a Location) to an address that matches the redirect pattern, such as its login
- *  page. Configure() takes both from the `sessionEnded` part of a login script.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionEndedCheck : public CIWebSessionEndedCheck
-{
-    public:
-
-    CWebSessionEndedCheck( void );
-    virtual ~CWebSessionEndedCheck() GUCEF_VIRTUAL_OVERRIDE;
-
-    /** The status codes and the redirect pattern of the script; 401 when it gives no status codes */
-    void Configure( const CWebLoginScript& script );
-
-    void SetStatusCodes( const CWebLoginScript::TUInt32Vector& statusCodes );
-    const CWebLoginScript::TUInt32Vector& GetStatusCodes( void ) const;
-
-    /** The pattern (* for any text) of an address a redirect goes to when the session ended; empty for none */
-    void SetRedirectPattern( const CORE::CString& pattern );
-    const CORE::CString& GetRedirectPattern( void ) const;
-
-    virtual bool IsSessionEnded( const WEB::CHttpResponseData& response ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    private:
-
-    CWebLoginScript::TUInt32Vector m_statusCodes;
-    CORE::CString m_redirectPattern;
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CWebSessionEndedCheck;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

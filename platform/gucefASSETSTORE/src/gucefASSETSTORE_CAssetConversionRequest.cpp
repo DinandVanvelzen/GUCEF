@@ -45,6 +45,8 @@ CAssetConversionRequest::CAssetConversionRequest( void )
     , sourcePrefix()
     , convertedVfsFolder()
     , convertedPathPrefix()
+    , cookedVfsFolder()
+    , cookedPathPrefix()
     , observer( GUCEF_NULL )
     , reconvert( false )
 {GUCEF_TRACE;

@@ -156,6 +156,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreDownloadManager : public CORE::CTSG
                                CORE::CString& jobId                           ,
                                const CORE::CString& itemTitle = CORE::CString::Empty );
 
+    /**
+     *  Adds a job to the queue as the other form does, from the members of a job: providerId, itemId, itemTitle, formatId,
+     *  fileIds, destination, forIngest and the members of the library sync (expectedRevision, syncJobId), which the job keeps
+     *  in the queue file and gives to the ingest
+     */
+    TAssetStoreStatus Enqueue( const CAssetStoreDownloadJob& request, CORE::CString& jobId );
+
     /** A queued job waits; a running job stops its transfer and keeps its ".part" files */
     TAssetStoreStatus Pause( const CORE::CString& jobId );
 
@@ -233,7 +240,11 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreDownloadManager : public CORE::CTSG
 
     void Initialize( void );
     void Schedule( void );
-    bool LaunchJobTask( SJobEntry& entry );
+    /** Marks a queued job as launching (under the lock of the manager) */
+    void MarkJobLaunching( SJobEntry& entry );
+
+    /** Queues the task of a job marked launching, without the lock of the manager: making a pool or a worker registers with the pulse generator, whose thread may wait for that lock. Puts the job back in the queue when it cannot be queued */
+    bool QueueJobTask( const CORE::CString& jobId );
 
     void RunJob( const CORE::CString& jobId );
     void OnJobTaskEnded( const CORE::CString& jobId );

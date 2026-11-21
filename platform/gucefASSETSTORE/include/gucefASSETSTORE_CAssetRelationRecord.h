@@ -57,7 +57,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetRelationRecord : public CORE::CIDataNode
     public:
 
     CORE::CString fromAssetId;
-    CORE::CString kind;                          /**< "uses-texture", "uses-material", "uses-model", "fits-skeleton" */
+    CORE::CString kind;                          /**< the kinds of the normalized relations: "usesTexture", "usesMaterial", "usesMesh", "instancesPrefab", "usesFile", ... (converter design 5.8.2) */
     CORE::CString toAssetId;
 
     CAssetRelationRecord( void );

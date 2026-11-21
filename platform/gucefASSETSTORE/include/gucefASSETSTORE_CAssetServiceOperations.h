@@ -79,6 +79,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     static const CORE::CString RunSavedSearch;              /**< "Catalogue/RunSavedSearch" */
     static const CORE::CString GetAssetFileSet;             /**< "Catalogue/GetAssetFileSet" */
     static const CORE::CString GetLicence;                  /**< "Catalogue/GetLicence" */
+    static const CORE::CString GetPackIndex;                /**< "Catalogue/GetPackIndex": the pack index of a pack (identity, profile, licence flags, counts, groups, index key, state) */
+    static const CORE::CString GetResourceGroups;           /**< "Catalogue/GetResourceGroups": the group summaries of the pack index of a pack */
+    static const CORE::CString GetResources;                /**< "Catalogue/GetResources": a page of the resources of a pack index, of a group or sub-group */
 
     // Curation
     static const CORE::CString UpdatePackMetadata;          /**< "Curation/UpdatePackMetadata" */
@@ -102,6 +105,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     static const CORE::CString ListDirectory;               /**< "Files/List" */
     static const CORE::CString ReadFileBlock;               /**< "Files/Read" */
     static const CORE::CString BeginUpload;                 /**< "Files/BeginUpload" */
+    static const CORE::CString BeginUploadFiles;            /**< "Files/BeginUploadFiles": an upload with its file list (paths, sizes, SHA-256 digests) */
     static const CORE::CString WriteUploadBlock;            /**< "Files/WriteUpload" */
     static const CORE::CString QueryUpload;                 /**< "Files/QueryUpload" */
     static const CORE::CString CommitUpload;                /**< "Files/CommitUpload" */
@@ -159,6 +163,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     static const CORE::CString GetAuditRecords;             /**< "Admin/GetAuditRecords" */
     static const CORE::CString ReindexFromStorage;          /**< "Admin/ReindexFromStorage" */
     static const CORE::CString GetResourceStatus;           /**< "Admin/GetResourceStatus" */
+
+    // Sync (the library sync; its runs are the pipeline job "sync-library")
+    static const CORE::CString GetSyncMarks;                /**< "Sync/GetMarks": a page of the ignore and pin marks of a store */
+    static const CORE::CString SetSyncMarks;                /**< "Sync/SetMarks": sets or removes marks of items of a store */
+    static const CORE::CString GetSyncProfile;              /**< "Sync/GetProfile": the sync profile of a store, the defaults when none was set */
+    static const CORE::CString SetSyncProfile;              /**< "Sync/SetProfile": replaces the sync profile of a store */
 
     /** Whether the operation changes something and carries a command id */
     static bool IsMutation( const CORE::CString& operation );

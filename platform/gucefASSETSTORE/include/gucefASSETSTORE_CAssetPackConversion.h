@@ -63,7 +63,7 @@ class CPrimaryAssetStore;
  *  what a hook's outcome does to the state of the pack.
  *
  *  Convert() takes the pack as it is placed, "<pack root>/original", has the converter hook convert it into
- *  "<pack root>/converted/<profile>" and then, in one transaction where the backend has them, writes the converted
+ *  the intermediate folder of the pack (CPackStorageLayout) and then, in one transaction where the backend has them, writes the converted
  *  paths and formats of the assets, the format facets, the conversion record, the state of the pack and an entry of
  *  the ingest history. A keep policy of "converted" removes the originals of the converted assets after that (and their
  *  file rows), and only when the conversion ended without errors. A pack that was converted before and now fails or is

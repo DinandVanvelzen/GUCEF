@@ -78,6 +78,8 @@ CAssetSearchQuery::CAssetSearchQuery( void )
     , packStates()
     , unclassified( false )
     , packIds()
+    , groups()
+    , subGroups()
     , resultKind( "assets" )
     , sort( "relevance" )
     , pageIndex( 0 )
@@ -144,6 +146,8 @@ CAssetSearchQuery::Serialize( CORE::CDataNode& domRootNode                      
     success = domRootNode.SetValuesOfChildByName( "packStates", packStates ) && success;
     success = domRootNode.SetAttribute( "unclassified", unclassified ) && success;
     success = domRootNode.SetValuesOfChildByName( "packIds", packIds ) && success;
+    success = domRootNode.SetValuesOfChildByName( "groups", groups ) && success;
+    success = domRootNode.SetValuesOfChildByName( "subGroups", subGroups ) && success;
     success = domRootNode.SetAttribute( "resultKind", resultKind ) && success;
     success = domRootNode.SetAttribute( "sort", sort ) && success;
     success = domRootNode.SetAttribute( "pageIndex", pageIndex ) && success;
@@ -207,6 +211,10 @@ CAssetSearchQuery::Deserialize( const CORE::CDataNode& domRootNode              
     unclassified = domRootNode.GetAttributeValueOrChildValueByName( "unclassified" ).AsBool( defaults.unclassified, true );
     packIds.clear();
     domRootNode.GetValuesOfChildByName( "packIds", packIds );
+    groups.clear();
+    domRootNode.GetValuesOfChildByName( "groups", groups );
+    subGroups.clear();
+    domRootNode.GetValuesOfChildByName( "subGroups", subGroups );
     resultKind = domRootNode.GetAttributeValueOrChildValueByName( "resultKind" ).AsString( defaults.resultKind );
     sort = domRootNode.GetAttributeValueOrChildValueByName( "sort" ).AsString( defaults.sort );
     pageIndex = domRootNode.GetAttributeValueOrChildValueByName( "pageIndex" ).AsInt64( defaults.pageIndex, true );

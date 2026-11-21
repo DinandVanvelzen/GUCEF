@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSessionSignInTaskConsumer moved to gucefAUTH, header gucefAUTH_CWebSessionSignInTaskConsumer.h, name GUCEF::AUTH::CWebSessionSignInTaskConsumer.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefAUTH header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKCONSUMER_H
 #define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKCONSUMER_H
 
@@ -25,18 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CTASKCONSUMER_H
-#include "gucefCORE_CTaskConsumer.h"
-#define GUCEF_CORE_CTASKCONSUMER_H
-#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
-#ifndef GUCEF_CORE_CTFACTORY_H
-#include "CTFactory.h"
-#define GUCEF_CORE_CTFACTORY_H
-#endif /* GUCEF_CORE_CTFACTORY_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKDATA_H
-#include "gucefASSETSTORE_CWebSessionSignInTaskData.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKDATA_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKDATA_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H
+#include "gucefAUTH_CWebSessionSignInTaskConsumer.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNINTASKCONSUMER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,29 +47,13 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** The task consumer that runs CWebSessionSignIn::SignInAsync() on a pool thread */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionSignInTaskConsumer : public CORE::CTaskConsumer
-{
-    public:
-
-    static const CORE::CString TaskType;
-
-    CWebSessionSignInTaskConsumer( void );
-    virtual ~CWebSessionSignInTaskConsumer() GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual void OnTaskEnded( CORE::CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-};
-
-/*-------------------------------------------------------------------------*/
-
-typedef CORE::CTFactory< CORE::CTaskConsumer, CWebSessionSignInTaskConsumer, MT::CMutex > TWebSessionSignInTaskConsumerFactory;
+/* deprecated: use the names of GUCEF::AUTH */
+using AUTH::CWebSessionSignInTaskConsumer;
+using AUTH::TWebSessionSignInTaskConsumerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

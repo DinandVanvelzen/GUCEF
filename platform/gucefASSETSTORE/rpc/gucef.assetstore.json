@@ -1,0 +1,48 @@
+{
+    "contract": "gucef.assetstore",
+    "version": "1.0",
+    "doc": "The asset store as a remote service: every operation of the service interface as a generic call, its result as the DataNode form of the record",
+    "types": [
+        {
+            "name": "CallRequest",
+            "doc": "One call of the asset store service: the operation of CAssetServiceOperations, the command id of a mutation and the arguments by parameter name",
+            "fields": [
+                { "number": 1, "name": "operation", "type": "string" },
+                { "number": 2, "name": "commandId", "type": "string" },
+                { "number": 3, "name": "args", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "CallAnswer",
+            "doc": "The answer of a call: the status name, a message for people, the result record and the event sequence after the call",
+            "fields": [
+                { "number": 1, "name": "status", "type": "string" },
+                { "number": 2, "name": "message", "type": "string" },
+                { "number": 3, "name": "result", "type": "datanode" },
+                { "number": 4, "name": "eventSeq", "type": "uint64" },
+                { "number": 5, "name": "replayed", "type": "bool" }
+            ]
+        },
+        {
+            "name": "SecretRequest",
+            "doc": "A call that carries a secret: the answer of a sign in prompt, the code of the keyring",
+            "fields": [
+                { "number": 1, "name": "operation", "type": "string" },
+                { "number": 2, "name": "commandId", "type": "string" },
+                { "number": 3, "name": "target", "type": "string" },
+                { "number": 4, "name": "secret", "type": "string", "sensitive": true }
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "Service",
+            "number": 1,
+            "methods": [
+                { "number": 1, "name": "Query", "kind": "unary", "request": "CallRequest", "response": "CallAnswer", "flags": [ "idempotent" ], "deadlineMs": 60000 },
+                { "number": 2, "name": "Command", "kind": "unary", "request": "CallRequest", "response": "CallAnswer", "deadlineMs": 600000 },
+                { "number": 3, "name": "Secret", "kind": "unary", "request": "SecretRequest", "response": "CallAnswer", "flags": [ "sensitive" ], "deadlineMs": 60000 }
+            ]
+        }
+    ]
+}

@@ -68,6 +68,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreDownloadJob : public CORE::CIDataNo
     CORE::CString::StringVector fileIds;    /**< the files asked for, empty for every file of the format */
     CORE::CString destination;              /**< a VFS folder */
     bool forIngest;
+    CORE::CString expectedRevision;         /**< the tagged effective revision the library sync planned with, carried to the ingest; empty for a manual download */
+    CORE::CString syncJobId;                /**< the library sync job that queued it, empty for a manual download */
     TAssetDownloadJobState state;
     TAssetStoreStatus status;               /**< why the job failed, OK otherwise */
     CORE::CString message;                  /**< for people, never holds a secret */

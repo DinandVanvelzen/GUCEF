@@ -255,6 +255,9 @@ PerformNormalisationTests( void )
     GUCEF_TESTFW_TESTCASE( "Name hints: kinds, formats, texture roles, levels of detail and collision meshes from names" )
         try
         {
+            // the archives of a pack that its content is read from: the packages of the engines and of the character tools too
+            ASSERT_TRUE( CAssetNameHints::IsArchiveExtension( "zip" ) && CAssetNameHints::IsArchiveExtension( "UnityPackage" ) && CAssetNameHints::IsArchiveExtension( "MHPKG" ) );
+            ASSERT_FALSE( CAssetNameHints::IsArchiveExtension( "fbx" ) || CAssetNameHints::IsArchiveExtension( CString::Empty ) );
             ASSERT_TRUE( CAssetNameHints::GuessKind( "Meshes/SK_Hero.fbx" ) == "skeletal-model" );
             ASSERT_TRUE( CAssetNameHints::GuessKind( "Meshes/SM_Rock.FBX" ) == "static-model" );
             ASSERT_TRUE( CAssetNameHints::GuessKind( "Anims/A_Hero_Run.fbx" ) == "animation" );

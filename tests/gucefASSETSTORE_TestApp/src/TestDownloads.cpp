@@ -595,6 +595,33 @@ PerformDownloadTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Download: a plan the store refuses fails the job with the reason the store gives for it (GetPlanProblem), not only the status" )
+        try
+        {
+            CFakeSignInStoreProviderFactory refusingFactory( "planrefuse", false );
+            CAssetStoreGlobal::Instance()->GetProviderFactory().RegisterConcreteFactory( "planrefuse", &refusingFactory );
+            CAssetStoreGlobal::Instance()->GetRegistry().RefreshProviders();
+            CAssetStoreDownloadManager manager;
+            manager.SetSettings( FastSettings( CString::Empty ) );
+            manager.Start();
+            CString jobId;
+            const bool queued = ASSETSTORE_STATUS_OK == manager.Enqueue( "planrefuse", "item-r", "fbx", CString::StringVector(), "astest/downloads/refused", false, jobId );
+            const bool settled = queued && PumpUntilJobSettled( manager, jobId, 30000 );
+            CAssetStoreDownloadJob job;
+            const bool found = settled && manager.GetJob( jobId, job );
+            manager.Stop();
+            CAssetStoreGlobal::Instance()->GetRegistry().RemoveProvider( "planrefuse" );
+            CAssetStoreGlobal::Instance()->GetProviderFactory().UnregisterConcreteFactory( "planrefuse" );
+            ASSERT_TRUE( queued && settled && found );
+            ASSERT_TRUE( ASSETDOWNLOAD_STATE_FAILED == job.state && ASSETSTORE_STATUS_UNSUPPORTED == job.status );
+            ASSERT_TRUE( job.message.HasSubstr( "the store could not plan the download: the fake sign in store has no downloads (item-r fbx)", true ) >= 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Download: at most the global and the per store number of jobs run at once" )
         try
         {
@@ -740,7 +767,7 @@ PerformDownloadTests( void )
             ASSERT_TRUE( "fakestore" == pack.sourceId && "item-2" == pack.sourceItemId && "Sci-fi Crate" == pack.title && ASSETKEEP_ORIGINAL == pack.keep );
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == pack.state && !pack.categories.empty() );
             ASSERT_TRUE( 1 == pack.unmappedCategories.count( "3D/Weapons & Combat/Melee" ) );
-            ASSERT_TRUE( 0 == pack.rootPath.HasSubstr( "packs/fakestore/Test Seller/Sci-fi Crate [" ) );
+            ASSERT_TRUE( "layout2:Sci-fi Crate" == pack.rootPath );
 
             // the manual download waits in the staging area to be added
             ASSERT_TRUE( manager.GetJob( manualJob, job ) && vfs.DirExists( job.destination ) );

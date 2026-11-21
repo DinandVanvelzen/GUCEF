@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSignInBrowserSettings moved to gucefWEB, header gucefWEB_CWebSignInBrowserSettings.h, name GUCEF::WEB::CWebSignInBrowserSettings.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSIGNINBROWSERSETTINGS_H
 #define GUCEF_ASSETSTORE_CWEBSIGNINBROWSERSETTINGS_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CDATANODE_H
-#include "CDataNode.h"
-#define GUCEF_CORE_CDATANODE_H
-#endif /* GUCEF_CORE_CDATANODE_H ? */
-#ifndef GUCEF_ASSETSTORE_MACROS_H
-#include "gucefASSETSTORE_macros.h"
-#define GUCEF_ASSETSTORE_MACROS_H
-#endif /* GUCEF_ASSETSTORE_MACROS_H ? */
+#ifndef GUCEF_WEB_CWEBSIGNINBROWSERSETTINGS_H
+#include "gucefWEB_CWebSignInBrowserSettings.h"
+#define GUCEF_WEB_CWEBSIGNINBROWSERSETTINGS_H
+#endif /* GUCEF_WEB_CWEBSIGNINBROWSERSETTINGS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,46 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  How the browser of a web session sign in is started (CIWebSignInBrowser, CWebSessionSignIn): which executable,
- *  which profile folder, which debugging port, with or without a window, and how long to wait for it. The debugging
- *  port is always on the loopback interface; arguments that would change that, the port or the profile are refused.
- *
- *  Config (SaveConfig()/LoadConfig()): executablePath, profileDirectory, debuggingPort, headless, keepOpen,
- *  extraArguments (a list), startTimeoutMs, commandTimeoutMs.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSignInBrowserSettings
-{
-    public:
-
-    static const UInt32 DefaultStartTimeoutInMs;    /**< 30000 */
-    static const UInt32 DefaultCommandTimeoutInMs;  /**< 15000 */
-
-    CORE::CString executablePath;                   /**< empty: the first browser CChromeBrowserLocator finds */
-    CORE::CString profileDirectory;                 /**< empty: chosen by CWebSessionSignIn, one per store */
-    UInt16 debuggingPort;                           /**< 0: the browser picks a free one and says which in its profile */
-    bool headless;                                  /**< no window: --headless=new; always so for an unattended sign in */
-    bool keepOpen;                                  /**< leave the browser open after the sign in */
-    CORE::CString::StringVector extraArguments;     /**< more command line arguments; see IsArgumentAllowed() */
-    UInt32 startTimeoutInMs;
-    UInt32 commandTimeoutInMs;
-
-    CWebSignInBrowserSettings( void );
-
-    bool SaveConfig( CORE::CDataNode& config ) const;
-
-    bool LoadConfig( const CORE::CDataNode& config );
-
-    /**
-     *  Whether an extra argument may be given: anything but those that set the debugging address, port, pipe or allowed
-     *  origins, or the profile folder (--remote-debugging-*, --remote-allow-origins, --user-data-dir)
-     */
-    static bool IsArgumentAllowed( const CORE::CString& argument );
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CWebSignInBrowserSettings;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

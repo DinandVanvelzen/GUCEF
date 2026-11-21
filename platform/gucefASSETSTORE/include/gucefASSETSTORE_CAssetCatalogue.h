@@ -77,13 +77,16 @@ class CAssetVocabulary;
  *  Tables, all with a primary key and index hints for the backends that keep indexes: store_locations, sources,
  *  packs, assets, asset_model_props, asset_texture_props, asset_material_props, asset_animation_props,
  *  asset_audio_props, asset_files, relations, keywords, categories, category_map, synonyms, category_rules,
- *  licence_map, facets, saved_searches, licences, thumbnails, ingest_history, pack_conversions and schema_version. Every table of rows
+ *  licence_map, facets, saved_searches, licences, thumbnails, ingest_history, pack_conversions, pack_indexes, pack_groups,
+ *  pack_resources, pack_sources, sync_marks, sync_items and schema_version. Every table of rows
  *  that belong to a pack has a pack_id column, so a pack is taken out with one delete per table. Times are INT64 UTC
  *  milliseconds since the Unix epoch; sets of names are text with the names joined by ','.
  *
  *  Migrations: schema_version holds a row per migration that ran. Version 1 makes the tables, version 2 writes the
  *  seed data of the vocabulary (CAssetVocabulary), version 3 adds the table pack_conversions (what the last conversion
- *  of a pack did, section 7.4). Open() runs those the database has not had up to the target
+ *  of a pack did, section 7.4), version 4 the tables of the pack index (pack_indexes, pack_groups, pack_resources) and
+ *  version 5 the tables of the library sync (pack_sources, sync_marks, sync_items). Every migration adds tables only, so a
+ *  catalogue of an earlier version keeps its rows. Open() runs those the database has not had up to the target
  *  version; a catalogue of a newer version than this build knows is refused.
  *
  *  A row is a map of column name to value; columns a row does not have are null. Thread safe once open.
@@ -92,7 +95,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetCatalogue
 {
     public:
 
-    static const UInt32 CurrentSchemaVersion = 3;
+    static const UInt32 CurrentSchemaVersion = 5;
 
     typedef GUCEF::map< CORE::CString, CORE::CVariant > TRow;
     typedef GUCEF::vector< TRow > TRowVector;
@@ -147,6 +150,15 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetCatalogue
 
     /** The tables of rows that belong to a pack, the packs table not included, in the order a pack is written */
     static void GetPackChildTables( CORE::CString::StringVector& tableNames );
+
+    /** The tables of the pack index (schema version 4), which belong to a pack and are rewritten by the loader of its document, not by the ingest rows */
+    static void GetPackIndexTables( CORE::CString::StringVector& tableNames );
+
+    /**
+     *  The tables of the store facts of a pack (schema version 5: pack_sources), which belong to a pack and are written by the
+     *  record step of the ingest, not by the rows of its index; a removed pack takes its row with it
+     */
+    static void GetPackSourceTables( CORE::CString::StringVector& tableNames );
 
     /** The row of the table pack_conversions for a pack, and the record back from such a row */
     static void MakeConversionRow( const CORE::CString& packId, const CAssetConversionRecord& record, TRow& row );

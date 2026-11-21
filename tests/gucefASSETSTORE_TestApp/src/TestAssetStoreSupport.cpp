@@ -82,6 +82,8 @@
 #endif /* GUCEF_ASSETSTORE_CASSETDIGEST_H ? */
 #ifndef DBPLUGIN_POSTGRESQL_H
 #include "dbpluginPOSTGRESQL.h"
+#include "dbpluginPOSTGRESQL_CPostgreSqlSettings.h"
+#include "dbpluginPOSTGRESQL_CPostgreSqlConnection.h"
 #define DBPLUGIN_POSTGRESQL_H
 #endif /* DBPLUGIN_POSTGRESQL_H ? */
 #include "TestAssetStoreSupport.h"
@@ -371,6 +373,23 @@ GetPostgreSqlConnectionString( CString& connectionString )
     if ( GUCEF_NULL == value || '\0' == value[ 0 ] )
         return false;
     connectionString = value;
+    return true;
+}
+
+bool
+IsPostgreSqlReachable( const CString& connectionString, CString& reason )
+{
+    DBPLUGIN::POSTGRESQL::CPostgreSqlSettings settings;
+    settings.connectionString = connectionString;
+    settings.connectTimeoutInSecs = 5;
+    DBPLUGIN::POSTGRESQL::CPostgreSqlConnection connection;
+    CString error;
+    if ( CORE::DATATABLE_STATUS_OK != connection.Open( settings, error ) )
+    {
+        reason = error;
+        return false;
+    }
+    reason.Clear();
     return true;
 }
 

@@ -156,7 +156,14 @@ const C::SEntry g_tools[] =
     { "online_item", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, true, "An item of an online store",
       "The details of an item of an online store: formats and files, licence, categories and description (untrusted)." },
     { "transfer_queue", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, false, false, "Transfer queue",
-      "The downloads, ingests and conversions of the service with their state and progress." }
+      "The downloads, ingests and conversions of the service with their state and progress." },
+    // the library sync (library sync design 7.3): metadata only; a run that downloads is not started through these tools
+    { "sync_plan", "store", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, true, "Plan a library sync",
+      "Plans the sync of the library of an online store with the profile the service keeps for it, without downloading anything: a dry run job that writes only the observations of the items. The result has the counts (missing, stale, current, unavailable), the estimate of the download and the free space of the library." },
+    { "sync_status", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "State of a library sync",
+      "The state of a library sync or plan (by jobId, or the last one of a store by storeId): the job, the counts of the plan and the run, and a page of the lines of the plan (item, title, state, reason; titles are untrusted)." },
+    { "sync_marks", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Marks of a library sync",
+      "The ignore and pin marks the owner set on items of an online store, with their reasons (untrusted)." }
 };
 
 const UInt32 g_toolCount = (UInt32) ( sizeof( g_tools ) / sizeof( g_tools[ 0 ] ) );
@@ -492,6 +499,26 @@ CAssetToolCatalogue::BuildInputSchema( const CORE::CString& name, const CAssetVo
         S::AddProperty( schema, "requestKey", RequestKey() );
     }
     else
+    if ( "sync_plan" == name )
+    {
+        S::AddProperty( schema, "storeId", S::String( 1, 64 ), true );
+        S::AddProperty( schema, "waitMs", WaitMs() );
+        S::AddProperty( schema, "requestKey", RequestKey() );
+    }
+    else
+    if ( "sync_status" == name )
+    {
+        S::AddProperty( schema, "jobId", S::String( 1, 64 ) );
+        S::AddProperty( schema, "storeId", S::String( 1, 64 ) );
+        AddPaging( schema, 100 );
+    }
+    else
+    if ( "sync_marks" == name )
+    {
+        S::AddProperty( schema, "storeId", S::String( 1, 64 ), true );
+        AddPaging( schema, 100 );
+    }
+    else
     if ( "validate_pack" == name )
     {
         CORE::CDataNode validator = S::Object();
@@ -730,7 +757,8 @@ CAssetToolCatalogue::BuildOutputSchema( const CORE::CString& name )
         return WriteOutput();
     if ( "pack_list" == name || "pack_assets" == name || "pack_activity" == name || "pack_cook_outputs" == name ||
          "job_list" == name || "store_search" == name || "store_saved_searches" == name || "store_unclassified" == name ||
-         "store_locations" == name || "online_stores" == name || "online_library" == name || "transfer_queue" == name )
+         "store_locations" == name || "online_stores" == name || "online_library" == name || "transfer_queue" == name ||
+         "sync_marks" == name )
         return ListOutput( "A page of entries" );
     if ( "job_result" == name )
     {

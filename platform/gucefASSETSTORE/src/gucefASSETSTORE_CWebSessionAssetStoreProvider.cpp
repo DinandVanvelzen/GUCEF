@@ -30,6 +30,11 @@
 #include "gucefASSETSTORE_CAssetStoreGlobal.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
 #endif /* GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#include "gucefASSETSTORE_CAssetStoreSignInContext.h"
+#define GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTORESIGNINCONTEXT_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONASSETSTOREPROVIDER_H
 #include "gucefASSETSTORE_CWebSessionAssetStoreProvider.h"
 #define GUCEF_ASSETSTORE_CWEBSESSIONASSETSTOREPROVIDER_H
@@ -54,7 +59,7 @@ void
 CWebSessionAssetStoreProvider::CSignInObserver::OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( eventId == CWebSessionSignIn::SignedInEvent || eventId == CWebSessionSignIn::SessionEndedEvent )
+    if ( eventId == AUTH::CWebSessionSignIn::SignedInEvent || eventId == AUTH::CWebSessionSignIn::SessionEndedEvent )
     {
         m_provider.RefreshCookieJar();
         m_provider.NotifySessionStateChanged();
@@ -70,8 +75,8 @@ CWebSessionAssetStoreProvider::CWebSessionAssetStoreProvider( void )
     , m_observer( *this )
 {GUCEF_TRACE;
 
-    m_observer.SubscribeTo( &m_signIn, CWebSessionSignIn::SignedInEvent );
-    m_observer.SubscribeTo( &m_signIn, CWebSessionSignIn::SessionEndedEvent );
+    m_observer.SubscribeTo( &m_signIn, AUTH::CWebSessionSignIn::SignedInEvent );
+    m_observer.SubscribeTo( &m_signIn, AUTH::CWebSessionSignIn::SessionEndedEvent );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -101,13 +106,13 @@ CWebSessionAssetStoreProvider::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CWebSessionAssetStoreProvider::ConfigureWebSignIn( const CWebSessionSignInSettings& settings ,
-                                                   AUTH::ICredentialStore* sessionStore      ,
-                                                   AUTH::ICredentialStore* credentialStore   ,
-                                                   CORE::CString::StringVector* problems     )
+CWebSessionAssetStoreProvider::ConfigureWebSignIn( const AUTH::CWebSessionSignInSettings& settings   ,
+                                                   AUTH::ICredentialStore* sessionStore              ,
+                                                   AUTH::ICredentialStore* credentialStore           ,
+                                                   CORE::CString::StringVector* problems             )
 {GUCEF_TRACE;
 
-    CWebSessionSignInSettings ownSettings = settings;
+    AUTH::CWebSessionSignInSettings ownSettings = settings;
     if ( ownSettings.storeId.IsNULLOrEmpty() )
         ownSettings.storeId = GetProviderId();
     if ( !m_signIn.SetSettings( ownSettings, problems ) )
@@ -125,7 +130,25 @@ CWebSessionAssetStoreProvider::ConfigureWebSignIn( const CWebSessionSignInSettin
 
 /*-------------------------------------------------------------------------*/
 
-CWebSessionSignIn&
+bool
+CWebSessionAssetStoreProvider::ConfigureSignIn( const CAssetStoreSignInContext& context, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != context.sessionStore )
+        m_signIn.SetSessionStore( context.sessionStore );
+    if ( GUCEF_NULL != context.credentialStore )
+        m_signIn.SetCredentialStore( context.credentialStore );
+    if ( GUCEF_NULL != context.sessionStore && m_signIn.LoadSavedSession() )
+    {
+        RefreshCookieJar();
+        NotifySessionStateChanged();
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+AUTH::CWebSessionSignIn&
 CWebSessionAssetStoreProvider::GetSignIn( void )
 {GUCEF_TRACE;
 
@@ -143,7 +166,7 @@ CWebSessionAssetStoreProvider::GetSignInKind( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CWebSessionSignIn*
+AUTH::CWebSessionSignIn*
 CWebSessionAssetStoreProvider::GetWebSessionSignIn( void )
 {GUCEF_TRACE;
 
@@ -177,7 +200,7 @@ bool
 CWebSessionAssetStoreProvider::RenewSession( void )
 {GUCEF_TRACE;
 
-    const bool renewed = ASSETSTORE_STATUS_OK == m_signIn.RenewSession();
+    const bool renewed = WEB::WEBSIGNIN_STATUS_OK == m_signIn.RenewSession();
 
     // the caller retries right after this, before an event could reach the jar
     RefreshCookieJar();

@@ -86,7 +86,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetRecord : public CORE::CIDataNodeSerializ
     CORE::CString kind;                     /**< an id of the kinds of the vocabulary: "static-model", "texture", ... */
     CORE::CString name;                     /**< the file name without its extension */
     CORE::CString originalPath;             /**< relative to the root of the pack */
-    CORE::CString convertedPath;            /**< relative to the root of the pack, empty when not converted */
+    CORE::CString convertedPath;            /**< logical path of the layout of the pack ("intermediate/a.gltf", "gucef-ogre3d/desktop/a.mesh"), empty when not converted */
     CORE::CString sourceFormat;             /**< a format id: "fbx", "gltf", "png", ... */
     CORE::CString convertedFormat;
     Int64 sizeBytes;

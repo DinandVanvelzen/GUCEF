@@ -26,6 +26,12 @@
 #include "gucefCORE_CTask.h"
 #define GUCEF_CORE_CTASK_H
 #endif /* GUCEF_CORE_CTASK_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CIASSETSTOREPROBE_H
+#include "gucefASSETSTORE_CIAssetStoreProbe.h"
+#define GUCEF_ASSETSTORE_CIASSETSTOREPROBE_H
+#endif /* GUCEF_ASSETSTORE_CIASSETSTOREPROBE_H ? */
+
 #include "gucefASSETSTORE_CAssetStoreProviderOperationTaskConsumer.h"
 
 /*-------------------------------------------------------------------------//
@@ -146,6 +152,21 @@ CAssetStoreProviderOperationTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
                     data->source.Complete( plan.Clone(), true );
                 else
                     FailSource( data->source, status, CORE::CString::Empty );
+                break;
+            }
+            case CAssetStoreProviderOperationData::OPERATION_PROBE:
+            {
+                CIAssetStoreProbe* probe = provider->GetProbe();
+                if ( GUCEF_NULL == probe )
+                {
+                    FailSource( data->source, ASSETSTORE_STATUS_UNSUPPORTED, "the store has no probe" );
+                    break;
+                }
+                CAssetStoreProbeResult result;
+                if ( probe->Run( result ) || !result.checks.empty() )
+                    data->source.Complete( result.Clone(), true );
+                else
+                    FailSource( data->source, ASSETSTORE_STATUS_FAILED, result.summary );
                 break;
             }
             default:

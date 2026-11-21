@@ -73,7 +73,7 @@ class CPrimaryAssetStore;
  *       "conversion refused", one whose conversion ends with errors as original with the state "conversion pending";
  *       neither is a failure of the ingest. A cancelled conversion, or one that cannot run, fails the step: the pack
  *       stays staged and Resume() converts it again
- *    6. place: into "<location>/packs/<store>/<seller>/<title> [<pack id>]/original/" (and "converted/")
+ *    6. place: into "<location>/original/<pack folder>/" (and "intermediate/" and "gucef-ogre3d/", CPackStorageLayout)
  *    7. index: the rows of the pack in one transaction where the backend has them, else pack row first ("indexing"),
  *       then the rows that refer to it, then the pack row again
  *    8. record: the ingest history; the staging folder of the ingest goes
@@ -110,6 +110,12 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetIngestPipeline
     TAssetStoreStatus Index( CAssetIngestJob& job, CORE::CString& message );
     TAssetStoreStatus IndexRows( CAssetIngestJob& job, const CAssetIngestJob& rowsJob, CORE::CString& message );
     TAssetStoreStatus Record( CAssetIngestJob& job, const CORE::CString& outcome, TAssetIngestStep step, CORE::CString& message );
+
+    /** The library sync: the store facts of an ingested pack (pack_sources) and the packs of the same item and format it supersedes */
+    void RecordSourceFacts( CAssetIngestJob& job );
+
+    /** The library sync: a download whose files duplicate a pack of the same item confirms the revision of that pack (design section 4.6) */
+    void RevalidateDuplicate( CAssetIngestJob& job, const CORE::CString& duplicateOfPackId );
 
     bool IsCancelRequested( void ) const;
     bool IsInsideArchive( const CAssetIngestJob& job, const CAssetRecord& asset ) const;

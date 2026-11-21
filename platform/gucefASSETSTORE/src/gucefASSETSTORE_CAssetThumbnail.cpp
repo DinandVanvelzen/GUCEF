@@ -26,6 +26,10 @@
 #include "CDataNode.h"
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 #include "gucefASSETSTORE_CAssetThumbnail.h"
 
 /*-------------------------------------------------------------------------//
@@ -48,6 +52,7 @@ CAssetThumbnail::CAssetThumbnail( void )
     , assetId()
     , key()
     , url()
+    , vfsPath()
     , size( 0 )
     , kind()
     , status( ASSETSTORE_STATUS_OK )
@@ -85,10 +90,13 @@ CAssetThumbnail::Serialize( CORE::CDataNode& domRootNode                        
     success = domRootNode.SetAttribute( "assetId", assetId ) && success;
     success = key.Serialize( *domRootNode.AddChild( "key", GUCEF_DATATYPE_OBJECT ), settings ) && success;
     success = domRootNode.SetAttribute( "url", url ) && success;
+    success = domRootNode.SetAttribute( "vfsPath", vfsPath ) && success;
     success = domRootNode.SetAttribute( "size", size ) && success;
     success = domRootNode.SetAttribute( "kind", kind ) && success;
     success = domRootNode.SetAttribute( "status", CORE::CString( AssetStoreStatusToString( status ) ) ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
+    if ( encoded.GetDataSize() > 0 )
+        success = domRootNode.SetAttribute( "png", CORE::Base64Encode( encoded.GetConstBufferPtr(), encoded.GetDataSize() ) ) && success;
     return success;
 }
 
@@ -106,12 +114,20 @@ CAssetThumbnail::Deserialize( const CORE::CDataNode& domRootNode                
     if ( GUCEF_NULL != keyNode )
         key.Deserialize( *keyNode, settings );
     url = domRootNode.GetAttributeValueOrChildValueByName( "url" ).AsString( url );
+    vfsPath = domRootNode.GetAttributeValueOrChildValueByName( "vfsPath" ).AsString( vfsPath );
     size = domRootNode.GetAttributeValueOrChildValueByName( "size" ).AsUInt32( size, true );
     kind = domRootNode.GetAttributeValueOrChildValueByName( "kind" ).AsString( kind );
     text = domRootNode.GetAttributeValueOrChildValueByName( "status" ).AsString();
     if ( !text.IsNULLOrEmpty() )
         status = AssetStoreStatusFromString( text );
     message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString( message );
+    text = domRootNode.GetAttributeValueOrChildValueByName( "png" ).AsString();
+    if ( !text.IsNULLOrEmpty() )
+    {
+        encoded.SetBufferSize( text.Length() );
+        const UInt32 decoded = encoded.CopyAndDecodeBase64From( text, 0 );
+        encoded.SetDataSize( decoded );
+    }
     return true;
 }
 

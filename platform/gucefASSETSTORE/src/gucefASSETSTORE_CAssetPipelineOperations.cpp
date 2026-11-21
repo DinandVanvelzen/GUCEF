@@ -54,6 +54,8 @@ const CORE::CString CAssetPipelineOperations::ConvertPack = "convert_pack";
 const CORE::CString CAssetPipelineOperations::ConvertFile = "convert_file";
 const CORE::CString CAssetPipelineOperations::CookPack = "cook_pack";
 const CORE::CString CAssetPipelineOperations::ValidatePack = "validate_pack";
+const CORE::CString CAssetPipelineOperations::IndexPack = "index-pack";
+const CORE::CString CAssetPipelineOperations::SyncLibrary = "sync-library";
 const CORE::CString CAssetPipelineOperations::CompareRoutes = "compare_routes";
 const CORE::CString CAssetPipelineOperations::ManifestPropose = "manifest_propose";
 const CORE::CString CAssetPipelineOperations::ManifestCreate = "manifest_create";
@@ -74,7 +76,16 @@ bool
 CAssetPipelineOperations::IsJob( const CORE::CString& operation )
 {GUCEF_TRACE;
 
-    return ConvertPack == operation || ConvertFile == operation || CookPack == operation || ValidatePack == operation;
+    return ConvertPack == operation || ConvertFile == operation || CookPack == operation || ValidatePack == operation || IndexPack == operation || SyncLibrary == operation;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetPipelineOperations::IsServiceJob( const CORE::CString& operation )
+{GUCEF_TRACE;
+
+    return IndexPack == operation || SyncLibrary == operation;
 }
 
 /*-------------------------------------------------------------------------*/

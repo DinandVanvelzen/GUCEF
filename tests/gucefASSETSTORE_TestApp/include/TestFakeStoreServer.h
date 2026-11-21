@@ -118,6 +118,16 @@ class CFakeStoreServer : public GUCEF::MT::CActiveObject
 
     /** Adds an item; the content of its files by file id */
     void AddItem( const GUCEF::ASSETSTORE::CAssetStoreItem& item );
+
+    /** The library of a store that changes: an item replaced by its id (false when there is none), an item that leaves the library */
+    bool ReplaceItem( const GUCEF::ASSETSTORE::CAssetStoreItem& item );
+    bool RemoveItem( const GUCEF::CORE::CString& itemId );
+
+    /** The next library requests answer 503 */
+    void SetLibraryFailures( GUCEF::UInt32 failures );
+
+    /** The library lists the items without their formats, as a store whose listing needs the details of an item */
+    void SetListingWithoutFormats( bool withoutFormats );
     void SetFileContent( const GUCEF::CORE::CString& fileId, const GUCEF::CORE::CDynamicBuffer& content );
     void SetFileBehaviour( const GUCEF::CORE::CString& fileId, const CFakeFileBehaviour& behaviour );
     void SetRequireAuth( bool requireAuth );
@@ -160,6 +170,8 @@ class CFakeStoreServer : public GUCEF::MT::CActiveObject
     bool m_tokenEndpointWorks;
     GUCEF::CORE::CString m_currentToken;
     CFakeStoreStats m_stats;
+    GUCEF::UInt32 m_libraryFailures;
+    bool m_listingWithoutFormats;
 };
 
 /*-------------------------------------------------------------------------//

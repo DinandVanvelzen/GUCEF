@@ -154,11 +154,29 @@ CIAssetStoreProvider::GetSignInKind( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CWebSessionSignIn*
+AUTH::CWebSessionSignIn*
 CIAssetStoreProvider::GetWebSessionSignIn( void )
 {GUCEF_TRACE;
 
     return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIAssetStoreInteractiveSignIn*
+CIAssetStoreProvider::GetInteractiveSignIn( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIAssetStoreProvider::ConfigureSignIn( const CAssetStoreSignInContext& context, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -190,6 +208,15 @@ CIAssetStoreProvider::RenewPlan( CAssetStoreDownloadPlan& plan )
     if ( ASSETSTORE_STATUS_OK == status )
         plan = renewed;
     return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIAssetStoreProvider::GetPlanProblem( const CORE::CString& itemId, const CORE::CString& formatId ) const
+{GUCEF_TRACE;
+
+    return CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -226,6 +253,26 @@ CIAssetStoreProvider::IsExpiredUrlResponse( const CAssetStoreTransfer& transfer,
 {GUCEF_TRACE;
 
     return 403 == response.statusCode || 410 == response.statusCode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIAssetStoreProbe*
+CIAssetStoreProvider::GetProbe( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreProvider::RunProbeAsync( void )
+{GUCEF_TRACE;
+
+    CAssetStoreProviderOperationData* data = GUCEF_NEW CAssetStoreProviderOperationData();
+    data->operation = CAssetStoreProviderOperationData::OPERATION_PROBE;
+    return QueueOperation( data );
 }
 
 /*-------------------------------------------------------------------------*/

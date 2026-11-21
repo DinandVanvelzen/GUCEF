@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebPageScriptHelpers moved to gucefWEB, header gucefWEB_CWebPageScriptHelpers.h, name GUCEF::WEB::CWebPageScriptHelpers.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBPAGESCRIPTHELPERS_H
 #define GUCEF_ASSETSTORE_CWEBPAGESCRIPTHELPERS_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-#ifndef GUCEF_ASSETSTORE_MACROS_H
-#include "gucefASSETSTORE_macros.h"
-#define GUCEF_ASSETSTORE_MACROS_H
-#endif /* GUCEF_ASSETSTORE_MACROS_H ? */
+#ifndef GUCEF_WEB_CWEBPAGESCRIPTHELPERS_H
+#include "gucefWEB_CWebPageScriptHelpers.h"
+#define GUCEF_WEB_CWEBPAGESCRIPTHELPERS_H
+#endif /* GUCEF_WEB_CWEBPAGESCRIPTHELPERS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,54 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  The only JavaScript a web session sign in has a page evaluate: fixed, built-in expressions, each a function that
- *  is called with one argument, a selector or a text of the login script written as a JavaScript string literal
- *  (JsStringLiteral()). A script can therefore only choose what is looked for, never what is run. Every expression
- *  catches what the page throws and answers with a plain value.
- *
- *  Values to type (credentials) never go into an expression: they are typed with Input.insertText into the field
- *  that FocusAndClearExpression() gave the focus.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebPageScriptHelpers
-{
-    public:
-
-    /**
-     *  The text as a JavaScript (and JSON) string literal in double quotes: backslash, quote, every control character,
-     *  DEL, U+2028 and U+2029 escaped, so nothing in the text can end the literal or the line
-     */
-    static CORE::CString JsStringLiteral( const CORE::CString& text );
-
-    /** Answers -1 for a selector the page refuses, 0 when there is no such element, 1 when it is there and 2 when it is shown and enabled */
-    static CORE::CString ElementStateExpression( const CORE::CString& selector );
-
-    /** Gives the element the focus and empties it (as typing would, with an input event); answers whether it has the focus */
-    static CORE::CString FocusAndClearExpression( const CORE::CString& selector );
-
-    /** Answers the number of characters in the value of the element, -1 when there is none */
-    static CORE::CString ValueLengthExpression( const CORE::CString& selector );
-
-    /** Clicks the element; answers whether it was there */
-    static CORE::CString ClickExpression( const CORE::CString& selector );
-
-    /** Submits the form (the element itself or the form it is in) as its submit button would; answers whether there was one */
-    static CORE::CString SubmitExpression( const CORE::CString& selector );
-
-    /** Answers whether the text of the page holds the text */
-    static CORE::CString ContainsTextExpression( const CORE::CString& text );
-
-    /** Answers the address of the page */
-    static CORE::CString LocationExpression( void );
-
-    private:
-
-    CWebPageScriptHelpers( void );      /**< not implemented: static members only */
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CWebPageScriptHelpers;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

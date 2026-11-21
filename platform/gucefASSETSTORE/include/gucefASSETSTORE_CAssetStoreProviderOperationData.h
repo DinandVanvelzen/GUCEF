@@ -57,7 +57,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreProviderOperationData : public CORE
     {
         OPERATION_QUERY_LIBRARY = 0 ,
         OPERATION_GET_ITEM          ,
-        OPERATION_PLAN_DOWNLOAD
+        OPERATION_PLAN_DOWNLOAD     ,
+        OPERATION_PROBE
     };
 
     CIAssetStoreProvider* provider;

@@ -64,6 +64,9 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestRequest : public CORE::CIDataNodeS
     CORE::CString locationId;
     CORE::CString duplicatePolicy;
     CORE::CString downloadJobId;
+    CORE::CString formatId;                 /**< the format of the store the download was, empty when not known */
+    CORE::CString expectedRevision;         /**< the tagged effective revision the library sync planned with; empty: the ingest derives it from the item */
+    CORE::CString syncJobId;                /**< the library sync job of the download, empty for a manual download */
 
     CAssetIngestRequest( void );
     virtual ~CAssetIngestRequest() GUCEF_VIRTUAL_OVERRIDE;

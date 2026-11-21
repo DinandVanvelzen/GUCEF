@@ -76,7 +76,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestJob : public CORE::CIDataNodeSeria
     CORE::CString locationId;
     CORE::CString stagingFolder;                    /**< VFS folder of the manifest and of copies */
     CORE::CString contentRoot;                      /**< VFS folder where the files of the pack are now */
-    CORE::CString contentPrefix;                    /**< the start of the asset paths that contentRoot stands for: "original/" once placed */
+    CORE::CString contentPrefix;                    /**< the start of the asset paths that contentRoot stands for: "original/" once placed (the pack folder is not part of it: CPackStorageLayout) */
     bool inPlace;                                   /**< the files stay where they were found */
     bool contentInStaging;                          /**< the files are in the staging area and move when placed */
     CORE::CString::StringVector archives;           /**< archive files of the pack (relative), whose content was taken in */

@@ -89,8 +89,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStoreSettings : public CORE::CIDa
     CAssetSourcePolicy defaultPolicy;                       /**< for sources without a policy of their own */
     TAssetDuplicatePolicy duplicatePolicy;
     bool copyDiskPacks;                                     /**< packs from disk are copied into the location (true) or referenced in place */
+    CORE::CString scratchStagingPath;                       /**< a folder of a local disk (environment variables are resolved) that downloads for the store are staged in first when it is writable and has room for them; empty: none. Never required: without it, or when it cannot take a download, the download is staged in the staging area of its storage location */
     CORE::CString seedDataPath;                             /**< VFS folder of the seed data, default "gucefASSETSTORE" (the data of the module) */
     UInt32 analysisConcurrency;                             /**< content analysis tasks at once, default 4 */
+    bool indexAfterIngest;                                  /**< an ingest that left the pack without a pack index (the conversion wrote none, or there was no conversion) has the converter hook build one, default false */
     CORE::CString threadPoolName;                           /**< of the async calls, default "AssetStorePrimary" */
     CORE::CString analysisThreadPoolName;                   /**< of the analysis tasks, default "AssetStoreAnalysis" */
 

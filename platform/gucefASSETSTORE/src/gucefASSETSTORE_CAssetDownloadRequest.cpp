@@ -54,6 +54,9 @@ CAssetDownloadRequest::CAssetDownloadRequest( void )
     , forIngest( false )
     , keep()
     , locationId()
+    , expectedRevision()
+    , syncJobId()
+    , expectedBytes( 0 )
 {GUCEF_TRACE;
 
 }
@@ -91,6 +94,13 @@ CAssetDownloadRequest::Serialize( CORE::CDataNode& domRootNode                  
     success = domRootNode.SetAttribute( "forIngest", forIngest ) && success;
     success = domRootNode.SetAttribute( "keep", keep ) && success;
     success = domRootNode.SetAttribute( "locationId", locationId ) && success;
+    // the members of the library sync, only when set: a service of an earlier version sees the request it knows
+    if ( !expectedRevision.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "expectedRevision", expectedRevision ) && success;
+    if ( !syncJobId.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "syncJobId", syncJobId ) && success;
+    if ( 0 != expectedBytes )
+        success = domRootNode.SetAttribute( "expectedBytes", expectedBytes ) && success;
     return success;
 }
 
@@ -111,6 +121,9 @@ CAssetDownloadRequest::Deserialize( const CORE::CDataNode& domRootNode          
     forIngest = domRootNode.GetAttributeValueOrChildValueByName( "forIngest" ).AsBool( forIngest, true );
     keep = domRootNode.GetAttributeValueOrChildValueByName( "keep" ).AsString( keep );
     locationId = domRootNode.GetAttributeValueOrChildValueByName( "locationId" ).AsString( locationId );
+    expectedRevision = domRootNode.GetAttributeValueOrChildValueByName( "expectedRevision" ).AsString( expectedRevision );
+    syncJobId = domRootNode.GetAttributeValueOrChildValueByName( "syncJobId" ).AsString( syncJobId );
+    expectedBytes = domRootNode.GetAttributeValueOrChildValueByName( "expectedBytes" ).AsUInt64( 0, true );
     return true;
 }
 

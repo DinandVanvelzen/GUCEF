@@ -58,6 +58,8 @@ CAssetStoreDownloadJob::CAssetStoreDownloadJob( void )
     , fileIds()
     , destination()
     , forIngest( false )
+    , expectedRevision()
+    , syncJobId()
     , state( ASSETDOWNLOAD_STATE_QUEUED )
     , status( ASSETSTORE_STATUS_OK )
     , message()
@@ -125,6 +127,10 @@ CAssetStoreDownloadJob::Serialize( CORE::CDataNode& domRootNode                 
     success = domRootNode.SetValuesOfChildByName( "fileIds", fileIds ) && success;
     success = domRootNode.SetAttribute( "destination", destination ) && success;
     success = domRootNode.SetAttribute( "forIngest", forIngest ) && success;
+    if ( !expectedRevision.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "expectedRevision", expectedRevision ) && success;
+    if ( !syncJobId.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "syncJobId", syncJobId ) && success;
     success = domRootNode.SetAttribute( "state", CORE::CString( AssetDownloadJobStateToString( state ) ) ) && success;
     success = domRootNode.SetAttribute( "status", CORE::CString( AssetStoreStatusToString( status ) ) ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
@@ -160,6 +166,8 @@ CAssetStoreDownloadJob::Deserialize( const CORE::CDataNode& domRootNode         
     domRootNode.GetValuesOfChildByName( "fileIds", fileIds );
     destination = domRootNode.GetAttributeValueOrChildValueByName( "destination" ).AsString();
     forIngest = domRootNode.GetAttributeValueOrChildValueByName( "forIngest" ).AsBool( false, true );
+    expectedRevision = domRootNode.GetAttributeValueOrChildValueByName( "expectedRevision" ).AsString();
+    syncJobId = domRootNode.GetAttributeValueOrChildValueByName( "syncJobId" ).AsString();
     state = AssetDownloadJobStateFromString( domRootNode.GetAttributeValueOrChildValueByName( "state" ).AsString() );
     status = AssetStoreStatusFromString( domRootNode.GetAttributeValueOrChildValueByName( "status" ).AsString( "ok" ) );
     message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString();

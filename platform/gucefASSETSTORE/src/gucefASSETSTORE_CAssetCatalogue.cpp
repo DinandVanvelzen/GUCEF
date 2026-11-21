@@ -227,6 +227,37 @@ CAssetCatalogue::GetTableDefinitions( UInt32 schemaVersion, TDefinitionVector& d
                   "approximated_count:int64,cached_count:int64,skipped_count:int64,failed_count:int64",
                   "pack_id", "pack_conversions_outcome=outcome" );
     }
+    if ( schemaVersion >= 4 )
+    {
+        AddTable( definitions, "pack_indexes",
+                  "pack_id:utf8!,index_key:utf8,pack_key:utf8,schema_version:int64,document_path:utf8,document_hash:utf8,levels:utf8,state:utf8,"
+                  "state_reason:utf8,resource_count:int64,noise_count:int64,shard_count:int64,producer:utf8,produced_ms:int64,loaded_ms:int64",
+                  "pack_id", "pack_indexes_state=state;pack_indexes_key=pack_key" );
+        AddTable( definitions, "pack_groups",
+                  "pack_id:utf8!,group_id:utf8!,sub_group:utf8!,name:utf8,resource_count:int64,size_bytes:int64",
+                  "pack_id,group_id,sub_group", "pack_groups_group=group_id+sub_group" );
+        AddTable( definitions, "pack_resources",
+                  "resource_id:utf8!,pack_id:utf8,asset_id:utf8,path:utf8,name:utf8,title:utf8,kind:utf8,store_kind:utf8,group_id:utf8,sub_group:utf8,"
+                  "group_rule:utf8,format:utf8,size_bytes:int64,digest:utf8,status:utf8,analysed:bool,converted:bool,has_thumbnail:bool,presented_under:utf8",
+                  "resource_id", "pack_resources_pack=pack_id;pack_resources_group=group_id+sub_group;pack_resources_kind=kind;pack_resources_format=format;"
+                                 "pack_resources_digest=digest;pack_resources_asset=asset_id" );
+    }
+    if ( schemaVersion >= 5 )
+    {
+        // the library sync: the store facts of a pack, the marks of the owner, what the sync observed of the items of a store
+        AddTable( definitions, "pack_sources",
+                  "pack_id:utf8!,source_id:utf8,source_item_id:utf8,source_format_id:utf8,revision:utf8,changed_ms:int64,content_digest:utf8,"
+                  "superseded_by:utf8,superseded_ms:int64,synced_ms:int64,sync_job_id:utf8",
+                  "pack_id", "pack_sources_item=source_id+source_item_id;pack_sources_superseded=superseded_by;pack_sources_content=content_digest" );
+        AddTable( definitions, "sync_marks",
+                  "source_id:utf8!,item_id:utf8!,mark:utf8,reason:utf8,marked_ms:int64",
+                  "source_id,item_id", "sync_marks_source=source_id" );
+        AddTable( definitions, "sync_items",
+                  "source_id:utf8!,item_id:utf8!,last_seen_ms:int64,listed_revision:utf8,listed_changed_ms:int64,listing_fingerprint:utf8,"
+                  "format_fingerprint:utf8,enriched_ms:int64,size_estimate:int64,available:bool,unavailable_reason:utf8,attempts:int64,"
+                  "last_attempt_ms:int64,next_attempt_ms:int64,last_status:utf8,last_error:utf8",
+                  "source_id,item_id", "sync_items_source=source_id" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -249,6 +280,29 @@ CAssetCatalogue::GetPackChildTables( CORE::CString::StringVector& tableNames )
     tableNames.push_back( "facets" );
     tableNames.push_back( "keywords" );
     tableNames.push_back( "pack_conversions" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetCatalogue::GetPackIndexTables( CORE::CString::StringVector& tableNames )
+{GUCEF_TRACE;
+
+    // the order of deleting: what refers to the others first
+    tableNames.clear();
+    tableNames.push_back( "pack_resources" );
+    tableNames.push_back( "pack_groups" );
+    tableNames.push_back( "pack_indexes" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetCatalogue::GetPackSourceTables( CORE::CString::StringVector& tableNames )
+{GUCEF_TRACE;
+
+    tableNames.clear();
+    tableNames.push_back( "pack_sources" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -444,6 +498,18 @@ CAssetCatalogue::RunMigration( UInt32 version, CAssetVocabulary* seedSource )
         {
             description = "the table of the conversions of the packs";
             status = EnsureTables( 3 );
+            break;
+        }
+        case 4:
+        {
+            description = "the tables of the pack index";
+            status = EnsureTables( 4 );
+            break;
+        }
+        case 5:
+        {
+            description = "the tables of the library sync";
+            status = EnsureTables( 5 );
             break;
         }
         default:

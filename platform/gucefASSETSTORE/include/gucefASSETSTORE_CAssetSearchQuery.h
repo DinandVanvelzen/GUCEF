@@ -64,6 +64,9 @@ namespace ASSETSTORE {
  *  all be there, excluded flags must all be absent ("licence allows machine learning use: no" requires
  *  noMachineLearning; leaving such packs out excludes it). resultKind "assets" gives assets, "packs" gives packs.
  *  Sorts: "relevance" (the default; without text the name), "name", "size", "triangles", "newest".
+ *  The filters groups and subGroups work on the pack index (schema version 4): an asset passes when the pack index has it
+ *  as a resource of one of the groups (and of one of the sub-groups); a catalogue without the pack index tables finds
+ *  nothing for them. packIds narrows them to the resources of these packs.
  *  Serialized as a DataNode object with the members by their names: the form of the saved searches.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSearchQuery : public CORE::CIDataNodeSerializable
@@ -103,6 +106,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSearchQuery : public CORE::CIDataNodeSer
     CORE::CString::StringSet packStates;
     bool unclassified;                           /**< packs and assets without a category */
     CORE::CString::StringSet packIds;            /**< only these packs */
+    CORE::CString::StringSet groups;             /**< function groups of the pack index (scenes, characters, static-models, ...): only assets that are resources of these groups */
+    CORE::CString::StringSet subGroups;          /**< sub-groups (paths with / for nesting) of the pack index; with groups they narrow a group */
     CORE::CString resultKind;
     CORE::CString sort;
     Int64 pageIndex;

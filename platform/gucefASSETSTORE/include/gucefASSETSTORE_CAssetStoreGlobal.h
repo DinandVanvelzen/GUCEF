@@ -52,11 +52,6 @@
 #define GUCEF_AUTH_ICREDENTIALSTORE_H
 #endif /* GUCEF_AUTH_ICREDENTIALSTORE_H ? */
 
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKCONSUMER_H
-#include "gucefASSETSTORE_CWebSessionSignInTaskConsumer.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKCONSUMER_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNINTASKCONSUMER_H ? */
-
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREDOWNLOADTASKCONSUMER_H
 #include "gucefASSETSTORE_CAssetStoreDownloadTaskConsumer.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREDOWNLOADTASKCONSUMER_H
@@ -69,8 +64,16 @@
 #include "gucefASSETSTORE_CLocalAssetStoreService.h"
 #define GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICE_H
 #endif /* GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICE_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CREMOTEASSETSTORESERVICE_H
+#include "gucefASSETSTORE_CRemoteAssetStoreService.h"
+#define GUCEF_ASSETSTORE_CREMOTEASSETSTORESERVICE_H
+#endif /* GUCEF_ASSETSTORE_CREMOTEASSETSTORESERVICE_H ? */
 #ifndef GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICEOPERATIONTASKCONSUMER_H
 #include "gucefASSETSTORE_CLocalAssetStoreServiceOperationTaskConsumer.h"
+#include "gucefASSETSTORE_CRemoteFileTransferTaskConsumer.h"
+#include "gucefASSETSTORE_CAssetLibrarySyncScheduleTaskConsumer.h"
+#include "gucefASSETSTORE_CAssetLibrarySyncScheduleTaskData.h"
 #define GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICEOPERATIONTASKCONSUMER_H
 #endif /* GUCEF_ASSETSTORE_CLOCALASSETSTORESERVICEOPERATIONTASKCONSUMER_H ? */
 /*-------------------------------------------------------------------------//
@@ -161,10 +164,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreGlobal
     TAssetStoreDownloadTaskConsumerFactory m_downloadTaskFactory;
     TPrimaryAssetStoreOperationTaskConsumerFactory m_primaryStoreOperationFactory;
     TAssetAnalysisTaskConsumerFactory m_analysisTaskFactory;
-    TWebSessionSignInTaskConsumerFactory m_webSignInTaskFactory;
     TLocalAssetStoreServiceOperationTaskConsumerFactory m_serviceOperationFactory;
+    TRemoteFileTransferTaskConsumerFactory m_remoteFileTransferFactory;
+    TAssetLibrarySyncScheduleTaskConsumerFactory m_syncScheduleTaskFactory;
+    TAssetLibrarySyncScheduleTaskDataFactory m_syncScheduleTaskDataFactory;
     CAssetStoreServiceFactory* m_serviceFactory;
     TLocalAssetStoreServiceFactory m_localServiceFactory;
+    TRemoteAssetStoreServiceFactory m_remoteServiceFactory;
     AUTH::ICredentialStore* m_webSessionStore;
     AUTH::ICredentialStore* m_webCredentialStore;
     mutable MT::CMutex m_webStoreLock;

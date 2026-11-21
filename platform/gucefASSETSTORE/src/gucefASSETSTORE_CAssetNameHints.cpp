@@ -194,7 +194,7 @@ CAssetNameHints::IsArchiveExtension( const CORE::CString& extension )
 {GUCEF_TRACE;
 
     const CORE::CString lower = extension.Lowercase();
-    return lower == "zip" || lower == "7z" || lower == "rar" || lower == "unitypackage";
+    return lower == "zip" || lower == "7z" || lower == "rar" || lower == "unitypackage" || lower == "mhpkg";
 }
 
 /*-------------------------------------------------------------------------*/

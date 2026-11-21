@@ -49,6 +49,8 @@
 #include "TestAssetStoreSupport.h"
 #define TESTASSETSTORESUPPORT_H
 #endif /* TESTASSETSTORESUPPORT_H ? */
+#include "TestPackStorageLayout.h"
+#include "TestPackIndex.h"
 #include "TestNormalisation.h"
 #include "TestDownloads.h"
 #include "TestLibraryFileSystemAccess.h"
@@ -58,6 +60,10 @@
 #include "TestWebSignIn.h"
 #include "TestAssetStoreService.h"
 #include "TestAssetToolsMcp.h"
+#include "TestAssetStoreRemoteService.h"
+#include "TestRemoteAssetFiles.h"
+#include "TestAssetStorePluginLoader.h"
+#include "TestLibrarySync.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -94,8 +100,51 @@ GUCEF_OSMAIN_BEGIN
         ASSETSTORE::CAssetStoreGlobal::Instance();
         ASSETSTORETEST::SetUpTestEnvironment();
 
-        // GUCEF_TEST_ASSETTOOLS_ONLY=1 runs the suites of the asset tool set only (repeated runs of those suites)
+        // GUCEF_TEST_ASSETTOOLS_ONLY=1 runs the suites of the asset tool set only (repeated runs of those suites);
+        // GUCEF_TEST_ASSETSTORE_REMOTE_ONLY=1 the suites of the remote service, =faults its fault suite, =live its live smoke suite
         const char* toolsOnly = ::getenv( "GUCEF_TEST_ASSETTOOLS_ONLY" );
+        const char* remoteOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_REMOTE_ONLY" );
+        // GUCEF_TEST_ASSETSTORE_SYNC_ONLY=1 runs the suites of the library sync only
+        const char* syncOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_SYNC_ONLY" );
+        const CORE::CString remoteSelection = GUCEF_NULL != remoteOnly ? CORE::CString( remoteOnly ) : CORE::CString::Empty;
+        if ( GUCEF_NULL != syncOnly && '1' == syncOnly[ 0 ] )
+        {
+            PerformLibrarySyncUnitTests();
+            PerformLibrarySyncVfsTablesTests();
+            PerformLibrarySyncPostgreSqlTests();
+        }
+        else
+        if ( "live" == remoteSelection )
+        {
+            PerformAssetStoreRemoteLiveSmokeTests();
+        }
+        else
+        if ( "faults" == remoteSelection )
+        {
+            PerformAssetStoreRemoteFaultTests();
+            PerformAssetStoreRemoteSignInRoleTests();
+        }
+        else
+        if ( "files" == remoteSelection )
+        {
+            PerformAssetStoreBlockCacheTests();
+            PerformAssetStoreRemoteFilesTests();
+            PerformAssetStoreRemoteFilesGateTests();
+        }
+        else
+        if ( "1" == remoteSelection )
+        {
+            PerformAssetStoreRemoteUnitTests();
+            PerformAssetStoreRemoteServiceVfsTablesTests();
+            PerformAssetStoreRemoteServicePostgreSqlTests();
+            PerformAssetStoreRemoteFaultTests();
+            PerformAssetStoreRemoteSignInRoleTests();
+            PerformAssetStoreBlockCacheTests();
+            PerformAssetStoreRemoteFilesTests();
+            PerformAssetStoreRemoteFilesGateTests();
+            PerformAssetStoreRemoteLiveSmokeTests();
+        }
+        else
         if ( GUCEF_NULL != toolsOnly && '1' == toolsOnly[ 0 ] )
         {
             PerformAssetToolsMcpFakeTests();
@@ -103,18 +152,34 @@ GUCEF_OSMAIN_BEGIN
         }
         else
         {
+            PerformPackStorageLayoutTests();
             PerformNormalisationTests();
             PerformDownloadTests();
             PerformLibraryFileSystemAccessTests();
             PerformImageCacheTests();
+            PerformAssetStorePluginLoaderTests();
             PerformPrimaryStoreVfsTablesTests();
             PerformPrimaryStorePostgreSqlTests();
+            PerformPackIndexVfsTablesTests();
+            PerformPackIndexPostgreSqlTests();
             PerformConversionVfsTablesTests();
             PerformConversionPostgreSqlTests();
             PerformWebSignInTests();
             PerformAssetStoreServiceUnitTests();
             PerformAssetStoreServiceVfsTablesTests();
             PerformAssetStoreServicePostgreSqlTests();
+            PerformLibrarySyncUnitTests();
+            PerformLibrarySyncVfsTablesTests();
+            PerformLibrarySyncPostgreSqlTests();
+            PerformAssetStoreRemoteUnitTests();
+            PerformAssetStoreRemoteServiceVfsTablesTests();
+            PerformAssetStoreRemoteServicePostgreSqlTests();
+            PerformAssetStoreRemoteFaultTests();
+            PerformAssetStoreRemoteSignInRoleTests();
+            PerformAssetStoreBlockCacheTests();
+            PerformAssetStoreRemoteFilesTests();
+            PerformAssetStoreRemoteFilesGateTests();
+            PerformAssetStoreRemoteLiveSmokeTests();
             PerformAssetToolsMcpFakeTests();
             PerformAssetToolsMcpLocalTests();
         }

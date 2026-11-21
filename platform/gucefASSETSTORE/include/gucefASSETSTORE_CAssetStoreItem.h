@@ -78,12 +78,24 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetStoreItem : public CORE::CIDataNodeSeria
     CORE::CString::StringVector tags;
     TAssetStoreFormatVector formats;
     CORE::CDataNode storeAttributes;
+    Int64 changedAtMs;                          /**< UTC milliseconds since the Unix epoch of the last change of the item or its files as the store states it; 0 when not known */
+    CORE::CString revision;                     /**< an opaque token of the store that changes when the files change (an etag, a build id); empty when there is none */
+    Int64 acquiredAtMs;                         /**< UTC milliseconds since the Unix epoch at which the item entered the library; 0 when not known */
+    bool downloadable;                          /**< false for an item the library lists but the account cannot download now */
+    CORE::CString unavailableReason;            /**< why the item cannot be downloaded, never a secret; empty when it can */
+    UInt8 formatsLevel;                         /**< what the listing says of the formats: 0 none, 1 ids and names only, 2 formats with files and sizes; 0 when the store does not say (GetEffectiveFormatsLevel()) */
 
     CAssetStoreItem( void );
     virtual ~CAssetStoreItem() GUCEF_VIRTUAL_OVERRIDE;
 
     /** The format with the id, GUCEF_NULL when there is none */
     const CAssetStoreFormat* FindFormat( const CORE::CString& formatId ) const;
+
+    /**
+     *  The level of the formats of the listing: formatsLevel when the store set it, otherwise derived from the formats (0 when
+     *  there are none, 1 when every file size is 0, else 2)
+     */
+    UInt8 GetEffectiveFormatsLevel( void ) const;
 
     virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
                             const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;

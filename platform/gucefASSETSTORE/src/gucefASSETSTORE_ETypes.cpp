@@ -139,10 +139,13 @@ const SNamedValue g_signInKindNames[] =
     { ASSETSTORE_SIGNIN_WEB_SESSION, "webSession" }
 };
 
-const SNamedValue g_webSignInModeNames[] =
+const SNamedValue g_signInStateNames[] =
 {
-    { WEBSIGNIN_MODE_INTERACTIVE, "interactive" },
-    { WEBSIGNIN_MODE_UNATTENDED, "unattended" }
+    { ASSETSTORE_SIGNINSTATE_SIGNED_OUT, "signedOut" },
+    { ASSETSTORE_SIGNINSTATE_IN_PROGRESS, "inProgress" },
+    { ASSETSTORE_SIGNINSTATE_SIGNED_IN, "signedIn" },
+    { ASSETSTORE_SIGNINSTATE_EXPIRED, "expired" },
+    { ASSETSTORE_SIGNINSTATE_FAILED, "failed" }
 };
 
 const SNamedValue g_serviceJobStateNames[] =
@@ -172,7 +175,8 @@ const SNamedValue g_changeKindNames[] =
     { ASSETCHANGE_PACK_REMOVED, "packRemoved" },
     { ASSETCHANGE_VOCABULARY, "vocabulary" },
     { ASSETCHANGE_SAVED_SEARCHES, "savedSearches" },
-    { ASSETCHANGE_RESYNC, "resync" }
+    { ASSETCHANGE_RESYNC, "resync" },
+    { ASSETCHANGE_PACK_INDEX_UPDATED, "packIndexUpdated" }
 };
 
 const char*
@@ -376,19 +380,63 @@ AssetStoreSignInKindFromString( const CORE::CString& text )
 /*-------------------------------------------------------------------------*/
 
 const char*
-WebSignInModeToString( TWebSignInMode mode )
+AssetStoreSignInStateToString( TAssetStoreSignInState state )
 {GUCEF_TRACE;
 
-    return NameOf( g_webSignInModeNames, GUCEF_ASSETSTORE_COUNT( g_webSignInModeNames ), mode, "interactive" );
+    return NameOf( g_signInStateNames, GUCEF_ASSETSTORE_COUNT( g_signInStateNames ), state, "signedOut" );
 }
 
 /*-------------------------------------------------------------------------*/
 
-TWebSignInMode
-WebSignInModeFromString( const CORE::CString& text, TWebSignInMode defaultMode )
+TAssetStoreSignInState
+AssetStoreSignInStateFromString( const CORE::CString& text )
 {GUCEF_TRACE;
 
-    return (TWebSignInMode) ValueOf( g_webSignInModeNames, GUCEF_ASSETSTORE_COUNT( g_webSignInModeNames ), text, defaultMode );
+    return (TAssetStoreSignInState) ValueOf( g_signInStateNames, GUCEF_ASSETSTORE_COUNT( g_signInStateNames ), text, ASSETSTORE_SIGNINSTATE_SIGNED_OUT );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+AssetStoreStatusFromWebSignInStatus( WEB::TWebSignInStatus status )
+{GUCEF_TRACE;
+
+    switch ( status )
+    {
+        case WEB::WEBSIGNIN_STATUS_OK:                  return ASSETSTORE_STATUS_OK;
+        case WEB::WEBSIGNIN_STATUS_FAILED:              return ASSETSTORE_STATUS_FAILED;
+        case WEB::WEBSIGNIN_STATUS_INVALID_ARGUMENT:    return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        case WEB::WEBSIGNIN_STATUS_NOT_SIGNED_IN:       return ASSETSTORE_STATUS_NOT_SIGNED_IN;
+        case WEB::WEBSIGNIN_STATUS_NETWORK_ERROR:       return ASSETSTORE_STATUS_NETWORK_ERROR;
+        case WEB::WEBSIGNIN_STATUS_CANCELLED:           return ASSETSTORE_STATUS_CANCELLED;
+        case WEB::WEBSIGNIN_STATUS_ALREADY_EXISTS:      return ASSETSTORE_STATUS_ALREADY_EXISTS;
+        case WEB::WEBSIGNIN_STATUS_TIMED_OUT:           return ASSETSTORE_STATUS_TIMED_OUT;
+        case WEB::WEBSIGNIN_STATUS_OWNER_ACTION_NEEDED: return ASSETSTORE_STATUS_OWNER_ACTION_NEEDED;
+        case WEB::WEBSIGNIN_STATUS_BROWSER_UNAVAILABLE: return ASSETSTORE_STATUS_BROWSER_UNAVAILABLE;
+        default:                                        return ASSETSTORE_STATUS_FAILED;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+WEB::TWebSignInStatus
+WebSignInStatusFromAssetStoreStatus( TAssetStoreStatus status )
+{GUCEF_TRACE;
+
+    switch ( status )
+    {
+        case ASSETSTORE_STATUS_OK:                      return WEB::WEBSIGNIN_STATUS_OK;
+        case ASSETSTORE_STATUS_FAILED:                  return WEB::WEBSIGNIN_STATUS_FAILED;
+        case ASSETSTORE_STATUS_INVALID_ARGUMENT:        return WEB::WEBSIGNIN_STATUS_INVALID_ARGUMENT;
+        case ASSETSTORE_STATUS_NOT_SIGNED_IN:           return WEB::WEBSIGNIN_STATUS_NOT_SIGNED_IN;
+        case ASSETSTORE_STATUS_NETWORK_ERROR:           return WEB::WEBSIGNIN_STATUS_NETWORK_ERROR;
+        case ASSETSTORE_STATUS_CANCELLED:               return WEB::WEBSIGNIN_STATUS_CANCELLED;
+        case ASSETSTORE_STATUS_ALREADY_EXISTS:          return WEB::WEBSIGNIN_STATUS_ALREADY_EXISTS;
+        case ASSETSTORE_STATUS_TIMED_OUT:               return WEB::WEBSIGNIN_STATUS_TIMED_OUT;
+        case ASSETSTORE_STATUS_OWNER_ACTION_NEEDED:     return WEB::WEBSIGNIN_STATUS_OWNER_ACTION_NEEDED;
+        case ASSETSTORE_STATUS_BROWSER_UNAVAILABLE:     return WEB::WEBSIGNIN_STATUS_BROWSER_UNAVAILABLE;
+        default:                                        return WEB::WEBSIGNIN_STATUS_FAILED;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

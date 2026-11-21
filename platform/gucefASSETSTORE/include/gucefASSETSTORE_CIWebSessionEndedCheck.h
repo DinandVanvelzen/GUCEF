@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CIWebSessionEndedCheck moved to gucefWEB, header gucefWEB_CIWebSessionEndedCheck.h, name GUCEF::WEB::CIWebSessionEndedCheck.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CIWEBSESSIONENDEDCHECK_H
 #define GUCEF_ASSETSTORE_CIWEBSESSIONENDEDCHECK_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_WEB_CHTTPRESPONSEDATA_H
-#include "gucefWEB_CHttpResponseData.h"
-#define GUCEF_WEB_CHTTPRESPONSEDATA_H
-#endif /* GUCEF_WEB_CHTTPRESPONSEDATA_H ? */
-#ifndef GUCEF_ASSETSTORE_MACROS_H
-#include "gucefASSETSTORE_macros.h"
-#define GUCEF_ASSETSTORE_MACROS_H
-#endif /* GUCEF_ASSETSTORE_MACROS_H ? */
+#ifndef GUCEF_WEB_CIWEBSESSIONENDEDCHECK_H
+#include "gucefWEB_CIWebSessionEndedCheck.h"
+#define GUCEF_WEB_CIWEBSESSIONENDEDCHECK_H
+#endif /* GUCEF_WEB_CIWEBSESSIONENDEDCHECK_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,31 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Tells from an answer of a store whether its web session ended, so CWebSessionSignIn::CheckResponse() can forget
- *  the session and the store can sign in again. A store plugin gives its own when the default (CWebSessionEndedCheck:
- *  status codes, a redirect to the login page) does not fit, for example a page that says so in its body.
- *  Called on the thread that made the request; an implementation must be thread safe.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CIWebSessionEndedCheck
-{
-    public:
-
-    CIWebSessionEndedCheck( void );
-    virtual ~CIWebSessionEndedCheck();
-
-    /** Whether the answer to a request made with the session means that the session ended */
-    virtual bool IsSessionEnded( const WEB::CHttpResponseData& response ) const = 0;
-
-    private:
-
-    CIWebSessionEndedCheck( const CIWebSessionEndedCheck& src );                /**< not implemented */
-    CIWebSessionEndedCheck& operator=( const CIWebSessionEndedCheck& src );     /**< not implemented */
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CIWebSessionEndedCheck;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

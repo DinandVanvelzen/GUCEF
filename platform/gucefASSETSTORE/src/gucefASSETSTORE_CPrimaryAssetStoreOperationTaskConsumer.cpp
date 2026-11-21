@@ -149,6 +149,40 @@ CPrimaryAssetStoreOperationTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
                     CAssetStoreProviderOperationTaskConsumer::FailSource( data->source, status, store->GetLastErrorMessage() );
                 break;
             }
+            case CPrimaryAssetStoreOperationData::OPERATION_MIGRATE_LAYOUT:
+            {
+                CAssetLayoutMigrationReport report;
+                const TAssetStoreStatus status = store->MigrateStorageLayout( data->locationId, data->dryRun, report );
+                if ( ASSETSTORE_STATUS_OK == status )
+                    data->source.Complete( report.Clone(), true );
+                else
+                    CAssetStoreProviderOperationTaskConsumer::FailSource( data->source, status, store->GetLastErrorMessage() );
+                break;
+            }
+            case CPrimaryAssetStoreOperationData::OPERATION_INDEX_PACK:
+            {
+                CAssetPackIndexOutcome outcome;
+                store->RunIndexPack( data->packId, data->indexOptions, outcome, &data->source );
+                if ( ASSETSTORE_STATUS_OK == outcome.status || ASSETSTORE_STATUS_UNSUPPORTED == outcome.status )
+                    data->source.Complete( outcome.Clone(), true );
+                else
+                    CAssetStoreProviderOperationTaskConsumer::FailSource( data->source, outcome.status, outcome.message );
+                break;
+            }
+            case CPrimaryAssetStoreOperationData::OPERATION_INDEX_MISSING:
+            case CPrimaryAssetStoreOperationData::OPERATION_REINDEX_FROM_STORAGE:
+            {
+                CAssetPackIndexReport report;
+                if ( CPrimaryAssetStoreOperationData::OPERATION_INDEX_MISSING == data->operation )
+                    store->RunIndexPacksWithoutIndex( data->indexOptions, report, &data->source );
+                else
+                    store->RunReindexFromStorage( data->buildMissing, data->indexOptions, report, &data->source );
+                if ( ASSETSTORE_STATUS_OK == report.status )
+                    data->source.Complete( report.Clone(), true );
+                else
+                    CAssetStoreProviderOperationTaskConsumer::FailSource( data->source, report.status, report.message );
+                break;
+            }
             case CPrimaryAssetStoreOperationData::OPERATION_VERIFY:
             {
                 CAssetVerificationReport report;

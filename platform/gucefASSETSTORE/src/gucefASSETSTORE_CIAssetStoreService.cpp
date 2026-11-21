@@ -402,6 +402,16 @@ CIAssetStoreService::RunSavedSearchAsync( const CORE::CString& searchId, UInt32 
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CIAssetStoreService::GetRestrictionsOfPath( const CORE::CString& vfsPath, CORE::CString::StringSet& flags ) const
+{GUCEF_TRACE;
+
+    flags.clear();
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CFutureResult
 CIAssetStoreService::GetAssetFileSetAsync( const CORE::CString& assetId )
 {GUCEF_TRACE;
@@ -419,6 +429,78 @@ CIAssetStoreService::GetLicenceAsync( const CORE::CString& licenceOrPackId )
 
     CAssetServiceCall call( CAssetServiceOperations::GetLicence );
     call.SetText( "licenceOrPackId", licenceOrPackId );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::GetPackIndex( const CORE::CString& packId, bool forLearning, CAssetPackIndexInfo& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::GetPackIndexAsync( const CORE::CString& packId, bool forLearning )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::GetPackIndex );
+    call.SetText( "packId", packId );
+    call.SetBool( "forLearning", forLearning );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::GetResourceGroups( const CORE::CString& packId, bool forLearning, CAssetPackGroupPage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::GetResourceGroupsAsync( const CORE::CString& packId, bool forLearning )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::GetResourceGroups );
+    call.SetText( "packId", packId );
+    call.SetBool( "forLearning", forLearning );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::GetResources( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken,
+                                   UInt32 maxEntries, bool forLearning, CAssetPackResourcePage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::GetResourcesAsync( const CORE::CString& packId, const CORE::CString& groupId, const CORE::CString& subGroup, const CORE::CString& pageToken,
+                                        UInt32 maxEntries, bool forLearning )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::GetResources );
+    call.SetText( "packId", packId );
+    call.SetText( "groupId", groupId );
+    call.SetText( "subGroup", subGroup );
+    call.SetText( "pageToken", pageToken );
+    call.SetUInt32( "maxEntries", maxEntries );
+    call.SetBool( "forLearning", forLearning );
     return ExecuteAsync( call );
 }
 
@@ -626,6 +708,30 @@ CIAssetStoreService::BeginUploadAsync( const CORE::CString& commandId, const COR
     call.SetText( "name", name );
     call.SetUInt64( "totalBytes", totalBytes );
     call.SetUInt32( "fileCount", fileCount );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::BeginUploadFiles( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This implementation of the asset store service takes no uploads";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::BeginUploadFilesAsync( const CORE::CString& commandId, const CORE::CString& name, const CAssetFileStatPage& files )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::BeginUploadFiles, commandId );
+    call.SetText( "name", name );
+    call.SetRecord( "files", files );
     return ExecuteAsync( call );
 }
 
@@ -1033,6 +1139,98 @@ CIAssetStoreService::GetResourceStatusAsync(  )
 /*-------------------------------------------------------------------------*/
 
 TAssetStoreStatus
+CIAssetStoreService::GetSyncMarks( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries, CAssetSyncMarkPage& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::GetSyncMarksAsync( const CORE::CString& storeId, const CORE::CString& pageToken, UInt32 maxEntries )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::GetSyncMarks );
+    call.SetText( "storeId", storeId );
+    call.SetText( "pageToken", pageToken );
+    call.SetUInt32( "maxEntries", maxEntries );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::SetSyncMarks( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service has no library sync";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::SetSyncMarksAsync( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetSyncMarkPage& marks )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::SetSyncMarks, commandId );
+    call.SetText( "storeId", storeId );
+    call.SetRecord( "marks", marks );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::GetSyncProfile( const CORE::CString& storeId, CAssetLibrarySyncProfile& result )
+{GUCEF_TRACE;
+
+    result = CAssetLibrarySyncProfile();
+    return ASSETSTORE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::GetSyncProfileAsync( const CORE::CString& storeId )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::GetSyncProfile );
+    call.SetText( "storeId", storeId );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CIAssetStoreService::SetSyncProfile( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile, CAssetServiceResult& result )
+{GUCEF_TRACE;
+
+    result.Clear();
+    result.status = ASSETSTORE_STATUS_UNSUPPORTED;
+    result.message = "This service has no library sync";
+    return result.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIAssetStoreService::SetSyncProfileAsync( const CORE::CString& commandId, const CORE::CString& storeId, const CAssetLibrarySyncProfile& profile )
+{GUCEF_TRACE;
+
+    CAssetServiceCall call( CAssetServiceOperations::SetSyncProfile, commandId );
+    call.SetText( "storeId", storeId );
+    call.SetRecord( "profile", profile );
+    return ExecuteAsync( call );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
 CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*& result, CORE::CString& message )
 {GUCEF_TRACE;
 
@@ -1176,6 +1374,34 @@ CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*
         const CORE::CString licenceOrPackId = call.GetText( "licenceOrPackId" );
         CAssetLicence* answer = GUCEF_NEW CAssetLicence();
         status = GetLicence( licenceOrPackId, *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::GetPackIndex == operation )
+    {
+        const CORE::CString packId = call.GetText( "packId" );
+        CAssetPackIndexInfo* answer = GUCEF_NEW CAssetPackIndexInfo();
+        status = GetPackIndex( packId, call.GetBool( "forLearning" ), *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::GetResourceGroups == operation )
+    {
+        const CORE::CString packId = call.GetText( "packId" );
+        CAssetPackGroupPage* answer = GUCEF_NEW CAssetPackGroupPage();
+        status = GetResourceGroups( packId, call.GetBool( "forLearning" ), *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::GetResources == operation )
+    {
+        const CORE::CString packId = call.GetText( "packId" );
+        const CORE::CString groupId = call.GetText( "groupId" );
+        const CORE::CString subGroup = call.GetText( "subGroup" );
+        const CORE::CString pageToken = call.GetText( "pageToken" );
+        const UInt32 maxEntries = call.GetUInt32( "maxEntries" );
+        CAssetPackResourcePage* answer = GUCEF_NEW CAssetPackResourcePage();
+        status = GetResources( packId, groupId, subGroup, pageToken, maxEntries, call.GetBool( "forLearning" ), *answer );
         result = answer;
     }
     else
@@ -1337,6 +1563,16 @@ CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*
         const UInt32 fileCount = call.GetUInt32( "fileCount" );
         CAssetServiceResult* answer = GUCEF_NEW CAssetServiceResult();
         status = BeginUpload( commandId, name, totalBytes, fileCount, *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::BeginUploadFiles == operation )
+    {
+        const CORE::CString name = call.GetText( "name" );
+        CAssetFileStatPage files;
+        call.GetRecord( "files", files );
+        CAssetServiceResult* answer = GUCEF_NEW CAssetServiceResult();
+        status = BeginUploadFiles( commandId, name, files, *answer );
         result = answer;
     }
     else
@@ -1646,6 +1882,38 @@ CIAssetStoreService::Dispatch( const CAssetServiceCall& call, CORE::CICloneable*
     {
         CAssetServiceDocument* answer = GUCEF_NEW CAssetServiceDocument();
         status = GetResourceStatus( *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::GetSyncMarks == operation )
+    {
+        CAssetSyncMarkPage* answer = GUCEF_NEW CAssetSyncMarkPage();
+        status = GetSyncMarks( call.GetText( "storeId" ), call.GetText( "pageToken" ), call.GetUInt32( "maxEntries" ), *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::SetSyncMarks == operation )
+    {
+        CAssetSyncMarkPage marks;
+        call.GetRecord( "marks", marks );
+        CAssetServiceResult* answer = GUCEF_NEW CAssetServiceResult();
+        status = SetSyncMarks( commandId, call.GetText( "storeId" ), marks, *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::GetSyncProfile == operation )
+    {
+        CAssetLibrarySyncProfile* answer = GUCEF_NEW CAssetLibrarySyncProfile();
+        status = GetSyncProfile( call.GetText( "storeId" ), *answer );
+        result = answer;
+    }
+    else
+    if ( CAssetServiceOperations::SetSyncProfile == operation )
+    {
+        CAssetLibrarySyncProfile profile;
+        call.GetRecord( "profile", profile );
+        CAssetServiceResult* answer = GUCEF_NEW CAssetServiceResult();
+        status = SetSyncProfile( commandId, call.GetText( "storeId" ), profile, *answer );
         result = answer;
     }
     else

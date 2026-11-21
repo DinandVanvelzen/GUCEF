@@ -33,16 +33,88 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "ANDROID" } )
+language( "C++" )
+
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "ARDUINO" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN32" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN64" } )
+language( "C++" )
+
+configuration( { "GLX" } )
+language( "C++" )
+
+configuration( { "GTK" } )
+language( "C++" )
+
+configuration( { "IOS" } )
+language( "C++" )
+
+configuration( { "IPHONE" } )
+language( "C++" )
+
+configuration( { "IPHONEOS" } )
+language( "C++" )
+
+configuration( { "LINUX" } )
+language( "C++" )
+
 configuration( { "LINUX32" } )
 language( "C++" )
 
 configuration( { "LINUX64" } )
 language( "C++" )
 
+configuration( { "MAC" } )
+language( "C++" )
+
+configuration( { "MACOS" } )
+language( "C++" )
+
+configuration( { "MACOSX" } )
+language( "C++" )
+
+configuration( { "MSWIN" } )
+language( "C++" )
+
+configuration( { "NACL" } )
+language( "C++" )
+
+configuration( { "OSX" } )
+language( "C++" )
+
+configuration( { "POSIX" } )
+language( "C++" )
+
+configuration( { "SDL" } )
+language( "C++" )
+
+configuration( { "SYMBIAN" } )
+language( "C++" )
+
+configuration( { "UNIX" } )
+language( "C++" )
+
 configuration( { "WIN32" } )
 language( "C++" )
 
 configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "WINDOWS" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -67,49 +139,169 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( { "LINUX32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-
-configuration( { "LINUX32" } )
-defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
-
-configuration( { "LINUX64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-configuration( { "LINUX64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-
-configuration( { "LINUX64" } )
-defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
-
-configuration( { "WIN32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-configuration( { "WIN32" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-
-configuration( { "WIN32" } )
-defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
-
-configuration( { "WIN64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-configuration( { "WIN64" } )
-links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
-
-
-configuration( { "WIN64" } )
-defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( { "LINUX32" } )
+defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
+
+configuration( { "LINUX64" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+configuration( { "LINUX64" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
+
+configuration( { "WIN32" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+configuration( { "WIN32" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+
+configuration( { "WIN32" } )
+defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
+
+configuration( { "WIN64" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+configuration( { "WIN64" } )
+links( { "dbpluginPOSTGRESQL", "gucefASSETSTORE", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefIMAGE", "gucefMT", "gucefVFS", "gucefWEB" } )
+
+
+configuration( { "WIN64" } )
+defines( { "GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefASSETSTORE_TestApp" } )
+
+
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "ARDUINO" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "GLX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "GTK" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAssetStorePluginLoader.h",
+      "include/TestAssetStoreRemoteService.h",
+      "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
       "include/TestAssetStoreSupport.h",
@@ -125,9 +317,14 @@ configuration( { "LINUX32" } )
       "include/TestFakeStoreServer.h",
       "include/TestImageCache.h",
       "include/TestLibraryFileSystemAccess.h",
+      "include/TestLibrarySync.h",
       "include/TestModelAnalyzer.h",
       "include/TestNormalisation.h",
+      "include/TestPackIndex.h",
+      "include/TestPackIndexDocument.h",
+      "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
+      "include/TestRemoteAssetFiles.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -136,6 +333,10 @@ configuration( { "LINUX32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp",
+      "src/TestAssetStorePluginLoader.cpp",
+      "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
@@ -144,15 +345,18 @@ configuration( { "LINUX32" } )
       "src/TestDownloads.cpp",
       "src/TestFakeAssetStoreService.cpp",
       "src/TestFakeConverterHook.cpp",
-      "src/TestFakeLoginSite.cpp",
-      "src/TestFakeSignInBrowser.cpp",
       "src/TestFakeStoreProvider.cpp",
       "src/TestFakeStoreServer.cpp",
       "src/TestImageCache.cpp",
       "src/TestLibraryFileSystemAccess.cpp",
+      "src/TestLibrarySync.cpp",
       "src/TestModelAnalyzer.cpp",
       "src/TestNormalisation.cpp",
+      "src/TestPackIndex.cpp",
+      "src/TestPackIndexDocument.cpp",
+      "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
+      "src/TestRemoteAssetFiles.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -165,6 +369,9 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAssetStorePluginLoader.h",
+      "include/TestAssetStoreRemoteService.h",
+      "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
       "include/TestAssetStoreSupport.h",
@@ -180,9 +387,14 @@ configuration( { "LINUX64" } )
       "include/TestFakeStoreServer.h",
       "include/TestImageCache.h",
       "include/TestLibraryFileSystemAccess.h",
+      "include/TestLibrarySync.h",
       "include/TestModelAnalyzer.h",
       "include/TestNormalisation.h",
+      "include/TestPackIndex.h",
+      "include/TestPackIndexDocument.h",
+      "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
+      "include/TestRemoteAssetFiles.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -191,6 +403,10 @@ configuration( { "LINUX64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp",
+      "src/TestAssetStorePluginLoader.cpp",
+      "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
@@ -199,15 +415,18 @@ configuration( { "LINUX64" } )
       "src/TestDownloads.cpp",
       "src/TestFakeAssetStoreService.cpp",
       "src/TestFakeConverterHook.cpp",
-      "src/TestFakeLoginSite.cpp",
-      "src/TestFakeSignInBrowser.cpp",
       "src/TestFakeStoreProvider.cpp",
       "src/TestFakeStoreServer.cpp",
       "src/TestImageCache.cpp",
       "src/TestLibraryFileSystemAccess.cpp",
+      "src/TestLibrarySync.cpp",
       "src/TestModelAnalyzer.cpp",
       "src/TestNormalisation.cpp",
+      "src/TestPackIndex.cpp",
+      "src/TestPackIndexDocument.cpp",
+      "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
+      "src/TestRemoteAssetFiles.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -217,9 +436,102 @@ configuration( { "LINUX64" } )
 
 
 
+configuration( { "MAC" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "MSWIN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "NACL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "OSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "POSIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "SDL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "SYMBIAN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
+configuration( { "UNIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
+    } )
+
+
+
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAssetStorePluginLoader.h",
+      "include/TestAssetStoreRemoteService.h",
+      "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
       "include/TestAssetStoreSupport.h",
@@ -235,9 +547,14 @@ configuration( { "WIN32" } )
       "include/TestFakeStoreServer.h",
       "include/TestImageCache.h",
       "include/TestLibraryFileSystemAccess.h",
+      "include/TestLibrarySync.h",
       "include/TestModelAnalyzer.h",
       "include/TestNormalisation.h",
+      "include/TestPackIndex.h",
+      "include/TestPackIndexDocument.h",
+      "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
+      "include/TestRemoteAssetFiles.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -246,6 +563,10 @@ configuration( { "WIN32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp",
+      "src/TestAssetStorePluginLoader.cpp",
+      "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
@@ -254,15 +575,18 @@ configuration( { "WIN32" } )
       "src/TestDownloads.cpp",
       "src/TestFakeAssetStoreService.cpp",
       "src/TestFakeConverterHook.cpp",
-      "src/TestFakeLoginSite.cpp",
-      "src/TestFakeSignInBrowser.cpp",
       "src/TestFakeStoreProvider.cpp",
       "src/TestFakeStoreServer.cpp",
       "src/TestImageCache.cpp",
       "src/TestLibraryFileSystemAccess.cpp",
+      "src/TestLibrarySync.cpp",
       "src/TestModelAnalyzer.cpp",
       "src/TestNormalisation.cpp",
+      "src/TestPackIndex.cpp",
+      "src/TestPackIndexDocument.cpp",
+      "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
+      "src/TestRemoteAssetFiles.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
@@ -275,6 +599,9 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAssetStorePluginLoader.h",
+      "include/TestAssetStoreRemoteService.h",
+      "include/TestAssetStoreRemoteWorld.h",
       "include/TestAssetStoreService.h",
       "include/TestAssetStoreServiceSuite.h",
       "include/TestAssetStoreSupport.h",
@@ -290,9 +617,14 @@ configuration( { "WIN64" } )
       "include/TestFakeStoreServer.h",
       "include/TestImageCache.h",
       "include/TestLibraryFileSystemAccess.h",
+      "include/TestLibrarySync.h",
       "include/TestModelAnalyzer.h",
       "include/TestNormalisation.h",
+      "include/TestPackIndex.h",
+      "include/TestPackIndexDocument.h",
+      "include/TestPackStorageLayout.h",
       "include/TestPrimaryStore.h",
+      "include/TestRemoteAssetFiles.h",
       "include/TestToolsConverterHook.h",
       "include/TestToolsFakeService.h",
       "include/TestToolsFixture.h",
@@ -301,6 +633,10 @@ configuration( { "WIN64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp",
+      "src/TestAssetStorePluginLoader.cpp",
+      "src/TestAssetStoreRemoteService.cpp",
       "src/TestAssetStoreService.cpp",
       "src/TestAssetStoreSupport.cpp",
       "src/TestAssetToolsMcp.cpp",
@@ -309,25 +645,37 @@ configuration( { "WIN64" } )
       "src/TestDownloads.cpp",
       "src/TestFakeAssetStoreService.cpp",
       "src/TestFakeConverterHook.cpp",
-      "src/TestFakeLoginSite.cpp",
-      "src/TestFakeSignInBrowser.cpp",
       "src/TestFakeStoreProvider.cpp",
       "src/TestFakeStoreServer.cpp",
       "src/TestImageCache.cpp",
       "src/TestLibraryFileSystemAccess.cpp",
+      "src/TestLibrarySync.cpp",
       "src/TestModelAnalyzer.cpp",
       "src/TestNormalisation.cpp",
+      "src/TestPackIndex.cpp",
+      "src/TestPackIndexDocument.cpp",
+      "src/TestPackStorageLayout.cpp",
       "src/TestPrimaryStore.cpp",
+      "src/TestRemoteAssetFiles.cpp",
       "src/TestToolsConverterHook.cpp",
       "src/TestToolsFakeService.cpp",
       "src/TestToolsFixture.cpp",
       "src/TestWebSignIn.cpp",
       "src/gucefASSETSTORE_TestApp_main.cpp"
+    } )
+
+
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefAUTH_TestApp/src/TestFakeLoginSite.cpp",
+      "../gucefAUTH_TestApp/src/TestFakeSignInBrowser.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefASSETSTORE/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../dependencies/libpq/src/include", "../../dependencies/libpq/src/interfaces/libpq", "../../dependencies/libpq/src/port", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../plugins/COMCORE/dbpluginPOSTGRESQL/include", "include" } )

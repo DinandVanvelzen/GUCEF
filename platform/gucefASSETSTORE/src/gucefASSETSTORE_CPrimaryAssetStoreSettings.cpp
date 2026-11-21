@@ -80,8 +80,10 @@ CPrimaryAssetStoreSettings::CPrimaryAssetStoreSettings( void )
     , defaultPolicy()
     , duplicatePolicy( ASSETDUPLICATE_SKIP )
     , copyDiskPacks( true )
+    , scratchStagingPath()
     , seedDataPath( "gucefASSETSTORE" )
     , analysisConcurrency( 4 )
+    , indexAfterIngest( false )
     , threadPoolName( "AssetStorePrimary" )
     , analysisThreadPoolName( "AssetStoreAnalysis" )
 {GUCEF_TRACE;
@@ -233,7 +235,10 @@ CPrimaryAssetStoreSettings::Serialize( CORE::CDataNode& domRootNode             
     success = domRootNode.SetAttribute( "duplicatePolicy", CORE::CString( AssetDuplicatePolicyToString( duplicatePolicy ) ) ) && success;
     success = domRootNode.SetAttribute( "copyDiskPacks", copyDiskPacks ) && success;
     success = domRootNode.SetAttribute( "seedDataPath", seedDataPath ) && success;
+    if ( !scratchStagingPath.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "scratchStagingPath", scratchStagingPath ) && success;
     success = domRootNode.SetAttribute( "analysisConcurrency", analysisConcurrency ) && success;
+    success = domRootNode.SetAttribute( "indexAfterIngest", indexAfterIngest ) && success;
     success = domRootNode.SetAttribute( "threadPoolName", threadPoolName ) && success;
     success = domRootNode.SetAttribute( "analysisThreadPoolName", analysisThreadPoolName ) && success;
     return success;
@@ -285,7 +290,9 @@ CPrimaryAssetStoreSettings::Deserialize( const CORE::CDataNode& domRootNode     
     loaded.duplicatePolicy = AssetDuplicatePolicyFromString( domRootNode.GetAttributeValueOrChildValueByName( "duplicatePolicy" ).AsString(), ASSETDUPLICATE_SKIP );
     loaded.copyDiskPacks = domRootNode.GetAttributeValueOrChildValueByName( "copyDiskPacks" ).AsBool( true, true );
     loaded.seedDataPath = domRootNode.GetAttributeValueOrChildValueByName( "seedDataPath" ).AsString( loaded.seedDataPath );
+    loaded.scratchStagingPath = domRootNode.GetAttributeValueOrChildValueByName( "scratchStagingPath" ).AsString( loaded.scratchStagingPath );
     loaded.analysisConcurrency = domRootNode.GetAttributeValueOrChildValueByName( "analysisConcurrency" ).AsUInt32( loaded.analysisConcurrency, true );
+    loaded.indexAfterIngest = domRootNode.GetAttributeValueOrChildValueByName( "indexAfterIngest" ).AsBool( loaded.indexAfterIngest, true );
     loaded.threadPoolName = domRootNode.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( loaded.threadPoolName );
     loaded.analysisThreadPoolName = domRootNode.GetAttributeValueOrChildValueByName( "analysisThreadPoolName" ).AsString( loaded.analysisThreadPoolName );
     if ( 0 == loaded.analysisConcurrency )

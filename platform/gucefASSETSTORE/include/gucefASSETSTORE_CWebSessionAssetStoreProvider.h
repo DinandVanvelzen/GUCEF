@@ -37,10 +37,10 @@
 #include "gucefASSETSTORE_CIAssetStoreProvider.h"
 #define GUCEF_ASSETSTORE_CIASSETSTOREPROVIDER_H
 #endif /* GUCEF_ASSETSTORE_CIASSETSTOREPROVIDER_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#include "gucefASSETSTORE_CWebSessionSignIn.h"
-#define GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H
-#endif /* GUCEF_ASSETSTORE_CWEBSESSIONSIGNIN_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#include "gucefAUTH_CWebSessionSignIn.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNIN_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNIN_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -59,7 +59,7 @@ namespace ASSETSTORE {
 
 /**
  *  The base of a store provider that signs in on the web site of its store (section 12.1 of the design): it answers
- *  ASSETSTORE_SIGNIN_WEB_SESSION, owns the CWebSessionSignIn of the store and keeps the session in a cookie jar for
+ *  ASSETSTORE_SIGNIN_WEB_SESSION, owns the AUTH::CWebSessionSignIn of the store and keeps the session in a cookie jar for
  *  the HTTP requests of the plugin. A plugin derives from it, calls ConfigureWebSignIn() with its login script
  *  (loaded from its data folder) and implements the library operations of CIAssetStoreProvider with requests that
  *  use GetCookieJar() (or AddSessionCookies()) and hand every answer to CheckResponse().
@@ -83,13 +83,16 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionAssetStoreProvider : public CIAsset
      *  that was saved. The stores are not owned and must outlive the provider; GUCEF_NULL takes the store the
      *  application set with CAssetStoreGlobal::SetWebSignInStores() (none when it set none)
      */
-    bool ConfigureWebSignIn( const CWebSessionSignInSettings& settings              ,
+    bool ConfigureWebSignIn( const AUTH::CWebSessionSignInSettings& settings        ,
                              AUTH::ICredentialStore* sessionStore                   ,
                              AUTH::ICredentialStore* credentialStore                ,
                              CORE::CString::StringVector* problems = GUCEF_NULL     );
 
     virtual TAssetStoreSignInKind GetSignInKind( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual CWebSessionSignIn* GetWebSessionSignIn( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual AUTH::CWebSessionSignIn* GetWebSessionSignIn( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Takes the credential stores of the service (sessions and saved passwords) for the sign in and reads a saved session; a store the context does not give is left as it was */
+    virtual bool ConfigureSignIn( const CAssetStoreSignInContext& context, CORE::CString& problem ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool IsSignedIn( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool SignOut( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool RenewSession( void ) GUCEF_VIRTUAL_OVERRIDE;
@@ -111,7 +114,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionAssetStoreProvider : public CIAsset
 
     protected:
 
-    CWebSessionSignIn& GetSignIn( void );
+    AUTH::CWebSessionSignIn& GetSignIn( void );
 
     private:
 
@@ -129,7 +132,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionAssetStoreProvider : public CIAsset
 
     private:
 
-    CWebSessionSignIn m_signIn;
+    AUTH::CWebSessionSignIn m_signIn;
     WEB::CHttpCookieJarPtr m_cookieJar;
     CSignInObserver m_observer;
 };

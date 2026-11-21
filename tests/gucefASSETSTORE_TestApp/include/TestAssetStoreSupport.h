@@ -129,6 +129,9 @@ GUCEF::CORE::CString Sha1Of( const GUCEF::CORE::CDynamicBuffer& content );
 /** A connection string of a PostgreSQL test database from GUCEF_TEST_POSTGRESQL, false when it is not set */
 bool GetPostgreSqlConnectionString( GUCEF::CORE::CString& connectionString );
 
+/** Whether a session can be had with the test database (a connection is made and closed); 'reason' says why not, without a password */
+bool IsPostgreSqlReachable( const GUCEF::CORE::CString& connectionString, GUCEF::CORE::CString& reason );
+
 /** A schema name for this run */
 GUCEF::CORE::CString MakeTestSchemaName( void );
 

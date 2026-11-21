@@ -28,6 +28,7 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetAnalysisTaskData.cpp \
   src/gucefASSETSTORE_CAssetAnimationProps.cpp \
   src/gucefASSETSTORE_CAssetAudioProps.cpp \
+  src/gucefASSETSTORE_CAssetBlockCache.cpp \
   src/gucefASSETSTORE_CAssetCatalogue.cpp \
   src/gucefASSETSTORE_CAssetCatalogueChange.cpp \
   src/gucefASSETSTORE_CAssetCategoryRule.cpp \
@@ -44,7 +45,9 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetDownloadRequest.cpp \
   src/gucefASSETSTORE_CAssetFileBlock.cpp \
   src/gucefASSETSTORE_CAssetFileRecord.cpp \
+  src/gucefASSETSTORE_CAssetFileServingGate.cpp \
   src/gucefASSETSTORE_CAssetFileSet.cpp \
+  src/gucefASSETSTORE_CAssetFormatPolicy.cpp \
   src/gucefASSETSTORE_CAssetImageHeaderProbe.cpp \
   src/gucefASSETSTORE_CAssetIngestEventData.cpp \
   src/gucefASSETSTORE_CAssetIngestHistoryEntry.cpp \
@@ -52,11 +55,22 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetIngestPipeline.cpp \
   src/gucefASSETSTORE_CAssetIngestRequest.cpp \
   src/gucefASSETSTORE_CAssetIngestResult.cpp \
+  src/gucefASSETSTORE_CAssetItemRevision.cpp \
   src/gucefASSETSTORE_CAssetJobEntry.cpp \
   src/gucefASSETSTORE_CAssetJobStartTool.cpp \
   src/gucefASSETSTORE_CAssetJobTool.cpp \
   src/gucefASSETSTORE_CAssetKeyword.cpp \
   src/gucefASSETSTORE_CAssetKeywordNormalizer.cpp \
+  src/gucefASSETSTORE_CAssetLayoutMigrationReport.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncAdmission.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncItem.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncJob.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncPlan.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncPlanner.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncProfile.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncScheduleTaskConsumer.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncScheduleTaskData.cpp \
+  src/gucefASSETSTORE_CAssetLibrarySyncSpec.cpp \
   src/gucefASSETSTORE_CAssetLicence.cpp \
   src/gucefASSETSTORE_CAssetLocalCopyRequest.cpp \
   src/gucefASSETSTORE_CAssetLocationInfo.cpp \
@@ -66,7 +80,16 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetNormalizationInput.cpp \
   src/gucefASSETSTORE_CAssetOnlineStoreTool.cpp \
   src/gucefASSETSTORE_CAssetPackConversion.cpp \
+  src/gucefASSETSTORE_CAssetPackGroup.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexInfo.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexLoader.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexOptions.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexOutcome.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexReport.cpp \
+  src/gucefASSETSTORE_CAssetPackIndexRequest.cpp \
   src/gucefASSETSTORE_CAssetPackRecord.cpp \
+  src/gucefASSETSTORE_CAssetPackResource.cpp \
+  src/gucefASSETSTORE_CAssetPackSourceRecord.cpp \
   src/gucefASSETSTORE_CAssetPipelineChangeTool.cpp \
   src/gucefASSETSTORE_CAssetPipelineOperations.cpp \
   src/gucefASSETSTORE_CAssetPipelineQueryTool.cpp \
@@ -108,21 +131,33 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetStoreJson.cpp \
   src/gucefASSETSTORE_CAssetStoreLibraryFileSystemAccess.cpp \
   src/gucefASSETSTORE_CAssetStoreLibraryPage.cpp \
+  src/gucefASSETSTORE_CAssetStorePluginLoadReport.cpp \
+  src/gucefASSETSTORE_CAssetStorePluginLoader.cpp \
+  src/gucefASSETSTORE_CAssetStoreProbeResult.cpp \
   src/gucefASSETSTORE_CAssetStoreProviderOperationData.cpp \
   src/gucefASSETSTORE_CAssetStoreProviderOperationTaskConsumer.cpp \
   src/gucefASSETSTORE_CAssetStoreQuery.cpp \
   src/gucefASSETSTORE_CAssetStoreReadTool.cpp \
   src/gucefASSETSTORE_CAssetStoreRegistry.cpp \
+  src/gucefASSETSTORE_CAssetStoreRemoteCodec.cpp \
+  src/gucefASSETSTORE_CAssetStoreRemoteContracts.cpp \
   src/gucefASSETSTORE_CAssetStoreSafeNames.cpp \
   src/gucefASSETSTORE_CAssetStoreServiceConfig.cpp \
+  src/gucefASSETSTORE_CAssetStoreServiceHost.cpp \
+  src/gucefASSETSTORE_CAssetStoreServiceHostSettings.cpp \
+  src/gucefASSETSTORE_CAssetStoreSignInContext.cpp \
   src/gucefASSETSTORE_CAssetStoreTransfer.cpp \
   src/gucefASSETSTORE_CAssetStoreTransferContext.cpp \
   src/gucefASSETSTORE_CAssetStoreTransferSink.cpp \
   src/gucefASSETSTORE_CAssetStoreWriteTool.cpp \
   src/gucefASSETSTORE_CAssetStrictConfigReader.cpp \
+  src/gucefASSETSTORE_CAssetSyncItemRecord.cpp \
+  src/gucefASSETSTORE_CAssetSyncMark.cpp \
+  src/gucefASSETSTORE_CAssetSyncMarkStore.cpp \
   src/gucefASSETSTORE_CAssetTextureAnalyzer.cpp \
   src/gucefASSETSTORE_CAssetTextureProps.cpp \
   src/gucefASSETSTORE_CAssetThumbnail.cpp \
+  src/gucefASSETSTORE_CAssetThumbnailFiles.cpp \
   src/gucefASSETSTORE_CAssetThumbnailKey.cpp \
   src/gucefASSETSTORE_CAssetToolBase.cpp \
   src/gucefASSETSTORE_CAssetToolCatalogue.cpp \
@@ -145,42 +180,38 @@ LOCAL_SRC_FILES := \
   src/gucefASSETSTORE_CAssetVerificationReport.cpp \
   src/gucefASSETSTORE_CAssetVocabulary.cpp \
   src/gucefASSETSTORE_CAssetVocabularyInfo.cpp \
-  src/gucefASSETSTORE_CChromeBrowserLocator.cpp \
-  src/gucefASSETSTORE_CChromeSignInBrowser.cpp \
   src/gucefASSETSTORE_CIAssetContentAnalyzer.cpp \
   src/gucefASSETSTORE_CIAssetConversionObserver.cpp \
   src/gucefASSETSTORE_CIAssetConverterHook.cpp \
   src/gucefASSETSTORE_CIAssetMetadataNormalizer.cpp \
   src/gucefASSETSTORE_CIAssetRenderHook.cpp \
+  src/gucefASSETSTORE_CIAssetStoreInteractiveSignIn.cpp \
+  src/gucefASSETSTORE_CIAssetStorePluginHost.cpp \
+  src/gucefASSETSTORE_CIAssetStoreProbe.cpp \
   src/gucefASSETSTORE_CIAssetStoreProvider.cpp \
   src/gucefASSETSTORE_CIAssetStoreService.cpp \
   src/gucefASSETSTORE_CIAssetStoreTransferSource.cpp \
-  src/gucefASSETSTORE_CIWebSessionEndedCheck.cpp \
-  src/gucefASSETSTORE_CIWebSignInBrowser.cpp \
+  src/gucefASSETSTORE_CIRemoteFileDiscovery.cpp \
   src/gucefASSETSTORE_CLocalAssetStoreService.cpp \
   src/gucefASSETSTORE_CLocalAssetStoreServiceOperationData.cpp \
   src/gucefASSETSTORE_CLocalAssetStoreServiceOperationTaskConsumer.cpp \
   src/gucefASSETSTORE_CModule.cpp \
+  src/gucefASSETSTORE_CPackStorageLayout.cpp \
   src/gucefASSETSTORE_CPrimaryAssetStore.cpp \
   src/gucefASSETSTORE_CPrimaryAssetStoreOperationData.cpp \
   src/gucefASSETSTORE_CPrimaryAssetStoreOperationTaskConsumer.cpp \
   src/gucefASSETSTORE_CPrimaryAssetStoreSettings.cpp \
-  src/gucefASSETSTORE_CWebLoginScript.cpp \
-  src/gucefASSETSTORE_CWebLoginScriptCondition.cpp \
-  src/gucefASSETSTORE_CWebLoginScriptStep.cpp \
-  src/gucefASSETSTORE_CWebPageScriptHelpers.cpp \
-  src/gucefASSETSTORE_CWebSession.cpp \
+  src/gucefASSETSTORE_CRemoteAssetArchive.cpp \
+  src/gucefASSETSTORE_CRemoteAssetFileSystem.cpp \
+  src/gucefASSETSTORE_CRemoteAssetStoreProvider.cpp \
+  src/gucefASSETSTORE_CRemoteAssetStoreService.cpp \
+  src/gucefASSETSTORE_CRemoteAssetStoreServiceSettings.cpp \
+  src/gucefASSETSTORE_CRemoteFileAccess.cpp \
+  src/gucefASSETSTORE_CRemoteFileTransfer.cpp \
+  src/gucefASSETSTORE_CRemoteFileTransferTaskConsumer.cpp \
+  src/gucefASSETSTORE_CRemoteFileTransferTaskData.cpp \
+  src/gucefASSETSTORE_CRemoteFilesSettings.cpp \
   src/gucefASSETSTORE_CWebSessionAssetStoreProvider.cpp \
-  src/gucefASSETSTORE_CWebSessionCookie.cpp \
-  src/gucefASSETSTORE_CWebSessionEndedCheck.cpp \
-  src/gucefASSETSTORE_CWebSessionSignIn.cpp \
-  src/gucefASSETSTORE_CWebSessionSignInSettings.cpp \
-  src/gucefASSETSTORE_CWebSessionSignInTaskConsumer.cpp \
-  src/gucefASSETSTORE_CWebSessionSignInTaskData.cpp \
-  src/gucefASSETSTORE_CWebSignInBrowserSettings.cpp \
-  src/gucefASSETSTORE_CWebSignInCredentials.cpp \
-  src/gucefASSETSTORE_CWebSignInEventData.cpp \
-  src/gucefASSETSTORE_CWebSignInResult.cpp \
   src/gucefASSETSTORE_ETypes.cpp
 
 LOCAL_C_INCLUDES := \
@@ -191,6 +222,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../gucefDRN/include \
+  $(MY_MODULE_PATH)/../gucefDRNUTILS/include \
   $(MY_MODULE_PATH)/../gucefIMAGE/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include \
@@ -204,6 +237,8 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
+  gucefDRN \
+  gucefDRNUTILS \
   gucefIMAGE \
   gucefMT \
   gucefVFS \

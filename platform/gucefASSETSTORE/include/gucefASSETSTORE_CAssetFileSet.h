@@ -60,7 +60,8 @@ namespace ASSETSTORE {
 /**
  *  The files an asset needs to be opened (section 5.4 of the service design): the VFS path of its original and of its
  *  converted file, each with its status (UNAVAILABLE with the location in the message when the location is not
- *  reachable, NOT_FOUND when there is none), and the file list: its own files, the files of the assets it refers to and
+ *  reachable, NOT_FOUND when there is none), and the file list: its own files, its companion files (the files of the
+ *  assets it refers to, transitively over the catalogue relations: pack index design 2.12, converter design 5.8.4) and
  *  the sidecars, each with its VFS path in 'path', its size, its SHA-256 digest and a role "main", "converted",
  *  "referenced" or "sidecar".
  */
@@ -78,6 +79,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetFileSet : public CORE::CIDataNodeSeriali
     CORE::CString convertedMessage;
     TAssetFileRecordVector files;
     UInt64 totalBytes;                    /**< the sum of the sizes of the files */
+    UInt32 relationCount;                 /**< how many relations of the closure of the companion files were followed (0: the asset has none, a client may use its own fallback) */
+    bool companionsTruncated;             /**< a bound of the closure (depth 8, 4096 files) stopped it: files may be missing */
 
     CAssetFileSet( void );
     virtual ~CAssetFileSet() GUCEF_VIRTUAL_OVERRIDE;

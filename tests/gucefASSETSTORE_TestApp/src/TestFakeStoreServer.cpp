@@ -207,6 +207,8 @@ CFakeStoreServer::CFakeStoreServer( void )
     , m_tokenEndpointWorks( true )
     , m_currentToken( "token-0" )
     , m_stats()
+    , m_libraryFailures( 0 )
+    , m_listingWithoutFormats( false )
 {
 }
 
@@ -302,6 +304,54 @@ CFakeStoreServer::AddItem( const ASSETSTORE::CAssetStoreItem& item )
 {
     MT::CScopeMutex lock( m_lock );
     m_items.push_back( item );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFakeStoreServer::ReplaceItem( const ASSETSTORE::CAssetStoreItem& item )
+{
+    MT::CScopeMutex lock( m_lock );
+    for ( size_t i=0; i<m_items.size(); ++i )
+        if ( m_items[ i ].itemId == item.itemId )
+        {
+            m_items[ i ] = item;
+            return true;
+        }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFakeStoreServer::RemoveItem( const CORE::CString& itemId )
+{
+    MT::CScopeMutex lock( m_lock );
+    for ( size_t i=0; i<m_items.size(); ++i )
+        if ( m_items[ i ].itemId == itemId )
+        {
+            m_items.erase( m_items.begin() + i );
+            return true;
+        }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeStoreServer::SetLibraryFailures( UInt32 failures )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_libraryFailures = failures;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeStoreServer::SetListingWithoutFormats( bool withoutFormats )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_listingWithoutFormats = withoutFormats;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -402,6 +452,13 @@ CFakeStoreServer::HandleRequest( const WEB::CHttpRequestData& request, WEB::CHtt
     {
         MT::CScopeMutex lock( m_lock );
         ++m_stats.libraryRequests;
+        if ( m_libraryFailures > 0 )
+        {
+            --m_libraryFailures;
+            ++m_stats.unavailableAnswers;
+            response.statusCode = 503;
+            return;
+        }
         const CORE::CString text = ValueOf( parameters, "text" ).Lowercase();
         const CORE::CString type = ValueOf( parameters, "type" );
         const UInt32 first = CORE::StringToUInt32( ValueOf( parameters, "cursor" ) );
@@ -419,7 +476,11 @@ CFakeStoreServer::HandleRequest( const WEB::CHttpRequestData& request, WEB::CHtt
         }
         ASSETSTORE::CAssetStoreLibraryPage page;
         for ( UInt32 i=first; i<matching.size() && i<first+pageSize; ++i )
+        {
             page.items.push_back( matching[ i ] );
+            if ( m_listingWithoutFormats )
+                page.items.back().formats.clear();
+        }
         page.hasTotal = true;
         page.total = matching.size();
         if ( first + pageSize < matching.size() )

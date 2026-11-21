@@ -152,7 +152,7 @@ PerformAssetToolsMcpFakeTests( void )
             CAssetToolSet::GetToolNames( expected );
             const CString::StringSet listed( names.begin(), names.end() );
             const CString::StringSet catalogued( expected.begin(), expected.end() );
-            ASSERT_TRUE( listed == catalogued && 46 == names.size() && 46 == listed.size() );
+            ASSERT_TRUE( listed == catalogued && 49 == names.size() && 49 == listed.size() );
             CDataNode::const_iterator i = list.ConstBegin();
             while ( i != list.ConstEnd() )
             {
@@ -982,6 +982,61 @@ PerformAssetToolsMcpLocalTests( void )
                 ASSERT_TRUE( fixture.Request( "resources/read", "\"uri\":\"assettools://store/packs/" + swordPack + "\"", response ) && 0 == CToolsFixture::ProtocolError( response ) );
                 ASSERT_TRUE( fixture.Request( "resources/read", "\"uri\":\"assettools://server/status\"", response ) && 0 == CToolsFixture::ProtocolError( response ) );
                 ASSERT_TRUE( 0 > fixture.GetTranscript().HasSubstr( sourceDisk ) );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Asset tools on the in-process service: the library sync tools give the marks, plan a store as a dry run (nothing downloaded) and give its state; no tool starts a run" )
+        try
+        {
+            ASSERT_TRUE( opened );
+            if ( opened )
+            {
+                CToolsFixture fixture( servicePtr, settings );
+                ASSERT_TRUE( fixture.ok );
+                fixture.EnableAll();
+                CDataNode response;
+                ASSERT_TRUE( fixture.Call( "sync_marks", "{\"storeId\":\"toolstore\"}", response ) && !CToolsFixture::IsToolError( response ) && 0 == CToolsFixture::CountItems( response ) );
+                CAssetSyncMarkPage marks;
+                CAssetSyncMark ignore;
+                ignore.itemId = "tool-item-1";
+                ignore.mark = CAssetSyncMark::Ignore;
+                ignore.reason = "kept out by the owner";
+                marks.entries.push_back( ignore );
+                CAssetServiceResult set;
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == servicePtr->SetSyncMarks( CString::Empty, "toolstore", marks, set ) );
+                ASSERT_TRUE( fixture.Call( "sync_marks", "{\"storeId\":\"toolstore\"}", response ) && 1 == CToolsFixture::CountItems( response ) );
+                ASSERT_TRUE( 0 <= fixture.GetTranscript().HasSubstr( "kept out by the owner" ) );
+                marks.entries[ 0 ].mark.Clear();
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == servicePtr->SetSyncMarks( CString::Empty, "toolstore", marks, set ) );
+
+                CAssetJobPage before;
+                servicePtr->ListJobs( CString::Empty, CIAssetStoreService::MaxPageEntries, before );
+                ASSERT_TRUE( fixture.Call( "sync_plan", "{\"storeId\":\"toolstore\",\"waitMs\":30000}", response, 40000 ) );
+                ASSERT_TRUE( "completed" == CToolsFixture::StructuredAttr( response, "state" ) );
+                ASSERT_TRUE( fixture.Call( "sync_status", "{\"storeId\":\"toolstore\"}", response ) && !CToolsFixture::IsToolError( response ) && 1 == CToolsFixture::CountItems( response ) );
+                ASSERT_TRUE( HasChildObject( response, "job" ) && HasChildObject( response, "plan" ) );
+                const CDataNode* job = CToolsFixture::Structured( response )->FindChild( "job" );
+                ASSERT_TRUE( GUCEF_NULL != job && "done" == CToolsFixture::Attr( job, "state" ) );
+                // a plan downloads nothing
+                CAssetJobPage after;
+                servicePtr->ListJobs( CString::Empty, CIAssetStoreService::MaxPageEntries, after );
+                UInt32 downloadsBefore = 0;
+                UInt32 downloadsAfter = 0;
+                for ( size_t j=0; j<before.entries.size(); ++j )
+                    if ( "download" == before.entries[ j ].kind )
+                        ++downloadsBefore;
+                for ( size_t j=0; j<after.entries.size(); ++j )
+                    if ( "download" == after.entries[ j ].kind )
+                        ++downloadsAfter;
+                ASSERT_TRUE( downloadsBefore == downloadsAfter );
+                ASSERT_TRUE( fixture.Call( "sync_status", "{\"jobId\":\"no-such-job\"}", response ) && "not-found" == CToolsFixture::ErrorCode( response ) );
+                // there is no tool that starts a run
+                ASSERT_TRUE( fixture.Call( "sync_start", "{\"storeId\":\"toolstore\"}", response ) && -32602 == CToolsFixture::ProtocolError( response ) );
             }
         }
         catch ( ... )

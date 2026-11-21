@@ -58,6 +58,9 @@ const CORE::CString CAssetServiceOperations::DeleteSavedSearch = "Catalogue/Dele
 const CORE::CString CAssetServiceOperations::RunSavedSearch = "Catalogue/RunSavedSearch";
 const CORE::CString CAssetServiceOperations::GetAssetFileSet = "Catalogue/GetAssetFileSet";
 const CORE::CString CAssetServiceOperations::GetLicence = "Catalogue/GetLicence";
+const CORE::CString CAssetServiceOperations::GetPackIndex = "Catalogue/GetPackIndex";
+const CORE::CString CAssetServiceOperations::GetResourceGroups = "Catalogue/GetResourceGroups";
+const CORE::CString CAssetServiceOperations::GetResources = "Catalogue/GetResources";
 const CORE::CString CAssetServiceOperations::UpdatePackMetadata = "Curation/UpdatePackMetadata";
 const CORE::CString CAssetServiceOperations::SetClassification = "Curation/SetClassification";
 const CORE::CString CAssetServiceOperations::SetCategoryMapping = "Curation/SetCategoryMapping";
@@ -75,6 +78,7 @@ const CORE::CString CAssetServiceOperations::StatFiles = "Files/Stat";
 const CORE::CString CAssetServiceOperations::ListDirectory = "Files/List";
 const CORE::CString CAssetServiceOperations::ReadFileBlock = "Files/Read";
 const CORE::CString CAssetServiceOperations::BeginUpload = "Files/BeginUpload";
+const CORE::CString CAssetServiceOperations::BeginUploadFiles = "Files/BeginUploadFiles";
 const CORE::CString CAssetServiceOperations::WriteUploadBlock = "Files/WriteUpload";
 const CORE::CString CAssetServiceOperations::QueryUpload = "Files/QueryUpload";
 const CORE::CString CAssetServiceOperations::CommitUpload = "Files/CommitUpload";
@@ -114,6 +118,10 @@ const CORE::CString CAssetServiceOperations::LockKeyring = "Admin/LockKeyring";
 const CORE::CString CAssetServiceOperations::GetAuditRecords = "Admin/GetAuditRecords";
 const CORE::CString CAssetServiceOperations::ReindexFromStorage = "Admin/ReindexFromStorage";
 const CORE::CString CAssetServiceOperations::GetResourceStatus = "Admin/GetResourceStatus";
+const CORE::CString CAssetServiceOperations::GetSyncMarks = "Sync/GetMarks";
+const CORE::CString CAssetServiceOperations::SetSyncMarks = "Sync/SetMarks";
+const CORE::CString CAssetServiceOperations::GetSyncProfile = "Sync/GetProfile";
+const CORE::CString CAssetServiceOperations::SetSyncProfile = "Sync/SetProfile";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -138,6 +146,7 @@ CAssetServiceOperations::IsMutation( const CORE::CString& operation )
            operation == RemovePack ||
            operation == PutThumbnail ||
            operation == BeginUpload ||
+           operation == BeginUploadFiles ||
            operation == WriteUploadBlock ||
            operation == CommitUpload ||
            operation == AbortUpload ||
@@ -160,7 +169,9 @@ CAssetServiceOperations::IsMutation( const CORE::CString& operation )
            operation == SetOfflinePin ||
            operation == UnlockKeyring ||
            operation == LockKeyring ||
-           operation == ReindexFromStorage;
+           operation == ReindexFromStorage ||
+           operation == SetSyncMarks ||
+           operation == SetSyncProfile;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -185,6 +196,9 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == RunSavedSearch ||
            operation == GetAssetFileSet ||
            operation == GetLicence ||
+           operation == GetPackIndex ||
+           operation == GetResourceGroups ||
+           operation == GetResources ||
            operation == UpdatePackMetadata ||
            operation == SetClassification ||
            operation == SetCategoryMapping ||
@@ -202,6 +216,7 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == ListDirectory ||
            operation == ReadFileBlock ||
            operation == BeginUpload ||
+           operation == BeginUploadFiles ||
            operation == WriteUploadBlock ||
            operation == QueryUpload ||
            operation == CommitUpload ||
@@ -240,7 +255,11 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == LockKeyring ||
            operation == GetAuditRecords ||
            operation == ReindexFromStorage ||
-           operation == GetResourceStatus;
+           operation == GetResourceStatus ||
+           operation == GetSyncMarks ||
+           operation == SetSyncMarks ||
+           operation == GetSyncProfile ||
+           operation == SetSyncProfile;
 }
 
 /*-------------------------------------------------------------------------//

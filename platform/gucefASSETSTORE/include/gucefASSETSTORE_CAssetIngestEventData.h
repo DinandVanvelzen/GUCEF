@@ -61,6 +61,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestEventData : public CORE::CIDataNod
     CORE::CString step;
     CORE::CString status;                        /**< a status name of AssetStoreStatusToString() */
     CORE::CString message;
+    CORE::CString downloadJobId;                 /**< the download the ingest takes in, empty for an ingest of another origin */
 
     CAssetIngestEventData( void );
     virtual ~CAssetIngestEventData() GUCEF_VIRTUAL_OVERRIDE;

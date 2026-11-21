@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSessionSignInSettings moved to gucefAUTH, header gucefAUTH_CWebSessionSignInSettings.h, name GUCEF::AUTH::CWebSessionSignInSettings.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefAUTH header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSESSIONSIGNINSETTINGS_H
 #define GUCEF_ASSETSTORE_CWEBSESSIONSIGNINSETTINGS_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H
-#include "gucefASSETSTORE_CWebLoginScript.h"
-#define GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H
-#endif /* GUCEF_ASSETSTORE_CWEBLOGINSCRIPT_H ? */
-#ifndef GUCEF_ASSETSTORE_CWEBSIGNINBROWSERSETTINGS_H
-#include "gucefASSETSTORE_CWebSignInBrowserSettings.h"
-#define GUCEF_ASSETSTORE_CWEBSIGNINBROWSERSETTINGS_H
-#endif /* GUCEF_ASSETSTORE_CWEBSIGNINBROWSERSETTINGS_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSIONSIGNINSETTINGS_H
+#include "gucefAUTH_CWebSessionSignInSettings.h"
+#define GUCEF_AUTH_CWEBSESSIONSIGNINSETTINGS_H
+#endif /* GUCEF_AUTH_CWEBSESSIONSIGNINSETTINGS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,50 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  The settings of the web session sign in of one store (CWebSessionSignIn): the store, its login script, the browser
- *  and the time limits.
- *
- *  The browser profile is a folder used only for this store: browser.profileDirectory, else
- *  "$APPDATADIR$/<applicationName>/WebSignIn/<storeId>" (GetProfileDirectory()).
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionSignInSettings
-{
-    public:
-
-    static const UInt32 DefaultSignInTimeoutInMs;      /**< 900000: fifteen minutes for the whole sign in */
-    static const UInt32 DefaultHandOverTimeoutInMs;    /**< 600000: ten minutes for the owner to do a step of a person */
-    static const UInt32 DefaultPollIntervalInMs;       /**< 250 */
-    static const CORE::CString DefaultApplicationName; /**< "GUCEF" */
-
-    CORE::CString storeId;                  /**< letters, digits, '_' and '-': also the name of the profile folder */
-    CORE::CString displayName;              /**< empty: the name of the script */
-    CWebLoginScript script;
-    CWebSignInBrowserSettings browser;
-    UInt32 signInTimeoutInMs;
-    UInt32 handOverTimeoutInMs;
-    UInt32 pollIntervalInMs;
-    bool allowUnattendedRenewal;            /**< RenewSession() may sign in without a window with saved credentials */
-    bool saveSession;                       /**< keep the session in the session store, so it is used again after a restart */
-    CORE::CString applicationName;          /**< for the default profile folder */
-
-    CWebSessionSignInSettings( void );
-
-    CORE::CString GetDisplayName( void ) const;
-
-    /** The profile folder of the browser, path variables not yet resolved */
-    CORE::CString GetProfileDirectory( void ) const;
-
-    /** The store id, the script and the time limits; the problems say what is wrong */
-    bool Validate( CORE::CString::StringVector& problems ) const;
-
-    /** Whether the id may be the id of a store here: letters, digits, '_' and '-', at most 64 */
-    static bool IsValidStoreId( const CORE::CString& storeId );
-};
+/* deprecated: use the names of GUCEF::AUTH */
+using AUTH::CWebSessionSignInSettings;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

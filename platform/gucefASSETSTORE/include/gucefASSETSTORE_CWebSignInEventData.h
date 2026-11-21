@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CWebSignInEventData moved to gucefWEB, header gucefWEB_CWebSignInEventData.h, name GUCEF::WEB::CWebSignInEventData.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CWEBSIGNINEVENTDATA_H
 #define GUCEF_ASSETSTORE_CWEBSIGNINEVENTDATA_H
 
@@ -25,18 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CICLONEABLE_H
-#include "CICloneable.h"
-#define GUCEF_CORE_CICLONEABLE_H
-#endif /* GUCEF_CORE_CICLONEABLE_H ? */
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-#ifndef GUCEF_ASSETSTORE_ETYPES_H
-#include "gucefASSETSTORE_ETypes.h"
-#define GUCEF_ASSETSTORE_ETYPES_H
-#endif /* GUCEF_ASSETSTORE_ETYPES_H ? */
+#ifndef GUCEF_WEB_CWEBSIGNINEVENTDATA_H
+#include "gucefWEB_CWebSignInEventData.h"
+#define GUCEF_WEB_CWEBSIGNINEVENTDATA_H
+#endif /* GUCEF_WEB_CWEBSIGNINEVENTDATA_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,33 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  What the events of CWebSessionSignIn tell: the store, how the sign in runs, and a text for the owner (what happens
- *  now, or what the owner is asked to do). Never a credential or a cookie.
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSignInEventData : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString storeId;
-    CORE::CString storeName;
-    TWebSignInMode mode;
-    bool headless;                      /**< the browser has no window */
-    CORE::CString message;              /**< progress: what happens; owner action: what to do */
-    CORE::CString personCheckKind;      /**< owner action: "captcha", "code", "secondFactor", "other", or "signIn" for the whole sign in */
-    UInt32 stepNumber;                  /**< progress: the step of the script from 1, 0 for none */
-
-    CWebSignInEventData( void );
-    virtual ~CWebSignInEventData() GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CWebSignInEventData;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

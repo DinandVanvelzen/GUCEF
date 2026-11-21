@@ -88,7 +88,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetPackRecord : public CORE::CIDataNodeSeri
     CORE::CString::StringSet formatsConverted;
     TAssetKeepPolicy keep;
     CORE::CString locationId;
-    CORE::CString rootPath;                         /**< relative to the root of the location */
+    CORE::CString rootPath;                         /**< layout 2: "layout2:<pack folder>"; layout 1: a folder relative to the root of the location; see CPackStorageLayout */
     Int64 sizeBytes;
     Int64 fileCount;
     Int64 assetCount;

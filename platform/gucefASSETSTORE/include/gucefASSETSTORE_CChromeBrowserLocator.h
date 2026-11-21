@@ -16,6 +16,12 @@
  *  limitations under the License.
  */
 
+/*
+ *  Deprecated: CChromeBrowserLocator moved to gucefWEB, header gucefWEB_CChromeBrowserLocator.h, name GUCEF::WEB::CChromeBrowserLocator.
+ *  This header and the name in GUCEF::ASSETSTORE are kept for one release so code written against them still
+ *  compiles; use the gucefWEB header and name instead.
+ */
+
 #ifndef GUCEF_ASSETSTORE_CCHROMEBROWSERLOCATOR_H
 #define GUCEF_ASSETSTORE_CCHROMEBROWSERLOCATOR_H
 
@@ -25,14 +31,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-#ifndef GUCEF_ASSETSTORE_MACROS_H
-#include "gucefASSETSTORE_macros.h"
-#define GUCEF_ASSETSTORE_MACROS_H
-#endif /* GUCEF_ASSETSTORE_MACROS_H ? */
+#ifndef GUCEF_WEB_CCHROMEBROWSERLOCATOR_H
+#include "gucefWEB_CChromeBrowserLocator.h"
+#define GUCEF_WEB_CCHROMEBROWSERLOCATOR_H
+#endif /* GUCEF_WEB_CCHROMEBROWSERLOCATOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,32 +47,12 @@ namespace ASSETSTORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Finds a browser that speaks the Chrome DevTools protocol for a web session sign in: Google Chrome, Chromium,
- *  Microsoft Edge and Brave, in that order, at the places they install to on Linux, Windows and macOS. A configured
- *  path always comes first (CWebSignInBrowserSettings::executablePath).
- */
-class GUCEF_ASSETSTORE_PUBLIC_CPP CChromeBrowserLocator
-{
-    public:
-
-    /** The executables to try on this platform, best first */
-    static void GetCandidatePaths( CORE::CString::StringVector& paths );
-
-    /**
-     *  The configured path when it is a file, else the first candidate that exists
-     *  @return false when none was found
-     */
-    static bool FindBrowser( const CORE::CString& configuredPath, CORE::CString& executablePath );
-
-    private:
-
-    CChromeBrowserLocator( void );      /**< not implemented: static members only */
-};
+/* deprecated: use the names of GUCEF::WEB */
+using WEB::CChromeBrowserLocator;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

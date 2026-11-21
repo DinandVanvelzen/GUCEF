@@ -52,6 +52,11 @@
 #define GUCEF_ASSETSTORE_CASSETTOOLJOBRESULTBUILDER_H
 #endif /* GUCEF_ASSETSTORE_CASSETTOOLJOBRESULTBUILDER_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H
+#include "gucefASSETSTORE_CAssetLibrarySyncSpec.h"
+#define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H
+#endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCSPEC_H ? */
+
 #include "gucefASSETSTORE_CAssetJobStartTool.h"
 
 /*-------------------------------------------------------------------------//
@@ -101,7 +106,7 @@ CAssetJobStartTool::GetLaneOfKind( const CORE::CString& kind )
 
     if ( CAssetPipelineOperations::ValidatePack == kind )
         return LaneValidation;
-    if ( "store_ingest" == kind || "store_ingest_resume" == kind )
+    if ( "store_ingest" == kind || "store_ingest_resume" == kind || "sync_plan" == kind )
         return LaneIngest;
     return LaneConversion;
 }
@@ -163,6 +168,21 @@ CAssetJobStartTool::Compute( COM::CMcpRequestContext& context      ,
         data.request.Clear();
         data.request.SetNodeType( GUCEF_DATATYPE_OBJECT );
         data.request.SetAttribute( "ingestId", GetStringArgument( arguments, "ingestId" ) );
+    }
+    else
+    if ( "sync_plan" == m_name )
+    {
+        // a dry run only: the mode is fixed here; a run that downloads is not started through the tools (the host refuses it too)
+        CAssetLibrarySyncSpec spec;
+        spec.storeId = GetStringArgument( arguments, "storeId" );
+        spec.mode = CAssetLibrarySyncSpec::ModePlan;
+        spec.useStoreProfile = true;
+        CAssetPipelineRequest request;
+        spec.ToRequest( request );
+        data.request.Clear();
+        data.request.SetNodeType( GUCEF_DATATYPE_OBJECT );
+        request.Serialize( data.request, serializerSettings );
+        packId.Clear();
     }
     else
     {

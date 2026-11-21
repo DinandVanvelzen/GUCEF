@@ -54,6 +54,9 @@ CAssetIngestRequest::CAssetIngestRequest( void )
     , locationId()
     , duplicatePolicy()
     , downloadJobId()
+    , formatId()
+    , expectedRevision()
+    , syncJobId()
 {GUCEF_TRACE;
 
 }
@@ -81,6 +84,12 @@ CAssetIngestRequest::Serialize( CORE::CDataNode& domRootNode                    
     success = domRootNode.SetAttribute( "locationId", locationId ) && success;
     success = domRootNode.SetAttribute( "duplicatePolicy", duplicatePolicy ) && success;
     success = domRootNode.SetAttribute( "downloadJobId", downloadJobId ) && success;
+    if ( !formatId.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "formatId", formatId ) && success;
+    if ( !expectedRevision.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "expectedRevision", expectedRevision ) && success;
+    if ( !syncJobId.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "syncJobId", syncJobId ) && success;
     return success;
 }
 
@@ -102,6 +111,9 @@ CAssetIngestRequest::Deserialize( const CORE::CDataNode& domRootNode            
     locationId = domRootNode.GetAttributeValueOrChildValueByName( "locationId" ).AsString();
     duplicatePolicy = domRootNode.GetAttributeValueOrChildValueByName( "duplicatePolicy" ).AsString();
     downloadJobId = domRootNode.GetAttributeValueOrChildValueByName( "downloadJobId" ).AsString();
+    formatId = domRootNode.GetAttributeValueOrChildValueByName( "formatId" ).AsString();
+    expectedRevision = domRootNode.GetAttributeValueOrChildValueByName( "expectedRevision" ).AsString();
+    syncJobId = domRootNode.GetAttributeValueOrChildValueByName( "syncJobId" ).AsString();
     return true;
 }
 

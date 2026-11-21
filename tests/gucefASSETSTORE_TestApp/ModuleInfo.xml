@@ -12,6 +12,8 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
             <Dependency Name="gucefASSETSTORE" />
             <Dependency Name="dbpluginPOSTGRESQL" />
         </Dependencies>
@@ -24,6 +26,8 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
             <Dependency Name="gucefASSETSTORE" />
             <Dependency Name="dbpluginPOSTGRESQL" />
         </Linker>

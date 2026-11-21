@@ -46,6 +46,14 @@
 #include "TestAssetStoreSupport.h"
 #define TESTASSETSTORESUPPORT_H
 #endif /* TESTASSETSTORESUPPORT_H ? */
+#ifndef TESTPACKINDEXDOCUMENT_H
+#include "TestPackIndexDocument.h"
+#define TESTPACKINDEXDOCUMENT_H
+#endif /* TESTPACKINDEXDOCUMENT_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETNAMEHINTS_H
+#include "gucefASSETSTORE_CAssetNameHints.h"
+#define GUCEF_ASSETSTORE_CASSETNAMEHINTS_H
+#endif /* GUCEF_ASSETSTORE_CASSETNAMEHINTS_H ? */
 
 #include "TestFakeConverterHook.h"
 
@@ -66,6 +74,9 @@ CTestConverterHook::CTestConverterHook( void )
     , m_version( 1 )
     , m_calls( 0 )
     , m_waits( 0 )
+    , m_indexMode( INDEX_UNSUPPORTED )
+    , m_indexCalls( 0 )
+    , m_indexBuilds( 0 )
     , m_lock()
 {
 }
@@ -142,11 +153,13 @@ TAssetStoreStatus
 CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetRecordVector& assets, CAssetConversionOutcome& outcome )
 {
     EMode mode;
+    EIndexMode indexMode;
     UInt32 version;
     {
         MT::CScopeMutex lock( m_lock );
         ++m_calls;
         mode = m_mode;
+        indexMode = m_indexMode;
         version = m_version;
     }
     outcome.record.profile = GetProfileName();
@@ -250,6 +263,17 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
             request.observer->OnConversionProgress( done, total, assets[ a ].originalPath );
     }
     WriteVfsFile( request.convertedVfsFolder + "/report.json", "{ \"converted\": " + CORE::ToString( done ) + " }" );
+    if ( INDEX_BUILD == indexMode )
+    {
+        // the writer step of the pipeline: the conversion leaves the document of the pack in the intermediate folder
+        CAssetPackIndexRequest indexRequest;
+        indexRequest.pack = request.pack;
+        indexRequest.sourceVfsPath = request.sourceVfsPath;
+        indexRequest.sourcePrefix = request.sourcePrefix;
+        indexRequest.intermediateVfsFolder = request.convertedVfsFolder;
+        CAssetPackIndexOutcome indexOutcome;
+        MakeIndexDocument( indexRequest, indexOutcome, false );
+    }
     outcome.record.reportPath = request.convertedPathPrefix + "/report.json";
     outcome.record.convertedCount = done;
     outcome.status = ASSETSTORE_STATUS_OK;
@@ -278,6 +302,187 @@ CTestConverterHook::IsConversionStale( const CAssetConversionRecord& recorded, C
         }
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTestConverterHook::SetIndexMode( EIndexMode mode )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_indexMode = mode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetIndexCallCount( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_indexCalls;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTestConverterHook::GetIndexBuildCount( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_indexBuilds;
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+CORE::CString
+KindOfExtension( const CORE::CString& extension )
+{
+    if ( "fbx" == extension || "gltf" == extension || "obj" == extension )
+        return "model";
+    if ( "png" == extension || "tga" == extension || "jpg" == extension )
+        return "texture";
+    if ( "wav" == extension || "ogg" == extension )
+        return "audio";
+    return "other";
+}
+
+CORE::CString
+RegistryKindOfStoreKind( const CORE::CString& kind )
+{
+    if ( "static-model" == kind || "skeletal-model" == kind )
+        return "model";
+    if ( "texture" == kind || "material" == kind || "animation" == kind )
+        return kind;
+    if ( "music" == kind || "sfx" == kind )
+        return "audio";
+    return "other";
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CTestConverterHook::BuildPackIndex( const CAssetPackIndexRequest& request, CAssetPackIndexOutcome& outcome )
+{
+    EIndexMode mode;
+    {
+        MT::CScopeMutex lock( m_lock );
+        ++m_indexCalls;
+        mode = m_indexMode;
+    }
+    if ( INDEX_UNSUPPORTED == mode )
+        return CIAssetConverterHook::BuildPackIndex( request, outcome );
+    outcome = CAssetPackIndexOutcome();
+    outcome.packId = request.pack.packId;
+    if ( INDEX_FAIL == mode )
+    {
+        outcome.status = ASSETSTORE_STATUS_FAILED;
+        outcome.message = "the test converter does not build indexes";
+        return outcome.status;
+    }
+    return MakeIndexDocument( request, outcome, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CTestConverterHook::MakeIndexDocument( const CAssetPackIndexRequest& request, CAssetPackIndexOutcome& outcome, bool countBuild )
+{
+    UInt32 version;
+    {
+        MT::CScopeMutex lock( m_lock );
+        version = m_version;
+    }
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CORE::CString folder = request.intermediateVfsFolder;
+    const CORE::CString manifestPath = folder + "/pack-index.json";
+    outcome.documentPath = manifestPath;
+    if ( vfs.FileExists( manifestPath ) && !request.reindex && !request.reanalyse && !request.derive )
+    {
+        outcome.reused = true;
+        outcome.status = ASSETSTORE_STATUS_OK;
+        outcome.message = "the pack index stands";
+        return outcome.status;
+    }
+
+    CTestPackIndexDocument document;
+    document.packName = request.pack.packId;
+    document.packKey = "key-" + request.pack.packId;
+    document.indexKey = document.packKey + "-v" + CORE::ToString( version ) + ( request.derive ? "-derived" : "" );
+    document.fileCount = (UInt64) request.pack.fileCount;
+    document.totalBytes = (UInt64) request.pack.sizeBytes;
+    document.derived = request.derive;
+    for ( CORE::CString::StringSet::const_iterator r=request.pack.licence.restrictions.begin(); r!=request.pack.licence.restrictions.end(); ++r )
+        document.restrictions.push_back( (*r) );
+    if ( request.derive )
+    {
+        for ( size_t a=0; a<request.assets.size(); ++a )
+        {
+            const CAssetRecord& asset = request.assets[ a ];
+            CORE::CString path = asset.originalPath;
+            if ( !request.sourcePrefix.IsNULLOrEmpty() && 0 == path.HasSubstr( request.sourcePrefix, true ) )
+                path = path.CutChars( request.sourcePrefix.Length(), true );
+            CTestPackIndexResource resource( path, RegistryKindOfStoreKind( asset.kind ), CORE::CString::Empty, (UInt64) asset.sizeBytes );
+            if ( asset.model.isSet )
+                resource.Stat( "triangles", (UInt64) asset.model.triangles ).Stat( "vertices", (UInt64) asset.model.vertices );
+            resource.state = asset.analysed ? "analysed" : "indexed";
+            document.resources.push_back( resource );
+        }
+    }
+    else
+    {
+        VFS::CVFS::TStringVector files;
+        vfs.GetFileList( files, request.sourceVfsPath, true, true, CORE::CString::Empty, GUCEF_UINT32MAX );
+        CORE::CString root = request.sourceVfsPath.ReplaceChar( '\\', '/' );
+        while ( root.Length() > 0 && '/' == root.C_String()[ 0 ] )
+            root = root.CutChars( 1, true );
+        for ( size_t f=0; f<files.size(); ++f )
+        {
+            CORE::CString path = files[ f ].ReplaceChar( '\\', '/' );
+            while ( path.Length() > 0 && '/' == path.C_String()[ 0 ] )
+                path = path.CutChars( 1, true );
+            if ( 0 == path.HasSubstr( root + "/", true ) )
+                path = path.CutChars( root.Length() + 1, true );
+            const CORE::CString name = path.SubstrToChar( '/', false );
+            if ( "pack.json" == name )
+                continue;
+            const Int32 slash = path.HasChar( '/', false );
+            const CORE::CString subGroup = slash < 0 ? CORE::CString::Empty : path.SubstrToIndex( (UInt32) slash, true ).Lowercase();
+            CTestPackIndexResource resource( path, KindOfExtension( CAssetNameHints::GetExtension( name ).Lowercase() ), subGroup, (UInt64) vfs.GetFileSize( files[ f ] ) );
+            document.resources.push_back( resource );
+        }
+    }
+    // the parents of the folder first
+    {
+        CORE::CString::StringVector missing;
+        CORE::CString parent = folder.ReplaceChar( '\\', '/' );
+        while ( !parent.IsNULLOrEmpty() && !vfs.DirExists( parent ) )
+        {
+            missing.push_back( parent );
+            const Int32 slash = parent.HasChar( '/', false );
+            parent = slash > 0 ? parent.SubstrToIndex( (UInt32) slash, true ) : CORE::CString::Empty;
+        }
+        for ( size_t m=missing.size(); m>0; --m )
+            vfs.CreateDir( missing[ m-1 ] );
+    }
+    if ( document.WriteTo( folder ).IsNULLOrEmpty() )
+    {
+        outcome.status = ASSETSTORE_STATUS_IO_ERROR;
+        outcome.message = "the pack index cannot be written in " + folder;
+        return outcome.status;
+    }
+    if ( countBuild )
+    {
+        MT::CScopeMutex lock( m_lock );
+        ++m_indexBuilds;
+    }
+    outcome.built = true;
+    outcome.derived = request.derive;
+    outcome.status = ASSETSTORE_STATUS_OK;
+    outcome.message = "the pack index was built";
+    return outcome.status;
 }
 
 /*-------------------------------------------------------------------------//
