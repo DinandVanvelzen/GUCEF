@@ -33,6 +33,10 @@
 
 #include "gucefCORE_TestPlugin.h"
 
+#if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
+#include <unistd.h>
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -58,6 +62,25 @@ class CFailingConfigurable : public GUCEF::CORE::CGloballyConfigurable
 };
 
 static CFailingConfigurable* g_failingConfigurable = GUCEF_NULL;
+
+/** Set when the function local static of TouchUnloadStatic() went: at the exit of the process a static made after the
+ *  globals of the framework is destroyed before they are, and the plugins they still hold are unloaded after it */
+static bool g_unloadStaticDestroyed = false;
+
+/** What plugins hold as function local statics (an identifier, a name table), that their unload still uses */
+class CUnloadStatic
+{
+    public:
+
+    CUnloadStatic( void ) { g_unloadStaticDestroyed = false; }
+    ~CUnloadStatic() { g_unloadStaticDestroyed = true; }
+};
+
+static void
+TouchUnloadStatic( void )
+{
+    static CUnloadStatic unloadStatic;
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -96,6 +119,8 @@ GUCEFPlugin_Load( GUCEF::CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CAL
         return 0;
     if ( IsFlagSet( "GUCEF_TESTPLUGIN_LOAD_ADDS_FAILING_CONFIGURABLE" ) && GUCEF_NULL == g_failingConfigurable )
         g_failingConfigurable = new CFailingConfigurable();
+    if ( IsFlagSet( "GUCEF_TESTPLUGIN_UNLOAD_NEEDS_STATIC" ) )
+        TouchUnloadStatic();
     return 1;
 }
 
@@ -105,6 +130,13 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     CountCall( "GUCEF_TESTPLUGIN_UNLOADS" );
+    if ( IsFlagSet( "GUCEF_TESTPLUGIN_UNLOAD_NEEDS_STATIC" ) && g_unloadStaticDestroyed )
+    {
+        // a process that unloads its plugins at exit(), after their statics are gone: what an unload with that static would do is undefined
+        fputs( "gucefCORE_TestPlugin: Unload ran after the static of the plugin was destroyed\n", stderr );
+        fflush( stderr );
+        _exit( 97 );
+    }
     delete g_failingConfigurable;
     g_failingConfigurable = GUCEF_NULL;
     const char* throws = getenv( "GUCEF_TESTPLUGIN_UNLOAD_THROWS" );

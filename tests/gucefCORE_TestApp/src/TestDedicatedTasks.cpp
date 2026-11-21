@@ -39,6 +39,11 @@
 #define GUCEF_CORE_CTASKCONSUMER_H
 #endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
 #ifndef GUCEF_MT_CTATOMIC_H
 #include "gucefMT_CTAtomic.h"
 #define GUCEF_MT_CTATOMIC_H
@@ -310,6 +315,45 @@ class CPhasedSetupConsumer : public CORE::CTaskConsumer
 };
 
 typedef CORE::CTSharedPtr< CPhasedSetupConsumer, MT::CMutex > TPhasedSetupConsumerPtr;
+
+/**
+ *  Starts tasks by type on its own thread, one after the other: each gets a dedicated delegator that retires when its
+ *  task ended, so the pool releases retired delegators while the pulse thread hears about others ending
+ */
+class CTaskStarterThread : public MT::CActiveObject
+{
+    public:
+
+    CTaskStarterThread( CORE::ThreadPoolPtr pool, UInt32 tasksToStart )
+        : MT::CActiveObject(), started( 0 ), refused( 0 ), done( false ), m_pool( pool ), m_tasksToStart( tasksToStart )
+    {}
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    virtual bool OnThreadStart( void* ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        for ( UInt32 i=0; i<m_tasksToStart; ++i )
+        {
+            if ( m_pool->StartTask( CQuickConsumer::TaskType, GUCEF_NULL, false ).HasNoFuture() )
+                refused.FetchAdd( 1 );
+            else
+                started.FetchAdd( 1 );
+        }
+        done.Store( true );
+        return true;
+    }
+
+    MT::CTAtomic< UInt32 > started;
+    MT::CTAtomic< UInt32 > refused;
+    MT::CTAtomic< bool > done;
+
+    private:
+
+    CORE::ThreadPoolPtr m_pool;
+    UInt32 m_tasksToStart;
+};
 
 }
 
@@ -630,6 +674,42 @@ PerformDedicatedTaskTests( void )
         }
         ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
         ASSERT_TRUE( taskManager.UnregisterThreadPool( pool ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: Tasks started by type on another thread while the pulse thread hears about delegators that ended do not deadlock the pool" )
+    try
+    {
+        // StartTask() releases retired delegators; when it did so under the lock of the pool, the destruction of a
+        // delegator waited for the mailbox of the pool, which the pulse thread held while it waited for that lock
+        TQuickConsumerFactory quickFactory;
+        taskManager.RegisterTaskConsumerFactory( CQuickConsumer::TaskType, &quickFactory );
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksStartRace" );
+        CTaskStarterThread starter( pool, 400 );
+        const UInt64 start = MT::PrecisionTickCount();
+        ASSERT_TRUE( starter.Activate() );
+        UInt32 waited = 0;
+        while ( !starter.done.Load() && waited < 60000 )
+        {
+            CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
+            waited += 1;
+            MT::PrecisionDelay( 1 );
+        }
+        const UInt64 elapsedMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DedicatedTasks: " << starter.started.Load() << " tasks started on another thread in " << elapsedMs << " ms while the pulse thread pumped" );
+        ASSERT_TRUE( starter.done.Load() );
+        ASSERT_TRUE( 400 == starter.started.Load() && 0 == starter.refused.Load() );
+        // a lock that times out (60 s) would let it finish late: it has to finish without ever waiting that long
+        ASSERT_TRUE( elapsedMs < 30000 );
+        starter.Deactivate( false, true );
+        PumpFor( 100 );
+        ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+        ASSERT_TRUE( taskManager.UnregisterThreadPool( pool ) );
+        taskManager.UnregisterTaskConsumerFactory( CQuickConsumer::TaskType );
     }
     catch( ... )
     {

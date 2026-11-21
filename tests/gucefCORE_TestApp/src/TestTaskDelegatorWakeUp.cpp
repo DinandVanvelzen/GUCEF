@@ -577,6 +577,72 @@ StartDedicatedTask( ThreadPoolPtr pool, CWakeUpTestTaskPtr task )
     return PulseGeneratorPtr();
 }
 
+/*-------------------------------------------------------------------------*/
+
+/** What the thread that waits for all tasks of a pool shares with the test */
+struct SWaitAllCase
+{
+    SWaitAllCase( ThreadPoolPtr threadPool ) : pool( threadPool ), stop( false ), waits( 0 ), failedWaits( 0 ), taskIdScans( 0 ) {}
+
+    ThreadPoolPtr pool;
+    MT::CTAtomic< bool > stop;
+    MT::CTAtomic< UInt32 > waits;
+    MT::CTAtomic< UInt32 > failedWaits;
+    MT::CTAtomic< UInt32 > taskIdScans;
+};
+
+/** Waits for all tasks of the pool and asks which tasks have work, over and over, while the test queues tasks that end on the workers */
+UInt32 GUCEF_CALLSPEC_PREFIX
+WaitAllThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SWaitAllCase& waitCase = *static_cast< SWaitAllCase* >( data );
+    try
+    {
+        while ( !waitCase.stop.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            CThreadPool::TTaskIdVector taskIds;
+            waitCase.pool->GetAllTaskIdsForTasksWithWork( taskIds, true );
+            waitCase.taskIdScans.FetchAdd( 1 );
+            if ( !waitCase.pool->WaitForAllTasksToFinish( 2000 ) )
+                waitCase.failedWaits.FetchAdd( 1 );
+            waitCase.waits.FetchAdd( 1 );
+        }
+    }
+    catch ( ... )
+    {
+        waitCase.failedWaits.FetchAdd( 1 );
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** What a polling thread shares with the test: the task it asks about and what it saw */
+struct SConsumerPoll
+{
+    SConsumerPoll( CWakeUpTestTaskPtr consumer ) : task( consumer ), stop( false ), polls( 0 ), sawActive( false ) {}
+
+    CWakeUpTestTaskPtr task;
+    MT::CTAtomic< bool > stop;
+    MT::CTAtomic< UInt32 > polls;
+    MT::CTAtomic< bool > sawActive;
+};
+
+/** Asks a task consumer from a thread that is not its own whether it is active or asked to stop, as fast as it can */
+UInt32 GUCEF_CALLSPEC_PREFIX
+ConsumerPollThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SConsumerPoll& poll = *static_cast< SConsumerPoll* >( data );
+    while ( !poll.stop.Load( MT::MEMORDER_ACQUIRE ) )
+    {
+        if ( poll.task->IsActive() )
+            poll.sawActive.Store( true );
+        poll.task->IsDeactivationRequested();
+        poll.polls.FetchAdd( 1 );
+    }
+    return 0;
+}
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -938,6 +1004,78 @@ PerformTaskDelegatorWakeUpTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    // WaitForAllTasksToFinish() and GetAllTaskIdsForTasksWithWork() take the pool lock and the lock of the task queue while the
+    // workers take tasks out of the queue, start them and end them: neither side may wait for the other for good
+    GUCEF_TESTFW_TESTCASE( "Waiting for all tasks of a pool and asking for the tasks with work while tasks are queued, started and ended by the workers: no stall" )
+        try
+        {
+            typedef CTFactory< CTaskConsumer, CQueuedTickTask, MT::CMutex > TQueuedTickTaskFactory;
+            TQueuedTickTaskFactory factory;
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            taskManager.RegisterTaskConsumerFactory( CQueuedTickTask::TaskType, &factory );
+
+            const char* waitAllPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.WaitAll";
+            const UInt32 workers = 4;
+            ThreadPoolPtr waitAllPool = taskManager.GetOrCreateThreadPool( waitAllPoolName );
+            REQUIRE_TRUE( !waitAllPool.IsNULL() );
+            waitAllPool->SetDesiredMaxTotalNrOfThreads( (Int32) workers );
+            waitAllPool->SetDesiredMinNrOfWorkerThreads( workers );
+            for ( UInt32 i=0; i<500 && waitAllPool->GetActiveNrOfWorkerThreads() < workers; ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( workers == waitAllPool->GetActiveNrOfWorkerThreads() );
+
+            // the case stays when the thread did not end: that thread may still use it
+            SWaitAllCase* waitCase = GUCEF_NEW SWaitAllCase( waitAllPool );
+            MT::SThreadData* waitThread = MT::ThreadDataReserve();
+            REQUIRE_TRUE( GUCEF_NULL != waitThread );
+            REQUIRE_TRUE( 0 != MT::ThreadCreate( waitThread, &WaitAllThreadMain, waitCase ) );
+
+            bool allDone = true;
+            const UInt32 rounds = 150;
+            for ( UInt32 r=0; r<rounds && allDone; ++r )
+            {
+                GUCEF::vector< CFutureResult > futures;
+                for ( UInt32 i=0; i<workers * 2; ++i )
+                    futures.push_back( waitAllPool->QueueTask( CQueuedTickTask::TaskType ) );
+                bool roundDone = false;
+                for ( UInt32 waited=0; !roundDone && waited<5000; ++waited )
+                {
+                    roundDone = true;
+                    for ( UInt32 i=0; i<futures.size() && roundDone; ++i )
+                        roundDone = futures[ i ].IsReady();
+                    if ( !roundDone )
+                        MT::ThreadDelay( 1 );
+                }
+                allDone = roundDone;
+                MT::ThreadDelay( r % 3 );
+            }
+            ASSERT_TRUE( allDone );
+
+            const UInt32 waitsBefore = waitCase->waits.Load();
+            MT::ThreadDelay( 100 );
+            ASSERT_TRUE( waitCase->waits.Load() > waitsBefore || 0 != waitCase->failedWaits.Load() );
+            waitCase->stop.Store( true, MT::MEMORDER_RELEASE );
+            const bool ended = GUCEF_THREAD_WAIT_OK == MT::ThreadWait( waitThread, 20000 );
+            ASSERT_TRUE( ended );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: waits for all tasks: " << waitCase->waits.Load() << ", scans for tasks with work: "
+                       << waitCase->taskIdScans.Load() << ", waits that did not succeed: " << waitCase->failedWaits.Load() );
+            ASSERT_TRUE( waitCase->waits.Load() > 0 );
+
+            ASSERT_TRUE( waitAllPool->RequestAllThreadsToStop( true, false, 5000 ) );
+            if ( ended )
+            {
+                MT::ThreadDataCleanup( waitThread );
+                GUCEF_DELETE waitCase;
+            }
+            taskManager.UnregisterThreadPool( waitAllPoolName );
+            taskManager.UnregisterTaskConsumerFactory( CQueuedTickTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "A pool told its size twice in a row keeps that size when a worker it asked to stop has ended in between but is still listed: the ended worker counts as gone, no second worker is asked to stop" )
         try
         {
@@ -1081,11 +1219,10 @@ PerformTaskDelegatorWakeUpTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
-    // Observation kept as a reproducer for the CThreadPool review, not a confirmed defect: after RequestAllThreadsToStop
-    // on a pool whose delegator ran a dedicated task, WaitForAllThreadsToFinish( 5000 ) was seen to return false.
-    // Switched off by default; run with GUCEF_TEST_THREADPOOL_STOP_WAIT=1
+    // After RequestAllThreadsToStop( true, ... ) joined the threads of a pool whose delegator ran a dedicated task, waiting
+    // for the threads to finish again must succeed: a thread that was joined has finished (ThreadWait() answered failure
+    // for a joined thread, and the pool reported that as not finished)
     GUCEF_TESTFW_TESTCASE( "After all threads of a pool with a dedicated task were asked to stop, waiting for them to finish succeeds" )
-        GUCEF_TESTFW_SKIP_IF( GUCEF_TESTFW_GETENV( "GUCEF_TEST_THREADPOOL_STOP_WAIT" ) != "1", "reproducer for the CThreadPool review, switched on with GUCEF_TEST_THREADPOOL_STOP_WAIT=1" );
         try
         {
             const char* stopWaitPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.StopWait";
@@ -1104,6 +1241,54 @@ PerformTaskDelegatorWakeUpTests( void )
                 ASSERT_TRUE( finished );
             }
             CCoreGlobal::Instance()->GetTaskManager().UnregisterThreadPool( stopWaitPoolName );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    // The delegator thread clears the delegator of the consumer when its task ends (CTaskConsumer::SetTaskDelegator(), from
+    // TaskCleanup()) while another thread asks the consumer: no data race (ThreadSanitizer), whatever the interleaving
+    GUCEF_TESTFW_TESTCASE( "A task consumer asked whether it is active or asked to stop by another thread while its task ends: no data race" )
+        try
+        {
+            const char* pollPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.ConsumerPoll";
+            ThreadPoolPtr pollPool = CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( pollPoolName );
+            ASSERT_TRUE( !pollPool.IsNULL() );
+            UInt32 roundsWithActive = 0;
+            UInt32 totalPolls = 0;
+            const UInt32 rounds = 60;
+            for ( UInt32 r=0; r<rounds && !pollPool.IsNULL(); ++r )
+            {
+                CWakeUpTestTaskPtr pollTask( GUCEF_NEW CWakeUpTestTask() );
+                PulseGeneratorPtr pollPulseGenerator = StartDedicatedTask( pollPool, pollTask );
+                ASSERT_TRUE( !pollPulseGenerator.IsNULL() );
+                if ( pollPulseGenerator.IsNULL() )
+                    break;
+
+                SConsumerPoll poll( pollTask );
+                MT::SThreadData* pollThread = MT::ThreadDataReserve();
+                ASSERT_TRUE( GUCEF_NULL != pollThread );
+                ASSERT_TRUE( 0 != MT::ThreadCreate( pollThread, &ConsumerPollThreadMain, &poll ) );
+
+                MT::ThreadDelay( 2 );
+                ASSERT_TRUE( pollTask->RequestTaskToStop( true ) );
+                MT::ThreadDelay( 2 );
+
+                poll.stop.Store( true, MT::MEMORDER_RELEASE );
+                ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( pollThread, 10000 ) );
+                MT::ThreadDataCleanup( pollThread );
+                ASSERT_TRUE( !pollTask->IsActive() );
+                if ( poll.sawActive.Load() )
+                    ++roundsWithActive;
+                totalPolls += poll.polls.Load();
+            }
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: consumer polls: " << totalPolls << " polls, the task was seen active in "
+                       << roundsWithActive << " rounds" );
+            ASSERT_TRUE( totalPolls > 0 );
+            ASSERT_TRUE( roundsWithActive > 0 );
+            CCoreGlobal::Instance()->GetTaskManager().UnregisterThreadPool( pollPoolName );
         }
         catch ( ... )
         {

@@ -1303,6 +1303,8 @@ CThreadPool::SetupSingularTask( CTaskConsumerPtr taskConsumer  ,
                                 bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
 
+    // Our caller holds a reference to us, which makes this a safe point to release delegators whose threads ended
+    ReleaseRetiredDelegators();
     return SetupSingularTaskImpl( taskConsumer, taskData, assumeOwnershipOfTaskData, GUCEF_NULL, false );
 }
 
@@ -1426,8 +1428,8 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
                                     bool consumerWasCreatedByPool  )
 {GUCEF_TRACE;
 
-    // Our caller holds a reference to us, which makes this a safe point to release delegators whose threads ended
-    ReleaseRetiredDelegators();
+    // Retired delegators are released by the callers before they take our lock (SetupSingularTask(), StartTask()):
+    // destroying a delegator notifies our mailbox, whose pulse may wait for our lock in RemoveDelegator()
 
     // We will need a task object which represents the task to be executed
     CTaskPtr task;
@@ -1676,6 +1678,10 @@ CThreadPool::StartTask( const CString& taskType        ,
                         CICloneable* taskData          ,
                         bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
+
+    // Delegators whose threads ended are released before our lock is taken: destroying one notifies our mailbox,
+    // and the pulse that empties the mailbox may be waiting for our lock (RemoveDelegator()), a deadlock otherwise
+    ReleaseRetiredDelegators();
 
     MT::CObjectScopeLock lock( this );
 

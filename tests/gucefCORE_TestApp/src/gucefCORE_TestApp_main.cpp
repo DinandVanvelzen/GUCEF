@@ -501,6 +501,12 @@
 /** runs only the suites of the shared and weak pointers (a quick, repeatable run of their thread tests) */
 #define GUCEF_CORE_TESTAPP_SHARED_PTR_SUITES_ARG    "--shared-ptr-suites"
 
+/** runs only the suites of the thread pool: cancellation, task retention, pulse requests, delegator wake-up, dedicated tasks */
+#define GUCEF_CORE_TESTAPP_THREAD_POOL_SUITES_ARG    "--thread-pool-suites"
+
+/** runs only the suites about lock order between observers, notifiers and pulse threads (a quick, repeatable run) */
+#define GUCEF_CORE_TESTAPP_LOCK_ORDER_SUITES_ARG    "--lock-order-suites"
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -604,6 +610,30 @@ GUCEF_OSMAIN_BEGIN
         {
             PerformSharedPtrTests();
             PerformWeakPtrTests();
+
+            GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+            GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );
+            GUCEF_TESTFW_WRITE_RESULTS( subsetXmlPath.C_String() );
+            return GUCEF_TESTFW_EXITCODE;
+        }
+
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_THREAD_POOL_SUITES_ARG ) )
+        {
+            PerformThreadPoolCancellationTests();
+            PerformTaskMemoryRetentionTests();
+            PerformTaskPulseRequestTests();
+            PerformTaskDelegatorWakeUpTests();
+            PerformDedicatedTaskTests();
+
+            GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+            GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );
+            GUCEF_TESTFW_WRITE_RESULTS( subsetXmlPath.C_String() );
+            return GUCEF_TESTFW_EXITCODE;
+        }
+
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_LOCK_ORDER_SUITES_ARG ) )
+        {
+            PerformPumpedObserverLockOrderTests();
 
             GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
             GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );

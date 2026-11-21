@@ -395,11 +395,142 @@ CreateMailLockOrderCase( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** What the threads of the subscription count case share */
+struct SSubscriptionCountCase
+{
+    CORE::CObserver observer;
+    CORE::CTSGNotifier notifier;
+    MT::CTAtomic< bool > stop;
+    MT::CTAtomic< UInt32 > counted;
+    MT::CTAtomic< UInt32 > subscribed;
+
+    SSubscriptionCountCase( void )
+        : observer()
+        , notifier( false )
+        , stop( false )
+        , counted( 0 )
+        , subscribed( 0 )
+    {}
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Asks the observer for its subscription count over and over */
+static UInt32 GUCEF_CALLSPEC_PREFIX
+SubscriptionCountThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SSubscriptionCountCase& subCase = *static_cast< SSubscriptionCountCase* >( data );
+    try
+    {
+        while ( !subCase.stop.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            subCase.observer.GetSubscriptionCount();
+            subCase.counted.FetchAdd( 1 );
+        }
+    }
+    catch ( ... )
+    {
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Subscribes the observer to the notifier and unsubscribes it again over and over: the notifier lock is taken first, then the list of the observer */
+static UInt32 GUCEF_CALLSPEC_PREFIX
+SubscribeThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SSubscriptionCountCase& subCase = *static_cast< SSubscriptionCountCase* >( data );
+    try
+    {
+        while ( !subCase.stop.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            subCase.observer.SubscribeTo( &subCase.notifier );
+            subCase.observer.UnsubscribeFrom( subCase.notifier );
+            subCase.subscribed.FetchAdd( 1 );
+        }
+    }
+    catch ( ... )
+    {
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformSubscriptionCountLockOrderTest( void )
+{
+    GUCEF_TESTFW_TESTCASE( "An observer asked for its subscription count while another thread subscribes and unsubscribes it: no deadlock" )
+        try
+        {
+            // The case stays when a thread did not end: that thread may still use it
+            SSubscriptionCountCase* subCase = GUCEF_NEW SSubscriptionCountCase();
+            MT::SThreadData* countThread = MT::ThreadDataReserve();
+            MT::SThreadData* subscribeThread = MT::ThreadDataReserve();
+            ASSERT_TRUE( GUCEF_NULL != countThread && GUCEF_NULL != subscribeThread );
+            ASSERT_TRUE( 0 != MT::ThreadCreate( countThread, &SubscriptionCountThreadMain, subCase ) );
+            ASSERT_TRUE( 0 != MT::ThreadCreate( subscribeThread, &SubscribeThreadMain, subCase ) );
+
+            const UInt64 ticksPerMs = MT::PrecisionTimerResolution() / 1000;
+            const UInt64 startTicks = MT::PrecisionTickCount();
+            UInt64 progressTicks = startTicks;
+            UInt32 lastCounted = 0;
+            UInt32 lastSubscribed = 0;
+            bool stalled = false;
+            while ( true )
+            {
+                MT::ThreadDelay( 10 );
+                const UInt64 nowTicks = MT::PrecisionTickCount();
+                const UInt32 counted = subCase->counted.Load();
+                const UInt32 subscribed = subCase->subscribed.Load();
+                if ( counted != lastCounted && subscribed != lastSubscribed )
+                {
+                    lastCounted = counted;
+                    lastSubscribed = subscribed;
+                    progressTicks = nowTicks;
+                }
+                if ( ( nowTicks - progressTicks ) > MailLockOrderStallTimeInMs * ticksPerMs )
+                {
+                    stalled = true;
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Subscription count lock order: no progress for " << MailLockOrderStallTimeInMs
+                        << " ms, counted " << counted << ", subscribed " << subscribed );
+                    break;
+                }
+                if ( ( nowTicks - startTicks ) > MailLockOrderRunTimeInMs * ticksPerMs )
+                    break;
+            }
+
+            subCase->stop.Store( true, MT::MEMORDER_RELEASE );
+            const bool endedCount = 1 == MT::ThreadWait( countThread, stalled ? 1000 : MailLockOrderThreadEndTimeInMs );
+            const bool endedSubscribe = 1 == MT::ThreadWait( subscribeThread, stalled ? 1000 : MailLockOrderThreadEndTimeInMs );
+            if ( endedCount )
+                MT::ThreadDataCleanup( countThread );
+            if ( endedSubscribe )
+                MT::ThreadDataCleanup( subscribeThread );
+
+            ASSERT_FALSE( stalled );
+            ASSERT_TRUE( endedCount && endedSubscribe );
+            ASSERT_TRUE( subCase->counted.Load() > 0 );
+            ASSERT_TRUE( subCase->subscribed.Load() > 0 );
+            GUCEF_DELETE subCase;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformPumpedObserverLockOrderTests( void )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING pumped observer lock order TESTS" );
     GUCEF_TESTFW_SUITE_SCOPE( "PumpedObserverLockOrder" );
+
+    PerformSubscriptionCountLockOrderTest();
 
     GUCEF_TESTFW_TESTCASE( "Two pumped observers on two pulse threads mail each other from within the delivery of their mail: no deadlock" )
         try
