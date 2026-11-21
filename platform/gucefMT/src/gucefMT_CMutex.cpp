@@ -40,6 +40,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
+#include <time.h>
 
 #ifndef PTHREAD_MUTEX_RECURSIVE
   #define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP 
@@ -130,6 +132,81 @@ RecordLockOwner( TMutexData* mutexData )
 
 /*--------------------------------------------------------------------------*/
 
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+#if ( defined( __ANDROID_API__ ) && ( __ANDROID_API__ < 21 ) )
+  #define GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+#endif
+
+/**
+ *  Locks a pthread mutex, waiting at most timeoutInMs milliseconds. GUCEF_MT_INFINITE_LOCK_TIMEOUT waits for as
+ *  long as it takes, a timeout of 0 is a try.
+ *
+ *  @return 0 on success, ETIMEDOUT when the mutex stayed locked for the whole time, another errno value on failure
+ */
+static int
+PosixMutexLockWithTimeout( pthread_mutex_t* mutex, UInt32 timeoutInMs )
+{
+    struct timespec monotonicStart;
+    UInt32 remainingInMs = timeoutInMs;
+    int result = 0;
+
+    if ( GUCEF_MT_INFINITE_LOCK_TIMEOUT == timeoutInMs )
+        return pthread_mutex_lock( mutex );
+
+    result = pthread_mutex_trylock( mutex );
+    if ( EBUSY != result )
+        return result;
+    if ( 0 == timeoutInMs )
+        return ETIMEDOUT;
+
+    clock_gettime( CLOCK_MONOTONIC, &monotonicStart );
+    for ( ;; )
+    {
+        struct timespec monotonicNow;
+        Int64 elapsedInMs = 0;
+        #ifndef GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+        struct timespec deadline;
+        #endif
+
+        #ifdef GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+
+        PrecisionDelay( 1 );
+        result = pthread_mutex_trylock( mutex );
+        if ( EBUSY != result )
+            return result;
+
+        #else
+
+        /* the deadline is on the real time clock, which is what pthread_mutex_timedlock() wants */
+        clock_gettime( CLOCK_REALTIME, &deadline );
+        deadline.tv_sec += remainingInMs / 1000;
+        deadline.tv_nsec += 1000000L * (long) ( remainingInMs % 1000 );
+        if ( deadline.tv_nsec >= 1000000000L )
+        {
+            deadline.tv_sec += 1;
+            deadline.tv_nsec -= 1000000000L;
+        }
+        result = pthread_mutex_timedlock( mutex, &deadline );
+        if ( ETIMEDOUT != result )
+            return result;
+
+        #endif
+
+        /* A step of the real time clock must not shorten or lengthen the wait: the monotonic clock decides */
+        clock_gettime( CLOCK_MONOTONIC, &monotonicNow );
+        elapsedInMs = ( (Int64) ( monotonicNow.tv_sec - monotonicStart.tv_sec ) * 1000 ) +
+                      ( ( (Int64) monotonicNow.tv_nsec - (Int64) monotonicStart.tv_nsec ) / 1000000 );
+        if ( elapsedInMs >= (Int64) timeoutInMs )
+            return ETIMEDOUT;
+        remainingInMs = (UInt32) ( (Int64) timeoutInMs - elapsedInMs );
+    }
+}
+
+#endif
+
+/*--------------------------------------------------------------------------*/
+
 CMutex::CMutex( void )
     : _mutexdata( GUCEF_NEW TMutexData )
 {GUCEF_TRACE;
@@ -199,7 +276,7 @@ CMutex::~CMutex()
     // Waits for a thread that may still hold the lock, then lets go again: a mutex must not be destroyed while it is
     // locked. pthreads leaves that undefined and musl (Emscripten) keeps a locked recursive mutex linked in the owning
     // thread's list of held mutexes, where the next lock or unlock by that thread writes into the freed memory
-    Lock();
+    Lock( GUCEF_MT_INFINITE_LOCK_TIMEOUT );
     Unlock();
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -305,8 +382,16 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-    /* pthreads reports failure as a positive errno value, never as a negative one */
-    if ( 0 != pthread_mutex_lock( &((TMutexData*)_mutexdata)->id ) )
+    /*
+     *  pthreads reports failure as a positive errno value, never as a negative one. The timeout is honoured as on
+     *  Windows: a mutex that stays locked for longer is reported as a timeout instead of waited for without end
+     */
+    const int lockResult = PosixMutexLockWithTimeout( &((TMutexData*)_mutexdata)->id, lockWaitTimeoutInMs );
+    if ( ETIMEDOUT == lockResult )
+    {
+        return LOCKSTATUS_WAIT_TIMEOUT;
+    }
+    if ( 0 != lockResult )
     {
         return LOCKSTATUS_OPERATION_FAILED;
     }

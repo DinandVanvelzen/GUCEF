@@ -44,6 +44,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
+#include <time.h>
 
 #ifndef PTHREAD_MUTEX_RECURSIVE
   #define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP 
@@ -85,6 +87,81 @@ struct SMutex
 };
 
 typedef struct SMutex TMutex;
+
+/*--------------------------------------------------------------------------*/
+
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+#if ( defined( __ANDROID_API__ ) && ( __ANDROID_API__ < 21 ) )
+  #define GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+#endif
+
+/**
+ *  Locks a pthread mutex, waiting at most timeoutInMs milliseconds. GUCEF_MT_INFINITE_LOCK_TIMEOUT waits for as
+ *  long as it takes, a timeout of 0 is a try.
+ *
+ *  @return 0 on success, ETIMEDOUT when the mutex stayed locked for the whole time, another errno value on failure
+ */
+static int
+PosixMutexLockWithTimeout( pthread_mutex_t* mutex, UInt32 timeoutInMs )
+{
+    struct timespec monotonicStart;
+    UInt32 remainingInMs = timeoutInMs;
+    int result = 0;
+
+    if ( GUCEF_MT_INFINITE_LOCK_TIMEOUT == timeoutInMs )
+        return pthread_mutex_lock( mutex );
+
+    result = pthread_mutex_trylock( mutex );
+    if ( EBUSY != result )
+        return result;
+    if ( 0 == timeoutInMs )
+        return ETIMEDOUT;
+
+    clock_gettime( CLOCK_MONOTONIC, &monotonicStart );
+    for ( ;; )
+    {
+        struct timespec monotonicNow;
+        Int64 elapsedInMs = 0;
+        #ifndef GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+        struct timespec deadline;
+        #endif
+
+        #ifdef GUCEF_MT_NO_PTHREAD_MUTEX_TIMEDLOCK
+
+        PrecisionDelay( 1 );
+        result = pthread_mutex_trylock( mutex );
+        if ( EBUSY != result )
+            return result;
+
+        #else
+
+        /* the deadline is on the real time clock, which is what pthread_mutex_timedlock() wants */
+        clock_gettime( CLOCK_REALTIME, &deadline );
+        deadline.tv_sec += remainingInMs / 1000;
+        deadline.tv_nsec += 1000000L * (long) ( remainingInMs % 1000 );
+        if ( deadline.tv_nsec >= 1000000000L )
+        {
+            deadline.tv_sec += 1;
+            deadline.tv_nsec -= 1000000000L;
+        }
+        result = pthread_mutex_timedlock( mutex, &deadline );
+        if ( ETIMEDOUT != result )
+            return result;
+
+        #endif
+
+        /* A step of the real time clock must not shorten or lengthen the wait: the monotonic clock decides */
+        clock_gettime( CLOCK_MONOTONIC, &monotonicNow );
+        elapsedInMs = ( (Int64) ( monotonicNow.tv_sec - monotonicStart.tv_sec ) * 1000 ) +
+                      ( ( (Int64) monotonicNow.tv_nsec - (Int64) monotonicStart.tv_nsec ) / 1000000 );
+        if ( elapsedInMs >= (Int64) timeoutInMs )
+            return ETIMEDOUT;
+        remainingInMs = (UInt32) ( (Int64) timeoutInMs - elapsedInMs );
+    }
+}
+
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -286,8 +363,11 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
     
     struct SThreadIds caller;
     GetCurrentThreadIds( &caller );
-    int lockResult = pthread_mutex_lock( &mutex->id );
+    /* honours the timeout: a mutex that stays locked for longer is reported as a timeout, as on Windows */
+    int lockResult = PosixMutexLockWithTimeout( &mutex->id, timeoutInMs );
 
+    if ( ETIMEDOUT == lockResult )
+        return GUCEF_MUTEX_WAIT_TIMEOUT;
     if ( 0 != lockResult ) 
         return GUCEF_MUTEX_OPERATION_FAILED;
     

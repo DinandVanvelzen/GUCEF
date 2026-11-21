@@ -625,6 +625,13 @@ ThreadWait( struct SThreadData* td ,
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 
+    /*
+     *  A thread that was joined already, by an earlier wait or by a kill, has no handle left but it did run and has finished:
+     *  that is a success as it is on Windows, where the handle stays valid. Only thread data that never ran a thread fails.
+     */
+    if ( GUCEF_NULL != td && 0 == td->thread && 0 != td->started )
+        return GUCEF_THREAD_WAIT_OK;
+
     if ( GUCEF_NULL != td && 0 != td->thread && timeoutInMs < 0 )
     {
         /* A negative timeout means wait indefinitely */

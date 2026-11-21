@@ -112,6 +112,41 @@ PerformThreadDataTests( void )
 
     GUCEF_TESTFW_SUITE_SCOPE( "gucefMT.ThreadData" );
 
+    GUCEF_TESTFW_TESTCASE( "A thread that an earlier wait already joined is reported as finished by every later wait" )
+    try
+    {
+        SThreadTestData testData;
+        testData.td = MT::ThreadDataReserve();
+        ASSERT_TRUE( GUCEF_NULL != testData.td );
+        testData.hold.Store( true, MT::MEMORDER_RELEASE );
+        ASSERT_TRUE( 0 != MT::ThreadCreate( testData.td, &ThreadTestFunc, &testData ) );
+
+        // while it runs a wait times out and the thread is not joined
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_TIMEOUT == MT::ThreadWait( testData.td, 50 ) );
+
+        testData.release.Store( true, MT::MEMORDER_RELEASE );
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( testData.td, ThreadWaitLimitInMs ) );
+
+        // it ended and was joined: waiting again for something that has finished succeeds, with a limit and without
+        const UInt64 start = MT::PrecisionTickCount();
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( testData.td, ThreadWaitLimitInMs ) );
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( testData.td, 0 ) );
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( testData.td, -1 ) );
+        ASSERT_TRUE( ( MT::PrecisionTickCount() - start ) < ( 2 * MT::PrecisionTimerResolution() ) );
+        MT::ThreadDataCleanup( testData.td );
+
+        // a thread data that never ran a thread has nothing that finished
+        MT::SThreadData* unused = MT::ThreadDataReserve();
+        ASSERT_TRUE( GUCEF_NULL != unused );
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_FAILED == MT::ThreadWait( unused, 50 ) );
+        MT::ThreadDataCleanup( unused );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "ThreadID is valid and consistent right after ThreadCreate returns" )
     try
     {

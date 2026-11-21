@@ -127,6 +127,51 @@ gucef_osmain_has_console_arg( const char* cmdline )
 /*-------------------------------------------------------------------------*/
 
 /*
+ *  Options of GUCEF_OSSERVICEMAIN_BEGIN_EX( serviceName, options ); GUCEF_OSSERVICEMAIN_BEGIN( serviceName ) is
+ *  GUCEF_OSSERVICEMAIN_BEGIN_EX( serviceName, 0 ), the behaviour it always had. Windows only; elsewhere no effect.
+ *  - REPORT_RUNNING_LATER: the service reports SERVICE_START_PENDING when it starts instead of SERVICE_RUNNING, and
+ *    the application reports SERVICE_RUNNING itself once it is initialised: Win32ReportStatus( SERVICE_RUNNING ).
+ *    Win32ReportStatus( SERVICE_START_PENDING ) in between tells the service control manager that the start goes on.
+ *    Pending states (start and stop) then carry a check point that counts up and a wait hint.
+ */
+#define GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER          0x01UL
+
+/* The values of winsvc.h, so that the status below is tested on every platform */
+#define GUCEF_OSSERVICE_STATE_START_PENDING                  0x02UL
+#define GUCEF_OSSERVICE_STATE_STOP_PENDING                   0x03UL
+#define GUCEF_OSSERVICE_PENDING_WAIT_HINT_IN_MS              30000UL
+
+/*
+ *  The check point and wait hint a service reports with 'state', 'previousCheckPoint' being the check point it
+ *  reported last. With GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER a pending state counts the check point up and has
+ *  the wait hint; every other state, and every state without the option (what GUCEF_OSSERVICEMAIN_BEGIN always
+ *  reported), has 0 for both. Plain C so that it is tested on every platform.
+ */
+#ifdef __cplusplus
+inline void
+#else
+static void
+#endif
+gucef_osservice_pending_status( unsigned long state              ,
+                                unsigned long options            ,
+                                unsigned long previousCheckPoint ,
+                                unsigned long* checkPoint        ,
+                                unsigned long* waitHintInMs      )
+{
+    const int pending = ( GUCEF_OSSERVICE_STATE_START_PENDING == state || GUCEF_OSSERVICE_STATE_STOP_PENDING == state );
+    if ( pending && 0 != ( options & GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER ) )
+    {
+        *checkPoint = previousCheckPoint + 1;
+        *waitHintInMs = GUCEF_OSSERVICE_PENDING_WAIT_HINT_IN_MS;
+        return;
+    }
+    *checkPoint = 0;
+    *waitHintInMs = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*
  *  Here we will define the GUCEF_OSMAIN macro which defines a entry point
  *  and makes the following variables available and application parameters:
  *      int argc
@@ -213,9 +258,11 @@ gucef_osmain_has_console_arg( const char* cmdline )
 
     #define GUCEF_OSMAIN_END    GUCEF_MEMORY_CHECK_APP_END}
 
-    #define GUCEF_OSSERVICEMAIN_BEGIN( serviceName )                                                   \
+    #define GUCEF_OSSERVICEMAIN_BEGIN_EX( serviceName, serviceOptions )                                \
                                                                                                        \
     static unsigned char GUCEF_APP_TYPE = GUCEF_AUTO_APP_TYPE_BACKGROUND_PROCESSS;                     \
+    static const unsigned long gucef_osservice_options = (unsigned long) ( serviceOptions );           \
+    static unsigned long gucef_osservice_check_point = 0;                                              \
                                                                                                        \
     typedef void ( __cdecl *gucef_installed_signal_handler_ptr)( int );                                \
     static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = GUCEF_NULL;                   \
@@ -310,6 +357,9 @@ gucef_osmain_has_console_arg( const char* cmdline )
     void                                                                                               \
     Win32ReportStatus( DWORD state )                                                                   \
     {                                                                                                  \
+        unsigned long waitHintInMs = 0;                                                                \
+        gucef_osservice_pending_status( state, gucef_osservice_options, gucef_osservice_check_point,   \
+                                        &gucef_osservice_check_point, &waitHintInMs );                 \
         g_win32CurrentState = state;                                                                   \
         SERVICE_STATUS serviceStatus = {                                                               \
             SERVICE_WIN32_OWN_PROCESS,                                                                 \
@@ -317,8 +367,8 @@ gucef_osmain_has_console_arg( const char* cmdline )
             state == SERVICE_START_PENDING ? 0 : SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,        \
             NO_ERROR,                                                                                  \
             0,                                                                                         \
-            0,                                                                                         \
-            0,                                                                                         \
+            (DWORD) gucef_osservice_check_point,                                                       \
+            (DWORD) waitHintInMs,                                                                      \
         };                                                                                             \
         ::SetServiceStatus( g_win32ServiceStatusHandle, &serviceStatus );                              \
     }                                                                                                  \
@@ -355,7 +405,11 @@ gucef_osmain_has_console_arg( const char* cmdline )
         g_win32ServiceStatusHandle =                                                                   \
             ::RegisterServiceCtrlHandlerExA( serviceName, &Win32HandlerEx, GUCEF_NULL);                      \
                                                                                                        \
-        Win32ReportStatus( SERVICE_RUNNING );                                                          \
+        /* running now, or once the application says so: GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER */\
+        if ( 0 != ( gucef_osservice_options & GUCEF_OSSERVICE_OPTION_REPORT_RUNNING_LATER ) )          \
+            Win32ReportStatus( SERVICE_START_PENDING );                                                \
+        else                                                                                           \
+            Win32ReportStatus( SERVICE_RUNNING );                                                      \
         g_win32StopEvent = ::CreateEvent( GUCEF_NULL, TRUE, FALSE, GUCEF_NULL );                                   \
         int appResult = Win32ServiceInitializer( (int) argc, argv );                                   \
         if ( 0 != g_win32StopEvent )                                                                   \
@@ -372,6 +426,8 @@ gucef_osmain_has_console_arg( const char* cmdline )
     {
 
     #define GUCEF_OSSERVICEMAIN_END     GUCEF_MEMORY_CHECK_APP_END}
+
+    #define GUCEF_OSSERVICEMAIN_BEGIN( serviceName )    GUCEF_OSSERVICEMAIN_BEGIN_EX( serviceName, 0 )
 
     #define GUCEF_OSMAIN_SIGNAL_HANDLER( signalHandlerFunc )                                           \
     {                                                                                                  \
@@ -503,6 +559,11 @@ gucef_osmain_has_console_arg( const char* cmdline )
 
     #define GUCEF_OSMAIN_DEFER_STOP_SIGNALS
 
+#endif
+
+/* Platforms other than Windows: the service options have no effect */
+#ifndef GUCEF_OSSERVICEMAIN_BEGIN_EX
+  #define GUCEF_OSSERVICEMAIN_BEGIN_EX( serviceName, serviceOptions )    GUCEF_OSSERVICEMAIN_BEGIN( serviceName )
 #endif
 
 /*-------------------------------------------------------------------------*/

@@ -43,6 +43,11 @@
 #define GUCEF_MT_CACTIVEOBJECT_H
 #endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
 #define GUCEF_MT_DVMTOSWRAP_H
@@ -836,6 +841,254 @@ PerformObjectScopeLockNotApplicableRegressionTest( void )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Holds a mutex on its own thread until told to let go, at most for a bounded time so a test that
+ *  fails because the waiter never returned does not hang. Works on the C++ class or on the C layer mutex.
+ */
+class CMutexTimedLockHolderThread : public MT::CActiveObject
+{
+    public:
+
+    CMutexTimedLockHolderThread( MT::CMutex* cppMutex, struct MT::SMutex* cMutex, UInt32 lockDepth, UInt32 maxHoldInMs )
+        : MT::CActiveObject()
+        , m_cppMutex( cppMutex )
+        , m_cMutex( cMutex )
+        , m_lockDepth( lockDepth )
+        , m_maxHoldInMs( maxHoldInMs )
+        , m_holding( false )
+        , m_release( false )
+        , m_done( false )
+    {}
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        return true;
+    }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        UInt32 locked = 0;
+        for ( UInt32 i=0; i<m_lockDepth; ++i )
+        {
+            if ( GUCEF_NULL != m_cppMutex )
+            {
+                if ( MT::LOCKSTATUS_OPERATION_SUCCESS == m_cppMutex->Lock( MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) )
+                    ++locked;
+            }
+            else
+            {
+                if ( GUCEF_MUTEX_OPERATION_SUCCESS == MT::MutexLock( m_cMutex, MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) )
+                    ++locked;
+            }
+        }
+        m_holding.Store( locked == m_lockDepth, MT::MEMORDER_RELEASE );
+
+        UInt32 heldInMs = 0;
+        while ( !m_release.Load( MT::MEMORDER_ACQUIRE ) && heldInMs < m_maxHoldInMs )
+        {
+            MT::PrecisionDelay( 1 );
+            ++heldInMs;
+        }
+
+        for ( UInt32 i=0; i<locked; ++i )
+        {
+            if ( GUCEF_NULL != m_cppMutex )
+                m_cppMutex->Unlock();
+            else
+                MT::MutexUnlock( m_cMutex );
+        }
+        m_holding.Store( false, MT::MEMORDER_RELEASE );
+        m_done.Store( true, MT::MEMORDER_RELEASE );
+        return true; // stop cycling
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    bool IsHolding( void ) const    { return m_holding.Load( MT::MEMORDER_ACQUIRE ); }
+    void Release( void )            { m_release.Store( true, MT::MEMORDER_RELEASE ); }
+
+    bool WaitUntilHolding( UInt32 timeoutInMs ) const
+    {GUCEF_TRACE;
+        for ( UInt32 i=0; i<timeoutInMs && !IsHolding(); ++i )
+            MT::PrecisionDelay( 1 );
+        return IsHolding();
+    }
+
+    bool WaitUntilDone( UInt32 timeoutInMs ) const
+    {GUCEF_TRACE;
+        for ( UInt32 i=0; i<timeoutInMs && !m_done.Load( MT::MEMORDER_ACQUIRE ); ++i )
+            MT::PrecisionDelay( 1 );
+        return m_done.Load( MT::MEMORDER_ACQUIRE );
+    }
+
+    private:
+
+    MT::CMutex* m_cppMutex;
+    struct MT::SMutex* m_cMutex;
+    UInt32 m_lockDepth;
+    UInt32 m_maxHoldInMs;
+    MT::CTAtomic< bool > m_holding;
+    MT::CTAtomic< bool > m_release;
+    MT::CTAtomic< bool > m_done;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static UInt32
+ElapsedInMs( UInt64 startTicks )
+{
+    return (UInt32) ( ( MT::PrecisionTickCount() - startTicks ) * 1000 / MT::PrecisionTimerResolution() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A lock with a timeout must give up after about that time when another thread holds the mutex, on the C++
+ *  class and on the C layer mutex, with one and with several (re-entrant) locks held by the other thread.
+ *  Without it a lock that is never released hangs every waiter for good, whatever timeout they pass.
+ */
+static void
+PerformTimedLockTest( bool useCppMutex, UInt32 holderLockDepth )
+{
+    const UInt32 timeoutInMs = 200;
+    MT::CMutex cppMutex;
+    struct MT::SMutex* cMutex = useCppMutex ? GUCEF_NULL : MT::MutexCreate();
+    ASSERT_TRUE( useCppMutex || GUCEF_NULL != cMutex );
+
+    // The holder lets go by itself after 3 seconds, so a Lock() that ignores its timeout comes back late instead of never
+    CMutexTimedLockHolderThread holder( useCppMutex ? &cppMutex : GUCEF_NULL, cMutex, holderLockDepth, 3000 );
+    ASSERT_TRUE( holder.Activate() );
+    ASSERT_TRUE( holder.WaitUntilHolding( 2000 ) );
+
+    // zero timeout: a try, which must fail at once
+    UInt64 start = MT::PrecisionTickCount();
+    UInt32 zeroStatus = useCppMutex ? (UInt32) cppMutex.Lock( 0 ) : MT::MutexLock( cMutex, 0 );
+    UInt32 zeroElapsed = ElapsedInMs( start );
+    if ( zeroStatus == (UInt32) MT::LOCKSTATUS_OPERATION_SUCCESS )
+    {
+        if ( useCppMutex ) cppMutex.Unlock(); else MT::MutexUnlock( cMutex );
+    }
+    ASSERT_TRUE( zeroStatus == (UInt32) MT::LOCKSTATUS_WAIT_TIMEOUT );
+    ASSERT_TRUE( zeroElapsed < 150 );
+
+    // finite timeout: must report the timeout after about the time asked for
+    start = MT::PrecisionTickCount();
+    UInt32 status = useCppMutex ? (UInt32) cppMutex.Lock( timeoutInMs ) : MT::MutexLock( cMutex, timeoutInMs );
+    UInt32 elapsed = ElapsedInMs( start );
+    if ( status == (UInt32) MT::LOCKSTATUS_OPERATION_SUCCESS )
+    {
+        if ( useCppMutex ) cppMutex.Unlock(); else MT::MutexUnlock( cMutex );
+    }
+    ASSERT_TRUE( status == (UInt32) MT::LOCKSTATUS_WAIT_TIMEOUT );
+    ASSERT_TRUE( elapsed >= timeoutInMs - 10 );
+    ASSERT_TRUE( elapsed < timeoutInMs + 400 );
+
+    // the same wait succeeds when the holder lets go in time
+    holder.Release();
+    ASSERT_TRUE( holder.WaitUntilDone( 2000 ) );
+    status = useCppMutex ? (UInt32) cppMutex.Lock( timeoutInMs ) : MT::MutexLock( cMutex, timeoutInMs );
+    ASSERT_TRUE( status == (UInt32) MT::LOCKSTATUS_OPERATION_SUCCESS );
+    if ( useCppMutex ) cppMutex.Unlock(); else MT::MutexUnlock( cMutex );
+
+    holder.WaitForThreadToFinish( 5000 );
+    if ( GUCEF_NULL != cMutex )
+        MT::MutexDestroy( cMutex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** the infinite timeout keeps waiting and succeeds as soon as the holder lets go */
+static void
+PerformInfiniteLockTest( bool useCppMutex )
+{
+    MT::CMutex cppMutex;
+    struct MT::SMutex* cMutex = useCppMutex ? GUCEF_NULL : MT::MutexCreate();
+    ASSERT_TRUE( useCppMutex || GUCEF_NULL != cMutex );
+
+    CMutexTimedLockHolderThread holder( useCppMutex ? &cppMutex : GUCEF_NULL, cMutex, 1, 300 );
+    ASSERT_TRUE( holder.Activate() );
+    ASSERT_TRUE( holder.WaitUntilHolding( 2000 ) );
+
+    UInt64 start = MT::PrecisionTickCount();
+    UInt32 status = useCppMutex ? (UInt32) cppMutex.Lock( GUCEF_MT_INFINITE_LOCK_TIMEOUT ) : MT::MutexLock( cMutex, GUCEF_MT_INFINITE_LOCK_TIMEOUT );
+    UInt32 elapsed = ElapsedInMs( start );
+    if ( status == (UInt32) MT::LOCKSTATUS_OPERATION_SUCCESS )
+    {
+        if ( useCppMutex ) cppMutex.Unlock(); else MT::MutexUnlock( cMutex );
+    }
+    ASSERT_TRUE( status == (UInt32) MT::LOCKSTATUS_OPERATION_SUCCESS );
+    ASSERT_TRUE( elapsed >= 100 );
+
+    holder.WaitForThreadToFinish( 5000 );
+    if ( GUCEF_NULL != cMutex )
+        MT::MutexDestroy( cMutex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformMutexLockTimeoutTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Mutex: Lock( timeout ) gives up after the timeout while another thread holds the mutex" )
+    try
+    {
+        PerformTimedLockTest( true, 1 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: Lock( timeout ) gives up after the timeout while another thread holds the mutex recursively" )
+    try
+    {
+        PerformTimedLockTest( true, 3 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: C layer MT::MutexLock( timeout ) gives up after the timeout while another thread holds the mutex" )
+    try
+    {
+        PerformTimedLockTest( false, 1 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: C layer MT::MutexLock( timeout ) gives up after the timeout while another thread holds the mutex recursively" )
+    try
+    {
+        PerformTimedLockTest( false, 3 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: Lock with the infinite timeout waits until the holder lets go" )
+    try
+    {
+        PerformInfiniteLockTest( true );
+        PerformInfiniteLockTest( false );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformMutexTests( void )
 {GUCEF_TRACE;
@@ -856,6 +1109,7 @@ PerformMutexTests( void )
     PerformThreadDelayRegressionTest();
     PerformFinishedThreadCleanupRegressionTest();
     PerformObjectScopeLockNotApplicableRegressionTest();
+    PerformMutexLockTimeoutTests();
 
     GUCEF::CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL MUTEX TESTS COMPLETED" );
