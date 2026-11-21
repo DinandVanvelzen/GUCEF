@@ -19,6 +19,12 @@ workstation with a GPU: an *ephemeral* node.
 `join.sh` is idempotent: re-running it changes only what differs. The bootstrap token is only used for the first
 join; afterwards the node authenticates with its own credentials.
 
+`join.sh --registry-settings FILE` (KEY=value lines `REGISTRY_HOST`, `REGISTRY_USER`, `REGISTRY_TOKEN_FILE` or
+`REGISTRY_TOKEN`; without the option the environment variables of those names) also gives containerd the container
+registry of the cluster: `/etc/rancher/k3s/registries.yaml`, as `../forgejo/registry/setup-node.sh` writes it on existing
+nodes (see [../forgejo/README.md](../forgejo/README.md), "Container registry on the nodes"); the agent restarts when the
+file changed. Without these settings nothing of the registry is written.
+
 ## Joining a machine
 
 On a server node:

@@ -32,6 +32,11 @@
 #                /var/lib/gucef-ci/tls and again when it is renewed
 #                (gucef-ci-gateway-tls.path)
 #              - 8792/tcp open to the lab networks (host-node/open_firewall_ports.sh)
+#              - deployments: when /var/lib/gucef-ci/kubeconfig exists (made by
+#                projects/k3s/ci/deployer/setup.sh, the restricted ServiceAccounts)
+#                and kubectl (or k3s) is installed, the gateway gets --kubeconfig and
+#                --kubectl; which machine may deploy is the scope of its gateway
+#                token (CI_DEPLOY_MACHINES, LAB_CI_DEPLOY_MACHINES of the hub)
 #
 # Idempotent: a re-run builds what changed, and installs, registers and
 # restarts only when the result or the settings differ.
@@ -78,6 +83,8 @@ TLS_DIR="${STATE_DIR}/tls"
 TOKENS_DIR="${STATE_DIR}/tokens"
 GATEWAY_TOKENS_FILE="${TOKENS_DIR}/gateway-tokens"
 FORGEJO_TOKEN_FILE="${STATE_DIR}/forgejo.token"
+DEPLOY_KUBECONFIG="${STATE_DIR}/kubeconfig"
+KUBECTL_WRAPPER="${INSTALL_ROOT}/kubectl"
 RUN_SCRIPT="${INSTALL_ROOT}/gateway-run.sh"
 TLS_SYNC_SCRIPT="${INSTALL_ROOT}/gateway-tls-sync.sh"
 CI_PROGRAM="${INSTALL_ROOT}/current/bin/gucefMcpCi"
@@ -178,6 +185,12 @@ CI_GATEWAY_PORT="${CI_GATEWAY_PORT:-8792}"
 CI_GATEWAY_USER="${CI_GATEWAY_USER:-gucef-ci}"
 CI_REGISTER_CLAUDE="${CI_REGISTER_CLAUDE:-true}"
 CI_ALLOW="${CI_ALLOW:-}"
+# unset: the deploy machines of the hub stay as its settings have them; set (also empty): they become this list
+CI_DEPLOY_MACHINES_SET=false
+if [ -n "${CI_DEPLOY_MACHINES+set}" ]; then
+    CI_DEPLOY_MACHINES_SET=true
+    CI_DEPLOY_MACHINES="$(printf '%s' "${CI_DEPLOY_MACHINES}" | tr -d '[:space:]')"
+fi
 [ "${UPGRADE}" = "true" ] && CI_MCP_NAME="${CI_INSTALLED_NAME:-${CI_MCP_NAME}}" && CI_GATEWAY_USER="${CI_INSTALLED_GATEWAY_USER:-${CI_GATEWAY_USER}}"
 
 [ -n "${ROLE}" ] || ROLE="${CI_ROLE}"
@@ -198,6 +211,10 @@ if ! [[ "${CI_GATEWAY_PORT}" =~ ^[0-9]+$ ]] || [ "${CI_GATEWAY_PORT}" -lt 1 ] ||
 fi
 if ! [[ "${CI_GATEWAY_USER}" =~ ^[a-z_][a-z0-9_-]*$ ]] || [ "${CI_GATEWAY_USER}" = "root" ]; then
     echo "ERROR: CI_GATEWAY_USER=${CI_GATEWAY_USER} is no name for a system user (and not root)."
+    exit 1
+fi
+if [ "${CI_DEPLOY_MACHINES_SET}" = "true" ] && ! [[ "${CI_DEPLOY_MACHINES}" =~ ^[A-Za-z0-9._:,-]*$ ]]; then
+    echo "ERROR: CI_DEPLOY_MACHINES=${CI_DEPLOY_MACHINES}: machine names or ids separated by commas only."
     exit 1
 fi
 if [ -n "${CI_GATEWAY_URL}" ] && ! [[ "${CI_GATEWAY_URL}" =~ ^https?://[A-Za-z0-9._:-]+(/[^[:space:]\"\']*)?$ ]]; then
@@ -379,6 +396,7 @@ GATEWAY_URL=""
 GATEWAY_STATE=""
 FORGEJO_PROBLEM=""
 LABLINK_NOTE=""
+DEPLOY_STATE=""
 if [ "${ROLE}" = "gateway" ] && [ "${UPGRADE}" = "true" ]; then
     # an upgrade only brings the new files to the service; everything else stays as the last install left it
     if [ "${VERSION_CHANGED}" = "true" ]; then
@@ -408,6 +426,8 @@ elif [ "${ROLE}" = "gateway" ]; then
     ensure_dir "${STATE_DIR}" 755 root root || exit 1
     ensure_dir "${STATE_DIR}/work" 750 "${CI_GATEWAY_USER}" "${GATEWAY_GROUP}" || exit 1
     ensure_dir "${STATE_DIR}/logs" 750 "${CI_GATEWAY_USER}" "${GATEWAY_GROUP}" || exit 1
+    # the home of the service user: kubectl keeps its cache in .kube
+    ensure_dir "${STATE_DIR}/.kube" 700 "${CI_GATEWAY_USER}" "${GATEWAY_GROUP}" || exit 1
     ensure_dir "${TLS_DIR}" 750 root "${GATEWAY_GROUP}" || exit 1
     ensure_dir "${TOKENS_DIR}" 750 root "${GATEWAY_GROUP}" || exit 1
 
@@ -516,6 +536,44 @@ EOF
     fi
 
     # -----------------------------------------------------------------------
+    # Deployments: kubectl and the kubeconfig of the restricted ServiceAccounts (ci/deployer/setup.sh). What is
+    # missing is reported and the install goes on: the gateway then builds but does not deploy
+    # -----------------------------------------------------------------------
+    GATEWAY_KUBECTL=""
+    if command -v kubectl > /dev/null 2>&1; then
+        GATEWAY_KUBECTL="$(command -v kubectl)"
+    elif command -v k3s > /dev/null 2>&1; then
+        # one program for the gateway to start: kubectl of k3s through a wrapper
+        put_file "${KUBECTL_WRAPPER}" 755 root:root "$(cat <<EOF
+#!/bin/sh
+# kubectl of k3s for the CI gateway, written by ci/mcp/install.sh
+exec $(command -v k3s) kubectl "\$@"
+EOF
+)" || exit 1
+        GATEWAY_KUBECTL="${KUBECTL_WRAPPER}"
+    fi
+    DEPLOY_KUBECONFIG_SHA256=""
+    DEPLOY_KUBECTL=""
+    DEPLOY_KUBECONFIG_USED=""
+    if [ -L "${DEPLOY_KUBECONFIG}" ]; then
+        DEPLOY_STATE="off: ${DEPLOY_KUBECONFIG} is a link; put the file itself there (projects/k3s/ci/deployer/setup.sh)"
+    elif [ ! -f "${DEPLOY_KUBECONFIG}" ]; then
+        DEPLOY_STATE="off: there is no ${DEPLOY_KUBECONFIG}. As the owner of the cluster (admin kubectl, no sudo) run
+    projects/k3s/ci/deployer/setup.sh, put the kubeconfig in place as it says, then run this script again"
+    elif [ -z "${GATEWAY_KUBECTL}" ]; then
+        DEPLOY_STATE="off: neither kubectl nor k3s is installed on this machine"
+    else
+        # the gateway reads it as an owner-only file of its own user
+        if [ "$(stat -c '%a %U' "${DEPLOY_KUBECONFIG}" 2>/dev/null)" != "600 ${CI_GATEWAY_USER}" ]; then
+            { run chown "${CI_GATEWAY_USER}:${GATEWAY_GROUP}" "${DEPLOY_KUBECONFIG}" && run chmod 600 "${DEPLOY_KUBECONFIG}"; } || exit 1
+        fi
+        DEPLOY_KUBECONFIG_SHA256="$(sha256sum "${DEPLOY_KUBECONFIG}" 2>/dev/null | cut -c1-64)"
+        DEPLOY_KUBECTL="${GATEWAY_KUBECTL}"
+        DEPLOY_KUBECONFIG_USED="${DEPLOY_KUBECONFIG}"
+        DEPLOY_STATE="on: ${DEPLOY_KUBECONFIG} with ${GATEWAY_KUBECTL}; a machine deploys when its gateway token has the scope deploy"
+    fi
+
+    # -----------------------------------------------------------------------
     # The settings of the service, the start script and the units
     # -----------------------------------------------------------------------
     put_file "${GATEWAY_ENV}" 644 root:root "$(cat <<EOF
@@ -523,6 +581,11 @@ EOF
 CI_GATEWAY_PORT="${CI_GATEWAY_PORT}"
 # the registry the gateway was (re)started with: a change restarts it on the next run of install.sh
 CI_REGISTRY_SHA256="${REGISTRY_SHA256}"
+# deployments (ci/deployer/setup.sh): kubectl and the kubeconfig of the restricted ServiceAccounts, empty when off;
+# a changed kubeconfig restarts the gateway on the next run of install.sh
+CI_KUBECTL="${DEPLOY_KUBECTL}"
+CI_KUBECONFIG="${DEPLOY_KUBECONFIG_USED}"
+CI_KUBECONFIG_SHA256="${DEPLOY_KUBECONFIG_SHA256}"
 EOF
 )" || exit 1
     CONFIG_CHANGED="${FILE_CHANGED}"
@@ -535,6 +598,12 @@ ARGS=(--mode gateway --listen-tls "0.0.0.0:\${CI_GATEWAY_PORT}" --tls-cert ${TLS
       --ci-config ${REGISTRY_FILE} --forgejo-token-file ${FORGEJO_TOKEN_FILE}
       --gateway-tokens-file ${GATEWAY_TOKENS_FILE} --lablink-ci-dir none
       --work-dir ${STATE_DIR}/work --log-dir ${STATE_DIR}/logs)
+# deployments: the kubeconfig of the restricted ServiceAccounts, one context per namespace. --allow-deploy is not
+# given: which machine may deploy is the scope of its gateway token in the tokens file of the hub
+if [ -n "\${CI_KUBECONFIG:-}" ] && [ -n "\${CI_KUBECTL:-}" ] && [ -r "\${CI_KUBECONFIG}" ]; then
+    export KUBECONFIG="\${CI_KUBECONFIG}"
+    ARGS+=(--kubeconfig "\${CI_KUBECONFIG}" --kubectl "\${CI_KUBECTL}")
+fi
 # the names clients on other machines use for this one
 HOST="\$(hostname)"
 for name in "\${HOST}" "\${HOST,,}" "\$(hostname -f 2>/dev/null)" \$(hostname -I 2>/dev/null); do
@@ -564,6 +633,8 @@ ConditionPathExists=${FORGEJO_TOKEN_FILE}
 User=${CI_GATEWAY_USER}
 Group=${GATEWAY_GROUP}
 WorkingDirectory=${STATE_DIR}/work
+# kubectl keeps its cache in the home of the service user
+Environment=HOME=${STATE_DIR}
 ExecStart=${RUN_SCRIPT}
 Restart=on-failure
 RestartSec=10
@@ -571,6 +642,8 @@ KillSignal=SIGTERM
 TimeoutStopSec=30
 LimitNOFILE=8192
 UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
 NoNewPrivileges=yes
 ProtectSystem=strict
 ReadWritePaths=${STATE_DIR}
@@ -696,6 +769,11 @@ PYEOF
     set_lablink_setting LAB_CI_GATEWAY_URL "${GATEWAY_URL}"
     set_lablink_setting LAB_CI_GATEWAY_TOKENS "${GATEWAY_TOKENS_FILE}"
     set_lablink_setting LAB_CI_GATEWAY_USER "${CI_GATEWAY_USER}"
+    # the machines whose gateway token may also deploy: set only when CI_DEPLOY_MACHINES is (also when empty)
+    [ "${CI_DEPLOY_MACHINES_SET}" = "true" ] && set_lablink_setting LAB_CI_DEPLOY_MACHINES "${CI_DEPLOY_MACHINES}"
+    HUB_DEPLOY_MACHINES="$(lablink_setting LAB_CI_DEPLOY_MACHINES)"
+    [ "${CI_DEPLOY_MACHINES_SET}" = "true" ] && HUB_DEPLOY_MACHINES="${CI_DEPLOY_MACHINES}"
+    HUB_DEPLOY_MACHINES="$(printf '%s' "${HUB_DEPLOY_MACHINES}" | tr -d '[:space:]')"
     [ "${LABLINK_SETTINGS_CHANGED}" = "true" ] && ! dry && echo "Set the CI settings of the lablink hub in ${LABLINK_SETTINGS}."
 
     # the options of the running hub, as lablink/install.sh writes them from those settings: they are the last of
@@ -715,12 +793,14 @@ PYEOF
         for word in "${ARGS_WORDS[@]}"; do
             if [ "${SKIP_VALUE}" = "true" ]; then SKIP_VALUE=false; continue; fi
             case "${word}" in
-                --ci-registry|--ci-gateway-url|--ci-gateway-tokens|--ci-gateway-user) SKIP_VALUE=true; continue ;;
+                --ci-registry|--ci-gateway-url|--ci-gateway-tokens|--ci-gateway-user|--ci-deploy-machines) SKIP_VALUE=true; continue ;;
             esac
             NEW_WORDS+=("${word}")
         done
+        # as lablink/install.sh writes them from its settings
         NEW_WORDS+=(--ci-registry "${REGISTRY_FILE}" --ci-gateway-url "${GATEWAY_URL}"
                     --ci-gateway-tokens "${GATEWAY_TOKENS_FILE}" --ci-gateway-user "${CI_GATEWAY_USER}")
+        [ -n "${HUB_DEPLOY_MACHINES}" ] && NEW_WORDS+=(--ci-deploy-machines "${HUB_DEPLOY_MACHINES}")
         NEW_ARGS_LINE="LABLINK_ARGS=\"${NEW_WORDS[*]}\""
         if [ "${NEW_ARGS_LINE}" != "${ARGS_LINE}" ]; then
             if dry; then
@@ -964,6 +1044,8 @@ elif [ "${ROLE}" = "gateway" ]; then
         echo "    made from projects/k3s/lablink/ci.json.example: edit it (CI ids, Forgejo URL, scratch repository, remotes),"
         echo "    then run this script again, which restarts the gateway; the hub reads it again by itself."
     fi
+    echo "  Deployments: ${DEPLOY_STATE}"
+    [ -n "${HUB_DEPLOY_MACHINES:-}" ] && echo "  Machines whose gateway token may also deploy (hub): ${HUB_DEPLOY_MACHINES}"
     [ -n "${LABLINK_NOTE}" ] && echo "WARNING: ${LABLINK_NOTE}."
     if [ -n "${FORGEJO_PROBLEM}" ]; then
         echo "WARNING: there is no Forgejo token for the gateway: ${FORGEJO_PROBLEM}."

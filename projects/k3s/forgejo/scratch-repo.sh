@@ -3,7 +3,8 @@
 # Idempotent: what exists is left alone.
 #
 # Usage:
-#   ./scratch-repo.sh [--dry-run] [--seed <git url or local repository>] [--report-token] [--gateway-token FILE [--rotate]]
+#   ./scratch-repo.sh [--dry-run] [--seed <git url or local repository>] [--report-token] [--gateway-token FILE]
+#                     [--registry-token FILE] [--rotate]
 #   ./scratch-repo.sh [--dry-run] --prune [DAYS]
 #
 # Setup creates, when missing:
@@ -13,18 +14,27 @@
 #   - the private repository FORGEJO_CI_OWNER/FORGEJO_CI_REPO (default ci/GUCEF), a normal writable repository next to
 #     the pull mirror of the published repository.
 #   - Actions enabled on it, and the bot user as collaborator with write access.
+#   - the team publishers of the owner (permission write, all repositories, units repo.code, repo.releases,
+#     repo.packages) with the bot user as member: Forgejo gives the packages of an organization (the container images)
+#     to its team members only. When that fails it is a warning, repeated by the token options below.
 # --seed <source>   pushes all branches and tags of the source (a git URL, or a local repository) into the scratch
 #                   repository, once: only while it is empty. Actions are off during the push, so the push to the
 #                   default branch starts no CI run.
 # --report-token    gives the bot user a new access token for the package registry (scope write:package, older
-#                   tokens of this script are deleted) and stores it as the Actions secret CI_REPORT_TOKEN of the
-#                   scratch repository: the matrix cells upload their reports with it to the packages of the bot user.
+#                   tokens of this script are deleted) and stores it as the Actions secrets CI_REPORT_TOKEN and
+#                   CI_REGISTRY_TOKEN of the scratch repository (one token, two names): the matrix cells upload their
+#                   reports with it to the packages of the bot user, the image job pushes the images with it.
 # --gateway-token FILE  gives the bot user an access token for the CI gateway (gucefMcpCi --mode gateway) and writes it
 #                   to FILE, mode 0600, in a directory that exists. Scopes: write:repository (push and delete scratch
 #                   branches, dispatch and cancel runs), read:package and write:package (read and delete the report
 #                   packages of the bot user). Nothing is done when FILE exists and is not empty.
-# --rotate          with --gateway-token: also when FILE exists, a new token is made and written, and then the earlier
-#                   tokens of this script (named ci-gateway-*) are deleted. Without it earlier ones stay valid.
+# --registry-token FILE  gives the bot user an access token with the single scope read:package and writes it to FILE,
+#                   mode 0600, in a directory that exists: the pull token of the nodes for the container registry
+#                   (registry/setup-node.sh --token-file FILE). Nothing is done when FILE exists and is not empty.
+# --rotate          with --gateway-token or --registry-token: also when FILE exists, a new token is made and written, and
+#                   then the earlier tokens of that option (named ci-gateway-* or ci-registry-*) are deleted. Without it
+#                   earlier ones stay valid. A rotated registry token must be written to every node again
+#                   (registry/setup-node.sh), or the nodes can no longer pull.
 # --prune [DAYS]    deletes branches scratch/* whose head commit is older than DAYS days (default FORGEJO_CI_PRUNE_DAYS,
 #                   else 14).
 # --dry-run         prints the planned API calls and git commands and changes nothing: no cluster, no token, no network.
@@ -48,12 +58,13 @@ DRY_RUN=false
 SEED=""
 REPORT_TOKEN=false
 GATEWAY_TOKEN_FILE=""
+REGISTRY_TOKEN_FILE=""
 ROTATE=false
 PRUNE=false
 PRUNE_DAYS=""
 usage()
 {
-    echo "Usage: $0 [--dry-run] [--seed <git url or local repository>] [--report-token] [--gateway-token FILE [--rotate]]"
+    echo "Usage: $0 [--dry-run] [--seed <git url or local repository>] [--report-token] [--gateway-token FILE] [--registry-token FILE] [--rotate]"
     echo "       $0 [--dry-run] --prune [DAYS]"
     exit 2
 }
@@ -63,6 +74,7 @@ while [ $# -gt 0 ]; do
         --seed) [ -n "$2" ] || usage; SEED="$2"; shift ;;
         --report-token) REPORT_TOKEN=true ;;
         --gateway-token) [ -n "$2" ] || usage; GATEWAY_TOKEN_FILE="$2"; shift ;;
+        --registry-token) [ -n "$2" ] || usage; REGISTRY_TOKEN_FILE="$2"; shift ;;
         --rotate) ROTATE=true ;;
         --prune)
             PRUNE=true
@@ -73,18 +85,24 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
-if ${PRUNE} && { [ -n "${SEED}" ] || ${REPORT_TOKEN} || [ -n "${GATEWAY_TOKEN_FILE}" ]; }; then
-    echo "--prune cannot be combined with --seed, --report-token or --gateway-token"
+if ${PRUNE} && { [ -n "${SEED}" ] || ${REPORT_TOKEN} || [ -n "${GATEWAY_TOKEN_FILE}" ] || [ -n "${REGISTRY_TOKEN_FILE}" ]; }; then
+    echo "--prune cannot be combined with --seed, --report-token, --gateway-token or --registry-token"
     usage
 fi
-if ${ROTATE} && [ -z "${GATEWAY_TOKEN_FILE}" ]; then
-    echo "--rotate needs --gateway-token FILE"
+if ${ROTATE} && [ -z "${GATEWAY_TOKEN_FILE}" ] && [ -z "${REGISTRY_TOKEN_FILE}" ]; then
+    echo "--rotate needs --gateway-token FILE or --registry-token FILE"
     usage
 fi
-if [ -n "${GATEWAY_TOKEN_FILE}" ] && [ ! -d "$(dirname "${GATEWAY_TOKEN_FILE}")" ]; then
-    echo "The directory of ${GATEWAY_TOKEN_FILE} does not exist."
-    exit 1
+if [ -n "${GATEWAY_TOKEN_FILE}" ] && [ -n "${REGISTRY_TOKEN_FILE}" ] && [ "${GATEWAY_TOKEN_FILE}" = "${REGISTRY_TOKEN_FILE}" ]; then
+    echo "--gateway-token and --registry-token need two different files"
+    usage
 fi
+for TOKEN_FILE in "${GATEWAY_TOKEN_FILE}" "${REGISTRY_TOKEN_FILE}"; do
+    if [ -n "${TOKEN_FILE}" ] && [ ! -d "$(dirname "${TOKEN_FILE}")" ]; then
+        echo "The directory of ${TOKEN_FILE} does not exist."
+        exit 1
+    fi
+done
 
 set -a
 [ -f "${SCRIPT_DIR}/config.env" ] && source <(sed 's/\r//' "${SCRIPT_DIR}/config.env")
@@ -415,6 +433,79 @@ expect "Adding ${BOT_USER} as collaborator" 204
 ${DRY_RUN} || echo "Repository ${REPO_PATH}: ${BOT_USER} has write access"
 
 # ---------------------------------------------------------------------------
+# Publishers team: Forgejo derives the package rights of an organization from team membership (a repository collaborator
+# gets none), so the bot user is a member of the team publishers of the owner: write on code, releases and packages
+# of every repository of the owner, which covers pushing and pulling the container images of the owner.
+# ---------------------------------------------------------------------------
+TEAM_NAME="publishers"
+TEAM_UNITS='["repo.code", "repo.releases", "repo.packages"]'
+TEAM_MEMBER=false
+TEAM_PROBLEM=""
+if ! ${OWNER_IS_ORG}; then
+    TEAM_PROBLEM="the owner ${CI_OWNER} is a user, not an organization: it has no teams"
+else
+    TEAM_ID=""
+    req GET "/orgs/${CI_OWNER}/teams/search?q=${TEAM_NAME}&limit=50" "" "does the team ${TEAM_NAME} of ${CI_OWNER} exist?"
+    if ${DRY_RUN}; then
+        json_body name "\"${TEAM_NAME}\"" description '"CI bot: pushes and pulls the packages (container images) of the organization"' \
+                  permission '"write"' includes_all_repositories true can_create_org_repo false units "${TEAM_UNITS}" \
+            | req POST "/orgs/${CI_OWNER}/teams" "" "create team ${TEAM_NAME} when missing: permission write, all repositories, units repo.code, repo.releases, repo.packages"
+        echo "DRY-RUN: PUT    /api/v1/teams/<id of ${TEAM_NAME}>/members/${BOT_USER}   (${BOT_USER} member of ${TEAM_NAME})"
+    elif [ "${CODE}" = "200" ]; then
+        # the search matches parts of names: the team of exactly this name, and whether it may write packages
+        TEAM_INFO=$(python3 -c '
+import json, sys
+for t in (json.load(open(sys.argv[1])) or {}).get("data") or []:
+    if t.get("name") == sys.argv[2]:
+        units = t.get("units_map") or {}
+        level = units.get("repo.packages")
+        if level is None:
+            level = t.get("permission", "none") if "repo.packages" in (t.get("units") or []) else "none"
+        print(t.get("id"), level)
+        break' "${BODY}" "${TEAM_NAME}")
+        TEAM_ID="${TEAM_INFO%% *}"
+        if [ -n "${TEAM_ID}" ]; then
+            echo "Team ${CI_OWNER}/${TEAM_NAME}: exists"
+            case "${TEAM_INFO#* }" in
+                write|admin|owner) ;;
+                *) echo "WARNING: the team ${CI_OWNER}/${TEAM_NAME} exists without write access to packages (${TEAM_INFO#* }); it is left as it is. Give it write on repo.packages in the organization settings." ;;
+            esac
+        else
+            json_body name "\"${TEAM_NAME}\"" description '"CI bot: pushes and pulls the packages (container images) of the organization"' \
+                      permission '"write"' includes_all_repositories true can_create_org_repo false units "${TEAM_UNITS}" \
+                | req POST "/orgs/${CI_OWNER}/teams"
+            if [ "${CODE}" = "201" ]; then
+                TEAM_ID="$(json_field id)"
+                echo "Team ${CI_OWNER}/${TEAM_NAME}: created (write on code, releases and packages of all repositories)"
+            else
+                TEAM_PROBLEM="creating the team ${CI_OWNER}/${TEAM_NAME} returned HTTP ${CODE}: $(head -c 200 "${BODY}" 2>/dev/null)"
+            fi
+        fi
+    else
+        TEAM_PROBLEM="searching the teams of ${CI_OWNER} returned HTTP ${CODE}"
+    fi
+    if [ -n "${TEAM_ID}" ]; then
+        req PUT "/teams/${TEAM_ID}/members/${BOT_USER}" < /dev/null
+        if [ "${CODE}" = "204" ]; then
+            TEAM_MEMBER=true
+            echo "Team ${CI_OWNER}/${TEAM_NAME}: ${BOT_USER} is a member"
+        else
+            TEAM_PROBLEM="adding ${BOT_USER} to the team ${CI_OWNER}/${TEAM_NAME} returned HTTP ${CODE}"
+        fi
+    fi
+fi
+if ! ${DRY_RUN} && ! ${TEAM_MEMBER}; then
+    echo "WARNING: ${BOT_USER} is not in the team ${TEAM_NAME} of ${CI_OWNER} (${TEAM_PROBLEM}). Its tokens cannot push or pull the packages (container images) of ${CI_OWNER}."
+fi
+# team_warning <what>: the warning of a token option when the membership is not established
+team_warning()
+{
+    ${DRY_RUN} && return 0
+    ${TEAM_MEMBER} && return 0
+    echo "WARNING: $1 of ${BOT_USER} cannot reach the packages of ${CI_OWNER}: ${BOT_USER} is not in the team ${TEAM_NAME} (see above). Fix the team membership and run this script again; the token itself stays valid."
+}
+
+# ---------------------------------------------------------------------------
 # Report token: a package token of the bot user as Actions secret CI_REPORT_TOKEN
 # ---------------------------------------------------------------------------
 if ${REPORT_TOKEN}; then
@@ -431,60 +522,83 @@ if ${REPORT_TOKEN}; then
     json_body name "\"ci-report-$(date +%s)\"" scopes '["write:package"]' \
         | req POST "/users/${BOT_USER}/tokens" "${BOT_HEADER}" "as ${BOT_USER}: new token, scope write:package"
     expect "Creating the report token" 201
+    # one token under two secret names: CI_REPORT_TOKEN (report upload) and CI_REGISTRY_TOKEN (image push)
     if ${DRY_RUN}; then
         echo "DRY-RUN: PUT    /api/v1/repos/${REPO_PATH}/actions/secrets/CI_REPORT_TOKEN   (body with the new token from stdin)"
+        echo "DRY-RUN: PUT    /api/v1/repos/${REPO_PATH}/actions/secrets/CI_REGISTRY_TOKEN   (the same token, body from stdin)"
     else
         REPORT_TOKEN_VALUE="$(json_field sha1)"
         [ -n "${REPORT_TOKEN_VALUE}" ] || fj_fail "The new report token was not in the response."
-        T="${REPORT_TOKEN_VALUE}" python3 -c 'import json,os; print(json.dumps({"data": os.environ["T"]}))' \
-            | req PUT "/repos/${REPO_PATH}/actions/secrets/CI_REPORT_TOKEN"
-        expect "Storing the Actions secret CI_REPORT_TOKEN" 201 204
+        for SECRET_NAME in CI_REPORT_TOKEN CI_REGISTRY_TOKEN; do
+            T="${REPORT_TOKEN_VALUE}" python3 -c 'import json,os; print(json.dumps({"data": os.environ["T"]}))' \
+                | req PUT "/repos/${REPO_PATH}/actions/secrets/${SECRET_NAME}"
+            expect "Storing the Actions secret ${SECRET_NAME}" 201 204
+        done
         unset REPORT_TOKEN_VALUE
-        echo "Repository ${REPO_PATH}: Actions secret CI_REPORT_TOKEN set (package token of ${BOT_USER})"
+        : > "${RESP}"
+        echo "Repository ${REPO_PATH}: Actions secrets CI_REPORT_TOKEN and CI_REGISTRY_TOKEN set (package token of ${BOT_USER})"
     fi
+    team_warning "the token CI_REGISTRY_TOKEN (image push)"
 fi
 
 # ---------------------------------------------------------------------------
-# Gateway token: an access token of the bot user for the CI gateway, in a file of mode 0600, never printed.
-# The new token is stored before earlier ones are deleted, so the gateway always has a valid one.
+# Token files: an access token of the bot user in a file of mode 0600, never printed. The new token is stored before
+# earlier ones are deleted, so the user of the file always has a valid one.
+# issue_token_file FILE NAME_PREFIX SCOPES_JSON SCOPES_TEXT KIND LABEL
 # ---------------------------------------------------------------------------
+issue_token_file()
+{
+    local file="$1" prefix="$2" scopes="$3" scopes_text="$4" kind="$5" label="$6" earlier="" value token_id
+    if [ -s "${file}" ] && ! ${ROTATE}; then
+        echo "${label}: ${file} exists, kept (--rotate makes a new one)"
+        return 0
+    fi
+    req GET "/users/${BOT_USER}/tokens?limit=50" "${BOT_HEADER}" "as ${BOT_USER} (basic auth): list its tokens"
+    expect "Listing the tokens of ${BOT_USER}" 200
+    if ! ${DRY_RUN}; then
+        earlier=$(python3 -c 'import json,sys; print(" ".join(str(t["id"]) for t in json.load(open(sys.argv[1])) if t.get("name","").startswith(sys.argv[2])))' "${BODY}" "${prefix}")
+    fi
+    json_body name "\"${prefix}$(date +%s)\"" scopes "${scopes}" \
+        | req POST "/users/${BOT_USER}/tokens" "${BOT_HEADER}" "as ${BOT_USER}: new token, scopes ${scopes_text}"
+    expect "Creating the ${kind} token" 201
+    if ${DRY_RUN}; then
+        echo "DRY-RUN: write the new token to ${file} (umask 077, install -m 600; it is never printed)"
+        ${ROTATE} && echo "DRY-RUN: DELETE /api/v1/users/${BOT_USER}/tokens/<id>   (as ${BOT_USER}: each earlier token named ${prefix}*, after the new one is stored)"
+        return 0
+    fi
+    value="$(json_field sha1)"
+    [ -n "${value}" ] || fj_fail "The new ${kind} token was not in the response."
+    ( umask 077 && printf '%s\n' "${value}" > "${WORK}/${kind}.token" )
+    value=""
+    : > "${RESP}"
+    ( umask 077 && install -m 600 "${WORK}/${kind}.token" "${file}" ) || fj_fail "Writing ${file} failed."
+    rm -f "${WORK}/${kind}.token"
+    echo "${label}: written to ${file} (mode 0600; scopes ${scopes_text})"
+    if ${ROTATE}; then
+        for token_id in ${earlier}; do
+            req DELETE "/users/${BOT_USER}/tokens/${token_id}" "${BOT_HEADER}"
+            expect "Deleting an earlier ${kind} token" 204
+        done
+        [ -n "${earlier}" ] && echo "${label}: the earlier ${kind} tokens of ${BOT_USER} are deleted"
+    elif [ -n "${earlier}" ]; then
+        echo "${label}: $(echo "${earlier}" | wc -w) earlier ${kind} token(s) of ${BOT_USER} stay valid; --rotate deletes them"
+    fi
+    return 0
+}
+
+# Gateway token: for the CI gateway (gucefMcpCi --mode gateway)
 GATEWAY_TOKEN_SCOPES='["write:repository", "read:package", "write:package"]'
 if [ -n "${GATEWAY_TOKEN_FILE}" ]; then
-    if [ -s "${GATEWAY_TOKEN_FILE}" ] && ! ${ROTATE}; then
-        echo "Gateway token: ${GATEWAY_TOKEN_FILE} exists, kept (--rotate makes a new one)"
-    else
-        req GET "/users/${BOT_USER}/tokens?limit=50" "${BOT_HEADER}" "as ${BOT_USER} (basic auth): list its tokens"
-        expect "Listing the tokens of ${BOT_USER}" 200
-        EARLIER_GATEWAY_TOKENS=""
-        if ! ${DRY_RUN}; then
-            EARLIER_GATEWAY_TOKENS=$(python3 -c 'import json,sys; print(" ".join(str(t["id"]) for t in json.load(open(sys.argv[1])) if t.get("name","").startswith("ci-gateway-")))' "${BODY}")
-        fi
-        json_body name "\"ci-gateway-$(date +%s)\"" scopes "${GATEWAY_TOKEN_SCOPES}" \
-            | req POST "/users/${BOT_USER}/tokens" "${BOT_HEADER}" "as ${BOT_USER}: new token, scopes write:repository, read:package, write:package"
-        expect "Creating the gateway token" 201
-        if ${DRY_RUN}; then
-            echo "DRY-RUN: write the new token to ${GATEWAY_TOKEN_FILE} (umask 077, install -m 600; it is never printed)"
-            ${ROTATE} && echo "DRY-RUN: DELETE /api/v1/users/${BOT_USER}/tokens/<id>   (as ${BOT_USER}: each earlier token named ci-gateway-*, after the new one is stored)"
-        else
-            GATEWAY_TOKEN_VALUE="$(json_field sha1)"
-            [ -n "${GATEWAY_TOKEN_VALUE}" ] || fj_fail "The new gateway token was not in the response."
-            ( umask 077 && printf '%s\n' "${GATEWAY_TOKEN_VALUE}" > "${WORK}/gateway.token" )
-            unset GATEWAY_TOKEN_VALUE
-            : > "${RESP}"
-            ( umask 077 && install -m 600 "${WORK}/gateway.token" "${GATEWAY_TOKEN_FILE}" ) || fj_fail "Writing ${GATEWAY_TOKEN_FILE} failed."
-            rm -f "${WORK}/gateway.token"
-            echo "Gateway token: written to ${GATEWAY_TOKEN_FILE} (mode 0600; scopes write:repository, read:package, write:package)"
-            if ${ROTATE}; then
-                for TOKEN_ID in ${EARLIER_GATEWAY_TOKENS}; do
-                    req DELETE "/users/${BOT_USER}/tokens/${TOKEN_ID}" "${BOT_HEADER}"
-                    expect "Deleting an earlier gateway token" 204
-                done
-                [ -n "${EARLIER_GATEWAY_TOKENS}" ] && echo "Gateway token: the earlier gateway tokens of ${BOT_USER} are deleted"
-            elif [ -n "${EARLIER_GATEWAY_TOKENS}" ]; then
-                echo "Gateway token: $(echo "${EARLIER_GATEWAY_TOKENS}" | wc -w) earlier gateway token(s) of ${BOT_USER} stay valid; --rotate deletes them"
-            fi
-        fi
-    fi
+    issue_token_file "${GATEWAY_TOKEN_FILE}" "ci-gateway-" "${GATEWAY_TOKEN_SCOPES}" \
+        "write:repository, read:package, write:package" "gateway" "Gateway token"
+    team_warning "the gateway token"
+fi
+
+# Registry token: the pull token of the nodes for the container registry (registry/setup-node.sh --token-file)
+REGISTRY_TOKEN_SCOPES='["read:package"]'
+if [ -n "${REGISTRY_TOKEN_FILE}" ]; then
+    issue_token_file "${REGISTRY_TOKEN_FILE}" "ci-registry-" "${REGISTRY_TOKEN_SCOPES}" "read:package" "registry" "Registry token"
+    team_warning "the registry token (pulls of the nodes)"
 fi
 
 echo

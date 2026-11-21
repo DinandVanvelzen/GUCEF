@@ -92,7 +92,7 @@ echo "Removed ${INSTALL_ROOT} and ${CACHE_DIR}."
 
 if [ "${PURGE}" != "true" ]; then
     [ -d "${CONFIG_DIR}" ] && echo "Kept ${CONFIG_DIR} (the CI registry ci.json, install.env). --purge removes it."
-    [ -d "${STATE_DIR}" ] && echo "Kept ${STATE_DIR} (Forgejo token, token hashes of the hub, bare repositories). --purge removes it."
+    [ -d "${STATE_DIR}" ] && echo "Kept ${STATE_DIR} (Forgejo token, token hashes of the hub, kubeconfig of the deployments, bare repositories). --purge removes it."
     id "${CI_INSTALLED_GATEWAY_USER}" > /dev/null 2>&1 && echo "Kept the system user ${CI_INSTALLED_GATEWAY_USER}. --purge removes it."
     if [ "${HAD_UNITS}" = "true" ]; then
         echo "The lablink hub keeps announcing the gateway; run install.sh --role gateway again, or uninstall.sh --purge."
@@ -153,13 +153,13 @@ if [ -f "${ARGS_FILE}" ] && grep -q -- '--role cluster' "${ARGS_FILE}"; then
     for word in "${ARGS_WORDS[@]}"; do
         if [ "${SKIP_VALUE}" = "true" ]; then SKIP_VALUE=false; continue; fi
         case "${word}" in
-            --ci-registry|--ci-gateway-url|--ci-gateway-tokens|--ci-gateway-user) SKIP_VALUE=true; continue ;;
+            --ci-registry|--ci-gateway-url|--ci-gateway-tokens|--ci-gateway-user|--ci-deploy-machines) SKIP_VALUE=true; continue ;;
         esac
         NEW_WORDS+=("${word}")
     done
     for pair in LAB_CI_REGISTRY:--ci-registry LAB_CI_GATEWAY_URL:--ci-gateway-url LAB_CI_GATEWAY_TOKENS:--ci-gateway-tokens \
-                LAB_CI_GATEWAY_USER:--ci-gateway-user; do
-        value="$(lablink_setting "${pair%%:*}")"
+                LAB_CI_GATEWAY_USER:--ci-gateway-user LAB_CI_DEPLOY_MACHINES:--ci-deploy-machines; do
+        value="$(lablink_setting "${pair%%:*}" | tr -d '[:space:]')"
         [ -n "${value}" ] && NEW_WORDS+=("${pair#*:}" "${value}")
     done
     NEW_ARGS_LINE="LABLINK_ARGS=\"${NEW_WORDS[*]}\""
@@ -170,4 +170,5 @@ if [ -f "${ARGS_FILE}" ] && grep -q -- '--role cluster' "${ARGS_FILE}"; then
     fi
 fi
 echo "The Forgejo token of the gateway stays valid on Forgejo until it is deleted there (tokens ci-gateway-* of ci-bot)."
+echo "The ServiceAccounts of the deployments stay in the cluster: projects/k3s/ci/deployer/setup.sh --remove (as the owner, admin kubectl)."
 exit 0

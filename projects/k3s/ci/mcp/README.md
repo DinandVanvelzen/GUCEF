@@ -66,6 +66,7 @@ CI settings of the lablink hub stay; `--purge` removes them as well.
 | `CI_GATEWAY_PORT` | `8792` | gateway: the HTTPS port |
 | `CI_GATEWAY_USER` | `gucef-ci` | gateway: the system user of the service |
 | `CI_ALLOW` | the networks of the machine | gateway: the networks the port is opened to in the firewall |
+| `CI_DEPLOY_MACHINES` | unset | gateway: the approved machines (names or machine ids, comma separated) whose gateway token may also deploy; set as `LAB_CI_DEPLOY_MACHINES` of the hub. Unset: the setting of the hub stays; set but empty: no machine may deploy |
 
 ## What the gateway role sets up
 
@@ -84,11 +85,45 @@ CI settings of the lablink hub stay; `--purge` removes them as well.
   `/etc/gucef-lablink/args.env` and is restarted, only when they changed. A gateway URL set for the hub before stays,
   unless `CI_GATEWAY_URL` names one.
 - 8792/tcp open to the lab networks (`host-node/open_firewall_ports.sh ci-gateway`), when ufw or firewalld is active.
+- Deployments, when the kubeconfig `/var/lib/gucef-ci/kubeconfig` exists (see [Deployments](#deployments)) and `kubectl` is
+  installed (else `k3s kubectl`, through the wrapper `/opt/gucef-mcp-ci/kubectl`): the gateway gets `--kubeconfig` and
+  `--kubectl`, the kubeconfig is given to `gucef-ci` with mode 0600, and its digest is kept in `gateway.env`, so that a
+  changed kubeconfig restarts the gateway on the next run. `--allow-deploy` is not given: which machine may deploy is the
+  scope of its gateway token. When the kubeconfig or kubectl is missing the install goes on and says what to do; the
+  gateway then builds and does not deploy.
 - The service `gucef-ci-gateway`: `gucefMcpCi --mode gateway --listen-tls 0.0.0.0:8792` with the node certificate, the
   registry, the Forgejo token and the token hashes of the hub, and `--allowed-host` for the host name, its lower case form,
-  the fully qualified name and the addresses of the machine. It runs as `gucef-ci` with `NoNewPrivileges`,
-  `ProtectSystem=strict` (writable: `/var/lib/gucef-ci`), `ProtectHome`, `PrivateTmp`, and restarts on failure.
+  the fully qualified name and the addresses of the machine. It runs as `gucef-ci` without capabilities
+  (`CapabilityBoundingSet=` empty), with `NoNewPrivileges`, `ProtectSystem=strict` (writable: `/var/lib/gucef-ci`, also its
+  home `HOME=/var/lib/gucef-ci`, where kubectl keeps its cache in `.kube`), `ProtectHome`, `PrivateTmp`, and restarts on
+  failure.
 - `git` must be installed: the gateway takes the snapshots in with it. The script warns when it is missing.
+
+## Deployments
+
+The gateway deploys only Deployments that the `deploy` blocks of `/etc/gucef-ci/ci.json` name, with a kubeconfig of
+restricted ServiceAccounts and never with the admin kubeconfig. The owner of the cluster sets them up once, and again
+whenever the deploy targets change, with [../deployer/setup.sh](../deployer/setup.sh) (admin `kubectl`, no `sudo`):
+
+```bash
+projects/k3s/ci/deployer/setup.sh --dry-run          # the manifests and the actions, nothing is changed
+projects/k3s/ci/deployer/setup.sh                    # applies them and writes the kubeconfig
+sudo install -m 0600 -o gucef-ci -g gucef-ci ...     # the one command it prints, when it cannot write the file itself
+projects/k3s/ci/deployer/setup.sh --verify           # kubectl auth can-i with the kubeconfig of the gateway
+sudo projects/k3s/ci/mcp/install.sh --role gateway   # passes the kubeconfig to the gateway
+```
+
+For every namespace of a deploy target it applies the ServiceAccount, Role and RoleBinding `gucef-deployer` and the Secret
+`gucef-deployer-token` (a token that does not expire), labelled `app.kubernetes.io/managed-by: gucef-ci-deployer`. The Role
+allows `get` and `patch` on the named Deployments only, `list` and `watch` on the Deployments of the namespace (Kubernetes
+cannot limit these two by name), and `get`, `list`, `watch` on ReplicaSets and pods, which `kubectl rollout status` and
+`rollout undo` need. It cannot delete or create anything, nor read Secrets. The kubeconfig holds one context per
+namespace, named exactly like the namespace; the gateway selects it per target (`kubectl --context <namespace>`).
+`setup.sh --remove` deletes the objects and the kubeconfig.
+
+Which machine may deploy is decided by the hub: every gateway token has the scope `build`, the tokens of the machines of
+`CI_DEPLOY_MACHINES` (`LAB_CI_DEPLOY_MACHINES` of the hub, for example the workstation) also `deploy`. `sudo gucefLabLink
+--list` shows `ci-deploy` after those machines.
 
 ## How a model uses the tools
 
@@ -107,10 +142,13 @@ Only repositories that the registry knows are built.
 | `/etc/gucef-ci/install.env` | both | role, user and name of the installation, for `--upgrade` and `uninstall.sh` |
 | `/var/lib/gucef-mcp/ci` | client | `ci.json`, `gateway.token`, `ca.crt`, written by lablink for the user of Claude Code |
 | `/etc/gucef-ci/ci.json` | gateway | the CI registry of the lab, also served by the lablink hub |
-| `/etc/gucef-ci/gateway.env` | gateway | the port and the digest of the registry the service was started with |
+| `/etc/gucef-ci/gateway.env` | gateway | the port, kubectl and the kubeconfig of the deployments, and the digests of the registry and the kubeconfig the service was started with |
 | `/var/lib/gucef-ci/forgejo.token` | gateway | the Forgejo token of `ci-bot`, owner `gucef-ci`, mode 0600 |
 | `/var/lib/gucef-ci/tokens/gateway-tokens` | gateway | the SHA-256 of each gateway token, written by the hub, owner `gucef-ci`, mode 0600 |
 | `/var/lib/gucef-ci/tls` | gateway | the copy of the node certificate and key |
+| `/var/lib/gucef-ci/kubeconfig` | gateway | the restricted ServiceAccounts of the deployments (`ci/deployer/setup.sh`), owner `gucef-ci`, mode 0600 |
+| `/var/lib/gucef-ci/.kube` | gateway | the cache of kubectl |
+| `/opt/gucef-mcp-ci/kubectl` | gateway | runs `k3s kubectl`, only when there is no `kubectl` |
 | `/var/lib/gucef-ci/work`, `logs` | gateway | bare repositories per CI id, uploads, logs of jobs |
 | 8792/tcp | gateway | the gateway API (HTTPS, bearer token) |
 
@@ -124,4 +162,5 @@ Only repositories that the registry knows are built.
 | `gucef-ci-gateway` is disabled | no Forgejo token: see the end of the output of `install.sh`, then run it again |
 | The gateway does not start | no certificate in `/var/lib/gucef-ci/tls` yet: run `llm/mcp/cluster.sh` on the server; the gateway starts once the certificate is copied |
 | Every request of a machine is refused | the hub took its gateway token away (`--revoke`) or never made one; `sudo gucefLabLink --list` shows `ci-token` after machines that have one |
+| The gateway does not deploy | the summary of `install.sh` says why (`Deployments: off: ...`); the machine needs the scope `deploy` (`ci-deploy` in `sudo gucefLabLink --list`, set with `CI_DEPLOY_MACHINES`); `projects/k3s/ci/deployer/setup.sh --verify` checks the ServiceAccounts |
 | A changed `ci.json` has no effect on the gateway | run `install.sh --role gateway` again (it restarts the gateway when the registry changed), or `sudo systemctl restart gucef-ci-gateway` |

@@ -37,6 +37,13 @@
 #   --shutdown-grace SECONDS  time pods get to stop at machine shutdown (default 60)
 #   --skip-gpu                leave the NVIDIA driver and toolkit alone
 #   --skip-mcp                do not install the MCP service
+#   --registry-settings FILE  the container registry of the cluster for containerd: KEY=value lines REGISTRY_HOST
+#                             (host:port), REGISTRY_USER (default ci-bot), REGISTRY_TOKEN_FILE (a file of mode 0600
+#                             holding the pull token, scope read:package) or REGISTRY_TOKEN. Without the option the
+#                             environment variables of the same names are used; without REGISTRY_HOST nothing is done.
+#                             Writes /etc/rancher/k3s/registries.yaml (../forgejo/registry/setup-node.sh) and restarts
+#                             the agent when it changed. Prefer the file: a token in the environment of sudo is visible
+#                             to other users of the machine while the command runs
 #
 # Exit codes: 0 done, 1 error, 10 reboot required (NVIDIA driver); re-run afterwards
 # ---------------------------------------------------------------------------
@@ -69,6 +76,7 @@ SYSTEM_RESERVED="cpu=1,memory=2Gi"
 SHUTDOWN_GRACE=60
 SKIP_GPU=false
 SKIP_MCP=false
+REGISTRY_SETTINGS=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --server) SERVER_URL="$2"; shift ;;
@@ -80,6 +88,7 @@ while [ $# -gt 0 ]; do
         --shutdown-grace) SHUTDOWN_GRACE="$2"; shift ;;
         --skip-gpu) SKIP_GPU=true ;;
         --skip-mcp) SKIP_MCP=true ;;
+        --registry-settings) REGISTRY_SETTINGS="$2"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
     shift
@@ -224,6 +233,38 @@ if [ "$(cat "${KUBELET_DROPIN_FILE}" 2>/dev/null)" != "${NEW_KUBELET_CONFIG}" ];
     echo "${NEW_KUBELET_CONFIG}" > "${KUBELET_DROPIN_FILE}"
     CONFIG_CHANGED=true
     echo "Wrote ${KUBELET_DROPIN_FILE}"
+fi
+# The container registry of the cluster, when its settings are given: the same registries.yaml as
+# ../forgejo/registry/setup-node.sh writes on existing nodes; the agent is (re)started below when it changed
+if [ -n "${REGISTRY_SETTINGS}" ]; then
+    if [ ! -f "${REGISTRY_SETTINGS}" ]; then
+        echo "ERROR: the registry settings file ${REGISTRY_SETTINGS} does not exist."
+        exit 1
+    fi
+    for key in REGISTRY_HOST REGISTRY_USER REGISTRY_TOKEN_FILE REGISTRY_TOKEN; do
+        value="$(sed -n "s/\r\$//; s/^${key}=//p" "${REGISTRY_SETTINGS}" | tail -n 1 | sed 's/^"\(.*\)"$/\1/; s/^'"'"'\(.*\)'"'"'$/\1/')"
+        [ -n "${value}" ] && printf -v "${key}" '%s' "${value}"
+    done
+    value=""
+fi
+if [ -n "${REGISTRY_HOST:-}" ]; then
+    REGISTRY_FILE="${K3S_CONFIG_DIR}/registries.yaml"
+    REGISTRY_BEFORE="$(sha256sum "${REGISTRY_FILE}" 2>/dev/null)"
+    REGISTRY_ARGS=(--registry "${REGISTRY_HOST}" --no-restart --file "${REGISTRY_FILE}")
+    [ -n "${REGISTRY_USER:-}" ] && REGISTRY_ARGS+=(--user "${REGISTRY_USER}")
+    if [ -n "${REGISTRY_TOKEN_FILE:-}" ]; then
+        "${SCRIPT_DIR}/../forgejo/registry/setup-node.sh" "${REGISTRY_ARGS[@]}" --token-file "${REGISTRY_TOKEN_FILE}" || exit 1
+    elif [ -n "${REGISTRY_TOKEN:-}" ]; then
+        # printf is a shell builtin: the token reaches the script through a pipe, not a command line
+        printf '%s\n' "${REGISTRY_TOKEN}" | "${SCRIPT_DIR}/../forgejo/registry/setup-node.sh" "${REGISTRY_ARGS[@]}" --token-file - || exit 1
+    else
+        echo "ERROR: REGISTRY_HOST is given without REGISTRY_TOKEN_FILE or REGISTRY_TOKEN."
+        exit 1
+    fi
+    REGISTRY_TOKEN=""
+    if [ "$(sha256sum "${REGISTRY_FILE}" 2>/dev/null)" != "${REGISTRY_BEFORE}" ]; then
+        CONFIG_CHANGED=true
+    fi
 fi
 
 # ---------------------------------------------------------------------------
