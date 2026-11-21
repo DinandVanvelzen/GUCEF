@@ -366,7 +366,15 @@ CVfsFileSystemAccess::TryGetMetaData( const CORE::CString& path, CORE::CResource
 
     const CORE::CString conformed = ConformPath( path );
     if ( m_vfs->FileExists( conformed ) )
-        return m_vfs->GetFileMetaData( conformed, metaData ) ? CORE::FILESYSTEMACCESS_SUCCESS : CORE::FILESYSTEMACCESS_FAILED;
+    {
+        if ( m_vfs->GetFileMetaData( conformed, metaData ) )
+            return CORE::FILESYSTEMACCESS_SUCCESS;
+        return FailureOrRemoteResult( CORE::FILESYSTEMACCESS_FAILED );
+    }
+
+    // a remote mount that has no answer yet or cannot be reached is not an absence: the answer is what it said
+    CVfsCallResult fileResult;
+    m_vfs->GetLastResult( fileResult );
     if ( IsDirectory( conformed ) )
     {
         // the VFS keeps no metadata of directories
@@ -375,7 +383,9 @@ CVfsFileSystemAccess::TryGetMetaData( const CORE::CString& path, CORE::CResource
         metaData.hasName = true;
         return CORE::FILESYSTEMACCESS_SUCCESS;
     }
-    return CORE::FILESYSTEMACCESS_NOT_FOUND;
+    if ( fileResult.IsTemporary() )
+        return fileResult.result;
+    return FailureOrRemoteResult( CORE::FILESYSTEMACCESS_NOT_FOUND );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -387,11 +397,18 @@ CVfsFileSystemAccess::TryGetEntryType( const CORE::CString& path, CORE::TFileSys
     const CORE::CString conformed = ConformPath( path );
     entryType = CORE::FILESYSTEMENTRYTYPE_NONE;
     if ( IsDirectory( conformed ) )
+    {
         entryType = CORE::FILESYSTEMENTRYTYPE_DIRECTORY;
-    else
+        return CORE::FILESYSTEMACCESS_SUCCESS;
+    }
     if ( m_vfs->FileExists( conformed ) )
+    {
         entryType = CORE::FILESYSTEMENTRYTYPE_FILE;
-    return CORE::FILESYSTEMACCESS_SUCCESS;
+        return CORE::FILESYSTEMACCESS_SUCCESS;
+    }
+
+    // not a file and not a directory: either it is not there, or a remote mount has no answer yet or cannot be reached
+    return FailureOrRemoteResult( CORE::FILESYSTEMACCESS_SUCCESS );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -402,7 +419,11 @@ CVfsFileSystemAccess::TryGetFileSystemIterator( const CORE::CString& dirPath, CO
 
     const CORE::CString conformed = ConformPath( dirPath );
     if ( !IsDirectory( conformed ) )
-        return m_vfs->FileExists( conformed ) ? CORE::FILESYSTEMACCESS_NOT_A_DIRECTORY : CORE::FILESYSTEMACCESS_NOT_FOUND;
+    {
+        if ( m_vfs->FileExists( conformed ) )
+            return CORE::FILESYSTEMACCESS_NOT_A_DIRECTORY;
+        return FailureOrRemoteResult( CORE::FILESYSTEMACCESS_NOT_FOUND );
+    }
     const CORE::CString location = AsDirPath( conformed );
 
     // the directories and files of every mount that covers the directory, and the mount points just below it, once each
@@ -471,6 +492,17 @@ CVfsFileSystemAccess::TryGetFileSystemIterator( const CORE::CString& dirPath, CO
 
     iterator = CORE::TFileSystemIteratorPtr( GUCEF_NEW CORE::CFileSystemEntryListIterator( conformed, entries ) );
     return CORE::FILESYSTEMACCESS_SUCCESS;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::TFileSystemAccessResult
+CVfsFileSystemAccess::FailureOrRemoteResult( CORE::TFileSystemAccessResult failure ) const
+{GUCEF_TRACE;
+
+    CVfsCallResult last;
+    m_vfs->GetLastResult( last );
+    return last.IsTemporary() ? last.result : failure;
 }
 
 /*-------------------------------------------------------------------------*/

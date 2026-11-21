@@ -309,7 +309,9 @@ CFileSystemArchive::GetListFromRoot( const CORE::CString& actualFsDir  ,
                                      const CString::StringSet& filters ,
                                      TStringVector& outputList         ,
                                      bool addFiles                     ,
-                                     bool addDirs                      ) const
+                                     bool addDirs                      ,
+                                     UInt32 maxListEntries             ,
+                                     const CString& relativeDir        ) const
 {GUCEF_TRACE;
 
     CORE::CString vfsPath = CORE::CombinePath( vfsMountLocation, vfsArchiveLocation );
@@ -318,11 +320,14 @@ CFileSystemArchive::GetListFromRoot( const CORE::CString& actualFsDir  ,
     if ( fileSystemIterator.FindFirst( actualFsDir ) )
     {
         /*
-         *      Iterate the dir content adding the file entries from
-         *      the dir to the list
+         *      Iterate the dir content adding the entries of the dir to the list: files and directories as asked for,
+         *      all of them below the dir when recursive. The list is not longer than maxListEntries
          */
         do
         {
+            if ( outputList.size() >= maxListEntries )
+                return;
+
             if ( fileSystemIterator.IsAFile() )
             {
                 if ( addFiles )
@@ -358,7 +363,17 @@ CFileSystemArchive::GetListFromRoot( const CORE::CString& actualFsDir  ,
                         if ( CVFS::FilterValidation( dirName ,
                                                      filters ) )
                         {
-                            outputList.push_back( dirName + '/' );
+                            if ( !includePathInFilename )
+                            {
+                                // relative to the location that was listed, as a list of directories of every depth needs
+                                outputList.push_back( relativeDir + dirName + '/' );
+                            }
+                            else
+                            {
+                                CORE::CString vfsDirPath = CORE::CombinePath( vfsPath, dirName );
+                                vfsDirPath = vfsDirPath.ReplaceChar( '\\', '/' );
+                                outputList.push_back( vfsDirPath + '/' );
+                            }
                         }
                     }
 
@@ -367,7 +382,7 @@ CFileSystemArchive::GetListFromRoot( const CORE::CString& actualFsDir  ,
                         CORE::CString fsSubdir = CORE::CombinePath( actualFsDir, dirName );
                         CORE::CString vfsSubdir = CORE::CombinePath( vfsArchiveLocation, dirName );
 
-                        // Recursively process the sub-dir
+                        // Recursively process the sub-dir, listing the same kind of entries
                         GetListFromRoot( fsSubdir              ,
                                          vfsMountLocation      ,
                                          vfsSubdir             ,
@@ -375,8 +390,10 @@ CFileSystemArchive::GetListFromRoot( const CORE::CString& actualFsDir  ,
                                          includePathInFilename ,
                                          filters               ,
                                          outputList            ,
-                                         true                  ,
-                                         false                 );
+                                         addFiles              ,
+                                         addDirs               ,
+                                         maxListEntries        ,
+                                         relativeDir + dirName + '/' );
                     }
                 }
             }
@@ -411,7 +428,9 @@ CFileSystemArchive::GetFileList( TStringVector& outputList             ,
                      nameFilters           ,
                      outputList            ,
                      true                  ,
-                     false                 );
+                     false                 ,
+                     maxListEntries        ,
+                     CORE::CString::Empty  );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -440,7 +459,9 @@ CFileSystemArchive::GetDirList( TStringVector& outputList             ,
                      nameFilters           ,
                      outputList            ,
                      false                 ,
-                     true                  );
+                     true                  ,
+                     maxListEntries        ,
+                     CORE::CString::Empty  );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -497,6 +518,28 @@ CFileSystemArchive::GetFileHash( const CString& filePath ) const
     }
 
     return CString();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsDigest
+CFileSystemArchive::GetFileDigest( const CString& filePath ) const
+{GUCEF_TRACE;
+
+    CString path = CORE::CombinePath( m_rootDir, filePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
+    if ( CORE::FileExists( path ) )
+    {
+        CORE::CFileAccess fileAccess( path );
+
+        UInt8 md5Hash[ 16 ];
+        if ( CORE::md5fromfile( fileAccess.CStyleAccess() ,
+                                md5Hash                   ) == 1 )
+        {
+            return CVfsDigest::FromBytes( CVfsDigest::ALGORITHM_MD5, md5Hash, 16 );
+        }
+    }
+
+    return CVfsDigest();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -598,7 +641,9 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
             {
                 // We found the file in our cache, we will link to the existing buffer.
                 TDynamicBufferPtr bufferPtr = (*n).second.buffer;
-                CORE::DynamicBufferAccessPtr bufferAccess( GUCEF_NEW CORE::CDynamicBufferAccess( bufferPtr.GetPointer(), false ) );
+                // the memory is shared between the handles open at once: a handle on it only reads
+                const CORE::CDynamicBuffer& sharedBuffer = *bufferPtr.GetPointer();
+                CORE::DynamicBufferAccessPtr bufferAccess( GUCEF_NEW CORE::CDynamicBufferAccess( sharedBuffer ) );
                 TVfsResourcePtr vfsResource( GUCEF_NEW CVFSHandle( bufferAccess ,
                                                                    path         ,
                                                                    filePath     ,
@@ -692,8 +737,10 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
                         m_diskCacheList[ path ] = cachedFile;
                     }
 
-                    // return the file handle
-                    return TVfsResourcePtr( GUCEF_NEW CVFSHandle( bufferAccess ,
+                    // return the file handle: it only reads, the memory is shared with the handles that come after it
+                    const CORE::CDynamicBuffer& sharedBuffer = *bufferPtr.GetPointer();
+                    CORE::DynamicBufferAccessPtr readAccess( GUCEF_NEW CORE::CDynamicBufferAccess( sharedBuffer ) );
+                    return TVfsResourcePtr( GUCEF_NEW CVFSHandle( readAccess   ,
                                                                   path         ,
                                                                   filePath     ,
                                                                   bufferPtr    ) );

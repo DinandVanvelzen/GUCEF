@@ -29,11 +29,51 @@ LOCAL_SRC_FILES := \
   src/gucefVFS_CAsyncVfsOperation.cpp \
   src/gucefVFS_CFileSystemArchive.cpp \
   src/gucefVFS_CIArchiveWriter.cpp \
+  src/gucefVFS_CIVfsAsyncCall.cpp \
+  src/gucefVFS_CIVfsFetchJob.cpp \
+  src/gucefVFS_CIVfsRemoteBackend.cpp \
   src/gucefVFS_CModule.cpp \
+  src/gucefVFS_CRemoteArchiveEvents.cpp \
   src/gucefVFS_CVFS.cpp \
   src/gucefVFS_CVFSHandle.cpp \
+  src/gucefVFS_CVfsArrivalInfo.cpp \
+  src/gucefVFS_CVfsAsyncCallGate.cpp \
+  src/gucefVFS_CVfsAsyncCallGateScope.cpp \
+  src/gucefVFS_CVfsAsyncCallTaskConsumer.cpp \
+  src/gucefVFS_CVfsAsyncCallTaskData.cpp \
+  src/gucefVFS_CVfsAsyncResult.cpp \
+  src/gucefVFS_CVfsAsyncVfsCall.cpp \
+  src/gucefVFS_CVfsBlockCache.cpp \
+  src/gucefVFS_CVfsBlockRunFetcher.cpp \
+  src/gucefVFS_CVfsCacheState.cpp \
+  src/gucefVFS_CVfsCachedIOAccess.cpp \
+  src/gucefVFS_CVfsCallResult.cpp \
+  src/gucefVFS_CVfsDigest.cpp \
+  src/gucefVFS_CVfsDigestHasher.cpp \
+  src/gucefVFS_CVfsEitherCancelSource.cpp \
+  src/gucefVFS_CVfsFetchProgress.cpp \
+  src/gucefVFS_CVfsFetchProgressCancelScope.cpp \
+  src/gucefVFS_CVfsFetchRequest.cpp \
+  src/gucefVFS_CVfsFetchScheduler.cpp \
+  src/gucefVFS_CVfsFetchTaskConsumer.cpp \
+  src/gucefVFS_CVfsFetchTaskData.cpp \
   src/gucefVFS_CVfsFileSystemAccess.cpp \
   src/gucefVFS_CVfsGlobal.cpp \
+  src/gucefVFS_CVfsLastResults.cpp \
+  src/gucefVFS_CVfsPrefetchWork.cpp \
+  src/gucefVFS_CVfsRemoteArchive.cpp \
+  src/gucefVFS_CVfsRemoteArchiveCore.cpp \
+  src/gucefVFS_CVfsRemoteCounters.cpp \
+  src/gucefVFS_CVfsRemoteEntry.cpp \
+  src/gucefVFS_CVfsRemoteFetchJob.cpp \
+  src/gucefVFS_CVfsRemoteMetadataCache.cpp \
+  src/gucefVFS_CVfsRemotePath.cpp \
+  src/gucefVFS_CVfsRemoteSettings.cpp \
+  src/gucefVFS_CVfsRemoteStatistics.cpp \
+  src/gucefVFS_CVfsTaskCancelSource.cpp \
+  src/gucefVFS_CVfsThreadPolicy.cpp \
+  src/gucefVFS_CVfsThreadPolicyRegistry.cpp \
+  src/gucefVFS_CVfsThreadPolicyScope.cpp \
   src/gucefVFS_CVfsUriResourceAccessor.cpp
 
 LOCAL_C_INCLUDES := \

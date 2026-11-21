@@ -36,6 +36,31 @@
 #define GUCEF_VFS_MACROS_H
 #endif /* GUCEF_VFS_MACROS_H ? */
 
+#ifndef GUCEF_CORE_CTWEAKPTR_H
+#include "gucefCORE_CTWeakPtr.h"
+#define GUCEF_CORE_CTWEAKPTR_H
+#endif /* GUCEF_CORE_CTWEAKPTR_H ? */
+
+#ifndef GUCEF_CORE_CSTRING_H
+#include "gucefCORE_CString.h"
+#define GUCEF_CORE_CSTRING_H
+#endif /* GUCEF_CORE_CSTRING_H ? */
+
+#ifndef GUCEF_VFS_CVFSBLOCKCACHE_H
+#include "gucefVFS_CVfsBlockCache.h"
+#define GUCEF_VFS_CVFSBLOCKCACHE_H
+#endif /* GUCEF_VFS_CVFSBLOCKCACHE_H ? */
+
+#ifndef GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H
+#include "gucefVFS_CVfsThreadPolicyRegistry.h"
+#define GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H
+#endif /* GUCEF_VFS_CVFSTHREADPOLICYREGISTRY_H ? */
+
+#ifndef GUCEF_VFS_CVFSFETCHSCHEDULER_H
+#include "gucefVFS_CVfsFetchScheduler.h"
+#define GUCEF_VFS_CVFSFETCHSCHEDULER_H
+#endif /* GUCEF_VFS_CVFSFETCHSCHEDULER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -66,6 +91,38 @@ class GUCEF_VFS_PUBLIC_CPP CVfsGlobal
 
     CVFS& GetVfs( void );
 
+    /**
+     *  The block cache of a folder: one cache object per folder in the process, so that every archive that wants
+     *  the folder shares one size limit and a folder is never open twice. The same folder gives the same cache; the folder
+     *  is closed when the last pointer goes. The parameters are those of the first caller: a later caller that
+     *  asks for other values gets the cache as it is (and a warning).
+     *  The block cache is off until an application opens one: the library has no default folder and no default size.
+     *  An empty pointer when the folder cannot be opened (see CVfsBlockCache::Open()).
+     */
+    CVfsBlockCachePtr AcquireBlockCache( const CORE::CString& folder                                   ,
+                                         UInt64 maxBytes                                               ,
+                                         UInt32 blockBytes = CVfsBlockCache::DefaultBlockBytes         ,
+                                         UInt32 maxOpenFiles = CVfsBlockCache::DefaultMaxOpenFiles     ,
+                                         bool breakStaleLock = false                                   );
+
+    /** The cache that the application made the default one, which archives without a folder of their own use; empty when there is none */
+    CVfsBlockCachePtr GetDefaultBlockCache( void ) const;
+
+    /** The VFS configuration ("BlockCache" below "VFS") and applications set it; an empty pointer clears it */
+    void SetDefaultBlockCache( const CVfsBlockCachePtr& cache );
+
+    /**
+     *  The rules of the threads for a miss on a remote archive (see CVfsThreadPolicy): a thread that must never wait for a
+     *  remote place registers itself here, or uses a CVfsThreadPolicyScope for one call
+     */
+    CVfsThreadPolicyRegistry& GetThreadPolicyRegistry( void );
+
+    /**
+     *  Runs the background fetches of the remote archives on a pool of its own (VfsRemoteOps, see CVfsFetchScheduler), with
+     *  the bounds of that class
+     */
+    CVfsFetchScheduler& GetFetchScheduler( void );
+
     private:
     friend class CModule;
 
@@ -75,6 +132,9 @@ class GUCEF_VFS_PUBLIC_CPP CVfsGlobal
 
     CVfsGlobal( void );
 
+    typedef CORE::CTWeakPtr< CVfsBlockCache, MT::CMutex >   TBlockCacheWeakPtr;
+    typedef GUCEF::map< CORE::CString, TBlockCacheWeakPtr > TBlockCacheMap;
+
     ~CVfsGlobal();
 
     void Initialize( void );
@@ -82,6 +142,11 @@ class GUCEF_VFS_PUBLIC_CPP CVfsGlobal
     private:
 
     CVFS* m_vfs;
+    mutable MT::CMutex m_blockCacheLock;
+    TBlockCacheMap m_blockCaches;                           /**< by folder: weak, so that the folder is closed when the last user lets go */
+    CVfsBlockCachePtr m_defaultBlockCache;
+    CVfsThreadPolicyRegistry m_threadPolicyRegistry;
+    CVfsFetchScheduler* m_fetchScheduler;
 
     static MT::CMutex g_datalock;
     static CVfsGlobal* g_instance;

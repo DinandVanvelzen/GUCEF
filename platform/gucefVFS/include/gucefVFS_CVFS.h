@@ -104,6 +104,36 @@
 #define GUCEF_VFS_ASYNCVFSTASKDATA_H
 #endif /* GUCEF_VFS_ASYNCVFSTASKDATA_H ? */
 
+#ifndef GUCEF_VFS_CIREMOTEARCHIVE_H
+#include "gucefVFS_CIRemoteArchive.h"
+#define GUCEF_VFS_CIREMOTEARCHIVE_H
+#endif /* GUCEF_VFS_CIREMOTEARCHIVE_H ? */
+
+#ifndef GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#include "gucefVFS_CRemoteArchiveEvents.h"
+#define GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#endif /* GUCEF_VFS_CREMOTEARCHIVEEVENTS_H ? */
+
+#ifndef GUCEF_VFS_CVFSLASTRESULTS_H
+#include "gucefVFS_CVfsLastResults.h"
+#define GUCEF_VFS_CVFSLASTRESULTS_H
+#endif /* GUCEF_VFS_CVFSLASTRESULTS_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCRESULT_H
+#include "gucefVFS_CVfsAsyncResult.h"
+#define GUCEF_VFS_CVFSASYNCRESULT_H
+#endif /* GUCEF_VFS_CVFSASYNCRESULT_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCCALLGATE_H
+#include "gucefVFS_CVfsAsyncCallGate.h"
+#define GUCEF_VFS_CVFSASYNCCALLGATE_H
+#endif /* GUCEF_VFS_CVFSASYNCCALLGATE_H ? */
+
+#ifndef GUCEF_MT_CSCOPERWLOCK_H
+#include "gucefMT_CScopeRwLock.h"
+#define GUCEF_MT_CSCOPERWLOCK_H
+#endif /* GUCEF_MT_CSCOPERWLOCK_H ? */
+
 #undef CopyFile
 #undef MoveFile
 
@@ -121,6 +151,8 @@ namespace VFS {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+class CVfsAsyncVfsCall;
 
 /**
  *  Virtual File System (VFS)
@@ -636,40 +668,46 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
                               bool recursive = false                          ,
                               bool includePathInFilename = false              ,
                               const VFS::CString& nameFilter = CString::Empty ,
-                              UInt32 maxListEntries = GUCEF_UINT16MAX         ) const;
+                              UInt32 maxListEntries = GUCEF_UINT32MAX         ) const;
 
     virtual bool GetFileList( TStringVector& outputList                                            ,
                               const CString& location                                              ,
                               bool recursive = false                                               ,
                               bool includePathInFilename = false                                   ,
                               const VFS::CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                              UInt32 maxListEntries = GUCEF_UINT16MAX                              ) const;
+                              UInt32 maxListEntries = GUCEF_UINT32MAX                              ) const;
 
     virtual bool GetDirList( TStringVector& outputList                  ,
                              const CString& location                    ,
                              bool recursive = false                     ,
                              bool includeParentDirInName = false        ,
                              const CString& nameFilter = CString::Empty ,
-                             UInt32 maxListEntries = GUCEF_UINT16MAX    ) const;
+                             UInt32 maxListEntries = GUCEF_UINT32MAX    ) const;
 
     virtual bool GetDirList( TStringVector& outputList                                       ,
                              const CString& location                                         ,
                              bool recursive = false                                          ,
                              bool includeParentDirInName = false                             ,
                              const CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                             UInt32 maxListEntries = GUCEF_UINT16MAX                         ) const;
+                             UInt32 maxListEntries = GUCEF_UINT32MAX                         ) const;
 
     void GetFileList( CORE::CDataNode& outputDataTree                    ,
                       const CORE::CString& location                      ,               
                       bool recursive = false                             ,
                       const CORE::CString& filter = CORE::CString::Empty ,
                       const bool addHash = false                         ,
-                      UInt32 maxListEntries = GUCEF_UINT16MAX            ) const;
+                      UInt32 maxListEntries = GUCEF_UINT32MAX            ) const;
                   
     /**
      *  Checks if the item pointed at is a mounted archive
      */
     bool IsMountedArchive( const CString& location ) const;
+
+    /**
+     *  The archive that is mounted under the given archive name (the name it was mounted with, which is also what
+     *  UnmountArchiveByName() takes), a NULL pointer when there is none. The first one when several share a name.
+     */
+    TArchivePtr GetMountedArchive( const CString& archiveName ) const;
 
     /**
      *  Mounts the data files of a module (a library or plugin with a data dir, see GUCEF_deploy_data_files in the
@@ -729,7 +767,143 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     UInt64 GetFileSize( const CString& filePath ) const;
     
     CORE::CString GetFileHash( const CString& filename ) const;
-    
+
+    /**
+     *  The digest of a file, from the first mount that has the file, with the name of the algorithm that made it (GetFileHash() does not name it).
+     *  False when the file is not there or the archive knows no digest of it; the digest is then empty.
+     */
+    bool GetFileDigest( const CString& filename, CVfsDigest& digest ) const;
+
+    /**
+     *  The result of the latest call of the calling thread that consulted a remote archive (one whose archive has a
+     *  CIRemoteArchive), with the reason in it: the answers of the calls above say only yes or no. The calls DirExists(),
+     *  FileExists(), GetDirList(), GetFile(), GetFileHash(), GetFileDigest(), GetFileList(), GetFileMetaData(), GetFileModificationTime() and
+     *  GetFileSize() clear it when they start and record it when a remote mount failed them. A success when the latest call went well or none was made.
+     *
+     *  These calls do not go on to the mounts below a remote mount that answered "not here yet"
+     *  (FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE) or "cannot be reached" (FILESYSTEMACCESS_REMOTE_CONNECTION_PENDING): the file
+     *  of another mount with the same path would be the wrong answer. A mount of a local archive never stops them.
+     */
+    void GetLastResult( CVfsCallResult& result ) const;
+
+    /** Makes the remote mounts forget what they know in memory of a path (a file, or a directory and its listing): the next call asks the remote place */
+    void InvalidateRemoteMetadata( const CString& vfsPath );
+
+    /** Makes every remote mount forget what it knows in memory */
+    void InvalidateRemoteMetadata( void );
+
+    /** Gives the remote mounts that cover the path a digest the application knows of a file (see CIRemoteArchive::NoteFileDigest()); false when no remote mount covers it */
+    bool NoteFileDigest( const CString& vfsPath, const CVfsDigest& digest, const CString& revision = CString::Empty );
+
+    /** Makes the remote mounts that cover the path forget the digests the application noted of their files (see CIRemoteArchive::ForgetFileDigests()); false when no remote mount covers it */
+    bool ForgetFileDigests( const CString& vfsPath );
+
+    /** What the cache of a remote mount holds of the file; false when no remote mount holds anything of it */
+    bool GetFileCacheState( const CString& vfsPath, CVfsCacheState& state ) const;
+
+    /** Keeps the file offline (true) or lets it go (false) in the cache of the remote mount that holds it; false when none does */
+    bool SetFilePinned( const CString& vfsPath, bool pinned );
+
+    /**
+     *  Fetches the whole file from the first remote mount that has it into its cache, on the calling thread (see CIRemoteArchive::FetchFile()).
+     *  An archive that is not a remote one answers FILESYSTEMACCESS_NOT_SUPPORTED: whoever asks decides what that means for a local file.
+     */
+    CVfsCallResult FetchFile( const CString& vfsPath, const CVfsFetchRequest& options, CVfsFetchProgress& progress );
+
+    /**
+     *  Fetches the listings of a directory (and of those below it when asked, at most 'maxDirectories') into the metadata of the first remote mount
+     *  that has it, on the calling thread (see CIRemoteArchive::FetchDirectory()). An archive that is not a remote one answers
+     *  FILESYSTEMACCESS_NOT_SUPPORTED.
+     */
+    CVfsCallResult FetchDirectory( const CString& vfsPath, bool recursive, UInt32 maxDirectories, CVfsFetchProgress& progress );
+
+    /**
+     *  The first mount that covers the path: its archive (a shared pointer, which keeps the archive alive) and the path inside it.
+     *  False when no mount covers the path. The VFS lock is not held when this returns.
+     */
+    bool ResolveMount( const CString& vfsPath, TArchivePtr& archive, CString& remainder ) const;
+
+    /*
+     *  Asynchronous calls
+     *
+     *  Each is a task of the pool of the remote operations that runs the synchronous call on a thread of that pool (never
+     *  on the thread that asks) with the rule "wait" for a miss, and each returns the future of that task together with
+     *  a CVfsAsyncResult that the task fills in before the future ends (the pattern of the DRN namespace client): read the result
+     *  once the future is ready. A future without a task (HasNoFuture()) means the call was not queued; the result then says
+     *  FILESYSTEMACCESS_QUEUEING_FAILED.
+     *
+     *  Every call is looked at for cancellation between its steps, through CFutureResult::RequestCancellation(); the fetches
+     *  also through CVfsFetchProgress::cancel. A call that is cancelled before a thread takes it never runs and its result
+     *  stays FILESYSTEMACCESS_CANCELLED; a call that has run to its end keeps its result. The VFS does not raise
+     *  AsyncVfsOperationCompletedEvent for these calls: the future is their contract.
+     *
+     *  The VFS lock is not held while an archive call waits: a mount or an unmount on another thread does not wait for the
+     *  slowest remote call. That holds for the archives that are remote (they have a CIRemoteArchive); the call of any other
+     *  archive is made under the lock, as the synchronous calls do, because the unload of such an archive may free what a call
+     *  in progress uses. A mount that is removed while a call is under way is not called any more; the call is then
+     *  answered by the mounts that are left.
+     *
+     *  The results are those of the synchronous call of the same name on the same mounts, including the mounts below a
+     *  remote mount that answers "not here yet" (they are not asked). When the VFS is destroyed the calls under way are
+     *  asked to stop and waited for, and the calls still queued do not run.
+     */
+
+    /** GetFileMetaData(): 'exists', 'metaData' and, for a remote file, the digest the remote place gave */
+    CORE::CFutureResult GetFileMetaDataAsync( const CString& file, CVfsAsyncResultPtr& result );
+
+    /** GetFileList(): 'names' */
+    CORE::CFutureResult GetFileListAsync( const CString& location             ,
+                                          bool recursive                      ,
+                                          bool includePathInFilename          ,
+                                          const CString::StringSet& nameFilters ,
+                                          UInt32 maxListEntries               ,
+                                          CVfsAsyncResultPtr& result          );
+
+    /** GetDirList(): 'names' */
+    CORE::CFutureResult GetDirListAsync( const CString& location             ,
+                                         bool recursive                      ,
+                                         bool includePathInFilename          ,
+                                         const CString::StringSet& nameFilters ,
+                                         UInt32 maxListEntries               ,
+                                         CVfsAsyncResultPtr& result          );
+
+    /** GetFile() for reading: 'resource', which can be read on any thread */
+    CORE::CFutureResult GetFileAsync( const CString& file, CVfsAsyncResultPtr& result );
+
+    /**
+     *  Opens the file for reading and reads 'length' bytes from 'offset' (fewer when the file ends first, none when the offset is at
+     *  or past the end): 'data'. A length above GetMaxAsyncReadBytes() is not read: FILESYSTEMACCESS_TOO_LONG. A read that
+     *  gets fewer bytes than the file has left fails with the reason and gives the bytes that did come.
+     */
+    CORE::CFutureResult ReadFileRangeAsync( const CString& file, UInt64 offset, UInt32 length, CVfsAsyncResultPtr& result );
+
+    /**
+     *  FetchFile() of the whole file: 'bytesDone'. A NULL 'progress' is replaced by one, which the caller then holds; its
+     *  cancel flag stops the fetch between block runs. One progress for one call at a time.
+     */
+    CORE::CFutureResult FetchFileAsync( const CString& file, const CVfsFetchRequest& request, CVfsFetchProgressPtr& progress, CVfsAsyncResultPtr& result );
+
+    /**
+     *  Fetches the listings of the directories of the request and then its files, at most 'maxParallelFiles' of them at once
+     *  (the other files go to threads of the same pool when it has them; the call itself works through the list as well, so it
+     *  needs no more than the thread it is on). Ends with FILESYSTEMACCESS_SUCCESS, FILESYSTEMACCESS_PARTIAL_SUCCESS when some
+     *  of them failed, the result of the failure when all did, or FILESYSTEMACCESS_CANCELLED. A NULL 'progress' is replaced as above.
+     */
+    CORE::CFutureResult PrefetchAsync( const CVfsFetchRequest& request, CVfsFetchProgressPtr& progress, CVfsAsyncResultPtr& result );
+
+    /** Names the pool of the remote operations (default CVfsFetchScheduler::DefaultThreadPoolName). The background fetches of the remote archives are moved to it as well */
+    void SetRemoteOpsThreadPool( const CString& threadPoolName );
+
+    CString GetRemoteOpsThreadPool( void ) const;
+
+    /** The most bytes ReadFileRangeAsync() reads in one call (default 64 MiB) */
+    void SetMaxAsyncReadBytes( UInt32 maxBytes );
+
+    UInt32 GetMaxAsyncReadBytes( void ) const;
+
+    /** The statistics of the first remote mount that covers the path; false when there is none */
+    bool GetRemoteStatistics( const CString& vfsPath, CVfsRemoteStatistics& statistics ) const;
+
     CORE::CDateTime GetFileModificationTime( const CString& filename ) const;
 
     bool GetFileMetaData( const CString& filename           ,
@@ -843,6 +1017,7 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
 
     private:
     friend class CVfsGlobal;
+    friend class CVfsAsyncVfsCall;
 
     CVFS( void );
 
@@ -890,6 +1065,30 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     typedef GUCEF::map< CString, CString::StringSet >                                TArchiveTypeExtensionsMap;
 
     typedef CORE::CTEventHandlerFunctor< CVFS >          TEventCallback;
+
+    /**
+     *  The scope of one call of an archive in a loop over mount links. For the synchronous calls ('lockPerCall' false) the caller holds
+     *  the lock and the scope does nothing. For the asynchronous calls it takes the reader lock, finds out whether the mount
+     *  is still there and lets go of the lock again when the archive is remote (the call is then made without it) or the mount is gone.
+     */
+    class GUCEF_VFS_PRIVATE_CPP CArchiveCallScope
+    {
+        public:
+
+        CArchiveCallScope( const CVFS& vfs, const CArchive& archive, bool lockPerCall );
+        ~CArchiveCallScope();
+
+        /** False when the mount of the archive was removed since the links were taken: the archive is not to be called */
+        bool IsMounted( void ) const;
+
+        private:
+
+        CArchiveCallScope( const CArchiveCallScope& src );                  /**< not implemented */
+        CArchiveCallScope& operator=( const CArchiveCallScope& src );       /**< not implemented */
+
+        MT::CScopeReaderLock* m_lock;
+        bool m_mounted;
+    };
     
     CVFS( const CVFS& src );                /**< not implemented, must be unique */
     CVFS& operator=( const CVFS& src );     /**< not implemented, must be unique */
@@ -897,6 +1096,50 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     void GetEligableMounts( const CString& location                ,
                             bool mustBeWritable                    ,
                             TConstMountLinkVector& mountLinkVector ) const;
+
+    /** The links of the mounts that cover the path, taken under the lock: usable after it is let go */
+    void SnapshotMounts( const CString& path, bool mustBeWritable, TConstMountLinkVector& mountLinks ) const;
+
+    /*
+     *  The loops over the mount links of the read calls, shared by the synchronous calls (the caller holds the lock,
+     *  'lockPerCall' false) and the asynchronous ones (no lock held, the calls of the archives take it as CArchiveCallScope says)
+     */
+    TBasicVfsResourcePtr OpenFromMounts( const TConstMountLinkVector& mountLinks ,
+                                         const CString& filepath                ,
+                                         const CString& file                    ,
+                                         const char* mode                       ,
+                                         bool overwrite                         ,
+                                         bool lockPerCall                       ) const;
+
+    bool GetFileMetaDataFromMounts( const TConstMountLinkVector& mountLinks ,
+                                    CORE::CResourceMetaData& metaData       ,
+                                    bool lockPerCall                        ,
+                                    CVfsDigest* digest                      ) const;
+
+    bool ListFromMounts( const TConstMountLinkVector& mountLinks ,
+                         TStringVector& outputList               ,
+                         bool directories                        ,
+                         bool recursive                          ,
+                         bool includePathInFilename              ,
+                         const CString::StringSet& nameFilters   ,
+                         UInt32 maxListEntries                   ,
+                         bool lockPerCall                        ) const;
+
+    CVfsCallResult FetchFromMounts( const TConstMountLinkVector& mountLinks ,
+                                    const CString& vfsPath                  ,
+                                    const CVfsFetchRequest& options         ,
+                                    CVfsFetchProgress& progress             ,
+                                    bool lockPerCall                        ) const;
+
+    CVfsCallResult FetchDirectoryFromMounts( const TConstMountLinkVector& mountLinks ,
+                                             const CString& vfsPath                  ,
+                                             bool recursive                          ,
+                                             UInt32 maxDirectories                   ,
+                                             CVfsFetchProgress& progress             ,
+                                             bool lockPerCall                        ) const;
+
+    /** Queues an asynchronous call on the pool of the remote operations; takes over the call */
+    CORE::CFutureResult QueueAsyncCall( CVfsAsyncVfsCall* call, CVfsAsyncResultPtr result );
     
     void RegisterEventHandlers( void );
 
@@ -911,7 +1154,18 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     void OnArchiveDirectoryWatcherEvent( CORE::CNotifier* notifier    ,
                                          const CORE::CEvent& eventid  ,
                                          CORE::CICloneable* eventdata );
-    
+
+    /** Passes an event of a remote archive on with the mount path in front */
+    void OnArchiveRemoteEvent( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventid  ,
+                               CORE::CICloneable* eventdata );
+
+    /**
+     *  Records what a remote archive made of the call that just failed or went well and tells whether the loop over the mounts has to stop
+     *  there: it does when the archive answered that the data is not here yet or that it cannot be reached
+     */
+    bool NoteRemoteOutcome( const CArchive* archive, bool callSucceeded ) const;
+
     bool LoadVfsSystemConfig( const CORE::CDataNode& cfg );
 
     void OnSomeShutdownEvent( CORE::CNotifier* notifier                 ,
@@ -936,6 +1190,15 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     bool m_autoMountFsVolumes;
     TArchiveTypeExtensionsMap m_archiveTypeExtensions;
     CString::StringVector m_archiveTypeExtensionsOrder;     /**< the types in the order their extensions were declared */
+    CString m_blockCacheFolder;                             /**< the "BlockCache" section of the config as it was, which SaveConfig() writes back; empty when there is none */
+    UInt64 m_blockCacheMaxBytes;
+    UInt32 m_blockCacheBlockBytes;
+    UInt32 m_blockCacheMaxOpenFiles;
+    mutable CVfsLastResults m_lastResults;
+    CVfsAsyncCallGatePtr m_asyncGate;                       /**< the door of the asynchronous calls on pool threads: shut when the VFS goes */
+    mutable MT::CMutex m_asyncSettingsLock;
+    CString m_remoteOpsThreadPool;
+    UInt32 m_maxAsyncReadBytes;
     MT::CReadWriteLock m_rwdataLock;
 };
 

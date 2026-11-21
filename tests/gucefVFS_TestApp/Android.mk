@@ -21,17 +21,40 @@ LOCAL_MODULE := gucefVFS_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestArchiveConformance.cpp \
+  src/TestArchiveConformanceCapabilities.cpp \
+  src/TestArchiveConformanceFixture.cpp \
+  src/TestArchiveConformanceTree.cpp \
   src/TestArchiveUtils.cpp \
   src/TestCode_VFSFileLoadUnloadTest.cpp \
   src/TestCueBinArchive.cpp \
   src/TestFileSystemAccess.cpp \
+  src/TestFileSystemArchiveConformance.cpp \
   src/TestIso9660Archive.cpp \
   src/TestItvArchive.cpp \
   src/TestLibArchive.cpp \
   src/TestMountFromResource.cpp \
+  src/TestRemoteArchive.cpp \
+  src/TestRemoteArchiveConformance.cpp \
+  src/TestRemoteArchiveFixture.cpp \
+  src/TestRemoteArchiveMemoryPlace.cpp \
+  src/TestRemoteBackend.cpp \
+  src/TestRemoteEnvironment.cpp \
+  src/TestThreads.cpp \
+  src/TestVfsAsyncCalls.cpp \
+  src/TestVfsAsyncPrimitives.cpp \
+  src/TestVfsAsyncTeardown.cpp \
+  src/TestVfsBlockCache.cpp \
+  src/TestVfsBlockCacheStress.cpp \
+  src/TestVfsBlockCacheUtils.cpp \
   src/TestVfsCodecs.cpp \
   src/TestVfsConfig.cpp \
+  src/TestVfsDigest.cpp \
+  src/TestVfsFetchScheduler.cpp \
   src/TestVfsMountLocking.cpp \
+  src/TestVfsRemoteBlocks.cpp \
+  src/TestVfsRemoteMounts.cpp \
+  src/TestVfsThreadPolicy.cpp \
   src/TestZipArchiveWriter.cpp \
   src/gucefVFS_TestApp.cpp
 

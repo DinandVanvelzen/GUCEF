@@ -170,6 +170,24 @@ CArchive::MoveFileAtomically( const CString& oldFilePath ,
 
 /*-------------------------------------------------------------------------*/
 
+CVfsDigest
+CArchive::GetFileDigest( const CString& file ) const
+{GUCEF_TRACE;
+
+    return CVfsDigest( CVfsDigest::ALGORITHM_UNKNOWN, GetFileHash( file ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIRemoteArchive*
+CArchive::GetRemoteArchiveInterface( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
 CArchive::TryResolveSpecialDir( CORE::TSpecialDirs dir, CString& resolvedPath ) const
 {GUCEF_TRACE;

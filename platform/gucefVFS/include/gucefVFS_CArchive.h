@@ -72,6 +72,11 @@
 #define GUCEF_VFS_CARCHIVESETTINGS_H
 #endif /* GUCEF_VFS_CARCHIVESETTINGS_H ? */
 
+#ifndef GUCEF_VFS_CVFSDIGEST_H
+#include "gucefVFS_CVfsDigest.h"
+#define GUCEF_VFS_CVFSDIGEST_H
+#endif /* GUCEF_VFS_CVFSDIGEST_H ? */
+
 #undef MoveFile
 
 /*-------------------------------------------------------------------------//
@@ -82,6 +87,8 @@
 
 namespace GUCEF {
 namespace VFS {
+
+class CIRemoteArchive;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -144,7 +151,7 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
                               bool recursive = false                                          ,
                               bool includePathInFilename = false                              ,
                               const CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                              UInt32 maxListEntries = GUCEF_UINT16MAX                         ) const = 0;
+                              UInt32 maxListEntries = GUCEF_UINT32MAX                         ) const = 0;
 
     virtual void GetDirList( TStringVector& outputList                                       ,
                              const CString& mountLocation                                    , 
@@ -152,7 +159,7 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
                              bool recursive = false                                          ,
                              bool includeParentDirInName = false                             ,
                              const CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                             UInt32 maxListEntries = GUCEF_UINT16MAX                         ) const = 0;
+                             UInt32 maxListEntries = GUCEF_UINT32MAX                         ) const = 0;
     
     virtual bool DeleteFile( const CString& filePath ) = 0;
     
@@ -188,6 +195,15 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
                                   CORE::CResourceMetaData& metaData ) const = 0;
     
     virtual CString GetFileHash( const CString& file ) const = 0;
+
+    /**
+     *  The digest of the content of a file with the name of the algorithm that made it, which GetFileHash() does not give.
+     *  The default returns the value of GetFileHash() with ALGORITHM_UNKNOWN (an unknown digest never matches another and
+     *  is not verified against content), so no archive has to change to compile; an archive that knows its algorithm overrides it.
+     *  An empty digest is returned when the file is not there or no digest is known. A remote archive does not read
+     *  the content to answer: it gives the digest its share knows, or none.
+     */
+    virtual CVfsDigest GetFileDigest( const CString& file ) const;
     
     virtual CORE::CDateTime GetFileModificationTime( const CString& filePath ) const = 0;
     
@@ -248,6 +264,14 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
     virtual bool DeleteDir( const CString& dirPath, bool deleteContents );
 
     virtual bool MoveDir( const CString& oldDirPath, const CString& newDirPath );
+
+    /**
+     *  The interface of an archive of a remote or slow place (state of what it holds locally, digest hints, offline files, whole
+     *  file fetches, statistics), or nothing for an archive that has none, which is what the default gives. It costs a local
+     *  archive nothing and needs no run time type information. The VFS asks it of the archives it consults, and treats a
+     *  mount whose archive has it as a remote mount.
+     */
+    virtual CIRemoteArchive* GetRemoteArchiveInterface( void ) const;
 };
 
 /*-------------------------------------------------------------------------//

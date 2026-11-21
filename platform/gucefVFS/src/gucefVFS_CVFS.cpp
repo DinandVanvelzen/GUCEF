@@ -121,6 +121,21 @@
 #define GUCEF_VFS_CASYNCVFSOPERATION_H
 #endif /* GUCEF_VFS_CASYNCVFSOPERATION_H ? */
 
+#ifndef GUCEF_VFS_CVFSGLOBAL_H
+#include "gucefVFS_CVfsGlobal.h"
+#define GUCEF_VFS_CVFSGLOBAL_H
+#endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCVFSCALL_H
+#include "gucefVFS_CVfsAsyncVfsCall.h"
+#define GUCEF_VFS_CVFSASYNCVFSCALL_H
+#endif /* GUCEF_VFS_CVFSASYNCVFSCALL_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H
+#include "gucefVFS_CVfsAsyncCallTaskConsumer.h"
+#define GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H
+#endif /* GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H ? */
+
 #include "gucefVFS_CVFS.h"           /* definition of the file implemented here */
 
 #ifdef ACTIVATE_MEMORY_MANAGER
@@ -196,6 +211,14 @@ CVFS::CVFS( void )
     , m_autoMountFsVolumes( true )
     , m_archiveTypeExtensions()
     , m_archiveTypeExtensionsOrder()
+    , m_blockCacheFolder()
+    , m_blockCacheMaxBytes( 0 )
+    , m_blockCacheBlockBytes( 0 )
+    , m_blockCacheMaxOpenFiles( 0 )
+    , m_asyncGate( GUCEF_NEW CVfsAsyncCallGate() )
+    , m_asyncSettingsLock()
+    , m_remoteOpsThreadPool( CVfsFetchScheduler::DefaultThreadPoolName )
+    , m_maxAsyncReadBytes( 67108864 )
     , m_rwdataLock( true )
 {GUCEF_TRACE;
 
@@ -208,6 +231,13 @@ CVFS::CVFS( void )
 
 CVFS::~CVFS()
 {GUCEF_TRACE;
+
+    // the asynchronous calls that are under way are told to stop and waited for, before anything they use goes: those that
+    // are still queued find the door shut and do not touch the VFS
+    if ( !m_asyncGate->CloseAndWait( 30000 ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS: " << m_asyncGate->GetInside() << " asynchronous call(s) did not return within the time the VFS waits for them at shutdown" );
+    }
 
     MT::CScopeWriterLock lock( m_rwdataLock );
 
@@ -451,6 +481,92 @@ CVFS::OnPumpedNotify( CORE::CNotifier* notifier    ,
                                         eventid   ,
                                         eventdata );
     }
+
+    if ( CRemoteArchiveEvents::IsRemoteArchiveEvent( eventid ) )
+    {
+        OnArchiveRemoteEvent( notifier  ,
+                              eventid   ,
+                              eventdata );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::OnArchiveRemoteEvent( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventid  ,
+                            CORE::CICloneable* eventdata )
+{GUCEF_TRACE;
+
+    VFS::CArchive* archive = static_cast< VFS::CArchive* >( notifier );
+
+    // the mount of the archive: an archive that is not mounted (any more) has nothing to say
+    CString mountPath;
+    {
+        MT::CScopeReaderLock lock( m_rwdataLock );
+
+        TArchivePtrToMountEntryMap::iterator i = m_archivePtrToMountEntryLookup.find( archive );
+        if ( i == m_archivePtrToMountEntryLookup.end() )
+            return;
+        mountPath = (*i).second->mountPath;
+    }
+
+    if ( CRemoteArchiveEvents::ConnectionStateChangedEvent == eventid )
+    {
+        CRemoteArchiveEvents::TConnectionStateChangedEventData* state = static_cast< CRemoteArchiveEvents::TConnectionStateChangedEventData* >( eventdata );
+        if ( GUCEF_NULL != state )
+        {
+            CRemoteArchiveEvents::TConnectionStateChangedVfsEventData vfsData;
+            vfsData.GetData().mountPath = mountPath;
+            vfsData.GetData().connected = state->GetData();
+            NotifyObservers( eventid, &vfsData );
+        }
+        return;
+    }
+
+    CVfsArrivalInfo* info = static_cast< CVfsArrivalInfo* >( eventdata );
+    if ( GUCEF_NULL != info )
+    {
+        // the archive knows its own paths: the VFS path has the mount in front. The event of a listing is about a directory
+        CVfsArrivalInfo vfsInfo( *info );
+        const bool isDirectory = CVfsArrivalInfo::KIND_LISTING == info->kind || ( CVfsArrivalInfo::KIND_FAILURE == info->kind && FETCHJOB_LIST == info->jobKind );
+        vfsInfo.path = isDirectory ? ConformVfsDirPath( mountPath + '/' + info->path ) : ConformVfsFilePath( mountPath + '/' + info->path );
+        NotifyObservers( eventid, &vfsInfo );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::NoteRemoteOutcome( const CArchive* archive, bool callSucceeded ) const
+{GUCEF_TRACE;
+
+    // a local archive is not asked anything
+    CIRemoteArchive* remote = archive->GetRemoteArchiveInterface();
+    if ( GUCEF_NULL == remote )
+        return false;
+
+    if ( callSucceeded )
+    {
+        m_lastResults.Clear();
+        return false;
+    }
+
+    const CVfsCallResult result = remote->GetLastResult();
+    m_lastResults.Set( result );
+
+    // not here yet, or cannot be reached: that is no answer, and a mount below could answer with another file of the same path
+    return CORE::FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE == result.result ||
+           CORE::FILESYSTEMACCESS_REMOTE_CONNECTION_PENDING == result.result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::GetLastResult( CVfsCallResult& result ) const
+{GUCEF_TRACE;
+
+    result = m_lastResults.Get();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1532,11 +1648,11 @@ CVFS::GetFile( const CORE::CString& file          ,
 {GUCEF_TRACE;
 
     CString filepath = ConformVfsFilePath( file );
-    bool fileMustExist = *mode == 'r';
 
     if ( filepath.IsNULLOrEmpty() || GUCEF_NULL == mode )
         return TBasicVfsResourcePtr();
 
+    m_lastResults.Clear();
     MT::CScopeReaderLock lock( m_rwdataLock );
 
     // Get a list of all eligable mounts
@@ -1544,47 +1660,7 @@ CVFS::GetFile( const CORE::CString& file          ,
     GetEligableMounts( filepath, overwrite, mountLinks );
 
     // Find the file in the available archives
-    TConstMountLinkVector::iterator i = mountLinks.begin();
-    while ( i != mountLinks.end() )
-    {
-        TConstMountLinkPtr& mountLink = (*i);
-
-        bool tryToGetFile = true;
-        if ( fileMustExist )
-        {
-            if ( !mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
-            {
-                tryToGetFile = false;
-            }
-        }
-
-        if ( tryToGetFile )
-        {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Vfs: Found requested file using mount link remainder: " + mountLink->remainder );
-            TArchivePtr archive = mountLink->mountEntry->archive;
-            TBasicVfsResourcePtr filePtr = archive->GetFile( mountLink->remainder ,
-                                                             mode                ,
-                                                             m_maxmemloadsize     ,
-                                                             overwrite           );
-
-            if ( !filePtr )
-            {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs: Requested file pre-conditions passed but could not be loaded from mounted archive using mount link remainder: " + mountLink->remainder );
-            }
-            else
-            {
-                // Remember where in the VFS this came from, the archives only know their own relative paths
-                filePtr->SetVfsPath( filepath );
-            }
-            return filePtr;
-        }
-
-        ++i;
-    }
-
-    // Unable to load file
-    GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs: Unable to locate a mount which can provide the file: " + file );
-    return TBasicVfsResourcePtr();
+    return OpenFromMounts( mountLinks, filepath, file, mode, overwrite, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2077,6 +2153,23 @@ CVFS::IsMountedArchive( const CString& location ) const
 
 /*-------------------------------------------------------------------------*/
 
+CVFS::TArchivePtr
+CVFS::GetMountedArchive( const CString& archiveName ) const
+{GUCEF_TRACE;
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    for ( TMountVector::const_iterator i = m_mountList.begin(); i != m_mountList.end(); ++i )
+    {
+        const TMountEntryPtr& archiveEntry = (*i);
+        if ( !archiveEntry->archive.IsNULL() && archiveEntry->archive->GetArchiveName() == archiveName )
+            return archiveEntry->archive;
+    }
+    return TArchivePtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CVFS::GetMountedArchiveList( const CString& location ,
                              const CString& filter   ,
@@ -2227,6 +2320,7 @@ CVFS::DirExists( const CString& dirPath ) const
 {GUCEF_TRACE;
 
     CString path = ConformVfsDirPath( dirPath );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -2241,8 +2335,11 @@ CVFS::DirExists( const CString& dirPath ) const
         TConstMountLinkPtr& mountLink = (*i);
         if ( mountLink->mountEntry->archive->DirExists( mountLink->remainder ) )
         {
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), true );
             return true;
         }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return false;
         ++i;
     }
 
@@ -2256,6 +2353,7 @@ CVFS::FileExists( const CString& file ) const
 {GUCEF_TRACE;
 
     CString path = ConformVfsFilePath( file );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -2270,8 +2368,11 @@ CVFS::FileExists( const CString& file ) const
         TConstMountLinkPtr& mountLink = (*i);
         if ( mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
         {
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), true );
             return true;
         }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return false;
         ++i;
     }
 
@@ -2438,6 +2539,24 @@ CVFS::SaveConfig( CORE::CDataNode& tree ) const
     totalSuccess = n->SetAttribute( "vfsRootForVolumes", m_vfsRootForVolumes ) && totalSuccess;
     totalSuccess = n->SetAttribute( "vfsVolumesAreWriteableIfPossible", m_vfsVolumesAreWriteableIfPossible ) && totalSuccess;
     totalSuccess = n->SetAttribute( "autoMountFsVolumes", m_autoMountFsVolumes ) && totalSuccess;
+
+    // the block cache section, when the config had one
+    while ( n->DelChild( "BlockCache" ) ) {}
+    if ( !m_blockCacheFolder.IsNULLOrEmpty() )
+    {
+        CORE::CDataNode* blockCache = n->AddChild( "BlockCache" );
+        if ( GUCEF_NULL != blockCache )
+        {
+            totalSuccess = blockCache->SetAttribute( "folder", m_blockCacheFolder ) && totalSuccess;
+            totalSuccess = blockCache->SetAttribute( "maxBytes", m_blockCacheMaxBytes ) && totalSuccess;
+            totalSuccess = blockCache->SetAttribute( "blockBytes", m_blockCacheBlockBytes ) && totalSuccess;
+            totalSuccess = blockCache->SetAttribute( "maxOpenFiles", m_blockCacheMaxOpenFiles ) && totalSuccess;
+        }
+        else
+        {
+            totalSuccess = false;
+        }
+    }
 
     // the archives go in one list; entries directly below "VFS" (which LoadConfig() also reads) are moved into it
     while ( n->DelChild( "ArchiveSettings" ) ) {}
@@ -2472,6 +2591,29 @@ CVFS::LoadVfsSystemConfig( const CORE::CDataNode& cfg )
     // "m_autoMountFsVolumes" is the name older versions read, configs write "autoMountFsVolumes"
     m_autoMountFsVolumes = cfg.GetAttributeValueOrChildValueByName( "m_autoMountFsVolumes" ).AsBool( m_autoMountFsVolumes, true );
     m_autoMountFsVolumes = cfg.GetAttributeValueOrChildValueByName( "autoMountFsVolumes" ).AsBool( m_autoMountFsVolumes, true );
+
+    // the block cache is off unless the config names a folder for it: no default folder and no default size
+    const CORE::CDataNode* blockCacheNode = cfg.FindChild( "BlockCache", false );
+    if ( GUCEF_NULL != blockCacheNode )
+    {
+        m_blockCacheFolder = blockCacheNode->GetAttributeValueOrChildValueByName( "folder" ).AsString( CString::Empty, true );
+        m_blockCacheMaxBytes = blockCacheNode->GetAttributeValueOrChildValueByName( "maxBytes" ).AsUInt64( 0, true );
+        m_blockCacheBlockBytes = blockCacheNode->GetAttributeValueOrChildValueByName( "blockBytes" ).AsUInt32( CVfsBlockCache::DefaultBlockBytes, true );
+        m_blockCacheMaxOpenFiles = blockCacheNode->GetAttributeValueOrChildValueByName( "maxOpenFiles" ).AsUInt32( CVfsBlockCache::DefaultMaxOpenFiles, true );
+        if ( !m_blockCacheFolder.IsNULLOrEmpty() )
+        {
+            CVfsBlockCachePtr cache = CVfsGlobal::Instance()->AcquireBlockCache( m_blockCacheFolder, m_blockCacheMaxBytes, m_blockCacheBlockBytes, m_blockCacheMaxOpenFiles );
+            if ( !cache.IsNULL() )
+            {
+                CVfsGlobal::Instance()->SetDefaultBlockCache( cache );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "VFS block cache opened in \"" << m_blockCacheFolder << "\"" );
+            }
+            else
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS block cache could not be opened in \"" << m_blockCacheFolder << "\", archives carry on without it" );
+            }
+        }
+    }
 
     CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
     threadPool->SetDesiredMinNrOfWorkerThreads( m_asyncOpsMinWorkerThreads );
@@ -2946,8 +3088,8 @@ CVFS::GetFileList( TStringVector& outputList             ,
                    UInt32 maxListEntries                 ) const
 {GUCEF_TRACE;
 
-    bool totalSuccess = true;
     CString path = ConformVfsDirPath( location );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -2956,21 +3098,7 @@ CVFS::GetFileList( TStringVector& outputList             ,
     GetEligableMounts( path, false, mountLinks );
 
     // Get a list from each mount
-    TConstMountLinkVector::iterator i = mountLinks.begin();
-    while ( i != mountLinks.end() )
-    {
-        TConstMountLinkPtr& mountLink = (*i);
-        mountLink->mountEntry->archive->GetFileList( outputList                       ,
-                                                     mountLink->mountEntry->mountPath ,
-                                                     mountLink->remainder             ,
-                                                     recursive                        ,
-                                                     includePathInFilename            ,
-                                                     nameFilters                      ,
-                                                     maxListEntries                   );
-        ++i;
-    }
-
-    return totalSuccess;
+    return ListFromMounts( mountLinks, outputList, false, recursive, includePathInFilename, nameFilters, maxListEntries, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3006,8 +3134,8 @@ CVFS::GetDirList( TStringVector& outputList             ,
                   UInt32 maxListEntries                 ) const
 {GUCEF_TRACE;
 
-    bool totalSuccess = true;
     CString path = ConformVfsDirPath( location );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -3016,21 +3144,7 @@ CVFS::GetDirList( TStringVector& outputList             ,
     GetEligableMounts( path, false, mountLinks );
 
     // Get a list from each mount
-    TConstMountLinkVector::iterator i = mountLinks.begin();
-    while ( i != mountLinks.end() )
-    {
-        TConstMountLinkPtr& mountLink = (*i);
-        mountLink->mountEntry->archive->GetDirList( outputList                       ,
-                                                    mountLink->mountEntry->mountPath ,
-                                                    mountLink->remainder             ,
-                                                    recursive                        ,
-                                                    includePathInFilename            ,
-                                                    nameFilters                      ,
-                                                    maxListEntries                   );
-        ++i;
-    }
-
-    return totalSuccess;
+    return ListFromMounts( mountLinks, outputList, true, recursive, includePathInFilename, nameFilters, maxListEntries, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3125,6 +3239,7 @@ CVFS::GetFileMetaData( const CString& filename           ,
 {GUCEF_TRACE;
 
     CString path = ConformVfsFilePath( filename );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -3133,19 +3248,7 @@ CVFS::GetFileMetaData( const CString& filename           ,
     GetEligableMounts( path, false, mountLinks );
 
     // Search for a file and then get the meta data
-    TConstMountLinkVector::iterator i = mountLinks.begin();
-    while ( i != mountLinks.end() )
-    {
-        TConstMountLinkPtr& mountLink = (*i);
-        if ( mountLink->mountEntry->archive->GetFileMetaData( mountLink->remainder, metaData ) )
-        {
-            if ( metaData.resourceExists )
-                return true;
-        }
-        ++i;
-    }
-
-    return false;
+    return GetFileMetaDataFromMounts( mountLinks, metaData, false, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3155,6 +3258,7 @@ CVFS::GetFileModificationTime( const CString& filename ) const
 {GUCEF_TRACE;
 
     CString path = ConformVfsFilePath( filename );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -3170,8 +3274,11 @@ CVFS::GetFileModificationTime( const CString& filename ) const
         if ( mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
         {
             CORE::CDateTime modificationTime = mountLink->mountEntry->archive->GetFileModificationTime( mountLink->remainder );
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), true );
             return modificationTime;
         }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return CORE::CDateTime();
         ++i;
     }
 
@@ -3185,6 +3292,7 @@ CVFS::GetFileHash( const CORE::CString& file ) const
 {GUCEF_TRACE;
 
     CString path = ConformVfsFilePath( file );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -3201,12 +3309,50 @@ CVFS::GetFileHash( const CORE::CString& file ) const
         if ( mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
         {
             CString hash = mountLink->mountEntry->archive->GetFileHash( mountLink->remainder );
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), true );
             return hash;
         }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return CString();
         ++i;
     }
 
     return CString();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::GetFileDigest( const CString& file, CVfsDigest& digest ) const
+{GUCEF_TRACE;
+
+    digest = CVfsDigest();
+    CString path = ConformVfsFilePath( file );
+    m_lastResults.Clear();
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    // Get a list of all eligable mounts
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    // The first mount that has the file answers, as GetFileHash() does
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        if ( mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
+        {
+            digest = mountLink->mountEntry->archive->GetFileDigest( mountLink->remainder );
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), !digest.IsEmpty() );
+            return !digest.IsEmpty();
+        }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return false;
+        ++i;
+    }
+
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3216,6 +3362,7 @@ CVFS::GetFileSize( const CORE::CString& file ) const
 {GUCEF_TRACE;
 
     CString path = ConformVfsFilePath( file );
+    m_lastResults.Clear();
 
     MT::CScopeReaderLock lock( m_rwdataLock );
 
@@ -3232,12 +3379,779 @@ CVFS::GetFileSize( const CORE::CString& file ) const
         if ( mountLink->mountEntry->archive->FileExists( mountLink->remainder ) )
         {
             UInt64 fileSize = mountLink->mountEntry->archive->GetFileSize( mountLink->remainder );
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), true );
             return fileSize;
         }
+        if ( NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false ) )
+            return 0;
         ++i;
     }
 
     return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::InvalidateRemoteMetadata( const CString& vfsPath )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+            remote->InvalidateMetadata( mountLink->remainder );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::InvalidateRemoteMetadata( void )
+{GUCEF_TRACE;
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TMountVector::iterator i = m_mountList.begin();
+    while ( i != m_mountList.end() )
+    {
+        CIRemoteArchive* remote = (*i)->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+            remote->InvalidateMetadata();
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::NoteFileDigest( const CString& vfsPath, const CVfsDigest& digest, const CString& revision )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    bool noted = false;
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+        {
+            remote->NoteFileDigest( mountLink->remainder, digest, revision );
+            noted = true;
+        }
+        ++i;
+    }
+    return noted;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::ForgetFileDigests( const CString& vfsPath )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsDirPath( vfsPath );
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    bool forgotten = false;
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+        {
+            remote->ForgetFileDigests();
+            forgotten = true;
+        }
+        ++i;
+    }
+    return forgotten;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::GetFileCacheState( const CString& vfsPath, CVfsCacheState& state ) const
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote && remote->GetFileCacheState( mountLink->remainder, state ) )
+            return true;
+        ++i;
+    }
+    state = CVfsCacheState();
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::SetFilePinned( const CString& vfsPath, bool pinned )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+    m_lastResults.Clear();
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+        {
+            if ( remote->SetFilePinned( mountLink->remainder, pinned ) )
+                return true;
+
+            // why it was refused (the files kept offline would pass the limit of the cache, nothing to keep): GetLastResult() of the thread
+            NoteRemoteOutcome( mountLink->mountEntry->archive.GetPointerAlways(), false );
+        }
+        ++i;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::GetRemoteStatistics( const CString& vfsPath, CVfsRemoteStatistics& statistics ) const
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    TConstMountLinkVector::iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        TConstMountLinkPtr& mountLink = (*i);
+        CIRemoteArchive* remote = mountLink->mountEntry->archive->GetRemoteArchiveInterface();
+        if ( GUCEF_NULL != remote )
+        {
+            remote->GetRemoteStatistics( statistics );
+            return true;
+        }
+        ++i;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsCallResult
+CVFS::FetchFile( const CString& vfsPath, const CVfsFetchRequest& options, CVfsFetchProgress& progress )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsFilePath( vfsPath );
+    m_lastResults.Clear();
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+
+    // the first remote mount that has the file fetches it; a local archive is not asked: there is nothing to fetch
+    return FetchFromMounts( mountLinks, vfsPath, options, progress, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::SnapshotMounts( const CString& path, bool mustBeWritable, TConstMountLinkVector& mountLinks ) const
+{GUCEF_TRACE;
+
+    // the links hold the mount entries and so the archives: they stay usable when the lock is let go
+    MT::CScopeReaderLock lock( m_rwdataLock );
+    GetEligableMounts( path, mustBeWritable, mountLinks );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::ResolveMount( const CString& vfsPath, TArchivePtr& archive, CString& remainder ) const
+{GUCEF_TRACE;
+
+    TConstMountLinkVector mountLinks;
+    SnapshotMounts( ConformVfsFilePath( vfsPath ), false, mountLinks );
+    if ( mountLinks.empty() )
+        return false;
+
+    archive = mountLinks.front()->mountEntry->archive;
+    remainder = mountLinks.front()->remainder;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVFS::CArchiveCallScope::CArchiveCallScope( const CVFS& vfs, const CArchive& archive, bool lockPerCall )
+    : m_lock( GUCEF_NULL )
+    , m_mounted( true )
+{GUCEF_TRACE;
+
+    if ( !lockPerCall )
+        return;         // the caller holds the lock for the whole call
+
+    // the mount can be gone since the links were taken
+    m_lock = GUCEF_NEW MT::CScopeReaderLock( vfs.m_rwdataLock );
+    m_mounted = vfs.m_archivePtrToMountEntryLookup.find( const_cast< CArchive* >( &archive ) ) != vfs.m_archivePtrToMountEntryLookup.end();
+    if ( !m_mounted || GUCEF_NULL != archive.GetRemoteArchiveInterface() )
+    {
+        // the call of a remote archive is made without the lock: a mount or an unmount must not wait for the slowest call of a
+        // remote place. An archive of any other kind is called under the lock, as the synchronous calls do: its unload may
+        // free what a call in progress uses
+        GUCEF_DELETE m_lock;
+        m_lock = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVFS::CArchiveCallScope::~CArchiveCallScope()
+{GUCEF_TRACE;
+
+    GUCEF_DELETE m_lock;
+    m_lock = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::CArchiveCallScope::IsMounted( void ) const
+{GUCEF_TRACE;
+
+    return m_mounted;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TBasicVfsResourcePtr
+CVFS::OpenFromMounts( const TConstMountLinkVector& mountLinks ,
+                       const CString& filepath                ,
+                       const CString& file                    ,
+                       const char* mode                       ,
+                       bool overwrite                         ,
+                       bool lockPerCall                       ) const
+{GUCEF_TRACE;
+
+    bool fileMustExist = *mode == 'r';
+
+    // Find the file in the available archives
+    TConstMountLinkVector::const_iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        const TConstMountLinkPtr& mountLink = (*i);
+        TArchivePtr archive = mountLink->mountEntry->archive;
+
+        bool tryToGetFile = true;
+        if ( fileMustExist )
+        {
+            bool mounted = true;
+            bool exists = false;
+            {
+                CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+                mounted = scope.IsMounted();
+                exists = mounted && archive->FileExists( mountLink->remainder );
+            }
+            if ( !mounted )
+            {
+                ++i;
+                continue;
+            }
+
+            if ( !exists )
+            {
+                // a remote mount that has not got the answer yet: the mounts below it are not asked
+                if ( NoteRemoteOutcome( archive.GetPointerAlways(), false ) )
+                {
+                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs: The remote mount at \"" + mountLink->mountEntry->mountPath + "\" has no answer yet for the file: " + file );
+                    return TBasicVfsResourcePtr();
+                }
+                tryToGetFile = false;
+            }
+        }
+
+        if ( tryToGetFile )
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Vfs: Found requested file using mount link remainder: " + mountLink->remainder );
+            TBasicVfsResourcePtr filePtr;
+            {
+                CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+                if ( !scope.IsMounted() )
+                {
+                    ++i;
+                    continue;
+                }
+                filePtr = archive->GetFile( mountLink->remainder ,
+                                            mode                 ,
+                                            m_maxmemloadsize     ,
+                                            overwrite            );
+            }
+
+            NoteRemoteOutcome( archive.GetPointerAlways(), !filePtr.IsNULL() );
+            if ( !filePtr )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs: Requested file pre-conditions passed but could not be loaded from mounted archive using mount link remainder: " + mountLink->remainder );
+            }
+            else
+            {
+                // Remember where in the VFS this came from, the archives only know their own relative paths
+                filePtr->SetVfsPath( filepath );
+            }
+            return filePtr;
+        }
+
+        ++i;
+    }
+
+    // Unable to load file
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs: Unable to locate a mount which can provide the file: " + file );
+    return TBasicVfsResourcePtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::GetFileMetaDataFromMounts( const TConstMountLinkVector& mountLinks ,
+                                 CORE::CResourceMetaData& metaData       ,
+                                 bool lockPerCall                        ,
+                                 CVfsDigest* digest                      ) const
+{GUCEF_TRACE;
+
+    // Search for a file and then get the meta data
+    TConstMountLinkVector::const_iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        const TConstMountLinkPtr& mountLink = (*i);
+        TArchivePtr archive = mountLink->mountEntry->archive;
+
+        bool mounted = true;
+        bool found = false;
+        {
+            CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+            mounted = scope.IsMounted();
+            if ( mounted && archive->GetFileMetaData( mountLink->remainder, metaData ) && metaData.resourceExists )
+            {
+                found = true;
+
+                // the digest the remote place knows is given with the metadata; one that would have to be made from the content is not
+                if ( GUCEF_NULL != digest && GUCEF_NULL != archive->GetRemoteArchiveInterface() )
+                    *digest = archive->GetFileDigest( mountLink->remainder );
+            }
+        }
+        if ( !mounted )
+        {
+            ++i;
+            continue;
+        }
+
+        if ( found )
+        {
+            NoteRemoteOutcome( archive.GetPointerAlways(), true );
+            return true;
+        }
+        if ( NoteRemoteOutcome( archive.GetPointerAlways(), false ) )
+            return false;
+        ++i;
+    }
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVFS::ListFromMounts( const TConstMountLinkVector& mountLinks ,
+                      TStringVector& outputList               ,
+                      bool directories                        ,
+                      bool recursive                          ,
+                      bool includePathInFilename              ,
+                      const CString::StringSet& nameFilters   ,
+                      UInt32 maxListEntries                   ,
+                      bool lockPerCall                        ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    // Get a list from each mount
+    TConstMountLinkVector::const_iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        const TConstMountLinkPtr& mountLink = (*i);
+        TArchivePtr archive = mountLink->mountEntry->archive;
+
+        {
+            CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+            if ( !scope.IsMounted() )
+            {
+                ++i;
+                continue;
+            }
+
+            if ( directories )
+            {
+                archive->GetDirList( outputList                       ,
+                                     mountLink->mountEntry->mountPath ,
+                                     mountLink->remainder             ,
+                                     recursive                        ,
+                                     includePathInFilename            ,
+                                     nameFilters                      ,
+                                     maxListEntries                   );
+            }
+            else
+            {
+                archive->GetFileList( outputList                       ,
+                                      mountLink->mountEntry->mountPath ,
+                                      mountLink->remainder             ,
+                                      recursive                        ,
+                                      includePathInFilename            ,
+                                      nameFilters                      ,
+                                      maxListEntries                   );
+            }
+        }
+
+        // a remote mount whose list is not complete (not here yet, cannot be reached): the mounts below it are not added to it
+        if ( NoteRemoteOutcome( archive.GetPointerAlways(), false ) )
+        {
+            totalSuccess = false;
+            break;
+        }
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsCallResult
+CVFS::FetchFromMounts( const TConstMountLinkVector& mountLinks ,
+                       const CString& vfsPath                  ,
+                       const CVfsFetchRequest& options         ,
+                       CVfsFetchProgress& progress             ,
+                       bool lockPerCall                        ) const
+{GUCEF_TRACE;
+
+    // the first remote mount that has the file fetches it; a local archive is not asked: there is nothing to fetch
+    bool anyRemote = false;
+    TConstMountLinkVector::const_iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        const TConstMountLinkPtr& mountLink = (*i);
+        TArchivePtr archive = mountLink->mountEntry->archive;
+
+        CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+        CIRemoteArchive* remote = scope.IsMounted() ? archive->GetRemoteArchiveInterface() : GUCEF_NULL;
+        if ( GUCEF_NULL != remote )
+        {
+            anyRemote = true;
+            const CVfsCallResult result = remote->FetchFile( mountLink->remainder, options, progress );
+            if ( result.IsSuccess() || CORE::FILESYSTEMACCESS_NOT_FOUND != result.result )
+            {
+                m_lastResults.Set( result );
+                return result;
+            }
+        }
+        ++i;
+    }
+
+    const CVfsCallResult result( anyRemote ? CORE::FILESYSTEMACCESS_NOT_FOUND : CORE::FILESYSTEMACCESS_NOT_SUPPORTED,
+                                 anyRemote ? "no remote mount has the file: " + vfsPath : "the file is not in a remote archive, there is nothing to fetch: " + vfsPath );
+    if ( !anyRemote )
+    {
+        // no archive counted the file: it is counted here, once
+        progress.filesTotal.FetchAdd( 1 );
+        progress.filesFailed.FetchAdd( 1 );
+        progress.SetLastFailure( result );
+    }
+    m_lastResults.Set( result );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsCallResult
+CVFS::FetchDirectoryFromMounts( const TConstMountLinkVector& mountLinks ,
+                                const CString& vfsPath                  ,
+                                bool recursive                          ,
+                                UInt32 maxDirectories                   ,
+                                CVfsFetchProgress& progress             ,
+                                bool lockPerCall                        ) const
+{GUCEF_TRACE;
+
+    // the first remote mount that has the directory fetches its listings; a local archive is not asked: there is nothing to fetch
+    bool anyRemote = false;
+    TConstMountLinkVector::const_iterator i = mountLinks.begin();
+    while ( i != mountLinks.end() )
+    {
+        const TConstMountLinkPtr& mountLink = (*i);
+        TArchivePtr archive = mountLink->mountEntry->archive;
+
+        CArchiveCallScope scope( *this, *archive.GetPointerAlways(), lockPerCall );
+        CIRemoteArchive* remote = scope.IsMounted() ? archive->GetRemoteArchiveInterface() : GUCEF_NULL;
+        if ( GUCEF_NULL != remote )
+        {
+            anyRemote = true;
+            const CVfsCallResult result = remote->FetchDirectory( mountLink->remainder, recursive, maxDirectories, progress );
+            if ( result.IsSuccess() || CORE::FILESYSTEMACCESS_NOT_FOUND != result.result )
+            {
+                m_lastResults.Set( result );
+                return result;
+            }
+        }
+        ++i;
+    }
+
+    const CVfsCallResult result( anyRemote ? CORE::FILESYSTEMACCESS_NOT_FOUND : CORE::FILESYSTEMACCESS_NOT_SUPPORTED,
+                                 anyRemote ? "no remote mount has the directory: " + vfsPath : "the directory is not in a remote archive, there is nothing to fetch: " + vfsPath );
+    if ( !anyRemote )
+    {
+        progress.filesTotal.FetchAdd( 1 );
+        progress.filesFailed.FetchAdd( 1 );
+        progress.SetLastFailure( result );
+    }
+    m_lastResults.Set( result );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsCallResult
+CVFS::FetchDirectory( const CString& vfsPath, bool recursive, UInt32 maxDirectories, CVfsFetchProgress& progress )
+{GUCEF_TRACE;
+
+    CString path = ConformVfsDirPath( vfsPath );
+    m_lastResults.Clear();
+
+    MT::CScopeReaderLock lock( m_rwdataLock );
+
+    TConstMountLinkVector mountLinks;
+    GetEligableMounts( path, false, mountLinks );
+    return FetchDirectoryFromMounts( mountLinks, vfsPath, recursive, maxDirectories, progress, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::QueueAsyncCall( CVfsAsyncVfsCall* call, CVfsAsyncResultPtr result )
+{GUCEF_TRACE;
+
+    // the call is owned from here on
+    CIVfsAsyncCallPtr callPtr( call );
+
+    CString poolName;
+    {
+        MT::CScopeMutex lock( m_asyncSettingsLock );
+        poolName = m_remoteOpsThreadPool;
+    }
+
+    CORE::CFutureResult future = CVfsAsyncCallTaskConsumer::Queue( poolName, CVfsAsyncCallTaskConsumer::DefaultWorkerThreads, callPtr );
+    if ( future.HasNoFuture() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "VFS: An asynchronous call could not be given to the thread pool \"" << poolName << "\"" );
+        if ( !result.IsNULL() )
+            result->result = CVfsCallResult( CORE::FILESYSTEMACCESS_QUEUEING_FAILED, "the call could not be given to the thread pool \"" + poolName + "\"" );
+    }
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::GetFileMetaDataAsync( const CString& file, CVfsAsyncResultPtr& result )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_GETFILEMETADATA, result );
+    call->path = file;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::GetFileListAsync( const CString& location             ,
+                        bool recursive                      ,
+                        bool includePathInFilename          ,
+                        const CString::StringSet& nameFilters ,
+                        UInt32 maxListEntries               ,
+                        CVfsAsyncResultPtr& result          )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_GETFILELIST, result );
+    call->path = location;
+    call->recursive = recursive;
+    call->includePath = includePathInFilename;
+    call->filters = nameFilters;
+    call->maxEntries = maxListEntries;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::GetDirListAsync( const CString& location             ,
+                       bool recursive                      ,
+                       bool includePathInFilename          ,
+                       const CString::StringSet& nameFilters ,
+                       UInt32 maxListEntries               ,
+                       CVfsAsyncResultPtr& result          )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_GETDIRLIST, result );
+    call->path = location;
+    call->recursive = recursive;
+    call->includePath = includePathInFilename;
+    call->filters = nameFilters;
+    call->maxEntries = maxListEntries;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::GetFileAsync( const CString& file, CVfsAsyncResultPtr& result )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_GETFILE, result );
+    call->path = file;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::ReadFileRangeAsync( const CString& file, UInt64 offset, UInt32 length, CVfsAsyncResultPtr& result )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_READFILERANGE, result );
+    call->path = file;
+    call->offset = offset;
+    call->length = length;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::FetchFileAsync( const CString& file, const CVfsFetchRequest& request, CVfsFetchProgressPtr& progress, CVfsAsyncResultPtr& result )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    if ( progress.IsNULL() )
+        progress = CVfsFetchProgressPtr( GUCEF_NEW CVfsFetchProgress() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_FETCHFILE, result );
+    call->path = file;
+    call->request = request;
+    call->progress = progress;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CVFS::PrefetchAsync( const CVfsFetchRequest& request, CVfsFetchProgressPtr& progress, CVfsAsyncResultPtr& result )
+{GUCEF_TRACE;
+
+    result = CVfsAsyncResultPtr( GUCEF_NEW CVfsAsyncResult() );
+    if ( progress.IsNULL() )
+        progress = CVfsFetchProgressPtr( GUCEF_NEW CVfsFetchProgress() );
+    CVfsAsyncVfsCall* call = GUCEF_NEW CVfsAsyncVfsCall( *this, m_asyncGate, CVfsAsyncVfsCall::KIND_PREFETCH, result );
+    call->request = request;
+    call->progress = progress;
+    return QueueAsyncCall( call, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::SetRemoteOpsThreadPool( const CString& threadPoolName )
+{GUCEF_TRACE;
+
+    CString poolName;
+    {
+        MT::CScopeMutex lock( m_asyncSettingsLock );
+        m_remoteOpsThreadPool = threadPoolName.IsNULLOrEmpty() ? CVfsFetchScheduler::DefaultThreadPoolName : threadPoolName;
+        poolName = m_remoteOpsThreadPool;
+    }
+
+    // one pool for the work that waits for remote places: the background fetches of the remote archives run on it too
+    CVfsGlobal* global = CVfsGlobal::Instance();
+    if ( GUCEF_NULL != global )
+        global->GetFetchScheduler().SetThreadPoolName( poolName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CVFS::GetRemoteOpsThreadPool( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_asyncSettingsLock );
+    return m_remoteOpsThreadPool;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFS::SetMaxAsyncReadBytes( UInt32 maxBytes )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_asyncSettingsLock );
+    m_maxAsyncReadBytes = maxBytes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CVFS::GetMaxAsyncReadBytes( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_asyncSettingsLock );
+    return m_maxAsyncReadBytes;
 }
 
 /*-------------------------------------------------------------------------*/

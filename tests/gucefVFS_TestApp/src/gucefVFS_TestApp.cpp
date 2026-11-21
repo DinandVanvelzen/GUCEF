@@ -108,6 +108,61 @@
 #include "TestVfsMountLocking.h"
 #define GUCEF_VFS_TESTAPP_TESTVFSMOUNTLOCKING_H
 #endif /* GUCEF_VFS_TESTAPP_TESTVFSMOUNTLOCKING_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTFILESYSTEMARCHIVECONFORMANCE_H
+#include "TestFileSystemArchiveConformance.h"
+#define GUCEF_VFS_TESTAPP_TESTFILESYSTEMARCHIVECONFORMANCE_H
+#endif /* GUCEF_VFS_TESTAPP_TESTFILESYSTEMARCHIVECONFORMANCE_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSDIGEST_H
+#include "TestVfsDigest.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSDIGEST_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSDIGEST_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSASYNCPRIMITIVES_H
+#include "TestVfsAsyncPrimitives.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSASYNCPRIMITIVES_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSASYNCPRIMITIVES_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSASYNCCALLS_H
+#include "TestVfsAsyncCalls.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSASYNCCALLS_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSASYNCCALLS_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSASYNCTEARDOWN_H
+#include "TestVfsAsyncTeardown.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSASYNCTEARDOWN_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSASYNCTEARDOWN_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSBLOCKCACHE_H
+#include "TestVfsBlockCache.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSBLOCKCACHE_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSBLOCKCACHE_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSTHREADPOLICY_H
+#include "TestVfsThreadPolicy.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSTHREADPOLICY_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSTHREADPOLICY_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSFETCHSCHEDULER_H
+#include "TestVfsFetchScheduler.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSFETCHSCHEDULER_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSFETCHSCHEDULER_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSREMOTEBLOCKS_H
+#include "TestVfsRemoteBlocks.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSREMOTEBLOCKS_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSREMOTEBLOCKS_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSREMOTEMOUNTS_H
+#include "TestVfsRemoteMounts.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSREMOTEMOUNTS_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSREMOTEMOUNTS_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTREMOTEARCHIVECONFORMANCE_H
+#include "TestRemoteArchiveConformance.h"
+#define GUCEF_VFS_TESTAPP_TESTREMOTEARCHIVECONFORMANCE_H
+#endif /* GUCEF_VFS_TESTAPP_TESTREMOTEARCHIVECONFORMANCE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -366,10 +421,19 @@ GUCEF_OSMAIN_BEGIN
     try
     {
         bool onlyMountLocking = false;
+        bool onlyBlockCache = false;
+        bool onlyRemote = false;
+        bool onlyAsync = false;
         for ( int i=1; i<argc; ++i )
         {
             if ( 0 == strcmp( argv[ i ], "-only-mountlocking" ) )
                 onlyMountLocking = true;
+            if ( 0 == strcmp( argv[ i ], "-only-blockcache" ) )
+                onlyBlockCache = true;
+            if ( 0 == strcmp( argv[ i ], "-only-remote" ) )
+                onlyRemote = true;
+            if ( 0 == strcmp( argv[ i ], "-only-async" ) )
+                onlyAsync = true;
             if ( 0 == strcmp( argv[ i ], "-manual" ) )
                 return RunManualTests( argc, argv );
             if ( 0 == strcmp( argv[ i ], "-large" ) )
@@ -393,7 +457,7 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefVFS_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
-        if ( !onlyMountLocking )
+        if ( !onlyMountLocking && !onlyBlockCache && !onlyRemote && !onlyAsync )
         {
             PerformVFSFileLoadUnloadTest();
             PerformZipArchiveWriterTests();
@@ -406,8 +470,34 @@ GUCEF_OSMAIN_BEGIN
             PerformVfsConfigTests();
             PerformVfsMountRootsTests();
             PerformVfsCodecTests();
+            PerformFileSystemArchiveConformanceTests();
         }
-        PerformVfsMountLockingTests();
+        if ( !onlyMountLocking && !onlyRemote && !onlyAsync )
+        {
+            PerformVfsDigestTests();
+            PerformVfsBlockCacheTests();
+            PerformVfsBlockCacheStressTests();
+            PerformVfsBlockCacheGlobalTests();
+        }
+        if ( !onlyMountLocking && !onlyBlockCache && !onlyAsync )
+        {
+            PerformVfsThreadPolicyTests();
+            PerformVfsFetchSchedulerTests();
+            PerformVfsRemoteBlocksTests();
+            PerformVfsRemoteMountsTests();
+            PerformRemoteArchiveConformanceTests();
+        }
+        if ( !onlyMountLocking && !onlyBlockCache )
+        {
+            PerformVfsAsyncPrimitivesTests();
+            PerformVfsAsyncCallsTests();
+        }
+        if ( !onlyBlockCache && !onlyRemote && !onlyAsync )
+            PerformVfsMountLockingTests();
+
+        // the last: it takes the VFS down while calls are under way, nothing can use the VFS after it
+        if ( !onlyBlockCache && !onlyMountLocking )
+            PerformVfsAsyncTeardownTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

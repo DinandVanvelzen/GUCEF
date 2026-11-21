@@ -28,6 +28,16 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -74,6 +84,21 @@
 #define GUCEF_VFS_CASYNCVFSOPERATION_H
 #endif /* GUCEF_VFS_CASYNCVFSOPERATION_H ? */
 
+#ifndef GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#include "gucefVFS_CRemoteArchiveEvents.h"
+#define GUCEF_VFS_CREMOTEARCHIVEEVENTS_H
+#endif /* GUCEF_VFS_CREMOTEARCHIVEEVENTS_H ? */
+
+#ifndef GUCEF_VFS_CVFSFETCHTASKCONSUMER_H
+#include "gucefVFS_CVfsFetchTaskConsumer.h"
+#define GUCEF_VFS_CVFSFETCHTASKCONSUMER_H
+#endif /* GUCEF_VFS_CVFSFETCHTASKCONSUMER_H ? */
+
+#ifndef GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H
+#include "gucefVFS_CVfsAsyncCallTaskConsumer.h"
+#define GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H
+#endif /* GUCEF_VFS_CVFSASYNCCALLTASKCONSUMER_H ? */
+
 #include "gucefVFS_CVfsGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -104,6 +129,8 @@ CVfsGlobal* CVfsGlobal::g_instance = GUCEF_NULL;
 
 TAsyncVfsOperationTaskFactory g_asyncVfsOperationTaskFactory;
 TVfsUriResourceAccessorFactory g_vfsUriResourceAccessorFactory;
+CORE::CTFactory< CORE::CTaskConsumer, CVfsFetchTaskConsumer, MT::CMutex > g_vfsFetchTaskConsumerFactory;
+CORE::CTFactory< CORE::CTaskConsumer, CVfsAsyncCallTaskConsumer, MT::CMutex > g_vfsAsyncCallTaskConsumerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -133,6 +160,91 @@ CVfsGlobal::Instance()
 
 /*-------------------------------------------------------------------------*/
 
+static CORE::CString
+MakeBlockCacheFolderKey( const CORE::CString& folder )
+{GUCEF_TRACE;
+
+    CORE::CString key = CORE::RelativePath( folder ).ReplaceChar( '\\', '/' );
+    while ( key.Length() > 1 && '/' == key[ key.Length() - 1 ] )
+        key = key.SubstrFromRange( 0, key.Length() - 1 );
+    return key;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsBlockCachePtr
+CVfsGlobal::AcquireBlockCache( const CORE::CString& folder ,
+                               UInt64 maxBytes             ,
+                               UInt32 blockBytes           ,
+                               UInt32 maxOpenFiles         ,
+                               bool breakStaleLock         )
+{GUCEF_TRACE;
+
+    if ( folder.IsNULLOrEmpty() )
+        return CVfsBlockCachePtr();
+
+    const CORE::CString key = MakeBlockCacheFolderKey( folder );
+    MT::CScopeMutex lock( m_blockCacheLock );
+
+    bool expiredEntry = false;
+    TBlockCacheMap::iterator i = m_blockCaches.find( key );
+    if ( i != m_blockCaches.end() )
+    {
+        CVfsBlockCachePtr existing = i->second.GetSharedPtr();
+        if ( !existing.IsNULL() )
+        {
+            if ( existing->GetMaxBytes() != maxBytes || existing->GetBlockBytes() != blockBytes )
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CVfsGlobal: The block cache of " << key << " is open already with other settings than asked for, the open one is used" );
+            return existing;
+        }
+        // the last user let go: its destructor may still be closing the folder
+        expiredEntry = true;
+        m_blockCaches.erase( i );
+    }
+
+    // a cache that is still closing its folder holds cache.lock for a moment: a short wait for it, only when there was one
+    const UInt32 attempts = expiredEntry ? 40 : 1;
+    for ( UInt32 attempt = 0; attempt < attempts; ++attempt )
+    {
+        CVfsBlockCachePtr cache( GUCEF_NEW CVfsBlockCache() );
+        if ( cache->Open( folder, maxBytes, blockBytes, maxOpenFiles, breakStaleLock ) )
+        {
+            m_blockCaches[ key ] = TBlockCacheWeakPtr( cache );
+            return cache;
+        }
+        if ( attempt + 1 < attempts )
+            MT::PrecisionDelay( 25 );
+    }
+    return CVfsBlockCachePtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsBlockCachePtr
+CVfsGlobal::GetDefaultBlockCache( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_blockCacheLock );
+    return m_defaultBlockCache;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVfsGlobal::SetDefaultBlockCache( const CVfsBlockCachePtr& cache )
+{GUCEF_TRACE;
+
+    CVfsBlockCachePtr previous;
+    {
+        MT::CScopeMutex lock( m_blockCacheLock );
+        previous = m_defaultBlockCache;
+        m_defaultBlockCache = cache;
+    }
+    // the previous one goes (and closes its folder) outside the lock
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CVfsGlobal::Deinstance( void )
 {GUCEF_TRACE;
@@ -156,6 +268,7 @@ CVfsGlobal::Initialize( void )
     // Init events
     CVFS::RegisterEvents();
     CAsyncVfsOperation::RegisterEvents();
+    CRemoteArchiveEvents::RegisterEvents();
     
     try
     {
@@ -171,6 +284,9 @@ CVfsGlobal::Initialize( void )
     m_vfs = GUCEF_NEW CVFS();
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncVfsOperation::TaskType, &g_asyncVfsOperationTaskFactory );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CVfsFetchTaskConsumer::TaskType, &g_vfsFetchTaskConsumerFactory );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CVfsAsyncCallTaskConsumer::TaskType, &g_vfsAsyncCallTaskConsumerFactory );
+    m_fetchScheduler = GUCEF_NEW CVfsFetchScheduler();
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().RegisterConcreteFactory( CVfsUriResourceAccessor::SchemeName, &g_vfsUriResourceAccessorFactory );
     
     /*
@@ -185,6 +301,8 @@ CVfsGlobal::Initialize( void )
 
 CVfsGlobal::CVfsGlobal( void )
     : m_vfs( GUCEF_NULL )
+    , m_threadPolicyRegistry()
+    , m_fetchScheduler( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -201,7 +319,13 @@ CVfsGlobal::~CVfsGlobal()
      *  Unregister handlers
      */
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncVfsOperation::TaskType ); 
+
+    // the consumer of the asynchronous calls stays registered, as that of the background fetches does: calls that are still queued
+    // when the VFS goes are run by it and find the VFS shut, which a pool that has to empty its queue before it stops depends on
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CVfsUriResourceAccessor::SchemeName );
+
+    // the default block cache goes first: its folder is closed here, before the systems it may be used by
+    SetDefaultBlockCache( CVfsBlockCachePtr() );
 
     /*
      *      cleanup all singletons
@@ -210,6 +334,11 @@ CVfsGlobal::~CVfsGlobal()
 
     GUCEF_DELETE m_vfs;
     m_vfs = GUCEF_NULL;
+
+    // after the VFS: its archives drop their background jobs when they unload
+    GUCEF_DELETE m_fetchScheduler;
+    m_fetchScheduler = GUCEF_NULL;
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CVfsFetchTaskConsumer::TaskType );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -219,6 +348,24 @@ CVfsGlobal::GetVfs( void )
 {GUCEF_TRACE;
 
     return *m_vfs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsThreadPolicyRegistry&
+CVfsGlobal::GetThreadPolicyRegistry( void )
+{GUCEF_TRACE;
+
+    return m_threadPolicyRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsFetchScheduler&
+CVfsGlobal::GetFetchScheduler( void )
+{GUCEF_TRACE;
+
+    return *m_fetchScheduler;
 }
 
 /*-------------------------------------------------------------------------//

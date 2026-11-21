@@ -12,32 +12,76 @@
 # Configuration for module: gucefVFS_TestApp
 
 set( HEADER_FILES 
+  include/TestArchiveConformance.h
+  include/TestArchiveConformanceCapabilities.h
+  include/TestArchiveConformanceFixture.h
+  include/TestArchiveConformanceTree.h
   include/TestArchiveUtils.h
   include/TestCode_VFSFileLoadUnloadTest.h
   include/TestCueBinArchive.h
   include/TestFileSystemAccess.h
+  include/TestFileSystemArchiveConformance.h
   include/TestIso9660Archive.h
   include/TestItvArchive.h
   include/TestLibArchive.h
   include/TestMountFromResource.h
+  include/TestRemoteArchive.h
+  include/TestRemoteArchiveConformance.h
+  include/TestRemoteArchiveFixture.h
+  include/TestRemoteBackend.h
+  include/TestRemoteEnvironment.h
+  include/TestThreads.h
+  include/TestVfsAsyncCalls.h
+  include/TestVfsAsyncPrimitives.h
+  include/TestVfsAsyncTeardown.h
+  include/TestVfsBlockCache.h
+  include/TestVfsBlockCacheUtils.h
   include/TestVfsCodecs.h
   include/TestVfsConfig.h
+  include/TestVfsDigest.h
+  include/TestVfsFetchScheduler.h
   include/TestVfsMountLocking.h
+  include/TestVfsRemoteBlocks.h
+  include/TestVfsRemoteMounts.h
+  include/TestVfsThreadPolicy.h
   include/TestZipArchiveWriter.h
 )
 
 set( SOURCE_FILES 
+  src/TestArchiveConformance.cpp
+  src/TestArchiveConformanceCapabilities.cpp
+  src/TestArchiveConformanceFixture.cpp
+  src/TestArchiveConformanceTree.cpp
   src/TestArchiveUtils.cpp
   src/TestCode_VFSFileLoadUnloadTest.cpp
   src/TestCueBinArchive.cpp
   src/TestFileSystemAccess.cpp
+  src/TestFileSystemArchiveConformance.cpp
   src/TestIso9660Archive.cpp
   src/TestItvArchive.cpp
   src/TestLibArchive.cpp
   src/TestMountFromResource.cpp
+  src/TestRemoteArchive.cpp
+  src/TestRemoteArchiveConformance.cpp
+  src/TestRemoteArchiveFixture.cpp
+  src/TestRemoteArchiveMemoryPlace.cpp
+  src/TestRemoteBackend.cpp
+  src/TestRemoteEnvironment.cpp
+  src/TestThreads.cpp
+  src/TestVfsAsyncCalls.cpp
+  src/TestVfsAsyncPrimitives.cpp
+  src/TestVfsAsyncTeardown.cpp
+  src/TestVfsBlockCache.cpp
+  src/TestVfsBlockCacheStress.cpp
+  src/TestVfsBlockCacheUtils.cpp
   src/TestVfsCodecs.cpp
   src/TestVfsConfig.cpp
+  src/TestVfsDigest.cpp
+  src/TestVfsFetchScheduler.cpp
   src/TestVfsMountLocking.cpp
+  src/TestVfsRemoteBlocks.cpp
+  src/TestVfsRemoteMounts.cpp
+  src/TestVfsThreadPolicy.cpp
   src/TestZipArchiveWriter.cpp
   src/gucefVFS_TestApp.cpp
 )

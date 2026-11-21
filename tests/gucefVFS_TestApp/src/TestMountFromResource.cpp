@@ -255,6 +255,10 @@ PerformMountFromResourceTests( void )
 
             ASSERT_TRUE( vfs.MountArchive( "mountedFromResource", resource, CTestResourceArchive::TypeName, "/fromresource", false ) );
             ASSERT_TRUE( vfs.IsMountedArchive( "/fromresource" ) );
+            // the archive is found by the name it was mounted under, and by no other
+            ASSERT_FALSE( vfs.GetMountedArchive( "mountedFromResource" ).IsNULL() );
+            ASSERT_TRUE( !vfs.GetMountedArchive( "mountedFromResource" ).IsNULL() && vfs.GetMountedArchive( "mountedFromResource" )->GetArchiveName() == "mountedFromResource" );
+            ASSERT_TRUE( vfs.GetMountedArchive( "mountedFromResource " ).IsNULL() && vfs.GetMountedArchive( CORE::CString::Empty ).IsNULL() );
             ASSERT_TRUE( vfs.FileExists( "/fromresource/content.txt" ) );
             ASSERT_TRUE( vfs.GetFileSize( "/fromresource/content.txt" ) == strlen( payload ) );
 
@@ -265,6 +269,7 @@ PerformMountFromResourceTests( void )
 
             ASSERT_TRUE( vfs.UnmountArchiveByName( "mountedFromResource" ) );
             ASSERT_FALSE( vfs.IsMountedArchive( "/fromresource" ) );
+            ASSERT_TRUE( vfs.GetMountedArchive( "mountedFromResource" ).IsNULL() );
         }
         catch ( ... )
         {

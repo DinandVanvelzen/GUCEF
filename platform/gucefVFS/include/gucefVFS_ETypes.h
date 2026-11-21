@@ -121,6 +121,22 @@ enum EVfsFilePropertyTypes GUCEF_ENUM_BASE( Int32 )
     Hash                = GUCEF_VFS_FILE_PROPERTY_HASH
 };
 
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  What a background job of a remote archive does: the kind of the work that a miss starts, which is also the kind of the
+ *  event that ends it. STAT and REVALIDATE ask for the metadata of one path (REVALIDATE: the answer of a stale one is in
+ *  use already), LIST for a directory, BLOCKS for a run of blocks of a file, WHOLE for every block of a file.
+ */
+enum EVfsFetchJobKind
+{
+    FETCHJOB_STAT = 0,
+    FETCHJOB_LIST,
+    FETCHJOB_REVALIDATE,
+    FETCHJOB_BLOCKS,
+    FETCHJOB_WHOLE
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

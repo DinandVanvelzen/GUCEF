@@ -223,15 +223,19 @@ CVfsUriResourceAccessor::GetPartialResource( const CORE::CUri& uri        ,
         if ( !fileAccess.IsNULL() ) 
         {
             fileAccess->Open();
-            if ( 0 != fileAccess->Seek( byteOffset, SEEK_SET ) )
+            // Seek follows fseek(): zero is success
+            if ( 0 == fileAccess->Seek( byteOffset, SEEK_SET ) )
             {            
                 destination.Open();
                 destination.Write( *fileAccess, bytesToGet );            
                 destination.Close();
+                fileAccess->Close();
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "FileSystemUriResourceAccessor:GetPartialResource: Wrote partial file to " + fsPath );
+                return true;
             }
             fileAccess->Close();
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "FileSystemUriResourceAccessor:GetResource: Wrote file to " + fsPath );
-            return true;         
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VfsUriResourceAccessor:GetPartialResource: Failed to seek to offset " << byteOffset << " in file : " << fsPath );
+            return false;
         }
     }
 
@@ -364,15 +368,19 @@ CVfsUriResourceAccessor::UpdatePartialResource( const CORE::CUri& uri ,
         if ( !fileAccess.IsNULL() ) 
         {
             fileAccess->Open();
-            if ( 0 != fileAccess->Seek( byteOffset, SEEK_SET ) )
+            // Seek follows fseek(): zero is success
+            if ( 0 == fileAccess->Seek( byteOffset, SEEK_SET ) )
             {            
                 src.Open();
                 fileAccess->Write( src, bytesToWrite );            
                 src.Close();
+                fileAccess->Close();
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "FileSystemUriResourceAccessor:UpdatePartialResource: Wrote file to " + fsPath );
+                return true;
             }
             fileAccess->Close();
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "FileSystemUriResourceAccessor:UpdatePartialResource: Wrote file to " + fsPath );
-            return true;         
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VfsUriResourceAccessor:UpdatePartialResource: Failed to seek to offset " << byteOffset << " in file : " << fsPath );
+            return false;
         }
     }
 

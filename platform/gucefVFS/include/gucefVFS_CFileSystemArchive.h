@@ -93,7 +93,7 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                               bool recursive = false                                          ,
                               bool includePathInFilename = false                              ,
                               const CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                              UInt32 maxListEntries = GUCEF_UINT16MAX                         ) const GUCEF_VIRTUAL_OVERRIDE;
+                              UInt32 maxListEntries = GUCEF_UINT32MAX                         ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void GetDirList( TStringVector& outputList                                       ,
                              const CString& mountLocation                                    ,  
@@ -101,7 +101,7 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                              bool recursive = false                                          ,
                              bool includeParentDirInName = false                             ,
                              const CString::StringSet& nameFilters = CString::EmptyStringSet ,
-                             UInt32 maxListEntries = GUCEF_UINT16MAX                         ) const GUCEF_VIRTUAL_OVERRIDE;
+                             UInt32 maxListEntries = GUCEF_UINT32MAX                         ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool DeleteFile( const CString& filePath ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -127,6 +127,9 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                                   CORE::CResourceMetaData& metaData ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual CString GetFileHash( const CString& file ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The MD5 of the content, 32 lower case hexadecimal characters; empty for a file that is not there */
+    virtual CVfsDigest GetFileDigest( const CString& file ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual CORE::CDateTime GetFileModificationTime( const CString& filePath ) const GUCEF_VIRTUAL_OVERRIDE;
     
@@ -211,7 +214,9 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                           const CORE::CString::StringSet& nameFilters , 
                           TStringVector& outputList                   , 
                           bool addFiles                               ,
-                          bool addDirs                                ) const;
+                          bool addDirs                                ,
+                          UInt32 maxListEntries                       ,
+                          const CString& relativeDir                  ) const;
     
     TBasicVfsResourcePtr LoadFromDisk( const CString& file                     ,
                                        const char* mode                        ,

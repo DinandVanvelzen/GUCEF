@@ -63,6 +63,16 @@
 #define GUCEF_VFS_CVFS_H
 #endif /* GUCEF_VFS_CVFS_H ? */
 
+#ifndef GUCEF_VFS_CVFSURIRESOURCEACCESSOR_H
+#include "gucefVFS_CVfsUriResourceAccessor.h"
+#define GUCEF_VFS_CVFSURIRESOURCEACCESSOR_H
+#endif /* GUCEF_VFS_CVFSURIRESOURCEACCESSOR_H ? */
+
+#ifndef GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
+#include "gucefCORE_CFileSystemUriResourceAccessor.h"
+#define GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
+#endif /* GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H ? */
+
 #ifndef GUCEF_VFS_CVFSFILESYSTEMACCESS_H
 #include "gucefVFS_CVfsFileSystemAccess.h"
 #define GUCEF_VFS_CVFSFILESYSTEMACCESS_H
@@ -241,6 +251,117 @@ PerformVfsDirectoryTests( void )
             ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaDirRw" ) && vfs.UnmountArchiveByName( "FsaDirRo" ) );
             CORE::DeleteDir( rwDir, true );
             CORE::DeleteDir( roDir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformVfsUriAccessorTests( void )
+{
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+
+    GUCEF_TESTFW_TESTCASE( "VfsUriResourceAccessor: GetPartialResource delivers exactly the requested bytes from the offset, a negative count meaning up to the end" )
+        try
+        {
+            const CORE::CString dir = MakeTestDir( "uripartial" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "data.bin" ), "0123456789" ) );
+            ASSERT_TRUE( vfs.AddRoot( dir, "FsaUriPartial", true, false, "fsauripartial" ) );
+
+            VFS::CVfsUriResourceAccessor accessor;
+            const CORE::CUri uri( "vfs://fsauripartial/data.bin" );
+
+            struct SCase { UInt64 offset; Int64 count; const char* expected; bool result; };
+            const SCase cases[] =
+            {
+                {  0,   4, "0123", true },      // at the start
+                {  3,   4, "3456", true },      // in the middle
+                {  6,   4, "6789", true },      // exactly up to the end
+                {  8,  50, "89"  , true },      // more requested than is left
+                {  9,   1, "9"   , true },      // the last byte
+                {  6,  -1, "6789", true },      // negative count: everything from the offset
+                {  0,  -1, "0123456789", true },
+                { 10,   5, ""    , true },      // at the end: nothing left
+                { 50,   5, ""    , true }       // past the end: nothing there, as for a file system file
+            };
+            for ( size_t i=0; i<sizeof(cases)/sizeof(cases[0]); ++i )
+            {
+                CORE::CDynamicBuffer buffer;
+                CORE::CDynamicBufferAccess destination( buffer );
+                ASSERT_TRUE( cases[ i ].result == accessor.GetPartialResource( uri, cases[ i ].offset, cases[ i ].count, destination ) );
+                const UInt32 expectedLen = (UInt32) strlen( cases[ i ].expected );
+                ASSERT_TRUE( expectedLen == buffer.GetDataSize() );
+                ASSERT_TRUE( expectedLen == buffer.GetDataSize() && ( 0 == expectedLen || 0 == memcmp( buffer.GetConstBufferPtr(), cases[ i ].expected, expectedLen ) ) );
+            }
+
+            // the same request gives the same bytes as the file system accessor does for the file itself
+            CORE::CDynamicBuffer fsBuffer;
+            CORE::CDynamicBufferAccess fsDestination( fsBuffer );
+            CORE::CFileSystemUriResourceAccessor fsAccessor;
+            ASSERT_TRUE( fsAccessor.GetPartialResource( CORE::CUri( "file://" + CORE::CombinePath( dir, "data.bin" ) ), 3, 4, fsDestination ) );
+            ASSERT_TRUE( 4 == fsBuffer.GetDataSize() && 0 == memcmp( fsBuffer.GetConstBufferPtr(), "3456", 4 ) );
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaUriPartial" ) );
+            CORE::DeleteDir( dir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "VfsUriResourceAccessor: UpdatePartialResource overwrites exactly the given range at the offset" )
+        try
+        {
+            const CORE::CString dir = MakeTestDir( "uriupdate" );
+            const CORE::CString filePath = CORE::CombinePath( dir, "data.bin" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( filePath, "0123456789" ) );
+            ASSERT_TRUE( vfs.AddRoot( dir, "FsaUriUpdate", true, false, "fsauriupdate" ) );
+
+            VFS::CVfsUriResourceAccessor accessor;
+            const CORE::CUri uri( "vfs://fsauriupdate/data.bin" );
+
+            CORE::CDynamicBuffer source;
+            source.CopyFrom( 6, "abcdef" );
+            CORE::CDynamicBufferAccess sourceAccess( source );
+            ASSERT_TRUE( accessor.UpdatePartialResource( uri, 2, 3, sourceAccess ) );
+
+            CORE::CString content;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( filePath, content ) );
+            ASSERT_TRUE( "01abc56789" == content );
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaUriUpdate" ) );
+            CORE::DeleteDir( dir, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "VfsUriResourceAccessor: GetResourceAccess hands the caller an access object that reads the file" )
+        try
+        {
+            const CORE::CString dir = MakeTestDir( "uriaccess" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "data.bin" ), "0123456789" ) );
+            ASSERT_TRUE( vfs.AddRoot( dir, "FsaUriAccess", true, false, "fsauriaccess" ) );
+
+            VFS::CVfsUriResourceAccessor accessor;
+            CORE::IOAccessPtr access;
+            ASSERT_TRUE( accessor.GetResourceAccess( CORE::CUri( "vfs://fsauriaccess/data.bin" ), access, CORE::CUriResourceAccessor::URI_RESOURCEACCESS_MODE_READ ) );
+            ASSERT_FALSE( access.IsNULL() );
+            char buffer[ 16 ] = { 0 };
+            ASSERT_TRUE( !access.IsNULL() && 10 == access->Read( buffer, 1, 16 ) );
+            ASSERT_TRUE( 0 == memcmp( buffer, "0123456789", 10 ) );
+            access.Unlink();
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "FsaUriAccess" ) );
+            CORE::DeleteDir( dir, true );
         }
         catch ( ... )
         {
@@ -627,6 +748,7 @@ PerformFileSystemAccessTests( void )
 
     PerformVfsFixesTests();
     PerformVfsDirectoryTests();
+    PerformVfsUriAccessorTests();
     PerformVfsFileSystemAccessTests();
     PerformArchiveExtensionTests();
     PerformFolderArchiveChangeTests();

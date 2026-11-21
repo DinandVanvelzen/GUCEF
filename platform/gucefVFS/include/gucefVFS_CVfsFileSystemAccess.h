@@ -116,6 +116,13 @@ class GUCEF_VFS_PUBLIC_CPP CVfsFileSystemAccess : public CORE::IFileSystemAccess
     /** A directory of a mount, or one that exists because mount points are below it, or the root */
     bool IsDirectory( const CORE::CString& conformedPath ) const;
 
+    /**
+     *  What the call that just failed on this thread was told by a remote mount, when that is not a final answer: the data is
+     *  not here yet or the place cannot be reached (FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE, FILESYSTEMACCESS_REMOTE_CONNECTION_PENDING,
+     *  FILESYSTEMACCESS_REMOTE_CAPLIMIT_RETRY_LATER). The failure that the answers of the VFS add up to otherwise.
+     */
+    CORE::TFileSystemAccessResult FailureOrRemoteResult( CORE::TFileSystemAccessResult failure ) const;
+
     static CORE::CString ParentOf( const CORE::CString& conformedPath );
 
     CVFS* m_vfs;
