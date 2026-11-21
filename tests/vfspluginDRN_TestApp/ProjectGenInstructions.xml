@@ -1,0 +1,17 @@
+<PROJECTGENERATOR>
+    <!-- the archive conformance suite and the file system fixture whose tree writer the fixture of this test application uses, and the cases of the
+         remote archive suite with the environment they run in, are shared from gucefVFS_TestApp, the loopback node helpers from gucefDRN_TestApp: their sources here, their headers through the files of the same
+         name in include/ (an include folder of another test application would shadow the headers of this one that have the same names) -->
+    <INCLUDES PLATFORM="All">
+        <ITEM NAME="../gucefVFS_TestApp/src/TestArchiveConformance.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestArchiveConformanceCapabilities.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestArchiveConformanceFixture.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestArchiveConformanceTree.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestFileSystemArchiveConformance.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestRemoteEnvironment.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestRemoteArchiveConformance.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestThreads.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefVFS_TestApp/src/TestVfsBlockCacheUtils.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefDRN_TestApp/src/TestDRNTestUtils.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

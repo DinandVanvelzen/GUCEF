@@ -101,7 +101,7 @@ class GUCEF_HIDDEN CS3Archive : public VFS::CArchive
                               bool recursive = false                                                    ,
                               bool includePathInFilename = false                                        ,
                               const VFS::CString::StringSet& nameFilters = VFS::CString::EmptyStringSet ,
-                              UInt32 maxListEntries = GUCEF_UINT16MAX                                   ) const GUCEF_VIRTUAL_OVERRIDE;
+                              UInt32 maxListEntries = GUCEF_UINT32MAX                                   ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void GetDirList( TStringVector& outputList                                                 ,
                              const VFS::CString& mountLocation                                         , 
@@ -109,7 +109,7 @@ class GUCEF_HIDDEN CS3Archive : public VFS::CArchive
                              bool recursive = false                                                    ,
                              bool includePathInFilename = false                                        ,
                              const VFS::CString::StringSet& nameFilters = VFS::CString::EmptyStringSet ,
-                             UInt32 maxListEntries = GUCEF_UINT16MAX                                   ) const GUCEF_VIRTUAL_OVERRIDE;
+                             UInt32 maxListEntries = GUCEF_UINT32MAX                                   ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool DeleteFile( const VFS::CString& filePath ) GUCEF_VIRTUAL_OVERRIDE;
 
