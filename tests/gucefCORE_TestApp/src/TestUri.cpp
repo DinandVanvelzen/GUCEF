@@ -216,6 +216,42 @@ PerformUriTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: references resolved against a base URI (RFC 3986 section 5.2 and its examples)" )
+    try
+    {
+        const CORE::CUri base( "http://a/b/c/d;p?q" );
+        struct SCase { const char* reference; const char* expected; };
+        const SCase cases[] =
+        {
+            { "g:h", "g:h" }, { "g", "http://a/b/c/g" }, { "./g", "http://a/b/c/g" }, { "g/", "http://a/b/c/g/" }, { "/g", "http://a/g" },
+            { "//g", "http://g/" }, { "?y", "http://a/b/c/d;p?y" }, { "g?y", "http://a/b/c/g?y" }, { "#s", "http://a/b/c/d;p?q#s" },
+            { "g#s", "http://a/b/c/g#s" }, { "g?y#s", "http://a/b/c/g?y#s" }, { ";x", "http://a/b/c/;x" }, { "", "http://a/b/c/d;p?q" },
+            { ".", "http://a/b/c/" }, { "./", "http://a/b/c/" }, { "..", "http://a/b/" }, { "../", "http://a/b/" }, { "../g", "http://a/b/g" },
+            { "../..", "http://a/" }, { "../../g", "http://a/g" }, { "../../../g", "http://a/g" }, { "/./g", "http://a/g" }, { "/../g", "http://a/g" },
+            { "g.", "http://a/b/c/g." }, { "..g", "http://a/b/c/..g" }, { "./../g", "http://a/b/g" }, { "g/./h", "http://a/b/c/g/h" }, { "g/../h", "http://a/b/c/h" }
+        };
+        for ( size_t i=0; i<sizeof( cases ) / sizeof( cases[ 0 ] ); ++i )
+        {
+            CORE::CUri resolved;
+            const bool ok = base.ResolveReference( cases[ i ].reference, resolved );
+            const CORE::CString text = resolved.ToUriInStringForm();
+            if ( !ok || text != cases[ i ].expected )
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CUri test: \"" << cases[ i ].reference << "\" resolved to \"" << text << "\", expected \"" << cases[ i ].expected << "\"" );
+            ASSERT_TRUE( ok && text == cases[ i ].expected );
+        }
+
+        // a relative reference needs a base with a scheme and an authority
+        CORE::CUri resolved;
+        ASSERT_FALSE( CORE::CUri().ResolveReference( "g", resolved ) );
+        ASSERT_FALSE( CORE::CUri( "mailto:someone@example.com" ).ResolveReference( "g", resolved ) );
+        ASSERT_TRUE( CORE::CUri().ResolveReference( "https://example.com/x", resolved ) && "https" == resolved.GetScheme() && "example.com" == resolved.GetAuthorityHost() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CUri TESTS COMPLETED" );
 }

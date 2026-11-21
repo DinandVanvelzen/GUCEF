@@ -607,6 +607,127 @@ CUri::ParseUriInStringForm( const CString& uriInStringForm )
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** The scheme of a reference ("https" of "https://..."), empty when it has none (RFC 3986 3.1: a letter, then letters, digits, '+', '-', '.') */
+CString
+SchemeOfReference( const CString& reference )
+{
+    const Int32 colon = reference.HasChar( ':', true );
+    if ( colon <= 0 )
+        return CString::Empty;
+    const CString scheme = reference.SubstrToIndex( (UInt32) colon, true );
+    const char* chars = scheme.C_String();
+    for ( UInt32 i=0; '\0' != chars[ i ]; ++i )
+    {
+        const char c = chars[ i ];
+        const bool letter = ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' );
+        const bool other = ( c >= '0' && c <= '9' ) || '+' == c || '-' == c || '.' == c;
+        if ( !letter && ( 0 == i || !other ) )
+            return CString::Empty;
+    }
+    return scheme;
+}
+
+/** An absolute path ("/a/b/../c") without its "." and ".." segments (RFC 3986 5.2.4); a path that ends in a dot segment ends in '/' */
+CString
+RemoveDotSegments( const CString& path )
+{
+    const CString::StringVector segments = path.ParseElements( '/', true );
+    CString::StringVector kept;
+    bool endsInFolder = false;
+    for ( size_t i=0; i<segments.size(); ++i )
+    {
+        const CString& segment = segments[ i ];
+        const bool last = i + 1 == segments.size();
+        if ( 0 == i && segment.IsNULLOrEmpty() )
+            continue;       // the root
+        if ( "." == segment )
+        {
+            endsInFolder = last;
+            continue;
+        }
+        if ( ".." == segment )
+        {
+            if ( !kept.empty() )
+                kept.pop_back();
+            endsInFolder = last;
+            continue;
+        }
+        kept.push_back( segment );
+        endsInFolder = false;
+    }
+    CString result;
+    for ( size_t i=0; i<kept.size(); ++i )
+        result += "/" + kept[ i ];
+    if ( endsInFolder || result.IsNULLOrEmpty() )
+        result += "/";
+    return result;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUri::ResolveReference( const CString& reference, CUri& resolved ) const
+{GUCEF_TRACE;
+
+    // a reference with a scheme of its own
+    if ( !SchemeOfReference( reference ).IsNULLOrEmpty() )
+        return resolved.ParseUriInStringForm( reference );
+    if ( m_scheme.IsNULLOrEmpty() )
+        return false;
+    if ( 0 == reference.HasSubstr( "//", true ) )
+        return resolved.ParseUriInStringForm( m_scheme + ":" + reference );
+
+    // the parts of the reference: path, query, fragment
+    CString pathPart = reference;
+    CString query;
+    CString fragment;
+    bool hasQuery = false;
+    const Int32 hash = pathPart.HasChar( '#', true );
+    if ( hash >= 0 )
+    {
+        fragment = pathPart.SubstrToIndex( (UInt32) hash + 1, false );
+        pathPart = pathPart.SubstrToIndex( (UInt32) hash, true );
+    }
+    const Int32 question = pathPart.HasChar( '?', true );
+    if ( question >= 0 )
+    {
+        hasQuery = true;
+        query = pathPart.SubstrToIndex( (UInt32) question + 1, false );
+        pathPart = pathPart.SubstrToIndex( (UInt32) question, true );
+    }
+
+    resolved = *this;
+    resolved.m_fragment = fragment;
+    if ( pathPart.IsNULLOrEmpty() )
+    {
+        if ( hasQuery )
+            resolved.m_query = query;
+        return true;
+    }
+    if ( !HasAuthority() )
+        return false;       // a relative path needs the hierarchy of an authority
+    resolved.m_query = query;
+
+    // the paths of a URI with an authority are kept without their leading '/'
+    CString merged;
+    if ( '/' == pathPart[ 0 ] )
+        merged = pathPart;
+    else
+    {
+        const CString basePath = "/" + m_path;
+        const Int32 lastSlash = basePath.HasChar( '/', false );
+        merged = basePath.SubstrToIndex( (UInt32) lastSlash + 1, true ) + pathPart;
+    }
+    resolved.m_path = RemoveDotSegments( merged ).CutChars( 1, true );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CUri::ReplaceSubstr( const CString& oldSubstr, const CString& newSubstr )
 {GUCEF_TRACE;

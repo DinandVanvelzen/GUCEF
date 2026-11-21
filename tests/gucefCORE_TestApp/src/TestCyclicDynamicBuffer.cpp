@@ -167,6 +167,97 @@ PerformCyclicDynamicBufferTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test 3: A write that is larger than the free block it lands in leaves the queued data intact" )
+        try
+        {
+            // The send queue of a TCP connection writes byte by byte elements behind data that is already queued,
+            // into free blocks that are smaller than the write
+            CORE::CCyclicDynamicBuffer cdBuffer;
+            CORE::CDynamicBuffer a, b, c, expectedTail, got, out;
+            UInt8 ctr = 0;
+            for ( UInt32 i=0; i<100; ++i ) { a.Append( &ctr, 1 ); ++ctr; }
+            for ( UInt32 i=0; i<300; ++i ) { b.Append( &ctr, 1 ); ++ctr; }
+            for ( UInt32 i=0; i<400; ++i ) { c.Append( &ctr, 1 ); ++ctr; }
+
+            ASSERT_TRUE( 100 == cdBuffer.Write( a.GetConstBufferPtr(), 1, 100 ) );
+            ASSERT_TRUE( 300 == cdBuffer.Write( b.GetConstBufferPtr(), 1, 300 ) );
+            ASSERT_TRUE( 100 == cdBuffer.ReadBlockTo( out ) );                  // frees the first 100 bytes
+            ASSERT_TRUE( 400 == cdBuffer.Write( c.GetConstBufferPtr(), 1, 400 ) );  // 400 bytes into a free block of 100
+
+            // what was queued before the write is still what was queued
+            ASSERT_TRUE( 300 == cdBuffer.ReadBlockTo( out ) );
+            ASSERT_TRUE( 300 == out.GetDataSize() && 0 == memcmp( out.GetConstBufferPtr(), b.GetConstBufferPtr(), 300 ) );
+
+            // and the write itself arrives complete and in order, over however many blocks it was split
+            while ( cdBuffer.HasBufferedData() )
+            {
+                ASSERT_TRUE( 0 < cdBuffer.ReadBlockTo( out ) );
+                got.Append( out );
+            }
+            ASSERT_TRUE( 400 == got.GetDataSize() && 0 == memcmp( got.GetConstBufferPtr(), c.GetConstBufferPtr(), 400 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 4: The stream through a queue with partial sends and put backs stays intact" )
+        try
+        {
+            // Model of a sender: random writes behind queued data, a flush that sends a random part
+            // and puts the rest back in front the way the TCP connections do. Whatever goes on the wire must equal what was queued.
+            for ( UInt32 seed=1; seed<=10; ++seed )
+            {
+                UInt64 rng = 0x9E3779B97F4A7C15ULL ^ seed;
+                CORE::CCyclicDynamicBuffer cdBuffer;
+                CORE::CDynamicBuffer expected, wire, op;
+                UInt32 verified = 0;
+                UInt8 ctr = 0;
+                bool intact = true;
+
+                for ( UInt32 round=0; round<600 && intact; ++round )
+                {
+                    rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17;
+                    const UInt32 writes = (UInt32) ( ( rng >> 11 ) % 3 );
+                    for ( UInt32 w=0; w<writes && cdBuffer.GetNrOfUsedBlocks() < 6; ++w )
+                    {
+                        rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17;
+                        const UInt32 length = 1 + (UInt32) ( ( rng >> 11 ) % 70000 );
+                        CORE::CDynamicBuffer data;
+                        for ( UInt32 i=0; i<length; ++i ) { data.Append( &ctr, 1 ); ++ctr; }
+                        expected.Append( data );
+                        if ( length != cdBuffer.Write( data.GetConstBufferPtr(), 1, length ) )
+                        {
+                            intact = false;
+                            break;
+                        }
+                    }
+                    if ( cdBuffer.HasBufferedData() )
+                    {
+                        cdBuffer.ReadBlockTo( op );
+                        rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17;
+                        const UInt32 sent = (UInt32) ( ( rng >> 11 ) % ( op.GetDataSize() + 1 ) );
+                        wire.Append( op.GetConstBufferPtr(), sent );
+                        if ( sent < op.GetDataSize() )
+                            cdBuffer.WriteAtFrontOfQueue( op.GetConstBufferPtr( sent ), op.GetDataSize() - sent, 1 );
+                    }
+
+                    // everything that has gone on the wire since the last check must equal the queued stream at the same place
+                    if ( wire.GetDataSize() > expected.GetDataSize() ||
+                         0 != memcmp( wire.GetConstBufferPtr( verified ), expected.GetConstBufferPtr( verified ), wire.GetDataSize() - verified ) )
+                        intact = false;
+                    verified = wire.GetDataSize();
+                }
+                ASSERT_TRUE( intact );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CCyclicDynamicBuffer TESTS COMPLETED" );
 }

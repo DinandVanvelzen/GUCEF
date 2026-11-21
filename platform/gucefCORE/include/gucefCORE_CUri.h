@@ -136,6 +136,16 @@ class GUCEF_CORE_PUBLIC_CPP CUri
 
     CString ToUriInStringForm( void ) const;
 
+    /**
+     *  Resolves a reference (a link as a document has it) against this URI as its base, after RFC 3986 section 5.2: a
+     *  reference with a scheme is taken as it is, one that starts with "//" gets the scheme of the base, one that starts
+     *  with "/" the scheme and the authority of the base, "?query" and "#fragment" the path of the base, and a relative
+     *  path is merged with the folder of the path of the base; "." and ".." segments are removed from the merged path.
+     *  An empty reference gives the base without its fragment.
+     *  @return false when the reference cannot be parsed, or it is relative and the base has no scheme or no authority
+     */
+    bool ResolveReference( const CString& reference, CUri& resolved ) const;
+
     void ReplaceSubstr( const CString& oldSubstr, const CString& newSubstr );
 
     protected:

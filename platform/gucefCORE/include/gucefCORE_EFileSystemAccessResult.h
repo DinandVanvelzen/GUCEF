@@ -84,6 +84,13 @@ enum EFileSystemAccessResult
     FILESYSTEMACCESS_CANCELLED              = 51 ,    /**< an async operation was cancelled */
     FILESYSTEMACCESS_TIMEOUT                = 52 ,    /**< an async operation did not end in time */
 
+    FILESYSTEMACCESS_REMOTE_CONNECTION_PENDING   = 60 ,    /**< the place is remote and there is no usable link to it right now: connecting, reconnecting or offline. A retry later can work */
+    FILESYSTEMACCESS_REMOTE_RESOURCE_CHANGED     = 61 ,    /**< the remote resource changed since it was opened or listed: opening it again gives the new version */
+    FILESYSTEMACCESS_REMOTE_CAPLIMIT_RETRY_LATER = 62 ,    /**< the remote side is at a capacity limit (requests in flight, open handles, listings): try again later */
+    FILESYSTEMACCESS_RESOURCE_CORRUPT            = 63 ,    /**< the data did not pass verification (for example a digest mismatch) */
+    FILESYSTEMACCESS_REMOTE_PROTOCOL_ERROR       = 64 ,    /**< the remote side did not follow the protocol or gave an answer that makes no sense */
+    FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE    = 65 ,    /**< the place is remote, the link may be fine, the data is not held locally and the calling thread must not wait for it: a background fetch was started (or was already under way) and an arrival or failure event for the path follows */
+
     FILESYSTEMACCESS_FAILED                 = 99      /**< the operation failed for a reason that cannot be told */
 };
 typedef enum EFileSystemAccessResult TFileSystemAccessResult;

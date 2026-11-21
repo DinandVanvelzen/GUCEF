@@ -32,6 +32,9 @@
  *  cycle faster than its minimal cycle delta. An immediate pulse asked for while the delegator pulses (on its thread
  *  or another one) is followed by a pulse; without a usable wake-up signal (CTaskManagerTestAccess) a delegator waits
  *  without spinning and still answers requests; once its thread ended its pulse generator names no driver thread.
+ *  A pool worker that finished a task takes the next queued task at once (tasks one after the other, a backlog, several
+ *  producers, the first task of a worker that has just started), waits for the next one without spinning, and a request
+ *  to stop reaches it between two tasks of a backlog.
  */
 void
 PerformTaskDelegatorWakeUpTests( void );

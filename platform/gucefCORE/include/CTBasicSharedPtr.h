@@ -1587,6 +1587,7 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
             {
                 TBasicSharedPtrSharedData< LockType >* localSharedRef = shared;
                 bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
+                bool destructorKeepsSharedData = false;
 
                 // We should check if the destructor pointer is not-NULL
                 // A descending class may NULL it for its own purposes.
@@ -1604,6 +1605,9 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
                     if ( !sharedDataIsIndependent )
                         localSharedRef->m_lock.Unlock();
 
+                    // weak pointers owned by the object (a member holding a weak pointer to the object itself) release their reference while the object is destroyed:
+                    // a count of our own keeps the shared data alive until we are done with it
+                    if ( sharedDataIsIndependent ) { ++localSharedRef->m_weakCounter; destructorKeepsSharedData = true; }
                     GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
                     voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
                 }
@@ -1616,6 +1620,7 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
                 if ( sharedDataIsIndependent )
                 {
                     // weak pointers still use the shared data to see the object is gone: the last of them deletes it
+                    if ( destructorKeepsSharedData ) --localSharedRef->m_weakCounter;
                     bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
                     localSharedRef->m_lock.Unlock();
                     if ( !weaklyReferenced )
@@ -1633,6 +1638,7 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
             // All we ever had was a lock
             TBasicSharedPtrSharedData< LockType >* localSharedRef = shared;
             bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
+            bool destructorKeepsSharedData = false;
 
             // We should check if the destructor pointer is not-NULL
             // Under most conditions there would be no object destructor if there is no object pointed to
@@ -1649,6 +1655,9 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
                 if ( !sharedDataIsIndependent )
                     localSharedRef->m_lock.Unlock();
 
+                // weak pointers owned by the object (a member holding a weak pointer to the object itself) release their reference while the object is destroyed:
+                // a count of our own keeps the shared data alive until we are done with it
+                if ( sharedDataIsIndependent ) { ++localSharedRef->m_weakCounter; destructorKeepsSharedData = true; }
                 GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
                 voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
             }
@@ -1660,6 +1669,7 @@ CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< Lo
 
             if ( sharedDataIsIndependent )
             {
+                if ( destructorKeepsSharedData ) --localSharedRef->m_weakCounter;
                 bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
                 localSharedRef->m_lock.Unlock();
                 if ( !weaklyReferenced )

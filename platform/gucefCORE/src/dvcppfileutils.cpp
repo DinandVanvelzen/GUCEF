@@ -853,7 +853,8 @@ GetFileMetaData( const CString& filePath     ,
 
     metaData.Clear();
 
-    if ( FileExists( filePath ) )
+    // a directory has its times and attributes as well: CNativeFileSystemAccess asks for those of directories
+    if ( FileExists( filePath ) || DirExists( filePath ) )
     {
         metaData.resourceExists = true;
 
@@ -4801,9 +4802,9 @@ CFileSystemIterator::TryReadMetaData( CResourceMetaData& metaData )
         metaData.hasResourceSizeInBytes = true;
         metaData.creationDateTime = CDateTime( m_osData->find.time_create, true );
         metaData.hasCreationDateTime = true;
-        metaData.modifiedDateTime = CDateTime( m_osData->find.time_access, true );
+        metaData.modifiedDateTime = CDateTime( m_osData->find.time_write, true );
         metaData.hasModifiedDateTime = true;
-        metaData.lastAccessedDateTime = CDateTime( m_osData->find.time_write, true );
+        metaData.lastAccessedDateTime = CDateTime( m_osData->find.time_access, true );
         metaData.hasLastAccessedDateTime = true;
 
         m_osData->find.attrib & FILE_ATTRIBUTE_READONLY ? metaData.isReadOnly = true : metaData.isReadOnly = false;

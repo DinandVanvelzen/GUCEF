@@ -285,7 +285,10 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
      */
     void WakeUp( void );
 
-    /** On the delegator thread without a task: waits for one to be queued (see IdleTaskWaitMs); true with m_task set */
+    /**
+     *  On the delegator thread without a task: waits for one to be queued (see IdleTaskWaitMs); true with m_task set.
+     *  Posts that are not for a task do not end the wait, a request to stop or to pause does. False without a working semaphore.
+     */
     bool WaitForQueuedTask( void );
 
     /**

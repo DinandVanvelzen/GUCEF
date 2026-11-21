@@ -415,20 +415,43 @@ CTaskDelegator::WaitForQueuedTask( void )
     // WakeUpIfWaitingForTask()), at most IdleTaskWaitMs, instead of looking at the queue again after every cycle delay:
     // an idle worker thread wakes once per IdleTaskWaitMs, not 40 times per second. The flag is set before the queue is
     // looked at again, so a task queued in between is either found here or wakes the wait. Without a working
-    // semaphore the cycle delay of the active object is the wait, as before
+    // semaphore the cycle delay of the active object is the wait, as before.
+    // A post that is not for a task (a pulse request made before the thread ran, a request to stop) does not end the
+    // wait of a thread that is not asked to stop: it looks at the queue and waits on, so that the cycle delay of the
+    // active object, which a cycle that ends at once is followed by, never keeps a task queued meanwhile waiting
     if ( GUCEF_NULL == m_wakeUpSignal || IsDeactivationRequested() )
         return false;
 
-    m_waitingForTask.Store( true );
-    bool haveTask = m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
-    if ( !haveTask )
+    const UInt64 waitStartTicks = MT::PrecisionTickCount();
+    bool haveTask = false;
+    for ( ;; )
     {
-        if ( 0 == m_wakeUpSignal->WaitOrTimeout( IdleTaskWaitMs ) )
-            m_wakeUpPosted.Store( false );     // taken: a request made from now on posts again
+        m_waitingForTask.Store( true );
+        haveTask = m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
+        if ( haveTask )
+            break;
+
+        const Float64 waitedMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - waitStartTicks );
+        if ( waitedMs >= (Float64) IdleTaskWaitMs )
+            break;
+
+        // 0: a post was taken (a request made from now on posts again), 1: timed out, -1: no usable semaphore
+        if ( 0 != m_wakeUpSignal->WaitOrTimeout( (UInt32) ( (Float64) IdleTaskWaitMs - waitedMs ) + 1 ) )
+            break;
+        m_wakeUpPosted.Store( false );
+
+        // not counted as waiting while the queue is looked at for the task the post was for: the pool wakes another
+        // thread for the next task, and a thread that took its task is not picked for it
         m_waitingForTask.Store( false );
-        haveTask = !IsDeactivationRequested() && m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
+        if ( IsDeactivationRequested() || IsPauseRequested() )
+            break;
+        haveTask = m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
+        if ( haveTask )
+            break;
     }
     m_waitingForTask.Store( false );
+    if ( !haveTask )
+        haveTask = !IsDeactivationRequested() && m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
     return haveTask;
 }
 
@@ -463,8 +486,14 @@ CTaskDelegator::OnThreadCycle( void* )
 
     ApplyRequestedPulseDelta();
 
-    if ( ( !m_threadPool.IsNULL() ) &&
-         ( ( m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL() ) || WaitForQueuedTask() ) )
+    // A worker that finished a task looks at the queue again at once, as many times as there is work, and ends its
+    // cycle in the wait for a queued task (WaitForQueuedTask()), never in the cycle delay of the active object: a task
+    // queued while the worker sleeps that delay would wait it out, and the pool's wake-up only reaches a worker that
+    // waits for a task. A request to stop or to pause is honoured between two tasks, as the active object does between
+    // two cycles. Without a working semaphore the thread leaves after every task and the cycle delay is the wait, as before
+    bool haveTask = ( !m_threadPool.IsNULL() ) &&
+                    ( ( m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL() ) || WaitForQueuedTask() );
+    while ( haveTask )
     {
         try
         {
@@ -496,6 +525,9 @@ CTaskDelegator::OnThreadCycle( void* )
 
         TaskCleanup( m_task );
         m_task.Unlink();
+
+        haveTask = GUCEF_NULL != m_wakeUpSignal && !IsDeactivationRequested() && !IsPauseRequested() &&
+                   ( ( m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL() ) || WaitForQueuedTask() );
     }
 
     // Return false, this is an infinite task worker thread

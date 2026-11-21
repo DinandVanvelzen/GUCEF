@@ -237,6 +237,7 @@ CFileSystemUriResourceAccessor::GetResourceAccess( const CUri& uri              
             const char* accessMode = ResourceAccessModeStr( mode );            
             if ( fsFile->Open( fsPath, accessMode ) )
             {
+                accessToResource = fsFile;
                 GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileSystemUriResourceAccessor:GetResourceAccess: Obtained access to file " + fsPath );
                 return true;
             }

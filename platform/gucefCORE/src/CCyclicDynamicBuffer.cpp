@@ -560,7 +560,7 @@ CCyclicDynamicBuffer::WriteImp( const void* srcBuffer        ,
             }
             else
             {
-                elementsToWrite = remainingElements - nrOfElementsThatFitInBlock;
+                elementsToWrite = nrOfElementsThatFitInBlock;
                 bytesToWrite = bytesPerElement * elementsToWrite;
             }
             
@@ -707,6 +707,7 @@ CCyclicDynamicBuffer::TidyFreeBlocks( void )
                     
                     listMutation = true;
                 }
+                prevOffset = (*i).startOffset;
             }
         }
 
@@ -719,9 +720,9 @@ CCyclicDynamicBuffer::TidyFreeBlocks( void )
             TBlockList::iterator i = m_freeBlocks.begin();
             TBlockList::iterator n = i;
             
-            TDataChunk prevChunck = (*n);
             for ( ++i; i != m_freeBlocks.end(); ++i )
             {
+                const TDataChunk prevChunck = (*n);
                 if ( prevChunck.startOffset + prevChunck.blockSize == (*i).startOffset )
                 {
                     // Perform a block merge

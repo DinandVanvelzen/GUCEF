@@ -139,6 +139,12 @@ const char* g_fallbackPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Fallback
 const char* g_threadEndPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.ThreadEnd";
 const char* g_idlePoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.IdleWorkers";
 const char* g_shrinkPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Shrink";
+const char* g_backToBackPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.BackToBack";
+const char* g_startupPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Startup";
+const char* g_producersPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Producers";
+const char* g_busyShrinkPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.BusyShrink";
+const char* g_pausePoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Pause";
+const char* g_burstPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.Burst";
 
 /** the longest wait of a worker thread without a task for a task to be queued (CTaskDelegator::IdleTaskWaitMs) */
 const UInt32 g_idleTaskWaitMs = 1000;
@@ -203,6 +209,132 @@ class CQueuedTickTask : public CTaskConsumer
 };
 
 const CString CQueuedTickTask::TaskType = "GUCEF::CORE::TestTaskDelegatorWakeUp::QueuedTickTask";
+
+/*-------------------------------------------------------------------------*/
+
+/** How many tasks of CTinyTask ran, how long each one holds its worker, and the precision tick count of the start of the last one */
+MT::CTAtomic< UInt32 > g_tinyTaskRuns( 0 );
+MT::CTAtomic< UInt32 > g_tinyTaskHoldMs( 0 );
+MT::CTAtomic< UInt64 > g_tinyTaskLastStartTicks( 0 );
+
+/** The precision tick count at which each task began, by the order in which they began (the first g_tinyTaskStartLogSize tasks after g_tinyTaskRuns was set to 0) */
+const UInt32 g_tinyTaskStartLogSize = 1024;
+UInt64 g_tinyTaskStartLog[ g_tinyTaskStartLogSize ];
+
+/** A queued task of a pool that does next to nothing: it counts itself and holds its worker for g_tinyTaskHoldMs */
+class CTinyTask : public CTaskConsumer
+{
+    public:
+
+    static const CString TaskType;
+
+    CTinyTask( void ) : CTaskConsumer() {}
+    virtual ~CTinyTask() {}
+
+    virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return TaskType; }
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { return TaskType; }
+    virtual bool OnTaskCycle( CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        const UInt64 startTicks = MT::PrecisionTickCount();
+        g_tinyTaskLastStartTicks.Store( startTicks );
+        const UInt32 index = g_tinyTaskRuns.FetchAdd( 1 );
+        if ( index < g_tinyTaskStartLogSize )
+            g_tinyTaskStartLog[ index ] = startTicks;
+        const UInt32 holdMs = g_tinyTaskHoldMs.Load();
+        if ( holdMs > 0 )
+            MT::ThreadDelay( holdMs );
+        return true;
+    }
+    virtual void OnTaskEnded( CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE { CTaskConsumer::OnTaskEnded( task, wasForced ); }
+};
+
+const CString CTinyTask::TaskType = "GUCEF::CORE::TestTaskDelegatorWakeUp::TinyTask";
+
+typedef CTFactory< CTaskConsumer, CTinyTask, MT::CMutex > TTinyTaskFactory;
+
+/*-------------------------------------------------------------------------*/
+
+/** Queues a number of CTinyTask tasks to a pool from a thread of its own */
+class CTinyTaskProducer : public MT::CActiveObject
+{
+    public:
+
+    CTinyTaskProducer( ThreadPoolPtr pool, UInt32 count ) : MT::CActiveObject(), m_pool( pool ), m_count( count ), m_queued( 0 ), m_failed( 0 ) {}
+    virtual ~CTinyTaskProducer() {}
+
+    UInt32 GetQueued( void ) const { return m_queued.Load(); }
+    UInt32 GetFailed( void ) const { return m_failed.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        for ( UInt32 i=0; i<m_count; ++i )
+        {
+            CFutureResult future = m_pool->QueueTask( CTinyTask::TaskType );
+            if ( future.HasAFuture() )
+                m_queued.FetchAdd( 1 );
+            else
+                m_failed.FetchAdd( 1 );
+        }
+        return true;
+    }
+
+    private:
+
+    ThreadPoolPtr m_pool;
+    UInt32 m_count;
+    MT::CTAtomic< UInt32 > m_queued;
+    MT::CTAtomic< UInt32 > m_failed;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The processor time in nanoseconds that the given threads of this process used so far, -1 where that cannot be read */
+Int64
+CountThreadCpuNs( const CThreadPool::TThreadIdVector& threadIds )
+{
+    #ifdef GUCEF_TEST_HAVE_PROC_THREAD_STATUS
+    Int64 total = 0;
+    for ( UInt32 i=0; i<threadIds.size(); ++i )
+    {
+        char path[ 64 ];
+        snprintf( path, sizeof( path ), "/proc/self/task/%u/schedstat", (unsigned int) threadIds[ i ] );
+        FILE* stat = fopen( path, "r" );
+        if ( GUCEF_NULL == stat )
+            return -1;
+        unsigned long long runNs = 0;
+        int fields = fscanf( stat, "%llu", &runNs );
+        fclose( stat );
+        if ( 1 != fields )
+            return -1;
+        total += (Int64) runNs;
+    }
+    return total;
+    #else
+    return -1;
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Waits until the future is ready, at most timeoutInMs; yields instead of sleeping so that the next call follows at once */
+bool
+WaitForReady( const CFutureResult& future, UInt32 timeoutInMs )
+{
+    const UInt64 startTicks = MT::PrecisionTickCount();
+    while ( !future.IsReady() )
+    {
+        if ( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - startTicks ) > (Float64) timeoutInMs )
+            return false;
+        MT::ThreadDelay( 0 );
+    }
+    return true;
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -1295,6 +1427,405 @@ PerformTaskDelegatorWakeUpTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END;
+
+    // A worker that has just finished a task must take the next queued task at once, and otherwise wait for the pool's
+    // wake-up: it must not sleep the cycle delay of the active object (10 ms) after the task, as a task queued then waited
+    GUCEF_TESTFW_TESTCASE( "A pool worker that finished a task picks up the next queued task at once: tasks queued one after the other, a backlog queued at once and tasks of several producers are not paced by the cycle delay, and each runs exactly once" )
+        try
+        {
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            TTinyTaskFactory factory;
+            taskManager.RegisterTaskConsumerFactory( CTinyTask::TaskType, &factory );
+            g_tinyTaskHoldMs.Store( 0 );
+
+            ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( g_backToBackPoolName );
+            REQUIRE_TRUE( !pool.IsNULL() );
+            pool->SetDesiredMaxTotalNrOfThreads( 1 );
+            pool->SetDesiredMinNrOfWorkerThreads( 1 );
+            for ( UInt32 i=0; i<500 && 1 != pool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( 1 == pool->GetActiveNrOfWorkerThreads() );
+            MT::ThreadDelay( 50 );
+
+            // one after the other, the worker the only one: half of the tasks are queued the moment the previous one ended
+            // (the worker is still ending it), half a little later (the worker waits for a task again)
+            GUCEF::vector< Float64 > latencies;
+            const UInt32 sequentialTasks = 100;
+            const UInt64 sequenceStartTicks = MT::PrecisionTickCount();
+            for ( UInt32 i=0; i<sequentialTasks; ++i )
+            {
+                g_tinyTaskLastStartTicks.Store( 0 );
+                const UInt64 queuedTicks = MT::PrecisionTickCount();
+                CFutureResult future = pool->QueueTask( CTinyTask::TaskType );
+                REQUIRE_TRUE( future.HasAFuture() );
+                REQUIRE_TRUE( WaitForReady( future, 2000 ) );
+                const UInt64 startTicks = g_tinyTaskLastStartTicks.Load();
+                ASSERT_TRUE( 0 != startTicks );
+                if ( 0 != startTicks && startTicks >= queuedTicks )
+                    latencies.push_back( MT::PrecisionTimerTicksToMs( startTicks - queuedTicks ) );
+                if ( 0 != ( i % 2 ) )
+                    MT::ThreadDelay( 1 );
+            }
+            const Float64 sequenceMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - sequenceStartTicks );
+            const Float64 median = LatencyAt( latencies, 0.5 );
+            const Float64 worst = LatencyAt( latencies, 1.0 );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: " << sequentialTasks << " tasks queued one after the other on a pool of one worker: queued to started median "
+                       << median << " ms, worst " << worst << " ms, all done after " << sequenceMs << " ms" );
+            ASSERT_TRUE( median >= 0.0 && median < g_medianWakeLimitInMs * 2.0 );
+            ASSERT_TRUE( sequenceMs < (Float64) sequentialTasks * (Float64) g_minimalCycleDeltaInMs / 2.0 );
+
+            // a backlog queued at once: the one worker takes the tasks without a pause between them
+            g_tinyTaskRuns.Store( 0 );
+            const UInt32 backlog = 200;
+            GUCEF::vector< CFutureResult > futures;
+            const UInt64 backlogStartTicks = MT::PrecisionTickCount();
+            for ( UInt32 i=0; i<backlog; ++i )
+                futures.push_back( pool->QueueTask( CTinyTask::TaskType ) );
+            bool allDone = true;
+            for ( UInt32 i=0; i<futures.size(); ++i )
+                allDone = WaitForReady( futures[ i ], 5000 ) && allDone;
+            const Float64 backlogMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - backlogStartTicks );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: a backlog of " << backlog << " tasks on a pool of one worker done after " << backlogMs << " ms" );
+            ASSERT_TRUE( allDone );
+            ASSERT_TRUE( backlog == g_tinyTaskRuns.Load() );
+            ASSERT_TRUE( backlogMs < (Float64) backlog * (Float64) g_minimalCycleDeltaInMs / 4.0 );
+
+            // several producer threads queue to a pool of two workers: every task runs once, none is lost or run twice
+            ThreadPoolPtr producersPool = taskManager.GetOrCreateThreadPool( g_producersPoolName );
+            REQUIRE_TRUE( !producersPool.IsNULL() );
+            producersPool->SetDesiredMaxTotalNrOfThreads( 2 );
+            producersPool->SetDesiredMinNrOfWorkerThreads( 2 );
+            for ( UInt32 i=0; i<500 && 2 != producersPool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( 2 == producersPool->GetActiveNrOfWorkerThreads() );
+            g_tinyTaskRuns.Store( 0 );
+            const UInt32 producerCount = 4;
+            const UInt32 tasksPerProducer = 250;
+            CTinyTaskProducer* producers[ producerCount ];
+            const UInt64 producersStartTicks = MT::PrecisionTickCount();
+            for ( UInt32 i=0; i<producerCount; ++i )
+            {
+                producers[ i ] = GUCEF_NEW CTinyTaskProducer( producersPool, tasksPerProducer );
+                producers[ i ]->Activate();
+            }
+            UInt32 queuedByProducers = 0;
+            for ( UInt32 i=0; i<producerCount; ++i )
+            {
+                producers[ i ]->WaitForThreadToFinish( 10000 );
+                queuedByProducers += producers[ i ]->GetQueued();
+                ASSERT_TRUE( 0 == producers[ i ]->GetFailed() );
+            }
+            for ( UInt32 waited=0; waited<10000 && g_tinyTaskRuns.Load() < queuedByProducers; ++waited )
+                MT::ThreadDelay( 1 );
+            MT::ThreadDelay( 50 );
+            const Float64 producersMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - producersStartTicks );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: " << producerCount << " producer threads queued " << queuedByProducers << " tasks, " << g_tinyTaskRuns.Load()
+                       << " ran, done after " << producersMs << " ms" );
+            ASSERT_TRUE( producerCount * tasksPerProducer == queuedByProducers );
+            ASSERT_TRUE( queuedByProducers == g_tinyTaskRuns.Load() );
+            ASSERT_TRUE( 0 == producersPool->GetNrOfQueuedTasks() );
+            for ( UInt32 i=0; i<producerCount; ++i )
+                GUCEF_DELETE producers[ i ];
+
+            // bursts: as many tasks as workers queued at once to workers that have just ended a task or wait for one all begin at
+            // once, each on a worker of its own: a wake that is spent on a worker that has its task already leaves one idle while
+            // a task of the burst waits for the length of another task
+            ThreadPoolPtr burstPool = taskManager.GetOrCreateThreadPool( g_burstPoolName );
+            REQUIRE_TRUE( !burstPool.IsNULL() );
+            const UInt32 burstWorkers = 4;
+            burstPool->SetDesiredMaxTotalNrOfThreads( (Int32) burstWorkers );
+            burstPool->SetDesiredMinNrOfWorkerThreads( burstWorkers );
+            for ( UInt32 i=0; i<500 && burstWorkers != burstPool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( burstWorkers == burstPool->GetActiveNrOfWorkerThreads() );
+            const UInt32 holdMs = 15;
+            const UInt32 bursts = 80;
+            UInt32 lateBursts = 0;
+            Float64 worstSpreadMs = 0.0;
+            for ( UInt32 b=0; b<bursts; ++b )
+            {
+                g_tinyTaskHoldMs.Store( holdMs );
+                g_tinyTaskRuns.Store( 0 );
+                GUCEF::vector< CFutureResult > burstFutures;
+                for ( UInt32 i=0; i<burstWorkers; ++i )
+                    burstFutures.push_back( burstPool->QueueTask( CTinyTask::TaskType ) );
+                bool burstDone = true;
+                for ( UInt32 i=0; i<burstFutures.size(); ++i )
+                    burstDone = WaitForReady( burstFutures[ i ], 5000 ) && burstDone;
+                ASSERT_TRUE( burstDone );
+                UInt64 first = g_tinyTaskStartLog[ 0 ];
+                UInt64 last = g_tinyTaskStartLog[ 0 ];
+                for ( UInt32 i=1; i<burstWorkers; ++i )
+                {
+                    if ( g_tinyTaskStartLog[ i ] < first )
+                        first = g_tinyTaskStartLog[ i ];
+                    if ( g_tinyTaskStartLog[ i ] > last )
+                        last = g_tinyTaskStartLog[ i ];
+                }
+                const Float64 spreadMs = MT::PrecisionTimerTicksToMs( last - first );
+                if ( spreadMs > worstSpreadMs )
+                    worstSpreadMs = spreadMs;
+                if ( spreadMs > (Float64) holdMs / 2.0 )
+                    ++lateBursts;
+                MT::ThreadDelay( b % 5 );
+            }
+            g_tinyTaskHoldMs.Store( 0 );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: " << bursts << " bursts of " << burstWorkers << " tasks to " << burstWorkers << " workers: " << lateBursts << " with a task that began late, worst spread " << worstSpreadMs << " ms" );
+            ASSERT_TRUE( lateBursts <= 1 );
+            ASSERT_TRUE( burstPool->RequestAllThreadsToStop( true, false, 5000 ) );
+            taskManager.UnregisterThreadPool( g_burstPoolName );
+
+            MT::ThreadDelay( 20 );
+            const UInt64 stopTicks = MT::PrecisionTickCount();
+            ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+            ASSERT_TRUE( producersPool->RequestAllThreadsToStop( true, false, 5000 ) );
+            const Float64 stopMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - stopTicks );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: two pools whose workers just ended their last tasks stopped in " << stopMs << " ms" );
+            ASSERT_TRUE( stopMs < 250.0 );
+            taskManager.UnregisterThreadPool( g_backToBackPoolName );
+            taskManager.UnregisterThreadPool( g_producersPoolName );
+            taskManager.UnregisterTaskConsumerFactory( CTinyTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    // A worker thread that starts together with its pool begins in the wait for a task, not in the first cycle delay of
+    // the active object (25 ms), during which a task that is queued is not seen
+    GUCEF_TESTFW_TESTCASE( "A task queued to a pool whose worker has just started begins at once, not after the first cycle delay of the worker" )
+        try
+        {
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            TTinyTaskFactory factory;
+            taskManager.RegisterTaskConsumerFactory( CTinyTask::TaskType, &factory );
+            g_tinyTaskHoldMs.Store( 0 );
+
+            GUCEF::vector< Float64 > latencies;
+            for ( UInt32 i=0; i<6; ++i )
+            {
+                ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( g_startupPoolName );
+                REQUIRE_TRUE( !pool.IsNULL() );
+                pool->SetDesiredMaxTotalNrOfThreads( 1 );
+                pool->SetDesiredMinNrOfWorkerThreads( 1 );
+                for ( UInt32 w=0; w<500 && 1 != pool->GetActiveNrOfWorkerThreads(); ++w )
+                    MT::ThreadDelay( 1 );
+                REQUIRE_TRUE( 1 == pool->GetActiveNrOfWorkerThreads() );
+
+                // the worker had its first cycle by now
+                MT::ThreadDelay( 3 );
+                g_tinyTaskLastStartTicks.Store( 0 );
+                const UInt64 queuedTicks = MT::PrecisionTickCount();
+                CFutureResult future = pool->QueueTask( CTinyTask::TaskType );
+                REQUIRE_TRUE( future.HasAFuture() );
+                REQUIRE_TRUE( WaitForReady( future, 2000 ) );
+                const UInt64 startTicks = g_tinyTaskLastStartTicks.Load();
+                ASSERT_TRUE( 0 != startTicks );
+                if ( 0 != startTicks && startTicks >= queuedTicks )
+                    latencies.push_back( MT::PrecisionTimerTicksToMs( startTicks - queuedTicks ) );
+
+                ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+                taskManager.UnregisterThreadPool( g_startupPoolName );
+            }
+            const Float64 median = LatencyAt( latencies, 0.5 );
+            const Float64 worst = LatencyAt( latencies, 1.0 );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: first task on a freshly started worker, over " << latencies.size() << " pools: median " << median << " ms, worst " << worst << " ms" );
+            ASSERT_TRUE( 6 == latencies.size() );
+            ASSERT_TRUE( median >= 0.0 && median < 10.0 );
+
+            taskManager.UnregisterTaskConsumerFactory( CTinyTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    // The worker that waits for a task after its last one must not spin, and not wake more often than the idle workers do
+    GUCEF_TESTFW_TESTCASE( "Workers that just finished work wait for the next task without spinning: no processor time and no more than a wake-up per idle wait over a window" )
+        try
+        {
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            TTinyTaskFactory factory;
+            taskManager.RegisterTaskConsumerFactory( CTinyTask::TaskType, &factory );
+            g_tinyTaskHoldMs.Store( 0 );
+
+            const UInt32 workers = 2;
+            ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( g_backToBackPoolName );
+            REQUIRE_TRUE( !pool.IsNULL() );
+            pool->SetDesiredMaxTotalNrOfThreads( (Int32) workers );
+            pool->SetDesiredMinNrOfWorkerThreads( workers );
+            for ( UInt32 i=0; i<500 && workers != pool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( workers == pool->GetActiveNrOfWorkerThreads() );
+            CThreadPool::TThreadIdVector threadIds;
+            pool->GetAllCurrentThreadIds( threadIds );
+            REQUIRE_TRUE( workers == threadIds.size() );
+
+            // work first, so that both workers end in the wait that follows a task
+            GUCEF::vector< CFutureResult > futures;
+            for ( UInt32 i=0; i<40; ++i )
+                futures.push_back( pool->QueueTask( CTinyTask::TaskType ) );
+            for ( UInt32 i=0; i<futures.size(); ++i )
+                ASSERT_TRUE( WaitForReady( futures[ i ], 5000 ) );
+            MT::ThreadDelay( 200 );
+
+            const Int64 cpuBefore = CountThreadCpuNs( threadIds );
+            const Int64 switchesBefore = CountContextSwitches( threadIds );
+            const UInt32 windowMs = 2000;
+            MT::ThreadDelay( windowMs );
+            const Int64 cpuAfter = CountThreadCpuNs( threadIds );
+            const Int64 switchesAfter = CountContextSwitches( threadIds );
+            if ( cpuBefore >= 0 && cpuAfter >= 0 )
+            {
+                const Float64 cpuMs = (Float64) ( cpuAfter - cpuBefore ) / 1000000.0;
+                GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: " << workers << " workers that ended a task used " << cpuMs << " ms of processor time in " << windowMs << " ms of waiting" );
+                ASSERT_TRUE( cpuMs < 20.0 );
+            }
+            if ( switchesBefore >= 0 && switchesAfter >= 0 )
+            {
+                const Int64 wakes = switchesAfter - switchesBefore;
+                const Int64 limit = (Int64) workers * ( windowMs / g_idleTaskWaitMs + 2 );
+                GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: " << workers << " workers that ended a task woke " << wakes << " times in " << windowMs << " ms (limit " << limit << ")" );
+                ASSERT_TRUE( wakes <= limit );
+            }
+
+            ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+            taskManager.UnregisterThreadPool( g_backToBackPoolName );
+            taskManager.UnregisterTaskConsumerFactory( CTinyTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    // A worker that is asked to stop while tasks are queued ends after the task it carries out, it does not first work through the queue
+    GUCEF_TESTFW_TESTCASE( "Workers of a pool that is made smaller while a backlog is queued end after their current task: the queued tasks stay for the workers that remain" )
+        try
+        {
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            TTinyTaskFactory factory;
+            taskManager.RegisterTaskConsumerFactory( CTinyTask::TaskType, &factory );
+
+            const UInt32 workers = 3;
+            ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( g_busyShrinkPoolName );
+            REQUIRE_TRUE( !pool.IsNULL() );
+            pool->SetDesiredMaxTotalNrOfThreads( (Int32) workers );
+            pool->SetDesiredMinNrOfWorkerThreads( workers );
+            for ( UInt32 i=0; i<500 && workers != pool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( workers == pool->GetActiveNrOfWorkerThreads() );
+            CThreadPool::TThreadIdVector threadIds;
+            pool->GetAllCurrentThreadIds( threadIds );
+            REQUIRE_TRUE( workers == threadIds.size() );
+            const bool canCount = CountLiveThreads( threadIds ) >= 0;
+            MT::ThreadDelay( 100 );
+
+            // 90 tasks of 20 ms: three workers need 600 ms, one needs 1.8 s
+            g_tinyTaskRuns.Store( 0 );
+            g_tinyTaskHoldMs.Store( 20 );
+            const UInt32 backlog = 90;
+            GUCEF::vector< CFutureResult > futures;
+            for ( UInt32 i=0; i<backlog; ++i )
+                futures.push_back( pool->QueueTask( CTinyTask::TaskType ) );
+            for ( UInt32 waited=0; waited<1000 && g_tinyTaskRuns.Load() < 6; ++waited )
+                MT::ThreadDelay( 1 );
+
+            pool->SetDesiredMaxTotalNrOfThreads( 1 );
+            const UInt64 shrinkTicks = MT::PrecisionTickCount();
+            for ( UInt32 i=0; canCount && i<400 && CountLiveThreads( threadIds ) > 1; ++i )
+                MT::ThreadDelay( 1 );
+            const Float64 shrinkMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - shrinkTicks );
+            const UInt32 runsWhenShrunk = g_tinyTaskRuns.Load();
+            const UInt32 queuedWhenShrunk = pool->GetNrOfQueuedTasks();
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: workers of a busy pool asked to stop ended after " << shrinkMs << " ms, " << runsWhenShrunk << " of " << backlog
+                       << " tasks had run, " << queuedWhenShrunk << " still queued, " << CountLiveThreads( threadIds ) << " of " << workers << " threads live" );
+            ASSERT_TRUE( !canCount || 1 == CountLiveThreads( threadIds ) );
+            ASSERT_TRUE( !canCount || shrinkMs < 300.0 );
+            ASSERT_TRUE( queuedWhenShrunk > 20 );
+
+            // the worker that remains works the rest off, none of the tasks is lost
+            g_tinyTaskHoldMs.Store( 0 );
+            bool allDone = true;
+            for ( UInt32 i=0; i<futures.size(); ++i )
+                allDone = WaitForReady( futures[ i ], 10000 ) && allDone;
+            ASSERT_TRUE( allDone );
+            ASSERT_TRUE( backlog == g_tinyTaskRuns.Load() );
+
+            ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+            taskManager.UnregisterThreadPool( g_busyShrinkPoolName );
+            taskManager.UnregisterTaskConsumerFactory( CTinyTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    #ifdef GUCEF_TEST_HAVE_PROC_THREAD_STATUS
+
+    // A pause of a worker's task is taken between two tasks (where the system can suspend threads); the worker serves the queue afterwards
+    GUCEF_TESTFW_TESTCASE( "A worker that was asked to pause while it carried out a task, and to resume, still serves the queued tasks, and the pool stops at once" )
+        try
+        {
+            CTaskManager& taskManager = CCoreGlobal::Instance()->GetTaskManager();
+            TTinyTaskFactory factory;
+            taskManager.RegisterTaskConsumerFactory( CTinyTask::TaskType, &factory );
+
+            ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( g_pausePoolName );
+            REQUIRE_TRUE( !pool.IsNULL() );
+            pool->SetDesiredMaxTotalNrOfThreads( 1 );
+            pool->SetDesiredMinNrOfWorkerThreads( 1 );
+            for ( UInt32 i=0; i<500 && 1 != pool->GetActiveNrOfWorkerThreads(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( 1 == pool->GetActiveNrOfWorkerThreads() );
+
+            g_tinyTaskRuns.Store( 0 );
+            g_tinyTaskHoldMs.Store( 200 );
+            CFutureResult holding = pool->QueueTask( CTinyTask::TaskType );
+            REQUIRE_TRUE( holding.HasAFuture() );
+            for ( UInt32 waited=0; waited<1000 && 0 == g_tinyTaskRuns.Load(); ++waited )
+                MT::ThreadDelay( 1 );
+            REQUIRE_TRUE( 1 == g_tinyTaskRuns.Load() );
+
+            ASSERT_TRUE( pool->PauseTask( holding.GetTaskId(), false ) );
+            ASSERT_TRUE( pool->ResumeTask( holding.GetTaskId() ) );
+            g_tinyTaskHoldMs.Store( 0 );
+
+            GUCEF::vector< CFutureResult > futures;
+            for ( UInt32 i=0; i<20; ++i )
+                futures.push_back( pool->QueueTask( CTinyTask::TaskType ) );
+            bool allDone = WaitForReady( holding, 5000 );
+            const UInt64 pausedStartTicks = MT::PrecisionTickCount();
+            for ( UInt32 i=0; i<futures.size(); ++i )
+                allDone = WaitForReady( futures[ i ], 10000 ) && allDone;
+            const Float64 pausedMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - pausedStartTicks );
+            ASSERT_TRUE( allDone );
+            ASSERT_TRUE( 21 == g_tinyTaskRuns.Load() );
+
+            // the request to pause is taken between two tasks: the worker goes back to the active object, which sees it (where
+            // threads cannot be suspended, as here, that is all it does, after its cycle delay), instead of taking the whole queue
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: 20 tasks behind a paused task of a worker took " << pausedMs << " ms" );
+            ASSERT_TRUE( pausedMs >= 100.0 );
+
+            UInt64 stopTicks = MT::PrecisionTickCount();
+            ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+            const Float64 stopMs = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - stopTicks );
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: the worker of a pool whose task was paused and resumed stopped in " << stopMs << " ms" );
+            // the worker had just ended its last task: the request to stop ends its wait at once, not when the wait would have ended
+            ASSERT_TRUE( stopMs < 250.0 );
+            taskManager.UnregisterThreadPool( g_pausePoolName );
+            taskManager.UnregisterTaskConsumerFactory( CTinyTask::TaskType );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    #endif /* GUCEF_TEST_HAVE_PROC_THREAD_STATUS ? */
 
     if ( !task.IsNULL() )
         task->RequestTaskToStop( true );

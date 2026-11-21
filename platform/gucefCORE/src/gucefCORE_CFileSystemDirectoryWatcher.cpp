@@ -587,6 +587,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
                 if ( 0 == failed )
                 {
                     m_dirsToWatch.erase( n );
+                    m_wdLookupMap.erase( i );
                     GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "RemoveDirToWatch: Removed watch of dir \"" + dirToWatch + "\"" );
 
                     if ( m_dirsToWatch.empty() )

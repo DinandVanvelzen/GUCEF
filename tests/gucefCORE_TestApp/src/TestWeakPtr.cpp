@@ -86,6 +86,40 @@ typedef CORE::CTSharedPtr< CCounted, MT::CMutex > TCountedPtr;
 typedef CORE::CTWeakPtr< CCounted, MT::CMutex > TCountedWeakPtr;
 typedef CORE::CTSharedPtr< CDerivedCounted, MT::CMutex > TDerivedCountedPtr;
 
+class CSelfRef;
+typedef CORE::CTSharedPtr< CSelfRef, MT::CMutex > TSelfRefPtr;
+typedef CORE::CTWeakPtr< CSelfRef, MT::CMutex > TSelfRefWeak;
+
+/** An object that keeps a weak pointer to itself, the way an object that hands out pointers to itself does */
+class CSelfRef
+{
+    public:
+
+    static Int32 alive;
+    TSelfRefWeak m_self;
+    bool m_unlinkInDestructor;
+
+    CSelfRef( void ) : m_self(), m_unlinkInDestructor( false ) { ++alive; }
+    ~CSelfRef() { if ( m_unlinkInDestructor ) m_self.Unlink(); --alive; }
+};
+
+Int32 CSelfRef::alive = 0;
+
+/** A member that holds a weak pointer to the object that owns it */
+struct CWeakBackRef
+{
+    TSelfRefWeak m_owner;
+};
+
+class COwnerOfBackRef
+{
+    public:
+
+    CWeakBackRef m_backRef;
+};
+
+typedef CORE::CTSharedPtr< COwnerOfBackRef, MT::CMutex > TOwnerOfBackRefPtr;
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -201,6 +235,89 @@ PerformWeakPtrTests( void )
         ASSERT_TRUE( weak.IsExpired() );
         delete raw;
         ASSERT_TRUE( 0 == CCounted::alive );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "WeakPtr: An object that holds a weak pointer to itself is destroyed when the last shared pointer goes" )
+    try
+    {
+        CSelfRef::alive = 0;
+        TSelfRefPtr shared( GUCEF_NEW CSelfRef() );
+        shared->m_self = shared;
+        ASSERT_TRUE( 1 == CSelfRef::alive );
+        shared = TSelfRefPtr();
+        ASSERT_TRUE( 0 == CSelfRef::alive );
+
+        {
+            TSelfRefPtr scoped( GUCEF_NEW CSelfRef() );
+            scoped->m_self = scoped;
+        }
+        ASSERT_TRUE( 0 == CSelfRef::alive );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "WeakPtr: An object that holds a weak pointer to itself leaves outside weak pointers expired but valid" )
+    try
+    {
+        CSelfRef::alive = 0;
+        TSelfRefWeak outside;
+        {
+            TSelfRefPtr shared( GUCEF_NEW CSelfRef() );
+            shared->m_self = shared;
+            outside = shared;
+            ASSERT_FALSE( outside.IsExpired() );
+        }
+        ASSERT_TRUE( 0 == CSelfRef::alive );
+        ASSERT_TRUE( outside.IsExpired() );
+        ASSERT_TRUE( outside.GetSharedPtr().IsNULL() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "WeakPtr: An object that unlinks its own weak pointer in its destructor is destroyed once" )
+    try
+    {
+        CSelfRef::alive = 0;
+        {
+            TSelfRefPtr shared( GUCEF_NEW CSelfRef() );
+            shared->m_self = shared;
+            shared->m_unlinkInDestructor = true;
+        }
+        ASSERT_TRUE( 0 == CSelfRef::alive );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "WeakPtr: A member of the object that holds a weak pointer back to the object does not break the release" )
+    try
+    {
+        CSelfRef::alive = 0;
+        {
+            TOwnerOfBackRefPtr shared( GUCEF_NEW COwnerOfBackRef() );
+            CORE::CTWeakPtr< COwnerOfBackRef, MT::CMutex > weakToOwner( shared );
+            ASSERT_FALSE( weakToOwner.IsExpired() );
+        }
+        TSelfRefPtr first( GUCEF_NEW CSelfRef() );
+        first->m_self = first;
+        TSelfRefPtr second = first;
+        first = TSelfRefPtr();
+        ASSERT_TRUE( 1 == CSelfRef::alive );
+        second = TSelfRefPtr();
+        ASSERT_TRUE( 0 == CSelfRef::alive );
     }
     catch ( ... )
     {

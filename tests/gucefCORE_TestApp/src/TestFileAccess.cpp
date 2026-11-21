@@ -44,6 +44,11 @@
 #define GUCEF_CORE_CSUBIOACCESS_H
 #endif /* GUCEF_CORE_CSUBIOACCESS_H ? */
 
+#ifndef GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
+#include "gucefCORE_CFileSystemUriResourceAccessor.h"
+#define GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
+#endif /* GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H ? */
+
 #ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #include "CDynamicBufferAccess.h"
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
@@ -581,6 +586,59 @@ PerformFileAccessTests( void )
             ASSERT_TRUE( window.Load( parent, payloadSize - 2, 2 ) ); // exactly up to the end is fine
             ASSERT_TRUE( window.Load( parent, payloadSize, 0 ) );     // empty window at the end is fine
             ASSERT_TRUE( window.Eof() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The file system uri accessor hands the caller an access object that reads, writes and appends the file" )
+        try
+        {
+            CORE::CFileSystemUriResourceAccessor accessor;
+            const CORE::CString uriPath = CORE::CombinePath( dir, "uriaccess.bin" );
+            const CORE::CUri uri( "file://" + uriPath );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( uriPath, "abc" ) );
+
+            // read: the file content is available through the returned access
+            CORE::IOAccessPtr readAccess;
+            ASSERT_TRUE( accessor.GetResourceAccess( uri, readAccess, CORE::CUriResourceAccessor::URI_RESOURCEACCESS_MODE_READ ) );
+            ASSERT_FALSE( readAccess.IsNULL() );
+            char readBuffer[ 8 ] = { 0 };
+            ASSERT_TRUE( !readAccess.IsNULL() && 3 == readAccess->Read( readBuffer, 1, 8 ) );
+            ASSERT_TRUE( 0 == memcmp( readBuffer, "abc", 3 ) );
+            readAccess.Unlink();
+
+            // append: what is written follows the existing content
+            CORE::IOAccessPtr appendAccess;
+            ASSERT_TRUE( accessor.GetResourceAccess( uri, appendAccess, CORE::CUriResourceAccessor::URI_RESOURCEACCESS_MODE_APPEND ) );
+            ASSERT_FALSE( appendAccess.IsNULL() );
+            ASSERT_TRUE( !appendAccess.IsNULL() && 3 == appendAccess->Write( "def", 1, 3 ) );
+            if ( !appendAccess.IsNULL() )
+                appendAccess->Close();
+            appendAccess.Unlink();
+            CORE::CString content;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( uriPath, content ) );
+            ASSERT_TRUE( "abcdef" == content );
+
+            // write: replaces the content
+            CORE::IOAccessPtr writeAccess;
+            ASSERT_TRUE( accessor.GetResourceAccess( uri, writeAccess, CORE::CUriResourceAccessor::URI_RESOURCEACCESS_MODE_WRITE ) );
+            ASSERT_FALSE( writeAccess.IsNULL() );
+            ASSERT_TRUE( !writeAccess.IsNULL() && 2 == writeAccess->Write( "xy", 1, 2 ) );
+            if ( !writeAccess.IsNULL() )
+                writeAccess->Close();
+            writeAccess.Unlink();
+            content.Clear();
+            ASSERT_TRUE( CORE::LoadTextFileAsString( uriPath, content ) );
+            ASSERT_TRUE( "xy" == content );
+
+            // a file that does not exist gives no access
+            CORE::IOAccessPtr noAccess;
+            ASSERT_FALSE( accessor.GetResourceAccess( CORE::CUri( "file://" + CORE::CombinePath( dir, "nonexistent.bin" ) ), noAccess, CORE::CUriResourceAccessor::URI_RESOURCEACCESS_MODE_READ ) );
+            ASSERT_TRUE( noAccess.IsNULL() );
+            CORE::DeleteFile( uriPath );
         }
         catch ( ... )
         {
