@@ -195,6 +195,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
     /** Reliable messages queued and not yet acknowledged: sent, or waiting for the lane window (DRN_RELIABLE_LANE_WINDOW) */
     UInt32 GetUnackedCount( void ) const;
 
+    /** Stream channels: bytes of messages queued and not handed to the channel yet; 0 on datagram channels */
+    UInt32 GetQueuedStreamBytes( void ) const;
+
     enum TPacketResult
     {
         PACKET_ACCEPTED         ,

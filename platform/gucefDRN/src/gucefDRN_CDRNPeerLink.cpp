@@ -1819,6 +1819,18 @@ CDRNPeerLink::GetUnackedCount( void ) const
 /*-------------------------------------------------------------------------*/
 
 UInt32
+CDRNPeerLink::GetSendBacklogBytes( void ) const
+{GUCEF_TRACE;
+
+    UInt32 backlog = m_reliability.GetQueuedStreamBytes();
+    if ( !m_channel.IsNULL() )
+        backlog += m_channel->GetQueuedSendBytes();
+    return backlog;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
 CDRNPeerLink::GetMaxUnfragmentedPayload( void ) const
 {GUCEF_TRACE;
 

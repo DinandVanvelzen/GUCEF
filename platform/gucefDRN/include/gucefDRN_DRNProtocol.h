@@ -62,10 +62,16 @@ static const UInt8 DRN_PROTOCOL_ID_MAC_1            = 0xD7;
 static const UInt8 DRN_PROTOCOL_ID_PUBLIC_PLAIN     = 0xD8;
 
 static const UInt8 DRN_PROTOCOL_VERSION_MAJOR       = 2;
-static const UInt8 DRN_PROTOCOL_VERSION_MINOR       = 1;   /**< 1: the RPC message class (DRN_MSGCLASS_RPC) */
+static const UInt8 DRN_PROTOCOL_VERSION_MINOR       = 3;   /**< 1: the RPC message class (DRN_MSGCLASS_RPC); 2: resource transfers (DRN_MSGCLASS_RESOURCE); 3: namespace operations of the resource class (DRN_RES_NS_*) */
 
 /** The first minor of protocol 2 whose nodes take DRN_MSGCLASS_RPC */
 static const UInt8 DRN_PROTOCOL_MINOR_RPC           = 1;
+
+/** The first minor of protocol 2 whose nodes take DRN_MSGCLASS_RESOURCE */
+static const UInt8 DRN_PROTOCOL_MINOR_RESOURCE      = 2;
+
+/** The first minor of protocol 2 whose nodes take the namespace opcodes (DRN_RES_NS_*) of DRN_MSGCLASS_RESOURCE */
+static const UInt8 DRN_PROTOCOL_MINOR_NAMESPACE     = 3;
 
 /** Feature bits announced in HELLO, none are defined for protocol 2.0 */
 static const UInt32 DRN_FEATURE_NONE                = 0;
@@ -164,6 +170,7 @@ enum TDRNMessageClass
     DRN_MSGCLASS_RELAY      = 6,
     DRN_MSGCLASS_APP        = 7,
     DRN_MSGCLASS_RPC        = 8,    /**< frames of the GUCEF RPC protocol (CDRNRpcSessionComponent), protocol 2.1 */
+    DRN_MSGCLASS_RESOURCE   = 9,    /**< resource transfers (CDRNResourceSessionComponent), protocol 2.2 */
 
     DRN_MSGCLASS_COUNT
 };
@@ -269,6 +276,131 @@ static const UInt32 DRN_RPC_OPCODE_FROM_ACCEPTOR    = 0x01;   /**< sent by the m
 inline UInt32 DRNRpcOpcode( UInt32 channel, bool fromAcceptor ) { return ( channel << 1 ) | ( fromAcceptor ? DRN_RPC_OPCODE_FROM_ACCEPTOR : 0 ); }
 inline UInt32 DRNRpcChannel( UInt32 opcode ) { return opcode >> 1; }
 inline bool DRNRpcIsFromAcceptor( UInt32 opcode ) { return 0 != ( opcode & DRN_RPC_OPCODE_FROM_ACCEPTOR ); }
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Resource transfer messages (DRN_MSGCLASS_RESOURCE, direct links only). R is the requesting member, S the serving one.
+ *  Handles are chosen by R, unique per link; read ids per handle. Credit is counted in chunks of DRN_RESOURCE_CHUNK_SIZE.
+ */
+enum TDRNResourceOpcode
+{
+    DRN_RES_OPEN                = 1,    /**< R to S, lane 0: { varint handle, string provider, string name, varint flags, string expectedRevision } */
+    DRN_RES_READ                = 2,    /**< R to S, lane 0: { varint handle, varint readId, varint64 firstChunk, varint64 chunkCount, varint credit } */
+    DRN_RES_CREDIT              = 3,    /**< R to S, lane 0: { varint handle, varint readId, varint chunks } */
+    DRN_RES_CANCEL              = 4,    /**< R to S, lane 0: { varint handle, varint readId } */
+    DRN_RES_CLOSE               = 5,    /**< R to S, lane 0: { varint handle } */
+    DRN_RES_INFO                = 6,    /**< S to R, lane 0: { varint handle, varint status, string message [, varint64 size, varint64 modifiedUtcMs, string revision, varint chunkSize, u8 digestFlags, bytes32 sha256?, bytes32 treeRoot?] } */
+    DRN_RES_DATA                = 7,    /**< S to R, lane 1: { varint handle, varint readId, varint64 chunk, u8 pathLength, bytes32 path*, bytes data } */
+    DRN_RES_READ_END            = 8     /**< S to R, lane 0: { varint handle, varint readId, varint status, string message }: a read that failed */
+};
+
+/**
+ *  Namespace messages of DRN_MSGCLASS_RESOURCE (protocol 2.3): browsing what a provider shares (shares, stat, list)
+ *  without opening anything. R is the requesting member, S the serving one; every message is on lane 0 and every
+ *  request carries a varint requestId chosen by R, unique per member and run, which the answer repeats.
+ *
+ *  The numbers 16 to 63 belong to the namespace operations: 16 to 23 requests that read, 24 to 31 their answers, 32 to 47
+ *  requests that change (reserved, a serving side answers them READ_ONLY), 48 to 63 for later (watches, versions).
+ */
+enum TDRNResourceNamespaceOpcode
+{
+    DRN_RES_NS_HELLO            = 16,   /**< R to S: { varint requestId, varint maxVersion, varint clientCaps } */
+    DRN_RES_NS_SHARES           = 17,   /**< R to S: { varint requestId } */
+    DRN_RES_NS_STAT             = 18,   /**< R to S: { varint requestId, string share, varint count, ( string path, string ifRevisionNot )* count } */
+    DRN_RES_NS_LIST             = 19,   /**< R to S: { varint requestId, string share, string dir, bytes cursor, varint maxEntries, string ifRevisionNot } */
+    DRN_RES_NS_ANSWER           = 24,   /**< S to R: { varint requestId, varint kind (the opcode answered), varint status, string message, body of the kind (status OK, for LIST also UNCHANGED) } */
+
+    DRN_RES_NS_MUTATION_FIRST   = 32,   /**< first opcode of the range reserved for requests that change a share (create, write, delete, rename, make directory) */
+    DRN_RES_NS_MUTATION_LAST    = 47,
+    DRN_RES_NS_RESERVED_FIRST   = 48,   /**< reserved: watch, unwatch, changes, list versions */
+    DRN_RES_NS_RESERVED_LAST    = 63
+};
+
+/** The version of the namespace protocol this build speaks, negotiated in NS_HELLO (the lower of both sides) */
+static const UInt32 DRN_NS_VERSION                  = 1;
+
+/**
+ *  Capabilities of a share (CIDRNResourceProvider::GetNamespaceCapabilities(), per share in the SHARES answer) and of a
+ *  serving side (NS_HELLO answer). A requester asks only for what a share advertises.
+ */
+static const UInt32 DRN_NS_CAP_READ                 = 0x0001;   /**< resources can be opened by name (OPEN) */
+static const UInt32 DRN_NS_CAP_LIST                 = 0x0002;
+static const UInt32 DRN_NS_CAP_STAT                 = 0x0004;
+static const UInt32 DRN_NS_CAP_WATCH                = 0x0008;   /**< reserved: changes are pushed */
+static const UInt32 DRN_NS_CAP_VERSIONS             = 0x0010;   /**< reserved: older revisions are kept and can be read */
+static const UInt32 DRN_NS_CAP_WRITE                = 0x0100;   /**< reserved */
+static const UInt32 DRN_NS_CAP_CREATE               = 0x0200;   /**< reserved */
+static const UInt32 DRN_NS_CAP_DELETE               = 0x0400;   /**< reserved */
+static const UInt32 DRN_NS_CAP_RENAME               = 0x0800;   /**< reserved */
+static const UInt32 DRN_NS_CAP_MKDIR                = 0x1000;   /**< reserved */
+
+/** Flags of a share in the SHARES answer */
+static const UInt32 DRN_NS_SHAREFLAG_READ_ONLY      = 0x01;     /**< nothing can be changed through the share (always set in this version) */
+static const UInt32 DRN_NS_SHAREFLAG_WEAK_REVISION  = 0x02;     /**< the share has no modification times: a revision is "<size>-0", a change of content at the same size goes unnoticed */
+
+/** What a namespace entry is */
+enum TDRNNamespaceEntryKind
+{
+    DRN_NS_KIND_FILE        = 1,
+    DRN_NS_KIND_DIRECTORY   = 2
+};
+
+/** Flags of an entry in a STAT or LIST answer */
+static const UInt32 DRN_NS_ENTRYFLAG_SHA256         = 0x01;     /**< the provider knows the SHA-256 of the file: it follows the revision */
+static const UInt32 DRN_NS_ENTRYFLAG_READ_ONLY      = 0x02;     /**< the entry itself is marked read-only */
+static const UInt32 DRN_NS_ENTRYFLAG_HIDDEN         = 0x04;     /**< the file system marks the entry hidden */
+static const UInt32 DRN_NS_ENTRYFLAG_WEAK_REVISION  = 0x08;     /**< the revision of the entry holds no modification time */
+static const UInt32 DRN_NS_ENTRYFLAG_SUB_ARCHIVE    = 0x10;     /**< reserved: a file that is also a directory (an archive the serving side walks into) */
+
+/** Flags of OPEN */
+static const UInt32 DRN_RES_OPEN_FLAG_TREE      = 0x01;     /**< the requester wants the hash tree root in INFO and an audit path with every chunk */
+
+/** Digest flags of INFO */
+static const UInt8 DRN_RES_DIGEST_SHA256        = 0x01;     /**< the SHA-256 of the whole resource follows */
+static const UInt8 DRN_RES_DIGEST_TREE          = 0x02;     /**< the root of the hash tree follows, chunks carry audit paths */
+
+/** The unit of transfer, verification and resume bookkeeping */
+static const UInt32 DRN_RESOURCE_CHUNK_SIZE     = 64 * 1024;
+
+/** Statuses of resource transfers, on the wire as a varint. Values are never reused */
+enum TDRNResourceStatus
+{
+    DRN_RESSTATUS_OK                = 0,
+    DRN_RESSTATUS_NOT_FOUND         = 1,    /**< no such resource, or one the provider does not expose */
+    DRN_RESSTATUS_FORBIDDEN         = 2,    /**< the member may not read from the provider */
+    DRN_RESSTATUS_INVALID_NAME      = 3,    /**< the name is not a safe relative name */
+    DRN_RESSTATUS_NO_SUCH_PROVIDER  = 4,
+    DRN_RESSTATUS_BUSY              = 5,    /**< a limit of the serving side, try again later */
+    DRN_RESSTATUS_CHANGED           = 6,    /**< the resource is not the revision that was expected or opened */
+    DRN_RESSTATUS_OUT_OF_RANGE      = 7,
+    DRN_RESSTATUS_IO_ERROR          = 8,    /**< the serving side could not read */
+    DRN_RESSTATUS_DIGEST_MISMATCH   = 9,    /**< what arrived does not match its digest */
+    DRN_RESSTATUS_CANCELLED         = 10,
+    DRN_RESSTATUS_LINK_LOST         = 11,   /**< the member left, the link or the session closed */
+    DRN_RESSTATUS_UNSUPPORTED       = 12,   /**< the member's node does not take resource transfers (protocol below 2.2) */
+    DRN_RESSTATUS_INSECURE_LINK     = 13,   /**< the link has no packet protection and the settings require it */
+    DRN_RESSTATUS_TIMEOUT           = 14,
+    DRN_RESSTATUS_LOCAL_IO_ERROR    = 15,   /**< this side could not write or read its target */
+    DRN_RESSTATUS_PROTOCOL_ERROR    = 16,
+    DRN_RESSTATUS_TOO_LARGE         = 17,   /**< the resource does not fit the target */
+    DRN_RESSTATUS_CLOSED            = 18,   /**< the handle or read is not open (any more) */
+    DRN_RESSTATUS_NO_TREE           = 19,   /**< verification by hash tree was required, the serving side has none */
+
+    // namespace operations (protocol 2.3)
+    DRN_RESSTATUS_UNCHANGED         = 20,   /**< the revision the requester holds (ifRevisionNot) is the current one: no entries follow */
+    DRN_RESSTATUS_CURSOR_EXPIRED    = 21,   /**< the listing cursor is unknown, expired or not the next one: list again from the start */
+    DRN_RESSTATUS_NOT_A_DIRECTORY   = 22,   /**< a listing of a file */
+
+    // reserved for writes, nothing produces them yet except READ_ONLY (a request that changes a share)
+    DRN_RESSTATUS_READ_ONLY         = 23,   /**< the share cannot be changed */
+    DRN_RESSTATUS_CONFLICT          = 24,   /**< reserved: a change against a revision that moved on */
+    DRN_RESSTATUS_ALREADY_EXISTS    = 25,   /**< reserved */
+    DRN_RESSTATUS_NOT_EMPTY         = 26,   /**< reserved */
+    DRN_RESSTATUS_NO_SPACE          = 27,   /**< reserved */
+
+    DRN_RESSTATUS_COUNT
+};
 
 /*-------------------------------------------------------------------------*/
 

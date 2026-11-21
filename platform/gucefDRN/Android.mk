@@ -41,17 +41,33 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNDatabaseClient.cpp \
   src/gucefDRN_CDRNEndpoint.cpp \
   src/gucefDRN_CDRNEndpointList.cpp \
+  src/gucefDRN_CDRNFileResourceSink.cpp \
+  src/gucefDRN_CDRNFileSystemAccessResourceProvider.cpp \
+  src/gucefDRN_CDRNFileSystemResourceProvider.cpp \
   src/gucefDRN_CDRNGlobal.cpp \
+  src/gucefDRN_CDRNIOAccessResourceSink.cpp \
   src/gucefDRN_CDRNLatencyInfo.cpp \
   src/gucefDRN_CDRNLatencyMeter.cpp \
   src/gucefDRN_CDRNLinkMonitor.cpp \
   src/gucefDRN_CDRNLinkReliability.cpp \
+  src/gucefDRN_CDRNMemoryResourceSink.cpp \
+  src/gucefDRN_CDRNNamespaceClient.cpp \
+  src/gucefDRN_CDRNNamespaceCodec.cpp \
+  src/gucefDRN_CDRNNamespaceEntry.cpp \
+  src/gucefDRN_CDRNNamespaceInfo.cpp \
+  src/gucefDRN_CDRNNamespaceListPage.cpp \
+  src/gucefDRN_CDRNNamespaceRequest.cpp \
+  src/gucefDRN_CDRNNamespaceResponse.cpp \
+  src/gucefDRN_CDRNNamespaceResult.cpp \
+  src/gucefDRN_CDRNNamespaceShareInfo.cpp \
+  src/gucefDRN_CDRNNamespaceShareSettings.cpp \
   src/gucefDRN_CDRNNode.cpp \
   src/gucefDRN_CDRNNodePulseDriver.cpp \
   src/gucefDRN_CDRNNodeSettings.cpp \
   src/gucefDRN_CDRNNodeTask.cpp \
   src/gucefDRN_CDRNPacketCodec.cpp \
   src/gucefDRN_CDRNPacketProtection.cpp \
+  src/gucefDRN_CDRNPeerLimits.cpp \
   src/gucefDRN_CDRNPeerLink.cpp \
   src/gucefDRN_CDRNPublishedColumn.cpp \
   src/gucefDRN_CDRNPublishedTable.cpp \
@@ -62,6 +78,24 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNRelayChannel.cpp \
   src/gucefDRN_CDRNRelayService.cpp \
   src/gucefDRN_CDRNReplicator.cpp \
+  src/gucefDRN_CDRNRequestGate.cpp \
+  src/gucefDRN_CDRNResourceHandle.cpp \
+  src/gucefDRN_CDRNResourceHashTree.cpp \
+  src/gucefDRN_CDRNResourceHasher.cpp \
+  src/gucefDRN_CDRNResourceIOAccess.cpp \
+  src/gucefDRN_CDRNResourceInfo.cpp \
+  src/gucefDRN_CDRNResourceIoTaskConsumer.cpp \
+  src/gucefDRN_CDRNResourceIoTaskData.cpp \
+  src/gucefDRN_CDRNResourceName.cpp \
+  src/gucefDRN_CDRNResourcePartialState.cpp \
+  src/gucefDRN_CDRNResourceSessionComponent.cpp \
+  src/gucefDRN_CDRNResourceShareRules.cpp \
+  src/gucefDRN_CDRNResourceTransfer.cpp \
+  src/gucefDRN_CDRNResourceTransferOptions.cpp \
+  src/gucefDRN_CDRNResourceTransferResult.cpp \
+  src/gucefDRN_CDRNResourceTransferSettings.cpp \
+  src/gucefDRN_CDRNResourceTransferStats.cpp \
+  src/gucefDRN_CDRNResourceTreeStore.cpp \
   src/gucefDRN_CDRNRpcSessionComponent.cpp \
   src/gucefDRN_CDRNRpcTransport.cpp \
   src/gucefDRN_CDRNRpcTransportListener.cpp \
@@ -83,6 +117,7 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNTokenAuthenticator.cpp \
   src/gucefDRN_CDRNUdpChannel.cpp \
   src/gucefDRN_CDRNUdpChannelListener.cpp \
+  src/gucefDRN_CDRNUriResourceProvider.cpp \
   src/gucefDRN_CDRNVariantCodec.cpp \
   src/gucefDRN_CDRNVotePolicy.cpp \
   src/gucefDRN_CDRNWebSocketChannel.cpp \
@@ -96,7 +131,13 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CIDRNChannel.cpp \
   src/gucefDRN_CIDRNChannelListener.cpp \
   src/gucefDRN_CIDRNLatencyMeter.cpp \
+  src/gucefDRN_CIDRNNamespaceEnumerator.cpp \
+  src/gucefDRN_CIDRNPeerLimitPolicy.cpp \
+  src/gucefDRN_CIDRNResourceIoJob.cpp \
+  src/gucefDRN_CIDRNResourceProvider.cpp \
+  src/gucefDRN_CIDRNResourceSink.cpp \
   src/gucefDRN_CIDRNSessionComponent.cpp \
+  src/gucefDRN_CIDRNWaitCondition.cpp \
   src/gucefDRN_CIDRNWriteValidator.cpp
 
 LOCAL_C_INCLUDES := \

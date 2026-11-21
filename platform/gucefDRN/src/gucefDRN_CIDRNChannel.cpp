@@ -141,6 +141,15 @@ CIDRNChannel::GetDrivingPulseGenerator( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CIDRNChannel::GetQueuedSendBytes( void ) const
+{GUCEF_TRACE;
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CORE::CString&
 CIDRNChannel::GetClassTypeName( void ) const
 {GUCEF_TRACE;

@@ -78,6 +78,7 @@ namespace DRN {
 class CDRNNode;
 class CDRNReplicator;
 class CDRNBulkTransferManager;
+class CDRNResourceSessionComponent;
 class CDRNDataGrid;
 class CDRNDataStream;
 class CDRNDataGridSettings;
@@ -225,6 +226,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNSession : public CDRNApplicationNotifier
     /** Files and blobs sent to members */
     CDRNBulkTransferManager& GetBulkTransfers( void ) const;
 
+    /** Resources served through providers and fetched or read from members (protocol 2.2) */
+    CDRNResourceSessionComponent& GetResources( void ) const;
+
     /** Called by the node's pulse: flushes what is due, checks the join timeout */
     void Tick( UInt64 nodeNow );
 
@@ -356,6 +360,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNSession : public CDRNApplicationNotifier
     CIDRNSessionComponent* m_components[ DRN_MSGCLASS_COUNT ];
     CDRNReplicator* m_replicator;
     CDRNBulkTransferManager* m_bulkTransfers;
+    CDRNResourceSessionComponent* m_resources;
     CDRNDataGrid* m_latencyGrid;
     UInt64 m_nextLatencyPublish;
     CORE::CDynamicBuffer m_txBuffer;

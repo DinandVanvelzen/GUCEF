@@ -8,6 +8,7 @@
 			<Dependency Name="gucefCOM" />
 			<Dependency Name="gucefWEB" />
 			<Dependency Name="gucefDRN" />
+            <Dependency Name="gucefVFS" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
@@ -16,6 +17,7 @@
 			<Dependency Name="gucefCOM" />
 			<Dependency Name="gucefWEB" />
 			<Dependency Name="gucefDRN" />
+            <Dependency Name="gucefVFS" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_DRN_TESTAPP_BUILD_MODULE" />

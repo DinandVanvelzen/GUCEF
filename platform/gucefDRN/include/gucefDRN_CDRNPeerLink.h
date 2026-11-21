@@ -282,6 +282,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     UInt32 GetUnackedCount( void ) const;
 
     /**
+     *  Bytes waiting to be sent: the link's stream queue and what the channel holds (CIDRNChannel::GetQueuedSendBytes()).
+     *  A sender of bulk data keeps this bounded, so that other messages do not wait behind it for long
+     */
+    UInt32 GetSendBacklogBytes( void ) const;
+
+    /**
      *  The largest message payload that goes out in one packet of the channel, without fragments: the datagram budget
      *  on datagram channels, the stream limit on stream channels (CDRNLinkReliability::GetMaxUnfragmentedPayload)
      */

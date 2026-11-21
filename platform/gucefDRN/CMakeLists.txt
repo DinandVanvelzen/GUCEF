@@ -31,17 +31,33 @@ set( HEADER_FILES
   include/gucefDRN_CDRNDatabaseClient.h
   include/gucefDRN_CDRNEndpoint.h
   include/gucefDRN_CDRNEndpointList.h
+  include/gucefDRN_CDRNFileResourceSink.h
+  include/gucefDRN_CDRNFileSystemAccessResourceProvider.h
+  include/gucefDRN_CDRNFileSystemResourceProvider.h
   include/gucefDRN_CDRNGlobal.h
+  include/gucefDRN_CDRNIOAccessResourceSink.h
   include/gucefDRN_CDRNLatencyInfo.h
   include/gucefDRN_CDRNLatencyMeter.h
   include/gucefDRN_CDRNLinkMonitor.h
   include/gucefDRN_CDRNLinkReliability.h
+  include/gucefDRN_CDRNMemoryResourceSink.h
+  include/gucefDRN_CDRNNamespaceClient.h
+  include/gucefDRN_CDRNNamespaceCodec.h
+  include/gucefDRN_CDRNNamespaceEntry.h
+  include/gucefDRN_CDRNNamespaceInfo.h
+  include/gucefDRN_CDRNNamespaceListPage.h
+  include/gucefDRN_CDRNNamespaceRequest.h
+  include/gucefDRN_CDRNNamespaceResponse.h
+  include/gucefDRN_CDRNNamespaceResult.h
+  include/gucefDRN_CDRNNamespaceShareInfo.h
+  include/gucefDRN_CDRNNamespaceShareSettings.h
   include/gucefDRN_CDRNNode.h
   include/gucefDRN_CDRNNodePulseDriver.h
   include/gucefDRN_CDRNNodeSettings.h
   include/gucefDRN_CDRNNodeTask.h
   include/gucefDRN_CDRNPacketCodec.h
   include/gucefDRN_CDRNPacketProtection.h
+  include/gucefDRN_CDRNPeerLimits.h
   include/gucefDRN_CDRNPeerLink.h
   include/gucefDRN_CDRNPublishedColumn.h
   include/gucefDRN_CDRNPublishedTable.h
@@ -52,6 +68,24 @@ set( HEADER_FILES
   include/gucefDRN_CDRNRelayChannel.h
   include/gucefDRN_CDRNRelayService.h
   include/gucefDRN_CDRNReplicator.h
+  include/gucefDRN_CDRNRequestGate.h
+  include/gucefDRN_CDRNResourceHandle.h
+  include/gucefDRN_CDRNResourceHashTree.h
+  include/gucefDRN_CDRNResourceHasher.h
+  include/gucefDRN_CDRNResourceIOAccess.h
+  include/gucefDRN_CDRNResourceInfo.h
+  include/gucefDRN_CDRNResourceIoTaskConsumer.h
+  include/gucefDRN_CDRNResourceIoTaskData.h
+  include/gucefDRN_CDRNResourceName.h
+  include/gucefDRN_CDRNResourcePartialState.h
+  include/gucefDRN_CDRNResourceSessionComponent.h
+  include/gucefDRN_CDRNResourceShareRules.h
+  include/gucefDRN_CDRNResourceTransfer.h
+  include/gucefDRN_CDRNResourceTransferOptions.h
+  include/gucefDRN_CDRNResourceTransferResult.h
+  include/gucefDRN_CDRNResourceTransferSettings.h
+  include/gucefDRN_CDRNResourceTransferStats.h
+  include/gucefDRN_CDRNResourceTreeStore.h
   include/gucefDRN_CDRNRpcSessionComponent.h
   include/gucefDRN_CDRNRpcTransport.h
   include/gucefDRN_CDRNRpcTransportListener.h
@@ -73,6 +107,7 @@ set( HEADER_FILES
   include/gucefDRN_CDRNTokenAuthenticator.h
   include/gucefDRN_CDRNUdpChannel.h
   include/gucefDRN_CDRNUdpChannelListener.h
+  include/gucefDRN_CDRNUriResourceProvider.h
   include/gucefDRN_CDRNVariantCodec.h
   include/gucefDRN_CDRNVotePolicy.h
   include/gucefDRN_CDRNWebSocketChannel.h
@@ -86,7 +121,13 @@ set( HEADER_FILES
   include/gucefDRN_CIDRNChannel.h
   include/gucefDRN_CIDRNChannelListener.h
   include/gucefDRN_CIDRNLatencyMeter.h
+  include/gucefDRN_CIDRNNamespaceEnumerator.h
+  include/gucefDRN_CIDRNPeerLimitPolicy.h
+  include/gucefDRN_CIDRNResourceIoJob.h
+  include/gucefDRN_CIDRNResourceProvider.h
+  include/gucefDRN_CIDRNResourceSink.h
   include/gucefDRN_CIDRNSessionComponent.h
+  include/gucefDRN_CIDRNWaitCondition.h
   include/gucefDRN_CIDRNWriteValidator.h
   include/gucefDRN_DRNProtocol.h
   include/gucefDRN_ETypes.h
@@ -114,17 +155,33 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNDatabaseClient.cpp
   src/gucefDRN_CDRNEndpoint.cpp
   src/gucefDRN_CDRNEndpointList.cpp
+  src/gucefDRN_CDRNFileResourceSink.cpp
+  src/gucefDRN_CDRNFileSystemAccessResourceProvider.cpp
+  src/gucefDRN_CDRNFileSystemResourceProvider.cpp
   src/gucefDRN_CDRNGlobal.cpp
+  src/gucefDRN_CDRNIOAccessResourceSink.cpp
   src/gucefDRN_CDRNLatencyInfo.cpp
   src/gucefDRN_CDRNLatencyMeter.cpp
   src/gucefDRN_CDRNLinkMonitor.cpp
   src/gucefDRN_CDRNLinkReliability.cpp
+  src/gucefDRN_CDRNMemoryResourceSink.cpp
+  src/gucefDRN_CDRNNamespaceClient.cpp
+  src/gucefDRN_CDRNNamespaceCodec.cpp
+  src/gucefDRN_CDRNNamespaceEntry.cpp
+  src/gucefDRN_CDRNNamespaceInfo.cpp
+  src/gucefDRN_CDRNNamespaceListPage.cpp
+  src/gucefDRN_CDRNNamespaceRequest.cpp
+  src/gucefDRN_CDRNNamespaceResponse.cpp
+  src/gucefDRN_CDRNNamespaceResult.cpp
+  src/gucefDRN_CDRNNamespaceShareInfo.cpp
+  src/gucefDRN_CDRNNamespaceShareSettings.cpp
   src/gucefDRN_CDRNNode.cpp
   src/gucefDRN_CDRNNodePulseDriver.cpp
   src/gucefDRN_CDRNNodeSettings.cpp
   src/gucefDRN_CDRNNodeTask.cpp
   src/gucefDRN_CDRNPacketCodec.cpp
   src/gucefDRN_CDRNPacketProtection.cpp
+  src/gucefDRN_CDRNPeerLimits.cpp
   src/gucefDRN_CDRNPeerLink.cpp
   src/gucefDRN_CDRNPublishedColumn.cpp
   src/gucefDRN_CDRNPublishedTable.cpp
@@ -135,6 +192,24 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNRelayChannel.cpp
   src/gucefDRN_CDRNRelayService.cpp
   src/gucefDRN_CDRNReplicator.cpp
+  src/gucefDRN_CDRNRequestGate.cpp
+  src/gucefDRN_CDRNResourceHandle.cpp
+  src/gucefDRN_CDRNResourceHashTree.cpp
+  src/gucefDRN_CDRNResourceHasher.cpp
+  src/gucefDRN_CDRNResourceIOAccess.cpp
+  src/gucefDRN_CDRNResourceInfo.cpp
+  src/gucefDRN_CDRNResourceIoTaskConsumer.cpp
+  src/gucefDRN_CDRNResourceIoTaskData.cpp
+  src/gucefDRN_CDRNResourceName.cpp
+  src/gucefDRN_CDRNResourcePartialState.cpp
+  src/gucefDRN_CDRNResourceSessionComponent.cpp
+  src/gucefDRN_CDRNResourceShareRules.cpp
+  src/gucefDRN_CDRNResourceTransfer.cpp
+  src/gucefDRN_CDRNResourceTransferOptions.cpp
+  src/gucefDRN_CDRNResourceTransferResult.cpp
+  src/gucefDRN_CDRNResourceTransferSettings.cpp
+  src/gucefDRN_CDRNResourceTransferStats.cpp
+  src/gucefDRN_CDRNResourceTreeStore.cpp
   src/gucefDRN_CDRNRpcSessionComponent.cpp
   src/gucefDRN_CDRNRpcTransport.cpp
   src/gucefDRN_CDRNRpcTransportListener.cpp
@@ -156,6 +231,7 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNTokenAuthenticator.cpp
   src/gucefDRN_CDRNUdpChannel.cpp
   src/gucefDRN_CDRNUdpChannelListener.cpp
+  src/gucefDRN_CDRNUriResourceProvider.cpp
   src/gucefDRN_CDRNVariantCodec.cpp
   src/gucefDRN_CDRNVotePolicy.cpp
   src/gucefDRN_CDRNWebSocketChannel.cpp
@@ -169,7 +245,13 @@ set( SOURCE_FILES
   src/gucefDRN_CIDRNChannel.cpp
   src/gucefDRN_CIDRNChannelListener.cpp
   src/gucefDRN_CIDRNLatencyMeter.cpp
+  src/gucefDRN_CIDRNNamespaceEnumerator.cpp
+  src/gucefDRN_CIDRNPeerLimitPolicy.cpp
+  src/gucefDRN_CIDRNResourceIoJob.cpp
+  src/gucefDRN_CIDRNResourceProvider.cpp
+  src/gucefDRN_CIDRNResourceSink.cpp
   src/gucefDRN_CIDRNSessionComponent.cpp
+  src/gucefDRN_CIDRNWaitCondition.cpp
   src/gucefDRN_CIDRNWriteValidator.cpp
 )
 

@@ -57,6 +57,11 @@
 #define GUCEF_DRN_CDRNBULKTRANSFER_H
 #endif /* GUCEF_DRN_CDRNBULKTRANSFER_H ? */
 
+#ifndef GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H
+#include "gucefDRN_CDRNResourceSessionComponent.h"
+#define GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H
+#endif /* GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H ? */
+
 #ifndef GUCEF_DRN_CDRNSESSIONRECORDER_H
 #include "gucefDRN_CDRNSessionRecorder.h"
 #define GUCEF_DRN_CDRNSESSIONRECORDER_H
@@ -179,6 +184,7 @@ CDRNSession::CDRNSession( CDRNNode& node )
     , m_memberCount( 0 )
     , m_replicator( GUCEF_NULL )
     , m_bulkTransfers( GUCEF_NULL )
+    , m_resources( GUCEF_NULL )
     , m_latencyGrid( GUCEF_NULL )
     , m_nextLatencyPublish( 0 )
     , m_txBuffer()
@@ -197,6 +203,8 @@ CDRNSession::CDRNSession( CDRNNode& node )
     m_components[ DRN_MSGCLASS_STREAM ] = m_replicator->GetStreamComponent();
     m_bulkTransfers = GUCEF_NEW CDRNBulkTransferManager( *this );
     m_components[ DRN_MSGCLASS_BULK ] = m_bulkTransfers;
+    m_resources = GUCEF_NEW CDRNResourceSessionComponent( *this );
+    m_components[ DRN_MSGCLASS_RESOURCE ] = m_resources;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -215,6 +223,7 @@ CDRNSession::~CDRNSession()
     m_components[ DRN_MSGCLASS_REPL ] = GUCEF_NULL;
     m_components[ DRN_MSGCLASS_STREAM ] = GUCEF_NULL;
     m_components[ DRN_MSGCLASS_BULK ] = GUCEF_NULL;
+    m_components[ DRN_MSGCLASS_RESOURCE ] = GUCEF_NULL;
 
     // the components plugged in by others hear of it last; each is forgotten before it is told. Under the node lock:
     // the session is destroyed without it (CDRNNode::DestroySession()), and a component works on the node's objects
@@ -230,6 +239,8 @@ CDRNSession::~CDRNSession()
                 component->OnSessionDestroyed( *this );
         }
     }
+    GUCEF_DELETE m_resources;
+    m_resources = GUCEF_NULL;
     GUCEF_DELETE m_bulkTransfers;
     m_bulkTransfers = GUCEF_NULL;
     GUCEF_DELETE m_replicator;
@@ -395,6 +406,7 @@ CDRNSession::Host( const CDRNSessionSettings& settings )
 
     m_replicator->Reset();
     m_bulkTransfers->Reset();
+    m_resources->Reset();
     m_latencyGrid = GUCEF_NULL;
     m_nextLatencyPublish = 0;
     m_settings = settings;
@@ -454,6 +466,7 @@ CDRNSession::Join( const CDRNEndpointList& host, const CDRNSessionSettings& sett
 
     m_replicator->Reset();
     m_bulkTransfers->Reset();
+    m_resources->Reset();
     m_latencyGrid = GUCEF_NULL;
     m_nextLatencyPublish = 0;
     m_settings = settings;
@@ -1480,6 +1493,15 @@ CDRNSession::GetBulkTransfers( void ) const
 {GUCEF_TRACE;
 
     return *m_bulkTransfers;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDRNResourceSessionComponent&
+CDRNSession::GetResources( void ) const
+{GUCEF_TRACE;
+
+    return *m_resources;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -92,6 +92,9 @@ static const UInt32 MaxChunksPerTick = 8;
 /** Reliable messages a datagram link may have unacknowledged before a transfer waits */
 static const UInt32 MaxUnackedForChunks = 64;
 
+/** Bytes waiting to be sent on a link (stream queue and channel) before a transfer waits: stream channels have no acks */
+static const UInt32 MaxSendBacklogForChunks = 1024 * 1024;
+
 /** Block size of the hash task reading a file */
 static const UInt32 HashReadSize = 64 * 1024;
 
@@ -983,7 +986,7 @@ CDRNBulkTransferManager::CanSendChunk( UInt32 toPeerId ) const
         link = m_session->GetLinkToMember( m_session->GetSequencerPeerId() );
     if ( link.IsNULL() )
         return false;
-    return link->GetUnackedCount() < MaxUnackedForChunks;
+    return link->GetUnackedCount() < MaxUnackedForChunks && link->GetSendBacklogBytes() < MaxSendBacklogForChunks;
 }
 
 /*-------------------------------------------------------------------------*/

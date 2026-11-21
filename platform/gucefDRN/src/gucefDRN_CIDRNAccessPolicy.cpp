@@ -90,6 +90,57 @@ IsRoleIn( const CORE::CString::StringSet& roles, const CORE::CString& role )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CIDRNAccessPolicy::MayReadResourceAs( UInt32 /* peerId */, const CDRNAuthResult& /* auth */, const CORE::CString& /* providerName */, const CORE::CString& /* resourceName */,
+                                      bool sharedByProvider )
+{GUCEF_TRACE;
+
+    return sharedByProvider;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDRNAccessPolicy::CheckReadResourceAs( UInt32 peerId, const CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                        bool sharedByProvider, CORE::CString& /* refusal */ )
+{GUCEF_TRACE;
+
+    return MayReadResourceAs( peerId, auth, providerName, resourceName, sharedByProvider );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDRNAccessPolicy::DecideReadResourceAs( UInt32 peerId, const CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                         bool sharedByProvider, CORE::CString& refusal, bool& retryLater )
+{GUCEF_TRACE;
+
+    retryLater = false;
+    return CheckReadResourceAs( peerId, auth, providerName, resourceName, sharedByProvider, refusal );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDRNAccessPolicy::MayBrowseResourceAs( UInt32 peerId, const CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                        bool sharedByProvider )
+{GUCEF_TRACE;
+
+    return MayReadResourceAs( peerId, auth, providerName, resourceName, sharedByProvider );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDRNAccessPolicy::MayListEntryAs( UInt32 /* peerId */, const CDRNAuthResult& /* auth */, const CORE::CString& /* providerName */, const CORE::CString& /* entryName */,
+                                   bool /* isDirectory */ )
+{GUCEF_TRACE;
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDRNDefaultAccessPolicy::CDRNDefaultAccessPolicy( void )
     : CIDRNAccessPolicy()
 {GUCEF_TRACE;

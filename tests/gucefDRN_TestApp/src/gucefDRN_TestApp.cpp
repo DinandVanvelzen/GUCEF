@@ -65,6 +65,9 @@
 #include "TestDRNEncryption.h"
 #include "TestDRNDataTables.h"
 #include "TestDRNDataTablePerformance.h"
+#include "TestDRNResourceTransfer.h"
+#include "TestDRNNamespace.h"
+#include "TestDRNLimits.h"
 #include "TestDRNRpcTransport.h"
 #include "TestDRNLockOrder.h"
 
@@ -122,9 +125,9 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefDRN_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( DRNTestEventCallback, GUCEF_NULL );
 
-        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption, protection, tables, tableperf, rpc, rpcperf, rpcthreads, lockorder (default all)
+        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption, protection, tables, tableperf, rpc, rpcperf, rpcthreads, lockorder, resources, namespace, limits (default all)
         bool runAll = argc < 2;
-        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll, runProtection = runAll, runTables = runAll, runTablePerformance = runAll, runRpc = runAll, runRpcPerf = runAll, runRpcThreads = runAll, runLockOrder = runAll;
+        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll, runProtection = runAll, runTables = runAll, runTablePerformance = runAll, runRpc = runAll, runRpcPerf = runAll, runRpcThreads = runAll, runLockOrder = runAll, runResources = runAll, runNamespace = runAll, runLimits = runAll;
         for ( int i=1; i<argc; ++i )
         {
             CORE::CString arg = argv[ i ];
@@ -143,6 +146,9 @@ GUCEF_OSMAIN_BEGIN
             runRpcPerf = runRpcPerf || arg == "rpcperf";
             runRpcThreads = runRpcThreads || arg == "rpcthreads";
             runLockOrder = runLockOrder || arg == "lockorder";
+            runResources = runResources || arg == "resources";
+            runNamespace = runNamespace || arg == "namespace";
+            runLimits = runLimits || arg == "limits";
         }
 
         if ( runWire )
@@ -181,6 +187,12 @@ GUCEF_OSMAIN_BEGIN
             PerformDRNRpcTransportThreadingTests();
         if ( runLockOrder )
             PerformDRNLockOrderTests();
+        if ( runResources )
+            PerformDRNResourceTransferTests();
+        if ( runNamespace )
+            PerformDRNNamespaceTests();
+        if ( runLimits )
+            PerformDRNLimitTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

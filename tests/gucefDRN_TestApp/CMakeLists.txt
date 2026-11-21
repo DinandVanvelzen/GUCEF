@@ -23,13 +23,16 @@ if (LINUX32)
     include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNItemProtection.h
+    include/TestDRNLimits.h
     include/TestDRNLinks.h
     include/TestDRNLockOrder.h
     include/TestDRNLossyChannel.h
     include/TestDRNMemoryChannel.h
+    include/TestDRNNamespace.h
     include/TestDRNPeerLinkTestAccess.h
     include/TestDRNRelay.h
     include/TestDRNReplication.h
+    include/TestDRNResourceTransfer.h
     include/TestDRNRpcTransport.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
@@ -51,12 +54,15 @@ if (LINUX32)
     src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNItemProtection.cpp
+    src/TestDRNLimits.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLockOrder.cpp
     src/TestDRNLossyChannel.cpp
     src/TestDRNMemoryChannel.cpp
+    src/TestDRNNamespace.cpp
     src/TestDRNRelay.cpp
     src/TestDRNReplication.cpp
+    src/TestDRNResourceTransfer.cpp
     src/TestDRNRpcTransport.cpp
     src/TestDRNSecurity.cpp
     src/TestDRNSessions.cpp
@@ -80,13 +86,16 @@ elseif (LINUX64)
     include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNItemProtection.h
+    include/TestDRNLimits.h
     include/TestDRNLinks.h
     include/TestDRNLockOrder.h
     include/TestDRNLossyChannel.h
     include/TestDRNMemoryChannel.h
+    include/TestDRNNamespace.h
     include/TestDRNPeerLinkTestAccess.h
     include/TestDRNRelay.h
     include/TestDRNReplication.h
+    include/TestDRNResourceTransfer.h
     include/TestDRNRpcTransport.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
@@ -108,12 +117,15 @@ elseif (LINUX64)
     src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNItemProtection.cpp
+    src/TestDRNLimits.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLockOrder.cpp
     src/TestDRNLossyChannel.cpp
     src/TestDRNMemoryChannel.cpp
+    src/TestDRNNamespace.cpp
     src/TestDRNRelay.cpp
     src/TestDRNReplication.cpp
+    src/TestDRNResourceTransfer.cpp
     src/TestDRNRpcTransport.cpp
     src/TestDRNSecurity.cpp
     src/TestDRNSessions.cpp
@@ -137,13 +149,16 @@ elseif (WIN32)
     include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNItemProtection.h
+    include/TestDRNLimits.h
     include/TestDRNLinks.h
     include/TestDRNLockOrder.h
     include/TestDRNLossyChannel.h
     include/TestDRNMemoryChannel.h
+    include/TestDRNNamespace.h
     include/TestDRNPeerLinkTestAccess.h
     include/TestDRNRelay.h
     include/TestDRNReplication.h
+    include/TestDRNResourceTransfer.h
     include/TestDRNRpcTransport.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
@@ -165,12 +180,15 @@ elseif (WIN32)
     src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNItemProtection.cpp
+    src/TestDRNLimits.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLockOrder.cpp
     src/TestDRNLossyChannel.cpp
     src/TestDRNMemoryChannel.cpp
+    src/TestDRNNamespace.cpp
     src/TestDRNRelay.cpp
     src/TestDRNReplication.cpp
+    src/TestDRNResourceTransfer.cpp
     src/TestDRNRpcTransport.cpp
     src/TestDRNSecurity.cpp
     src/TestDRNSessions.cpp
@@ -194,13 +212,16 @@ elseif (WIN64)
     include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNItemProtection.h
+    include/TestDRNLimits.h
     include/TestDRNLinks.h
     include/TestDRNLockOrder.h
     include/TestDRNLossyChannel.h
     include/TestDRNMemoryChannel.h
+    include/TestDRNNamespace.h
     include/TestDRNPeerLinkTestAccess.h
     include/TestDRNRelay.h
     include/TestDRNReplication.h
+    include/TestDRNResourceTransfer.h
     include/TestDRNRpcTransport.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
@@ -222,12 +243,15 @@ elseif (WIN64)
     src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNItemProtection.cpp
+    src/TestDRNLimits.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLockOrder.cpp
     src/TestDRNLossyChannel.cpp
     src/TestDRNMemoryChannel.cpp
+    src/TestDRNNamespace.cpp
     src/TestDRNRelay.cpp
     src/TestDRNReplication.cpp
+    src/TestDRNResourceTransfer.cpp
     src/TestDRNRpcTransport.cpp
     src/TestDRNSecurity.cpp
     src/TestDRNSessions.cpp
@@ -267,26 +291,26 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( WIN64 )
 

@@ -139,6 +139,16 @@
 #define GUCEF_DRN_CDRNBULKTRANSFER_H
 #endif /* GUCEF_DRN_CDRNBULKTRANSFER_H ? */
 
+#ifndef GUCEF_DRN_CDRNRESOURCETRANSFER_H
+#include "gucefDRN_CDRNResourceTransfer.h"
+#define GUCEF_DRN_CDRNRESOURCETRANSFER_H
+#endif /* GUCEF_DRN_CDRNRESOURCETRANSFER_H ? */
+
+#ifndef GUCEF_DRN_CDRNRESOURCEIOTASKCONSUMER_H
+#include "gucefDRN_CDRNResourceIoTaskConsumer.h"
+#define GUCEF_DRN_CDRNRESOURCEIOTASKCONSUMER_H
+#endif /* GUCEF_DRN_CDRNRESOURCEIOTASKCONSUMER_H ? */
+
 #ifndef GUCEF_DRN_CDRNDATABASECLIENT_H
 #include "gucefDRN_CDRNDatabaseClient.h"
 #define GUCEF_DRN_CDRNDATABASECLIENT_H
@@ -194,6 +204,7 @@ static TAnonymousAuthenticatorFactory g_anonymousAuthenticatorFactory;
 static TSharedSecretAuthenticatorFactory g_sharedSecretAuthenticatorFactory;
 static TTokenAuthenticatorFactory g_tokenAuthenticatorFactory;
 static CORE::CTFactory< CORE::CTaskConsumer, CDRNHashTaskConsumer, MT::CMutex > g_hashTaskConsumerFactory;
+static CORE::CTFactory< CORE::CTaskConsumer, CDRNResourceIoTaskConsumer, MT::CMutex > g_resourceIoTaskConsumerFactory;
 static TDRNDatabaseClientFactory g_databaseClientFactory;
 static CORE::CTFactory< COMCORE::CIRpcTransport, CDRNRpcTransport, MT::CMutex > g_rpcTransportFactory;
 static CORE::CTFactory< COMCORE::CIRpcTransportListener, CDRNRpcTransportListener, MT::CMutex > g_rpcTransportListenerFactory;
@@ -238,8 +249,10 @@ CDRNGlobal::Initialize( void )
     CDRNDataStream::RegisterEvents();
     CDRNBulkTransfer::RegisterEvents();
     CDRNBulkTransferManager::RegisterEvents();
+    CDRNResourceTransfer::RegisterEvents();
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CDRNHashTaskConsumer::TaskType, &g_hashTaskConsumerFactory );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CDRNResourceIoTaskConsumer::TaskType, &g_resourceIoTaskConsumerFactory );
 
     m_channelFactory = GUCEF_NEW CDRNChannelFactory();
     m_channelFactory->RegisterConcreteFactory( CDRNEndpoint::ChannelTypeTcp, &g_tcpChannelFactory );
@@ -277,6 +290,7 @@ CDRNGlobal::~CDRNGlobal()
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefDRN" );
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CDRNHashTaskConsumer::TaskType );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CDRNResourceIoTaskConsumer::TaskType );
 
     COMCORE::CComCoreGlobal* comCoreGlobal = COMCORE::CComCoreGlobal::Instance();
     if ( GUCEF_NULL != comCoreGlobal && comCoreGlobal->GetDatabaseClientFactory().IsConstructible( CDRNDatabaseClient::BackendName ) )

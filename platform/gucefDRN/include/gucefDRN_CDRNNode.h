@@ -60,6 +60,11 @@
 #define GUCEF_DRN_CDRNCONNECTOR_H
 #endif /* GUCEF_DRN_CDRNCONNECTOR_H ? */
 
+#ifndef GUCEF_DRN_CIDRNWAITCONDITION_H
+#include "gucefDRN_CIDRNWaitCondition.h"
+#define GUCEF_DRN_CIDRNWAITCONDITION_H
+#endif /* GUCEF_DRN_CIDRNWAITCONDITION_H ? */
+
 #ifndef GUCEF_DRN_CDRNNODETASK_H
 #include "gucefDRN_CDRNNodeTask.h"
 #define GUCEF_DRN_CDRNNODETASK_H
@@ -292,6 +297,31 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
      *  already); elsewhere it leaves the work for the node's next cycle.
      */
     bool IsWorkingOnThisThread( void ) const;
+
+    /**
+     *  Whether the calling thread is the one that pumps this node: the node has no thread of its own, the calling thread
+     *  is the thread that drives the pulse generator of the application (it works the node when that pulses) and it is not
+     *  inside work of the node right now (IsWorkingOnThisThread()). Such a thread may not wait for the node as another thread
+     *  does, nobody else would work the node meanwhile: it lets the node work itself (PumpUntil()). Where the application's
+     *  pulse generator does not know its driving thread (no driver, SetPulseDriverThreadId() not called) no thread is the pump
+     */
+    bool IsPumpThread( void ) const;
+
+    /**
+     *  Lets the node work once on the calling thread, which must be the pump thread of the node (IsPumpThread()): its normal
+     *  work on its normal thread, the cycle the application's pulse would have made, and then yields about a millisecond so
+     *  that the peer and the sockets get their turn; the yield ends sooner when another thread wakes the node
+     *  (WakeOwnThread()). Does nothing for another thread
+     */
+    void PumpOnce( void );
+
+    /**
+     *  Works the node on the calling thread (PumpOnce()) until the condition is met or the time is up, for a thread for
+     *  which IsPumpThread() is true. Returns whether the condition is met, which is checked once more at the end. The node
+     *  lock is not held while the condition is checked and the calling thread holds no other lock a cycle of the node
+     *  may need (the node lock is the first lock). For any other thread it only checks the condition once
+     */
+    bool PumpUntil( CIDRNWaitCondition& condition, UInt32 timeoutInMs );
 
     /**
      *  Has the node's own thread (CDRNNodeSettings::ownThread) work now instead of at its next millisecond, for work

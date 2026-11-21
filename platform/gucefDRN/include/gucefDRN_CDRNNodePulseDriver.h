@@ -49,6 +49,8 @@
 namespace GUCEF {
 namespace DRN {
 
+class CDRNNode;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -70,7 +72,11 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodePulseDriver : public CORE::CIPulseGeneratorDr
 {
     public:
 
-    explicit CDRNNodePulseDriver( const CORE::PulseGeneratorPtr& appPulseGenerator );
+    /**
+     *  @param node The node the driver belongs to: a request of another thread ends the yield of the thread that pumps
+     *              the node (CDRNNode::PumpOnce()). The node outlives the driver and withdraws it from its pulse generator first
+     */
+    CDRNNodePulseDriver( const CORE::PulseGeneratorPtr& appPulseGenerator, CDRNNode* node );
 
     virtual ~CDRNNodePulseDriver();
 
@@ -103,6 +109,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodePulseDriver : public CORE::CIPulseGeneratorDr
     CDRNNodePulseDriver& operator=( const CDRNNodePulseDriver& src );   /**< not implemented */
 
     CORE::PulseGeneratorPtr m_appPulseGenerator;
+    CDRNNode* m_node;
 };
 
 /*-------------------------------------------------------------------------//

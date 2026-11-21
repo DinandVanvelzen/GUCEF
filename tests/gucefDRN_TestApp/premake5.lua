@@ -67,40 +67,40 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( { "LINUX32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( { "LINUX32" } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
 
 configuration( { "LINUX64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( { "LINUX64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( { "LINUX64" } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
 
 configuration( { "WIN32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( { "WIN32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( { "WIN32" } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
 
 configuration( { "WIN64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( { "WIN64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( { "WIN64" } )
@@ -118,13 +118,16 @@ configuration( { "LINUX32" } )
       "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNItemProtection.h",
+      "include/TestDRNLimits.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLockOrder.h",
       "include/TestDRNLossyChannel.h",
       "include/TestDRNMemoryChannel.h",
+      "include/TestDRNNamespace.h",
       "include/TestDRNPeerLinkTestAccess.h",
       "include/TestDRNRelay.h",
       "include/TestDRNReplication.h",
+      "include/TestDRNResourceTransfer.h",
       "include/TestDRNRpcTransport.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
@@ -144,12 +147,15 @@ configuration( { "LINUX32" } )
       "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNItemProtection.cpp",
+      "src/TestDRNLimits.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLockOrder.cpp",
       "src/TestDRNLossyChannel.cpp",
       "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNNamespace.cpp",
       "src/TestDRNRelay.cpp",
       "src/TestDRNReplication.cpp",
+      "src/TestDRNResourceTransfer.cpp",
       "src/TestDRNRpcTransport.cpp",
       "src/TestDRNSecurity.cpp",
       "src/TestDRNSessions.cpp",
@@ -173,13 +179,16 @@ configuration( { "LINUX64" } )
       "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNItemProtection.h",
+      "include/TestDRNLimits.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLockOrder.h",
       "include/TestDRNLossyChannel.h",
       "include/TestDRNMemoryChannel.h",
+      "include/TestDRNNamespace.h",
       "include/TestDRNPeerLinkTestAccess.h",
       "include/TestDRNRelay.h",
       "include/TestDRNReplication.h",
+      "include/TestDRNResourceTransfer.h",
       "include/TestDRNRpcTransport.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
@@ -199,12 +208,15 @@ configuration( { "LINUX64" } )
       "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNItemProtection.cpp",
+      "src/TestDRNLimits.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLockOrder.cpp",
       "src/TestDRNLossyChannel.cpp",
       "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNNamespace.cpp",
       "src/TestDRNRelay.cpp",
       "src/TestDRNReplication.cpp",
+      "src/TestDRNResourceTransfer.cpp",
       "src/TestDRNRpcTransport.cpp",
       "src/TestDRNSecurity.cpp",
       "src/TestDRNSessions.cpp",
@@ -228,13 +240,16 @@ configuration( { "WIN32" } )
       "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNItemProtection.h",
+      "include/TestDRNLimits.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLockOrder.h",
       "include/TestDRNLossyChannel.h",
       "include/TestDRNMemoryChannel.h",
+      "include/TestDRNNamespace.h",
       "include/TestDRNPeerLinkTestAccess.h",
       "include/TestDRNRelay.h",
       "include/TestDRNReplication.h",
+      "include/TestDRNResourceTransfer.h",
       "include/TestDRNRpcTransport.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
@@ -254,12 +269,15 @@ configuration( { "WIN32" } )
       "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNItemProtection.cpp",
+      "src/TestDRNLimits.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLockOrder.cpp",
       "src/TestDRNLossyChannel.cpp",
       "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNNamespace.cpp",
       "src/TestDRNRelay.cpp",
       "src/TestDRNReplication.cpp",
+      "src/TestDRNResourceTransfer.cpp",
       "src/TestDRNRpcTransport.cpp",
       "src/TestDRNSecurity.cpp",
       "src/TestDRNSessions.cpp",
@@ -283,13 +301,16 @@ configuration( { "WIN64" } )
       "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNItemProtection.h",
+      "include/TestDRNLimits.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLockOrder.h",
       "include/TestDRNLossyChannel.h",
       "include/TestDRNMemoryChannel.h",
+      "include/TestDRNNamespace.h",
       "include/TestDRNPeerLinkTestAccess.h",
       "include/TestDRNRelay.h",
       "include/TestDRNReplication.h",
+      "include/TestDRNResourceTransfer.h",
       "include/TestDRNRpcTransport.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
@@ -309,12 +330,15 @@ configuration( { "WIN64" } )
       "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNItemProtection.cpp",
+      "src/TestDRNLimits.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLockOrder.cpp",
       "src/TestDRNLossyChannel.cpp",
       "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNNamespace.cpp",
       "src/TestDRNRelay.cpp",
       "src/TestDRNReplication.cpp",
+      "src/TestDRNResourceTransfer.cpp",
       "src/TestDRNRpcTransport.cpp",
       "src/TestDRNSecurity.cpp",
       "src/TestDRNSessions.cpp",

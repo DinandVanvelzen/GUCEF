@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_DRN_CDRNNODE_H
+#include "gucefDRN_CDRNNode.h"
+#define GUCEF_DRN_CDRNNODE_H
+#endif /* GUCEF_DRN_CDRNNODE_H ? */
+
 #include "gucefDRN_CDRNNodePulseDriver.h"
 
 /*-------------------------------------------------------------------------//
@@ -39,9 +44,10 @@ namespace DRN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CDRNNodePulseDriver::CDRNNodePulseDriver( const CORE::PulseGeneratorPtr& appPulseGenerator )
+CDRNNodePulseDriver::CDRNNodePulseDriver( const CORE::PulseGeneratorPtr& appPulseGenerator, CDRNNode* node )
     : CORE::CIPulseGeneratorDriver()
     , m_appPulseGenerator( appPulseGenerator )
+    , m_node( node )
 {GUCEF_TRACE;
 
 }
@@ -74,6 +80,11 @@ CDRNNodePulseDriver::RequestImmediatePulse( CORE::CPulseGenerator& /* pulseGener
     // which pulses the node. A pulse generator the application pulses itself, without a driver, pulses it anyway
     if ( !m_appPulseGenerator.IsNULL() )
         m_appPulseGenerator->RequestImmediatePulseThroughDriver();
+
+    // the thread that pumps the node and waits for work (CDRNNode::PumpOnce()) yields on the node's wake-up: a request of
+    // another thread ends that yield. One made while the node works on this thread is part of that work and needs none
+    if ( GUCEF_NULL != m_node && !m_node->IsWorkingOnThisThread() )
+        m_node->WakeOwnThread();
 }
 
 /*-------------------------------------------------------------------------*/

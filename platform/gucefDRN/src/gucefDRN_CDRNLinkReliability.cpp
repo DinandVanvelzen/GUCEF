@@ -1079,6 +1079,16 @@ CDRNLinkReliability::GetUnackedCount( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CDRNLinkReliability::GetQueuedStreamBytes( void ) const
+{GUCEF_TRACE;
+    if ( !m_transportIsReliable || m_streamQueueEnd <= m_streamBodyStart )
+        return 0;
+    return m_streamQueueEnd - m_streamBodyStart;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNLinkReliability::AckPending( UInt32 id )
 {GUCEF_TRACE;

@@ -89,6 +89,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNTcpChannel : public CIDRNChannel
 
     virtual void SetPulseGenerator( CORE::PulseGeneratorPtr pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The connection's send buffer and the packets held for one write while a read is delivered */
+    virtual UInt32 GetQueuedSendBytes( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual CORE::PulseGeneratorPtr GetPulseGenerator( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void SetMaxReceivePacketSize( UInt32 maxPacketSize ) GUCEF_VIRTUAL_OVERRIDE;

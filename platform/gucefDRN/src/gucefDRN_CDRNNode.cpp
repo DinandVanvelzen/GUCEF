@@ -318,7 +318,7 @@ CDRNNode::Construct( void )
     // application's pulse generator pulses, or its own thread cycles: the channels, listeners and connectors of the
     // node are pulsed under the node lock only (gucefDRN design 9). What they ask of their pulse generator goes to its
     // driver: the application's pulse generator through CDRNNodePulseDriver, or the node's task while it runs.
-    m_nodePulseDriver = GUCEF_NEW CDRNNodePulseDriver( m_appPulseGenerator );
+    m_nodePulseDriver = GUCEF_NEW CDRNNodePulseDriver( m_appPulseGenerator, this );
     m_pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
     m_pulseGenerator->SetPulseGeneratorDriver( m_nodePulseDriver );
 
@@ -764,6 +764,59 @@ CDRNNode::IsWorkingOnThisThread( void ) const
 {GUCEF_TRACE;
 
     return m_workingThreadId.Load() == MT::GetCurrentThreadID();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNNode::IsPumpThread( void ) const
+{GUCEF_TRACE;
+
+    // With a thread of its own the node works on that thread, whoever waits for it waits for another thread. Inside work
+    // of the node the node lock is held and the work waits for this thread: that is a refusal, not a pump
+    if ( IsRunningOwnThread() || IsWorkingOnThisThread() || m_appPulseGenerator.IsNULL() )
+        return false;
+
+    // the thread that drives the pulse generator that pulses the node, as the other users of a pulse generator compare
+    // it (GetPulseDriverThreadId() against MT::GetCurrentThreadID()); 0 is no thread at all
+    const TThreadId driverThreadId = m_appPulseGenerator->GetPulseDriverThreadId();
+    return 0 != driverThreadId && driverThreadId == MT::GetCurrentThreadID();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::PumpOnce( void )
+{GUCEF_TRACE;
+
+    if ( !IsPumpThread() )
+        return;
+
+    // the cycle the application's pulse makes (OnAppPulse()), on the thread that is the pump: the node's own pulse
+    // generator is pulsed under the node lock, nothing foreign is pumped
+    RunThreadCycle();
+
+    // the yield ends at once when another thread left work for the node meanwhile (WakeOwnThread(): a job of the pool that
+    // ended, a request through the node's pulse generator), else after a millisecond
+    WaitForThreadWork( 1 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNNode::PumpUntil( CIDRNWaitCondition& condition, UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    const bool pump = IsPumpThread();
+    const UInt64 deadline = CDRNClock::NowInMilliseconds() + timeoutInMs;
+    while ( true )
+    {
+        if ( condition.IsMet() )
+            return true;
+        if ( !pump || CDRNClock::NowInMilliseconds() >= deadline )
+            return false;
+        PumpOnce();
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1435,6 +1488,7 @@ CDRNNode::OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message )
         case DRN_MSGCLASS_STREAM:
         case DRN_MSGCLASS_BULK:
         case DRN_MSGCLASS_RPC:
+        case DRN_MSGCLASS_RESOURCE:
         {
             CDRNSession* session = link->GetSession();
             if ( GUCEF_NULL != session )

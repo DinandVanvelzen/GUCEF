@@ -142,6 +142,12 @@ class GUCEF_DRN_EXPORT_CPP CIDRNChannel : public CORE::CObservingNotifier
     /** Sends one whole DRN packet */
     virtual bool SendPacket( const void* data, UInt32 size ) = 0;
 
+    /**
+     *  Bytes handed to SendPacket() that the transport did not send yet (a connection's send buffer), for senders that
+     *  bound what they queue. Default 0: datagram channels send at once, and channels that cannot tell answer 0
+     */
+    virtual UInt32 GetQueuedSendBytes( void ) const;
+
     virtual const CDRNChannelCapabilities& GetCapabilities( void ) const = 0;
 
     virtual CDRNEndpoint GetRemoteEndpoint( void ) const = 0;

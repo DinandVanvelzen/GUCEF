@@ -335,6 +335,20 @@ CDRNTcpChannel::GetRemoteEndpoint( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CDRNTcpChannel::GetQueuedSendBytes( void ) const
+{GUCEF_TRACE;
+
+    UInt32 queued = m_coalesced.GetDataSize();
+    if ( GUCEF_NULL != m_clientSocket )
+        queued += m_clientSocket->GetBufferedDataToSendInBytes();
+    else if ( GUCEF_NULL != m_serverConnection )
+        queued += m_serverConnection->GetBufferedSendDataSize();
+    return queued;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CDRNTcpChannel::GetChannelType( void ) const
 {GUCEF_TRACE;
