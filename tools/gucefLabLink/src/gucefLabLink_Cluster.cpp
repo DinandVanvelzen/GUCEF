@@ -111,6 +111,7 @@
 #include "gucefLabLink_HubStore.h"
 #include "gucefLabLink_RegistryHubView.h"
 #include "gucefLabLink_WebSite.h"
+#include "gucefLabLink_CiHub.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -214,6 +215,9 @@ class CLabService : public COMCORE::CRpcServiceImpl
         BindMethod( "Join", GUCEF_NEW THandler( this, &CLabService::OnJoin ) );
         BindMethod( "ClientConfig", GUCEF_NEW THandler( this, &CLabService::OnClientConfig ) );
         BindMethod( "Report", GUCEF_NEW THandler( this, &CLabService::OnReport ) );
+        // minor 2; a hub that offers an older minor (tests of older hubs) has no such method
+        if ( m_role.GetSettings().offeredLabMinor >= 2 )
+            BindMethod( "CiConfig", GUCEF_NEW THandler( this, &CLabService::OnCiConfig ) );
     }
 
     /** A call of a peer that may not use the service any more is refused: the approval was taken back */
@@ -361,6 +365,37 @@ class CLabService : public COMCORE::CRpcServiceImpl
                 break;
             }
         }
+        return COMCORE::RPC_HANDLER_DONE;
+    }
+
+    /**
+     *  The CI configuration: for a token of an approval only, whose machine id is the identity the gateway token is
+     *  made for. A token of the lab secret is refused, with a line in the log (see CCiHub)
+     */
+    COMCORE::TRpcHandlerResult OnCiConfig( COMCORE::CRpcServerCall& call )
+    {
+        if ( Refuse( call ) )
+            return COMCORE::RPC_HANDLER_DONE;
+        const COMCORE::CRpcPrincipal& principal = call.GetPrincipal();
+        CCiHub* hub = m_role.GetCiHub();
+        if ( GUCEF_NULL == hub )
+        {
+            call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_UNAVAILABLE, "the cluster is not ready" ) );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
+        SCiConfigAnswer answer;
+        const COMCORE::CRpcStatus status = hub->Answer( principal.subject, principal.roles, m_role.GetLabPeerAddress( principal ), answer );
+        if ( !status.IsOk() )
+        {
+            call.Fail( status );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
+        COMCORE::CRpcMessage response = call.NewResponse();
+        response.SetString( 1, answer.registry );
+        response.SetString( 2, answer.gatewayToken );
+        response.SetString( 3, answer.caCertificate );
+        response.SetString( 4, answer.gatewayUrl );
+        call.Reply( response );
         return COMCORE::RPC_HANDLER_DONE;
     }
 
@@ -537,6 +572,7 @@ CClusterRole::CClusterRole( const SSettings& settings, CStore& store )
     , m_discoveryClients()
     , m_hubView( GUCEF_NULL )
     , m_web( GUCEF_NULL )
+    , m_ciHub( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -618,6 +654,15 @@ CClusterRole::GetWebSite( void )
 
 /*-------------------------------------------------------------------------*/
 
+CCiHub*
+CClusterRole::GetCiHub( void )
+{GUCEF_TRACE;
+
+    return m_ciHub;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CClusterRole::StartWebSite( void )
 {GUCEF_TRACE;
@@ -651,6 +696,8 @@ CClusterRole::Update( void )
     const UInt64 unixNow = NowInUnixSecs();
 
     m_registry.Evaluate( now, unixNow );
+    if ( GUCEF_NULL != m_ciHub )
+        m_ciHub->Update( now );
 
     vector< SNodeEvent > events;
     m_registry.TakeEvents( events );
@@ -854,7 +901,7 @@ CClusterRole::StartEndpoint( bool lab, CORE::CString& problem )
     COMCORE::CRpcHost* host = GUCEF_NEW COMCORE::CRpcHost( node->GetPulseGenerator(), hostSettings );
     COMCORE::CRpcServiceImpl* service = GUCEF_NULL;
     CORE::CString error;
-    COMCORE::CRpcContractPtr contract = lab ? BuildLabContract( error ) : BuildAccessContract( error );
+    COMCORE::CRpcContractPtr contract = lab ? BuildLabContractOfMinor( m_settings.offeredLabMinor, error ) : BuildAccessContract( error );
     if ( lab )
         service = m_labService = GUCEF_NEW CLabService( *this );
     else
@@ -941,6 +988,11 @@ CClusterRole::Start( CORE::CString& problem )
     // the nodes this hub knew before are loaded before any report arrives
     OpenStore();
 
+    // the CI configuration, before the lab endpoint answers CiConfig
+    if ( GUCEF_NULL == m_ciHub )
+        m_ciHub = GUCEF_NEW CCiHub( m_settings, m_store );
+    m_ciHub->Start();
+
     if ( !StartEndpoint( true, problem ) || !StartEndpoint( false, problem ) )
     {
         Stop();
@@ -1002,6 +1054,8 @@ CClusterRole::Stop( void )
     m_labService = GUCEF_NULL;
     GUCEF_DELETE m_accessService;
     m_accessService = GUCEF_NULL;
+    GUCEF_DELETE m_ciHub;
+    m_ciHub = GUCEF_NULL;
 
     // the last changes go to the database, and it is closed
     if ( GUCEF_NULL != m_hubStore )

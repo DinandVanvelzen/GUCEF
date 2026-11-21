@@ -28,6 +28,10 @@
         <!-- the tool sources under test are compiled into the test app -->
         <Files Type="Source">
             <Dir Path="../../tools/gucefLabLink/src">
+                <File Name="gucefLabLink_CiFiles.cpp" />
+                <File Name="gucefLabLink_CiGatewayTokens.cpp" />
+                <File Name="gucefLabLink_CiHub.cpp" />
+                <File Name="gucefLabLink_CiRegistryFile.cpp" />
                 <File Name="gucefLabLink_Cluster.cpp" />
                 <File Name="gucefLabLink_ConfigFile.cpp" />
                 <File Name="gucefLabLink_HubStore.cpp" />

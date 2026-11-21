@@ -74,6 +74,7 @@ const char* HelloPath = "gucef.lab.Lab/Hello";
 const char* JoinPath = "gucef.lab.Lab/Join";
 const char* ClientConfigPath = "gucef.lab.Lab/ClientConfig";
 const char* ReportPath = "gucef.lab.Lab/Report";
+const char* CiConfigPath = "gucef.lab.Lab/CiConfig";
 const char* RequestAccessPath = "gucef.lab.access.Access/RequestAccess";
 const char* AttributeCluster = "cluster";
 const char* AttributeKey = "key";
@@ -106,7 +107,21 @@ COMCORE::CRpcContractPtr
 BuildLabContract( CORE::CString& error )
 {GUCEF_TRACE;
 
-    COMCORE::CRpcContractBuilder b( LabContractName, 1, 1 );
+    return BuildLabContractOfMinor( LabContractMinor, error );
+}
+
+/*-------------------------------------------------------------------------*/
+
+COMCORE::CRpcContractPtr
+BuildLabContractOfMinor( UInt32 minor, CORE::CString& error )
+{GUCEF_TRACE;
+
+    if ( minor > LabContractMinor )
+    {
+        error = "gucef.lab 1." + CORE::ToString( minor ) + " is not known, the newest is 1." + CORE::ToString( LabContractMinor );
+        return COMCORE::CRpcContractPtr();
+    }
+    COMCORE::CRpcContractBuilder b( LabContractName, 1, minor );
     b.AddType( "HelloRequest" );
     b.AddType( "HelloResponse" );
     b.AddField( "HelloResponse", 1, "cluster", "string" );
@@ -130,57 +145,75 @@ BuildLabContract( CORE::CString& error )
 
     // minor 1: the report of a node to the hub. A cluster of minor 0 answers a call of it as not implemented; the
     // methods above and their fields are the same as in minor 0
-    b.AddType( "GpuInfo" );
-    b.AddField( "GpuInfo", 1, "name", "string" );
-    b.AddField( "GpuInfo", 2, "vendor", "string" );
-    b.AddField( "GpuInfo", 3, "vramTotalMiB", "uint32" );
-    b.AddField( "GpuInfo", 4, "vramFreeMiB", "uint32" );
-    b.AddField( "GpuInfo", 5, "utilizationPercent", "uint32" );
-    b.AddType( "HostInfo" );
-    b.AddField( "HostInfo", 1, "name", "string" );
-    b.AddField( "HostInfo", 2, "state", "string" );
-    b.AddField( "HostInfo", 3, "detail", "string" );
-    b.AddType( "WorkloadInfo" );
-    b.AddField( "WorkloadInfo", 1, "id", "string" );
-    b.AddField( "WorkloadInfo", 2, "kind", "string" );
-    b.AddField( "WorkloadInfo", 3, "state", "string" );
-    b.AddField( "WorkloadInfo", 4, "endpoint", "string" );
-    b.AddField( "WorkloadInfo", 5, "model", "string" );
-    b.AddField( "WorkloadInfo", 6, "idleSlots", "uint32" );
-    b.AddType( "ReportRequest" );
-    b.AddField( "ReportRequest", 1, "machineId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 2, "instanceId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 3, "bootId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 4, "name", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 5, "os", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 6, "arch", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 7, "agentVersion", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 8, "uptimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 9, "ephemeral", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 10, "nodeState", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 11, "presence", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 12, "idleSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 13, "cpuCores", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 14, "cpuLoadPercent", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 15, "memTotalMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 16, "memAvailableMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 17, "diskFreeMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportRequest", 18, "gpus", "GpuInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
-    b.AddField( "ReportRequest", 19, "hosts", "HostInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
-    b.AddField( "ReportRequest", 20, "workloads", "WorkloadInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
-    b.AddField( "ReportRequest", 21, "capabilities", "string", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
-    b.AddField( "ReportRequest", 22, "startedAtSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddType( "ReportResponse" );
-    b.AddField( "ReportResponse", 1, "hubTimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportResponse", 2, "verified", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportResponse", 3, "reportIntervalSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
-    b.AddField( "ReportResponse", 4, "renewedToken", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    if ( minor >= 1 )
+    {
+        b.AddType( "GpuInfo" );
+        b.AddField( "GpuInfo", 1, "name", "string" );
+        b.AddField( "GpuInfo", 2, "vendor", "string" );
+        b.AddField( "GpuInfo", 3, "vramTotalMiB", "uint32" );
+        b.AddField( "GpuInfo", 4, "vramFreeMiB", "uint32" );
+        b.AddField( "GpuInfo", 5, "utilizationPercent", "uint32" );
+        b.AddType( "HostInfo" );
+        b.AddField( "HostInfo", 1, "name", "string" );
+        b.AddField( "HostInfo", 2, "state", "string" );
+        b.AddField( "HostInfo", 3, "detail", "string" );
+        b.AddType( "WorkloadInfo" );
+        b.AddField( "WorkloadInfo", 1, "id", "string" );
+        b.AddField( "WorkloadInfo", 2, "kind", "string" );
+        b.AddField( "WorkloadInfo", 3, "state", "string" );
+        b.AddField( "WorkloadInfo", 4, "endpoint", "string" );
+        b.AddField( "WorkloadInfo", 5, "model", "string" );
+        b.AddField( "WorkloadInfo", 6, "idleSlots", "uint32" );
+        b.AddType( "ReportRequest" );
+        b.AddField( "ReportRequest", 1, "machineId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 2, "instanceId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 3, "bootId", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 4, "name", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 5, "os", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 6, "arch", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 7, "agentVersion", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 8, "uptimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 9, "ephemeral", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 10, "nodeState", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 11, "presence", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 12, "idleSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 13, "cpuCores", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 14, "cpuLoadPercent", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 15, "memTotalMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 16, "memAvailableMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 17, "diskFreeMiB", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportRequest", 18, "gpus", "GpuInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+        b.AddField( "ReportRequest", 19, "hosts", "HostInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+        b.AddField( "ReportRequest", 20, "workloads", "WorkloadInfo", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+        b.AddField( "ReportRequest", 21, "capabilities", "string", COMCORE::RPC_CARDINALITY_REPEATED, 1 );
+        b.AddField( "ReportRequest", 22, "startedAtSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddType( "ReportResponse" );
+        b.AddField( "ReportResponse", 1, "hubTimeSecs", "uint64", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportResponse", 2, "verified", "bool", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportResponse", 3, "reportIntervalSecs", "uint32", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+        b.AddField( "ReportResponse", 4, "renewedToken", "string", COMCORE::RPC_CARDINALITY_SINGLE, 1 );
+    }
+
+    // minor 2: the CI configuration of an approved machine. A cluster of minor 1 or 0 answers a call of it as not
+    // implemented; the methods above and their fields are the same as in minor 1
+    if ( minor >= 2 )
+    {
+        b.AddType( "CiConfigRequest" );
+        b.AddType( "CiConfigResponse" );
+        b.AddField( "CiConfigResponse", 1, "registry", "string", COMCORE::RPC_CARDINALITY_SINGLE, 2 );
+        b.AddField( "CiConfigResponse", 2, "gatewayToken", "string", COMCORE::RPC_CARDINALITY_SINGLE, 2 );
+        b.AddField( "CiConfigResponse", 3, "caCertificate", "string", COMCORE::RPC_CARDINALITY_SINGLE, 2 );
+        b.AddField( "CiConfigResponse", 4, "gatewayUrl", "string", COMCORE::RPC_CARDINALITY_SINGLE, 2 );
+    }
 
     b.AddService( "Lab", 1 );
     b.AddMethod( "Lab", 1, "Hello", COMCORE::RPC_METHODKIND_UNARY, "HelloRequest", "HelloResponse" );
     b.AddMethod( "Lab", 2, "Join", COMCORE::RPC_METHODKIND_UNARY, "JoinRequest", "JoinResponse" );
     b.AddMethod( "Lab", 3, "ClientConfig", COMCORE::RPC_METHODKIND_UNARY, "ClientConfigRequest", "ClientConfigResponse" );
-    b.AddMethod( "Lab", 4, "Report", COMCORE::RPC_METHODKIND_UNARY, "ReportRequest", "ReportResponse", 0, 0, 1 );
+    if ( minor >= 1 )
+        b.AddMethod( "Lab", 4, "Report", COMCORE::RPC_METHODKIND_UNARY, "ReportRequest", "ReportResponse", 0, 0, 1 );
+    if ( minor >= 2 )
+        b.AddMethod( "Lab", 5, "CiConfig", COMCORE::RPC_METHODKIND_UNARY, "CiConfigRequest", "CiConfigResponse", 0, 0, 2 );
     return b.Build( error );
 }
 
@@ -233,6 +266,26 @@ MakeMachineId( void )
 {GUCEF_TRACE;
 
     return RandomHex( 16 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+MakeGatewayToken( void )
+{GUCEF_TRACE;
+
+    return RandomHex( 32 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+Sha256Hex( const CORE::CString& text )
+{GUCEF_TRACE;
+
+    UInt8 digest[ 32 ];
+    DRN::CDRNCrypto::Sha256( text.C_String(), text.ByteSize() > 0 ? text.ByteSize() - 1 : 0, digest );
+    return DRN::CDRNCrypto::ToHex( digest, sizeof( digest ) ).Lowercase();
 }
 
 /*-------------------------------------------------------------------------*/

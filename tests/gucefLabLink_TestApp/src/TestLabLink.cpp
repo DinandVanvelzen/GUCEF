@@ -250,6 +250,7 @@ class CLab
         settings.claudeUser = CORE::GetEnv( "USER" ).IsNULLOrEmpty() ? CORE::CString( "test" ) : CORE::GetEnv( "USER" );
         settings.claudeCommand = Path( "bin/claude" );
         settings.claudeHome = Path( ( CORE::CString( name ) + "-home" ).C_String() );
+        settings.mcpDir = Path( ( CORE::CString( name ) + "-mcp" ).C_String() );   // the CI files of the machine, not those of this computer
         settings.localMcpNode = "server";
         CORE::CString problem;
         CORE::CString::StringVector ranges;
@@ -737,7 +738,7 @@ PerformLabLinkTests( void )
             CORE::CString error;
             COMCORE::CRpcContractPtr contract = BuildLabContract( error );
             ASSERT_FALSE( contract.IsNULL() );
-            ASSERT_TRUE( 1 == contract->GetMajor() && 1 == contract->GetMinor() );
+            ASSERT_TRUE( 1 == contract->GetMajor() && LabContractMinor == contract->GetMinor() );
             const COMCORE::CRpcMethodDescriptor* method = contract->FindMethod( ReportPath );
             ASSERT_TRUE( GUCEF_NULL != method && 1 == method->GetSince() );
             // the methods of minor 0 are still minor 0

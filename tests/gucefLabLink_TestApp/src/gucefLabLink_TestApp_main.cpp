@@ -50,6 +50,7 @@
 #endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
 
 #include "TestLabLink.h"
+#include "TestLabLinkCi.h"
 #include "TestLabLinkService.h"
 #include "TestLabLinkWeb.h"
 
@@ -82,6 +83,7 @@ GUCEF_OSMAIN_BEGIN
         PerformLabLinkTests();
         PerformLabLinkServiceTests();
         PerformLabLinkWebTests();
+        PerformLabLinkCiTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

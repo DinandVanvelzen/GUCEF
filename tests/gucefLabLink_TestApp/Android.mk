@@ -21,6 +21,10 @@ LOCAL_MODULE := gucefLabLink_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  ../../tools/gucefLabLink/src/gucefLabLink_CiFiles.cpp \
+  ../../tools/gucefLabLink/src/gucefLabLink_CiGatewayTokens.cpp \
+  ../../tools/gucefLabLink/src/gucefLabLink_CiHub.cpp \
+  ../../tools/gucefLabLink/src/gucefLabLink_CiRegistryFile.cpp \
   ../../tools/gucefLabLink/src/gucefLabLink_Cluster.cpp \
   ../../tools/gucefLabLink/src/gucefLabLink_ConfigFile.cpp \
   ../../tools/gucefLabLink/src/gucefLabLink_HubStore.cpp \
@@ -45,6 +49,7 @@ LOCAL_SRC_FILES := \
   ../../tools/gucefLabLink/src/gucefLabLink_WebSite.cpp \
   ../../tools/gucefLabLink/src/gucefLabLink_WebUsers.cpp \
   src/TestLabLink.cpp \
+  src/TestLabLinkCi.cpp \
   src/TestLabLinkService.cpp \
   src/TestLabLinkWeb.cpp \
   src/gucefLabLink_TestApp_main.cpp

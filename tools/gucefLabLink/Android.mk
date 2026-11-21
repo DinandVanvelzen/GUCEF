@@ -21,6 +21,10 @@ LOCAL_MODULE := gucefLabLink
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/gucefLabLink_CiFiles.cpp \
+  src/gucefLabLink_CiGatewayTokens.cpp \
+  src/gucefLabLink_CiHub.cpp \
+  src/gucefLabLink_CiRegistryFile.cpp \
   src/gucefLabLink_Cluster.cpp \
   src/gucefLabLink_ConfigFile.cpp \
   src/gucefLabLink_HubStore.cpp \

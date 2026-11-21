@@ -66,6 +66,7 @@ class CJoinPolicy;
 class CHubStore;
 class CRegistryHubView;
 class CLabWebSite;
+class CCiHub;
 
 /**
  *  The cluster side, on a k3s server node: the lab endpoint (DRN, HMAC tokens of the lab secret or of an approval),
@@ -96,6 +97,9 @@ class CClusterRole
 
     /** The public key of the lab endpoint, the form DRN pins */
     GUCEF::CORE::CString GetLabKey( void ) const;
+
+    /** The CI configuration the hub hands to approved machines; NULL before Start() */
+    CCiHub* GetCiHub( void );
 
     // for the services
 
@@ -152,6 +156,7 @@ class CClusterRole
     GUCEF::CORE::CString::StringVector m_discoveryClients;
     CRegistryHubView* m_hubView;                /**< what the website reads of the hub; NULL without the website */
     CLabWebSite* m_web;                         /**< NULL unless --web */
+    CCiHub* m_ciHub;                            /**< the CI registry and the gateway tokens */
 };
 
 /** Makes the discovery clients the settings ask for in the manager of the application: "mdns" and "broadcast" */

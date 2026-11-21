@@ -59,10 +59,13 @@ who can try, the token decides.
 | `Join(name, os, arch, ephemeral)` | what `projects/k3s/agent-node/join.sh` needs: the server URL, the k3s version and a bootstrap token valid for one hour |
 | `ClientConfig` | the certificate authority of the MCP services, the MCP token, and the MCP endpoint of every node |
 | `Report(...)` | (contract minor 1) what a node tells the hub about itself, see below; answers the hub time, whether the node counts as verified and the report interval |
+| `CiConfig` | (contract minor 2) for an approved machine only: the CI registry, the URL of the CI gateway, the gateway token of the machine and the certificate authority of the gateway, see [CI configuration](#ci-configuration) |
 
-The contract is `gucef.lab` 1.1. `Report` is the only addition to 1.0; the other methods and their fields are unchanged,
-so a machine and a cluster of different versions work together: a cluster of 1.0 answers `Report` as not implemented,
-and the machine then leaves reporting alone for an hour.
+The contract is `gucef.lab` 1.2. `Report` was added in 1.1 and `CiConfig` in 1.2; the other methods and their fields
+are unchanged, so a machine and a cluster of different versions work together: a cluster of 1.0 answers `Report` as
+not implemented, and the machine then leaves reporting alone for an hour; a cluster of 1.1 or 1.0 answers `CiConfig`
+as not implemented, and the machine then does not ask for it for an hour. A cluster never needs a machine to call
+either.
 
 ## Node reports and the hub
 
@@ -207,14 +210,84 @@ when `LAB_WEB=true` is set in its settings, and then opens 47813/tcp in the fire
   (`NODE_EXTRA_CA_CERTS`), and every node's MCP service is registered with Claude Code of the user as
   `<node>-llm`, with the MCP token. Nodes that are added or removed are registered or removed.
 
+## CI configuration
+
+The hub hands the CI configuration of the lab to its approved machines, so that the CI MCP service
+(`tools/gucefMcpCi`) on a machine needs no token that is copied by hand.
+
+**On the hub.** The CI registry is `ci.json` in the state directory (`--ci-registry FILE` names another file), in the
+format of `gucefMcpCi`: an object with the list `ci` of CI definitions (`projects/k3s/lablink/ci.json.example`). The
+file is at most 64 KiB, must be a JSON object with that list, and is checked with the JSON codec of the plugin
+`dstorepluginJSONPARSER`; when the plugin cannot be loaded the hub says so in its log and hands out no registry. The
+file is read when a machine first asks and again only when its size or modification time changes. Without the file
+the hub answers that no CI is configured. The machines receive the text of the file with the top-level object
+`"gateway": { "url": <gateway URL>, "caFile": "ca.crt" }`, which replaces one the file may hold; the gateway URL is
+`--ci-gateway-url URL`, by default `https://<cluster name>:8792`, and must be https.
+
+**Who gets it.** `CiConfig` answers a token of an approval only, and the machine id that token is bound to is the
+identity. A token made with the lab secret names a machine id its maker chose; it is refused, and the refusal is
+logged with the address of the caller. A machine that links with the lab secret therefore gets no CI configuration.
+
+**Gateway tokens.** Each approved machine that asks gets a gateway token of its own: 32 random bytes as 64 hex
+digits, made when it first asks and the same on every later request. The hub keeps at most 256. They are kept in
+`ci-gateway-tokens` of the state directory, readable by its owner only and replaced atomically. For the CI gateway,
+which runs on the hub box, the hub keeps the hash file (`--ci-gateway-tokens FILE`, by default `ci/gateway-tokens` of
+the state directory): one `<SHA-256 of the token as hex><TAB><machine id>` per line, comment lines start with `#`. The
+gateway reads it with `CORE::ReadOwnerOnlyFile()`, so the file is mode 0600 and belongs to the user the gateway runs
+as: with `--ci-gateway-user NAME` (Linux) the hub gives it to that user before it replaces the old file; without it,
+or when that user does not exist (said once in the log), the file belongs to the account of the hub, and the gateway
+runs as that account. The file is replaced atomically whenever a token is made or taken away, and only when its
+content differs. A missing directory of the file is made, mode 0755, only when it is inside the state directory; a
+directory elsewhere has to exist (the hub says once in its log when it does not) and has to let the gateway user in.
+The state directory is root's only by default, so a gateway that runs as another user needs a file elsewhere, in a
+directory the installer prepares. `--revoke` takes the token of the machine away at once;
+the service also takes away the tokens of machines that are no longer approved, by whatever means, at its start and
+once a minute. The token of a machine stays the same when its approval token is renewed.
+
+**On the machine.** A machine that links with the token of its approval asks for the CI configuration on every visit
+(`--refresh`, 600 seconds by default) and writes it to the directory `ci` of the MCP directory (`--mcp-dir`, Linux
+`/var/lib/gucef-mcp/ci`, Windows `%ProgramData%\gucef-mcp\ci`):
+
+| File | Holds |
+|---|---|
+| `ci.json` | the registry, with the object `gateway` of the hub |
+| `gateway.token` | the gateway token of this machine, one line |
+| `ca.crt` | the certificate authority of the gateway (`tls/ca.crt` of the MCP directory of the hub) |
+
+A file is written only when its content changed, through a new file next to it that is moved over it. When the hub
+answers that no CI is configured, or that this machine gets none, the machine removes the three files; when the hub
+does not know `CiConfig`, or cannot hand it out for the moment, they stay as they are. A machine whose approval was
+taken back can no longer link to the hub and keeps its files, but the gateway no longer accepts its token.
+`--no-ci` switches all of this off; the files are then left alone.
+
+`gucefMcpCi` reads the files with `CORE::ReadOwnerOnlyFile()`, which only takes files of the user it runs as that
+nobody else can read:
+
+- **Linux.** The directory is mode 0700 and the files 0600. With `--claude-user NAME` (the user the MCP service runs
+  as) the directory and the files are given to that user; without it, or when the user does not exist, they stay with
+  the user of the service. The directory is opened without following a link, and the files are made, given away and
+  moved relative to it, so a link in their place, which the user that owns the MCP directory could make, is never
+  followed.
+- **Windows.** The directory and the files have the access of the state directory of gucefLabLink: owner the
+  Administrators group, access for SYSTEM and the Administrators only. A `gucefMcpCi` that runs as an ordinary user
+  cannot read them; it has to run as a service or elevated.
+
+| Option | Role | Default | |
+|---|---|---|---|
+| `--ci-registry FILE` | cluster | `ci.json` in the state directory | the CI registry; without the file no CI is configured |
+| `--ci-gateway-url URL` | cluster | `https://<cluster name>:8792` | the CI gateway the machines are told |
+| `--ci-gateway-tokens FILE` | cluster | `ci/gateway-tokens` in the state directory | the hashes of the gateway tokens, for the gateway |
+| `--ci-gateway-user NAME` | cluster | the account of the hub | the user the gateway runs as, who is given the hash file (Linux) |
+| `--no-ci` | machine | off | do not ask for the CI configuration |
+
 ## Commands
 
 | Command | Where | Does |
 |---|---|---|
 | `gucefLabLink --init` | cluster | makes the lab secret when there is none, prints it |
 | `gucefLabLink --set-secret SECRET` | machine | keeps the lab secret |
-| `gucefLabLink --list` | cluster | the machines that asked for access |
-| `gucefLabLink --approve NAME\|ID` / `--revoke NAME\|ID` | cluster | approves a machine / refuses its token from then on |
+| `gucefLabLink --list` | cluster | the machines that asked for access; `ci-token` after the id of a machine that has a CI gateway token |
+| `gucefLabLink --approve NAME\|ID` / `--revoke NAME\|ID` | cluster | approves a machine / refuses its token from then on and takes its CI gateway token away |
 | `gucefLabLink --add-user NAME --role admin\|viewer` | cluster | adds a user of the website; the password is asked for |
 | `gucefLabLink --set-password NAME` | cluster | gives a user of the website a new password; its sessions end |
 | `gucefLabLink --disable-user NAME` / `--enable-user NAME` / `--remove-user NAME` | cluster | users of the website; disabling or removing ends their sessions |
@@ -290,6 +363,10 @@ On Windows the program is the Windows service `gucefLabLink`, installed by `proj
 | `/var/lib/gucef-lablink/db/` | cluster | the tables of the hub database (`vfstables`) |
 | `/var/lib/gucef-lablink/users` | cluster | the users of the website: name, role, state and the hash record of the password |
 | `/var/lib/gucef-lablink/claude-registrations` | machine | what it registered with Claude Code, to change only what differs |
+| `/var/lib/gucef-lablink/ci.json` | cluster | the CI registry (`--ci-registry`), written by the administrator |
+| `/var/lib/gucef-lablink/ci-gateway-tokens` | cluster, root only | the CI gateway token of every machine that has one |
+| `/var/lib/gucef-lablink/ci/gateway-tokens` | cluster, the gateway user only | the SHA-256 of every CI gateway token with its machine id, for the CI gateway (`--ci-gateway-tokens`) |
+| `/var/lib/gucef-mcp/ci/` | machine | `ci.json`, `gateway.token` and `ca.crt` for `gucefMcpCi`, owned by the user of Claude Code |
 
 On Windows the same files are in `%ProgramData%\gucef-lablink`, with `lablink.conf` (the settings of the service) and
 `logs\gucefLabLink.log`.
