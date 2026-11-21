@@ -30,6 +30,10 @@
 void
 PerformVfsConfigTests( void );
 
+/** Mounting the filesystem roots: a system without storage volumes, a container, is no error */
+void
+PerformVfsMountRootsTests( void );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_VFS_TESTAPP_TESTVFSCONFIG_H ? */

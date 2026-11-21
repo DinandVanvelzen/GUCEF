@@ -404,6 +404,7 @@ GUCEF_OSMAIN_BEGIN
             PerformCueBinArchiveTests();
             PerformFileSystemAccessTests();
             PerformVfsConfigTests();
+            PerformVfsMountRootsTests();
             PerformVfsCodecTests();
         }
         PerformVfsMountLockingTests();

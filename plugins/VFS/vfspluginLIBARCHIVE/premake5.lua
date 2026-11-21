@@ -63,8 +63,10 @@ files( {
   "include/vfspluginLIBARCHIVE.h",
   "include/vfspluginLIBARCHIVE_CLibArchiveArchive.h",
   "include/vfspluginLIBARCHIVE_CLibArchiveEntryIOAccess.h",
+  "include/vfspluginLIBARCHIVE_CLibArchiveStoredEntryIOAccess.h",
   "include/vfspluginLIBARCHIVE_CLibArchiveWriter.h",
   "include/vfspluginLIBARCHIVE_CUtf8LocaleScope.h",
+  "include/vfspluginLIBARCHIVE_CZipStoredEntryIndex.h",
   "include/vfspluginLIBARCHIVE_config.h",
   "include/vfspluginLIBARCHIVE_macros.h"
  } )
@@ -77,8 +79,10 @@ files( {
   "src/vfspluginLIBARCHIVE.cpp",
   "src/vfspluginLIBARCHIVE_CLibArchiveArchive.cpp",
   "src/vfspluginLIBARCHIVE_CLibArchiveEntryIOAccess.cpp",
+  "src/vfspluginLIBARCHIVE_CLibArchiveStoredEntryIOAccess.cpp",
   "src/vfspluginLIBARCHIVE_CLibArchiveWriter.cpp",
-  "src/vfspluginLIBARCHIVE_CUtf8LocaleScope.cpp"
+  "src/vfspluginLIBARCHIVE_CUtf8LocaleScope.cpp",
+  "src/vfspluginLIBARCHIVE_CZipStoredEntryIndex.cpp"
  } )
 
 

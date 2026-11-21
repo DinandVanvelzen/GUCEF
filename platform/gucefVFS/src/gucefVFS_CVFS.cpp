@@ -2656,8 +2656,16 @@ CVFS::MountFileSystemRoots( const CORE::CString& overrideMountRoot ,
     CString::StringSet volumeIds;
     if ( !CORE::GetAllFileSystemStorageVolumes( volumeIds ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:MountFileSystemRoots: Failed to get storage volume ids" );
+        // The enumeration reports no volumes and a failure to enumerate alike: a container has no block devices to
+        // enumerate, which is no error. The caller learns of it by the result, the log says what to check
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "VFS:MountFileSystemRoots: No storage volume ids are available, no filesystem roots are mounted by volume. "
+                           "This is normal in a container without block devices, otherwise check that the process may enumerate storage volumes" );
         return false;
+    }
+    if ( volumeIds.empty() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "VFS:MountFileSystemRoots: The system has no storage volumes, no filesystem roots are mounted by volume" );
+        return true;
     }
 
     // Mount all volumes via their volume id

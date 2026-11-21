@@ -79,7 +79,7 @@ typedef CORE::CTFactory< VFS::CIArchiveWriter, CTLibArchiveFormatWriter< CLibArc
 //-------------------------------------------------------------------------*/
 
 /** The archive types which can be mounted, libarchive detects the actual format from the content */
-static const char* ReadableArchiveTypes[] = { "tar", "tgz", "tar.gz", "zip", "pk3", "jar", "7z", "rar", "iso", "cpio", "cab", "lha", "lzh", "xar", "ar" };
+static const char* ReadableArchiveTypes[] = { "tar", "tgz", "tar.gz", "zip", "pk3", "jar", "mhpkg", "7z", "rar", "iso", "cpio", "cab", "lha", "lzh", "xar", "ar" };
 
 // Created when the plugin is loaded and destroyed when it is unloaded:
 // as static objects they could be destroyed at process exit while still registered with the VFS

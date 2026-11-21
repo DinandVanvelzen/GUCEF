@@ -25,8 +25,10 @@ LOCAL_SRC_FILES := \
   src/vfspluginLIBARCHIVE.cpp \
   src/vfspluginLIBARCHIVE_CLibArchiveArchive.cpp \
   src/vfspluginLIBARCHIVE_CLibArchiveEntryIOAccess.cpp \
+  src/vfspluginLIBARCHIVE_CLibArchiveStoredEntryIOAccess.cpp \
   src/vfspluginLIBARCHIVE_CLibArchiveWriter.cpp \
-  src/vfspluginLIBARCHIVE_CUtf8LocaleScope.cpp
+  src/vfspluginLIBARCHIVE_CUtf8LocaleScope.cpp \
+  src/vfspluginLIBARCHIVE_CZipStoredEntryIndex.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

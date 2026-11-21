@@ -33,6 +33,21 @@
 #define GUCEF_CORE_DVCPPFILEUTILS_H
 #endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CILOGGER_H
+#include "CILogger.h"
+#define GUCEF_CORE_CILOGGER_H
+#endif /* GUCEF_CORE_CILOGGER_H ? */
+
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef GUCEF_CORE_CDATANODE_H
 #include "CDataNode.h"
 #define GUCEF_CORE_CDATANODE_H
@@ -117,6 +132,78 @@ SavedArchiveNames( const CORE::CDataNode& tree )
 
 /*-------------------------------------------------------------------------*/
 
+/** Counts what the VFS logs about mounting the filesystem roots, per kind of message, while attached to the log manager */
+class CMountRootsLogCapture : public CORE::CILogger
+{
+    public:
+
+    CMountRootsLogCapture( void ) : CORE::CILogger(), m_errors( 0 ), m_warnings( 0 ), m_lock()
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( this );
+    }
+
+    virtual ~CMountRootsLogCapture()
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().RemoveLogger( this );
+    }
+
+    UInt32 GetErrors( void )
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs();
+        MT::CScopeMutex lock( m_lock );
+        return m_errors;
+    }
+
+    UInt32 GetWarnings( void )
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs();
+        MT::CScopeMutex lock( m_lock );
+        return m_warnings;
+    }
+
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( logMessage.HasSubstr( "VFS:MountFileSystemRoots" ) < 0 )
+            return;
+        MT::CScopeMutex lock( m_lock );
+        if ( CORE::LOG_ERROR == logMsgType )
+            ++m_errors;
+        else
+        if ( CORE::LOG_WARNING == logMsgType )
+            ++m_warnings;
+    }
+
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+    }
+
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage, threadId, timestamp );
+    }
+
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+    }
+
+    virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    virtual void SetMinimalLogLevel( const Int32 logLevel ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return CORE::LOGLEVEL_EVERYTHING; }
+
+    private:
+
+    UInt32 m_errors;
+    UInt32 m_warnings;
+    MT::CMutex m_lock;
+};
+
+/*-------------------------------------------------------------------------*/
+
+
 void
 PerformVfsConfigTests( void )
 {GUCEF_TRACE;
@@ -164,6 +251,54 @@ PerformVfsConfigTests( void )
             vfs.UnmountArchiveByName( "VfsConfigTestB" );
             vfs.UnmountArchiveByName( "VfsConfigTestRuntime" );
             CORE::DeleteDir( CORE::CombinePath( CORE::TempDir(), "gucefVFS_TestApp_Config" ), true );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformVfsMountRootsTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_SUITE_SCOPE( "VfsMountRoots" );
+
+    // Where the system has storage volumes they are mounted without an error. Where it has none, or cannot list them
+    // (a container has no block devices) the VFS says so with a warning: that is not an error, and the result stays false
+    // for a failure to list. The same test runs on both kinds of system
+    GUCEF_TESTFW_TESTCASE( "VfsMountRoots: A system without storage volumes is no error, a system with them mounts them" )
+        try
+        {
+            VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+
+            CORE::CString::StringSet volumeIds;
+            const bool listed = CORE::GetAllFileSystemStorageVolumes( volumeIds );
+
+            CMountRootsLogCapture capture;
+            const bool mounted = vfs.MountFileSystemRoots( "mountrootstest/" );
+
+            if ( !listed )
+            {
+                ASSERT_FALSE( mounted );
+                ASSERT_TRUE( 1 == capture.GetWarnings() );
+                ASSERT_TRUE( 0 == capture.GetErrors() );
+            }
+            else
+            if ( volumeIds.empty() )
+            {
+                ASSERT_TRUE( mounted );
+                ASSERT_TRUE( 0 == capture.GetWarnings() && 0 == capture.GetErrors() );
+            }
+            else
+            {
+                ASSERT_TRUE( 0 == capture.GetWarnings() && 0 == capture.GetErrors() );
+            }
         }
         catch ( ... )
         {

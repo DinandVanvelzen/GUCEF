@@ -26,6 +26,7 @@
 
 #ifndef GUCEF_CORE_CDYNAMICBUFFER_H
 #include "CDynamicBuffer.h"
+#include "CFileAccess.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
@@ -55,6 +56,8 @@ namespace UNITYPACKAGE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CUnityPackageReader;
+
 /**
  *  Read only VFS archive presenting a Unity package as the Unity project tree it contains.
  *
@@ -77,8 +80,18 @@ namespace UNITYPACKAGE {
  *  position when they are opened. Entries up to LoadOnOpenLimit bytes are loaded into memory at that time so
  *  that the content can be accessed randomly. Larger entries are streamed, where seeking backwards decompresses
  *  from the start again. The cost of opening an uncached entry is therefore linear in its position in the package,
- *  the price of the format. The index is immutable after mounting, which makes the archive safe to use from
- *  multiple threads.
+ *  the price of the format, and a conversion that reads thousands of entries would decompress the package that
+ *  many times.
+ *
+ *  To make opening an entry cost what it holds, the same pass at mount also writes the content of the assets and
+ *  .meta files that are not kept in memory (up to LoadOnOpenLimit bytes each, SpillTotalLimitMB megabytes in all)
+ *  to one spill file in the per user cache folder, and records where. Opening such an entry then reads that range
+ *  of the file. What did not fit the budget is read from the package as described above. The spill file is the
+ *  archive's own: it is removed at unload. Its location is "$CACHEDIR$/GUCEF/unitypackage", a leftover of a
+ *  crashed process is a cache file that can be deleted. The index is immutable after mounting, which makes the
+ *  archive safe to use from multiple threads. The metadata of a file says how it is served: isOffline is set for the
+ *  entries that need a pass over the package when they are opened, which are the ones that did not fit the memory
+ *  and the spill budget; for a package of ordinary size there are none.
  *
  *  The package can be mounted from a file or, with the VFS resource based mount, from any other resource such as
  *  a file inside another mounted archive.
@@ -98,6 +111,8 @@ class CUnityPackageArchive : public VFS::CArchive
 
     /** Entries up to this size that are not cached are loaded into memory when opened, larger entries are streamed */
     static const UInt32 LoadOnOpenLimit = 256 * 1024 * 1024;
+    /** Total number of megabytes of entry content that is written to the spill file, entries beyond it are read from the package */
+    static const UInt32 SpillTotalLimitMB = 8 * 1024;
 
     CUnityPackageArchive( void );
 
@@ -181,6 +196,7 @@ class CUnityPackageArchive : public VFS::CArchive
         CORE::CDateTime modificationTime;
         bool hasModificationTime;
         Int32 cacheSlot;                /**< index in the cache or -1 if the content is not kept in memory */
+        Int64 spillOffset;              /**< position of the content in the spill file or -1 if it is not in there */
     };
     typedef GUCEF::map< CORE::CString, SEntry > TEntryMap;
     typedef GUCEF::set< CORE::CString > TDirSet;
@@ -210,11 +226,27 @@ class CUnityPackageArchive : public VFS::CArchive
 
     const SEntry* FindEntry( const VFS::CString& filePath ) const;
 
+    /** Makes the spill file for the package that is being indexed, false when there is no place for it */
+    bool OpenSpill( void );
+
+    /** Writes the data of the current entry of the reader to the spill file, true when the entry is in there; the spill ends at the first failure */
+    bool SpillEntry( CUnityPackageReader& reader, SEntry& entry );
+
+    /** Ends the writing of the spill file */
+    void CloseSpill( void );
+
+    /** Reads an entry of the spill file */
+    bool ReadSpill( const SEntry& entry, CORE::CDynamicBuffer& content ) const;
+
     void AddParentDirs( const CORE::CString& path );
 
     TEntryMap m_files;
     TDirSet m_dirs;
     TCache m_cache;
+    CORE::CString m_spillPath;
+    CORE::CFileAccess* m_spillWriter;
+    UInt64 m_spillBytes;
+    bool m_spillFailed;
     VFS::CString m_archiveName;
     VFS::CString m_archivePath;
     CORE::CString m_actualArchivePath;

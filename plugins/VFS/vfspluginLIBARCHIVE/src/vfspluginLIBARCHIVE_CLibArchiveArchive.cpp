@@ -44,6 +44,8 @@
 #endif /* GUCEF_VFS_CVFSHANDLE_H ? */
 
 #include "vfspluginLIBARCHIVE_CLibArchiveEntryIOAccess.h"
+#include "vfspluginLIBARCHIVE_CLibArchiveStoredEntryIOAccess.h"
+#include "vfspluginLIBARCHIVE_CZipStoredEntryIndex.h"
 #include "vfspluginLIBARCHIVE_CLibArchiveArchive.h"
 
 /*-------------------------------------------------------------------------//
@@ -201,6 +203,7 @@ CLibArchiveArchive::LoadArchive( const VFS::CArchiveSettings& settings )
 
     // Index all entries, for regular files we remember their position for reading them later
     bool success = true;
+    bool isZip = false;
     UInt32 index = 0;
     struct archive_entry* entry = GUCEF_NULL;
     while ( true )
@@ -228,6 +231,8 @@ CLibArchiveArchive::LoadArchive( const VFS::CArchiveSettings& settings )
             {
                 SEntry fileEntry;
                 fileEntry.index = index;
+                fileEntry.isStored = false;
+                fileEntry.dataOffset = 0;
                 fileEntry.size = archive_entry_size_is_set( entry ) ? (UInt64) archive_entry_size( entry ) : 0;
                 fileEntry.hasModificationTime = 0 != archive_entry_mtime_is_set( entry );
                 if ( fileEntry.hasModificationTime )
@@ -243,7 +248,32 @@ CLibArchiveArchive::LoadArchive( const VFS::CArchiveSettings& settings )
         archive_read_data_skip( reader );
         ++index;
     }
+    isZip = ARCHIVE_FORMAT_ZIP == ( archive_format( reader ) & ARCHIVE_FORMAT_BASE_MASK );
     archive_read_free( reader );
+
+    // libarchive reads entry data as a stream. Stored entries of a zip archive are read directly instead,
+    // so that reading from the middle of a large entry does not read everything in front of it
+    if ( success && isZip )
+    {
+        CZipStoredEntryIndex::TEntryMap stored;
+        if ( CZipStoredEntryIndex::Load( settings.GetActualArchivePath(), stored ) )
+        {
+            UInt32 storedCount = 0;
+            CZipStoredEntryIndex::TEntryMap::const_iterator s = stored.begin();
+            while ( s != stored.end() )
+            {
+                TEntryMap::iterator f = m_files.find( NormalizePath( (*s).first ) );
+                if ( f != m_files.end() && (*f).second.size == (*s).second.size )
+                {
+                    (*f).second.isStored = true;
+                    (*f).second.dataOffset = (*s).second.dataOffset;
+                    ++storedCount;
+                }
+                ++s;
+            }
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "LibArchiveArchive: " << storedCount << " stored entries of \"" << settings.GetActualArchivePath() << "\" are read directly" );
+        }
+    }
 
     if ( !success )
     {
@@ -315,7 +345,11 @@ CLibArchiveArchive::GetFile( const VFS::CString& file      ,
     if ( GUCEF_NULL == entry )
         return VFS::TBasicVfsResourcePtr();
 
-    CLibArchiveEntryIOAccess* access = GUCEF_NEW CLibArchiveEntryIOAccess( m_actualArchivePath, entry->index, entry->size );
+    CORE::CIOAccess* access = GUCEF_NULL;
+    if ( entry->isStored )
+        access = GUCEF_NEW CLibArchiveStoredEntryIOAccess( m_actualArchivePath, entry->dataOffset, entry->size );
+    else
+        access = GUCEF_NEW CLibArchiveEntryIOAccess( m_actualArchivePath, entry->index, entry->size );
     if ( !access->IsValid() )
     {
         GUCEF_DELETE access;

@@ -33,6 +33,7 @@
 
 #ifndef GUCEF_CORE_DVMD5UTILS_H
 #include "dvmd5utils.h"
+#include "dvcppstringutils.h"
 #define GUCEF_CORE_DVMD5UTILS_H
 #endif /* GUCEF_CORE_DVMD5UTILS_H ? */
 
@@ -159,6 +160,7 @@ CUnityPackageArchive::SEntry::SEntry( void )
     , modificationTime()
     , hasModificationTime( false )
     , cacheSlot( -1 )
+    , spillOffset( -1 )
 {GUCEF_TRACE;
 
 }
@@ -184,6 +186,10 @@ CUnityPackageArchive::CUnityPackageArchive( void )
     , m_files()
     , m_dirs()
     , m_cache()
+    , m_spillPath()
+    , m_spillWriter( GUCEF_NULL )
+    , m_spillBytes( 0 )
+    , m_spillFailed( false )
     , m_archiveName()
     , m_archivePath()
     , m_actualArchivePath()
@@ -335,6 +341,12 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
                 GUCEF_DELETE content;
             }
         }
+        else
+        if ( ENTRYROLE_PREVIEW != role )
+        {
+            // the rest of what a conversion reads goes to the spill file, so that opening it does not decompress the package again
+            SpillEntry( reader, fileEntry );
+        }
 
         switch ( role )
         {
@@ -345,6 +357,7 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
         }
     }
 
+    CloseSpill();
     if ( reader.HasFailed() )
         return false;
     if ( assets.empty() )
@@ -388,8 +401,104 @@ CUnityPackageArchive::BuildIndex( const CORE::CString& path, const CORE::IOAcces
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UnityPackageArchive: " << assetsWithoutPathname << " asset folders in \"" << path << "\" have no usable pathname and are left out" );
     }
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UnityPackageArchive: Indexed " << (UInt32) assets.size() << " assets, " << ignoredEntries <<
-        " other entries ignored, " << cacheBytes + metaCacheBytes << " bytes kept in memory" );
+        " other entries ignored, " << cacheBytes + metaCacheBytes << " bytes kept in memory, " << m_spillBytes << " bytes spilled to \"" << m_spillPath << "\"" );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnityPackageArchive::OpenSpill( void )
+{GUCEF_TRACE;
+
+    if ( m_spillFailed )
+        return false;
+    if ( GUCEF_NULL != m_spillWriter )
+        return true;
+
+    const CORE::CString folder = CORE::ResolveVars( "$CACHEDIR$/GUCEF/unitypackage" );
+    if ( !CORE::CreateDirs( folder ) )
+    {
+        m_spillFailed = true;
+        return false;
+    }
+    // one file per mounted archive: the process and the archive make the name
+    m_spillPath = folder + "/" + CORE::ResolveVars( "$PID$" ) + "-" + CORE::UInt64ToString( (UInt64) reinterpret_cast< size_t >( this ) ) + ".spill";
+    m_spillWriter = GUCEF_NEW CORE::CFileAccess( m_spillPath, "wb" );
+    if ( !m_spillWriter->IsValid() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UnityPackageArchive: Cannot create the spill file \"" << m_spillPath << "\", entries are read from the package" );
+        GUCEF_DELETE m_spillWriter;
+        m_spillWriter = GUCEF_NULL;
+        m_spillPath.Clear();
+        m_spillFailed = true;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnityPackageArchive::SpillEntry( CUnityPackageReader& reader, SEntry& entry )
+{GUCEF_TRACE;
+
+    if ( entry.size == 0 || entry.size > LoadOnOpenLimit || m_spillFailed )
+        return false;
+    if ( m_spillBytes + entry.size > (UInt64) SpillTotalLimitMB * 1024 * 1024 )
+        return false;
+    if ( !OpenSpill() )
+        return false;
+
+    // the content passes by in blocks, so the memory used does not depend on the size of the entry
+    const UInt32 blockSize = 1024 * 1024;
+    CORE::CDynamicBuffer block;
+    block.SetDataSize( blockSize );
+    const UInt64 start = m_spillBytes;
+    UInt64 left = entry.size;
+    while ( left > 0 )
+    {
+        const UInt64 want = left < blockSize ? left : blockSize;
+        if ( reader.ReadEntryData( block.GetBufferPtr(), want ) != want ||
+             m_spillWriter->Write( block.GetConstBufferPtr(), 1, (UInt32) want ) != (UInt32) want )
+        {
+            // what was written of this entry is of no use, and the entries after it cannot be put in the file
+            m_spillFailed = true;
+            return false;
+        }
+        left -= want;
+    }
+    entry.spillOffset = (Int64) start;
+    m_spillBytes += entry.size;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityPackageArchive::CloseSpill( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_spillWriter )
+    {
+        m_spillWriter->Flush();
+        GUCEF_DELETE m_spillWriter;
+        m_spillWriter = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnityPackageArchive::ReadSpill( const SEntry& entry, CORE::CDynamicBuffer& content ) const
+{GUCEF_TRACE;
+
+    // every read has a file object of its own, which keeps the archive usable from multiple threads
+    CORE::CFileAccess spill( m_spillPath, "rb" );
+    if ( !spill.IsValid() || 0 != spill.Seek( entry.spillOffset, SEEK_SET ) )
+        return false;
+    content.SetDataSize( (UInt32) entry.size );
+    return spill.Read( content.GetBufferPtr(), 1, (UInt32) entry.size ) == (UInt32) entry.size;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -469,6 +578,14 @@ CUnityPackageArchive::UnloadArchive( void )
     for ( TCache::iterator i = m_cache.begin(); i != m_cache.end(); ++i )
         GUCEF_DELETE (*i);
     m_cache.clear();
+    CloseSpill();
+    if ( !m_spillPath.IsNULLOrEmpty() )
+    {
+        CORE::DeleteFile( m_spillPath );
+        m_spillPath.Clear();
+    }
+    m_spillBytes = 0;
+    m_spillFailed = false;
     m_sourceAccess.Unlink();
     m_sourceResource.Unlink();
     m_loaded = false;
@@ -510,6 +627,18 @@ CUnityPackageArchive::GetFile( const VFS::CString& file      ,
         // Kept in memory since mounting, the access gets its own copy as it can outlive the archive
         CORE::CDynamicBuffer* copy = GUCEF_NEW CORE::CDynamicBuffer( *m_cache[ entry->cacheSlot ] );
         fileAccess = CORE::IOAccessPtr( GUCEF_NEW CORE::CDynamicBufferAccess( copy, true ) );
+    }
+    else
+    if ( entry->spillOffset >= 0 )
+    {
+        CORE::CDynamicBuffer* content = GUCEF_NEW CORE::CDynamicBuffer();
+        if ( !ReadSpill( *entry, *content ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UnityPackageArchive: Failed to read \"" << file << "\" from the spill file \"" << m_spillPath << "\"" );
+            GUCEF_DELETE content;
+            return VFS::TBasicVfsResourcePtr();
+        }
+        fileAccess = CORE::IOAccessPtr( GUCEF_NEW CORE::CDynamicBufferAccess( content, true ) );
     }
     else
     if ( entry->size <= LoadOnOpenLimit )
@@ -672,6 +801,13 @@ CUnityPackageArchive::GetFileMetaData( const VFS::CString& filePath      ,
     metaData.hasModifiedDateTime = entry->hasModificationTime;
     metaData.isReadOnly = true;
     metaData.hasIsReadOnly = true;
+
+    // the content is gzip compressed in the package; it is "offline" when opening it means a pass over the package, which
+    // is when it is in neither the memory of the archive nor the spill file
+    metaData.isCompressed = true;
+    metaData.hasIsCompressed = true;
+    metaData.isOffline = entry->cacheSlot < 0 && entry->spillOffset < 0;
+    metaData.hasIsOffline = true;
     return true;
 }
 

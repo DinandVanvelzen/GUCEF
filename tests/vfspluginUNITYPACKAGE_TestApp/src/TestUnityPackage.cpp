@@ -213,6 +213,39 @@ WriteTestPackage( VFS::CVFS& vfs, const CORE::CString& path )
 
 /*-------------------------------------------------------------------------*/
 
+/** a package of many assets that are all over the size that is kept in memory, so that they are served from the spill file */
+static const UInt32 BigAssetCount = 24;
+static const UInt32 BigAssetSize = 200 * 1024;
+
+static CORE::CString
+BigAssetGuid( UInt32 index )
+{
+    CORE::CString number = CORE::UInt32ToString( 1000 + index );
+    return "9999999999999999999999999999" + number;
+}
+
+static bool
+WriteBigPackage( VFS::CVFS& vfs, const CORE::CString& path )
+{
+    CORE::CFileAccess output( path, "wb" );
+    if ( !output.IsValid() )
+        return false;
+    VFS::CVFS::TArchiveWriterPtr writer = vfs.CreateArchiveWriter( "tgz" );
+    if ( writer.IsNULL() || !writer->Open( output ) )
+        return false;
+    bool ok = true;
+    for ( UInt32 i=0; i<BigAssetCount; ++i )
+    {
+        const CORE::CString guid = BigAssetGuid( i );
+        ok = ok && AddEntry( *writer, guid + "/pathname", MakeContent( "Assets/Big/Asset" + CORE::UInt32ToString( i ) + ".bin" ) );
+        ok = ok && AddEntry( *writer, guid + "/asset", MakeBinaryContent( BigAssetSize + i, (UInt8) i ) );
+        ok = ok && AddEntry( *writer, guid + "/asset.meta", MakeContent( "fileFormatVersion: 2\nguid: " + guid + "\n" ) );
+    }
+    return writer->Close() && ok;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static bool
 ReadAll( VFS::CVFS& vfs, const CORE::CString& path, CORE::CDynamicBuffer& content )
 {
@@ -704,6 +737,77 @@ PerformUnityPackageTests( void )
 
                 ASSERT_TRUE( vfs.UnmountArchiveByName( "upkgreal" ) );
             }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Entries over the in-memory limit are served without a pass over the package" )
+        try
+        {
+            CORE::CString bigPath = CORE::CombinePath( dir, "big.unitypackage" );
+            ASSERT_TRUE( WriteBigPackage( vfs, bigPath ) );
+            ASSERT_TRUE( vfs.MountArchive( "upkgbig", "upkgtemp/big.unitypackage", "unitypackage", "upkgbig", false, false ) );
+
+            // none needs a pass over the package, whatever the order of the reads: the metadata says how an entry is served
+            for ( UInt32 i=0; i<BigAssetCount; ++i )
+            {
+                CORE::CResourceMetaData metaData;
+                const CORE::CString file = "upkgbig/Assets/Big/Asset" + CORE::UInt32ToString( i ) + ".bin";
+                ASSERT_TRUE( vfs.GetFileMetaData( file, metaData ) );
+                ASSERT_TRUE( metaData.hasIsOffline );
+                ASSERT_FALSE( metaData.isOffline );
+                ASSERT_TRUE( BigAssetSize + i == metaData.resourceSizeInBytes );
+                ASSERT_TRUE( vfs.GetFileMetaData( file + ".meta", metaData ) );
+                ASSERT_FALSE( metaData.isOffline );
+            }
+
+            // the content is what was written, read in reverse and again in the order of the package
+            for ( UInt32 i=BigAssetCount; i>0; --i )
+                ASSERT_TRUE( ReadEquals( vfs, "upkgbig/Assets/Big/Asset" + CORE::UInt32ToString( i - 1 ) + ".bin", MakeBinaryContent( BigAssetSize + i - 1, (UInt8) ( i - 1 ) ) ) );
+            for ( UInt32 i=0; i<BigAssetCount; ++i )
+                ASSERT_TRUE( ReadEquals( vfs, "upkgbig/Assets/Big/Asset" + CORE::UInt32ToString( i ) + ".bin", MakeBinaryContent( BigAssetSize + i, (UInt8) i ) ) );
+
+            // random access in an entry that is served from the spill file; the handles are released before the unmount
+            {
+            VFS::TBasicVfsResourcePtr entry = vfs.GetFile( "upkgbig/Assets/Big/Asset7.bin", "rb", false );
+            ASSERT_FALSE( entry.IsNULL() );
+            if ( !entry.IsNULL() )
+            {
+                const CORE::CDynamicBuffer expected = MakeBinaryContent( BigAssetSize + 7, 7 );
+                CORE::IOAccessPtr access = entry->GetAccess();
+                UInt8 chunk[ 8 ];
+                ASSERT_TRUE( 0 == access->Seek( 150000, SEEK_SET ) && 8 == access->Read( chunk, 1, 8 ) );
+                ASSERT_TRUE( 0 == memcmp( chunk, expected.GetConstBufferPtr( 150000 ), 8 ) );
+                ASSERT_TRUE( 0 == access->Seek( 3, SEEK_SET ) && 8 == access->Read( chunk, 1, 8 ) );
+                ASSERT_TRUE( 0 == memcmp( chunk, expected.GetConstBufferPtr( 3 ), 8 ) );
+            }
+
+            // several readers at once
+            VFS::TBasicVfsResourcePtr first = vfs.GetFile( "upkgbig/Assets/Big/Asset1.bin", "rb", false );
+            VFS::TBasicVfsResourcePtr second = vfs.GetFile( "upkgbig/Assets/Big/Asset2.bin", "rb", false );
+            ASSERT_FALSE( first.IsNULL() );
+            ASSERT_FALSE( second.IsNULL() );
+            if ( !first.IsNULL() && !second.IsNULL() )
+            {
+                UInt8 a[ 4 ];
+                UInt8 b[ 4 ];
+                ASSERT_TRUE( 4 == first->GetAccess()->Read( a, 1, 4 ) && 4 == second->GetAccess()->Read( b, 1, 4 ) );
+                ASSERT_TRUE( 0 == memcmp( a, MakeBinaryContent( 8, 1 ).GetConstBufferPtr(), 4 ) );
+                ASSERT_TRUE( 0 == memcmp( b, MakeBinaryContent( 8, 2 ).GetConstBufferPtr(), 4 ) );
+            }
+            }
+
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "upkgbig" ) );
+            ASSERT_FALSE( vfs.FileExists( "upkgbig/Assets/Big/Asset7.bin" ) );
+
+            // mounting again after the unmount works the same: the spill file of the first mount is gone, the new one is its own
+            ASSERT_TRUE( vfs.MountArchive( "upkgbig", "upkgtemp/big.unitypackage", "unitypackage", "upkgbig", false, false ) );
+            ASSERT_TRUE( ReadEquals( vfs, "upkgbig/Assets/Big/Asset23.bin", MakeBinaryContent( BigAssetSize + 23, 23 ) ) );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "upkgbig" ) );
+            CORE::DeleteFile( bigPath );
         }
         catch ( ... )
         {

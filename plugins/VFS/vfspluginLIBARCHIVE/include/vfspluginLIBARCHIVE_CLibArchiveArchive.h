@@ -158,6 +158,8 @@ class CLibArchiveArchive : public VFS::CArchive
         UInt64 size;
         CORE::CDateTime modificationTime;
         bool hasModificationTime;
+        bool isStored;                  /**< the data is in the archive file as is, at dataOffset, and can be read directly */
+        UInt64 dataOffset;
     };
     typedef std::map< CORE::CString, SEntry > TEntryMap;
     typedef std::set< CORE::CString > TDirSet;
