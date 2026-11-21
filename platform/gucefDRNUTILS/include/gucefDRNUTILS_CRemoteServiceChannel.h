@@ -152,6 +152,14 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceChannel : public CORE::CObservingN
     /** The endpoint of the RPC session (NULL before the first link) */
     COMCORE::CRpcEndpointPtr GetEndpoint( void ) const;
 
+    /**
+     *  The DRN session the channel joined and the peer id of the service in it (the sequencer): what a DRN facility on the
+     *  session (the resource transfer, for one) needs to address the service. NULL and 0 before the first StartJoin().
+     *  The session lives as long as the channel; it is replaced when the channel joins again, so ask again after a reconnect
+     */
+    DRN::CDRNSession* GetDrnSession( void ) const;
+    UInt32 GetServicePeerId( void ) const;
+
     /** Since the last StartJoin(): the RPC session was resumed over the new link (case A) */
     bool WasRpcResumed( void ) const;
 

@@ -90,6 +90,20 @@ typedef enum ERemoteConnectionState TRemoteConnectionState;
 /** "IDLE", "JOINING", "BINDING", "OPENING", "CONNECTED", "RECONNECTING", "FAILED" */
 GUCEF_DRNUTILS_PUBLIC_CPP const char* RemoteConnectionStateToString( TRemoteConnectionState state );
 
+/** The state of a share of a remote service that is mounted into the VFS (CRemoteShareMount) */
+enum ERemoteShareState
+{
+    REMOTESHARE_IDLE = 0 ,          /**< not started, or stopped: nothing is mounted */
+    REMOTESHARE_WAITING ,           /**< started and mounted, the connection to the service is not up (yet) and was not up since the start */
+    REMOTESHARE_ONLINE ,            /**< mounted, and the share can be reached */
+    REMOTESHARE_OFFLINE ,           /**< mounted, was online and the link is lost: the mount answers from what it has cached and is back by itself with the link */
+    REMOTESHARE_FAILED              /**< the share cannot be mounted or served (the mount was refused, the session name is taken, the connection gave up, no credentials): GetLastError() says why */
+};
+typedef enum ERemoteShareState TRemoteShareState;
+
+/** "IDLE", "WAITING", "ONLINE", "OFFLINE", "FAILED" */
+GUCEF_DRNUTILS_PUBLIC_CPP const char* RemoteShareStateToString( TRemoteShareState state );
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

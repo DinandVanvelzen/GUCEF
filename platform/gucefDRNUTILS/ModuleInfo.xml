@@ -21,6 +21,7 @@
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefVFS" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
@@ -30,6 +31,7 @@
             <Dependency Name="gucefWEB" Scope="public" />
             <Dependency Name="gucefDRN" Scope="public" />
             <Dependency Name="gucefAUTH" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_DRNUTILS_BUILD_MODULE" />

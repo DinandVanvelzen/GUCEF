@@ -76,6 +76,21 @@
 #define GUCEF_DRN_CDRNSESSION_H
 #endif /* GUCEF_DRN_CDRNSESSION_H ? */
 
+#ifndef GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H
+#include "gucefDRN_CDRNResourceSessionComponent.h"
+#define GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H
+#endif /* GUCEF_DRN_CDRNRESOURCESESSIONCOMPONENT_H ? */
+
+#ifndef GUCEF_DRN_CDRNRESOURCESHARERULES_H
+#include "gucefDRN_CDRNResourceShareRules.h"
+#define GUCEF_DRN_CDRNRESOURCESHARERULES_H
+#endif /* GUCEF_DRN_CDRNRESOURCESHARERULES_H ? */
+
+#ifndef GUCEF_DRN_CDRNRESOURCENAME_H
+#include "gucefDRN_CDRNResourceName.h"
+#define GUCEF_DRN_CDRNRESOURCENAME_H
+#endif /* GUCEF_DRN_CDRNRESOURCENAME_H ? */
+
 #ifndef GUCEF_DRN_CDRNPEERLINK_H
 #include "gucefDRN_CDRNPeerLink.h"
 #define GUCEF_DRN_CDRNPEERLINK_H
@@ -259,6 +274,8 @@ CRemoteServiceHost::CRemoteServiceHost( const CORE::PulseGeneratorPtr& pulseGene
     , m_lanProperties()
     , m_commands()
     , m_extensions()
+    , m_shares()
+    , m_shareLock()
     , m_endpoints()
     , m_eventCalls()
     , m_timer( pulseGenerator, settings.tickIntervalMs > 0 ? settings.tickIntervalMs : 250 )
@@ -692,6 +709,9 @@ CRemoteServiceHost::Start( CORE::CString& error )
         }
     }
 
+    // the shares of the host are served again: this session is a new one
+    ServeShares();
+
     // the RPC host on the members of the session: the larger of the control and bulk limits, the client sets its own per channel
     COMCORE::CRpcHostSettings hostSettings;
     hostSettings.endpointSettings.nodeName = m_settings.serviceName;
@@ -754,6 +774,119 @@ CRemoteServiceHost::RegisterService( const COMCORE::CRpcContractPtr& contract, c
         return false;
     }
     return m_rpcHost->RegisterService( contract, serviceName, impl, mode );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::ServeShare( const CORE::CString& name, SShare& share )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_drnSession || share.provider.IsNULL() )
+        return false;
+
+    // every member of the session, whatever the roles of its token: the registry decides at every call (CDeviceDrnAccessPolicy)
+    DRN::CDRNResourceShareRules rules( DRN::CDRNResourceShareRules::WholeProvider, DRN::CDRNResourceShareRules::AnyRole );
+    share.served = m_drnSession->GetResources().RegisterProvider( name, share.provider, rules );
+    return share.served;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRemoteServiceHost::ServeShares( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    for ( TShareMap::iterator i = m_shares.begin(); i != m_shares.end(); ++i )
+    {
+        if ( !ServeShare( (*i).first, (*i).second ) )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "RemoteServiceHost: the share "" << (*i).first << "" cannot be served on the session of the host" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::RegisterShare( const CORE::CString& name, const DRN::CIDRNResourceProviderPtr& provider, const CORE::CString::StringSet& roles,
+                                   CIRemoteShareDecision* decision, CORE::CString& error )
+{GUCEF_TRACE;
+
+    if ( name.IsNULLOrEmpty() || provider.IsNULL() )
+    {
+        error = "a share needs a name and a provider";
+        return false;
+    }
+    if ( !DRN::CDRNResourceName::IsValidProviderName( name ) )
+    {
+        error = """ + name + "" cannot be the name of a share";
+        return false;
+    }
+    MT::CScopeMutex lock( m_shareLock );
+    if ( m_shares.find( name ) != m_shares.end() )
+    {
+        error = "the share "" + name + "" is registered already";
+        return false;
+    }
+    SShare& share = m_shares[ name ];
+    share.provider = provider;
+    share.roles = roles;
+    share.decision = decision;
+    share.served = false;
+    m_drnPolicy.SetShare( name, roles, decision );
+    if ( m_running && GUCEF_NULL != m_drnSession && !ServeShare( name, share ) )
+    {
+        m_drnPolicy.RemoveShare( name );
+        m_shares.erase( name );
+        error = "the session of the host does not serve the share "" + name + """;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::UnregisterShare( const CORE::CString& name )
+{GUCEF_TRACE;
+
+    DRN::CIDRNResourceProviderPtr keep;
+    {
+        MT::CScopeMutex lock( m_shareLock );
+        TShareMap::iterator i = m_shares.find( name );
+        if ( i == m_shares.end() )
+            return false;
+        keep = (*i).second.provider;
+        const bool served = (*i).second.served;
+        m_shares.erase( i );
+
+        // the policy first: no call reaches the decision after this returns; the facility ends the reads under way with the provider
+        m_drnPolicy.RemoveShare( name );
+        if ( served && GUCEF_NULL != m_drnSession )
+            m_drnSession->GetResources().UnregisterProvider( name );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::HasShare( const CORE::CString& name ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    return m_shares.find( name ) != m_shares.end();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteServiceHost::IsShareServed( const CORE::CString& name ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    TShareMap::const_iterator i = m_shares.find( name );
+    return i != m_shares.end() && (*i).second.served && m_running && GUCEF_NULL != m_drnSession && m_drnSession->GetResources().HasProvider( name );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1074,6 +1207,12 @@ CRemoteServiceHost::Stop( void )
     {
         m_listener->StopListening();
         m_listener.Unlink();
+    }
+    {
+        // the providers go with the session of the node; the registrations of the shares stay for the next Start()
+        MT::CScopeMutex shareLock( m_shareLock );
+        for ( TShareMap::iterator i = m_shares.begin(); i != m_shares.end(); ++i )
+            (*i).second.served = false;
     }
     if ( GUCEF_NULL != m_node )
     {

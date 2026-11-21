@@ -97,6 +97,11 @@
 #define GUCEF_TESTDRNUTILSLANDISCOVERY_H
 #endif /* GUCEF_TESTDRNUTILSLANDISCOVERY_H ? */
 
+#ifndef GUCEF_TESTDRNUTILSREMOTESHARE_H
+#include "TestDrnUtilsRemoteShare.h"
+#define GUCEF_TESTDRNUTILSREMOTESHARE_H
+#endif /* GUCEF_TESTDRNUTILSREMOTESHARE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -121,7 +126,7 @@ DrnUtilsTestEventCallback( GUCEF::TESTFW::ETestEvent eventType ,
 
 /**
  *  Whether a suite runs: GUCEF_DRNUTILS_TEST_SUITES, a comma separated list of suite names (Skeleton, SchedulerHost,
- *  TaskManagerHost, Tables, Drn, RemoteKit, RemoteService, Soak), selects suites; unset or empty runs every suite
+ *  TaskManagerHost, Tables, Drn, RemoteKit, RemoteService, LanDiscovery, RemoteShare, RemoteShareHost, Soak), selects suites; unset or empty runs every suite
  */
 static bool
 IsSuiteSelected( const char* suiteName )
@@ -198,6 +203,10 @@ GUCEF_OSMAIN_BEGIN
                 PerformDrnUtilsRemoteServiceTests();
             if ( IsSuiteSelected( "LanDiscovery" ) )
                 PerformDrnUtilsLanDiscoveryTests();
+            if ( IsSuiteSelected( "RemoteShare" ) )
+                PerformDrnUtilsRemoteShareTests();
+            if ( IsSuiteSelected( "RemoteShareHost" ) )
+                PerformDrnUtilsRemoteShareHostTests();
         }
         if ( IsSuiteSelected( "Soak" ) )
             PerformDrnUtilsSoakTests();

@@ -30,6 +30,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_DRNUTILS_CREMOTESHARESESSIONHOLDS_H
+#include "gucefDRNUTILS_CRemoteShareSessionHolds.h"
+#define GUCEF_DRNUTILS_CREMOTESHARESESSIONHOLDS_H
+#endif /* GUCEF_DRNUTILS_CREMOTESHARESESSIONHOLDS_H ? */
+
 #ifndef GUCEF_DRNUTILS_MACROS_H
 #include "gucefDRNUTILS_macros.h"
 #define GUCEF_DRNUTILS_MACROS_H
@@ -62,6 +67,9 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDrnUtilsGlobal
 
     static CDrnUtilsGlobal* Instance( void );
 
+    /** The counts of the mounts of remote shares that hold the registration of a DRN session (CRemoteShareMount) */
+    CRemoteShareSessionHolds& GetShareSessionHolds( void );
+
     private:
 
     friend class CModule;
@@ -78,6 +86,8 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDrnUtilsGlobal
     CDrnUtilsGlobal& operator=( const CDrnUtilsGlobal& src );   /**< not implemented */
 
     private:
+
+    CRemoteShareSessionHolds m_shareSessionHolds;
 
     static MT::CMutex g_dataLock;
     static CDrnUtilsGlobal* g_instance;

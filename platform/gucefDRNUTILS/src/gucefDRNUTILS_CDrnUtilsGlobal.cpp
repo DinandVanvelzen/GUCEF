@@ -136,8 +136,18 @@ CDrnUtilsGlobal* CDrnUtilsGlobal::g_instance = GUCEF_NULL;
 //-------------------------------------------------------------------------*/
 
 CDrnUtilsGlobal::CDrnUtilsGlobal( void )
+    : m_shareSessionHolds()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRemoteShareSessionHolds&
+CDrnUtilsGlobal::GetShareSessionHolds( void )
+{GUCEF_TRACE;
+
+    return m_shareSessionHolds;
 }
 
 /*-------------------------------------------------------------------------*/

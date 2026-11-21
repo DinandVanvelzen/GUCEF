@@ -103,6 +103,7 @@ const CORE::CEvent CRemoteServiceConnection::SessionReplacedEvent = "GUCEF::DRNU
 const CORE::CEvent CRemoteServiceConnection::CredentialsChangedEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::CredentialsChangedEvent";
 const CORE::CEvent CRemoteServiceConnection::ClockSkewEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::ClockSkewEvent";
 const CORE::CEvent CRemoteServiceConnection::ServiceStoppingEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::ServiceStoppingEvent";
+const CORE::CEvent CRemoteServiceConnection::ChannelChangedEvent = "GUCEF::DRNUTILS::CRemoteServiceConnection::ChannelChangedEvent";
 
 /*-------------------------------------------------------------------------*/
 
@@ -117,6 +118,7 @@ CRemoteServiceConnection::RegisterEvents( void )
     CredentialsChangedEvent.Initialize();
     ClockSkewEvent.Initialize();
     ServiceStoppingEvent.Initialize();
+    ChannelChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -342,6 +344,26 @@ CRemoteServiceConnection::GetEndpoint( UInt32 channel ) const
 
     CRemoteServiceChannel* found = GetChannel( channel );
     return GUCEF_NULL != found ? found->GetEndpoint() : COMCORE::CRpcEndpointPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+DRN::CDRNSession*
+CRemoteServiceConnection::GetDrnSession( UInt32 channel ) const
+{GUCEF_TRACE;
+
+    CRemoteServiceChannel* found = GetChannel( channel );
+    return GUCEF_NULL != found ? found->GetDrnSession() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CRemoteServiceConnection::GetServicePeerId( UInt32 channel ) const
+{GUCEF_TRACE;
+
+    CRemoteServiceChannel* found = GetChannel( channel );
+    return GUCEF_NULL != found ? found->GetServicePeerId() : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1208,7 +1230,15 @@ CRemoteServiceConnection::StepBulkChannels( void )
             bulk.hasPending = false;
             CORE::CString error;
             if ( !channel.StartJoin( GetCredentials(), MakeChannelSettings( i ), m_settings.hostOverride, error ) )
+            {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RemoteServiceConnection: bulk channel " << i << " cannot join: " << error );
+            }
+            else
+            {
+                // the DRN session of the channel exists now (or again): what uses it by name, a mounted share for one, follows this
+                CORE::TCloneableUInt32 joined( i );
+                NotifyObservers( ChannelChangedEvent, &joined );
+            }
             bulk.nextAttemptMs = NowMs() + 1000;
             continue;
         }
@@ -1231,8 +1261,12 @@ CRemoteServiceConnection::StepBulkChannels( void )
             if ( COMCORE::CRpcEndpoint::TryGetCallResult( bulk.pending, result ) && result.status.IsOk() )
             {
                 bulk.attachedTo = sessionId;
-                MT::CScopeMutex lock( m_lock );
-                ++m_bulkAttaches;
+                {
+                    MT::CScopeMutex lock( m_lock );
+                    ++m_bulkAttaches;
+                }
+                CORE::TCloneableUInt32 attached( i );
+                NotifyObservers( ChannelChangedEvent, &attached );
             }
             else
             {

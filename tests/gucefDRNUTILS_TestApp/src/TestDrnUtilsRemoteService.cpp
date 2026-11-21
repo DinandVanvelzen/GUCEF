@@ -769,6 +769,9 @@ PerformDrnUtilsRemoteServiceTests( void )
         ASSERT_TRUE( !world.host->IsDrainComplete() );
         ASSERT_TRUE( !running.IsReady() );
         ASSERT_TRUE( DRNUTILS::REMOTECONNECTION_CONNECTED == client.connection.GetState() );
+        // the DRN session and the service's peer id are reachable for DRN facilities on the same session
+        ASSERT_TRUE( GUCEF_NULL != client.connection.GetDrnSession() && 0 != client.connection.GetServicePeerId() );
+        ASSERT_TRUE( GUCEF_NULL == client.connection.GetDrnSession( 99 ) && 0 == client.connection.GetServicePeerId( 99 ) );
 
         // the call finishes: its answer arrives, then the drain ends at once (long before its drain time)
         const UInt64 releasedAt = RemoteTestNowMs();

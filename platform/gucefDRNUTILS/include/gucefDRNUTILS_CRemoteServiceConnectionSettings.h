@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
+#ifndef GUCEF_CORE_CICONFIGURABLE_H
+#include "gucefCORE_CIConfigurable.h"
+#define GUCEF_CORE_CICONFIGURABLE_H
+#endif /* GUCEF_CORE_CICONFIGURABLE_H ? */
+
 #ifndef GUCEF_COMCORE_CSERVICEFINDERSETTINGS_H
 #include "gucefCOMCORE_CServiceFinderSettings.h"
 #define GUCEF_COMCORE_CSERVICEFINDERSETTINGS_H
@@ -59,7 +64,7 @@ namespace DRNUTILS {
  *  How a paired client connects to its remote service (CRemoteServiceConnection), with the values of
  *  gucefASSETSTORE_RemoteNetworking_Design.md 5 and 6 as defaults
  */
-class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnectionSettings
+class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnectionSettings : public CORE::CIConfigurable
 {
     public:
 
@@ -93,6 +98,14 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnectionSettings
     COMCORE::CServiceFinderSettings lanDiscoveryFinder; /**< the look: service type (default "_gucef-service._tcp", a product sets its own), findTimeoutMs (default 3000), the discovery clients (default broadcast, multicast) */
 
     CRemoteServiceConnectionSettings( void );
+
+    /**
+     *  The settings as a configuration node: every member above by its name, the lists (capabilities, wantedContracts, bulkContracts) as arrays or as comma
+     *  separated text, lanDiscoveryFinder as the child "lanDiscoveryFinder". LoadConfig() refuses a key it does not know (logged) and leaves the settings as they were.
+     */
+    virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 };
 
 /*-------------------------------------------------------------------------//

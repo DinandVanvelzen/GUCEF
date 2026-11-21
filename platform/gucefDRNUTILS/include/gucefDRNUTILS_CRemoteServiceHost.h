@@ -100,6 +100,11 @@
 #define GUCEF_DRN_CDRNSESSION_H
 #endif /* GUCEF_DRN_CDRNSESSION_H ? */
 
+#ifndef GUCEF_DRN_CIDRNRESOURCEPROVIDER_H
+#include "gucefDRN_CIDRNResourceProvider.h"
+#define GUCEF_DRN_CIDRNRESOURCEPROVIDER_H
+#endif /* GUCEF_DRN_CIDRNRESOURCEPROVIDER_H ? */
+
 #ifndef GUCEF_DRN_CDRNBANLIST_H
 #include "gucefDRN_CDRNBanList.h"
 #define GUCEF_DRN_CDRNBANLIST_H
@@ -298,6 +303,27 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     CDeviceAccessRules& GetAccessRules( void );
     CDeviceDrnAccessPolicy& GetDrnAccessPolicy( void );
 
+    /**
+     *  A share of the host: files (or any resources) that the paired devices with one of the roles read through the DRN resource
+     *  facility of the session of the host, and that a VFS mounts with CRemoteShareMount. The provider (a CDRN resource provider, for a
+     *  tree of files CDRNFileSystemAccessResourceProvider) is served under the name; the roles are those of the devices as the registry
+     *  has them at every call ('*': any device with a role; none: nobody); the decision (not owned, may be NULL: then nothing is readable)
+     *  has the last word on reading, browsing and listing (CIRemoteShareDecision).
+     *  The registration is the host's: it is applied now when the host runs, and again by every Start(), which makes a new DRN session;
+     *  the share stays until UnregisterShare(). False, with the reason, for a name that cannot be a provider name or is a share already.
+     *  Call from the thread that starts and stops the host.
+     */
+    bool RegisterShare( const CORE::CString& name, const DRN::CIDRNResourceProviderPtr& provider, const CORE::CString::StringSet& roles,
+                        CIRemoteShareDecision* decision, CORE::CString& error );
+
+    /** Takes the share away: no new calls reach the decision and the provider, calls under way finish. False for a name that is no share */
+    bool UnregisterShare( const CORE::CString& name );
+
+    bool HasShare( const CORE::CString& name ) const;
+
+    /** Whether the share is served by the DRN session of the running host now */
+    bool IsShareServed( const CORE::CString& name ) const;
+
     /** Not owned; removed before it goes */
     void AddSessionExtension( CIRemoteSessionExtension* extension );
     void RemoveSessionExtension( CIRemoteSessionExtension* extension );
@@ -414,6 +440,15 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     typedef GUCEF::map< COMCORE::CRpcEndpoint*, SEndpointBinding > TEndpointBindingMap;
     typedef GUCEF::map< COMCORE::CRpcServerCall*, CORE::CString > TEventCallMap;
 
+    struct SShare
+    {
+        DRN::CIDRNResourceProviderPtr provider;
+        CORE::CString::StringSet roles;
+        CIRemoteShareDecision* decision;
+        bool served;
+    };
+    typedef GUCEF::map< CORE::CString, SShare > TShareMap;
+
     CRemoteServiceHost( const CRemoteServiceHost& src );                /**< not implemented */
     CRemoteServiceHost& operator=( const CRemoteServiceHost& src );     /**< not implemented */
 
@@ -465,6 +500,10 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     bool AreStopEventsWritten( void ) const;
     void StartLanDiscovery( void );
     void StopLanDiscovery( void );
+
+    /** Serves a share on the DRN session of the running host; false when the session refuses the name */
+    bool ServeShare( const CORE::CString& name, SShare& share );
+    void ServeShares( void );
     void FillExtensions( const CRemoteSessionPtr& session, bool resync, CORE::CDataNode& extensions ) const;
     UInt64 GetUsedBytes( void ) const;
     bool IsOnPulseThread( void ) const;
@@ -501,6 +540,8 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceHost : public CORE::CObservingNoti
     CORE::CValueList m_lanProperties;
     CCommandOutcomeCache m_commands;
     TExtensionVector m_extensions;
+    TShareMap m_shares;
+    mutable MT::CMutex m_shareLock;
     TEndpointBindingMap m_endpoints;
     TEventCallMap m_eventCalls;
     CORE::CTimer m_timer;

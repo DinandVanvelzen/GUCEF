@@ -9,7 +9,9 @@
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefVFS" />
             <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="vfspluginDRN" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
@@ -19,7 +21,9 @@
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefVFS" />
             <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="vfspluginDRN" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE" />

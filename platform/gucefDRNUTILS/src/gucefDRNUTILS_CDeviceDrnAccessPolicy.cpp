@@ -70,6 +70,8 @@ CDeviceDrnAccessPolicy::CDeviceDrnAccessPolicy( const CDeviceRegistry& registry 
     , m_lock()
     , m_rules()
     , m_refusedJoins( 0 )
+    , m_shareLock()
+    , m_shares()
 {GUCEF_TRACE;
 }
 
@@ -217,6 +219,127 @@ CDeviceDrnAccessPolicy::MayWriteAs( UInt32 peerId, const DRN::CDRNAuthResult& au
 {GUCEF_TRACE;
 
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeviceDrnAccessPolicy::SetShare( const CORE::CString& share, const CORE::CString::StringSet& roles, CIRemoteShareDecision* decision )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    SShare& entry = m_shares[ share ];
+    entry.roles = roles;
+    entry.decision = decision;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::RemoveShare( const CORE::CString& share )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    return 0 != m_shares.erase( share );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::HasShare( const CORE::CString& share ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    return m_shares.find( share ) != m_shares.end();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::ResolveShareDevice( const DRN::CDRNAuthResult& auth, const SShare& share, CDeviceRecord& device ) const
+{GUCEF_TRACE;
+
+    // the registry at this call decides: a device revoked or without the role since the join has nothing
+    if ( auth.userId.IsNULLOrEmpty() || !m_registry.Find( auth.userId, device ) || !device.IsActive() || device.roles.empty() )
+        return false;
+    if ( share.roles.find( "*" ) != share.roles.end() )
+        return true;
+    return device.HasAnyRole( share.roles );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::MayReadResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                           bool sharedByProvider )
+{GUCEF_TRACE;
+
+    CORE::CString refusal;
+    return CheckReadResourceAs( peerId, auth, providerName, resourceName, sharedByProvider, refusal );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::CheckReadResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                             bool sharedByProvider, CORE::CString& refusal )
+{GUCEF_TRACE;
+
+    // a caller of this form cannot be told to ask again: for it a read that is to be tried later is not allowed
+    bool retryLater = false;
+    return DecideReadResourceAs( peerId, auth, providerName, resourceName, sharedByProvider, refusal, retryLater );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::DecideReadResourceAs( UInt32 /* peerId */, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                              bool sharedByProvider, CORE::CString& refusal, bool& retryLater )
+{GUCEF_TRACE;
+
+    retryLater = false;
+    MT::CScopeMutex lock( m_shareLock );
+    TShareMap::const_iterator i = m_shares.find( providerName );
+    if ( i == m_shares.end() )
+        return sharedByProvider;
+    CDeviceRecord device;
+    if ( !sharedByProvider || !ResolveShareDevice( auth, (*i).second, device ) || GUCEF_NULL == (*i).second.decision )
+        return false;
+    return (*i).second.decision->CheckRead( device, providerName, resourceName, refusal, retryLater );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::MayBrowseResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                             bool sharedByProvider )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    TShareMap::const_iterator i = m_shares.find( providerName );
+    if ( i == m_shares.end() )
+        return DRN::CIDRNAccessPolicy::MayBrowseResourceAs( peerId, auth, providerName, resourceName, sharedByProvider );
+    CDeviceRecord device;
+    if ( !sharedByProvider || !ResolveShareDevice( auth, (*i).second, device ) || GUCEF_NULL == (*i).second.decision )
+        return false;
+    return (*i).second.decision->MayBrowse( device, providerName, resourceName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeviceDrnAccessPolicy::MayListEntryAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& entryName,
+                                        bool isDirectory )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_shareLock );
+    TShareMap::const_iterator i = m_shares.find( providerName );
+    if ( i == m_shares.end() )
+        return true;
+    CDeviceRecord device;
+    if ( !ResolveShareDevice( auth, (*i).second, device ) || GUCEF_NULL == (*i).second.decision )
+        return false;
+    return (*i).second.decision->MayListEntry( device, providerName, entryName, isDirectory );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -205,12 +205,25 @@ CRemoteServiceChannel::GetClassTypeName( void ) const
 CRemoteServiceChannel::TChannelState CRemoteServiceChannel::GetState( void ) const { return m_state; }
 UInt32 CRemoteServiceChannel::GetIndex( void ) const { return m_index; }
 COMCORE::CRpcEndpointPtr CRemoteServiceChannel::GetEndpoint( void ) const { return m_endpoint; }
+DRN::CDRNSession* CRemoteServiceChannel::GetDrnSession( void ) const { return m_session; }
 bool CRemoteServiceChannel::WasRpcResumed( void ) const { return m_rpcResumed; }
 bool CRemoteServiceChannel::HasNewRpcSession( void ) const { return m_rpcNewSession; }
 void CRemoteServiceChannel::ClearNewRpcSession( void ) { m_rpcNewSession = false; }
 bool CRemoteServiceChannel::IsRpcClosed( void ) const { return m_rpcClosed; }
 DRN::TDRNLinkReason CRemoteServiceChannel::GetLastLinkReason( void ) const { return m_lastReason; }
 const CORE::CString& CRemoteServiceChannel::GetLastLinkText( void ) const { return m_lastText; }
+UInt32
+CRemoteServiceChannel::GetServicePeerId( void ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_node || GUCEF_NULL == m_session )
+        return 0;
+    MT::CScopeMutex lock( m_node->GetLock() );
+    return m_session->GetSequencerPeerId();
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32 CRemoteServiceChannel::GetLinkCount( void ) const { return m_links; }
 UInt32 CRemoteServiceChannel::GetRpcResumeCount( void ) const { return m_rpcResumes; }
 UInt32 CRemoteServiceChannel::GetNewRpcSessionCount( void ) const { return m_newRpcSessions; }

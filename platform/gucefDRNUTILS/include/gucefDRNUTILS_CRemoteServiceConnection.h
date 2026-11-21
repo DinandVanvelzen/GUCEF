@@ -191,6 +191,7 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnection : public CORE::CTSGNoti
     static const CORE::CEvent CredentialsChangedEvent;      /**< the session endpoints or the token of the credentials changed */
     static const CORE::CEvent ClockSkewEvent;               /**< CORE::TCloneableInt64: the service's clock minus this machine's, milliseconds */
     static const CORE::CEvent ServiceStoppingEvent;         /**< TRemoteServiceStoppingEventData { reason, expectedBackSeconds, retryAfterMs }: the service stops; once per stop, from its SERVICE_STOPPING event or from a Hello or Resume refused with DRAINING */
+    static const CORE::CEvent ChannelChangedEvent;          /**< CORE::TCloneableUInt32: the index of a bulk channel that joined (its DRN session exists now) or was attached to the client session; raised after the state events, which say nothing of the bulk channels */
 
     static void RegisterEvents( void );
 
@@ -270,6 +271,14 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CRemoteServiceConnection : public CORE::CTSGNoti
 
     /** The endpoint of a channel (NULL before its first link) */
     COMCORE::CRpcEndpointPtr GetEndpoint( UInt32 channel = 0 ) const;
+
+    /**
+     *  The DRN session of a channel and the peer id of the service in it, for DRN facilities that address the service on
+     *  the session of the connection (the resource transfer, a remote VFS share). NULL and 0 without a link. Valid until
+     *  the channel joins again: ask again after a reconnect (StateChangedEvent)
+     */
+    DRN::CDRNSession* GetDrnSession( UInt32 channel = 0 ) const;
+    UInt32 GetServicePeerId( UInt32 channel = 0 ) const;
 
     /** A request message for a method of a bound contract; unbound when the method is not known */
     COMCORE::CRpcMessage NewRequest( const CORE::CString& methodPath, UInt32 channel = 0 ) const;

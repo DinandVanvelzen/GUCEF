@@ -29,10 +29,10 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 configuration( {} )
-links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefVFS", "gucefWEB" } )
 
 
 configuration( {} )
@@ -70,6 +70,7 @@ files( {
   "include/gucefDRNUTILS_CDrnUtilsTableBinder.h",
   "include/gucefDRNUTILS_CIDrnUtilsAuditSink.h",
   "include/gucefDRNUTILS_CIRemoteSessionExtension.h",
+  "include/gucefDRNUTILS_CIRemoteShareDecision.h",
   "include/gucefDRNUTILS_CISchedulerCustomActionHandler.h",
   "include/gucefDRNUTILS_CISchedulerSource.h",
   "include/gucefDRNUTILS_CITaskManagerSource.h",
@@ -92,6 +93,10 @@ files( {
   "include/gucefDRNUTILS_CRemoteSessionCache.h",
   "include/gucefDRNUTILS_CRemoteSessionContracts.h",
   "include/gucefDRNUTILS_CRemoteSessionEventRing.h",
+  "include/gucefDRNUTILS_CRemoteShareMount.h",
+  "include/gucefDRNUTILS_CRemoteShareMountSettings.h",
+  "include/gucefDRNUTILS_CRemoteShareMounts.h",
+  "include/gucefDRNUTILS_CRemoteShareSessionHolds.h",
   "include/gucefDRNUTILS_CRunsTableSchema.h",
   "include/gucefDRNUTILS_CScheduledJobsTableSchema.h",
   "include/gucefDRNUTILS_CSchedulerActionInfo.h",
@@ -165,6 +170,7 @@ files( {
   "src/gucefDRNUTILS_CDrnUtilsTableBinder.cpp",
   "src/gucefDRNUTILS_CIDrnUtilsAuditSink.cpp",
   "src/gucefDRNUTILS_CIRemoteSessionExtension.cpp",
+  "src/gucefDRNUTILS_CIRemoteShareDecision.cpp",
   "src/gucefDRNUTILS_CISchedulerCustomActionHandler.cpp",
   "src/gucefDRNUTILS_CISchedulerSource.cpp",
   "src/gucefDRNUTILS_CITaskManagerSource.cpp",
@@ -185,6 +191,10 @@ files( {
   "src/gucefDRNUTILS_CRemoteSessionCache.cpp",
   "src/gucefDRNUTILS_CRemoteSessionContracts.cpp",
   "src/gucefDRNUTILS_CRemoteSessionEventRing.cpp",
+  "src/gucefDRNUTILS_CRemoteShareMount.cpp",
+  "src/gucefDRNUTILS_CRemoteShareMountSettings.cpp",
+  "src/gucefDRNUTILS_CRemoteShareMounts.cpp",
+  "src/gucefDRNUTILS_CRemoteShareSessionHolds.cpp",
   "src/gucefDRNUTILS_CRunsTableSchema.cpp",
   "src/gucefDRNUTILS_CScheduledJobsTableSchema.cpp",
   "src/gucefDRNUTILS_CSchedulerActionInfo.cpp",

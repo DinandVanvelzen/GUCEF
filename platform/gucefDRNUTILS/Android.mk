@@ -50,6 +50,7 @@ LOCAL_SRC_FILES := \
   src/gucefDRNUTILS_CDrnUtilsTableBinder.cpp \
   src/gucefDRNUTILS_CIDrnUtilsAuditSink.cpp \
   src/gucefDRNUTILS_CIRemoteSessionExtension.cpp \
+  src/gucefDRNUTILS_CIRemoteShareDecision.cpp \
   src/gucefDRNUTILS_CISchedulerCustomActionHandler.cpp \
   src/gucefDRNUTILS_CISchedulerSource.cpp \
   src/gucefDRNUTILS_CITaskManagerSource.cpp \
@@ -70,6 +71,10 @@ LOCAL_SRC_FILES := \
   src/gucefDRNUTILS_CRemoteSessionCache.cpp \
   src/gucefDRNUTILS_CRemoteSessionContracts.cpp \
   src/gucefDRNUTILS_CRemoteSessionEventRing.cpp \
+  src/gucefDRNUTILS_CRemoteShareMount.cpp \
+  src/gucefDRNUTILS_CRemoteShareMountSettings.cpp \
+  src/gucefDRNUTILS_CRemoteShareMounts.cpp \
+  src/gucefDRNUTILS_CRemoteShareSessionHolds.cpp \
   src/gucefDRNUTILS_CRunsTableSchema.cpp \
   src/gucefDRNUTILS_CScheduledJobsTableSchema.cpp \
   src/gucefDRNUTILS_CSchedulerActionInfo.cpp \
@@ -131,6 +136,7 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCORE \
   gucefDRN \
   gucefMT \
+  gucefVFS \
   gucefWEB
 
 include $(BUILD_SHARED_LIBRARY)

@@ -45,6 +45,11 @@
 #define GUCEF_DRNUTILS_CDEVICEREGISTRY_H
 #endif /* GUCEF_DRNUTILS_CDEVICEREGISTRY_H ? */
 
+#ifndef GUCEF_DRNUTILS_CIREMOTESHAREDECISION_H
+#include "gucefDRNUTILS_CIRemoteShareDecision.h"
+#define GUCEF_DRNUTILS_CIREMOTESHAREDECISION_H
+#endif /* GUCEF_DRNUTILS_CIREMOTESHAREDECISION_H ? */
+
 #ifndef GUCEF_DRNUTILS_MACROS_H
 #include "gucefDRNUTILS_macros.h"
 #define GUCEF_DRNUTILS_MACROS_H
@@ -90,6 +95,28 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDeviceDrnAccessPolicy : public DRN::CIDRNAccess
     virtual bool MaySubscribeAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& itemName ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool MayWriteAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& itemName, UInt32 keyIndex ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Resource shares (the providers of CRemoteServiceHost::RegisterShare()): for a provider name that is a share, every hook of the
+     *  node's resource facility resolves the member to its device in the registry at that call (the user id of the authentication, not
+     *  the roles of the token): the device has to be ACTIVE and have one of the roles of the share ('*': any role), then the share rules of the
+     *  facility have to share the name, then the decision of the share has the last word. A provider name that is no share is left to the
+     *  facility's defaults. The decision is not owned; RemoveShare() returns after the calls under way into it.
+     */
+    void SetShare( const CORE::CString& share, const CORE::CString::StringSet& roles, CIRemoteShareDecision* decision );
+    bool RemoveShare( const CORE::CString& share );
+    bool HasShare( const CORE::CString& share ) const;
+
+    virtual bool MayReadResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                    bool sharedByProvider ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool CheckReadResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                      bool sharedByProvider, CORE::CString& refusal ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool DecideReadResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                       bool sharedByProvider, CORE::CString& refusal, bool& retryLater ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool MayBrowseResourceAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& resourceName,
+                                      bool sharedByProvider ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool MayListEntryAs( UInt32 peerId, const DRN::CDRNAuthResult& auth, const CORE::CString& providerName, const CORE::CString& entryName,
+                                 bool isDirectory ) GUCEF_VIRTUAL_OVERRIDE;
+
     /** The join decision on its own (tests): the device of the user id with the key of the token */
     bool MayJoinAs( const DRN::CDRNAuthResult& auth, CORE::CString& reason ) const;
 
@@ -104,6 +131,16 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDeviceDrnAccessPolicy : public DRN::CIDRNAccess
     };
     typedef GUCEF::vector< SRule > TRuleVector;
 
+    struct SShare
+    {
+        CORE::CString::StringSet roles;
+        CIRemoteShareDecision* decision;
+    };
+    typedef GUCEF::map< CORE::CString, SShare > TShareMap;
+
+    /** The device of the member now, when it is active and has a role of the share */
+    bool ResolveShareDevice( const DRN::CDRNAuthResult& auth, const SShare& share, CDeviceRecord& device ) const;
+
     CDeviceDrnAccessPolicy( const CDeviceDrnAccessPolicy& src );                /**< not implemented */
     CDeviceDrnAccessPolicy& operator=( const CDeviceDrnAccessPolicy& src );     /**< not implemented */
 
@@ -111,6 +148,8 @@ class GUCEF_DRNUTILS_PUBLIC_CPP CDeviceDrnAccessPolicy : public DRN::CIDRNAccess
     mutable MT::CMutex m_lock;
     TRuleVector m_rules;
     mutable UInt32 m_refusedJoins;
+    mutable MT::CMutex m_shareLock;                 /**< held while a hook calls a decision */
+    TShareMap m_shares;
 };
 
 /*-------------------------------------------------------------------------//

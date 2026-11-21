@@ -104,6 +104,23 @@ RemoteConnectionStateToString( TRemoteConnectionState state )
     }
 }
 
+/*-------------------------------------------------------------------------*/
+
+const char*
+RemoteShareStateToString( TRemoteShareState state )
+{GUCEF_TRACE;
+
+    switch ( state )
+    {
+        case REMOTESHARE_IDLE: return "IDLE";
+        case REMOTESHARE_WAITING: return "WAITING";
+        case REMOTESHARE_ONLINE: return "ONLINE";
+        case REMOTESHARE_OFFLINE: return "OFFLINE";
+        case REMOTESHARE_FAILED: return "FAILED";
+        default: return "UNKNOWN";
+    }
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

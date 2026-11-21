@@ -40,6 +40,7 @@ set( HEADER_FILES
   include/gucefDRNUTILS_CDrnUtilsTableBinder.h
   include/gucefDRNUTILS_CIDrnUtilsAuditSink.h
   include/gucefDRNUTILS_CIRemoteSessionExtension.h
+  include/gucefDRNUTILS_CIRemoteShareDecision.h
   include/gucefDRNUTILS_CISchedulerCustomActionHandler.h
   include/gucefDRNUTILS_CISchedulerSource.h
   include/gucefDRNUTILS_CITaskManagerSource.h
@@ -62,6 +63,10 @@ set( HEADER_FILES
   include/gucefDRNUTILS_CRemoteSessionCache.h
   include/gucefDRNUTILS_CRemoteSessionContracts.h
   include/gucefDRNUTILS_CRemoteSessionEventRing.h
+  include/gucefDRNUTILS_CRemoteShareMount.h
+  include/gucefDRNUTILS_CRemoteShareMountSettings.h
+  include/gucefDRNUTILS_CRemoteShareMounts.h
+  include/gucefDRNUTILS_CRemoteShareSessionHolds.h
   include/gucefDRNUTILS_CRunsTableSchema.h
   include/gucefDRNUTILS_CScheduledJobsTableSchema.h
   include/gucefDRNUTILS_CSchedulerActionInfo.h
@@ -131,6 +136,7 @@ set( SOURCE_FILES
   src/gucefDRNUTILS_CDrnUtilsTableBinder.cpp
   src/gucefDRNUTILS_CIDrnUtilsAuditSink.cpp
   src/gucefDRNUTILS_CIRemoteSessionExtension.cpp
+  src/gucefDRNUTILS_CIRemoteShareDecision.cpp
   src/gucefDRNUTILS_CISchedulerCustomActionHandler.cpp
   src/gucefDRNUTILS_CISchedulerSource.cpp
   src/gucefDRNUTILS_CITaskManagerSource.cpp
@@ -151,6 +157,10 @@ set( SOURCE_FILES
   src/gucefDRNUTILS_CRemoteSessionCache.cpp
   src/gucefDRNUTILS_CRemoteSessionContracts.cpp
   src/gucefDRNUTILS_CRemoteSessionEventRing.cpp
+  src/gucefDRNUTILS_CRemoteShareMount.cpp
+  src/gucefDRNUTILS_CRemoteShareMountSettings.cpp
+  src/gucefDRNUTILS_CRemoteShareMounts.cpp
+  src/gucefDRNUTILS_CRemoteShareSessionHolds.cpp
   src/gucefDRNUTILS_CRunsTableSchema.cpp
   src/gucefDRNUTILS_CScheduledJobsTableSchema.cpp
   src/gucefDRNUTILS_CSchedulerActionInfo.cpp
@@ -200,8 +210,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefDRNUTILS" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefVFS gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefDRNUTILS;MODULE_NAME=gucefDRNUTILS;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
