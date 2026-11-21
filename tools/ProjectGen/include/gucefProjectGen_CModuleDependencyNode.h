@@ -242,9 +242,22 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     private:
 
-    bool GatherDependenciesOfDependenciesImpl( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
-                                               TModuleInfoEntryPtrSet& dependencies                   ,
-                                               bool includeLogicalDependencies                        ) const;
+    /**
+     *  The nodes whose dependencies of dependencies were already gathered during one Gather...() call.
+     *  The dependency chains form a graph in which modules are shared by many dependents (and listed as dependency and
+     *  linker dependency at the same time), so without it every path to a node would be walked again.
+     */
+    typedef GUCEF::set< const CModuleDependencyNode* >   TConstModuleDependencyNodeRawPtrSet;
+
+    static bool GatherModulesOfDependencies( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
+                                             TModuleInfoEntryPtrSet& dependencies                   ,
+                                             bool includeDependenciesOfDependencies                 ,
+                                             bool includeLogicalDependencies                        ,
+                                             TConstModuleDependencyNodeRawPtrSet& visitedNodes      );
+
+    bool GatherDependenciesOfDependenciesImpl( TModuleInfoEntryPtrSet& dependencies              ,
+                                               bool includeLogicalDependencies                   ,
+                                               TConstModuleDependencyNodeRawPtrSet& visitedNodes ) const;
 
     private:
 

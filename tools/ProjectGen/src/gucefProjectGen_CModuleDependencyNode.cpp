@@ -269,24 +269,8 @@ CModuleDependencyNode::GatherDependencyModules( TModuleInfoEntryPtrSet& dependen
                                                 bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
-    bool totalSuccess = true;
-
-    TModuleDependencyNodePtrMap::const_iterator i = m_dependencies.begin();
-    while ( i != m_dependencies.end() )
-    {
-        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
-        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
-        {
-            dependencies.insert( dependencyNode->GetModule() );
-            if ( includeDependenciesOfDependencies )
-            {
-                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
-            }
-        }
-        ++i;
-    }
-
-    return totalSuccess;
+    TConstModuleDependencyNodeRawPtrSet visitedNodes;
+    return GatherModulesOfDependencies( m_dependencies, dependencies, includeDependenciesOfDependencies, includeLogicalDependenciesOfDependencies, visitedNodes );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -337,24 +321,8 @@ CModuleDependencyNode::GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& de
                                                       bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
-    bool totalSuccess = true;
-
-    TModuleDependencyNodePtrMap::const_iterator i = m_linkerDependencies.begin();
-    while ( i != m_linkerDependencies.end() )
-    {
-        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
-        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
-        {
-            dependencies.insert( dependencyNode->GetModule() );
-            if ( includeDependenciesOfDependencies )
-            {
-                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
-            }
-        }
-        ++i;
-    }
-
-    return totalSuccess;
+    TConstModuleDependencyNodeRawPtrSet visitedNodes;
+    return GatherModulesOfDependencies( m_linkerDependencies, dependencies, includeDependenciesOfDependencies, includeLogicalDependenciesOfDependencies, visitedNodes );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -405,24 +373,8 @@ CModuleDependencyNode::GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& d
                                                        bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
-    bool totalSuccess = true;
-
-    TModuleDependencyNodePtrMap::const_iterator i = m_runtimeDependencies.begin();
-    while ( i != m_runtimeDependencies.end() )
-    {
-        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
-        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
-        {
-            dependencies.insert( dependencyNode->GetModule() );
-            if ( includeDependenciesOfDependencies )
-            {
-                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
-            }
-        }
-        ++i;
-    }
-
-    return totalSuccess;
+    TConstModuleDependencyNodeRawPtrSet visitedNodes;
+    return GatherModulesOfDependencies( m_runtimeDependencies, dependencies, includeDependenciesOfDependencies, includeLogicalDependenciesOfDependencies, visitedNodes );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -432,21 +384,40 @@ CModuleDependencyNode::GatherDependenciesOfDependencies( TModuleInfoEntryPtrSet&
                                                          bool includeLogicalDependencies      ) const
 {GUCEF_TRACE;
 
+    TConstModuleDependencyNodeRawPtrSet visitedNodes;
+    return GatherDependenciesOfDependenciesImpl( dependencies, includeLogicalDependencies, visitedNodes );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::GatherDependenciesOfDependenciesImpl( TModuleInfoEntryPtrSet& dependencies              ,
+                                                             bool includeLogicalDependencies                   ,
+                                                             TConstModuleDependencyNodeRawPtrSet& visitedNodes ) const
+{GUCEF_TRACE;
+
+    // Within one gathering the result for a node is always the same, so a node reached again through another path
+    // has nothing left to add. Walking every path instead grows exponentially with the depth of the graph
+    if ( !visitedNodes.insert( this ).second )
+        return true;
+
     bool totalSuccess = true;
-    totalSuccess = GatherDependenciesOfDependenciesImpl( m_dependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
-    totalSuccess = GatherDependenciesOfDependenciesImpl( m_linkerDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
-    totalSuccess = GatherDependenciesOfDependenciesImpl( m_runtimeDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+    totalSuccess = GatherModulesOfDependencies( m_dependencies, dependencies, true, includeLogicalDependencies, visitedNodes ) && totalSuccess;
+    totalSuccess = GatherModulesOfDependencies( m_linkerDependencies, dependencies, true, includeLogicalDependencies, visitedNodes ) && totalSuccess;
+    totalSuccess = GatherModulesOfDependencies( m_runtimeDependencies, dependencies, true, includeLogicalDependencies, visitedNodes ) && totalSuccess;
     if ( includeLogicalDependencies )
-        totalSuccess = GatherDependenciesOfDependenciesImpl( m_logicalDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+        totalSuccess = GatherModulesOfDependencies( m_logicalDependencies, dependencies, true, includeLogicalDependencies, visitedNodes ) && totalSuccess;
     return totalSuccess;
 }
 
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleDependencyNode::GatherDependenciesOfDependenciesImpl( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
-                                                             TModuleInfoEntryPtrSet& dependencies                   ,
-                                                             bool includeLogicalDependencies                        ) const
+CModuleDependencyNode::GatherModulesOfDependencies( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
+                                                    TModuleInfoEntryPtrSet& dependencies                   ,
+                                                    bool includeDependenciesOfDependencies                 ,
+                                                    bool includeLogicalDependencies                        ,
+                                                    TConstModuleDependencyNodeRawPtrSet& visitedNodes      )
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -458,7 +429,10 @@ CModuleDependencyNode::GatherDependenciesOfDependenciesImpl( const TModuleDepend
         if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
         {
             dependencies.insert( dependencyNode->GetModule() );
-            totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependencies ) && totalSuccess;
+            if ( includeDependenciesOfDependencies )
+            {
+                totalSuccess = dependencyNode->GatherDependenciesOfDependenciesImpl( dependencies, includeLogicalDependencies, visitedNodes ) && totalSuccess;
+            }
         }
         ++i;
     }
