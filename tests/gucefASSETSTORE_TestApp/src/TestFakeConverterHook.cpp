@@ -77,6 +77,8 @@ CTestConverterHook::CTestConverterHook( void )
     , m_indexMode( INDEX_UNSUPPORTED )
     , m_indexCalls( 0 )
     , m_indexBuilds( 0 )
+    , m_failingAssets()
+    , m_lastRequest()
     , m_lock()
 {
 }
@@ -212,12 +214,35 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
         }
     }
 
-    // converts the models
+    // converts the models: an intermediate file per model and, unless the request says no cook, a cooked file; a cook only run
+    // cooks the intermediate files that are there. The report lists the assets of the run with their status, as the converter does
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
-    if ( !vfs.DirExists( request.convertedVfsFolder ) )
+    CORE::CString::StringSet failing;
     {
+        MT::CScopeMutex lock( m_lock );
+        failing = m_failingAssets;
+        m_lastRequest.cookOnly = request.cookOnly;
+        m_lastRequest.noCook = request.noCook;
+        m_lastRequest.reconvert = request.reconvert;
+        m_lastRequest.assetGlobs = request.assetGlobs;
+        m_lastRequest.convertedVfsFolder = request.convertedVfsFolder;
+        m_lastRequest.cookedVfsFolder = request.cookedVfsFolder;
+        m_lastRequest.keepPartialResult = request.keepPartialResult;
+    }
+    const bool cook = !request.noCook && !request.cookedVfsFolder.IsNULLOrEmpty();
+    if ( request.cookOnly && !vfs.DirExists( request.convertedVfsFolder ) )
+    {
+        outcome.status = ASSETSTORE_STATUS_NOT_FOUND;
+        outcome.message = "there is no intermediate to cook";
+        return outcome.status;
+    }
+    const CORE::CString folders[] = { request.convertedVfsFolder, cook ? request.cookedVfsFolder : CORE::CString::Empty };
+    for ( UInt32 f=0; f<2; ++f )
+    {
+        if ( folders[ f ].IsNULLOrEmpty() || vfs.DirExists( folders[ f ] ) )
+            continue;
         // the parents first: the folder of the profile is below "converted/"
-        CORE::CString parent = request.convertedVfsFolder.ReplaceChar( '\\', '/' );
+        CORE::CString parent = folders[ f ].ReplaceChar( '\\', '/' );
         const Int32 slash = parent.HasChar( '/', false );
         if ( slash > 0 )
         {
@@ -225,7 +250,7 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
             if ( !vfs.DirExists( parent ) )
                 vfs.CreateDir( parent );
         }
-        if ( !vfs.CreateDir( request.convertedVfsFolder ) )
+        if ( !vfs.CreateDir( folders[ f ] ) )
         {
             outcome.status = ASSETSTORE_STATUS_IO_ERROR;
             outcome.message = "the folder of the converted files cannot be made";
@@ -237,11 +262,17 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
         if ( CanConvert( assets[ a ] ) )
             ++total;
     UInt32 done = 0;
+    UInt32 failed = 0;
+    UInt32 written = 0;
+    CORE::CString reportAssets;
     for ( size_t a=0; a<assets.size(); ++a )
     {
         assets[ a ].convertedPath.Clear();
         assets[ a ].convertedFormat.Clear();
         if ( !CanConvert( assets[ a ] ) )
+            continue;
+        const CORE::CString relative = request.GetSourceRelativePath( assets[ a ] );
+        if ( !request.IsInScope( relative ) )
             continue;
         if ( GUCEF_NULL != request.observer && request.observer->IsCancelRequested() )
         {
@@ -249,21 +280,53 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
             outcome.message = "the test converter was cancelled";
             return outcome.status;
         }
-        const CORE::CString file = assets[ a ].name + ".gltf";
-        if ( !WriteVfsFile( request.convertedVfsFolder + "/" + file, "converted " + assets[ a ].name ) )
+        if ( MODE_FAIL_MIDWAY == mode && written >= 1 )
         {
             outcome.status = ASSETSTORE_STATUS_IO_ERROR;
-            outcome.message = "the file " + file + " cannot be written";
+            outcome.message = "the test converter stopped half way: the storage refused a write";
             return outcome.status;
         }
-        assets[ a ].convertedPath = request.convertedPathPrefix + "/" + file;
-        assets[ a ].convertedFormat = "gltf";
-        ++done;
+        const CORE::CString file = assets[ a ].name + ".gltf";
+        CORE::CString status = request.cookOnly ? CORE::CString( "cached" ) : CORE::CString( "converted" );
+        if ( failing.end() != failing.find( assets[ a ].name ) )
+        {
+            status = "failed";
+            ++failed;
+        }
+        else
+        {
+            if ( request.cookOnly && !vfs.FileExists( request.convertedVfsFolder + "/" + file ) )
+                status = "failed";
+            if ( !request.cookOnly && !WriteVfsFile( request.convertedVfsFolder + "/" + file, "converted " + assets[ a ].name + " v" + CORE::ToString( version ) ) )
+            {
+                outcome.status = ASSETSTORE_STATUS_IO_ERROR;
+                outcome.message = "the file " + file + " cannot be written";
+                return outcome.status;
+            }
+            if ( "failed" != status && cook && !WriteVfsFile( request.cookedVfsFolder + "/" + assets[ a ].name + ".mesh", "cooked " + assets[ a ].name + " v" + CORE::ToString( version ) ) )
+            {
+                outcome.status = ASSETSTORE_STATUS_IO_ERROR;
+                outcome.message = "the cooked file of " + file + " cannot be written";
+                return outcome.status;
+            }
+            if ( "failed" == status )
+                ++failed;
+            else
+            {
+                assets[ a ].convertedPath = request.convertedPathPrefix + "/" + file;
+                assets[ a ].convertedFormat = "gltf";
+                ++done;
+                ++written;
+            }
+        }
+        reportAssets += CORE::CString( reportAssets.IsNULLOrEmpty() ? "" : ", " ) + "{ \"asset\": \"" + relative + "\", \"status\": \"" + status + "\" }";
         if ( GUCEF_NULL != request.observer )
             request.observer->OnConversionProgress( done, total, assets[ a ].originalPath );
     }
-    WriteVfsFile( request.convertedVfsFolder + "/report.json", "{ \"converted\": " + CORE::ToString( done ) + " }" );
-    if ( INDEX_BUILD == indexMode )
+    const CORE::CString reportPath = request.reportVfsPath.IsNULLOrEmpty() ? request.convertedVfsFolder + "/report.json" : request.reportVfsPath;
+    WriteVfsFile( reportPath, "{ \"converted\": " + CORE::ToString( request.cookOnly ? 0 : done ) + ", \"counts\": { \"" + ( request.cookOnly ? "cached" : "converted" ) + "\": " +
+                  CORE::ToString( done ) + ", \"failed\": " + CORE::ToString( failed ) + " }, \"assets\": [ " + reportAssets + " ] }" );
+    if ( INDEX_BUILD == indexMode && !request.cookOnly )
     {
         // the writer step of the pipeline: the conversion leaves the document of the pack in the intermediate folder
         CAssetPackIndexRequest indexRequest;
@@ -276,9 +339,43 @@ CTestConverterHook::ConvertPack( const CAssetConversionRequest& request, TAssetR
     }
     outcome.record.reportPath = request.convertedPathPrefix + "/report.json";
     outcome.record.convertedCount = done;
+    outcome.record.failedCount = failed;
+    if ( failed > 0 )
+    {
+        outcome.problems.push_back( CORE::ToString( failed ) + " asset(s) failed" );
+        outcome.status = ASSETSTORE_STATUS_FAILED;
+        outcome.message = CORE::ToString( failed ) + " error(s) in the conversion report";
+        if ( !request.keepPartialResult )
+        {
+            for ( size_t a=0; a<assets.size(); ++a )
+            {
+                assets[ a ].convertedPath.Clear();
+                assets[ a ].convertedFormat.Clear();
+            }
+        }
+        return outcome.status;
+    }
     outcome.status = ASSETSTORE_STATUS_OK;
     outcome.message = CORE::ToString( done ) + " asset(s) converted";
     return outcome.status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTestConverterHook::SetFailingAssets( const CORE::CString::StringSet& assetNames )
+{
+    MT::CScopeMutex lock( m_lock );
+    m_failingAssets = assetNames;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTestConverterHook::SLastRequest
+CTestConverterHook::GetLastRequest( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_lastRequest;
 }
 
 /*-------------------------------------------------------------------------*/

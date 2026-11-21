@@ -97,6 +97,11 @@
 #define GUCEF_ASSETSTORE_CASSETPIPELINEOPERATIONS_H
 #endif /* GUCEF_ASSETSTORE_CASSETPIPELINEOPERATIONS_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
+#include "gucefASSETSTORE_CAssetReprocessRequest.h"
+#define GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H
+#endif /* GUCEF_ASSETSTORE_CASSETREPROCESSREQUEST_H ? */
+
 #include "gucefASSETSTORE_CAssetStoreServiceHost.h"
 
 /*-------------------------------------------------------------------------//
@@ -637,11 +642,20 @@ CAssetStoreServiceHost::HandleCall( COMCORE::CRpcServerCall& call, bool isComman
             call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, syncRefusal ) );
             return COMCORE::RPC_HANDLER_DONE;
         }
+        const CORE::CString reprocessRefusal = PrepareReprocessCall( principal, serviceCall );
+        if ( !reprocessRefusal.IsNULLOrEmpty() )
+        {
+            ++m_refusals;
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreServiceHost: " << operation << " refused for the device " << principal.deviceId << ": " << reprocessRefusal );
+            call.Fail( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_PERMISSION_DENIED, reprocessRefusal ) );
+            return COMCORE::RPC_HANDLER_DONE;
+        }
     }
     const bool known = CAssetServiceOperations::IsKnown( operation );
     const bool mutation = CAssetServiceOperations::IsMutation( operation );
     if ( !known || mutation != isCommand || CAssetStoreRemoteContracts::IsFilesOperation( operation ) != filesContract ||
          CAssetServiceOperations::AnswerPrompt == operation || CAssetServiceOperations::UnlockKeyring == operation ||
+         CAssetServiceOperations::ImportWebSession == operation ||
          CAssetServiceOperations::ReadFileBlock == operation || CAssetServiceOperations::WriteUploadBlock == operation )
     {
         ++m_refusals;
@@ -731,6 +745,12 @@ CAssetStoreServiceHost::OnSecret( COMCORE::CRpcServerCall& call )
         RefuseSignIn( call, principal, operation );
         return COMCORE::RPC_HANDLER_DONE;
     }
+    if ( CAssetServiceOperations::ImportWebSession == operation && ( !principal.HasRole( "owner" ) || principal.HasRole( "mcp" ) ) )
+    {
+        // a web session is the account of the user at the store: an owner device of a person only, whatever the sign in roles say
+        RefuseSignIn( call, principal, operation );
+        return COMCORE::RPC_HANDLER_DONE;
+    }
     const CORE::CString scopedCommandId = commandId.IsNULLOrEmpty() ? CORE::CString::Empty : principal.deviceId + ":" + commandId;
     CDrainHoldScope hold( m_host );
     CAssetServiceResult result;
@@ -743,6 +763,9 @@ CAssetStoreServiceHost::OnSecret( COMCORE::CRpcServerCall& call )
         else
         if ( CAssetServiceOperations::UnlockKeyring == operation )
             status = m_service->UnlockKeyring( scopedCommandId, secret, result );
+        else
+        if ( CAssetServiceOperations::ImportWebSession == operation )
+            status = m_service->ImportWebSession( scopedCommandId, request.GetString( CAssetStoreRemoteContracts::SecretTargetField ), secret, result );
         else
         {
             result.status = status;
@@ -1043,7 +1066,7 @@ CAssetStoreServiceHost::IsSignInOperation( const CORE::CString& operation )
 
     typedef CAssetServiceOperations Op;
     return Op::BeginSignIn == operation || Op::CancelSignIn == operation || Op::SignOut == operation || Op::GetSignInPrompts == operation ||
-           Op::AnswerPrompt == operation || Op::UnlockKeyring == operation || Op::LockKeyring == operation;
+           Op::AnswerPrompt == operation || Op::UnlockKeyring == operation || Op::LockKeyring == operation || Op::ImportWebSession == operation;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1114,6 +1137,34 @@ CAssetStoreServiceHost::GetSyncRefusal( const DRNUTILS::CRemoteServicePrincipal&
             return CORE::CString::Empty;
         return "a library sync is controlled by the devices with the owner role";
     }
+    return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetStoreServiceHost::PrepareReprocessCall( const DRNUTILS::CRemoteServicePrincipal& principal, CAssetServiceCall& call )
+{GUCEF_TRACE;
+
+    typedef CAssetServiceOperations Op;
+    if ( Op::StartPipelineJob != call.operation && Op::RunPipelineQuery != call.operation )
+        return CORE::CString::Empty;
+    CAssetPipelineRequest request;
+    call.GetRecord( "request", request );
+    if ( !CAssetPipelineOperations::IsReprocess( request.operation ) && CAssetPipelineOperations::ReprocessPlan != request.operation )
+        return CORE::CString::Empty;
+    const bool owner = principal.HasRole( "owner" );
+    const bool machine = principal.HasRole( "mcp" );
+    if ( !owner && !machine )
+        return "the reprocessing of packs (" + request.operation + ") is for the devices with the owner role or the machine role";
+    CAssetReprocessRequest spec = CAssetReprocessRequest::FromRequest( request );
+    const CORE::CString said = spec.caller;
+    spec.caller = "device:" + principal.deviceId + ( said.IsNULLOrEmpty() ? CORE::CString::Empty : " via " + said );
+    spec.machine = machine || spec.machine;
+    CAssetPipelineRequest stamped = request;
+    CORE::CDataNodeSerializableSettings settings;
+    spec.Serialize( stamped.arguments, settings );
+    call.SetRecord( "request", stamped );
     return CORE::CString::Empty;
 }
 

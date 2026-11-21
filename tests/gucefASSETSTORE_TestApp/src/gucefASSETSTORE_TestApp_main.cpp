@@ -51,6 +51,10 @@
 #endif /* TESTASSETSTORESUPPORT_H ? */
 #include "TestPackStorageLayout.h"
 #include "TestPackIndex.h"
+#ifndef TESTREPROCESS_H
+#include "TestReprocess.h"
+#define TESTREPROCESS_H
+#endif /* TESTREPROCESS_H ? */
 #include "TestNormalisation.h"
 #include "TestDownloads.h"
 #include "TestLibraryFileSystemAccess.h"
@@ -106,7 +110,15 @@ GUCEF_OSMAIN_BEGIN
         const char* remoteOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_REMOTE_ONLY" );
         // GUCEF_TEST_ASSETSTORE_SYNC_ONLY=1 runs the suites of the library sync only
         const char* syncOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_SYNC_ONLY" );
+        // GUCEF_TEST_ASSETSTORE_REPROCESS_ONLY=1 runs the suites of the reprocessing of packs only
+        const char* reprocessOnly = ::getenv( "GUCEF_TEST_ASSETSTORE_REPROCESS_ONLY" );
         const CORE::CString remoteSelection = GUCEF_NULL != remoteOnly ? CORE::CString( remoteOnly ) : CORE::CString::Empty;
+        if ( GUCEF_NULL != reprocessOnly && '1' == reprocessOnly[ 0 ] )
+        {
+            PerformReprocessVfsTablesTests();
+            PerformReprocessPostgreSqlTests();
+        }
+        else
         if ( GUCEF_NULL != syncOnly && '1' == syncOnly[ 0 ] )
         {
             PerformLibrarySyncUnitTests();
@@ -162,6 +174,8 @@ GUCEF_OSMAIN_BEGIN
             PerformPrimaryStorePostgreSqlTests();
             PerformPackIndexVfsTablesTests();
             PerformPackIndexPostgreSqlTests();
+            PerformReprocessVfsTablesTests();
+            PerformReprocessPostgreSqlTests();
             PerformConversionVfsTablesTests();
             PerformConversionPostgreSqlTests();
             PerformWebSignInTests();

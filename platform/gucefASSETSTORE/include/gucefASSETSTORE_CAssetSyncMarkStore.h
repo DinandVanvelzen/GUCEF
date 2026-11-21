@@ -49,6 +49,10 @@
 #include "gucefASSETSTORE_CAssetSyncItemRecord.h"
 #define GUCEF_ASSETSTORE_CASSETSYNCITEMRECORD_H
 #endif /* GUCEF_ASSETSTORE_CASSETSYNCITEMRECORD_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#include "gucefASSETSTORE_CAssetSyncItemDetails.h"
+#define GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#endif /* GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,7 +75,9 @@ class CAssetCatalogue;
  *  The tables of the library sync in the catalogue (schema version 5, library sync design section 3.2): the store facts of
  *  the packs (pack_sources), the marks of the owner (sync_marks) and the observations of the items (sync_items). Reads of a
  *  store are one query each, by the store id, so the planner never asks per item. On a catalogue below version 5 nothing
- *  is available: reads answer UNSUPPORTED and the sync works without facts. Thread safe as the catalogue is.
+ *  is available: reads answer UNSUPPORTED and the sync works without facts. From schema version 6 it also keeps the cache
+ *  of the details of the items (sync_item_details); below 6 that cache answers UNSUPPORTED and every plan asks the store.
+ *  Thread safe as the catalogue is.
  */
 class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSyncMarkStore
 {
@@ -107,6 +113,20 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetSyncMarkStore
     TAssetStoreStatus WriteSyncItems( const TAssetSyncItemRecordVector& records );
     TAssetStoreStatus GetSyncItem( const CORE::CString& sourceId, const CORE::CString& itemId, CAssetSyncItemRecord& record ) const;
     TAssetStoreStatus GetSyncItems( const CORE::CString& sourceId, TAssetSyncItemRecordMap& records ) const;
+
+    // sync_item_details (schema version 6)
+
+    /** Whether the catalogue has the cache of the details of the items */
+    bool IsDetailsCacheAvailable( void ) const;
+
+    /** Writes (replaces) the cached details of an item */
+    TAssetStoreStatus WriteItemDetails( const CAssetSyncItemDetails& details );
+
+    /** The cached details of every item of a store: one query */
+    TAssetStoreStatus GetItemDetailsOfStore( const CORE::CString& sourceId, TAssetSyncItemDetailsMap& details ) const;
+
+    /** Removes the cached details of the items of a store that are not in 'keep' (the items of a complete listing); answers how many went */
+    TAssetStoreStatus PruneItemDetails( const CORE::CString& sourceId, const CORE::CString::StringSet& keep, UInt32& removed );
 
     private:
 

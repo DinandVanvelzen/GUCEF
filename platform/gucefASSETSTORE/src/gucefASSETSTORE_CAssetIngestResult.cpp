@@ -48,6 +48,7 @@ CAssetIngestResult::CAssetIngestResult( void )
     , failedStep( ASSETINGEST_STEP_NONE )
     , message()
     , duplicateOfPackId()
+    , repairedFiles()
     , assetCount( 0 )
     , problems()
 {GUCEF_TRACE;
@@ -76,6 +77,8 @@ CAssetIngestResult::Serialize( CORE::CDataNode& domRootNode                     
     success = domRootNode.SetAttribute( "failedStep", CORE::CString( AssetIngestStepToString( failedStep ) ) ) && success;
     success = domRootNode.SetAttribute( "message", message ) && success;
     success = domRootNode.SetAttribute( "duplicateOfPackId", duplicateOfPackId ) && success;
+    if ( !repairedFiles.empty() )
+        success = domRootNode.SetValuesOfChildByName( "repairedFiles", repairedFiles ) && success;
     success = domRootNode.SetAttribute( "assetCount", assetCount ) && success;
     success = domRootNode.SetValuesOfChildByName( "problems", problems ) && success;
     return success;
@@ -102,6 +105,7 @@ CAssetIngestResult::Deserialize( const CORE::CDataNode& domRootNode             
         failedStep = AssetIngestStepFromString( text );
     message = domRootNode.GetAttributeValueOrChildValueByName( "message" ).AsString( message );
     duplicateOfPackId = domRootNode.GetAttributeValueOrChildValueByName( "duplicateOfPackId" ).AsString( duplicateOfPackId );
+    domRootNode.GetValuesOfChildByName( "repairedFiles", repairedFiles );
     assetCount = domRootNode.GetAttributeValueOrChildValueByName( "assetCount" ).AsUInt32( assetCount, true );
     domRootNode.GetValuesOfChildByName( "problems", problems );
     return true;

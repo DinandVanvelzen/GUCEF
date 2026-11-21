@@ -61,6 +61,12 @@ CAssetLibrarySyncPlan::CAssetLibrarySyncPlan( void )
     , queuedDownloads( 0 )
     , estimatedBytes( 0 )
     , sizeUnknownItems( 0 )
+    , unknownSizeAssumedBytes( 0 )
+    , source()
+    , listedAtMs( 0 )
+    , detailsNeeded( 0 )
+    , detailsRequested( 0 )
+    , detailsFromCache( 0 )
     , storageFreeBytes( 0 )
     , storageTotalBytes( 0 )
     , storageReserveBytes( 0 )
@@ -143,6 +149,15 @@ CAssetLibrarySyncPlan::Serialize( CORE::CDataNode& domRootNode                  
     success = domRootNode.SetAttribute( "queuedDownloads", queuedDownloads ) && success;
     success = domRootNode.SetAttribute( "estimatedBytes", estimatedBytes ) && success;
     success = domRootNode.SetAttribute( "sizeUnknownItems", sizeUnknownItems ) && success;
+    if ( 0 != unknownSizeAssumedBytes )
+        success = domRootNode.SetAttribute( "unknownSizeAssumedBytes", unknownSizeAssumedBytes ) && success;
+    if ( !source.IsNULLOrEmpty() )
+        success = domRootNode.SetAttribute( "source", source ) && success;
+    if ( 0 != listedAtMs )
+        success = domRootNode.SetAttribute( "listedAtMs", listedAtMs ) && success;
+    success = domRootNode.SetAttribute( "detailsNeeded", detailsNeeded ) && success;
+    success = domRootNode.SetAttribute( "detailsRequested", detailsRequested ) && success;
+    success = domRootNode.SetAttribute( "detailsFromCache", detailsFromCache ) && success;
     CORE::CDataNode* countsNode = domRootNode.AddChild( "counts", GUCEF_DATATYPE_OBJECT );
     for ( TCountMap::const_iterator i = counts.begin(); i != counts.end() && GUCEF_NULL != countsNode; ++i )
         success = countsNode->SetAttribute( (*i).first, (*i).second ) && success;
@@ -177,6 +192,12 @@ CAssetLibrarySyncPlan::Deserialize( const CORE::CDataNode& domRootNode          
     queuedDownloads = domRootNode.GetAttributeValueOrChildValueByName( "queuedDownloads" ).AsUInt32( 0, true );
     estimatedBytes = domRootNode.GetAttributeValueOrChildValueByName( "estimatedBytes" ).AsUInt64( 0, true );
     sizeUnknownItems = domRootNode.GetAttributeValueOrChildValueByName( "sizeUnknownItems" ).AsUInt32( 0, true );
+    unknownSizeAssumedBytes = domRootNode.GetAttributeValueOrChildValueByName( "unknownSizeAssumedBytes" ).AsUInt64( 0, true );
+    source = domRootNode.GetAttributeValueOrChildValueByName( "source" ).AsString();
+    listedAtMs = domRootNode.GetAttributeValueOrChildValueByName( "listedAtMs" ).AsInt64( 0, true );
+    detailsNeeded = domRootNode.GetAttributeValueOrChildValueByName( "detailsNeeded" ).AsUInt32( 0, true );
+    detailsRequested = domRootNode.GetAttributeValueOrChildValueByName( "detailsRequested" ).AsUInt32( 0, true );
+    detailsFromCache = domRootNode.GetAttributeValueOrChildValueByName( "detailsFromCache" ).AsUInt32( 0, true );
     const CORE::CDataNode* countsNode = domRootNode.FindChild( "counts" );
     if ( GUCEF_NULL != countsNode )
     {

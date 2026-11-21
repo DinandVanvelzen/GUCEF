@@ -102,6 +102,7 @@ const CORE::CString CAssetServiceOperations::GetStoreItem = "Stores/GetItem";
 const CORE::CString CAssetServiceOperations::EnqueueDownload = "Stores/EnqueueDownload";
 const CORE::CString CAssetServiceOperations::BeginSignIn = "SignIn/Begin";
 const CORE::CString CAssetServiceOperations::AnswerPrompt = "SignIn/Answer";
+const CORE::CString CAssetServiceOperations::ImportWebSession = "SignIn/ImportSession";
 const CORE::CString CAssetServiceOperations::CancelSignIn = "SignIn/Cancel";
 const CORE::CString CAssetServiceOperations::SignOut = "SignIn/SignOut";
 const CORE::CString CAssetServiceOperations::GetSignInPrompts = "SignIn/ListPrompts";
@@ -159,6 +160,7 @@ CAssetServiceOperations::IsMutation( const CORE::CString& operation )
            operation == EnqueueDownload ||
            operation == BeginSignIn ||
            operation == AnswerPrompt ||
+           operation == ImportWebSession ||
            operation == CancelSignIn ||
            operation == SignOut ||
            operation == RequestConversion ||
@@ -240,6 +242,7 @@ CAssetServiceOperations::IsKnown( const CORE::CString& operation )
            operation == EnqueueDownload ||
            operation == BeginSignIn ||
            operation == AnswerPrompt ||
+           operation == ImportWebSession ||
            operation == CancelSignIn ||
            operation == SignOut ||
            operation == GetSignInPrompts ||

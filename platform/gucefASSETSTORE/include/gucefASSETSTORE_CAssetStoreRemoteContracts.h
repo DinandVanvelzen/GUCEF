@@ -60,7 +60,7 @@ namespace ASSETSTORE {
  *  gucef.assetstore 1.0, service Service (the control channel):
  *      Query    (U, idempotent)   reads
  *      Command  (U)               mutations; the command id makes a repeat answer the first outcome
- *      Secret   (U, sensitive)    the operations that carry a secret: AnswerPrompt, UnlockKeyring (field secret is sensitive)
+ *      Secret   (U, sensitive)    the operations that carry a secret: AnswerPrompt, ImportWebSession, UnlockKeyring (field secret is sensitive)
  *  gucef.assetstore.files 1.0, service Files (the bulk channel, a DRN link of its own; the control channel binds it too):
  *      Query    (U, idempotent)   StatFiles, ListDirectory, QueryUpload
  *      Command  (U)               BeginUpload, BeginUploadFiles, CommitUpload, AbortUpload

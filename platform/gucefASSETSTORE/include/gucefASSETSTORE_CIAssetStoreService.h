@@ -236,8 +236,8 @@ namespace ASSETSTORE {
  *    DataNode; no raw pointer crosses the interface. The exceptions are handles that are objects themselves: the provider
  *    of an online store (GetStoreProvider(), for the browsing of its library through CAssetStoreLibraryFileSystemAccess)
  *    and the pixels of pictures.
- *  - Secrets never go into a call: AnswerPrompt() and UnlockKeyring() take a AUTH::CSecretString and have asynchronous
- *    forms of their own, as has WriteUploadBlock() for its bytes.
+ *  - Secrets never go into a call: AnswerPrompt(), ImportWebSession() and UnlockKeyring() take a AUTH::CSecretString and
+ *    have asynchronous forms of their own, as has WriteUploadBlock() for its bytes.
  *
  *  Events (section 4.3) are raised on the thread of the pulse generator given at construction (the GUI thread of a
  *  viewer): CatalogueChangedEvent (CAssetCatalogueChange), JobChangedEvent and JobRemovedEvent (CAssetJobEntry),
@@ -678,6 +678,19 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreService : public CORE::CTSGNotifie
     /** Answers a prompt of a sign in; the answer is a secret and never logged */
     virtual TAssetStoreStatus AnswerPrompt( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer, CAssetServiceResult& result ) = 0;
     virtual CORE::CFutureResult AnswerPromptAsync( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer ) = 0;
+
+    /**
+     *  Takes over the web session of a store that the account holder signed in to in their own browser on another machine (a store
+     *  whose sign in has a step only a person can do, such as a captcha): 'session' is the session as one secret
+     *  (AUTH::CWebSession::ToSecret(): the cookies with their domain, path, expiry and flags, the user agent and the time
+     *  it was taken). Only the cookies of the store's own domains are kept, sealed in the session store of the service; the
+     *  session is never logged, never part of an event or an answer, and no read gives it back. The store may check it
+     *  with a request of its own and refuse it (NOT_SIGNED_IN). result.id is the store id, result.message says how many
+     *  cookies were taken and what the store said. A sync that waits for a sign in of the store goes on. On a remote
+     *  service only a device with the owner role may call it. Implementations without it answer UNSUPPORTED (the default)
+     */
+    virtual TAssetStoreStatus ImportWebSession( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session, CAssetServiceResult& result );
+    virtual CORE::CFutureResult ImportWebSessionAsync( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session );
 
     // Conversion
 

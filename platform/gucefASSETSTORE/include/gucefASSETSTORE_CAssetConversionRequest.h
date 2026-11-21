@@ -74,12 +74,24 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetConversionRequest
     CORE::CString cookedPathPrefix;                 /**< the logical path of cookedVfsFolder: "gucef-ogre3d" */
     CIAssetConversionObserver* observer;            /**< cancel and progress, not owned, may be GUCEF_NULL */
     bool reconvert;                                 /**< convert again, also what the cache of the converter says is unchanged */
+    CORE::CString::StringVector assetGlobs;         /**< only the assets whose path below sourceVfsPath matches one of these (exact paths or globs); empty: all. The cache, references and sizes of the other assets stay as they are */
+    bool cookOnly;                                  /**< cook what the intermediate in convertedVfsFolder holds into cookedVfsFolder; nothing is imported and nothing is written to convertedVfsFolder but what the cooker needs */
+    bool noCook;                                    /**< convert to the intermediate and stop there: no cooker runs */
+    CORE::CString::StringVector cookTargets;        /**< only these cook targets (names of the cookers); empty: those of the converter */
+    bool keepPartialResult;                         /**< a run that ended with errors in its report still maps the assets that converted (the outcome stays FAILED), and nothing of what it wrote is taken away */
+    CORE::CString reportVfsPath;                    /**< where the report of the run goes; empty: "<convertedVfsFolder>/report.json" */
 
     CAssetConversionRequest( void );
     ~CAssetConversionRequest();
 
     /** The path of the asset below sourceVfsPath; empty when the asset is not below it (a file of an archive, for example) */
     CORE::CString GetSourceRelativePath( const CAssetRecord& asset ) const;
+
+    /** Whether the path below sourceVfsPath is one of assetGlobs (an exact path or a glob, not case sensitive); true when assetGlobs is empty */
+    bool IsInScope( const CORE::CString& sourceRelativePath ) const;
+
+    /** IsInScope() for the globs given */
+    static bool IsInScope( const CORE::CString::StringVector& globs, const CORE::CString& sourceRelativePath );
 };
 
 /*-------------------------------------------------------------------------//

@@ -53,6 +53,7 @@ const CORE::CString CAssetLibrarySyncItem::Pinned = "pinned";
 const CORE::CString CAssetLibrarySyncItem::Current = "current";
 const CORE::CString CAssetLibrarySyncItem::UnknownFreshness = "unknown-freshness";
 const CORE::CString CAssetLibrarySyncItem::Stale = "stale";
+const CORE::CString CAssetLibrarySyncItem::TooLarge = "too-large";
 const CORE::CString CAssetLibrarySyncItem::FailedBefore = "failed-before";
 const CORE::CString CAssetLibrarySyncItem::Missing = "missing";
 

@@ -141,6 +141,14 @@ CAssetPipelineQueryTool::BuildRequest( CAssetToolContext& context               
     const CAssetToolsExposure exposure = context.GetExposure();
     request.arguments.SetAttribute( "exposePurchaseDetails", exposure.exposePurchaseDetails );
     request.arguments.SetAttribute( "maxUntrustedTextChars", context.GetUntrustedTextChars() );
+    if ( CAssetPipelineOperations::IsReprocess( operation ) || CAssetPipelineOperations::ReprocessPlan == operation )
+    {
+        // the reprocessing of a store pack: a machine caller, whatever the arguments say; the limits of the service apply to it
+        request.arguments.SetAttribute( "machine", true );
+        request.arguments.SetAttribute( "caller", "mcp:" + principal.subject );
+        if ( request.packId.IsNULLOrEmpty() )
+            request.packId = GetStringArgument( arguments, "storePackId" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/

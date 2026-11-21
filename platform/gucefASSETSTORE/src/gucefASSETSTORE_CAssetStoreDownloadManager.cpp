@@ -1173,6 +1173,9 @@ CAssetStoreDownloadManager::RunJob( const CORE::CString& jobId )
 
     SJobRun run;
     run.planRenewed = false;
+    run.planRenewals = 0;
+    run.renewedAtFile = 0;
+    run.renewedAtBytes = 0;
     run.sessionRenewed = false;
     if ( !GetJob( jobId, run.job ) )
         return;
@@ -1204,15 +1207,27 @@ CAssetStoreDownloadManager::RunJob( const CORE::CString& jobId )
         return;
     }
 
-    // every name is checked before anything is written
+    // every name is checked before anything is written; two names that differ only in case would be one file on a share that
+    // ignores case (CIFS, Windows), so the second would overwrite the first: such a plan is refused with the names
+    CORE::CString::StringMap lowercaseNames;
     for ( size_t t=0; t<run.plan.transfers.size(); ++t )
     {
         CORE::CString reason;
-        if ( !CAssetStoreSafeNames::IsSafeRelativeName( run.plan.transfers[ t ].targetName, reason ) )
+        const CORE::CString& name = run.plan.transfers[ t ].targetName;
+        if ( !CAssetStoreSafeNames::IsSafeRelativeName( name, reason ) )
         {
-            EndJob( jobId, ASSETDOWNLOAD_STATE_FAILED, ASSETSTORE_STATUS_UNSAFE_NAME, "the store gave the unsafe file name \"" + run.plan.transfers[ t ].targetName + "\": " + reason );
+            EndJob( jobId, ASSETDOWNLOAD_STATE_FAILED, ASSETSTORE_STATUS_UNSAFE_NAME, "the store gave the unsafe file name \"" + name + "\": " + reason );
             return;
         }
+        const CORE::CString folded = CAssetStoreSafeNames::NormalizeSeparators( name ).Lowercase();
+        CORE::CString::StringMap::const_iterator same = lowercaseNames.find( folded );
+        if ( same != lowercaseNames.end() && (*same).second != name )
+        {
+            EndJob( jobId, ASSETDOWNLOAD_STATE_FAILED, ASSETSTORE_STATUS_UNSAFE_NAME, "the store gave the file names \"" + (*same).second + "\" and \"" + name +
+                    "\", which differ only in case: a share that ignores case would hold one of them" );
+            return;
+        }
+        lowercaseNames[ folded ] = name;
     }
 
     // the files of the job follow the plan; files that were complete stay complete
@@ -1362,19 +1377,26 @@ CAssetStoreDownloadManager::RunFile( SJobRun& run, UInt32 fileIndex, CORE::CStri
             }
             case ASSETSTORE_STATUS_URL_EXPIRED:
             {
-                if ( run.planRenewed )
+                // the addresses of a plan live for a while: a long download (the chunks of a large build) outlives them and renews
+                // them again as often as it made progress since the last renewal; an address that expires again without progress fails
+                const UInt64 bytesNow = vfs.FileExists( partPath ) ? vfs.GetFileSize( partPath ) : 0;
+                if ( run.planRenewed && ( ( fileIndex == run.renewedAtFile && bytesNow <= run.renewedAtBytes ) || run.planRenewals >= MaxPlanRenewals ) )
                 {
-                    message = "the download address expired again after the plan was renewed";
+                    message = run.planRenewals >= MaxPlanRenewals ? "the download addresses expired " + CORE::ToString( run.planRenewals ) + " times"
+                                                                  : CORE::CString( "the download address expired again after the plan was renewed, without progress since" );
                     return status;
                 }
                 run.planRenewed = true;
+                ++run.planRenewals;
+                run.renewedAtFile = fileIndex;
+                run.renewedAtBytes = bytesNow;
                 const TAssetStoreStatus renewStatus = run.provider->RenewPlan( run.plan );
                 if ( ASSETSTORE_STATUS_OK != renewStatus )
                 {
                     message = "the plan could not be renewed after the download address expired";
                     return renewStatus;
                 }
-                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreDownloadManager: Job " << run.job.jobId << " renewed its plan after an address expired" );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreDownloadManager: Job " << run.job.jobId << " renewed its plan after an address expired (renewal " << run.planRenewals << ", at " << file.name << ", " << bytesNow << " bytes of it)" );
                 continue;
             }
             case ASSETSTORE_STATUS_SESSION_EXPIRED:

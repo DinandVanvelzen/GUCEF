@@ -81,6 +81,10 @@
 #include "gucefASSETSTORE_CAssetLibrarySyncAdmission.h"
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
 #endif /* GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#include "gucefASSETSTORE_CAssetSyncItemDetails.h"
+#define GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#endif /* GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -131,6 +135,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
     {
         CAssetLibrarySyncPlanner::SWorkItem work;
         bool downloaded;
+        bool waitingForSignIn;                      /**< the download ended because the store refused the session: retried after the sign in */
 
         SInFlight( void );
     };
@@ -161,6 +166,17 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
 
     /** Checks the spec and the store and begins on the thread of the pulse generator; the reason when it cannot */
     TAssetStoreStatus Start( CORE::CString& problem );
+
+    /**
+     *  A run takes the listing of the stored plan of the store (CAssetLibrarySyncPlanner::ExportListing(), kept by the service)
+     *  instead of listing the store and asking the details of its items: it goes from the start to the plan against the packs,
+     *  marks and downloads of now, and to the downloads. Call before Start()
+     */
+    void UseStoredPlan( const CORE::CDataNode& storedPlan );
+
+    /** What the job tells about where its plan comes from ("using the plan of 12 minutes ago (112 items)"); the detail of its entry */
+    void SetPlanNote( const CORE::CString& note );
+    CORE::CString GetPlanNote( void ) const;
 
     /** Stops queueing, cancels the downloads of the run that have not finished, ends CANCELLED; finished packs stay */
     void RequestCancel( void );
@@ -237,6 +253,11 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
     void OnDownloadJobEvent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnIngestEvent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnStoreStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    /** The store refused the session (listing, details or a download): the run waits for a sign in, nothing more is asked of the store */
+    void WaitForSignIn( const CORE::CString& during );
+    /** The store is signed in again: the run takes up what it was doing (the page, the details of the item, the downloads that waited) */
+    void ResumeAfterSignIn( void );
+    static bool IsSessionStatus( TAssetStoreStatus status );
     void Subscribe( void );
     void ConfigureAdmission( void );
     void ApplyPauseRequest( void );
@@ -255,6 +276,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
     void BeginPlanning( void );
     void RequestNextEnrichment( void );
     void BuildPlan( void );
+    /** Takes the details of an item from the cache of the service when they stand for its library entry now; false when they must be asked */
+    bool TakeCachedDetails( const CORE::CString& itemId, Int64 nowMs );
+    /** Keeps the details of an item the store gave in the cache of the service */
+    void CacheDetails( const CORE::CString& itemId, const CAssetStoreItem& item, Int64 nowMs );
+    /** The progress of the planning in words, for the state of the job and its result before the plan is made */
+    CORE::CString DescribePlanningLocked( void ) const;
     void Fill( void );
     void Finish( void );
     void Cancel( void );
@@ -289,6 +316,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
     bool m_restoredRun;                             /**< Restore() took the work list from the cache: Begin() goes on queueing */
     CORE::CString m_lastCheckpoint;                 /**< what the last checkpoint said, so an unchanged one is not written again */
     CORE::CString m_lastQueuedTitle;                /**< the title of the item queued last, for the progress text */
+    CORE::CDataNode m_storedPlan;                   /**< the stored plan the run uses (UseStoredPlan()) */
+    bool m_useStoredPlan;
+    TAssetSyncItemDetailsMap m_detailsCache;        /**< the cached details of the items of the store, read once per plan */
+    bool m_detailsCacheWarned;
 
     // the thread of the pulse generator only
     EPhase m_phase;
@@ -316,6 +347,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncJob : public CORE::CTSGNotifi
     SRunCounts m_counts;
     GUCEF::vector< SFailure > m_failures;
     UInt64 m_storageFreeBytes;
+    CORE::CString m_planNote;
+    bool m_planBuilt;
+    UInt32 m_listedSoFar;
+    UInt32 m_pagesSoFar;
+    UInt32 m_detailsNeeded;                         /**< items whose listing is not enough */
+    UInt32 m_detailsAsked;                          /**< details asked of the store */
+    UInt32 m_detailsFromCache;                      /**< details taken from the cache */
 };
 
 /*-------------------------------------------------------------------------//

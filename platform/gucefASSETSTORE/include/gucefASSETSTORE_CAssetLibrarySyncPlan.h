@@ -79,7 +79,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncPlan : public CORE::CIDataNod
     UInt32 queuedItems;                             /**< items a run downloads */
     UInt32 queuedDownloads;                         /**< their formats: one download each */
     UInt64 estimatedBytes;                          /**< of the queued formats */
-    UInt32 sizeUnknownItems;                        /**< queued items whose size is an estimate */
+    UInt32 sizeUnknownItems;                        /**< queued items whose size (of a format at least) the store does not give: not in estimatedBytes */
+    UInt64 unknownSizeAssumedBytes;                 /**< what the storage verdict and the admission assume for the formats of unknown size (the median of the known sizes, else the profile's unknownSizeEstimateBytes); never shown as a size */
+    CORE::CString source;                           /**< "listing": the store was listed for this plan; "stored-plan": the listing of the stored plan of the store was used */
+    Int64 listedAtMs;                               /**< when the listing the plan is made of was read, UTC milliseconds since the Unix epoch */
+    UInt32 detailsNeeded;                           /**< items whose listing was not enough to plan them */
+    UInt32 detailsRequested;                        /**< of those, the details asked of the store */
+    UInt32 detailsFromCache;                        /**< of those, the details taken from the cache of the service */
     UInt64 storageFreeBytes;                        /**< of the volume of the location, 0 when not known */
     UInt64 storageTotalBytes;
     UInt64 storageReserveBytes;

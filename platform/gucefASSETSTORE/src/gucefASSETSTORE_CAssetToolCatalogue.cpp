@@ -163,7 +163,25 @@ const C::SEntry g_tools[] =
     { "sync_status", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "State of a library sync",
       "The state of a library sync or plan (by jobId, or the last one of a store by storeId): the job, the counts of the plan and the run, and a page of the lines of the plan (item, title, state, reason; titles are untrusted)." },
     { "sync_marks", "read", C::FAMILY_ONLINE, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Marks of a library sync",
-      "The ignore and pin marks the owner set on items of an online store, with their reasons (untrusted)." }
+      "The ignore and pin marks the user set on items of an online store, with their reasons (untrusted)." },
+    // reprocessing of a pack of the primary store (store pack ids "pk..."): the outputs are made again with the converter as it is now; the
+    // previous generation of the outputs is kept, so reprocess_rollback undoes a regeneration that made things worse; originals are never changed
+    { "reprocess_plan", "read", C::FAMILY_PIPELINE_QUERY, COM::MCP_TOOLEFFECT_READ_ONLY, true, false, "Plan a reprocessing",
+      "What a reprocessing of a store pack would do now, without doing it: the steps, the assets in scope, the size of the outputs and of a download again, whether the store needs a sign in, whether a rollback is possible and whether a limit would refuse it (refusals). Use it before the other reprocess tools." },
+    { "pack_regenerate_target", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, false, "Regenerate the engine resources of a pack",
+      "Cooks the engine target resources (target ogre: gucef-ogre3d) of a store pack again from its existing intermediate (glTF). Use it when the cooked output looks wrong but the intermediate is right, or after the cooker improved. Filters: assets (globs), onlyStatuses, kinds. The result has the counts before and after; the replaced output is kept for reprocess_rollback." },
+    { "pack_regenerate_intermediate", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, false, "Regenerate the intermediate resources of a pack",
+      "Imports the originals of a store pack again with the importers as they are now (the cache ignored) into new intermediate resources (glTF, report, pack index) and cooks them (cook false: intermediate only). Use it when an importer improved or the intermediate is wrong. Filters: assets (globs), onlyStatuses (for example failed and skipped), kinds. The result lists the counts before and after and the assets that improved or regressed; the replaced output is kept for reprocess_rollback." },
+    { "asset_regenerate_target", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, false, "Regenerate the engine resources of assets",
+      "pack_regenerate_target for some assets of a store pack (assetPath, assets or storeAssetIds); the other assets keep their outputs." },
+    { "asset_regenerate_intermediate", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, false, "Regenerate the intermediate resources of assets",
+      "pack_regenerate_intermediate for some assets of a store pack (assetPath, assets or storeAssetIds); the other assets keep their outputs." },
+    { "pack_redownload_original", "store", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, true, "Download the original of a pack again",
+      "Downloads the original of a store pack again from the store it came from and verifies it. Use it when an original file is missing or damaged, or the store has a corrected version. The same files: nothing changes (missing or damaged original files are put back). Other files: a new pack, the old one kept as superseded, then converted unless thenConvert is false. Needs the store to be signed in by the user (else the result says sign-in-needed); counts against the download limits of the store; packs from uploads or folders cannot be downloaded again." },
+    { "pack_reprocess", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, true, "Reprocess a pack",
+      "Runs the steps given in their order (redownload, intermediate, target; default intermediate and target) for a store pack: the convenience of the three tools above in one job. The step redownload needs the tool group store." },
+    { "reprocess_rollback", "convert", C::FAMILY_JOB_START, COM::MCP_TOOLEFFECT_ADDITIVE, false, false, "Roll back a regeneration",
+      "Makes the previous generation of the outputs of a store pack current again (and the current one the previous, so a rollback can be rolled back). Use it when a regeneration made things worse (see the regressed assets of its result)." }
 };
 
 const UInt32 g_toolCount = (UInt32) ( sizeof( g_tools ) / sizeof( g_tools[ 0 ] ) );
@@ -189,6 +207,46 @@ CORE::CDataNode CookTargets( void ) { return S::StringList( 4, 32, "Cook targets
 CORE::CDataNode Profiles( void ) { return S::StringList( 8, 64, "Cook profiles of the manifest" ); }
 CORE::CDataNode WaitMs( void ) { return S::Integer( 0, 60000, "How long to wait for the end of the job before answering with the job" ); }
 CORE::CDataNode RequestKey( void ) { return S::String( 1, 64, "Optional. A repeat with the same key and the same arguments answers with the first outcome instead of acting again" ); }
+CORE::CDataNode StorePackId( void ) { return S::String( 1, 128, "The id of a pack of the primary store (store_search, store_pack): pk..." ); }
+
+/** The arguments of the reprocessing tools of the operation */
+void
+AddReprocessInput( CORE::CDataNode& schema, const CORE::CString& name )
+{GUCEF_TRACE;
+
+    const bool plan = "reprocess_plan" == name;
+    const bool assetLevel = "asset_regenerate_intermediate" == name || "asset_regenerate_target" == name;
+    const bool wholePack = "pack_redownload_original" == name || "reprocess_rollback" == name;
+    S::AddProperty( schema, "storePackId", StorePackId(), !assetLevel );
+    if ( plan )
+        S::AddProperty( schema, "operation", S::Enum( List( "pack_regenerate_intermediate", "pack_regenerate_target", "asset_regenerate_intermediate", "asset_regenerate_target",
+                                                            "pack_redownload_original", "pack_reprocess", "reprocess_rollback" ) ) );
+    if ( plan || "pack_reprocess" == name )
+        S::AddProperty( schema, "steps", S::Array( S::Enum( List( "redownload", "intermediate", "target" ) ), 1, 3, "The steps in their order; default intermediate and target" ) );
+    if ( !wholePack )
+    {
+        S::AddProperty( schema, "assetPath", S::String( 1, 512, "The path of an asset in the pack, below its original folder" ) );
+        S::AddProperty( schema, "assets", S::StringList( 200, 512, "Paths of assets in the pack below its original folder, or globs" ) );
+        S::AddProperty( schema, "storeAssetIds", S::StringList( 200, 128, "Asset ids of the store (store_search)" ) );
+        S::AddProperty( schema, "onlyStatuses", S::Array( S::Enum( List( "failed", "skipped", "approximated", "refused" ) ), 1, 4, "Only the assets with one of these statuses in the last conversion report" ) );
+        S::AddProperty( schema, "kinds", S::StringList( 16, 64, "Only the assets of these kinds (store_vocabulary)" ) );
+        S::AddProperty( schema, "targets", S::Array( S::Enum( List( "ogre", "all" ) ), 1, 4, "The engine targets to cook; default all configured (ogre: gucef-ogre3d)" ) );
+        S::AddProperty( schema, "acceptErrors", S::Boolean( "Put the outputs of a run with errors in place too (the failed assets have none)", true, false ) );
+    }
+    if ( plan || "pack_regenerate_intermediate" == name || "asset_regenerate_intermediate" == name || "pack_reprocess" == name )
+        S::AddProperty( schema, "cook", S::Boolean( "Also cook the regenerated intermediate", true, true ) );
+    if ( plan || "pack_redownload_original" == name || "pack_reprocess" == name )
+    {
+        S::AddProperty( schema, "thenConvert", S::Boolean( "A new pack gets its intermediate and engine resources", true, true ) );
+        S::AddProperty( schema, "allowLarge", S::Boolean( "Let the download through the size guard of the store plugin", true, false ) );
+        S::AddProperty( schema, "repairOriginals", S::Boolean( "When the download is the same: put back missing or damaged original files", true, true ) );
+    }
+    if ( !plan )
+    {
+        S::AddProperty( schema, "waitMs", WaitMs() );
+        S::AddProperty( schema, "requestKey", RequestKey() );
+    }
+}
 
 void
 AddPaging( CORE::CDataNode& schema, UInt32 maxLimit )
@@ -736,6 +794,12 @@ CAssetToolCatalogue::BuildInputSchema( const CORE::CString& name, const CAssetVo
         S::AddProperty( schema, "storeId", S::String( 1, 64 ), true );
         S::AddProperty( schema, "itemId", S::String( 1, 128 ), true );
     }
+    else
+    if ( "reprocess_plan" == name || "pack_regenerate_target" == name || "pack_regenerate_intermediate" == name || "asset_regenerate_target" == name ||
+         "asset_regenerate_intermediate" == name || "pack_redownload_original" == name || "pack_reprocess" == name || "reprocess_rollback" == name )
+    {
+        AddReprocessInput( schema, name );
+    }
     // store_locations and online_stores take no arguments
     return schema;
 }
@@ -778,6 +842,15 @@ CAssetToolCatalogue::BuildOutputSchema( const CORE::CString& name )
     {
         CORE::CDataNode schema = LooseObject( "The pack or asset" );
         S::AddProperty( schema, "packId", S::String(), true );
+        return schema;
+    }
+    if ( "reprocess_plan" == name )
+    {
+        CORE::CDataNode schema = LooseObject( "The plan of the reprocessing" );
+        S::AddProperty( schema, "packId", S::String(), true );
+        S::AddProperty( schema, "wouldRun", S::Boolean(), true );
+        S::AddProperty( schema, "refusals", S::Array( S::String() ), true );
+        S::AddProperty( schema, "summary", S::String() );
         return schema;
     }
     if ( "convert_plan" == name )

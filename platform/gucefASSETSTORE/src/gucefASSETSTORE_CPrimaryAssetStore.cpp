@@ -361,10 +361,11 @@ CPrimaryAssetStore::GetIndexLock( void )
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
-CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId )
+CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk )
 {GUCEF_TRACE;
 
     const CORE::CString clean = CPackStorageLayout::MakePackFolderName( sourceName );
+    const CORE::CString locationRoot = GetLocationRoot( locationId );
     MT::CScopeMutex lock( m_folderLock );
 
     // the folders of the other packs of the location: in the catalogue and reserved by ingests that did not write their row yet
@@ -390,9 +391,33 @@ CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const COR
         if ( (*i).first != packId && 0 == (*i).second.HasSubstr( prefix, true ) )
             taken.insert( (*i).second.CutChars( prefix.Length(), true ) );
     }
-    const CORE::CString folder = CPackStorageLayout::ChoosePackFolderName( clean, packId, taken );
+    // a folder of that name on the disk is never taken over: it belongs to something the catalogue does not know (another
+    // catalogue on the same share, a pack whose row was removed without its files); the next name is chosen instead
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    CORE::CString folder = CPackStorageLayout::ChoosePackFolderName( clean, packId, taken );
+    for ( UInt32 round=0; round<16 && avoidFoldersOnDisk && !locationRoot.IsNULLOrEmpty(); ++round )
+    {
+        const CPackStorageLayout candidate( CPackStorageLayout::MakeRootPath( folder ) );
+        if ( !vfs.DirExists( candidate.GetOriginalFolder( locationRoot ) ) &&
+             !vfs.DirExists( candidate.GetIntermediateFolder( locationRoot, CORE::CString::Empty ) ) &&
+             !vfs.DirExists( candidate.GetCookedFolder( locationRoot, CORE::CString::Empty ) ) )
+            break;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPrimaryAssetStore: the folder " << folder << " of the location " << locationId << " is on the disk but not in the catalogue: the pack " << packId << " gets another one" );
+        taken.insert( folder.Lowercase() );
+        folder = CPackStorageLayout::ChoosePackFolderName( clean, packId, taken );
+    }
     m_reservedFolders[ packId ] = prefix + folder.Lowercase();
     return folder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPrimaryAssetStore::ReservePackFolder( const CORE::CString& locationId, const CORE::CString& packId, const CORE::CString& packFolder )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_folderLock );
+    m_reservedFolders[ packId ] = locationId + "\n" + packFolder.Lowercase();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -834,7 +859,8 @@ CPrimaryAssetStore::MigrateStorageLayout( const CORE::CString& locationId, bool 
         const CORE::CString oldConverted = CPackStorageLayout::Join( oldRoot, "converted" );
         const CORE::CString leaf = layout.GetLegacyRoot().ReplaceChar( '\\', '/' );
         const CORE::CString::StringVector parts = leaf.ParseElements( '/', false );
-        const CORE::CString folder = ChoosePackFolder( packLocation, parts.empty() ? packId : parts.back(), packId );
+        // a target folder that exists refuses the pack below (nothing moves), so the disk does not choose another name here
+        const CORE::CString folder = ChoosePackFolder( packLocation, parts.empty() ? packId : parts.back(), packId, false );
         reserved.push_back( packId );
         const CPackStorageLayout target( CPackStorageLayout::MakeRootPath( folder ) );
         const CORE::CString newOriginal = target.GetOriginalFolder( root );
@@ -1236,6 +1262,131 @@ CPrimaryAssetStore::GetPendingIngests( CORE::CString::StringVector& ingestIds ) 
         }
     }
     std::sort( ingestIds.begin(), ingestIds.end() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPrimaryAssetStore::IsDownloadStagingName( const CORE::CString& name, Int64& createdMs )
+{GUCEF_TRACE;
+
+    // "dl" <digits> "-" <digits>, nothing else
+    createdMs = 0;
+    const char* chars = name.C_String();
+    const UInt32 bytes = name.ByteSize() > 0 ? name.ByteSize() - 1 : 0;
+    if ( bytes < 5 || 'd' != chars[ 0 ] || 'l' != chars[ 1 ] )
+        return false;
+    UInt32 i = 2;
+    Int64 ms = 0;
+    while ( i < bytes && chars[ i ] >= '0' && chars[ i ] <= '9' )
+    {
+        ms = ms * 10 + (Int64) ( chars[ i ] - '0' );
+        ++i;
+    }
+    if ( i == 2 || i >= bytes || '-' != chars[ i ] )
+        return false;
+    ++i;
+    const UInt32 randomStart = i;
+    while ( i < bytes && chars[ i ] >= '0' && chars[ i ] <= '9' )
+        ++i;
+    if ( i != bytes || i == randomStart )
+        return false;
+    createdMs = ms;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPrimaryAssetStore::GetDownloadStagingFolders( CORE::CString::StringVector& vfsPaths ) const
+{GUCEF_TRACE;
+
+    vfsPaths.clear();
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    const CPrimaryAssetStoreSettings settings = GetSettings();
+    CORE::CString::StringVector areas;
+    for ( size_t l=0; l<settings.locations.size(); ++l )
+    {
+        const CORE::CString root = GetLocationRoot( settings.locations[ l ].locationId );
+        if ( !root.IsNULLOrEmpty() )
+            areas.push_back( JoinVfs( root, "staging" ) );
+    }
+    bool scratch = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        scratch = m_scratchMounted;
+    }
+    if ( scratch )
+        areas.push_back( ScratchStagingVfsRoot );
+
+    // the manifests of the ingests that are staged: a download folder one of them names is the content of that ingest
+    CORE::CString manifests;
+    for ( size_t a=0; a<areas.size(); ++a )
+    {
+        if ( !vfs.DirExists( areas[ a ] ) )
+            continue;
+        VFS::CVFS::TStringVector folders;
+        vfs.GetDirList( folders, areas[ a ], false, false, CORE::CString::Empty );
+        for ( size_t f=0; f<folders.size(); ++f )
+        {
+            CORE::CString name = NormalizeVfsPath( folders[ f ] );
+            const Int32 slash = name.HasChar( '/', false );
+            if ( slash >= 0 )
+                name = name.CutChars( (UInt32) slash + 1, true );
+            const CORE::CString manifest = JoinVfs( JoinVfs( areas[ a ], name ), CAssetIngestJob::ManifestFileName );
+            CORE::CDynamicBuffer content;
+            if ( vfs.FileExists( manifest ) && vfs.LoadFile( content, manifest, "rb" ) && content.GetDataSize() > 0 )
+                manifests += CORE::CString( content.AsConstTypePtr< char >(), content.GetDataSize() ) + "\n";
+        }
+    }
+
+    for ( size_t a=0; a<areas.size(); ++a )
+    {
+        if ( !vfs.DirExists( areas[ a ] ) )
+            continue;
+        VFS::CVFS::TStringVector folders;
+        vfs.GetDirList( folders, areas[ a ], false, false, CORE::CString::Empty );
+        for ( size_t f=0; f<folders.size(); ++f )
+        {
+            CORE::CString name = NormalizeVfsPath( folders[ f ] );
+            const Int32 slash = name.HasChar( '/', false );
+            if ( slash >= 0 )
+                name = name.CutChars( (UInt32) slash + 1, true );
+            Int64 createdMs = 0;
+            if ( !IsDownloadStagingName( name, createdMs ) )
+                continue;
+            const CORE::CString path = JoinVfs( areas[ a ], name );
+            if ( vfs.FileExists( JoinVfs( path, CAssetIngestJob::ManifestFileName ) ) || manifests.HasSubstr( name, true ) >= 0 )
+                continue;
+            vfsPaths.push_back( path );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPrimaryAssetStore::RemoveDownloadStagingFolder( const CORE::CString& vfsPath )
+{GUCEF_TRACE;
+
+    // only a folder the listing of the staging folders of downloads names: never another one
+    CORE::CString::StringVector folders;
+    GetDownloadStagingFolders( folders );
+    const CORE::CString wanted = NormalizeVfsPath( vfsPath );
+    for ( size_t f=0; f<folders.size(); ++f )
+    {
+        if ( NormalizeVfsPath( folders[ f ] ) != wanted )
+            continue;
+        VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+        if ( !vfs.DeleteDir( folders[ f ], true ) && vfs.DirExists( folders[ f ] ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: The staging folder of a download " << folders[ f ] << " could not be removed" );
+            return false;
+        }
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PrimaryAssetStore: Removed the staging folder of a download: " << folders[ f ] );
+        return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

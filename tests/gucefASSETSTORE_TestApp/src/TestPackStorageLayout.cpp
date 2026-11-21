@@ -27,6 +27,11 @@
 #define GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H
 #endif /* GUCEF_ASSETSTORE_CPACKSTORAGELAYOUT_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H
+#include "gucefASSETSTORE_CAssetStoreSafeNames.h"
+#define GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H ? */
+
 #include "TestAssetStoreSupport.h"
 
 #include "TestPackStorageLayout.h"
@@ -241,6 +246,54 @@ PerformPackStorageLayoutTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Collisions: when the clean name, the short id and the whole id are all taken (folders on a share the catalogue does not know) a number follows the short id" )
+        try
+        {
+            const CString id = "pk19c3a4b5d6e7f0a1b2c3d4";
+            CString::StringSet taken;
+            taken.insert( "pack.zip" );
+            taken.insert( "pack.zip [19c3a4b5]" );
+            taken.insert( CString( "Pack.zip [" + id + "]" ).Lowercase() );
+            ASSERT_TRUE( "Pack.zip [19c3a4b5-2]" == CPackStorageLayout::ChoosePackFolderName( "Pack.zip", id, taken ) );
+            taken.insert( "pack.zip [19c3a4b5-2]" );
+            ASSERT_TRUE( "Pack.zip [19c3a4b5-3]" == CPackStorageLayout::ChoosePackFolderName( "Pack.zip", id, taken ) );
+            ASSERT_TRUE( HasNoUnsafeCharacters( CPackStorageLayout::ChoosePackFolderName( "Pack.zip", id, taken ) ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Pack folder names for a share (CIFS, Windows): titles of a store with colons, question marks, stars, a blank or a dot before the extension and at the end become names the share takes, and pass the safe name check" )
+        try
+        {
+            static const SNameCase cases[] =
+            {
+                { "Sword: The Edge?", "Sword_ The Edge_" },
+                { "Crate *v2*.fbx", "Crate _v2_.fbx" },
+                { "Pack .zip", "Pack.zip" },
+                { "Pack. .zip", "Pack.zip" },
+                { "Ending dot. ", "Ending dot" },
+                { "Ends in blanks   ", "Ends in blanks" },
+                { "-== Assets ==-", "-== Assets ==-" },
+                { "A/B\\C:D", "C_D" }
+            };
+            for ( size_t c=0; c<sizeof(cases)/sizeof(cases[0]); ++c )
+            {
+                const CString name = CPackStorageLayout::MakePackFolderName( cases[ c ].source );
+                ASSERT_TRUE( name == cases[ c ].expected );
+                ASSERT_TRUE( HasNoUnsafeCharacters( name ) && CAssetStoreSafeNames::IsSafeRelativeName( name ) );
+                const CPackStorageLayout layout( CPackStorageLayout::MakeRootPath( name ) );
+                ASSERT_TRUE( CAssetStoreSafeNames::IsSafeRelativeName( layout.GetOriginalFolder( "lib" ) ) );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Layout 2: the three areas hold the folder of the pack, logical paths resolve below their area" )
         try
         {
@@ -265,8 +318,9 @@ PerformPackStorageLayoutTests( void )
 
             CString::StringVector folders;
             layout.GetOwnedFolders( root, folders );
-            ASSERT_TRUE( 3 == folders.size() && folders[ 0 ] == "assetstore/main/original/My Pack.zip" && folders[ 1 ] == "assetstore/main/intermediate/My Pack.zip" &&
-                         folders[ 2 ] == "assetstore/main/gucef-ogre3d/My Pack.zip" );
+            ASSERT_TRUE( 4 == folders.size() && folders[ 0 ] == "assetstore/main/original/My Pack.zip" && folders[ 1 ] == "assetstore/main/intermediate/My Pack.zip" &&
+                         folders[ 2 ] == "assetstore/main/gucef-ogre3d/My Pack.zip" && folders[ 3 ] == "assetstore/main/generations/My Pack.zip" );
+            ASSERT_TRUE( layout.GetGenerationsFolder( root ) == "assetstore/main/generations/My Pack.zip" );
             ASSERT_TRUE( CPackStorageLayout::IsAreaName( "original" ) && CPackStorageLayout::IsAreaName( "intermediate" ) && CPackStorageLayout::IsAreaName( "gucef-ogre3d" ) &&
                          !CPackStorageLayout::IsAreaName( "staging" ) && !CPackStorageLayout::IsAreaName( "converted" ) );
         }

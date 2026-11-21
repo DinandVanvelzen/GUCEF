@@ -139,6 +139,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetServiceOperations
     // SignIn
     static const CORE::CString BeginSignIn;                 /**< "SignIn/Begin" */
     static const CORE::CString AnswerPrompt;                /**< "SignIn/Answer" */
+    static const CORE::CString ImportWebSession;            /**< "SignIn/ImportSession": a secret, on the secret method only */
     static const CORE::CString CancelSignIn;                /**< "SignIn/Cancel" */
     static const CORE::CString SignOut;                     /**< "SignIn/SignOut" */
     static const CORE::CString GetSignInPrompts;            /**< "SignIn/ListPrompts" */

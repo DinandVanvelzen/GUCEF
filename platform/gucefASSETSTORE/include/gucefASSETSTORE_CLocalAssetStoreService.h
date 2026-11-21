@@ -80,6 +80,11 @@
 #define GUCEF_CORE_CJOBSCHEDULER_H
 #endif /* GUCEF_CORE_CJOBSCHEDULER_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETREPROCESSGUARD_H
+#include "gucefASSETSTORE_CAssetReprocessGuard.h"
+#define GUCEF_ASSETSTORE_CASSETREPROCESSGUARD_H
+#endif /* GUCEF_ASSETSTORE_CASSETREPROCESSGUARD_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
 #include "gucefASSETSTORE_CAssetLibrarySyncAdmission.h"
 #define GUCEF_ASSETSTORE_CASSETLIBRARYSYNCADMISSION_H
@@ -199,8 +204,45 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     /** The ledger of the caps of a store over its runs, empty when none was kept */
     CAssetLibrarySyncAdmission::TLedgerVector GetSyncLedger( const CORE::CString& storeId ) const;
 
+    /** Keeps the ledger of the caps of a store after a download that is no run of the library sync (a download again of an original) */
+    void NoteSyncLedger( const CORE::CString& storeId, const CAssetLibrarySyncAdmission::TLedgerVector& ledger );
+
+    /** The admission of the reprocessing jobs (CAssetReprocessGuard) with the limits of the configuration ("reprocess") */
+    CAssetReprocessGuard& GetReprocessGuard( void );
+
     /** The VFS path of the work list file of a sync job, empty when the service keeps no state */
     CORE::CString GetSyncWorklistPath( const CORE::CString& jobId ) const;
+
+    /**
+     *  The stored plan of a store (library sync design, section 13.21): the listing of the last complete "plan" of the store, kept
+     *  in a file of its own in the state folder ("syncplan_<store>.json"), over restarts; one per store, the last one only. A
+     *  run of the store uses it instead of listing when it is younger than the profile member planMaxAgeMinutes and was made
+     *  with the same plan members (CAssetLibrarySyncPlanner::IsStoredPlanUsable()). False when the service keeps no state
+     */
+    bool StoreSyncPlan( const CORE::CString& storeId, const CORE::CDataNode& storedPlan );
+
+    /**
+     *  Takes a download for the store that failed or was cancelled out of the queue of the download manager and removes its
+     *  staging folder (a staging folder of a download only: CPrimaryAssetStore::RemoveDownloadStagingFolder()). A library sync
+     *  calls it for a download of its run that failed for good; the part files of a build are not needed again (its chunks are
+     *  kept in the chunk cache of the plugin). False when the download is not there or has not ended that way
+     */
+    bool DiscardDownload( const CORE::CString& downloadJobId );
+
+    /**
+     *  The staging sweep: removes the downloads for the store that were cancelled, and those that failed longer ago than the
+     *  setting downloadStagingKeepHours, with their staging folders; then the staging folders of downloads that no download of
+     *  the queue and no staged ingest names and that are older than an hour (left behind by a crash or a removed download).
+     *  Never a folder of an ingest or another folder. Runs when the service opens and when a library sync ends. Answers the
+     *  folders removed
+     */
+    UInt32 SweepDownloadStaging( void );
+
+    /** The stored plan of a store; false when there is none (or no state is kept) */
+    bool LoadStoredSyncPlan( const CORE::CString& storeId, CORE::CDataNode& storedPlan ) const;
+
+    /** The VFS path of the stored plan of a store, empty when the service keeps no state */
+    CORE::CString GetSyncPlanPath( const CORE::CString& storeId ) const;
 
     /*
      *  The schedule of the library sync (library sync design, section 6.4): a store whose profile is enabled and has a
@@ -347,6 +389,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     virtual TAssetStoreStatus GetSignInPrompts( CAssetSignInPromptPage& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual TAssetStoreStatus AnswerPrompt( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
     virtual CORE::CFutureResult AnswerPromptAsync( const CORE::CString& commandId, const CORE::CString& promptId, const AUTH::CSecretString& answer ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual TAssetStoreStatus ImportWebSession( const CORE::CString& commandId, const CORE::CString& storeId, const AUTH::CSecretString& session, CAssetServiceResult& result ) GUCEF_VIRTUAL_OVERRIDE;
 
     // Conversion
 
@@ -383,6 +426,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     private:
 
     friend class CLocalAssetStoreServiceOperationTaskConsumer;
+    friend class CAssetPackReprocessJob;
 
     typedef CORE::CTEventHandlerFunctor< CLocalAssetStoreService > TEventCallback;
 
@@ -435,6 +479,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
         CORE::CFutureResultSource source;
         Int64 createdAtMs;
         Int64 updatedAtMs;
+        bool dispatched;            /**< queued on the thread pool; a reprocessing job waits for a slot first */
         SPipelineJob( void );
     };
     typedef GUCEF::vector< SPipelineJob > TPipelineJobVector;
@@ -528,6 +573,10 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     void OnPackIndexUpdated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     TAssetStoreStatus RunIndexPackJob( const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, const CORE::CFutureResultSource& source, CAssetServiceDocument& document );
     TAssetStoreStatus StartSyncJob( const CORE::CString& commandId, const CAssetPipelineRequest& request, CAssetServiceResult& result );
+    TAssetStoreStatus AdmitReprocessJob( const CAssetPipelineRequest& request, CORE::CString& name, CAssetServiceResult& result );
+    TAssetStoreStatus RunReprocessJob( const CORE::CString& key, const CAssetPipelineRequest& request, CIAssetConversionObserver* observer, CAssetServiceDocument& document );
+    /** Queues the reprocessing jobs that wait for a slot while slots are free */
+    void DispatchReprocessJobs( void );
     void OnSyncJobChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     CAssetLibrarySyncJob* FindSyncJobLocked( const CORE::CString& key ) const;
     /** The profile kept for the store, the defaults when none was set */
@@ -664,6 +713,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CLocalAssetStoreService : public CIAssetStoreS
     MT::CMutex m_stateLock;
     UInt32 m_conversionCounter;
     UInt32 m_pipelineCounter;
+    CAssetReprocessGuard m_reprocessGuard;
     CORE::CString::StringSet m_endedSessions;
     CORE::CString::StringSet m_watchedProviders;
     TAssetCatalogueChangeVector m_journal;

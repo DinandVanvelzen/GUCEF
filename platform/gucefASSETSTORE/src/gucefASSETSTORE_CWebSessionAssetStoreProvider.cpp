@@ -259,9 +259,57 @@ CWebSessionAssetStoreProvider::CheckResponse( const WEB::CHttpResponseData& resp
 {GUCEF_TRACE;
 
     if ( !m_signIn.CheckResponse( response ) )
+    {
+        // the store may renew cookies of the session in its answers: they are kept with the session
+        m_signIn.UpdateSessionCookies( *m_cookieJar );
         return false;
+    }
     m_cookieJar->Clear();
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSessionAssetStoreProvider::EndSession( const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    m_signIn.EndSession( reason );
+    m_cookieJar->Clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAssetStoreStatus
+CWebSessionAssetStoreProvider::ImportWebSession( const AUTH::CWebSession& session, CORE::CString& message )
+{GUCEF_TRACE;
+
+    UInt32 kept = 0;
+    CORE::CString problem;
+    if ( !m_signIn.AdoptSession( session, kept, problem ) )
+    {
+        message = problem;
+        return ASSETSTORE_STATUS_INVALID_ARGUMENT;
+    }
+    // the caller goes on with requests of the session right after this, before an event could reach the jar
+    RefreshCookieJar();
+    NotifySessionStateChanged();
+    message = CORE::ToString( kept ) + " cookies of the session were taken";
+    return ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CWebSessionAssetStoreProvider::GetSessionUserAgent( void ) const
+{GUCEF_TRACE;
+
+    AUTH::CWebSession session;
+    if ( !m_signIn.GetSession( session ) )
+        return CORE::CString::Empty;
+    const CORE::CString userAgent = session.userAgent;
+    session.Clear();
+    return userAgent;
 }
 
 /*-------------------------------------------------------------------------//

@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 #ifndef GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H
 #include "gucefASSETSTORE_CAssetStoreSafeNames.h"
 #define GUCEF_ASSETSTORE_CASSETSTORESAFENAMES_H
@@ -88,6 +93,7 @@ const CORE::CString CPackStorageLayout::OriginalArea = "original";
 const CORE::CString CPackStorageLayout::IntermediateArea = "intermediate";
 const CORE::CString CPackStorageLayout::CookedArea = "gucef-ogre3d";
 const CORE::CString CPackStorageLayout::StagingArea = "staging";
+const CORE::CString CPackStorageLayout::GenerationsArea = "generations";
 const CORE::CString CPackStorageLayout::RootPathMarker = "layout2:";
 
 /*-------------------------------------------------------------------------*/
@@ -192,7 +198,18 @@ CPackStorageLayout::ChoosePackFolderName( const CORE::CString& cleanName, const 
     const CORE::CString withShortId = cleanName + " [" + MakeShortId( packId ) + "]";
     if ( takenLowercase.end() == takenLowercase.find( withShortId.Lowercase() ) )
         return withShortId;
-    return cleanName + " [" + CAssetStoreSafeNames::MakeSafePart( packId, 60 ) + "]";
+    const CORE::CString withId = cleanName + " [" + CAssetStoreSafeNames::MakeSafePart( packId, 60 ) + "]";
+    if ( takenLowercase.end() == takenLowercase.find( withId.Lowercase() ) )
+        return withId;
+
+    // every form is taken (folders on the disk the catalogue does not know): a number after the short id
+    for ( UInt32 n=2; n<10000; ++n )
+    {
+        const CORE::CString numbered = cleanName + " [" + MakeShortId( packId ) + "-" + CORE::ToString( n ) + "]";
+        if ( takenLowercase.end() == takenLowercase.find( numbered.Lowercase() ) )
+            return numbered;
+    }
+    return withId;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -335,6 +352,17 @@ CPackStorageLayout::GetCookedFolder( const CORE::CString& locationRoot, const CO
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
+CPackStorageLayout::GetGenerationsFolder( const CORE::CString& locationRoot ) const
+{GUCEF_TRACE;
+
+    if ( !IsAreaLayout() )
+        return CORE::CString::Empty;
+    return Join( Join( locationRoot, GenerationsArea ), m_packFolder );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
 CPackStorageLayout::GetOriginalPrefix( void ) const
 {GUCEF_TRACE;
 
@@ -389,6 +417,7 @@ CPackStorageLayout::GetOwnedFolders( const CORE::CString& locationRoot, CORE::CS
         folders.push_back( Join( Join( locationRoot, OriginalArea ), m_packFolder ) );
         folders.push_back( Join( Join( locationRoot, IntermediateArea ), m_packFolder ) );
         folders.push_back( Join( Join( locationRoot, CookedArea ), m_packFolder ) );
+        folders.push_back( GetGenerationsFolder( locationRoot ) );
     }
     else
     if ( 0 == m_legacyRoot.HasSubstr( "packs/", true ) )

@@ -57,6 +57,8 @@ CAssetIngestRequest::CAssetIngestRequest( void )
     , formatId()
     , expectedRevision()
     , syncJobId()
+    , verifyPackId()
+    , repairOriginals( false )
 {GUCEF_TRACE;
 
 }
@@ -90,6 +92,11 @@ CAssetIngestRequest::Serialize( CORE::CDataNode& domRootNode                    
         success = domRootNode.SetAttribute( "expectedRevision", expectedRevision ) && success;
     if ( !syncJobId.IsNULLOrEmpty() )
         success = domRootNode.SetAttribute( "syncJobId", syncJobId ) && success;
+    if ( !verifyPackId.IsNULLOrEmpty() )
+    {
+        success = domRootNode.SetAttribute( "verifyPackId", verifyPackId ) && success;
+        success = domRootNode.SetAttribute( "repairOriginals", repairOriginals ) && success;
+    }
     return success;
 }
 
@@ -114,6 +121,8 @@ CAssetIngestRequest::Deserialize( const CORE::CDataNode& domRootNode            
     formatId = domRootNode.GetAttributeValueOrChildValueByName( "formatId" ).AsString();
     expectedRevision = domRootNode.GetAttributeValueOrChildValueByName( "expectedRevision" ).AsString();
     syncJobId = domRootNode.GetAttributeValueOrChildValueByName( "syncJobId" ).AsString();
+    verifyPackId = domRootNode.GetAttributeValueOrChildValueByName( "verifyPackId" ).AsString();
+    repairOriginals = domRootNode.GetAttributeValueOrChildValueByName( "repairOriginals" ).AsBool( false, true );
     return true;
 }
 

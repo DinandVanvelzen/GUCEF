@@ -96,6 +96,16 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionAssetStoreProvider : public CIAsset
     virtual bool IsSignedIn( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool SignOut( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool RenewSession( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Takes a session the account holder signed in to elsewhere (AUTH::CWebSessionSignIn::AdoptSession(): the cookies of the
+     *  domains of the login script, saved sealed in the session store), puts it into the cookie jar and tells the observers
+     *  that the session changed. INVALID_ARGUMENT with the reason when no cookie of the store is left or a sign in runs
+     */
+    virtual TAssetStoreStatus ImportWebSession( const AUTH::CWebSession& session, CORE::CString& message ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The user agent of the browser the session was taken from; empty when there is no session or it was not told */
+    CORE::CString GetSessionUserAgent( void ) const;
     virtual bool AuthorizeTransferRequest( const CAssetStoreTransfer& transfer, WEB::CHttpRequestData& request ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** The cookie jar with the session: give it to the requests of the plugin (CHttpClientRequestOptions::cookieJar) */
@@ -104,8 +114,19 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CWebSessionAssetStoreProvider : public CIAsset
     /** Adds a Cookie header with the cookies of the session for the address of the request; false when none apply */
     bool AddSessionCookies( WEB::CHttpRequestData& request ) const;
 
-    /** Hand every answer of the store to this: true when the session ended (answer ASSETSTORE_STATUS_SESSION_EXPIRED then) */
+    /**
+     *  Hand every answer of the store to this: true when the session ended (answer ASSETSTORE_STATUS_SESSION_EXPIRED then).
+     *  Otherwise the cookies of the session that the store renewed in its answers (into the cookie jar of the requests) are
+     *  taken into the session and saved with it
+     */
     bool CheckResponse( const WEB::CHttpResponseData& response );
+
+    /**
+     *  Ends the session that the store no longer takes, found out other than by an answer CheckResponse() knows (a check
+     *  of the store after a refusal): forgets it, empties the cookie jar, raises the end of the session. The reason is
+     *  logged and must hold no secret
+     */
+    void EndSession( const CORE::CString& reason );
 
     /** Puts the current session into the cookie jar again, replacing what is there */
     void RefreshCookieJar( void );

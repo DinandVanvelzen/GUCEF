@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CGLOBPATTERN_H
+#include "gucefCORE_CGlobPattern.h"
+#define GUCEF_CORE_CGLOBPATTERN_H
+#endif /* GUCEF_CORE_CGLOBPATTERN_H ? */
+
 #include "gucefASSETSTORE_CAssetConversionRequest.h"
 
 /*-------------------------------------------------------------------------//
@@ -49,6 +54,12 @@ CAssetConversionRequest::CAssetConversionRequest( void )
     , cookedPathPrefix()
     , observer( GUCEF_NULL )
     , reconvert( false )
+    , assetGlobs()
+    , cookOnly( false )
+    , noCook( false )
+    , cookTargets()
+    , keepPartialResult( false )
+    , reportVfsPath()
 {GUCEF_TRACE;
 
 }
@@ -74,6 +85,33 @@ CAssetConversionRequest::GetSourceRelativePath( const CAssetRecord& asset ) cons
         relative = relative.CutChars( sourcePrefix.Length(), true );
     }
     return relative;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetConversionRequest::IsInScope( const CORE::CString& sourceRelativePath ) const
+{GUCEF_TRACE;
+
+    return IsInScope( assetGlobs, sourceRelativePath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetConversionRequest::IsInScope( const CORE::CString::StringVector& globs, const CORE::CString& sourceRelativePath )
+{GUCEF_TRACE;
+
+    if ( globs.empty() )
+        return true;
+    const CORE::CString path = sourceRelativePath.ReplaceChar( '\\', '/' );
+    for ( size_t i=0; i<globs.size(); ++i )
+    {
+        const CORE::CString glob = globs[ i ].ReplaceChar( '\\', '/' );
+        if ( glob.Equals( path, false ) || CORE::CGlobPattern::IsMatch( glob, path, false ) )
+            return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------//

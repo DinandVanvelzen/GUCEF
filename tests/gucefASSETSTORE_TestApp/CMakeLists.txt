@@ -41,6 +41,7 @@ if (LINUX32)
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
     include/TestRemoteAssetFiles.h
+    include/TestReprocess.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -75,6 +76,7 @@ if (LINUX32)
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
     src/TestRemoteAssetFiles.cpp
+    src/TestReprocess.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -113,6 +115,7 @@ elseif (LINUX64)
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
     include/TestRemoteAssetFiles.h
+    include/TestReprocess.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -147,6 +150,7 @@ elseif (LINUX64)
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
     src/TestRemoteAssetFiles.cpp
+    src/TestReprocess.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -185,6 +189,7 @@ elseif (WIN32)
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
     include/TestRemoteAssetFiles.h
+    include/TestReprocess.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -219,6 +224,7 @@ elseif (WIN32)
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
     src/TestRemoteAssetFiles.cpp
+    src/TestReprocess.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp
@@ -257,6 +263,7 @@ elseif (WIN64)
     include/TestPackStorageLayout.h
     include/TestPrimaryStore.h
     include/TestRemoteAssetFiles.h
+    include/TestReprocess.h
     include/TestToolsConverterHook.h
     include/TestToolsFakeService.h
     include/TestToolsFixture.h
@@ -291,6 +298,7 @@ elseif (WIN64)
     src/TestPackStorageLayout.cpp
     src/TestPrimaryStore.cpp
     src/TestRemoteAssetFiles.cpp
+    src/TestReprocess.cpp
     src/TestToolsConverterHook.cpp
     src/TestToolsFakeService.cpp
     src/TestToolsFixture.cpp

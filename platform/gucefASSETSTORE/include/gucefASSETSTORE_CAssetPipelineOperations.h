@@ -87,11 +87,24 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetPipelineOperations
     static const CORE::CString ReadResource;         /**< "read_resource": the argument "uri" names the resource */
     static const CORE::CString RenderSheet;          /**< "render_sheet": carried out by the render hook */
 
+    // the reprocessing of a pack of the primary store (packId: a store pack id), jobs of the service itself (CAssetReprocessRequest has their arguments)
+    static const CORE::CString PackRedownloadOriginal;      /**< "pack_redownload_original": downloads the original of a pack again from its store and verifies it; different files become a new pack */
+    static const CORE::CString PackRegenerateIntermediate;  /**< "pack_regenerate_intermediate": the intermediate resources (and the cooked ones) made again from the originals */
+    static const CORE::CString PackRegenerateTarget;        /**< "pack_regenerate_target": the engine target resources made again from the intermediate */
+    static const CORE::CString PackReprocess;               /**< "pack_reprocess": the steps above in a row, as the arguments ask */
+    static const CORE::CString AssetRegenerateIntermediate; /**< "asset_regenerate_intermediate": pack_regenerate_intermediate for assets of a pack */
+    static const CORE::CString AssetRegenerateTarget;       /**< "asset_regenerate_target": pack_regenerate_target for assets of a pack */
+    static const CORE::CString ReprocessRollback;           /**< "reprocess_rollback": the previous generation of the outputs of a pack becomes current again */
+    static const CORE::CString ReprocessPlan;               /**< "reprocess_plan": what a reprocessing would do, read only (RunPipelineQuery) */
+
     /** Whether the operation runs as a job: convert_pack, convert_file, cook_pack, validate_pack, index-pack and sync-library (the last two are carried out by the service itself) */
     static bool IsJob( const CORE::CString& operation );
 
     /** Whether the operation is a job that the service carries out itself, not the converter: index-pack, sync-library */
     static bool IsServiceJob( const CORE::CString& operation );
+
+    /** Whether the operation is a job of the reprocessing of a pack of the primary store (not reprocess_plan, which is a query) */
+    static bool IsReprocess( const CORE::CString& operation );
 
     /** Whether the operation writes (previewed unless applied): manifest_create, manifest_edit, override_write, override_remove */
     static bool IsWrite( const CORE::CString& operation );

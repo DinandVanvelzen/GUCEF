@@ -84,6 +84,8 @@ class CFakeStoreProvider : public GUCEF::ASSETSTORE::CIAssetStoreProvider
     GUCEF::UInt32 GetPlanCount( void ) const;
     GUCEF::UInt32 GetRenewCount( void ) const;
     void SetToken( const GUCEF::CORE::CString& token );
+    /** Tells the observers that the session changed (a sign in happened), as a store does after a sign in */
+    void RaiseSessionChanged( void );
 
     virtual const GUCEF::CORE::CString& GetProviderId( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::CORE::CString GetDisplayName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -213,6 +215,12 @@ class CFakeSignInStoreProvider : public GUCEF::ASSETSTORE::CIAssetStoreProvider
     /** Raises the event of a change of the session, from the sign in */
     void SessionChanged( void );
 
+    /** A web session store takes a handed over session: the cookies of the domain webstore.test; it is then signed in */
+    virtual GUCEF::ASSETSTORE::TAssetStoreStatus ImportWebSession( const GUCEF::AUTH::CWebSession& session, GUCEF::CORE::CString& message ) GUCEF_VIRTUAL_OVERRIDE;
+    /** What the last ImportWebSession() kept: the number of cookies and the user agent */
+    GUCEF::UInt32 GetImportedCookieCount( void ) const;
+    GUCEF::CORE::CString GetImportedUserAgent( void ) const;
+
     private:
 
     GUCEF::CORE::CString m_providerId;
@@ -222,6 +230,8 @@ class CFakeSignInStoreProvider : public GUCEF::ASSETSTORE::CIAssetStoreProvider
     bool m_configured;
     bool m_provisioned;
     GUCEF::CORE::CString m_clientIdFile;
+    GUCEF::UInt32 m_importedCookies;
+    GUCEF::CORE::CString m_importedUserAgent;
     CFakeInteractiveSignIn m_signIn;
     mutable GUCEF::MT::CMutex m_lock;
 };

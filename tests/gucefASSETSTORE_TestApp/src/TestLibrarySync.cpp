@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdlib.h>
+#include <algorithm>
 
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
@@ -209,6 +210,36 @@
 #define TESTASSETSTOREREMOTEWORLD_H
 #endif /* TESTASSETSTOREREMOTEWORLD_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREITEMNORMALIZER_H
+#include "gucefASSETSTORE_CAssetStoreItemNormalizer.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREITEMNORMALIZER_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREITEMNORMALIZER_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETVOCABULARY_H
+#include "gucefASSETSTORE_CAssetVocabulary.h"
+#define GUCEF_ASSETSTORE_CASSETVOCABULARY_H
+#endif /* GUCEF_ASSETSTORE_CASSETVOCABULARY_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETINGESTJOB_H
+#include "gucefASSETSTORE_CAssetIngestJob.h"
+#define GUCEF_ASSETSTORE_CASSETINGESTJOB_H
+#endif /* GUCEF_ASSETSTORE_CASSETINGESTJOB_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREJSON_H
+#include "gucefASSETSTORE_CAssetStoreJson.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREJSON_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREJSON_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETJOBFOLLOWLINES_H
+#include "gucefASSETSTORE_CAssetJobFollowLines.h"
+#define GUCEF_ASSETSTORE_CASSETJOBFOLLOWLINES_H
+#endif /* GUCEF_ASSETSTORE_CASSETJOBFOLLOWLINES_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#include "gucefASSETSTORE_CAssetSyncItemDetails.h"
+#define GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H
+#endif /* GUCEF_ASSETSTORE_CASSETSYNCITEMDETAILS_H ? */
+
 #include "TestLibrarySync.h"
 
 using namespace GUCEF;
@@ -288,6 +319,36 @@ MakeLibraryItem( const CString& itemId, const CString& title, const CString::Str
         item.formats.push_back( format );
     }
     return item;
+}
+
+/** A normaliser of a store with licence rules of its own, as a store plugin can have: "Professional" is royalty free */
+class CRuleLicenceNormalizer : public CAssetStoreItemNormalizer
+{
+    public:
+
+    virtual CString GetName( void ) const GUCEF_VIRTUAL_OVERRIDE { return "ruletest"; }
+
+    protected:
+
+    virtual void MapLicence( const CAssetStoreItem& item, const CAssetVocabulary& vocabulary, CAssetPackRecord& pack ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( item.licenceName.Lowercase().HasSubstr( "professional" ) >= 0 )
+            pack.licence.licenceClass = "royalty-free";
+        CAssetStoreItemNormalizer::MapLicence( item, vocabulary, pack );
+    }
+};
+
+/** A sync job as the console of the probe sees it */
+CAssetJobEntry
+MakeFollowEntry( TAssetJobState state, const CString& stateText, UInt32 itemsDone, UInt32 itemsTotal )
+{
+    CAssetJobEntry job;
+    job.jobId = "pipeline:pj7";
+    job.state = state;
+    job.stateText = stateText;
+    job.itemsDone = itemsDone;
+    job.itemsTotal = itemsTotal;
+    return job;
 }
 
 /** Writes a file into a new staging folder of the store, as a finished download leaves it; answers the folder */
@@ -680,6 +741,372 @@ PerformLibrarySyncUnitTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Library sync: a size the store does not give is unknown, never an estimate: the plan counts the known bytes only, the admission assumes the median for the unknown formats, the smallest order puts them last" )
+        try
+        {
+            CAssetLibrarySyncSpec spec;
+            spec.storeId = "sizes";
+            spec.mode = CAssetLibrarySyncSpec::ModePlan;
+            spec.profile.order = CAssetLibrarySyncProfile::OrderSmallest;
+            CString::StringVector fbx( 1, "fbx" );
+            CString::StringVector both;
+            both.push_back( "fbx" );
+            both.push_back( "obj" );
+            CAssetStoreLibraryPage page;
+            page.items.push_back( MakeLibraryItem( "known-a", "Known A", fbx, 1000 ) );
+            page.items.push_back( MakeLibraryItem( "unknown-b", "Unknown B", fbx, 0 ) );          // a build: the store gives no size
+            page.items.push_back( MakeLibraryItem( "known-c", "Known C", fbx, 3000 ) );
+            CAssetStoreItem mixed = MakeLibraryItem( "mixed-d", "Mixed D", both, 500 );
+            mixed.formats[ 1 ].files[ 0 ].size = 0;
+            page.items.push_back( mixed );
+            page.items.push_back( MakeLibraryItem( "unknown-e", "Unknown E", fbx, 0 ) );
+            CAssetLibrarySyncPlanner planner;
+            planner.Reset( spec );
+            planner.AddListingPage( page );
+            planner.SetListingComplete( true );
+            CAssetLibrarySyncPlan plan;
+            CAssetLibrarySyncPlanner::TWorkItemVector worklist;
+            planner.BuildPlan( 1800000000000LL, plan, worklist );
+            ASSERT_TRUE( 5 == plan.queuedItems && 6 == worklist.size() );
+            // known: 1000 + 3000 + 500; the median of the known sizes (500, 1000, 3000) is only what the admission assumes
+            ASSERT_TRUE( 4500 == plan.estimatedBytes && 3 == plan.sizeUnknownItems && 3 * 1000 == plan.unknownSizeAssumedBytes );
+            UInt32 unknownLines = 0;
+            for ( size_t i=0; i<plan.items.size(); ++i )
+            {
+                const CAssetLibrarySyncItem& line = plan.items[ i ];
+                if ( "unknown-b" == line.itemId || "unknown-e" == line.itemId )
+                {
+                    // two unrelated items do not show the same made-up size
+                    ASSERT_TRUE( !line.sizeKnown && 0 == line.estimatedBytes );
+                    ++unknownLines;
+                }
+                if ( "mixed-d" == line.itemId )
+                    ASSERT_TRUE( !line.sizeKnown && 500 == line.estimatedBytes );
+                if ( "known-c" == line.itemId )
+                    ASSERT_TRUE( line.sizeKnown && 3000 == line.estimatedBytes );
+            }
+            ASSERT_TRUE( 2 == unknownLines );
+            UInt32 assumed = 0;
+            bool unknownSeen = false;
+            bool orderKept = true;
+            for ( size_t w=0; w<worklist.size(); ++w )
+            {
+                if ( !worklist[ w ].sizeKnown )
+                {
+                    unknownSeen = true;
+                    ASSERT_TRUE( 1000 == worklist[ w ].estimatedBytes );
+                    ++assumed;
+                }
+                else
+                if ( unknownSeen && "mixed-d" != worklist[ w ].itemId )
+                    orderKept = false;
+            }
+            ASSERT_TRUE( 3 == assumed && orderKept && "mixed-d" != worklist[ 0 ].itemId && worklist[ 0 ].sizeKnown );
+            // the size guard of the store: a known size above it is too-large with the size and the limit, an unknown size is not
+            CAssetLibrarySyncPlanner guarded;
+            guarded.Reset( spec );
+            guarded.SetMaxDownloadBytes( 2000 );
+            guarded.AddListingPage( page );
+            CAssetLibrarySyncPlan guardedPlan;
+            CAssetLibrarySyncPlanner::TWorkItemVector guardedWork;
+            guarded.BuildPlan( 1800000000000LL, guardedPlan, guardedWork );
+            ASSERT_TRUE( 1 == guardedPlan.GetCount( CAssetLibrarySyncItem::TooLarge ) && 4 == guardedPlan.queuedItems );
+            for ( size_t i=0; i<guardedPlan.items.size(); ++i )
+                if ( "known-c" == guardedPlan.items[ i ].itemId )
+                    ASSERT_TRUE( CAssetLibrarySyncItem::TooLarge == guardedPlan.items[ i ].state && guardedPlan.items[ i ].reason.HasSubstr( "too large (3000 bytes, limit 2000 bytes)" ) >= 0 );
+            ASSERT_TRUE( "12.1 GB" == CAssetLibrarySyncPlanner::DescribeBytes( 12100000000ULL ) && "2.1 GB" == CAssetLibrarySyncPlanner::DescribeBytes( 2147483648ULL ) && "421.8 MB" == CAssetLibrarySyncPlanner::DescribeBytes( 421768126ULL ) );
+            CAssetLibrarySyncSpec allow = spec;
+            allow.itemIds.push_back( "known-c" );
+            allow.allowLarge = true;
+            CString why;
+            ASSERT_TRUE( allow.IsValid( why ) );
+            guarded.Reset( allow );
+            guarded.SetMaxDownloadBytes( 2000 );
+            guarded.AddListingPage( page );
+            guarded.BuildPlan( 1800000000000LL, guardedPlan, guardedWork );
+            ASSERT_TRUE( 0 == guardedPlan.GetCount( CAssetLibrarySyncItem::TooLarge ) && 1 == guardedPlan.queuedItems );
+            // a plan line says the size is not known on the wire
+            CDataNode lineNode( "item", GUCEF_DATATYPE_OBJECT );
+            CDataNodeSerializableSettings settings;
+            for ( size_t i=0; i<plan.items.size(); ++i )
+                if ( "unknown-b" == plan.items[ i ].itemId )
+                    plan.items[ i ].Serialize( lineNode, settings );
+            ASSERT_FALSE( lineNode.GetAttributeValueOrChildValueByName( "sizeKnown" ).AsBool( true, true ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Library sync: the licence of a listed item is classified at the plan by the rules of the normaliser of its store, as its ingest will; what neither classifies stays unknown and needs a review" )
+        try
+        {
+            VFS::CVfsGlobal::Instance()->GetVfs().MountModuleData( "gucefASSETSTORE" );
+            CAssetVocabulary vocabulary;
+            CString seedError;
+            ASSERT_TRUE( vocabulary.LoadSeed( "gucefASSETSTORE", seedError ) );
+            CAssetLibrarySyncSpec spec;
+            spec.storeId = "licences";
+            spec.mode = CAssetLibrarySyncSpec::ModePlan;
+            CString::StringVector fbx( 1, "fbx" );
+            CAssetStoreLibraryPage page;
+            CAssetStoreItem professional = MakeLibraryItem( "pro", "Pro", fbx, 100 );
+            professional.licenceName = "Professional";
+            CAssetStoreItem personal = MakeLibraryItem( "personal", "Personal", fbx, 100 );
+            personal.licenceName = "Personal";
+            CAssetStoreItem ccBy = MakeLibraryItem( "ccby", "Cc By", fbx, 100 );
+            ccBy.licenceName = "CC-BY";
+            CAssetStoreItem mystery = MakeLibraryItem( "mystery", "Mystery", fbx, 100 );
+            mystery.licenceName = "UE Marketplace License";
+            page.items.push_back( professional );
+            page.items.push_back( personal );
+            page.items.push_back( ccBy );
+            page.items.push_back( mystery );
+
+            // the vocabulary alone: "Professional" says nothing to it
+            CAssetLibrarySyncPlanner generic;
+            generic.Reset( spec );
+            generic.SetVocabulary( &vocabulary );
+            generic.AddListingPage( page );
+            CAssetLibrarySyncPlan genericPlan;
+            CAssetLibrarySyncPlanner::TWorkItemVector worklist;
+            generic.BuildPlan( 1800000000000LL, genericPlan, worklist );
+            ASSERT_TRUE( 2 == genericPlan.GetCount( "needs-licence-review" ) );
+
+            // with the rules of the store
+            CRuleLicenceNormalizer normalizer;
+            CAssetLibrarySyncPlanner planner;
+            planner.Reset( spec );
+            planner.SetVocabulary( &vocabulary );
+            planner.SetLicenceClassifier( &normalizer );
+            planner.AddListingPage( page );
+            CAssetLibrarySyncPlan plan;
+            planner.BuildPlan( 1800000000000LL, plan, worklist );
+            CString::StringMap classes;
+            for ( size_t i=0; i<plan.items.size(); ++i )
+                classes[ plan.items[ i ].itemId ] = plan.items[ i ].licenceClass;
+            ASSERT_TRUE( "royalty-free" == classes[ "pro" ] && "noncommercial" == classes[ "personal" ] && "attribution" == classes[ "ccby" ] && "unknown" == classes[ "mystery" ] );
+            ASSERT_TRUE( 1 == plan.GetCount( "needs-licence-review" ) );
+            // the class filter of the profile sees the class of the rules
+            spec.profile.licenceClasses.insert( "royalty-free" );
+            planner.Reset( spec );
+            planner.SetVocabulary( &vocabulary );
+            planner.SetLicenceClassifier( &normalizer );
+            planner.AddListingPage( page );
+            planner.BuildPlan( 1800000000000LL, plan, worklist );
+            ASSERT_TRUE( 1 == plan.queuedItems && 3 == plan.skipped[ "filter:licence" ] );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Library sync: the stored plan: the listing goes out and comes back the same; it is used only when young enough, made with the same plan members and for the items asked, not when a fresh plan is asked" )
+        try
+        {
+            CAssetLibrarySyncSpec spec;
+            spec.storeId = "Stored";
+            spec.mode = CAssetLibrarySyncSpec::ModePlan;
+            CString::StringVector both;
+            both.push_back( "fbx" );
+            both.push_back( "obj" );
+            CAssetStoreLibraryPage page;
+            for ( UInt32 i=0; i<6; ++i )
+            {
+                CAssetStoreItem item = MakeLibraryItem( "st-" + ToString( i ), "Stored " + ToString( i ), both, 0 == i ? 0 : 100 + i );
+                item.changedAtMs = 1700000000000LL + i;
+                if ( 5 == i )
+                {
+                    item.downloadable = false;
+                    item.unavailableReason = "key only";
+                }
+                page.items.push_back( item );
+            }
+            const Int64 listedAt = 1800000000000LL;
+            CAssetLibrarySyncPlanner planner;
+            planner.Reset( spec );
+            planner.AddListingPage( page );
+            planner.SetListingComplete( true );
+            CAssetLibrarySyncPlan plan;
+            CAssetLibrarySyncPlanner::TWorkItemVector worklist;
+            planner.BuildPlan( listedAt, plan, worklist );
+            ASSERT_TRUE( "listing" == plan.source && listedAt == plan.listedAtMs );
+            CDataNode stored;
+            planner.ExportListing( listedAt, stored );
+            // through JSON, as the file of the service keeps it
+            CString json;
+            ASSERT_TRUE( CAssetStoreJson::ToText( stored, json ) );
+            CDataNode read;
+            ASSERT_TRUE( CAssetStoreJson::FromText( json, read ) );
+
+            CAssetLibrarySyncSpec run = spec;
+            run.mode = CAssetLibrarySyncSpec::ModeRun;
+            CAssetLibrarySyncPlanner again;
+            again.Reset( run );
+            ASSERT_TRUE( again.ImportListing( read ) && listedAt == again.GetImportedListingTime() && 6 == again.GetListedCount() && again.IsListingComplete() );
+            CAssetLibrarySyncPlan replanned;
+            CAssetLibrarySyncPlanner::TWorkItemVector reworked;
+            again.BuildPlan( listedAt + 1000, replanned, reworked );
+            ASSERT_TRUE( "stored-plan" == replanned.source && listedAt == replanned.listedAtMs );
+            ASSERT_TRUE( plan.queuedItems == replanned.queuedItems && plan.estimatedBytes == replanned.estimatedBytes && plan.sizeUnknownItems == replanned.sizeUnknownItems && worklist.size() == reworked.size() );
+            bool same = true;
+            for ( size_t w=0; w<worklist.size() && same; ++w )
+                same = worklist[ w ].itemId == reworked[ w ].itemId && worklist[ w ].formatId == reworked[ w ].formatId && worklist[ w ].expectedRevision == reworked[ w ].expectedRevision && worklist[ w ].sizeKnown == reworked[ w ].sizeKnown;
+            ASSERT_TRUE( same && 1 == replanned.GetCount( CAssetLibrarySyncItem::Unavailable ) );
+            ASSERT_TRUE( !again.GetEntryFingerprint( "st-1" ).IsNULLOrEmpty() && planner.GetEntryFingerprint( "st-1" ) == again.GetEntryFingerprint( "st-1" ) );
+
+            // when it is used
+            Int64 ageMs = 0;
+            CString reason;
+            ASSERT_TRUE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, run, listedAt + 12 * 60 * 1000, ageMs, reason ) && 12 * 60 * 1000 == ageMs );
+            ASSERT_TRUE( "12 minutes" == CAssetLibrarySyncPlanner::DescribeAge( ageMs ) );
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, run, listedAt + 25LL * 60 * 60 * 1000, ageMs, reason ) );
+            ASSERT_TRUE( reason.HasSubstr( "older than planMaxAgeMinutes 1440" ) >= 0 && reason.HasSubstr( "25 hours" ) >= 0 );
+            CAssetLibrarySyncSpec replan = run;
+            replan.replan = true;
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, replan, listedAt + 1000, ageMs, reason ) );
+            ASSERT_TRUE( reason.HasSubstr( "--replan" ) >= 0 );
+            CAssetLibrarySyncSpec never = run;
+            never.profile.planMaxAgeMinutes = 0;
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, never, listedAt + 1000, ageMs, reason ) );
+            CAssetLibrarySyncSpec filtered = run;
+            filtered.profile.listingTypes.insert( "material" );
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, filtered, listedAt + 1000, ageMs, reason ) );
+            ASSERT_TRUE( reason.HasSubstr( "profile" ) >= 0 );
+            CAssetLibrarySyncSpec formats = run;
+            formats.profile.formats.onlyPreferred = !formats.profile.formats.onlyPreferred;
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, formats, listedAt + 1000, ageMs, reason ) );
+            // the caps, the window and the order are not plan members
+            CAssetLibrarySyncSpec capped = run;
+            capped.profile.maxItemsPerDay = 3;
+            capped.profile.maxInFlightPerStore = 9;
+            capped.profile.order = CAssetLibrarySyncProfile::OrderOldest;
+            capped.maxItems = 2;
+            ASSERT_TRUE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, capped, listedAt + 1000, ageMs, reason ) );
+            CAssetLibrarySyncSpec otherStore = run;
+            otherStore.storeId = "other";
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( read, otherStore, listedAt + 1000, ageMs, reason ) );
+            // a plan of some items serves a run of those items, not one of the whole library
+            CAssetLibrarySyncSpec some = spec;
+            some.itemIds.push_back( "st-1" );
+            some.itemIds.push_back( "st-2" );
+            CAssetLibrarySyncPlanner selected;
+            selected.Reset( some );
+            selected.AddListingPage( page );
+            selected.SetListingComplete( true );
+            CDataNode storedSome;
+            selected.ExportListing( listedAt, storedSome );
+            CAssetLibrarySyncSpec runSome = run;
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( storedSome, runSome, listedAt + 1000, ageMs, reason ) );
+            runSome.itemIds.push_back( "st-2" );
+            ASSERT_TRUE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( storedSome, runSome, listedAt + 1000, ageMs, reason ) );
+            runSome.itemIds.push_back( "st-3" );
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( storedSome, runSome, listedAt + 1000, ageMs, reason ) );
+            CDataNode broken( "syncPlan", GUCEF_DATATYPE_OBJECT );
+            ASSERT_FALSE( CAssetLibrarySyncPlanner::IsStoredPlanUsable( broken, run, listedAt + 1000, ageMs, reason ) );
+            CAssetLibrarySyncPlanner none;
+            none.Reset( run );
+            ASSERT_FALSE( none.ImportListing( broken ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Library sync: the cached details of an item keep what a plan needs, leave out the description and the pictures, and stand for the item only while its library entry is the same and they are young enough" )
+        try
+        {
+            CString::StringVector both;
+            both.push_back( "fbx" );
+            both.push_back( "obj" );
+            CAssetStoreItem item = MakeLibraryItem( "cached-1", "Cached One", both, 4321 );
+            item.description = "a long description the plan does not need";
+            item.imageUrls.push_back( "https://example.invalid/picture.png" );
+            item.tags.push_back( "tag" );
+            item.changedAtMs = 1700000000123LL;
+            item.formatsLevel = 2;
+            CAssetSyncItemDetails details;
+            ASSERT_TRUE( details.SetItem( item ) && "cached-1" == details.itemId );
+            ASSERT_TRUE( details.details.HasSubstr( "long description" ) < 0 && details.details.HasSubstr( "picture.png" ) < 0 );
+            CAssetStoreItem back;
+            ASSERT_TRUE( details.GetItem( back ) );
+            ASSERT_TRUE( "cached-1" == back.itemId && 2 == back.formats.size() && 1 == back.formats[ 1 ].files.size() && 4321 == back.formats[ 1 ].files[ 0 ].size );
+            ASSERT_TRUE( 1700000000123LL == back.changedAtMs && 2 == back.formatsLevel && CAssetItemRevision::GetEffectiveRevision( item ) == CAssetItemRevision::GetEffectiveRevision( back ) );
+
+            const CString entry = CAssetItemRevision::ComputeEntryFingerprint( item );
+            details.entryFingerprint = entry;
+            details.fetchedMs = 1800000000000LL;
+            const Int64 day = 24LL * 60 * 60 * 1000;
+            ASSERT_TRUE( details.IsUsable( entry, 1800000000000LL + 13 * day, 14 * day ) );
+            ASSERT_FALSE( details.IsUsable( entry, 1800000000000LL + 14 * day, 14 * day ) );
+            ASSERT_FALSE( details.IsUsable( entry, 1800000000000LL + day, 0 ) );
+            // the entry changes with its title, a format, a time; not with what only the details say
+            CAssetStoreItem renamed = item;
+            renamed.title = "Cached One, renamed";
+            ASSERT_FALSE( details.IsUsable( CAssetItemRevision::ComputeEntryFingerprint( renamed ), 1800000000000LL + day, 14 * day ) );
+            CAssetStoreItem acquired = item;
+            acquired.acquiredAtMs = 5;
+            ASSERT_TRUE( entry != CAssetItemRevision::ComputeEntryFingerprint( acquired ) );
+            CAssetStoreItem described = item;
+            described.description = "another description";
+            described.formats[ 0 ].files[ 0 ].size = 99;
+            ASSERT_TRUE( entry == CAssetItemRevision::ComputeEntryFingerprint( described ) );
+            CAssetSyncItemDetails empty;
+            CAssetStoreItem nothing;
+            ASSERT_FALSE( empty.GetItem( nothing ) || empty.IsUsable( entry, 1, day ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Library sync: the console that follows a sync shows a line per phase and per ten items, not a line per item; Ctrl-C leaves the job going on with the commands to see and stop it" )
+        try
+        {
+            CAssetJobFollowLines lines( 10, 30000 );
+            CString line;
+            Int64 now = 1000;
+            UInt32 shown = 0;
+            ASSERT_TRUE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "listing: page 1, 0 item(s) so far", 0, 0 ), now, line ) && line.HasSubstr( "listing" ) >= 0 );
+            ASSERT_FALSE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "listing: page 2, 24 item(s) so far", 0, 0 ), now += 1000, line ) );
+            // the details of 112 items, one state per item: a line at the start of the phase and per ten
+            for ( UInt32 i=1; i<=112; ++i )
+            {
+                const CString text = "details of the items: " + ToString( i ) + " of 112 asked of the store";
+                if ( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, text, 0, 0 ), now += 500, line ) )
+                {
+                    ++shown;
+                    ASSERT_TRUE( 1 == i || 0 == i % 10 );
+                }
+            }
+            ASSERT_TRUE( 12 == shown );
+            // the downloads of the run: a new phase, then per ten done
+            ASSERT_TRUE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "3 of 40 queued, 3 in flight; last queued: Crate: Wooden", 0, 40 ), now += 500, line ) );
+            ASSERT_TRUE( line.HasSubstr( "(0 of 40 downloads)" ) >= 0 );
+            ASSERT_FALSE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "5 of 40 queued, 3 in flight; last queued: Barrel", 2, 40 ), now += 500, line ) );
+            ASSERT_TRUE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "14 of 40 queued, 3 in flight; last queued: Lamp", 11, 40 ), now += 500, line ) );
+            // a quiet phase that moved gets a line after the quiet time
+            ASSERT_FALSE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "15 of 40 queued, 3 in flight; last queued: Rock", 12, 40 ), now += 1000, line ) );
+            ASSERT_TRUE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "15 of 40 queued, 3 in flight; last queued: Rock", 12, 40 ), now += 31000, line ) );
+            // a pause is a phase
+            ASSERT_TRUE( lines.Next( MakeFollowEntry( ASSETJOB_STATE_PAUSED, "paused: 15 of 40 queued, 3 in flight", 12, 40 ), now += 500, line ) );
+            const CString detached = CAssetJobFollowLines::DescribeDetached( "pipeline:pj7", "probe --store example service-sync status", "probe --store example service-sync cancel" );
+            ASSERT_TRUE( detached.HasSubstr( "the job continues on the service: pipeline:pj7" ) >= 0 && detached.HasSubstr( "service-sync status" ) >= 0 && detached.HasSubstr( "service-sync cancel" ) >= 0 );
+            CString phase;
+            UInt32 count = 0;
+            CAssetJobFollowLines::GetPhase( MakeFollowEntry( ASSETJOB_STATE_RUNNING, "details of the items: 37 of 112 asked of the store, 72 from the cache", 0, 0 ), phase, count );
+            ASSERT_TRUE( 37 == count && phase.HasSubstr( "details of the items" ) >= 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -806,8 +1233,8 @@ RunLibrarySyncStoreSuite( SSyncFixture& fixture )
             diskPackId = result.packId;
 
             store.Close();
-            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Open() );
-            ASSERT_TRUE( 5 == store.GetCatalogue().GetSchemaVersion() && 5 == CAssetCatalogue::CurrentSchemaVersion && 5 == CountSyncRows( store, "schema_version" ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Open( 5 ) );
+            ASSERT_TRUE( 5 == store.GetCatalogue().GetSchemaVersion() && 5 == CountSyncRows( store, "schema_version" ) );
             ASSERT_TRUE( store.GetSyncStore().IsAvailable() );
             ASSERT_TRUE( 0 == CountSyncRows( store, "pack_sources" ) && 0 == CountSyncRows( store, "sync_marks" ) && 0 == CountSyncRows( store, "sync_items" ) );
             CAssetPackRecord pack;
@@ -816,6 +1243,94 @@ RunLibrarySyncStoreSuite( SSyncFixture& fixture )
             // a pack from disk has no store facts
             CAssetPackSourceRecord source;
             ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == store.GetSyncStore().GetPackSource( diskPackId, source ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": migration 5 to 6 on a catalogue with the rows of the library sync adds the cache of the details, empty, and keeps every row; the cache is written, read by store and pruned" ).C_String() )
+        try
+        {
+            ASSERT_TRUE( 5 == store.GetCatalogue().GetSchemaVersion() && store.GetSyncStore().IsAvailable() && !store.GetSyncStore().IsDetailsCacheAvailable() );
+            CAssetSyncMarkStore& sync = store.GetSyncStore();
+            CAssetSyncItemDetails early;
+            early.sourceId = "libstore";
+            early.itemId = "item-1";
+            early.details = "{}";
+            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == sync.WriteItemDetails( early ) );
+            TAssetSyncItemDetailsMap none;
+            ASSERT_TRUE( ASSETSTORE_STATUS_UNSUPPORTED == sync.GetItemDetailsOfStore( "libstore", none ) );
+            // rows of version 5
+            CAssetSyncMark mark;
+            mark.sourceId = "libstore";
+            mark.itemId = "item-5";
+            mark.mark = CAssetSyncMark::Pin;
+            mark.markedMs = 11;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.SetMark( mark ) );
+            TAssetSyncItemRecordVector observed( 1 );
+            observed[ 0 ].sourceId = "libstore";
+            observed[ 0 ].itemId = "item-5";
+            observed[ 0 ].attempts = 2;
+            observed[ 0 ].listingFingerprint = "fp5";
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.WriteSyncItems( observed ) );
+            CAssetPackSourceRecord facts;
+            facts.packId = "pk-v5";
+            facts.sourceId = "libstore";
+            facts.sourceItemId = "item-5";
+            facts.revision = "ts:5";
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.WritePackSource( facts ) );
+
+            store.Close();
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Open() );
+            ASSERT_TRUE( 6 == store.GetCatalogue().GetSchemaVersion() && 6 == CAssetCatalogue::CurrentSchemaVersion && 6 == CountSyncRows( store, "schema_version" ) );
+            ASSERT_TRUE( sync.IsAvailable() && sync.IsDetailsCacheAvailable() && 0 == CountSyncRows( store, "sync_item_details" ) );
+            TAssetSyncMarkVector marks;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetMarks( "libstore", marks ) && 1 == marks.size() && CAssetSyncMark::Pin == marks[ 0 ].mark && 11 == marks[ 0 ].markedMs );
+            TAssetSyncItemRecordMap items;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetSyncItems( "libstore", items ) && 1 == items.size() && 2 == items[ "item-5" ].attempts && "fp5" == items[ "item-5" ].listingFingerprint );
+            CAssetPackSourceRecord back;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetPackSource( "pk-v5", back ) && "ts:5" == back.revision );
+            CAssetPackRecord pack;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( diskPackId, pack ) );
+
+            // the cache of the details
+            CString::StringVector fbx( 1, "fbx" );
+            for ( UInt32 i=1; i<=3; ++i )
+            {
+                CAssetSyncItemDetails details;
+                ASSERT_TRUE( details.SetItem( MakeLibraryItem( "item-" + ToString( i ), "Item " + ToString( i ), fbx, 100 * i ) ) );
+                details.sourceId = "LibStore";
+                details.entryFingerprint = "entry-" + ToString( i );
+                details.fetchedMs = 1000 + i;
+                ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.WriteItemDetails( details ) );
+            }
+            CAssetSyncItemDetails replaced;
+            ASSERT_TRUE( replaced.SetItem( MakeLibraryItem( "item-2", "Item 2", fbx, 777 ) ) );
+            replaced.sourceId = "libstore";
+            replaced.entryFingerprint = "entry-2b";
+            replaced.fetchedMs = 2002;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.WriteItemDetails( replaced ) );
+            TAssetSyncItemDetailsMap cached;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetItemDetailsOfStore( "libstore", cached ) && 3 == cached.size() );
+            ASSERT_TRUE( "entry-2b" == cached[ "item-2" ].entryFingerprint && 2002 == cached[ "item-2" ].fetchedMs && 1003 == cached[ "item-3" ].fetchedMs );
+            CAssetStoreItem item;
+            ASSERT_TRUE( cached[ "item-2" ].GetItem( item ) && 777 == item.formats[ 0 ].files[ 0 ].size );
+            CString::StringSet keep;
+            keep.insert( "item-1" );
+            keep.insert( "item-3" );
+            UInt32 removed = 0;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.PruneItemDetails( "libstore", keep, removed ) && 1 == removed );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetItemDetailsOfStore( "libstore", cached ) && 2 == cached.size() && cached.end() == cached.find( "item-2" ) );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.GetItemDetailsOfStore( "otherstore", cached ) && cached.empty() );
+
+            // clean up the made up rows
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == sync.RemoveMark( "libstore", "item-5" ) );
+            store.GetCatalogue().DeleteWhereEquals( "sync_items", "source_id", CVariant( "libstore" ) );
+            store.GetCatalogue().DeleteWhereEquals( "pack_sources", "source_id", CVariant( "libstore" ) );
+            store.GetCatalogue().DeleteWhereEquals( "sync_item_details", "source_id", CVariant( "libstore" ) );
+            ASSERT_TRUE( 0 == CountSyncRows( store, "sync_items" ) && 0 == CountSyncRows( store, "pack_sources" ) && 0 == CountSyncRows( store, "sync_item_details" ) );
         }
         catch ( ... )
         {
@@ -1434,6 +1949,8 @@ RunLibrarySyncServiceSuite( SSyncFixture& fixture )
                 server.SetFileBehaviour( "lib-11-fbx", broken );
                 CAssetLibrarySyncSpec spec = MakeSyncSpec( false );
                 spec.profile.maxSyncAttempts = 1;
+                CString::StringVector stagingBefore;
+                store->GetDownloadStagingFolders( stagingBefore );
                 CAssetJobEntry job;
                 CAssetServiceDocument result;
                 ASSERT_TRUE( RunSync( *local, spec, job, result ) );
@@ -1443,6 +1960,15 @@ RunLibrarySyncServiceSuite( SSyncFixture& fixture )
                 ASSERT_TRUE( GUCEF_NULL != failures && 1 == failures->GetNrOfChildNodes() );
                 CAssetSyncItemRecord record;
                 ASSERT_TRUE( ASSETSTORE_STATUS_OK == store->GetSyncStore().GetSyncItem( SyncStoreId, "lib-11", record ) && 1 == record.attempts && record.nextAttemptMs > 0 && !record.lastStatus.IsNULLOrEmpty() );
+                // the failed download left the queue, and its staging folder the share
+                TAssetStoreDownloadJobVector downloads;
+                local->GetDownloadManager()->GetJobs( downloads );
+                for ( size_t d=0; d<downloads.size(); ++d )
+                    ASSERT_FALSE( "lib-11" == downloads[ d ].itemId );
+                CString::StringVector stagingLeft;
+                store->GetDownloadStagingFolders( stagingLeft );
+                for ( size_t f=0; f<stagingLeft.size(); ++f )
+                    ASSERT_TRUE( stagingBefore.end() != std::find( stagingBefore.begin(), stagingBefore.end(), stagingLeft[ f ] ) );
 
                 CAssetServiceDocument plan;
                 ASSERT_TRUE( RunSync( *local, MakeSyncSpec( true ), job, plan ) );
@@ -2965,11 +3491,428 @@ RunLibrarySyncScheduleSuite( SSyncFixture& fixture )
             }
         GUCEF_TESTFW_TESTCASE_END;
 
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": a session that ends during the downloads makes the run wait for a sign in with SYNC_SIGN_IN_NEEDED, without failing an item or asking again in a loop; after the sign in the refused downloads are retried and the run ends with every pack" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( started && process.Start( config ) );
+                TAssetStoreProviderPtr providerPtr;
+                ASSERT_TRUE( GUCEF_NULL != process.local && process.local->GetStoreProvider( SyncStoreId, providerPtr ) && !providerPtr.IsNULL() );
+                if ( GUCEF_NULL != process.local && !providerPtr.IsNULL() )
+                {
+                    CFakeStoreProvider* provider = static_cast< CFakeStoreProvider* >( providerPtr.GetPointerAlways() );
+                    CSyncNoticeRecorder recorder( *process.local, SyncStoreId );
+                    for ( UInt32 i=30; i<=31; ++i )
+                        AddSyncItem( library.server, i, 1, 1700000000000LL + i * 1000, 0, true );
+                    // the store no longer takes the session: every file answers 401 and the session cannot be renewed without the person
+                    provider->SetToken( "ended-session-token" );
+                    library.server.SetTokenEndpointWorks( false );
+                    library.server.SetRequireAuth( true );
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec spec = MakeStoreProfileSpec( false );
+                    spec.itemIds = SyncItemIds( 30, 31 );
+                    CAssetServiceResult run;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == StartSync( *process.local, spec, run ) );
+                    CAssetJobEntry job;
+                    ASSERT_TRUE( PumpUntilStateText( *process.local, run.id, "waiting for sign in", job ) );
+                    ASSERT_TRUE( !job.IsEnded() && ASSETSTORE_STATUS_OWNER_ACTION_NEEDED == job.status );
+                    ASSERT_TRUE( PumpUntilNotice( recorder, "SYNC_SIGN_IN_NEEDED" ) );
+                    CAssetServiceDocument waiting;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJobResult( run.id, "plan", CString::Empty, 0, waiting ) );
+                    ASSERT_TRUE( 0 == SyncCount( waiting, "run", "failed" ) && 0 == SyncCount( waiting, "run", "ingested" ) );
+                    CAssetStoreInfoPage stores;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->ListStores( stores ) );
+                    // while it waits nothing more is asked of the store: no request loop
+                    PumpFor( 1500 );
+                    const UInt32 refusedWhileWaiting = library.server.GetStats().refusedSessions;
+                    PumpFor( 1500 );
+                    ASSERT_TRUE( refusedWhileWaiting == library.server.GetStats().refusedSessions );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJob( run.id, job ) && "waiting for sign in" == job.stateText );
+
+                    // the user signs in: the store has a session again and says so
+                    library.server.SetTokenEndpointWorks( true );
+                    ASSERT_TRUE( provider->RenewSession() );
+                    provider->RaiseSessionChanged();
+                    ASSERT_TRUE( WaitForSync( *process.local, run.id, job ) && ASSETJOB_STATE_DONE == job.state && ASSETSTORE_STATUS_OK == job.status );
+                    CAssetServiceDocument result;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJobResult( run.id, "plan", CString::Empty, 0, result ) );
+                    ASSERT_TRUE( 2 == SyncCount( result, "run", "ingested" ) && 0 == SyncCount( result, "run", "failed" ) && 0 == SyncCount( result, "run", "revalidated" ) );
+                    ASSERT_TRUE( PumpUntilNotice( recorder, "SYNC_DONE" ) && 1 == recorder.Count( "SYNC_SIGN_IN_NEEDED" ) );
+                    UInt32 current = 0;
+                    ASSERT_TRUE( OneCurrentPackEach( *process.store, current ) );
+                    library.server.SetRequireAuth( false );
+                }
+                process.Stop();
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
         process.Stop();
     }
     if ( ownAnalyzer )
         analyzers.Unregister( analyzer->GetName() );
 }
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The plan section of the result of a sync job, and whether it could be read */
+bool
+SyncResult( CIAssetStoreService& service, const CString& jobId, CAssetServiceDocument& result )
+{
+    return ASSETSTORE_STATUS_OK == service.GetJobResult( jobId, "plan", CString::Empty, 0, result );
+}
+
+/** Starts a sync, waits for its end; the message of the start and the result */
+bool
+StartAndWait( CIAssetStoreService& service, const CAssetLibrarySyncSpec& spec, CString& message, CAssetJobEntry& job, CAssetServiceDocument& result )
+{
+    CAssetServiceResult started;
+    if ( ASSETSTORE_STATUS_OK != StartSync( service, spec, started ) )
+        return false;
+    message = started.message;
+    return WaitForSync( service, started.id, job ) && SyncResult( service, started.id, result );
+}
+
+/** A text value of the plan of a result */
+CString
+PlanText( const CAssetServiceDocument& result, const char* name )
+{
+    const CDataNode* plan = result.document.FindChild( "plan" );
+    return GUCEF_NULL == plan ? CString::Empty : plan->GetAttributeValueOrChildValueByName( name ).AsString();
+}
+
+/**
+ *  The reuse of a plan (library sync design, section 13.21): a plan is kept by the service and a start uses it instead of listing;
+ *  the details of the items are cached in the catalogue and asked again only when the entry of an item changed or they are old;
+ *  both survive a restart of the service. The listing of the fake store has no formats, so every item needs its details
+ */
+void
+RunLibrarySyncPlanReuseSuite( SSyncFixture& fixture )
+{
+    const CString& base = fixture.base;
+    MountFreshDirectory( fixture.label + "_main", base + "/main" );
+    CTestModelAnalyzer* analyzer = GUCEF_NEW CTestModelAnalyzer();
+    CAssetContentAnalyzerRegistry& analyzers = CAssetStoreGlobal::Instance()->GetContentAnalyzerRegistry();
+    const bool ownAnalyzer = !analyzers.IsRegistered( analyzer->GetName() );
+    TAssetContentAnalyzerPtr analyzerPtr( analyzer );
+    if ( ownAnalyzer )
+        analyzers.Register( analyzerPtr );
+
+    {
+        CSyncLibraryWorld library;
+        library.server.SetListingWithoutFormats( true );
+        const CString stateDirectory = TestDirectory( fixture.label + "_state" );
+        DeleteDir( stateDirectory, true );
+        CAssetStoreServiceConfig config = MakeSyncServiceConfig( fixture, stateDirectory );
+        CSyncServiceProcess process;
+        const bool started = library.started && process.Start( config );
+        CAssetServiceResult set;
+        const bool profiled = started && ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, MakeSyncTestProfile(), set );
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": a start without a kept plan plans first and says so; a plan is kept, and a start then uses it: no listing and no details are asked, it goes straight to the downloads" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( started && profiled && 6 == process.store->GetCatalogue().GetSchemaVersion() );
+                if ( started && profiled )
+                {
+                    CDataNode stored;
+                    ASSERT_FALSE( process.local->LoadStoredSyncPlan( SyncStoreId, stored ) );
+                    // a start of an item that has no kept plan to use
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec first = MakeStoreProfileSpec( false );
+                    first.itemIds.push_back( "lib-02" );
+                    CString message;
+                    CAssetJobEntry job;
+                    CAssetServiceDocument result;
+                    ASSERT_TRUE( StartAndWait( *process.local, first, message, job, result ) && ASSETJOB_STATE_DONE == job.state );
+                    ASSERT_TRUE( message.HasSubstr( "planning first (no plan of the store is kept)" ) >= 0 && "listing" == PlanText( result, "source" ) );
+                    ASSERT_TRUE( 3 == library.server.GetStats().libraryRequests && 1 == SyncCount( result, "run", "ingested" ) );
+                    // a run keeps no plan
+                    ASSERT_FALSE( process.local->LoadStoredSyncPlan( SyncStoreId, stored ) );
+
+                    // the plan, cold: the three pages and the details of every downloadable item but the one just asked
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) && ASSETJOB_STATE_DONE == job.state );
+                    const CFakeStoreStats cold = library.server.GetStats();
+                    GUCEF_LOG( LOGLEVEL_NORMAL, "LibrarySyncPlanReuse: requests of a plan with a cold cache of details: " << cold.libraryRequests << " page(s), " << cold.itemRequests << " item detail(s), " << cold.fileRequests << " file(s)" );
+                    ASSERT_TRUE( 3 == cold.libraryRequests && 7 == cold.itemRequests && 0 == cold.fileRequests );
+                    ASSERT_TRUE( 8 == PlanValue( result, "detailsNeeded" ) && 7 == PlanValue( result, "detailsRequested" ) && 1 == PlanValue( result, "detailsFromCache" ) );
+                    ASSERT_TRUE( 7 == SyncCount( result, "counts", "missing" ) && 1 == SyncCount( result, "counts", "current" ) );
+                    ASSERT_TRUE( process.local->LoadStoredSyncPlan( SyncStoreId, stored ) && 9 == stored.GetAttributeValueOrChildValueByName( "listed" ).AsUInt32( 0, true ) );
+                    CAssetJobEntry planEntry;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJob( job.jobId, planEntry ) && planEntry.detail.HasSubstr( "the plan is kept" ) >= 0 );
+
+                    // a start uses it
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec two = MakeStoreProfileSpec( false );
+                    two.maxItems = 2;
+                    ASSERT_TRUE( StartAndWait( *process.local, two, message, job, result ) && ASSETJOB_STATE_DONE == job.state );
+                    const CFakeStoreStats warm = library.server.GetStats();
+                    const UInt32 downloads = SyncCount( result, "run", "queued" );
+                    GUCEF_LOG( LOGLEVEL_NORMAL, "LibrarySyncPlanReuse: requests of a start with the kept plan (" << downloads << " downloads): " << warm.libraryRequests << " page(s), " << warm.itemRequests
+                               << " item detail(s) (at the downloads: their plan and their ingest), " << warm.fileRequests << " file(s)" );
+                    ASSERT_TRUE( message.HasSubstr( "using the plan of" ) >= 0 && message.HasSubstr( "(9 items)" ) >= 0 );
+                    ASSERT_TRUE( "stored-plan" == PlanText( result, "source" ) && 0 == PlanValue( result, "detailsRequested" ) );
+                    ASSERT_TRUE( 0 == warm.libraryRequests && 2 * downloads == warm.itemRequests && downloads == warm.fileRequests );
+                    // lib-02 is current: lib-01 and lib-03, two formats each
+                    ASSERT_TRUE( 2 == PlanValue( result, "queuedItems" ) && 4 == downloads && 4 == SyncCount( result, "run", "ingested" ) );
+                    CAssetJobEntry runEntry;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJob( job.jobId, runEntry ) && runEntry.detail.HasSubstr( "using the plan of" ) >= 0 );
+                    // again: the same plan against the packs of now, the next two items
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, two, message, job, result ) && message.HasSubstr( "using the plan of" ) >= 0 );
+                    ASSERT_TRUE( 0 == library.server.GetStats().libraryRequests && 3 == SyncCount( result, "counts", "current" ) && 2 == PlanValue( result, "queuedItems" ) );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": the cache of the details: a second plan asks only the pages; a changed library entry, details older than detailsMaxAgeDays and --refresh-details ask again; an item that left the library leaves the cache" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( GUCEF_NULL != process.store );
+                if ( GUCEF_NULL != process.store )
+                {
+                    CString message;
+                    CAssetJobEntry job;
+                    CAssetServiceDocument result;
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    const CFakeStoreStats warm = library.server.GetStats();
+                    GUCEF_LOG( LOGLEVEL_NORMAL, "LibrarySyncPlanReuse: requests of a plan with a warm cache of details: " << warm.libraryRequests << " page(s), " << warm.itemRequests << " item detail(s)" );
+                    ASSERT_TRUE( 3 == warm.libraryRequests && 0 == warm.itemRequests && 8 == PlanValue( result, "detailsFromCache" ) );
+                    TAssetSyncItemDetailsMap cached;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().GetItemDetailsOfStore( SyncStoreId, cached ) && 8 == cached.size() );
+
+                    // a changed entry (its title) is asked again
+                    CAssetStoreItem renamed = AddSyncItem( library.server, 3, 2, 1700000003000LL, 0, false );
+                    renamed.title = "Library Item 3, renamed";
+                    library.server.ReplaceItem( renamed );
+                    // details older than the profile allows are asked again
+                    CAssetSyncItemDetails old = cached[ "lib-04" ];
+                    old.fetchedMs -= 15LL * 24 * 60 * 60 * 1000;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().WriteItemDetails( old ) );
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    ASSERT_TRUE( 2 == library.server.GetStats().itemRequests && 2 == PlanValue( result, "detailsRequested" ) && 6 == PlanValue( result, "detailsFromCache" ) );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().GetItemDetailsOfStore( SyncStoreId, cached ) && cached[ "lib-04" ].fetchedMs > old.fetchedMs );
+
+                    // --refresh-details: every item is asked again
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec refresh = MakeStoreProfileSpec( true );
+                    refresh.refreshDetails = true;
+                    ASSERT_TRUE( StartAndWait( *process.local, refresh, message, job, result ) );
+                    ASSERT_TRUE( 8 == library.server.GetStats().itemRequests && 0 == PlanValue( result, "detailsFromCache" ) );
+
+                    // detailsMaxAgeDays 0: no cache
+                    CAssetLibrarySyncProfile noCache = MakeSyncTestProfile();
+                    noCache.detailsMaxAgeDays = 0;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, noCache, set ) );
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) && 8 == library.server.GetStats().itemRequests );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, MakeSyncTestProfile(), set ) );
+
+                    // an item that left a complete listing leaves the cache
+                    CAssetStoreItem gone = AddSyncItem( library.server, 8, 1, 0, 0, false );
+                    ASSERT_TRUE( library.server.RemoveItem( "lib-08" ) );
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().GetItemDetailsOfStore( SyncStoreId, cached ) && 7 == cached.size() && cached.end() == cached.find( "lib-08" ) );
+                    library.server.AddItem( gone );
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) && 1 == PlanValue( result, "detailsRequested" ) );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": a start plans first, and says why, with --replan, after a change of the plan members of the profile, with a plan older than planMaxAgeMinutes and with planMaxAgeMinutes 0" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( GUCEF_NULL != process.store );
+                if ( GUCEF_NULL != process.store )
+                {
+                    CString message;
+                    CAssetJobEntry job;
+                    CAssetServiceDocument result;
+                    CAssetLibrarySyncSpec one = MakeStoreProfileSpec( false );
+                    one.maxItems = 1;
+
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec replan = one;
+                    replan.replan = true;
+                    ASSERT_TRUE( StartAndWait( *process.local, replan, message, job, result ) );
+                    ASSERT_TRUE( message.HasSubstr( "planning first (a fresh plan was asked (--replan))" ) >= 0 && 3 == library.server.GetStats().libraryRequests && "listing" == PlanText( result, "source" ) );
+
+                    CAssetLibrarySyncProfile changed = MakeSyncTestProfile();
+                    changed.listingTypes.insert( "3d-model" );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, changed, set ) );
+                    ASSERT_TRUE( StartAndWait( *process.local, one, message, job, result ) && message.HasSubstr( "the profile (formats or filters) changed" ) >= 0 );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, MakeSyncTestProfile(), set ) );
+                    // the window, the caps and the order are no plan members
+                    CAssetLibrarySyncProfile windowed = MakeSyncTestProfile();
+                    windowed.maxInFlightPerStore = 1;
+                    windowed.order = CAssetLibrarySyncProfile::OrderOldest;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, windowed, set ) );
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, one, message, job, result ) && message.HasSubstr( "using the plan of" ) >= 0 && 0 == library.server.GetStats().libraryRequests );
+
+                    CAssetLibrarySyncProfile never = MakeSyncTestProfile();
+                    never.planMaxAgeMinutes = 0;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, never, set ) );
+                    ASSERT_TRUE( StartAndWait( *process.local, one, message, job, result ) && message.HasSubstr( "planMaxAgeMinutes 0" ) >= 0 );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->SetSyncProfile( CString::Empty, SyncStoreId, MakeSyncTestProfile(), set ) );
+
+                    // a plan of 25 hours ago
+                    CDataNode stored;
+                    ASSERT_TRUE( process.local->LoadStoredSyncPlan( SyncStoreId, stored ) );
+                    const Int64 listedAt = stored.GetAttributeValueOrChildValueByName( "listedAtMs" ).AsInt64( 0, true );
+                    stored.SetAttribute( "listedAtMs", CVariant( (Int64) ( listedAt - 25LL * 60 * 60 * 1000 ) ) );
+                    ASSERT_TRUE( process.local->StoreSyncPlan( SyncStoreId, stored ) );
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, one, message, job, result ) );
+                    ASSERT_TRUE( message.HasSubstr( "planning first (the plan of" ) >= 0 && message.HasSubstr( "older than planMaxAgeMinutes 1440" ) >= 0 && 3 == library.server.GetStats().libraryRequests );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": the kept plan and the cache of the details survive a restart of the service" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( GUCEF_NULL != process.store );
+                if ( GUCEF_NULL != process.store )
+                {
+                    CString message;
+                    CAssetJobEntry job;
+                    CAssetServiceDocument result;
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    process.Stop();
+                    ASSERT_TRUE( process.Start( config ) );
+                    library.server.ResetStats();
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    ASSERT_TRUE( 3 == library.server.GetStats().libraryRequests && 0 == library.server.GetStats().itemRequests && 8 == PlanValue( result, "detailsFromCache" ) );
+                    process.Stop();
+                    ASSERT_TRUE( process.Start( config ) );
+                    library.server.ResetStats();
+                    CAssetLibrarySyncSpec all = MakeStoreProfileSpec( false );
+                    ASSERT_TRUE( StartAndWait( *process.local, all, message, job, result ) && ASSETJOB_STATE_DONE == job.state );
+                    ASSERT_TRUE( message.HasSubstr( "using the plan of" ) >= 0 && 0 == library.server.GetStats().libraryRequests && 0 == PlanValue( result, "detailsRequested" ) );
+                    ASSERT_TRUE( 0 == SyncCount( result, "run", "failed" ) );
+                    UInt32 current = 0;
+                    ASSERT_TRUE( OneCurrentPackEach( *process.store, current ) && 12 == current );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": the staging sweep removes the staging folders of downloads left behind and older than an hour, never a young one, one an ingest names or another folder" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( GUCEF_NULL != process.store );
+                if ( GUCEF_NULL != process.store )
+                {
+                    Int64 createdMs = 0;
+                    ASSERT_TRUE( CPrimaryAssetStore::IsDownloadStagingName( "dl1795386490086-476010", createdMs ) && 1795386490086LL == createdMs );
+                    ASSERT_FALSE( CPrimaryAssetStore::IsDownloadStagingName( "dl1795386490086", createdMs ) || CPrimaryAssetStore::IsDownloadStagingName( "dl-1", createdMs ) ||
+                                  CPrimaryAssetStore::IsDownloadStagingName( "ingest-dl1-2", createdMs ) || CPrimaryAssetStore::IsDownloadStagingName( "dl12-34x", createdMs ) );
+                    const CString staging = base + "/main/staging";
+                    const Int64 now = (Int64) CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
+                    const CString old = "dl" + ToString( now - 3 * 60 * 60 * 1000 ) + "-111";
+                    const CString young = "dl" + ToString( now - 60 * 1000 ) + "-222";
+                    const CString ofIngest = "dl" + ToString( now - 3 * 60 * 60 * 1000 ) + "-333";
+                    ASSERT_TRUE( WriteVfsFile( staging + "/" + old + "/Content/big.uasset", CString( "left behind" ) ) );
+                    ASSERT_TRUE( WriteVfsFile( staging + "/" + young + "/file.bin.part", CString( "just started" ) ) );
+                    ASSERT_TRUE( WriteVfsFile( staging + "/" + ofIngest + "/model.fbx", CString( "being ingested" ) ) );
+                    ASSERT_TRUE( WriteVfsFile( staging + "/ing-test-1/" + CAssetIngestJob::ManifestFileName, "{ \"contentPath\": \"" + staging + "/" + ofIngest + "\" }" ) );
+                    ASSERT_TRUE( WriteVfsFile( staging + "/keepme/notes.txt", CString( "not a download" ) ) );
+                    const UInt32 removed = process.local->SweepDownloadStaging();
+                    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+                    ASSERT_TRUE( 1 == removed && !vfs.DirExists( staging + "/" + old ) );
+                    ASSERT_TRUE( vfs.DirExists( staging + "/" + young ) && vfs.DirExists( staging + "/" + ofIngest ) && vfs.DirExists( staging + "/keepme" ) && vfs.DirExists( staging + "/ing-test-1" ) );
+                    ASSERT_FALSE( process.store->RemoveDownloadStagingFolder( staging + "/keepme" ) || process.store->RemoveDownloadStagingFolder( staging + "/ing-test-1" ) );
+                    ASSERT_TRUE( vfs.DirExists( staging + "/keepme" ) );
+                    vfs.DeleteDir( staging + "/" + young, true );
+                    vfs.DeleteDir( staging + "/" + ofIngest, true );
+                    vfs.DeleteDir( staging + "/ing-test-1", true );
+                    vfs.DeleteDir( staging + "/keepme", true );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+
+        GUCEF_TESTFW_TESTCASE( ( fixture.label + ": an item the size guard of the store refused is planned too-large with its size and the limit, not missing; named with allowLarge it is queued again" ).C_String() )
+            try
+            {
+                ASSERT_TRUE( GUCEF_NULL != process.store );
+                if ( GUCEF_NULL != process.store )
+                {
+                    // a new item; its download was refused by the size guard of the store (as a plugin refuses a very large build)
+                    AddSyncItem( library.server, 20, 1, 1700000020000LL, 0, true );
+                    CString message;
+                    CAssetJobEntry job;
+                    CAssetServiceDocument result;
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    TAssetSyncItemRecordMap observed;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().GetSyncItems( SyncStoreId, observed ) && observed.end() != observed.find( "lib-20" ) );
+                    CAssetSyncItemRecord refused = observed[ "lib-20" ];
+                    CAssetLibrarySyncPlanner::NoteFailedAttempt( refused, ASSETSTORE_STATUS_REFUSED, "the store could not plan the download: size guard: the format fbx is 12100000000 bytes in 3 files (an Unreal Engine build, sizes from its manifest), more than the limit of 2147483648 bytes; nothing of it is downloaded",
+                                                                 (Int64) CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs(), MakeSyncTestProfile() );
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.store->GetSyncStore().WriteSyncItems( TAssetSyncItemRecordVector( 1, refused ) ) );
+                    ASSERT_TRUE( StartAndWait( *process.local, MakeStoreProfileSpec( true ), message, job, result ) );
+                    ASSERT_TRUE( 1 == SyncCount( result, "counts", "too-large" ) && 1 == SyncCount( result, "skipped", "too-large" ) && 0 == SyncCount( result, "counts", "failed-before" ) );
+                    CString reason;
+                    CAssetServiceDocument page;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_OK == process.local->GetJobResult( job.jobId, "items", CString::Empty, 100, page ) );
+                    const CDataNode* items = page.document.FindChild( "items" );
+                    for ( CDataNode::const_iterator i = items->ConstBegin(); GUCEF_NULL != items && i != items->ConstEnd(); ++i )
+                        if ( "lib-20" == (*i)->GetAttributeValueOrChildValueByName( "itemId" ).AsString() )
+                        {
+                            ASSERT_TRUE( CAssetLibrarySyncItem::TooLarge == (*i)->GetAttributeValueOrChildValueByName( "state" ).AsString() );
+                            reason = (*i)->GetAttributeValueOrChildValueByName( "reason" ).AsString();
+                        }
+                    ASSERT_TRUE( reason.HasSubstr( "too large (12.1 GB, limit 2.1 GB)" ) >= 0 && reason.HasSubstr( "--allow-large" ) >= 0 );
+                    // allowLarge without the items named is refused; with them the item is queued at once (not after the wait of a failure)
+                    CAssetLibrarySyncSpec unnamed = MakeStoreProfileSpec( false );
+                    unnamed.allowLarge = true;
+                    CAssetServiceResult refusedStart;
+                    ASSERT_TRUE( ASSETSTORE_STATUS_INVALID_ARGUMENT == StartSync( *process.local, unnamed, refusedStart ) );
+                    CAssetLibrarySyncSpec named = MakeStoreProfileSpec( false );
+                    named.allowLarge = true;
+                    named.itemIds.push_back( "lib-20" );
+                    ASSERT_TRUE( StartAndWait( *process.local, named, message, job, result ) && ASSETJOB_STATE_DONE == job.state );
+                    ASSERT_TRUE( 1 == PlanValue( result, "queuedItems" ) && 1 == SyncCount( result, "run", "ingested" ) );
+                }
+            }
+            catch ( ... )
+            {
+                ERRORHERE;
+            }
+        GUCEF_TESTFW_TESTCASE_END;
+        process.Stop();
+    }
+    if ( ownAnalyzer )
+        analyzers.Unregister( analyzer->GetName() );
+}
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3034,6 +3977,15 @@ PerformLibrarySyncVfsTablesTests( void )
     schedule.database.database = "astest/lsj_vfstables/catalogue/db";
     RunLibrarySyncScheduleSuite( schedule );
     UnmountDirectory( "lsj_vfstables_catalogue" );
+
+    SSyncFixture reuse;
+    reuse.label = "lsp_vfstables";
+    reuse.base = "astest/lsp_vfstables";
+    MountFreshDirectory( "lsp_vfstables_catalogue", "astest/lsp_vfstables/catalogue" );
+    reuse.database = fixture.database;
+    reuse.database.database = "astest/lsp_vfstables/catalogue/db";
+    RunLibrarySyncPlanReuseSuite( reuse );
+    UnmountDirectory( "lsp_vfstables_catalogue" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3139,6 +4091,14 @@ PerformLibrarySyncPostgreSqlTests( void )
     GUCEF_LOG( LOGLEVEL_NORMAL, "LibrarySyncPostgreSql: testing the schedule in schema \"" << scheduleSchema << "\"" );
     RunLibrarySyncScheduleSuite( schedule );
 
+    SSyncFixture reuse = fixture;
+    reuse.label = "lsp_postgresql";
+    reuse.base = "astest/lsp_postgresql";
+    const CString reuseSchema = MakeTestSchemaName() + "p";
+    reuse.database.backendOptions.Set( "schema", CVariant( reuseSchema ) );
+    GUCEF_LOG( LOGLEVEL_NORMAL, "LibrarySyncPostgreSql: testing the reuse of a plan in schema \"" << reuseSchema << "\"" );
+    RunLibrarySyncPlanReuseSuite( reuse );
+
     GUCEF_TESTFW_TESTCASE( "PostgreSQL: the schemas of the run of the library sync suites are dropped" )
         try
         {
@@ -3167,6 +4127,7 @@ PerformLibrarySyncPostgreSqlTests( void )
                     ASSERT_TRUE( DATATABLE_STATUS_OK == connection->Execute( "DROP SCHEMA " + DBPLUGIN::POSTGRESQL::CPostgreSqlSql::QuoteIdentifier( restartSchema ) + " CASCADE", dropError ) );
                     ASSERT_TRUE( DATATABLE_STATUS_OK == connection->Execute( "DROP SCHEMA " + DBPLUGIN::POSTGRESQL::CPostgreSqlSql::QuoteIdentifier( diskSchema ) + " CASCADE", dropError ) );
                     ASSERT_TRUE( DATATABLE_STATUS_OK == connection->Execute( "DROP SCHEMA " + DBPLUGIN::POSTGRESQL::CPostgreSqlSql::QuoteIdentifier( scheduleSchema ) + " CASCADE", dropError ) );
+                    ASSERT_TRUE( DATATABLE_STATUS_OK == connection->Execute( "DROP SCHEMA " + DBPLUGIN::POSTGRESQL::CPostgreSqlSql::QuoteIdentifier( reuseSchema ) + " CASCADE", dropError ) );
                 }
                 client->Close();
             }

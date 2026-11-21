@@ -578,6 +578,8 @@ CAssetIngestPipeline::Run( CAssetIngestJob& job, CAssetIngestResult& result )
             job.problems.push_back( "a duplicate of pack " + result.duplicateOfPackId );
             Record( job, "duplicate", step, recordMessage );
             RevalidateDuplicate( job, result.duplicateOfPackId );
+            if ( job.request.repairOriginals && job.request.verifyPackId == result.duplicateOfPackId )
+                RepairOriginals( job, result.duplicateOfPackId, result.repairedFiles );
             result.status = ASSETSTORE_STATUS_DUPLICATE;
             result.message = message;
             result.problems = job.problems;
@@ -824,7 +826,9 @@ CAssetIngestPipeline::Identify( CAssetIngestJob& job, CAssetIngestResult& result
     if ( !duplicateOf.IsNULLOrEmpty() )
     {
         const CPrimaryAssetStoreSettings settings = m_store.GetSettings();
-        const TAssetDuplicatePolicy policy = job.request.duplicatePolicy.IsNULLOrEmpty() ? settings.duplicatePolicy : AssetDuplicatePolicyFromString( job.request.duplicatePolicy, settings.duplicatePolicy );
+        TAssetDuplicatePolicy policy = job.request.duplicatePolicy.IsNULLOrEmpty() ? settings.duplicatePolicy : AssetDuplicatePolicyFromString( job.request.duplicatePolicy, settings.duplicatePolicy );
+        if ( !job.request.verifyPackId.IsNULLOrEmpty() )
+            policy = ASSETDUPLICATE_SKIP;      // a verified download again of the same files adds nothing
         result.duplicateOfPackId = duplicateOf;
         if ( ASSETDUPLICATE_SKIP == policy )
         {
@@ -844,6 +848,29 @@ CAssetIngestPipeline::FindDuplicate( const CAssetIngestJob& job, CORE::CString& 
 
     duplicateOfPackId.Clear();
     CAssetCatalogue& catalogue = m_store.GetCatalogue();
+
+    // a download again of the originals of a pack: the same files (digests, as often as they occur) are that pack, whatever the
+    // revision says; other files are a new pack, never a duplicate of another one
+    if ( !job.request.verifyPackId.IsNULLOrEmpty() )
+    {
+        TAssetRecordVector stored;
+        const TAssetStoreStatus status = m_store.GetAssets( job.request.verifyPackId, stored );
+        if ( ASSETSTORE_STATUS_OK != status )
+            return status;
+        CORE::CString::StringVector storedDigests;
+        CORE::CString::StringVector newDigests;
+        for ( size_t a=0; a<stored.size(); ++a )
+            if ( !stored[ a ].digest.IsNULLOrEmpty() )
+                storedDigests.push_back( stored[ a ].digest.Lowercase() );
+        for ( size_t a=0; a<job.assets.size(); ++a )
+            if ( !job.assets[ a ].digest.IsNULLOrEmpty() )
+                newDigests.push_back( job.assets[ a ].digest.Lowercase() );
+        std::sort( storedDigests.begin(), storedDigests.end() );
+        std::sort( newDigests.begin(), newDigests.end() );
+        if ( !storedDigests.empty() && storedDigests == newDigests )
+            duplicateOfPackId = job.request.verifyPackId;
+        return ASSETSTORE_STATUS_OK;
+    }
 
     // the same item of the same store: with the store facts of the library sync (schema 5) a pack of another format or of
     // another revision of the item is not the same; a download of the sync is the same only as a current pack of its format
@@ -1167,17 +1194,37 @@ CAssetIngestPipeline::Place( CAssetIngestJob& job, CORE::CString& message )
     const bool sourceIsFile = vfs.FileExists( job.request.contentPath ) && !vfs.DirExists( job.request.contentPath );
     const CORE::CString sourceName = job.request.sourceId == CPrimaryAssetStoreSettings::DiskSourceId || sourceIsFile ?
                                      SourceNameOf( job ) : job.pack.title;
-    const CPackStorageLayout layout( CPackStorageLayout::MakeRootPath( m_store.ChoosePackFolder( job.locationId, sourceName, job.pack.packId ) ) );
+    // the folder an earlier attempt of this ingest chose (kept in the manifest before anything moved), else a new one
+    const CPackStorageLayout earlier( job.pack.rootPath );
+    const CPackStorageLayout layout( earlier.IsAreaLayout() ? earlier.GetStoredRootPath()
+                                                            : CPackStorageLayout::MakeRootPath( m_store.ChoosePackFolder( job.locationId, sourceName, job.pack.packId ) ) );
     const CORE::CString originalFolder = layout.GetOriginalFolder( locationRoot );
+    if ( earlier.IsAreaLayout() )
+        m_store.ReservePackFolder( job.locationId, job.pack.packId, earlier.GetPackFolder() );
+    else
+    {
+        // the choice is kept before the move: a restart in the middle of it places the pack in the same folder, never in a second one
+        job.pack.rootPath = layout.GetStoredRootPath();
+        SaveManifest( job );
+    }
 
     UnmountArchives();
+    const bool staged = !job.contentRoot.IsNULLOrEmpty() && vfs.DirExists( job.contentRoot );
+    if ( staged && vfs.DirExists( originalFolder ) )
+    {
+        // the staged files are still there, so an earlier attempt did not finish its copy (a move is one rename): its part goes
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: " << job.ingestId << ": " << originalFolder << " holds an unfinished copy of an earlier attempt; it is made again" );
+        vfs.DeleteDir( originalFolder, true );
+    }
     if ( !vfs.DirExists( originalFolder ) )
     {
         if ( !vfs.MoveDir( job.contentRoot, originalFolder ) )
         {
-            // another mount: copied, then the staged files go
+            // another file system (a scratch staging area): copied, then the staged files go
             if ( !CopyTree( job.contentRoot, originalFolder ) )
             {
+                // nothing half copied stays behind to be taken for the pack later
+                vfs.DeleteDir( originalFolder, true );
                 message = "the pack could not be placed in " + originalFolder;
                 return ASSETSTORE_STATUS_IO_ERROR;
             }
@@ -1695,6 +1742,70 @@ CAssetIngestPipeline::RecordSourceFacts( CAssetIngestJob& job )
     if ( superseded > 0 )
     {
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: Pack " << job.pack.packId << " supersedes " << superseded << " older pack(s) of item " << item.itemId << " of store " << facts.sourceId );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetIngestPipeline::RepairOriginals( CAssetIngestJob& job, const CORE::CString& packId, CORE::CString::StringVector& repaired )
+{GUCEF_TRACE;
+
+    // the original files of the pack that are missing, or whose size or digest is not what the catalogue says, are put back from the
+    // verified download: the same content as the catalogue records, so an original is restored and never changed
+    repaired.clear();
+    CAssetPackRecord pack;
+    TAssetRecordVector stored;
+    if ( ASSETSTORE_STATUS_OK != m_store.GetPack( packId, pack ) || ASSETSTORE_STATUS_OK != m_store.GetAssets( packId, stored ) )
+        return;
+    const CPackStorageLayout layout( pack.rootPath );
+    const CORE::CString locationRoot = m_store.GetLocationRoot( pack.locationId );
+    const CORE::CString prefix = layout.GetOriginalPrefix() + "/";
+    GUCEF::map< CORE::CString, const CAssetRecord* > downloaded;
+    for ( size_t a=0; a<job.assets.size(); ++a )
+        downloaded[ job.assets[ a ].digest.Lowercase() ] = &job.assets[ a ];
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    for ( size_t a=0; a<stored.size(); ++a )
+    {
+        for ( size_t f=0; f<stored[ a ].files.size(); ++f )
+        {
+            const CAssetFileRecord& file = stored[ a ].files[ f ];
+            if ( file.digest.IsNULLOrEmpty() || 0 != file.path.HasSubstr( prefix, true ) )
+                continue;
+            const CORE::CString target = layout.Resolve( locationRoot, file.path );
+            bool intact = vfs.FileExists( target ) && ( file.sizeBytes < 0 || (Int64) vfs.GetFileSize( target ) == file.sizeBytes );
+            if ( intact )
+            {
+                CORE::CString digest;
+                intact = CAssetDigest::ComputeVfsFileDigest( target, CAssetDigest::Sha256, digest ) && digest.Lowercase() == file.digest.Lowercase();
+            }
+            if ( intact )
+                continue;
+            GUCEF::map< CORE::CString, const CAssetRecord* >::const_iterator source = downloaded.find( file.digest.Lowercase() );
+            if ( source == downloaded.end() || (*source).second->files.empty() )
+            {
+                job.problems.push_back( "the original file " + file.path + " is damaged and the download has no file with its digest" );
+                continue;
+            }
+            // a file of a staged archive cannot be put back on its own
+            const CORE::CString from = JoinVfs( job.contentRoot, (*source).second->files[ 0 ].path );
+            if ( !vfs.FileExists( from ) )
+            {
+                job.problems.push_back( "the original file " + file.path + " is damaged; its copy in the download is inside an archive and is not put back on its own" );
+                continue;
+            }
+            const CORE::CString temporary = target + ".repair";
+            if ( vfs.CopyFileContent( from, temporary, true ) && vfs.MoveFile( temporary, target, true ) )
+            {
+                repaired.push_back( file.path );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetIngestPipeline: The original file " << file.path << " of pack " << packId << " was put back from a verified download" );
+            }
+            else
+            {
+                vfs.DeleteFile( temporary, true );
+                job.problems.push_back( "the original file " + file.path + " could not be put back" );
+            }
+        }
     }
 }
 

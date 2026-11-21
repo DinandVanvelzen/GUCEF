@@ -69,6 +69,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestResult : public CORE::CIDataNodeSe
     TAssetIngestStep failedStep;
     CORE::CString message;
     CORE::CString duplicateOfPackId;
+    CORE::CString::StringVector repairedFiles;  /**< a verified download again (CAssetIngestRequest::verifyPackId): the original files of the pack that were put back */
     UInt32 assetCount;
     CORE::CString::StringVector problems;
 

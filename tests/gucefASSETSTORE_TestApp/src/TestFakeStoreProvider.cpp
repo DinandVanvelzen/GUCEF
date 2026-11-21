@@ -36,6 +36,10 @@
 #include "gucefWEB_CHTTPClient.h"
 #define GUCEF_WEB_CHTTPCLIENT_H
 #endif /* GUCEF_WEB_CHTTPCLIENT_H ? */
+#ifndef GUCEF_AUTH_CWEBSESSION_H
+#include "gucefAUTH_CWebSession.h"
+#define GUCEF_AUTH_CWEBSESSION_H
+#endif /* GUCEF_AUTH_CWEBSESSION_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREJSON_H
 #include "gucefASSETSTORE_CAssetStoreJson.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREJSON_H
@@ -149,6 +153,14 @@ CFakeStoreProvider::SetToken( const CORE::CString& token )
 {
     MT::CScopeMutex lock( m_lock );
     m_token.Set( token );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFakeStoreProvider::RaiseSessionChanged( void )
+{
+    NotifySessionStateChanged();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -466,6 +478,8 @@ CFakeSignInStoreProvider::CFakeSignInStoreProvider( void )
     , m_configured( false )
     , m_provisioned( false )
     , m_clientIdFile()
+    , m_importedCookies( 0 )
+    , m_importedUserAgent()
     , m_signIn( *this )
     , m_lock()
 {
@@ -533,6 +547,58 @@ void
 CFakeSignInStoreProvider::SessionChanged( void )
 {
     NotifySessionStateChanged();
+}
+
+/*-------------------------------------------------------------------------*/
+
+ASSETSTORE::TAssetStoreStatus
+CFakeSignInStoreProvider::ImportWebSession( const AUTH::CWebSession& session, CORE::CString& message )
+{
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( !m_webSession )
+        {
+            message = "not a web session store";
+            return ASSETSTORE::ASSETSTORE_STATUS_UNSUPPORTED;
+        }
+        UInt32 kept = 0;
+        for ( size_t i=0; i<session.cookies.size(); ++i )
+        {
+            const CORE::CString domain = session.cookies[ i ].domain.Lowercase();
+            if ( !session.cookies[ i ].value.IsEmpty() && ( domain == "webstore.test" || domain.EndsWith( ".webstore.test" ) ) )
+                ++kept;
+        }
+        if ( 0 == kept )
+        {
+            message = "no cookie of the store";
+            return ASSETSTORE::ASSETSTORE_STATUS_INVALID_ARGUMENT;
+        }
+        m_importedCookies = kept;
+        m_importedUserAgent = session.userAgent;
+        m_signedIn = true;
+        m_refused = false;
+        message = CORE::ToString( kept ) + " cookies of the session were taken";
+    }
+    NotifySessionStateChanged();
+    return ASSETSTORE::ASSETSTORE_STATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CFakeSignInStoreProvider::GetImportedCookieCount( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_importedCookies;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CFakeSignInStoreProvider::GetImportedUserAgent( void ) const
+{
+    MT::CScopeMutex lock( m_lock );
+    return m_importedUserAgent;
 }
 
 /*-------------------------------------------------------------------------*/

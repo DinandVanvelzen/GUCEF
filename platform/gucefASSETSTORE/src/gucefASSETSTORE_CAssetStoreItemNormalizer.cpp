@@ -134,6 +134,17 @@ CAssetStoreItemNormalizer::MapLicence( const CAssetStoreItem& item, const CAsset
 /*-------------------------------------------------------------------------*/
 
 void
+CAssetStoreItemNormalizer::ClassifyItemLicence( const CAssetStoreItem& item, const CAssetVocabulary& vocabulary, CAssetLicence& licence )
+{GUCEF_TRACE;
+
+    CAssetPackRecord pack;
+    MapLicence( item, vocabulary, pack );
+    licence = pack.licence;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CAssetStoreItemNormalizer::MakeKeywords( const CAssetVocabulary& vocabulary, CAssetPackRecord& pack )
 {GUCEF_TRACE;
 

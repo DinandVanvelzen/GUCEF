@@ -152,7 +152,7 @@ PerformAssetToolsMcpFakeTests( void )
             CAssetToolSet::GetToolNames( expected );
             const CString::StringSet listed( names.begin(), names.end() );
             const CString::StringSet catalogued( expected.begin(), expected.end() );
-            ASSERT_TRUE( listed == catalogued && 49 == names.size() && 49 == listed.size() );
+            ASSERT_TRUE( listed == catalogued && 57 == names.size() && 57 == listed.size() );
             CDataNode::const_iterator i = list.ConstBegin();
             while ( i != list.ConstEnd() )
             {
@@ -190,6 +190,74 @@ PerformAssetToolsMcpFakeTests( void )
             fixture.SetExposure( off );
             ASSERT_TRUE( fixture.ListTools( names ) && names.empty() );
             ASSERT_TRUE( fixture.Request( "resources/read", "\"uri\":\"assettools://server/status\"", response ) && 0 != CToolsFixture::ProtocolError( response ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Asset tools: the reprocessing tools: their groups and effects, the plan as a read tool, the jobs as a machine caller, the store group for a download again, no run of a sync" )
+        try
+        {
+            CToolsFakeService* fake = GUCEF_NULL;
+            CToolsFixture fixture( MakeFake( fake ), FakeSettings( "tfreprocess" ) );
+            ASSERT_TRUE( fixture.ok );
+            static const char* const convertTools[] = { "pack_regenerate_intermediate", "pack_regenerate_target", "asset_regenerate_intermediate", "asset_regenerate_target",
+                                                        "pack_reprocess", "reprocess_rollback" };
+            for ( UInt32 t=0; t<6; ++t )
+            {
+                const CAssetToolCatalogue::SEntry* entry = CAssetToolCatalogue::Find( convertTools[ t ] );
+                ASSERT_TRUE( GUCEF_NULL != entry && CAssetToolCatalogue::FAMILY_JOB_START == entry->family && COM::MCP_TOOLEFFECT_ADDITIVE == entry->effect &&
+                             CString( "convert" ) == entry->group );
+            }
+            const CAssetToolCatalogue::SEntry* redownload = CAssetToolCatalogue::Find( "pack_redownload_original" );
+            ASSERT_TRUE( GUCEF_NULL != redownload && CString( "store" ) == redownload->group && redownload->openWorld && COM::MCP_TOOLEFFECT_ADDITIVE == redownload->effect );
+            const CAssetToolCatalogue::SEntry* plan = CAssetToolCatalogue::Find( "reprocess_plan" );
+            ASSERT_TRUE( GUCEF_NULL != plan && CString( "read" ) == plan->group && COM::MCP_TOOLEFFECT_READ_ONLY == plan->effect );
+            // the descriptions say when to use which
+            ASSERT_TRUE( CString( CAssetToolCatalogue::Find( "pack_regenerate_target" )->description ).HasSubstr( "cooked output looks wrong" ) >= 0 );
+            ASSERT_TRUE( CString( CAssetToolCatalogue::Find( "pack_regenerate_intermediate" )->description ).HasSubstr( "importer improved" ) >= 0 );
+            ASSERT_TRUE( CString( redownload->description ).HasSubstr( "missing or damaged" ) >= 0 );
+            ASSERT_TRUE( GUCEF_NULL == CAssetToolCatalogue::Find( "sync_start" ) );
+
+            // the plan is a read tool: visible with the closed defaults, the request says a machine asks
+            CDataNode planned( "plan", GUCEF_DATATYPE_OBJECT );
+            planned.SetAttribute( "packId", "pk1" );
+            planned.SetAttribute( "wouldRun", true );
+            planned.AddChild( "refusals", GUCEF_DATATYPE_ARRAY );
+            fake->SetPipelineAnswer( "reprocess_plan", ASSETSTORE_STATUS_OK, planned );
+            CDataNode response;
+            ASSERT_TRUE( fixture.Call( "reprocess_plan", "{\"storePackId\":\"pk1\",\"operation\":\"pack_regenerate_intermediate\"}", response ) && !CToolsFixture::IsToolError( response ) );
+            ASSERT_TRUE( "true" == CToolsFixture::StructuredAttr( response, "wouldRun" ) );
+            CAssetPipelineRequest asked;
+            ASSERT_TRUE( fake->GetLastPipelineRequest( "reprocess_plan", asked ) && "pk1" == asked.packId );
+            ASSERT_TRUE( asked.arguments.GetAttributeValueOrChildValueByName( "machine" ).AsBool( false, true ) );
+            ASSERT_TRUE( 0 == asked.arguments.GetAttributeValueOrChildValueByName( "caller" ).AsString().HasSubstr( "mcp:" ) );
+            // a regeneration is a convert tool: hidden until the group is on
+            ASSERT_TRUE( fixture.Call( "pack_regenerate_intermediate", "{\"storePackId\":\"pk1\"}", response ) && -32602 == CToolsFixture::ProtocolError( response ) );
+
+            CAssetToolsExposure convertOnly;
+            convertOnly.convertEnabled = true;
+            convertOnly.origin = "test";
+            fixture.SetExposure( convertOnly );
+            CDataNode done( "result", GUCEF_DATATYPE_OBJECT );
+            done.SetAttribute( "summary", "regenerated" );
+            fake->SetJobScript( 1, ASSETJOB_STATE_DONE, done, false );
+            const UInt32 jobs = fake->GetStartedJobCount();
+            ASSERT_TRUE( fixture.Call( "pack_regenerate_intermediate", "{\"storePackId\":\"pk1\",\"onlyStatuses\":[\"failed\"],\"waitMs\":5000}", response, 10000 ) );
+            ASSERT_TRUE( !CToolsFixture::IsToolError( response ) && jobs + 1 == fake->GetStartedJobCount() );
+            // a download again needs the store group: refused without starting anything, also as a step of pack_reprocess
+            ASSERT_TRUE( fixture.Call( "pack_reprocess", "{\"storePackId\":\"pk1\",\"steps\":[\"redownload\",\"intermediate\"]}", response ) && "not-enabled" == CToolsFixture::ErrorCode( response ) );
+            ASSERT_TRUE( fixture.Call( "pack_redownload_original", "{\"storePackId\":\"pk1\"}", response ) && -32602 == CToolsFixture::ProtocolError( response ) );
+            ASSERT_TRUE( jobs + 1 == fake->GetStartedJobCount() );
+            fixture.EnableAll();
+            ASSERT_TRUE( fixture.Call( "pack_redownload_original", "{\"storePackId\":\"pk1\",\"waitMs\":5000}", response, 10000 ) && !CToolsFixture::IsToolError( response ) );
+            ASSERT_TRUE( jobs + 2 == fake->GetStartedJobCount() );
+            // the asset form needs its assets in the schema and the arguments are checked
+            ASSERT_TRUE( fixture.Call( "asset_regenerate_target", "{\"storePackId\":\"pk1\",\"nonsense\":1}", response ) );
+            ASSERT_TRUE( CToolsFixture::IsToolError( response ) );
+            ASSERT_TRUE( jobs + 2 == fake->GetStartedJobCount() );
         }
         catch ( ... )
         {

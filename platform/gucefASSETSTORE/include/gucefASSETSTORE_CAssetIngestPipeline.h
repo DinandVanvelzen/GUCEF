@@ -124,13 +124,22 @@ class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetIngestPipeline
     void MountArchives( CAssetIngestJob& job );
     void UnmountArchives( void );
     TAssetStoreStatus FindDuplicate( const CAssetIngestJob& job, CORE::CString& duplicateOfPackId ) const;
+    void RepairOriginals( CAssetIngestJob& job, const CORE::CString& packId, CORE::CString::StringVector& repaired );
     TAssetStoreStatus WritePackRow( const CAssetIngestJob& job, TAssetPackState state, const CORE::CString& reason );
     void BuildRows( const CAssetIngestJob& job, GUCEF::map< CORE::CString, CAssetCatalogue::TRowVector >& rows ) const;
     void DeriveFromContent( CAssetIngestJob& job ) const;
     void AddAsset( CAssetIngestJob& job, const CORE::CString& relativePath, const CORE::CString& vfsPath, Int64 size, const CORE::CString& digest ) const;
 
+    public:
+
+    /** The files below a VFS folder, recursively, as paths relative to it */
     static void ListFiles( const CORE::CString& vfsFolder, CORE::CString::StringVector& relativePaths );
+
+    /** Copies the files below a VFS folder to another folder (the folders are made); false when a file could not be copied */
     static bool CopyTree( const CORE::CString& fromFolder, const CORE::CString& toFolder );
+
+    private:
+
     static CORE::CString MakeId( const CORE::CString& prefix );
 
     CAssetIngestPipeline( const CAssetIngestPipeline& src );              /**< not implemented */

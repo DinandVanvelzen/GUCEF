@@ -67,6 +67,8 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetIngestRequest : public CORE::CIDataNodeS
     CORE::CString formatId;                 /**< the format of the store the download was, empty when not known */
     CORE::CString expectedRevision;         /**< the tagged effective revision the library sync planned with; empty: the ingest derives it from the item */
     CORE::CString syncJobId;                /**< the library sync job of the download, empty for a manual download */
+    CORE::CString verifyPackId;             /**< a download again of the originals of this pack: the same files make it a duplicate of that pack (whatever the revision), other files a new pack */
+    bool repairOriginals;                   /**< with verifyPackId: when the files are the same, original files of that pack that are missing or do not match their digest are put back from the download */
 
     CAssetIngestRequest( void );
     virtual ~CAssetIngestRequest() GUCEF_VIRTUAL_OVERRIDE;

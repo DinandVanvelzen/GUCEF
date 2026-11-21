@@ -101,12 +101,21 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CAssetLibrarySyncProfile : public CORE::CIData
     UInt32 maxPendingIngests;                       /**< downloaded and not ingested, 0: no maximum */
     UInt32 enrichInFlight;                          /**< GetItem calls of the store at a time when the listing is not enough */
     bool indexAfter;                                /**< the run ends with a job index-pack over the packs without an index */
+    UInt32 planMaxAgeMinutes;                       /**< a run uses the stored plan of the store (the last "plan") when it is younger than this and made with the same plan members; 0: a run always lists */
+    UInt32 detailsMaxAgeDays;                       /**< the details of an item asked of the store are reused by later plans for this many days while its library entry is unchanged; 0: always asked */
 
     CAssetLibrarySyncProfile( void );
     virtual ~CAssetLibrarySyncProfile() GUCEF_VIRTUAL_OVERRIDE;
 
     /** Whether the values can be used; the reason when not */
     bool IsValid( CORE::CString& reason ) const;
+
+    /**
+     *  A digest of the members that shape a plan: the formats, the filters (listing types, licence classes, sizes), onStale and
+     *  adoptExisting. A stored plan is reused only by a run with the same fingerprint; the caps, the window, the order, the
+     *  schedule and the two ages are not in it
+     */
+    CORE::CString GetPlanFingerprint( void ) const;
 
     virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
                             const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;

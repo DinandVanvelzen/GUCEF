@@ -173,6 +173,16 @@ SetUpWorld( SDownloadWorld& world )
         world.server.AddItem( item );
     }
     {
+        // two files whose names differ only in case: a share that ignores case (CIFS, Windows) would hold one of them
+        CAssetStoreItem item = MakeItem( "item-casetwins", "Case Twins", "3d-model" );
+        CAssetStoreFormat format;
+        format.formatId = "fbx";
+        AddFile( world, format, "ftwin1", "Textures/Wood.png", 1024, CString::Empty );
+        AddFile( world, format, "ftwin2", "textures/wood.PNG", 1024, CString::Empty );
+        item.formats.push_back( format );
+        world.server.AddItem( item );
+    }
+    {
         CAssetStoreItem item = MakeItem( "item-corrupt", "Corrupt File", "3d-model" );
         CAssetStoreFormat format;
         format.formatId = "fbx";
@@ -295,7 +305,7 @@ PerformDownloadTests( void )
                     break;
                 query.cursor = page.nextCursor;
             }
-            ASSERT_TRUE( 13 == total && 13 == seen.size() && 4 == pages );
+            ASSERT_TRUE( 14 == total && 14 == seen.size() && 4 == pages );
 
             CAssetStoreQuery text;
             text.text = "sword";
@@ -481,6 +491,20 @@ PerformDownloadTests( void )
             ASSERT_TRUE( manager.GetJob( jobId, job ) && ASSETDOWNLOAD_STATE_FAILED == job.state && ASSETSTORE_STATUS_URL_EXPIRED == job.status );
             world.server.SetFileBehaviour( "f3", CFakeFileBehaviour() );
 
+            // a long download outlives the addresses of its plan more than once: each expiry after progress renews the plan again
+            // (the chunks of a large build); here the address of each of the two files expires once
+            expired.expireFirst = 1;
+            world.server.SetFileBehaviour( "f1", expired );
+            world.server.SetFileBehaviour( "f2", expired );
+            const UInt32 plansBeforeLong = provider->GetPlanCount();
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == manager.Enqueue( "fakestore", "item-1", "fbx", CString::StringVector(), "astest/downloads/expiredtwice", false, jobId ) );
+            ASSERT_TRUE( PumpUntilJobSettled( manager, jobId, 30000 ) );
+            ASSERT_TRUE( manager.GetJob( jobId, job ) && ASSETDOWNLOAD_STATE_DONE == job.state );
+            ASSERT_TRUE( 3 == provider->GetPlanCount() - plansBeforeLong );
+            ASSERT_TRUE( FileHasContent( "astest/downloads/expiredtwice/Models/SM_Sword.fbx", world.contents[ "f1" ] ) && FileHasContent( "astest/downloads/expiredtwice/Textures/T_Sword_D.png", world.contents[ "f2" ] ) );
+            world.server.SetFileBehaviour( "f1", CFakeFileBehaviour() );
+            world.server.SetFileBehaviour( "f2", CFakeFileBehaviour() );
+
             // a store that stays busy: the job gives up after the attempts of the settings
             CAssetStoreDownloadSettings fewAttempts = FastSettings( CString::Empty );
             fewAttempts.maxAttempts = 2;
@@ -574,7 +598,7 @@ PerformDownloadTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
-    GUCEF_TESTFW_TESTCASE( "Download: unsafe names of a store are refused before anything is written" )
+    GUCEF_TESTFW_TESTCASE( "Download: unsafe names of a store, and names that differ only in case, are refused before anything is written" )
         try
         {
             ASSERT_FALSE( CAssetStoreSafeNames::IsSafeRelativeName( "../evil.txt" ) );
@@ -588,6 +612,13 @@ PerformDownloadTests( void )
             ASSERT_TRUE( manager.GetJob( jobId, job ) && ASSETDOWNLOAD_STATE_FAILED == job.state && ASSETSTORE_STATUS_UNSAFE_NAME == job.status );
             ASSERT_FALSE( vfs.FileExists( "astest/downloads/evil/evil.txt" ) );
             ASSERT_FALSE( vfs.FileExists( "astest/downloads/evil/evil.txt.part" ) );
+
+            // names that differ only in case are refused as well, with both names, before a file is written
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == manager.Enqueue( "fakestore", "item-casetwins", "fbx", CString::StringVector(), "astest/downloads/twins", false, jobId ) );
+            ASSERT_TRUE( PumpUntilJobSettled( manager, jobId, 30000 ) );
+            ASSERT_TRUE( manager.GetJob( jobId, job ) && ASSETDOWNLOAD_STATE_FAILED == job.state && ASSETSTORE_STATUS_UNSAFE_NAME == job.status );
+            ASSERT_TRUE( job.message.HasSubstr( "differ only in case" ) >= 0 && job.message.HasSubstr( "Textures/Wood.png" ) >= 0 );
+            ASSERT_FALSE( vfs.FileExists( "astest/downloads/twins/Textures/Wood.png" ) || vfs.FileExists( "astest/downloads/twins/Textures/Wood.png.part" ) );
         }
         catch ( ... )
         {

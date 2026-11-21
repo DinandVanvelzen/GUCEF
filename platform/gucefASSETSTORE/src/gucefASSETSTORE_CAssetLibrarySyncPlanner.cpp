@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <algorithm>
+#include <string.h>
 
 #ifndef GUCEF_CORE_CDATATABLEQUERY_H
 #include "gucefCORE_CDataTableQuery.h"
@@ -61,6 +62,11 @@
 #define GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H
 #endif /* GUCEF_ASSETSTORE_CPRIMARYASSETSTORE_H ? */
 
+#ifndef GUCEF_ASSETSTORE_CIASSETMETADATANORMALIZER_H
+#include "gucefASSETSTORE_CIAssetMetadataNormalizer.h"
+#define GUCEF_ASSETSTORE_CIASSETMETADATANORMALIZER_H
+#endif /* GUCEF_ASSETSTORE_CIASSETMETADATANORMALIZER_H ? */
+
 #include "gucefASSETSTORE_CAssetLibrarySyncPlanner.h"
 
 /*-------------------------------------------------------------------------//
@@ -81,6 +87,30 @@ namespace ASSETSTORE {
 namespace {
 
 const Int64 DayMs = 24 * 60 * 60 * 1000;
+const UInt32 StoredPlanVersion = 1;
+
+/** The whole number that follows the marker in the text (blanks and separators skipped); 0 when there is none */
+UInt64
+NumberAfter( const CORE::CString& text, const char* marker )
+{
+    const Int32 at = text.HasSubstr( marker, true );
+    if ( at < 0 )
+        return 0;
+    const CORE::CString rest = text.CutChars( (UInt32) at + (UInt32) strlen( marker ), true );
+    const char* chars = rest.C_String();
+    UInt32 i = 0;
+    while ( ' ' == chars[ i ] )
+        ++i;
+    UInt64 number = 0;
+    bool digits = false;
+    while ( chars[ i ] >= '0' && chars[ i ] <= '9' )
+    {
+        number = number * 10 + (UInt64) ( chars[ i ] - '0' );
+        digits = true;
+        ++i;
+    }
+    return digits ? number : 0;
+}
 
 /** The order of the work list: the items of the plan by the order of the profile, ties by the item id */
 class CPlanOrder
@@ -104,6 +134,9 @@ class CPlanOrder
         else
         if ( CAssetLibrarySyncProfile::OrderSmallest == m_order )
         {
+            // the items of unknown size after those whose size the store gave
+            if ( a.sizeKnown != b.sizeKnown )
+                return a.sizeKnown;
             if ( a.estimatedBytes != b.estimatedBytes )
                 return a.estimatedBytes < b.estimatedBytes;
         }
@@ -128,6 +161,7 @@ CAssetLibrarySyncPlanner::SWorkItem::SWorkItem( void )
     , formatId()
     , expectedRevision()
     , estimatedBytes( 0 )
+    , sizeKnown( false )
     , stale( false )
     , changedAtMs( 0 )
     , acquiredAtMs( 0 )
@@ -141,6 +175,9 @@ CAssetLibrarySyncPlanner::SWorkItem::SWorkItem( void )
 CAssetLibrarySyncPlanner::CAssetLibrarySyncPlanner( void )
     : m_spec()
     , m_vocabulary( GUCEF_NULL )
+    , m_normalizer( GUCEF_NULL )
+    , m_maxDownloadBytes( 0 )
+    , m_importedAtMs( 0 )
     , m_listed()
     , m_listedIndex()
     , m_pages( 0 )
@@ -172,6 +209,7 @@ CAssetLibrarySyncPlanner::Reset( const CAssetLibrarySyncSpec& spec )
 {GUCEF_TRACE;
 
     m_spec = spec;
+    m_importedAtMs = 0;
     m_listed.clear();
     m_listedIndex.clear();
     m_pages = 0;
@@ -200,6 +238,45 @@ CAssetLibrarySyncPlanner::SetVocabulary( const CAssetVocabulary* vocabulary )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CAssetLibrarySyncPlanner::SetLicenceClassifier( CIAssetMetadataNormalizer* normalizer )
+{GUCEF_TRACE;
+
+    m_normalizer = normalizer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncPlanner::SetMaxDownloadBytes( UInt64 maxDownloadBytes )
+{GUCEF_TRACE;
+
+    m_maxDownloadBytes = maxDownloadBytes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetLibrarySyncPlanner::DescribeBytes( UInt64 bytes )
+{GUCEF_TRACE;
+
+    const UInt64 gigabyte = 1000ULL * 1000 * 1000;
+    const UInt64 megabyte = 1000ULL * 1000;
+    if ( bytes >= gigabyte )
+    {
+        const UInt64 tenths = ( bytes + gigabyte / 20 ) / ( gigabyte / 10 );
+        return CORE::ToString( tenths / 10 ) + "." + CORE::ToString( tenths % 10 ) + " GB";
+    }
+    if ( bytes >= megabyte )
+    {
+        const UInt64 tenths = ( bytes + megabyte / 20 ) / ( megabyte / 10 );
+        return CORE::ToString( tenths / 10 ) + "." + CORE::ToString( tenths % 10 ) + " MB";
+    }
+    return CORE::ToString( bytes ) + " bytes";
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CAssetLibrarySyncPlanner::Key( const CORE::CString& itemId, const CORE::CString& formatId )
 {GUCEF_TRACE;
@@ -216,11 +293,19 @@ CAssetLibrarySyncPlanner::ClassifyLicence( const CAssetStoreItem& item ) const
     if ( GUCEF_NULL == m_vocabulary )
         return "unknown";
     CAssetLicence licence;
-    licence.name = item.licenceName;
-    licence.url = item.licenceUrl;
-    licence.text = item.licenceText;
-    licence.restrictions = item.licenceRestrictions;
-    m_vocabulary->ClassifyLicence( licence );
+    if ( GUCEF_NULL != m_normalizer )
+    {
+        // the rules of the store (its licence names, slugs and groups) as the ingest of the pack applies them
+        m_normalizer->ClassifyItemLicence( item, *m_vocabulary, licence );
+    }
+    else
+    {
+        licence.name = item.licenceName;
+        licence.url = item.licenceUrl;
+        licence.text = item.licenceText;
+        licence.restrictions = item.licenceRestrictions;
+        m_vocabulary->ClassifyLicence( licence );
+    }
     return licence.licenceClass.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : licence.licenceClass;
 }
 
@@ -241,6 +326,7 @@ CAssetLibrarySyncPlanner::Reduce( const CAssetStoreItem& item, SListed& listed )
     listed.acquiredAtMs = item.acquiredAtMs;
     listed.listingFingerprint = CAssetItemRevision::ComputeListingFingerprint( item );
     listed.formatFingerprint = CAssetItemRevision::ComputeFormatFingerprint( item );
+    listed.entryFingerprint = CAssetItemRevision::ComputeEntryFingerprint( item );
     listed.formatsLevel = item.GetEffectiveFormatsLevel();
     listed.allFormatCount = (UInt32) item.formats.size();
     listed.formats.clear();
@@ -462,12 +548,14 @@ CAssetLibrarySyncPlanner::PlanItem( const SListed& listed, Int64 nowMs, UInt64 m
     line.changedAtMs = listed.changedAtMs;
     line.acquiredAtMs = listed.acquiredAtMs;
     line.listIndex = listed.listIndex;
+    // a size is what the store gave: a format whose files have no size is unknown, never an estimate
     UInt64 allBytes = 0;
     bool allKnown = !listed.formats.empty();
     for ( size_t f=0; f<listed.formats.size(); ++f )
     {
         line.formats.push_back( listed.formats[ f ].formatId );
-        allBytes += listed.formats[ f ].sizeKnown ? listed.formats[ f ].bytes : medianBytes;
+        if ( listed.formats[ f ].sizeKnown )
+            allBytes += listed.formats[ f ].bytes;
         allKnown = allKnown && listed.formats[ f ].sizeKnown;
     }
     line.estimatedBytes = allBytes;
@@ -681,10 +769,49 @@ CAssetLibrarySyncPlanner::PlanItem( const SListed& listed, Int64 nowMs, UInt64 m
         return;
     }
 
+    // too large for the size guard of the store plugin: a format of known larger size, or one the guard refused for this revision before
+    if ( !line.queuedFormats.empty() && !( m_spec.allowLarge && m_selected.end() != m_selected.find( listed.itemId ) ) )
+    {
+        UInt64 largest = 0;
+        for ( size_t q=0; q<line.queuedFormats.size(); ++q )
+            for ( size_t f=0; f<listed.formats.size(); ++f )
+                if ( listed.formats[ f ].formatId == line.queuedFormats[ q ] && listed.formats[ f ].sizeKnown && listed.formats[ f ].bytes > largest )
+                    largest = listed.formats[ f ].bytes;
+        CORE::CString tooLarge;
+        if ( m_maxDownloadBytes > 0 && largest > m_maxDownloadBytes )
+        {
+            tooLarge = "too large (" + DescribeBytes( largest ) + ", limit " + DescribeBytes( m_maxDownloadBytes ) + ")";
+        }
+        else
+        if ( hasSeen && CORE::CString( AssetStoreStatusToString( ASSETSTORE_STATUS_REFUSED ) ) == (*seen).second.lastStatus && (*seen).second.listedRevision == listed.revision )
+        {
+            // the size the guard found (the manifest of a build says it): "... is <n> bytes ... the limit of <m> bytes"
+            const UInt64 refused = NumberAfter( (*seen).second.lastError, " is " );
+            UInt64 limit = NumberAfter( (*seen).second.lastError, "limit of " );
+            if ( 0 == limit )
+                limit = m_maxDownloadBytes;
+            if ( refused > 0 && limit > 0 )
+                tooLarge = "too large (" + DescribeBytes( refused ) + ", limit " + DescribeBytes( limit ) + ")";
+            else
+                tooLarge = "too large for the size guard of the store: " + (*seen).second.lastError;
+        }
+        if ( !tooLarge.IsNULLOrEmpty() )
+        {
+            line.state = CAssetLibrarySyncItem::TooLarge;
+            line.reason = tooLarge + "; to download it: --listing " + listed.itemId + " --allow-large, or a higher maxDownloadBytes of the store";
+            line.queuedFormats.clear();
+            skipReason = "too-large";
+            return;
+        }
+    }
+
     // 10 failed before
     if ( !line.queuedFormats.empty() && hasSeen && (*seen).second.attempts > 0 )
     {
-        if ( m_spec.retryFailed )
+        // an item the user lets through the size guard is tried again at once when the guard was what failed it
+        const bool allowedLarge = m_spec.allowLarge && m_selected.end() != m_selected.find( listed.itemId ) &&
+                                  CORE::CString( AssetStoreStatusToString( ASSETSTORE_STATUS_REFUSED ) ) == (*seen).second.lastStatus;
+        if ( m_spec.retryFailed || allowedLarge )
         {
             m_retried.insert( listed.itemId );
         }
@@ -715,7 +842,8 @@ CAssetLibrarySyncPlanner::PlanItem( const SListed& listed, Int64 nowMs, UInt64 m
         for ( size_t f=0; f<listed.formats.size(); ++f )
             if ( listed.formats[ f ].formatId == line.queuedFormats[ q ] )
             {
-                queuedBytes += listed.formats[ f ].sizeKnown ? listed.formats[ f ].bytes : medianBytes;
+                if ( listed.formats[ f ].sizeKnown )
+                    queuedBytes += listed.formats[ f ].bytes;
                 queuedKnown = queuedKnown && listed.formats[ f ].sizeKnown;
             }
     if ( !line.queuedFormats.empty() )
@@ -740,6 +868,8 @@ CAssetLibrarySyncPlanner::BuildPlan( Int64 nowMs, CAssetLibrarySyncPlan& plan, T
     plan.mode = m_spec.mode;
     plan.listed = (UInt32) m_listed.size();
     plan.pages = m_pages;
+    plan.source = m_importedAtMs > 0 ? CORE::CString( "stored-plan" ) : CORE::CString( "listing" );
+    plan.listedAtMs = m_importedAtMs > 0 ? m_importedAtMs : nowMs;
 
     // the median of the known sizes of a format download: the estimate of one whose size is not known
     GUCEF::vector< UInt64 > known;
@@ -812,8 +942,15 @@ CAssetLibrarySyncPlanner::BuildPlan( Int64 nowMs, CAssetLibrarySyncPlan& plan, T
             work.acquiredAtMs = line.acquiredAtMs;
             work.listIndex = line.listIndex;
             for ( size_t f=0; f<listed.formats.size(); ++f )
-                if ( listed.formats[ f ].formatId == work.formatId )
-                    work.estimatedBytes = listed.formats[ f ].sizeKnown ? listed.formats[ f ].bytes : medianBytes;
+            {
+                if ( listed.formats[ f ].formatId != work.formatId )
+                    continue;
+                // the admission assumes the median of the known sizes for a format of unknown size; the plan does not count it as a size
+                work.sizeKnown = listed.formats[ f ].sizeKnown;
+                work.estimatedBytes = work.sizeKnown ? listed.formats[ f ].bytes : medianBytes;
+                if ( !work.sizeKnown )
+                    plan.unknownSizeAssumedBytes += medianBytes;
+            }
             worklist.push_back( work );
             ++plan.queuedDownloads;
         }
@@ -860,13 +997,13 @@ CAssetLibrarySyncPlanner::WriteObservations( CAssetSyncMarkStore& syncStore, Int
             record = (*seen).second;
         record.sourceId = storeId;
         record.itemId = listed.itemId;
-        record.lastSeenMs = nowMs;
+        record.lastSeenMs = m_importedAtMs > 0 ? m_importedAtMs : nowMs;
         record.listedRevision = listed.revision;
         record.listedChangedMs = listed.changedAtMs;
         record.listingFingerprint = listed.listingFingerprint;
         if ( !listed.formatFingerprint.IsNULLOrEmpty() )
             record.formatFingerprint = listed.formatFingerprint;
-        if ( listed.enriched )
+        if ( listed.enriched && 0 == m_importedAtMs )
             record.enrichedMs = nowMs;
         Int64 size = 0;
         for ( size_t f=0; f<listed.formats.size(); ++f )
@@ -923,6 +1060,261 @@ CAssetLibrarySyncPlanner::WriteObservations( CAssetSyncMarkStore& syncStore, Int
         }
     }
     return status;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncPlanner::IsListingComplete( void ) const
+{GUCEF_TRACE;
+
+    return m_listingComplete;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncPlanner::GetListedItemIds( CORE::CString::StringSet& itemIds ) const
+{GUCEF_TRACE;
+
+    itemIds.clear();
+    for ( size_t i=0; i<m_listed.size(); ++i )
+        if ( !m_listed[ i ].itemId.IsNULLOrEmpty() )
+            itemIds.insert( m_listed[ i ].itemId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetLibrarySyncPlanner::GetEntryFingerprint( const CORE::CString& itemId ) const
+{GUCEF_TRACE;
+
+    GUCEF::map< CORE::CString, size_t >::const_iterator at = m_listedIndex.find( itemId );
+    return at == m_listedIndex.end() ? CORE::CString::Empty : m_listed[ (*at).second ].entryFingerprint;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int64
+CAssetLibrarySyncPlanner::GetImportedListingTime( void ) const
+{GUCEF_TRACE;
+
+    return m_importedAtMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncPlanner::SerializeListed( const SListed& listed, CORE::CDataNode& node )
+{GUCEF_TRACE;
+
+    node.SetAttribute( "itemId", listed.itemId );
+    node.SetAttribute( "title", listed.title );
+    if ( !listed.listingType.IsNULLOrEmpty() )
+        node.SetAttribute( "listingType", listed.listingType );
+    node.SetAttribute( "licenceClass", listed.licenceClass );
+    node.SetAttribute( "downloadable", listed.downloadable );
+    if ( !listed.unavailableReason.IsNULLOrEmpty() )
+        node.SetAttribute( "unavailableReason", listed.unavailableReason );
+    node.SetAttribute( "revision", listed.revision );
+    node.SetAttribute( "changedAtMs", listed.changedAtMs );
+    node.SetAttribute( "acquiredAtMs", listed.acquiredAtMs );
+    node.SetAttribute( "listingFingerprint", listed.listingFingerprint );
+    if ( !listed.formatFingerprint.IsNULLOrEmpty() )
+        node.SetAttribute( "formatFingerprint", listed.formatFingerprint );
+    node.SetAttribute( "entryFingerprint", listed.entryFingerprint );
+    node.SetAttribute( "formatsLevel", (UInt32) listed.formatsLevel );
+    node.SetAttribute( "listIndex", listed.listIndex );
+    node.SetAttribute( "allFormatCount", listed.allFormatCount );
+    node.SetAttribute( "enriched", listed.enriched );
+    CORE::CDataNode* formats = node.AddChild( "formats", GUCEF_DATATYPE_ARRAY );
+    for ( size_t f=0; f<listed.formats.size() && GUCEF_NULL != formats; ++f )
+    {
+        CORE::CDataNode* format = formats->AddChild( "format", GUCEF_DATATYPE_OBJECT );
+        if ( GUCEF_NULL == format )
+            continue;
+        format->SetAttribute( "formatId", listed.formats[ f ].formatId );
+        format->SetAttribute( "bytes", listed.formats[ f ].bytes );
+        format->SetAttribute( "sizeKnown", listed.formats[ f ].sizeKnown );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncPlanner::DeserializeListed( const CORE::CDataNode& node, SListed& listed )
+{GUCEF_TRACE;
+
+    listed.itemId = node.GetAttributeValueOrChildValueByName( "itemId" ).AsString();
+    listed.title = node.GetAttributeValueOrChildValueByName( "title" ).AsString();
+    listed.listingType = node.GetAttributeValueOrChildValueByName( "listingType" ).AsString();
+    listed.licenceClass = node.GetAttributeValueOrChildValueByName( "licenceClass" ).AsString( "unknown", true );
+    listed.downloadable = node.GetAttributeValueOrChildValueByName( "downloadable" ).AsBool( true, true );
+    listed.unavailableReason = node.GetAttributeValueOrChildValueByName( "unavailableReason" ).AsString();
+    listed.revision = node.GetAttributeValueOrChildValueByName( "revision" ).AsString();
+    listed.changedAtMs = node.GetAttributeValueOrChildValueByName( "changedAtMs" ).AsInt64( 0, true );
+    listed.acquiredAtMs = node.GetAttributeValueOrChildValueByName( "acquiredAtMs" ).AsInt64( 0, true );
+    listed.listingFingerprint = node.GetAttributeValueOrChildValueByName( "listingFingerprint" ).AsString();
+    listed.formatFingerprint = node.GetAttributeValueOrChildValueByName( "formatFingerprint" ).AsString();
+    listed.entryFingerprint = node.GetAttributeValueOrChildValueByName( "entryFingerprint" ).AsString();
+    const UInt32 level = node.GetAttributeValueOrChildValueByName( "formatsLevel" ).AsUInt32( 0, true );
+    listed.formatsLevel = (UInt8) ( level > 2 ? 2 : level );
+    listed.listIndex = node.GetAttributeValueOrChildValueByName( "listIndex" ).AsUInt32( 0, true );
+    listed.allFormatCount = node.GetAttributeValueOrChildValueByName( "allFormatCount" ).AsUInt32( 0, true );
+    listed.enriched = node.GetAttributeValueOrChildValueByName( "enriched" ).AsBool( false, true );
+    listed.formats.clear();
+    const CORE::CDataNode* formats = node.FindChild( "formats" );
+    if ( GUCEF_NULL != formats )
+    {
+        for ( CORE::CDataNode::const_iterator f = formats->ConstBegin(); f != formats->ConstEnd(); ++f )
+        {
+            SFormat format;
+            format.formatId = (*f)->GetAttributeValueOrChildValueByName( "formatId" ).AsString();
+            format.bytes = (*f)->GetAttributeValueOrChildValueByName( "bytes" ).AsUInt64( 0, true );
+            format.sizeKnown = (*f)->GetAttributeValueOrChildValueByName( "sizeKnown" ).AsBool( false, true );
+            if ( !format.formatId.IsNULLOrEmpty() )
+                listed.formats.push_back( format );
+        }
+    }
+    return !listed.revision.IsNULLOrEmpty() || !listed.itemId.IsNULLOrEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetLibrarySyncPlanner::ExportListing( Int64 listedAtMs, CORE::CDataNode& listing ) const
+{GUCEF_TRACE;
+
+    listing.Clear();
+    listing.SetName( "syncPlan" );
+    listing.SetNodeType( GUCEF_DATATYPE_OBJECT );
+    listing.SetAttribute( "version", StoredPlanVersion );
+    listing.SetAttribute( "storeId", m_spec.storeId.Lowercase() );
+    listing.SetAttribute( "listedAtMs", listedAtMs );
+    listing.SetAttribute( "profileFingerprint", m_spec.profile.GetPlanFingerprint() );
+    listing.SetAttribute( "pages", m_pages );
+    listing.SetAttribute( "listingComplete", m_listingComplete );
+    listing.SetAttribute( "listed", (UInt32) m_listed.size() );
+    listing.SetValuesOfChildByName( "selection", m_spec.itemIds );
+    CORE::CDataNode* items = listing.AddChild( "items", GUCEF_DATATYPE_ARRAY );
+    for ( size_t i=0; i<m_listed.size() && GUCEF_NULL != items; ++i )
+    {
+        CORE::CDataNode* item = items->AddChild( "item", GUCEF_DATATYPE_OBJECT );
+        if ( GUCEF_NULL != item )
+            SerializeListed( m_listed[ i ], *item );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncPlanner::ImportListing( const CORE::CDataNode& listing )
+{GUCEF_TRACE;
+
+    const CORE::CDataNode* items = listing.FindChild( "items" );
+    const Int64 listedAtMs = listing.GetAttributeValueOrChildValueByName( "listedAtMs" ).AsInt64( 0, true );
+    if ( GUCEF_NULL == items || listedAtMs <= 0 )
+        return false;
+    m_listed.clear();
+    m_listedIndex.clear();
+    for ( CORE::CDataNode::const_iterator i = items->ConstBegin(); i != items->ConstEnd(); ++i )
+    {
+        SListed listed;
+        if ( !DeserializeListed( *(*i), listed ) )
+            continue;
+        if ( !listed.itemId.IsNULLOrEmpty() )
+        {
+            if ( m_listedIndex.end() != m_listedIndex.find( listed.itemId ) )
+                continue;
+            m_listedIndex[ listed.itemId ] = m_listed.size();
+        }
+        listed.listIndex = (UInt32) m_listed.size();
+        m_listed.push_back( listed );
+    }
+    m_pages = listing.GetAttributeValueOrChildValueByName( "pages" ).AsUInt32( 0, true );
+    m_listingComplete = listing.GetAttributeValueOrChildValueByName( "listingComplete" ).AsBool( false, true );
+    m_importedAtMs = listedAtMs;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CAssetLibrarySyncPlanner::DescribeAge( Int64 ageMs )
+{GUCEF_TRACE;
+
+    if ( ageMs < 0 )
+        ageMs = 0;
+    const Int64 seconds = ageMs / 1000;
+    if ( seconds < 120 )
+        return CORE::ToString( seconds ) + " seconds";
+    const Int64 minutes = seconds / 60;
+    if ( minutes < 120 )
+        return CORE::ToString( minutes ) + " minutes";
+    const Int64 hours = minutes / 60;
+    if ( hours < 48 )
+        return CORE::ToString( hours ) + " hours" + ( 0 == minutes % 60 ? CORE::CString::Empty : " " + CORE::ToString( minutes % 60 ) + " minutes" );
+    return CORE::ToString( hours / 24 ) + " days";
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetLibrarySyncPlanner::IsStoredPlanUsable( const CORE::CDataNode& storedPlan, const CAssetLibrarySyncSpec& spec, Int64 nowMs, Int64& ageMs, CORE::CString& reason )
+{GUCEF_TRACE;
+
+    ageMs = 0;
+    reason.Clear();
+    if ( spec.replan )
+    {
+        reason = "a fresh plan was asked (--replan)";
+        return false;
+    }
+    if ( 0 == spec.profile.planMaxAgeMinutes )
+    {
+        reason = "the profile reuses no plan (planMaxAgeMinutes 0)";
+        return false;
+    }
+    const Int64 listedAtMs = storedPlan.GetAttributeValueOrChildValueByName( "listedAtMs" ).AsInt64( 0, true );
+    if ( StoredPlanVersion != storedPlan.GetAttributeValueOrChildValueByName( "version" ).AsUInt32( 0, true ) || listedAtMs <= 0 ||
+         GUCEF_NULL == storedPlan.FindChild( "items" ) || spec.storeId.Lowercase() != storedPlan.GetAttributeValueOrChildValueByName( "storeId" ).AsString().Lowercase() )
+    {
+        reason = "no plan of the store is kept";
+        return false;
+    }
+    ageMs = nowMs - listedAtMs;
+    if ( ageMs < -60000 )
+    {
+        reason = "the plan is dated in the future";
+        return false;
+    }
+    if ( ageMs < 0 )
+        ageMs = 0;
+    const Int64 maxAgeMs = (Int64) spec.profile.planMaxAgeMinutes * 60 * 1000;
+    if ( ageMs >= maxAgeMs )
+    {
+        reason = "the plan of " + DescribeAge( ageMs ) + " ago is older than planMaxAgeMinutes " + CORE::ToString( spec.profile.planMaxAgeMinutes );
+        return false;
+    }
+    if ( storedPlan.GetAttributeValueOrChildValueByName( "profileFingerprint" ).AsString() != spec.profile.GetPlanFingerprint() )
+    {
+        reason = "the profile (formats or filters) changed since the plan";
+        return false;
+    }
+    CORE::CString::StringSet selection;
+    storedPlan.GetValuesOfChildByName( "selection", selection );
+    if ( !selection.empty() )
+    {
+        bool covered = !spec.itemIds.empty();
+        for ( size_t i=0; i<spec.itemIds.size() && covered; ++i )
+            covered = selection.end() != selection.find( spec.itemIds[ i ] );
+        if ( !covered )
+        {
+            reason = "the plan was made for other items (--listing)";
+            return false;
+        }
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
