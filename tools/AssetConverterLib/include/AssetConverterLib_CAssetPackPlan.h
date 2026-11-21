@@ -70,6 +70,7 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPackPlan
     CORE::CString::StringVector cookTargets;
     CORE::CString intermediateDir;
     CORE::CString lockHolder;                       /**< who holds the lock of the intermediate now; empty when nobody */
+    CORE::CString indexNote;                        /**< what the pack index would do and why (the decision of the work gate); empty when the index is not asked for */
     UInt32 filteredOut;                             /**< assets of the pack the asset filter leaves out of this run */
     CORE::CString::StringVector problems;           /**< what keeps the run from starting (no importer, no cooker, ...) */
     TEntryVector entries;

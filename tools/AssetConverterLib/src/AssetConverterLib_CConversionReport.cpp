@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTASK_H
+#include "gucefCORE_CTask.h"
+#define GUCEF_CORE_CTASK_H
+#endif /* GUCEF_CORE_CTASK_H ? */
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -65,6 +70,11 @@ CConversionReport::CConversionReport( void )
     , m_refusalReason()
     , m_refused( false )
     , m_cancelled( false )
+    , m_cancellationSource( GUCEF_NULL )
+    , m_cancellationCheck( GUCEF_NULL )
+    , m_cancellationContext( GUCEF_NULL )
+    , m_progressSink( GUCEF_NULL )
+    , m_progressContext( GUCEF_NULL )
     , m_locked( false )
     , m_lockHolder()
     , m_mode( PIPELINEMODE_FULL )
@@ -109,6 +119,55 @@ CConversionReport::SetCancelled( void )
 {GUCEF_TRACE;
 
     m_cancelled = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConversionReport::SetCancellationSource( const CORE::CTask* task )
+{GUCEF_TRACE;
+
+    m_cancellationSource = task;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CConversionReport::IsCancellationRequested( void ) const
+{GUCEF_TRACE;
+
+    return ( GUCEF_NULL != m_cancellationSource && m_cancellationSource->IsCancellationRequested() ) ||
+           ( GUCEF_NULL != m_cancellationCheck && m_cancellationCheck( m_cancellationContext ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConversionReport::SetCancellationCheck( TCancellationCheck check, void* context )
+{GUCEF_TRACE;
+
+    m_cancellationCheck = check;
+    m_cancellationContext = context;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConversionReport::SetProgressSink( TProgressSink sink, void* context )
+{GUCEF_TRACE;
+
+    m_progressSink = sink;
+    m_progressContext = context;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConversionReport::ReportProgress( Float32 fraction ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_progressSink )
+        m_progressSink( m_progressContext, fraction );
 }
 
 /*-------------------------------------------------------------------------*/

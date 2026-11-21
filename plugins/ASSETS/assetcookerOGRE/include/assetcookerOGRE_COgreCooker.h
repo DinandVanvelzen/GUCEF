@@ -61,13 +61,15 @@ namespace OGRE {
  *  importer, an intermediate folder that cannot be read).
  *
  *  GetVersion() is part of the cache key: raise it whenever the files written for the same intermediate change.
- *  GetMaxBonesPerSubMesh() is 256: the vertices of a submesh index their bones with 8 bits in the v1 format.
+ *  GetMaxBonesPerSubMesh() is 0 (no limit): the vertices of a submesh index their bones with 8 bits in the v1 format, so
+ *  the mesh cooker splits a submesh that uses more than 256 bones by bone subsets (CBoneSubsetSplitter).
  */
 class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP COgreCooker : public ASSETCONVERTER::CIAssetCooker
 {
     public:
 
     static const CORE::CString TargetName;      /**< "ogre" */
+    static const CORE::CString CookedAreaName;  /**< "gucef-ogre3d": the folder of the asset store that holds the output of this cooker, accepted as an alias of the target name */
     static const UInt32 Version;
 
     COgreCooker( void );

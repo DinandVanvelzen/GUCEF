@@ -95,6 +95,16 @@
 #define ASSETCONVERTERLIB_CASSETPARTICLESYSTEM_H
 #endif /* ASSETCONVERTERLIB_CASSETPARTICLESYSTEM_H ? */
 
+#ifndef ASSETCONVERTERLIB_CASSETHIDDENFACESET_H
+#include "AssetConverterLib_CAssetHiddenFaceSet.h"
+#define ASSETCONVERTERLIB_CASSETHIDDENFACESET_H
+#endif /* ASSETCONVERTERLIB_CASSETHIDDENFACESET_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETREFERENCE_H
+#include "AssetConverterLib_CAssetReference.h"
+#define ASSETCONVERTERLIB_CASSETREFERENCE_H
+#endif /* ASSETCONVERTERLIB_CASSETREFERENCE_H ? */
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -120,7 +130,8 @@ namespace ASSETCONVERTER {
  *  brings them to those of glTF and records what it did in 'normalisation'. 'settings' are the effective settings of
  *  the asset (importer defaults, pack rules, presets and the per-asset override) which the pipeline sets before the
  *  import; 'dependencies' are the VFS paths of the files the import read besides the source (textures, .meta files,
- *  referenced materials, nested prefabs), which the importer adds and which become part of the cache key.
+ *  referenced materials, nested prefabs), which the importer adds and which become part of the cache key; 'references' are
+ *  the relations the import resolved, with their kinds, which the sidecar writes as the normalized relations of the asset.
  */
 class ASSETCONVERTERLIB_PUBLIC_CPP CAssetScene
 {
@@ -154,7 +165,9 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetScene
     TLodGroupVector lodGroups;
     TPrefabVector prefabs;
     TParticleSystemVector particleSystems;     /**< attached to nodes by CAssetNode::particleSystem */
+    CAssetHiddenFaceSet::THiddenFaceSetVector hiddenFaceSets;  /**< the outfits whose faces of a body CAssetSubMesh::hiddenBy names, at most 32 */
     CORE::CString::StringVector dependencies;
+    CAssetReference::TReferenceVector references;    /**< the relations the import resolved (converter design 5.8), targets as VFS paths */
     CORE::CDataNode settings;
     CORE::CDataNode extras;
     CORE::CDataNode normalisation;
@@ -172,6 +185,19 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetScene
 
     /** Adds a dependency of the import (a VFS path), once */
     void AddDependency( const CORE::CString& vfsPath );
+
+    /**
+     *  Records a resolved relation of the asset to the file 'vfsPath' (converter design 5.8), once. 'via' is the reference as the
+     *  source wrote it. It does not add a dependency: the importer adds those where it reads the file. The sidecar leaves out a
+     *  relation of the asset to its own source.
+     */
+    void AddReference( const CORE::CString& kind, const CORE::CString& vfsPath, const CORE::CString& via, bool optional = false );
+
+    /** Records a reference that could not be resolved (engine content, a file that is not in the pack), once */
+    void AddUnresolvedReference( const CORE::CString& kind, const CORE::CString& via, bool optional = false );
+
+    /** Takes over the dependencies and the relations of a scene that was imported into this one (a nested model), once each */
+    void MergeDependenciesOf( const CAssetScene& nested );
 
     bool IsJoint( UInt32 node ) const;
     bool IsAnimationTarget( UInt32 node ) const;
@@ -211,6 +237,12 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetScene
 
     UInt32 GetTriangleCount( void ) const;
     UInt32 GetVertexCount( void ) const;
+
+    /** The bits of the active hidden face sets */
+    UInt32 GetActiveHiddenFaceMask( void ) const;
+
+    /** Whether an active hidden face set hides the triangles of the submesh */
+    bool IsHiddenByActiveSet( const CAssetSubMesh& subMesh ) const;
 };
 
 /*-------------------------------------------------------------------------//

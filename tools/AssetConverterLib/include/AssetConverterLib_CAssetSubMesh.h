@@ -57,6 +57,10 @@ namespace ASSETCONVERTER {
  *  linear RGBA). Skinning keeps every influence of the source: 'influencesPerVertex' joint indices (into the joints
  *  of the skin) and weights per vertex, also more than four. Indices are triangles, counter-clockwise front faces.
  *  An empty stream is not there.
+ *
+ *  'masks' (4 per vertex, RGBA in 0 to 1) are vertex colours of the source that are data for its materials, not colours to
+ *  show: the masks of the regions of a character, for one. They are kept apart from 'colours' because a consumer of glTF
+ *  multiplies the base colour with COLOR_0; the glTF file carries them as the attribute _MASK_0.
  */
 class ASSETCONVERTERLIB_PUBLIC_CPP CAssetSubMesh
 {
@@ -73,12 +77,14 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetSubMesh
     TFloatVector tangents;
     TFloatVector uvSets[ MaxUvSets ];
     TFloatVector colours;
+    TFloatVector masks;
     TUInt32Vector joints;
     TFloatVector weights;
     UInt32 influencesPerVertex;
     TUInt32Vector indices;
     Int32 materialIndex;            /**< into the materials of the scene, -1 for none */
     TMorphTargetVector morphTargets;
+    UInt32 hiddenBy;                /**< the bits of the hidden face sets of the scene (CAssetHiddenFaceSet) that hide these triangles; 0: always shown */
 
     CAssetSubMesh( void );
 
@@ -94,6 +100,13 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetSubMesh
 
     /** Turns every triangle over (front faces become back faces): needed when a conversion mirrors */
     void ReverseWinding( void );
+
+    /**
+     *  Copies the given triangles (indices of triangles of this submesh) into 'out' with only the vertices they use, in the
+     *  order of first use: every vertex stream, the influences and the morph targets. 'out' gets the material and the hidden face
+     *  sets of this submesh.
+     */
+    void ExtractTriangles( const TUInt32Vector& triangles, CAssetSubMesh& out ) const;
 };
 
 /*-------------------------------------------------------------------------//

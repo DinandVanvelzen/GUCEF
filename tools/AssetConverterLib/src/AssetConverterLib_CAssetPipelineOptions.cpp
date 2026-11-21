@@ -56,6 +56,15 @@ CAssetPipelineOptions::CAssetPipelineOptions( void )
     , observer( GUCEF_NULL )
     , mode( PIPELINEMODE_FULL )
     , assetGlobs()
+    , noIndex( false )
+    , indexOnly( false )
+    , reindex( false )
+    , analyse( false )
+    , reanalyse( false )
+    , rethumbnail( false )
+    , retryFailed( false )
+    , noCook( false )
+    , indexFolder()
 {GUCEF_TRACE;
 
 }

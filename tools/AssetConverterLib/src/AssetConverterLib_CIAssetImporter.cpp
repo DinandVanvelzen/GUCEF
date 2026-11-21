@@ -81,6 +81,23 @@ CIAssetImporter::GetDefaultPostProcessors( CORE::CString::StringVector& names ) 
     names.push_back( "MergeIdenticalMaterials" );
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CIAssetImporter::GetFileKinds( TAssetFileKindVector& /* kinds */ ) const
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIAssetImporter::RecognisePack( const CAssetPackListing& /* listing */, CAssetPackProfile& /* profile */ ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

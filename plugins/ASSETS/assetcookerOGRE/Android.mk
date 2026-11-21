@@ -24,6 +24,7 @@ LOCAL_MODULE_FILENAME := libassetcookerOGRE
 LOCAL_SRC_FILES := \
   src/assetcookerOGRE.cpp \
   src/assetcookerOGRE_CAssetCook.cpp \
+  src/assetcookerOGRE_CBoneSubsetSplitter.cpp \
   src/assetcookerOGRE_CBufferDataStream.cpp \
   src/assetcookerOGRE_CCollisionWriter.cpp \
   src/assetcookerOGRE_CDotSceneWriter.cpp \

@@ -112,7 +112,8 @@ class GUCEF_ASSETPLUGIN_GODOT_EXPORT_CPP CGodotMaterialReader
     Int32 ReadMaterial( const CGodotDocument& document, const CORE::CDataNode& section );
 
     /** The path in the pack of the file a property value refers to (an ExtResource); false when it refers to none or the file is not in the pack */
-    bool ResolveFile( const CGodotDocument& document, const CORE::CDataNode* value, CORE::CString& assetPath );
+    /** The path in the pack of an ExtResource value; 'via' (when given) receives the reference as the file wrote it (the res:// path, else the uid) */
+    bool ResolveFile( const CGodotDocument& document, const CORE::CDataNode* value, CORE::CString& assetPath, CORE::CString* via = GUCEF_NULL );
 
     private:
 

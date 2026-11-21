@@ -43,6 +43,9 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
+namespace CORE {
+class CTask;
+}; /* namespace CORE */
 namespace ASSETCONVERTER {
 
 /*-------------------------------------------------------------------------//
@@ -83,6 +86,23 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CConversionReport
     /** The run was asked to stop (CIAssetPipelineObserver) before it was done: what is in the report is what finished */
     void SetCancelled( void );
     bool IsCancelled( void ) const;
+
+    /**
+     *  The task that converts the asset this report belongs to, for the importers and the readers they use: they poll
+     *  IsCancellationRequested() at points where stopping is cheap (a child process, between payload blocks). The task must outlive
+     *  the conversion; the task consumer sets it before the conversion and clears it afterwards. NULL for a conversion without a task
+     */
+    void SetCancellationSource( const CORE::CTask* task );
+    bool IsCancellationRequested( void ) const;
+
+    /** The check that tells the conversion to stop, for a caller that has no CORE::CTask (a job that is cancelled through an activity): a function with its context, polled at the same points */
+    typedef bool (*TCancellationCheck)( void* context );
+    void SetCancellationCheck( TCancellationCheck check, void* context );
+
+    /** Where a long import tells how far it is, 0 to 1: a function with its context; the importers call ReportProgress() between the steps of a big file */
+    typedef void (*TProgressSink)( void* context, Float32 fraction );
+    void SetProgressSink( TProgressSink sink, void* context );
+    void ReportProgress( Float32 fraction ) const;
 
     /** The intermediate of the pack was locked by another run (CIntermediateLock): nothing was converted; who holds it */
     void SetLocked( const CORE::CString& holder );
@@ -151,6 +171,11 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CConversionReport
     CORE::CString m_refusalReason;
     bool m_refused;
     bool m_cancelled;
+    const CORE::CTask* m_cancellationSource;
+    TCancellationCheck m_cancellationCheck;
+    void* m_cancellationContext;
+    TProgressSink m_progressSink;
+    void* m_progressContext;
     bool m_locked;
     CORE::CString m_lockHolder;
     TPipelineMode m_mode;

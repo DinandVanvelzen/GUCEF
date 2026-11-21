@@ -142,11 +142,21 @@
 #define ASSETCONVERTERLIB_CINTERMEDIATELOCK_H
 #endif /* ASSETCONVERTERLIB_CINTERMEDIATELOCK_H ? */
 
+#ifndef ASSETCONVERTERLIB_CPACKINDEXUPDATER_H
+#include "AssetConverterLib_CPackIndexUpdater.h"
+#define ASSETCONVERTERLIB_CPACKINDEXUPDATER_H
+#endif /* ASSETCONVERTERLIB_CPACKINDEXUPDATER_H ? */
+
+#ifndef ASSETCONVERTERLIB_CPACKINDEXLOCATOR_H
+#include "AssetConverterLib_CPackIndexLocator.h"
+#define ASSETCONVERTERLIB_CPACKINDEXLOCATOR_H
+#endif /* ASSETCONVERTERLIB_CPACKINDEXLOCATOR_H ? */
+
 #include "AssetConverterLib_CAssetPipeline.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      NAMESPACE                                                          //
+//      NAMESPACE                                                        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -207,6 +217,22 @@ Finish( CAssetConversionJob& job, TActivityAction action, TActivityReason reason
         entry->durationInMs = job.activity.durationInMs;
 }
 
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The asset was cancelled while it was converted: nothing of it is stored (no cache entry is made for it, as it did not convert), the
+ *  report lists it as skipped with the reason "cancelled", and the run is marked as cancelled
+ */
+bool
+FinishCancelled( CAssetConversionJob& job, CConversionReportEntry& entry, UInt64 startTicks )
+{
+    entry.skipped = true;
+    job.report.AddSkipped( PipelineSource, job.assetPath, "the conversion was cancelled" );
+    job.report.SetCancelled();
+    Finish( job, ACTIVITYACTION_SKIPPED, ACTIVITYREASON_CANCELLED, CORE::CString::Empty, startTicks );
+    return false;
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -273,7 +299,8 @@ ResolvePlugins( const CAssetPackManifest& manifest, const CAssetPipelineOptions&
         setup.problem = "the exporter of the intermediate is not registered (is its plugin loaded?)";
         return false;
     }
-    setup.targets = options.cookTargets.empty() ? manifest.cookTargets : options.cookTargets;
+    if ( !options.noCook )
+        setup.targets = options.cookTargets.empty() ? manifest.cookTargets : options.cookTargets;
     for ( size_t i=0; i<setup.targets.size(); ++i )
     {
         TAssetCookerPtr cooker;
@@ -283,6 +310,8 @@ ResolvePlugins( const CAssetPackManifest& manifest, const CAssetPipelineOptions&
             setup.problem = "there is no cooker for the target (is its plugin loaded?)";
             return false;
         }
+        // a target that was asked for by an alias is the cooker's own name from here on
+        setup.targets[ i ] = cooker->GetTargetName();
         setup.cookers.push_back( cooker );
         setup.cookerVersions[ "cooker:" + cooker->GetTargetName() ] = cooker->GetVersion();
         const UInt32 limit = cooker->GetMaxBonesPerSubMesh();
@@ -443,6 +472,20 @@ CookAssets( const CAssetPackManifest& manifest, const CAssetPipelineOptions& opt
             }
             CReferenceGraph graph;
             graph.Build( *graphSource, setup.profiles[ p ].name, profileDir );
+            // the normalized relations of every asset with cooked files in the profile, from its sidecar (converter design 5.8.5)
+            const CConversionReport::TEntryVector& graphEntries = graphSource->GetEntries();
+            for ( size_t e=0; e<graphEntries.size(); ++e )
+            {
+                CORE::CString::StringVector cookedFiles;
+                graph.GetFilesOfAsset( graphEntries[ e ].assetPath, cookedFiles );
+                const CORE::CString sidecarPath = CConversionSidecar::GetPath( intermediateDir, graphEntries[ e ].assetPath );
+                if ( cookedFiles.empty() || !VFS::CVfsGlobal::Instance()->GetVfs().FileExists( sidecarPath ) )
+                    continue;
+                CORE::CDataNode sidecar;
+                CAssetReference::TReferenceVector relations;
+                if ( CCanonicalJson::Load( sidecarPath, sidecar ) && CConversionSidecar::ReadRelations( sidecar, relations ) )
+                    graph.SetRelations( graphEntries[ e ].assetPath, relations );
+            }
             CSizeReport sizes;
             sizes.Build( graph, profileDir );
             graph.Save( CVfsPaths::Join( profileDir, "references.json" ) );
@@ -621,6 +664,47 @@ CAssetPipeline::GetCurrentPluginVersion( const CORE::CString& pluginKey, UInt32&
 
 /*-------------------------------------------------------------------------*/
 
+TActivityReason
+CAssetPipeline::CheckStoredEntry( const CAssetCacheEntry& stored, const CORE::CString& sourceVfsPath, const CORE::CString& expectedSettingsHash, CORE::CString& detail, bool& sourceVerified )
+{GUCEF_TRACE;
+
+    detail.Clear();
+    CAssetCacheEntry now = stored;
+
+    // the source
+    const CORE::CString sourceHash = sourceVfsPath.IsNULLOrEmpty() ? CORE::CString::Empty : CContentHash::HashFile( sourceVfsPath );
+    sourceVerified = !sourceHash.IsNULLOrEmpty();
+    if ( sourceVerified )
+        now.sourceHash = sourceHash;
+
+    // the settings, when the caller knows them
+    if ( !expectedSettingsHash.IsNULLOrEmpty() )
+        now.settingsHash = expectedSettingsHash;
+
+    // the plugins that are there now; the others cannot be judged
+    CAssetCacheEntry::TPluginVersionMap::const_iterator p = stored.plugins.begin();
+    while ( p != stored.plugins.end() )
+    {
+        UInt32 version = 0;
+        if ( GetCurrentPluginVersion( (*p).first, version ) )
+            now.plugins[ (*p).first ] = version;
+        ++p;
+    }
+
+    // the files the import read besides the source
+    CAssetCacheEntry::THashMap::const_iterator d = stored.dependencies.begin();
+    while ( d != stored.dependencies.end() )
+    {
+        const CORE::CString hash = CContentHash::HashFile( (*d).first );
+        if ( !hash.IsNULLOrEmpty() )
+            now.dependencies[ (*d).first ] = hash;
+        ++d;
+    }
+    return stored.CompareWith( now, detail );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CAssetPipeline::EvaluateCache( const CAssetConversionJob& job        ,
                                CORE::CDataNode& settings             ,
@@ -785,7 +869,10 @@ CAssetPipeline::ConvertAsset( CAssetConversionJob& job )
     scene.provenance.importerName = job.importer->GetName();
     scene.provenance.importerVersion = job.importer->GetVersion();
     scene.provenance.converterVersion = CAssetConverterGlobal::GetConverterVersion();
-    if ( !job.importer->Import( vfsPath, context, scene, report ) )
+    const bool imported = job.importer->Import( vfsPath, context, scene, report );
+    if ( report.IsCancellationRequested() )
+        return FinishCancelled( job, entry, startTicks );
+    if ( !imported )
     {
         if ( !entry.HasErrors() )
             report.AddError( job.importer->GetName(), job.assetPath, "the import failed" );
@@ -837,7 +924,13 @@ CAssetPipeline::ConvertAsset( CAssetConversionJob& job )
 
     // the textures
     for ( size_t t=0; t<scene.textures.size(); ++t )
+    {
+        if ( report.IsCancellationRequested() )
+            return FinishCancelled( job, entry, startTicks );
         job.baker->Bake( scene.textures[ t ], report );
+    }
+    if ( report.IsCancellationRequested() )
+        return FinishCancelled( job, entry, startTicks );
 
     // the validators; their errors keep the asset from being cooked unless forced
     const UInt32 errorsBefore = entry.GetItemCount( REPORTITEM_ERROR );
@@ -875,6 +968,8 @@ CAssetPipeline::ConvertAsset( CAssetConversionJob& job )
         Finish( job, ACTIVITYACTION_FAILED, reason, detail, startTicks );
         return false;
     }
+    if ( report.IsCancellationRequested() )
+        return FinishCancelled( job, entry, startTicks );
     const CORE::CString exportDir = CVfsPaths::Join( intermediateDir, CVfsPaths::FolderOf( job.assetPath ) );
     if ( !job.exporter->Export( scene, exportDir, report ) )
     {
@@ -912,6 +1007,22 @@ CAssetPipeline::ConvertAsset( CAssetConversionJob& job )
     job.cookAllowed = !validationErrors || job.force;
     Finish( job, validationErrors ? ACTIVITYACTION_FAILED : ACTIVITYACTION_IMPORTED, reason, detail, startTicks );
     return !validationErrors;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetPipeline::StoreCacheEntry( CAssetConversionJob& job, bool cookPending )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == job.manifest || !job.converted || job.report.IsCancelled() )
+        return false;
+    const CConversionReportEntry* entry = job.report.FindEntry( job.assetPath );
+    if ( GUCEF_NULL == entry || entry->HasErrors() )
+        return false;
+    const CORE::CString intermediateDir = job.manifest->GetIntermediatePath();
+    SaveCacheEntry( job, entry, cookPending, intermediateDir );
+    return VFS::CVfsGlobal::Instance()->GetVfs().FileExists( CAssetCacheEntry::GetEntryPath( intermediateDir, job.assetPath ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -978,6 +1089,85 @@ CAssetPipeline::Refuse( const CORE::CString& reason, const CAssetPipelineOptions
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** The inputs of the pack index of a pack the pipeline holds open: one listing (the files the context already knows), the profile the recognisers give and the options */
+void
+MakeIndexInputs( const CAssetPackManifest& manifest, const CAssetPackContext& context, const CLicenceRecord* record, CAssetPackListing& listing, CAssetPackProfile& profile, CPackIndexBuildOptions& buildOptions )
+{GUCEF_TRACE;
+
+    listing.SetVfsRoot( context.GetSourceRoot() );
+    listing.SetPackName( manifest.id );
+    const CORE::CString::StringVector& files = context.GetFiles();
+    for ( size_t i=0; i<files.size(); ++i )
+        listing.AddFile( files[ i ] );
+
+    CAssetPluginRegistry& registry = Plugins();
+    registry.RecognisePack( listing, profile );
+    buildOptions.packName = manifest.id;
+    buildOptions.packTitle = manifest.title;
+    buildOptions.tool = "AssetConverterLib";
+    buildOptions.toolVersion = CORE::UInt32ToString( CAssetConverterGlobal::GetConverterVersion() );
+    buildOptions.outputRoot = "intermediate";
+    GUCEF::vector< TAssetImporterPtr > importers;
+    registry.GetImporters( importers );
+    for ( size_t i=0; i<importers.size(); ++i )
+        buildOptions.plugins[ "recogniser:" + importers[ i ]->GetName() ] = importers[ i ]->GetVersion();
+    buildOptions.licence.recordId = manifest.licenceRecord;
+    if ( GUCEF_NULL != record )
+        for ( CORE::CString::StringSet::const_iterator r = record->restrictions.begin(); r != record->restrictions.end(); ++r )
+            buildOptions.licence.restrictions.push_back( *r );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CPackIndexRunResult&
+CAssetPipeline::GetLastIndexResult( void ) const
+{GUCEF_TRACE;
+
+    return m_lastIndexResult;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetPipeline::UpdateIndex( const CAssetPackManifest& manifest, const CAssetPipelineOptions& options, const CAssetPackContext& context, const CConversionReport* report, bool licenceRefused )
+{GUCEF_TRACE;
+
+    if ( options.noIndex )
+        return;
+    CLicenceRecord record;
+    bool recordRead = false;
+    CheckLicence( manifest, record, recordRead );
+
+    CAssetPackListing listing;
+    CAssetPackProfile profile;
+    CPackIndexBuildOptions buildOptions;
+    MakeIndexInputs( manifest, context, recordRead ? &record : GUCEF_NULL, listing, profile, buildOptions );
+
+    CPackIndexUpdateOptions updateOptions;
+    updateOptions.level = ( options.analyse || options.reanalyse || options.retryFailed ) ? CPackIndexUpdateOptions::LEVEL_ANALYSIS : CPackIndexUpdateOptions::LEVEL_STRUCTURE;
+    updateOptions.redo.reindex = options.reindex;
+    updateOptions.redo.reanalyse = options.reanalyse;
+    updateOptions.redo.rethumbnail = options.rethumbnail;
+    updateOptions.redo.reimport = options.reimport;
+    updateOptions.redo.retryFailed = options.retryFailed;
+    updateOptions.intermediateDir = manifest.GetIntermediatePath();
+    updateOptions.report = report;
+    updateOptions.licenceRefused = licenceRefused;
+    updateOptions.packVfsRoot = context.GetSourceRoot();
+
+    const CORE::CString indexFolder = options.indexFolder.IsNULLOrEmpty() ? manifest.GetIntermediatePath() : options.indexFolder;
+    CPackIndexUpdater updater( Plugins().GetKinds() );
+    CPackIndexDocument document;
+    updater.EnsureIndex( listing, profile, buildOptions, updateOptions, indexFolder, document, m_lastIndexResult );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetPipeline: Pack " << manifest.id << ": " << m_lastIndexResult.ToSummaryText() );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CAssetPipeline::PlanPack( const CAssetPackManifest& manifest, const CAssetPipelineOptions& options, CAssetPackPlan& plan )
 {GUCEF_TRACE;
@@ -1008,6 +1198,20 @@ CAssetPipeline::PlanPack( const CAssetPackManifest& manifest, const CAssetPipeli
     if ( recordRead )
         plan.restrictions = record.restrictions;
     plan.conversionAllowed = plan.licenceReason.IsNULLOrEmpty();
+    if ( !options.noIndex )
+    {
+        CAssetPackListing indexListing;
+        CAssetPackProfile indexProfile;
+        CPackIndexBuildOptions indexBuildOptions;
+        MakeIndexInputs( manifest, context, recordRead ? &record : GUCEF_NULL, indexListing, indexProfile, indexBuildOptions );
+        CPackIndexUpdateOptions indexUpdateOptions;
+        indexUpdateOptions.redo.reindex = options.reindex;
+        indexUpdateOptions.redo.reanalyse = options.reanalyse;
+        indexUpdateOptions.redo.retryFailed = options.retryFailed;
+        CPackIndexUpdater indexUpdater( Plugins().GetKinds() );
+        const CORE::CString indexFolder = options.indexFolder.IsNULLOrEmpty() ? plan.intermediateDir : options.indexFolder;
+        plan.indexNote = indexUpdater.PlanIndex( indexListing, indexProfile, indexBuildOptions, indexUpdateOptions, indexFolder ).ToString();
+    }
     if ( !plan.conversionAllowed )
     {
         const CORE::CString::StringVector& files = context.GetFiles();
@@ -1189,6 +1393,16 @@ CAssetPipeline::RunPackImpl( const CAssetPackManifest& manifest, const CAssetPip
         return false;
     }
 
+    // the pack index alone: no licence check (the index is metadata), no conversion, no cooking
+    if ( options.indexOnly )
+    {
+        UpdateIndex( manifest, options, context, GUCEF_NULL, false );
+        const bool indexed = m_lastIndexResult.reused || m_lastIndexResult.written || m_lastIndexResult.locked;
+        if ( !indexed )
+            report.AddError( PipelineSource, manifest.id, "the pack index could not be built: " + m_lastIndexResult.message );
+        return indexed && !report.HasFailures();
+    }
+
     // the licence record decides whether anything is converted
     if ( GUCEF_NULL != observer )
         observer->OnPhase( PIPELINEPHASE_LICENCE );
@@ -1198,6 +1412,7 @@ CAssetPipeline::RunPackImpl( const CAssetPackManifest& manifest, const CAssetPip
     if ( !refusal.IsNULLOrEmpty() )
     {
         Refuse( refusal, options, context, setup.importers, report );
+        UpdateIndex( manifest, options, context, &report, true );
         if ( writesActivity )
             CImportActivityLog::AppendRun( CImportActivityLog::GetLogPath( intermediateDir ), m_lastRun );
         if ( writesReport )
@@ -1264,7 +1479,11 @@ CAssetPipeline::RunPackImpl( const CAssetPackManifest& manifest, const CAssetPip
         observer->OnPackIndexed( totalAssets );
 
     if ( cookOnly )
-        return CookOnlyRun( manifest, options, context, setup, jobs, filteredOut, report, reportPath );
+        {
+            const bool cooked = CookOnlyRun( manifest, options, context, setup, jobs, filteredOut, report, reportPath );
+            UpdateIndex( manifest, options, context, &report, false );
+            return cooked;
+        }
 
     // the assets as tasks; this thread waits for them, and works on them itself when the pool has no threads
     if ( GUCEF_NULL != observer )
@@ -1416,6 +1635,7 @@ CAssetPipeline::RunPackImpl( const CAssetPackManifest& manifest, const CAssetPip
         CImportActivityLog::AppendRun( CImportActivityLog::GetLogPath( intermediateDir ), m_lastRun );
     report.SaveJson( reportPath );
     report.SaveSummary( CVfsPaths::WithoutExtension( reportPath ) + ".txt" );
+    UpdateIndex( manifest, options, context, &report, false );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AssetPipeline: Pack " << manifest.id << " done: " << report.GetAssetCount( ASSETSTATUS_CONVERTED ) << " converted, "
                << report.GetAssetCount( ASSETSTATUS_APPROXIMATED ) << " approximated, " << report.GetAssetCount( ASSETSTATUS_CACHED ) << " cached, "
                << report.GetAssetCount( ASSETSTATUS_FAILED ) << " failed" );

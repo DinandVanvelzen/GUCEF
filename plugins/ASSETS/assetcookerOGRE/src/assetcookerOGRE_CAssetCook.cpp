@@ -328,6 +328,37 @@ CAssetCook::Cook( const ASSETCONVERTER::CAssetScene& scene, const CORE::CDataNod
     if ( needsDefault )
         m_defaultMaterialName = m_names.MakeMaterialName( "Default", "Default" );
 
+    // the outfits that are worn: the intermediate says which, the pack setting "hiddenFaceSets" (a list of names, or "none") chooses
+    // others. The triangles of the body that a set hides keep their place in the mesh with a material variant per material and sets
+    ASSETCONVERTER::CAssetHiddenFaceSet::THiddenFaceSetVector hiddenFaceSets( scene.hiddenFaceSets );
+    CORE::CString::StringVector chosenSets;
+    if ( !hiddenFaceSets.empty() && m_settings.settings.GetStringListByName( "hiddenFaceSets", chosenSets ) )
+    {
+        CORE::CString::StringVector unknown;
+        ASSETCONVERTER::CAssetHiddenFaceSet::Activate( hiddenFaceSets, chosenSets, unknown );
+        for ( size_t u=0; u<unknown.size(); ++u )
+            m_report.AddWarning( SourceName, stem, "the setting hiddenFaceSets names " + unknown[ u ] + ", which is not a hidden face set of the asset" );
+    }
+    const UInt32 activeSets = ASSETCONVERTER::CAssetHiddenFaceSet::GetActiveMask( hiddenFaceSets );
+    TMaterialVariantVector hiddenVariants;
+    for ( size_t m=0; m<scene.meshes.size(); ++m )
+        for ( size_t s=0; s<scene.meshes[ m ].subMeshes.size(); ++s )
+        {
+            const ASSETCONVERTER::CAssetSubMesh& subMesh = scene.meshes[ m ].subMeshes[ s ];
+            if ( 0 == subMesh.hiddenBy )
+                continue;
+            const Int32 material = subMesh.materialIndex >= 0 && (size_t) subMesh.materialIndex < scene.materials.size() ? subMesh.materialIndex : -1;
+            bool known = false;
+            for ( size_t v=0; v<hiddenVariants.size() && !known; ++v )
+                known = hiddenVariants[ v ].first == material && hiddenVariants[ v ].second == subMesh.hiddenBy;
+            if ( !known )
+                hiddenVariants.push_back( TMaterialVariant( material, subMesh.hiddenBy ) );
+        }
+    if ( !hiddenFaceSets.empty() )
+        m_report.AddInfo( SourceName, stem, "hidden face sets: " + ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( hiddenFaceSets, 0xFFFFFFFF, ", " ) + "; worn (their faces of the body are not drawn): " +
+                          ( 0 == activeSets ? CORE::CString( "none" ) : ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( hiddenFaceSets, activeSets, ", " ) ) + "; " +
+                          CORE::UInt32ToString( (UInt32) hiddenVariants.size() ) + " material variant(s) for the hidden triangles" );
+
     // the particle systems of the sidecar (the glTF nodes name them by index): a template and a material each
     GUCEF::vector< ASSETCONVERTER::CAssetParticleSystem > particleSystems;
     GUCEF::vector< Int32 > particleNodes;
@@ -353,6 +384,25 @@ CAssetCook::Cook( const ASSETCONVERTER::CAssetScene& scene, const CORE::CDataNod
             ASSETCONVERTER::CAssetMaterial fallback;
             fallback.name = "Default";
             script.AddMaterial( m_defaultMaterialName, fallback );
+        }
+        for ( size_t v=0; v<hiddenVariants.size(); ++v )
+        {
+            const Int32 material = hiddenVariants[ v ].first;
+            const UInt32 hiddenBy = hiddenVariants[ v ].second;
+            const CORE::CString baseName = material >= 0 ? m_materialNames[ (size_t) material ] : m_defaultMaterialName;
+            const CORE::CString variantName = CMeshCooker::GetHiddenFaceMaterialName( baseName, scene, hiddenBy );
+            if ( 0 != ( hiddenBy & activeSets ) )
+            {
+                script.AddHiddenMaterial( variantName, "the triangles of " + baseName + " that the outfit " + ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( hiddenFaceSets, hiddenBy & activeSets, " and " ) +
+                                          " hides: not drawn while it is worn (give the submeshes the material " + baseName + " to show them)" );
+            }
+            else
+            {
+                ASSETCONVERTER::CAssetMaterial shown;
+                if ( material >= 0 )
+                    shown = scene.materials[ (size_t) material ];
+                script.AddMaterial( variantName, shown );
+            }
         }
         for ( size_t p=0; p<particleSystems.size(); ++p )
             if ( ASSETCONVERTER::PARTICLERENDER_NONE != particleSystems[ p ].renderer.mode )
@@ -411,7 +461,18 @@ CAssetCook::Cook( const ASSETCONVERTER::CAssetScene& scene, const CORE::CDataNod
         const Int32 skin = ( skinnedMesh && node.skin >= 0 && (size_t) node.skin < scene.skins.size() ) ? node.skin : -1;
         const CORE::CString meshName = CookMesh( (UInt32) node.mesh, skin, levelNodes[ (UInt32) n ], levelHeights[ (UInt32) n ] );
         if ( !meshName.IsNULLOrEmpty() )
+        {
             dotScene.SetEntity( (UInt32) n, meshName, skin >= 0 );
+            // the outfits that hide submeshes of the mesh, and those of them that are worn: for applications that switch outfits
+            UInt32 meshSets = 0;
+            for ( size_t s=0; s<scene.meshes[ node.mesh ].subMeshes.size(); ++s )
+                meshSets |= scene.meshes[ node.mesh ].subMeshes[ s ].hiddenBy;
+            if ( 0 != meshSets )
+            {
+                dotScene.SetEntityProperty( (UInt32) n, "gucefHiddenFaceSets", ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( hiddenFaceSets, meshSets, "+" ) );
+                dotScene.SetEntityProperty( (UInt32) n, "gucefActiveHiddenFaceSets", ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( hiddenFaceSets, meshSets & activeSets, "+" ) );
+            }
+        }
     }
 
     // the particle script: every system as a template; the systems that only a sub-emitter starts are not attached

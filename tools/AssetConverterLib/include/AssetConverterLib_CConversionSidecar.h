@@ -71,11 +71,15 @@ class CAssetPackContext;
  *  - "materials": the resolved values with the source material (shader and every original property);
  *  - "textures": sources (paths in the pack), operation chains and baked files (relative to the intermediate);
  *  - "lights", "colliders" (per node), "lodGroups", "prefabs" with the overrides of nested instances, "extras";
+ *  - "hiddenFaceSets" (only when the asset has them): every CAssetHiddenFaceSet; the glTF primitives name their sets in
+ *    the extras ("gucefHiddenBy");
  *  - "particles" (only when the asset has particle systems): every CAssetParticleSystem with "node" and "nodeIndex",
  *    the node it is attached to (the glTF node has "gucefParticleSystem" with the index into this list in its extras);
  *  - "lossySteps": every approximation and skipped item of the report of the asset;
  *  - "summary": counts, bounds, bones and clips (CAssetSceneSummary), for the fidelity tests;
- *  - "dependencies": the files the import read besides the source (paths in the pack).
+ *  - "dependencies": the files the import read besides the source (paths in the pack);
+ *  - "relations": the normalized relations of the asset (converter design section 5.8, CAssetReference), targets as paths
+ *    in the pack, in the canonical order.
  */
 class ASSETCONVERTERLIB_PUBLIC_CPP CConversionSidecar
 {
@@ -100,6 +104,19 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CConversionSidecar
     static bool ReadParticleSystems( const CORE::CDataNode& sidecar                            ,
                                      GUCEF::vector< CAssetParticleSystem >& systems             ,
                                      GUCEF::vector< Int32 >& nodes                              );
+
+    /**
+     *  The normalized relations of the asset: the references the importer recorded, with their targets as paths in the
+     *  pack, and, as the safety net, every dependency of the import that the importer did not record (usesFile for .meta and
+     *  .import files, dependsOn else). Targets outside the pack and the asset itself are left out. Canonical order.
+     */
+    static void BuildRelations( const CAssetScene& scene                    ,
+                                const CAssetPackContext& context            ,
+                                const CORE::CString& assetPath              ,
+                                CAssetReference::TReferenceVector& relations );
+
+    /** Reads the "relations" of a sidecar; a sidecar without them gives an empty list. False when an entry cannot be read */
+    static bool ReadRelations( const CORE::CDataNode& sidecar, CAssetReference::TReferenceVector& relations );
 
     private:
 

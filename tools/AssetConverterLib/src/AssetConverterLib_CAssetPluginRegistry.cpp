@@ -54,6 +54,7 @@
 
 #ifndef ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H
 #include "AssetConverterLib_CBoneLimitValidator.h"
+#include "AssetConverterLib_CLayerPenetrationValidator.h"
 #define ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H
 #endif /* ASSETCONVERTERLIB_CBONELIMITVALIDATOR_H ? */
 
@@ -111,6 +112,7 @@ CAssetPluginRegistry::CAssetPluginRegistry( void )
     , m_cookers()
     , m_postProcessors()
     , m_validators()
+    , m_kinds()
 {GUCEF_TRACE;
 
 }
@@ -144,7 +146,8 @@ CAssetPluginRegistry::RegisterBuiltIns( void )
                                         TAssetValidatorPtr( GUCEF_NEW CMissingTexturesValidator() ),
                                         TAssetValidatorPtr( GUCEF_NEW CBoneLimitValidator() ),
                                         TAssetValidatorPtr( GUCEF_NEW CTriangleBudgetValidator() ),
-                                        TAssetValidatorPtr( GUCEF_NEW CNamingValidator() ) };
+                                        TAssetValidatorPtr( GUCEF_NEW CNamingValidator() ),
+                                        TAssetValidatorPtr( GUCEF_NEW CLayerPenetrationValidator() ) };
     for ( UInt32 i=0; i<sizeof( validators ) / sizeof( validators[ 0 ] ); ++i )
         m_validators.TryRegisterBuiltIn( validators[ i ]->GetName(), validators[ i ] );
 }
@@ -163,7 +166,12 @@ bool
 CAssetPluginRegistry::RegisterImporter( const TAssetImporterPtr& importer )
 {GUCEF_TRACE;
 
-    return !importer.IsNULL() && m_importers.TryRegister( importer->GetName(), importer );
+    if ( importer.IsNULL() || !m_importers.TryRegister( importer->GetName(), importer ) )
+        return false;
+    TAssetFileKindVector kinds;
+    importer->GetFileKinds( kinds );
+    m_kinds.RegisterFileKinds( kinds, "importer:" + importer->GetName().Lowercase() );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -172,7 +180,12 @@ bool
 CAssetPluginRegistry::RegisterExporter( const TAssetExporterPtr& exporter )
 {GUCEF_TRACE;
 
-    return !exporter.IsNULL() && m_exporters.TryRegister( exporter->GetName(), exporter );
+    if ( exporter.IsNULL() || !m_exporters.TryRegister( exporter->GetName(), exporter ) )
+        return false;
+    TAssetFileKindVector kinds;
+    exporter->GetFileKinds( kinds );
+    m_kinds.RegisterFileKinds( kinds, "exporter:" + exporter->GetName().Lowercase() );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -204,9 +217,57 @@ CAssetPluginRegistry::RegisterValidator( const TAssetValidatorPtr& validator )
 
 /*-------------------------------------------------------------------------*/
 
-bool CAssetPluginRegistry::UnregisterImporter( const CORE::CString& name ) { return m_importers.TryUnregister( name ); }
-bool CAssetPluginRegistry::UnregisterExporter( const CORE::CString& name ) { return m_exporters.TryUnregister( name ); }
+bool
+CAssetPluginRegistry::UnregisterImporter( const CORE::CString& name )
+{GUCEF_TRACE;
+
+    m_kinds.UnregisterSource( "importer:" + name.Lowercase() );
+    return m_importers.TryUnregister( name );
+}
+
+bool
+CAssetPluginRegistry::UnregisterExporter( const CORE::CString& name )
+{GUCEF_TRACE;
+
+    m_kinds.UnregisterSource( "exporter:" + name.Lowercase() );
+    return m_exporters.TryUnregister( name );
+}
+
 bool CAssetPluginRegistry::UnregisterCooker( const CORE::CString& targetName ) { return m_cookers.TryUnregister( targetName ); }
+
+bool
+CAssetPluginRegistry::RegisterCookerAlias( const CORE::CString& alias, const CORE::CString& targetName )
+{GUCEF_TRACE;
+
+    if ( alias.IsNULLOrEmpty() || targetName.IsNULLOrEmpty() )
+        return false;
+    TAssetCookerPtr existing;
+    if ( TryGetFrom( m_cookers, alias, existing ) )
+        return false;
+    MT::CScopeMutex lock( m_aliasLock );
+    m_cookerAliases[ alias.Lowercase() ] = targetName;
+    return true;
+}
+
+bool
+CAssetPluginRegistry::UnregisterCookerAlias( const CORE::CString& alias )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_aliasLock );
+    return 0 != m_cookerAliases.erase( alias.Lowercase() );
+}
+
+CORE::CString
+CAssetPluginRegistry::ResolveCookerName( const CORE::CString& name ) const
+{GUCEF_TRACE;
+
+    TAssetCookerPtr existing;
+    if ( TryGetFrom( m_cookers, name, existing ) )
+        return name;
+    MT::CScopeMutex lock( m_aliasLock );
+    GUCEF::map< CORE::CString, CORE::CString >::const_iterator i = m_cookerAliases.find( name.Lowercase() );
+    return i == m_cookerAliases.end() ? name : (*i).second;
+}
 bool CAssetPluginRegistry::UnregisterPostProcessor( const CORE::CString& name ) { return m_postProcessors.TryUnregister( name ); }
 bool CAssetPluginRegistry::UnregisterValidator( const CORE::CString& name ) { return m_validators.TryUnregister( name ); }
 
@@ -214,9 +275,57 @@ bool CAssetPluginRegistry::UnregisterValidator( const CORE::CString& name ) { re
 
 bool CAssetPluginRegistry::TryGetImporter( const CORE::CString& name, TAssetImporterPtr& importer ) const { return TryGetFrom( m_importers, name, importer ); }
 bool CAssetPluginRegistry::TryGetExporter( const CORE::CString& name, TAssetExporterPtr& exporter ) const { return TryGetFrom( m_exporters, name, exporter ); }
-bool CAssetPluginRegistry::TryGetCooker( const CORE::CString& targetName, TAssetCookerPtr& cooker ) const { return TryGetFrom( m_cookers, targetName, cooker ); }
+
+bool
+CAssetPluginRegistry::TryGetCooker( const CORE::CString& targetName, TAssetCookerPtr& cooker ) const
+{GUCEF_TRACE;
+
+    return TryGetFrom( m_cookers, targetName, cooker ) || TryGetFrom( m_cookers, ResolveCookerName( targetName ), cooker );
+}
+
 bool CAssetPluginRegistry::TryGetPostProcessor( const CORE::CString& name, TAssetPostProcessorPtr& processor ) const { return TryGetFrom( m_postProcessors, name, processor ); }
 bool CAssetPluginRegistry::TryGetValidator( const CORE::CString& name, TAssetValidatorPtr& validator ) const { return TryGetFrom( m_validators, name, validator ); }
+
+/*-------------------------------------------------------------------------*/
+
+CAssetKindRegistry&
+CAssetPluginRegistry::GetKinds( void )
+{GUCEF_TRACE;
+
+    return m_kinds;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAssetKindRegistry&
+CAssetPluginRegistry::GetKinds( void ) const
+{GUCEF_TRACE;
+
+    return m_kinds;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetPluginRegistry::RecognisePack( const CAssetPackListing& listing, CAssetPackProfile& profile ) const
+{GUCEF_TRACE;
+
+    profile.Clear();
+    GUCEF::vector< TAssetImporterPtr > importers;
+    GetImporters( importers );
+    for ( size_t i=0; i<importers.size(); ++i )
+    {
+        CAssetPackProfile candidate;
+        if ( importers[ i ]->RecognisePack( listing, candidate ) && candidate.IsRecognised() )
+        {
+            if ( candidate.recognisedBy.IsNULLOrEmpty() )
+                candidate.recognisedBy = importers[ i ]->GetName();
+            if ( !profile.IsRecognised() || candidate.confidence > profile.confidence )
+                profile = candidate;
+        }
+    }
+    return profile.IsRecognised();
+}
 
 /*-------------------------------------------------------------------------*/
 

@@ -49,6 +49,8 @@
 
 #ifndef ASSETCONVERTERLIB_CASSETPACKCONTEXT_H
 #include "AssetConverterLib_CAssetPackContext.h"
+#include "AssetConverterLib_CAssetPackListing.h"
+#include "AssetConverterLib_CAssetPackProfile.h"
 #define ASSETCONVERTERLIB_CASSETPACKCONTEXT_H
 #endif /* ASSETCONVERTERLIB_CASSETPACKCONTEXT_H ? */
 
@@ -155,7 +157,9 @@ UInt32
 CUnityImporter::GetVersion( void ) const
 {GUCEF_TRACE;
 
-    return 2;
+    // 3: records the normalized relations of the GUIDs it resolves (materials, textures, meshes, nested prefabs, clips, shaders,
+    //    scripts, audio clips), the GUIDs that are not in the package kept unresolved
+    return 3;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -471,6 +475,92 @@ CUnityImporter::Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPack
                         CORE::UInt32ToString( (UInt32) out.textures.size() ) + " textures, " + CORE::UInt32ToString( (UInt32) out.animations.size() ) + " animations" );
     return ok;
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityImporter::GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const
+{GUCEF_TRACE;
+
+    static const char* const scenes[] = { "unity", GUCEF_NULL };
+    static const char* const prefabs[] = { "prefab", GUCEF_NULL };
+    static const char* const materials[] = { "mat", "physicmaterial", GUCEF_NULL };
+    static const char* const animations[] = { "anim", "controller", "overridecontroller", "playable", GUCEF_NULL };
+    static const char* const shaders[] = { "shader", "cginc", "compute", "shadergraph", "hlsl", GUCEF_NULL };
+    static const char* const data[] = { "asset", "mask", "lighting", "flare", "cs", GUCEF_NULL };
+    const struct { ASSETCONVERTER::EAssetKind kind; const char* const* extensions; } groups[] =
+    {
+        { ASSETCONVERTER::ASSETKIND_SCENE, scenes }, { ASSETCONVERTER::ASSETKIND_PREFAB, prefabs }, { ASSETCONVERTER::ASSETKIND_MATERIAL, materials },
+        { ASSETCONVERTER::ASSETKIND_ANIMATION, animations }, { ASSETCONVERTER::ASSETKIND_SHADER, shaders }, { ASSETCONVERTER::ASSETKIND_DATA, data }
+    };
+    for ( size_t g=0; g<sizeof( groups ) / sizeof( groups[ 0 ] ); ++g )
+        for ( const char* const* e = groups[ g ].extensions; GUCEF_NULL != *e; ++e )
+            kinds.push_back( ASSETCONVERTER::CAssetFileKind( *e, groups[ g ].kind ) );
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "unitypackage", ASSETCONVERTER::ASSETKIND_PACKAGE ) );
+    // "Rock.fbx.meta" belongs to "Rock.fbx"
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "meta", ASSETCONVERTER::ASSETKIND_METADATA ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnityImporter::RecognisePack( const ASSETCONVERTER::CAssetPackListing& listing, ASSETCONVERTER::CAssetPackProfile& profile ) const
+{GUCEF_TRACE;
+
+    // a project has its editor version in ProjectSettings; a package (a mounted .unitypackage, or a folder of one) is told by its .meta files
+    CORE::CString versionPath;
+    const bool isProject = listing.FindFile( "ProjectSettings/ProjectVersion.txt", versionPath );
+    CORE::CString::StringVector metas;
+    listing.FindFiles( "*.meta", metas );
+    if ( !isProject && metas.empty() )
+        return false;
+
+    profile.Clear();
+    profile.engine = "Unity";
+    profile.packType = isProject ? "unity-project" : "unity-package";
+    profile.packTypeName = isProject ? "Unity project" : "Unity package";
+    profile.confidence = isProject ? 90 : 70;
+    if ( isProject )
+    {
+        CORE::CString text;
+        if ( listing.ReadText( versionPath, text, 4096 ) )
+        {
+            const Int32 start = text.HasSubstr( "m_EditorVersion:" );
+            if ( start >= 0 )
+            {
+                CORE::CString value = text.SubstrFromRange( (UInt32) start + 16, text.Length() );
+                const Int32 lineEnd = value.HasChar( '\n', true );
+                if ( lineEnd >= 0 )
+                    value = value.SubstrFromRange( 0, (UInt32) lineEnd );
+                profile.engineVersion = ASSETCONVERTER::CAssetPackListing::TrimText( value );
+            }
+        }
+    }
+
+    // the scenes of the pack itself first (a package can hold the scenes of other packs it was bundled with: their folders do not carry the
+    // words of the name of the pack), the demo scene before the sample, the showcase and the overview scene
+    CORE::CString::StringVector keywords;
+    keywords.push_back( "demo" );
+    keywords.push_back( "sample" );
+    keywords.push_back( "showcase" );
+    keywords.push_back( "overview" );
+    keywords.push_back( "example" );
+    keywords.push_back( "main" );
+    listing.FindFilesRankedForPack( "*.unity", keywords, profile.showcaseCandidates, 16 );
+    listing.GetSubFolders( "Assets", profile.groupingHints );
+    profile.noisePatterns.push_back( "*.meta" );
+    // the picture the package keeps of each asset ("Asset.mat.preview.png"): a by-product of the export, no content
+    profile.noisePatterns.push_back( "*.preview.png" );
+    if ( isProject )
+    {
+        profile.noisePatterns.push_back( "Library/*" );
+        profile.noisePatterns.push_back( "Temp/*" );
+        profile.noisePatterns.push_back( "Logs/*" );
+        profile.noisePatterns.push_back( "obj/*" );
+    }
+    return true;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

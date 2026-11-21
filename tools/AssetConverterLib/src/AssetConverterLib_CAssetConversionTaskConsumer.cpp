@@ -105,7 +105,9 @@ CAssetConversionTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     }
     if ( task->IsCancellationRequested() )
         return true;
+    job->report.SetCancellationSource( task.GetPointerAlways() );
     CAssetPipeline::ConvertAsset( *job );
+    job->report.SetCancellationSource( GUCEF_NULL );
     return true;
 }
 

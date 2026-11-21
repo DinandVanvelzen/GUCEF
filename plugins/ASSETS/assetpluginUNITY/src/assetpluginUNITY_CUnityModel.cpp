@@ -242,6 +242,7 @@ CUnityModel::Load( CUnityProject& project, const CORE::CString& modelVfsPath )
     project.AddDependency( modelVfsPath );
     for ( size_t d=0; d<scene.dependencies.size(); ++d )
         project.AddDependency( scene.dependencies[ d ] );
+    project.AddNestedReferences( scene );
 
     // the scale: that of the .meta file over the unit of the file
     fileSystem = scene.coordinateSystem;

@@ -35,6 +35,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef ASSETCONVERTERLIB_CASSETFILEKIND_H
+#include "AssetConverterLib_CAssetFileKind.h"
+#define ASSETCONVERTERLIB_CASSETFILEKIND_H
+#endif /* ASSETCONVERTERLIB_CASSETFILEKIND_H ? */
+
 #ifndef ASSETCONVERTERLIB_MACROS_H
 #include "AssetConverterLib_macros.h"
 #define ASSETCONVERTERLIB_MACROS_H
@@ -81,6 +86,9 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CIAssetExporter
     virtual UInt32 GetVersion( void ) const = 0;
 
     virtual bool Export( const CAssetScene& scene, const CORE::CString& vfsDir, CConversionReport& report ) = 0;
+
+    /** The file kinds this exporter declares for the kind registry (the extensions of what it writes); the default declares none */
+    virtual void GetFileKinds( TAssetFileKindVector& kinds ) const;
 
     private:
 

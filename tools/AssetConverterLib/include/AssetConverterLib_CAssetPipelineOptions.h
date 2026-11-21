@@ -84,6 +84,17 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPipelineOptions
     TPipelineMode mode;
     CORE::CString::StringVector assetGlobs;
 
+    // the pack index (design sections 4 and 5): done once, redone on request
+    bool noIndex;           /**< do not write the pack index */
+    bool indexOnly;         /**< build the pack index and stop: no conversion, no cooking */
+    bool reindex;           /**< build the structure and the grouping of the pack index again */
+    bool analyse;           /**< add the analysis level (the headers of the pictures) to the pack index; reading each file of an archive can be slow, so a run does not do it unless asked */
+    bool reanalyse;         /**< read the files again for the statistics of the pack index */
+    bool rethumbnail;       /**< render the thumbnails of the pack index again (the thumbnail step belongs to the viewer: the flag is carried) */
+    bool retryFailed;       /**< analyse again the resources that failed before */
+    bool noCook;            /**< convert to the intermediate and stop there: no cooker runs, whatever the manifest names as cook targets */
+    CORE::CString indexFolder;  /**< where the pack index is written; the intermediate folder of the pack when empty */
+
     CAssetPipelineOptions( void );
 
     /** Whether the asset is part of this run: no globs, or one of them matches its path in the pack */

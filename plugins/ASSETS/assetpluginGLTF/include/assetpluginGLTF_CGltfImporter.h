@@ -67,6 +67,10 @@ class GUCEF_ASSETPLUGIN_GLTF_EXPORT_CPP CGltfImporter : public ASSETCONVERTER::C
 
     virtual UInt32 GetVersion( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual void GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool RecognisePack( const ASSETCONVERTER::CAssetPackListing& listing, ASSETCONVERTER::CAssetPackProfile& profile ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool CanImport( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPackContext& context ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPackContext& context, ASSETCONVERTER::CAssetScene& out, ASSETCONVERTER::CConversionReport& report ) GUCEF_VIRTUAL_OVERRIDE;

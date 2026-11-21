@@ -30,6 +30,8 @@
 #define GUCEF_TESTFW_H
 #endif /* GUCEF_TESTFW_H ? */
 
+#include "AssetConverterLib_CAssetPluginRegistry.h"
+#include "AssetConverterLib_CAssetConverterGlobal.h"
 #include "assetpluginGODOT_CGodotTextReader.h"
 #include "assetpluginGODOT_CGodotVariant.h"
 #include "assetpluginGODOT_CGodotDocument.h"
@@ -90,18 +92,82 @@ NumbersAre( const CORE::CDataNode& value, const double* expected, UInt32 count )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------*/
+
+static void
+TestGodotPackRecogniser( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: a Godot project is recognised by project.godot, with its version, main scene, other scenes and noise" )
+    try
+    {
+        TAssetImporterPtr importer;
+        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "godot", importer ) );
+        CAssetPackListing project;
+        project.AddFile( "project.godot", "config_version=5\n\n[application]\n\nconfig/name=\"Demo\"\nrun/main_scene=\"res://scenes/main.tscn\"\nconfig/features=PackedStringArray(\"4.2\", \"Forward Plus\")\n" );
+        project.AddFile( "scenes/main.tscn" );
+        project.AddFile( "scenes/Sample.tscn" );
+        project.AddFile( "levels/other.tscn" );
+        project.AddFile( "icon.svg.import" );
+        project.AddFile( ".godot/imported/a.ctex" );
+        CAssetPackProfile profile;
+        ASSERT_TRUE( importer->RecognisePack( project, profile ) );
+        ASSERT_TRUE( "godot-project" == profile.packType && "Godot project" == profile.packTypeName && "Godot" == profile.engine && "4.2" == profile.engineVersion && 90 == profile.confidence );
+        ASSERT_TRUE( 3 == profile.showcaseCandidates.size() && "scenes/main.tscn" == profile.showcaseCandidates[ 0 ] && "scenes/Sample.tscn" == profile.showcaseCandidates[ 1 ] );
+        ASSERT_TRUE( profile.IsNoise( "icon.svg.import" ) && profile.IsNoise( ".godot/imported/a.ctex" ) && !profile.IsNoise( "scenes/main.tscn" ) );
+        ASSERT_TRUE( profile.groupingHints.size() >= 3 );
+
+        // a project one folder down, as a zip of a repository holds it
+        CAssetPackListing nested;
+        nested.AddFile( "game-main/project.godot", "config_version=5\nconfig/features=PackedStringArray(\"4.4\")\n" );
+        nested.AddFile( "game-main/main.tscn" );
+        ASSERT_TRUE( importer->RecognisePack( nested, profile ) );
+        ASSERT_TRUE( "game-main" == profile.root && "4.4" == profile.engineVersion && 1 == profile.showcaseCandidates.size() && "main.tscn" == profile.showcaseCandidates[ 0 ] );
+
+        CAssetPackListing other;
+        other.AddFile( "scenes/main.tscn" );
+        ASSERT_FALSE( importer->RecognisePack( other, profile ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: the Godot importer declares its file kinds (scene, resource, shader, package, import metadata)" )
+    try
+    {
+        TAssetImporterPtr importer;
+        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "godot", importer ) );
+        TAssetFileKindVector declared;
+        importer->GetFileKinds( declared );
+        CAssetKindRegistry kinds;
+        kinds.RegisterFileKinds( declared, "importer:godot" );
+        ASSERT_TRUE( ASSETKIND_PREFAB == kinds.GetKindOfPath( "a.tscn" ) && ASSETKIND_DATA == kinds.GetKindOfPath( "a.tres" ) && ASSETKIND_SHADER == kinds.GetKindOfPath( "a.gdshader" ) );
+        ASSERT_TRUE( ASSETKIND_PACKAGE == kinds.GetKindOfPath( "game.pck" ) && ASSETKIND_METADATA == kinds.GetKindOfPath( "a.png.import" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+
 void
 PerformGodotReaderTests( void )
 {GUCEF_TRACE;
 
     GUCEF_TESTFW_SUITE_SCOPE( "assetpluginGODOT.Reader" );
 
+    TestGodotPackRecogniser();
+
     GUCEF_TESTFW_TESTCASE( "Plugin: the importer \"godot\" is registered with its version and takes scenes and mesh resources only" )
     try
     {
         TAssetImporterPtr importer;
         ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "godot", importer ) );
-        ASSERT_TRUE( 2 == importer->GetVersion() );
+        ASSERT_TRUE( 3 == importer->GetVersion() );
         MakeWorkFolder( "plugin" );
         ASSERT_TRUE( WriteWorkText( "plugin/mesh.tres", "[gd_resource type=\"ArrayMesh\" format=3]\n\n[resource]\n" ) );
         ASSERT_TRUE( WriteWorkText( "plugin/box.tres", "[gd_resource type=\"BoxMesh\" format=3]\n\n[resource]\n" ) );

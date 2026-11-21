@@ -17,6 +17,7 @@ if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetConverterCli.h
     include/TestAssetConverterModel.h
+    include/TestAssetConverterPackIndex.h
     include/TestAssetConverterParticles.h
     include/TestAssetConverterPipeline.h
     include/TestAssetConverterProcessing.h
@@ -31,6 +32,7 @@ if (LINUX32)
     src/AssetConverterLib_TestApp.cpp
     src/TestAssetConverterCli.cpp
     src/TestAssetConverterModel.cpp
+    src/TestAssetConverterPackIndex.cpp
     src/TestAssetConverterParticles.cpp
     src/TestAssetConverterPipeline.cpp
     src/TestAssetConverterProcessing.cpp
@@ -45,6 +47,7 @@ elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetConverterCli.h
     include/TestAssetConverterModel.h
+    include/TestAssetConverterPackIndex.h
     include/TestAssetConverterParticles.h
     include/TestAssetConverterPipeline.h
     include/TestAssetConverterProcessing.h
@@ -59,6 +62,7 @@ elseif (LINUX64)
     src/AssetConverterLib_TestApp.cpp
     src/TestAssetConverterCli.cpp
     src/TestAssetConverterModel.cpp
+    src/TestAssetConverterPackIndex.cpp
     src/TestAssetConverterParticles.cpp
     src/TestAssetConverterPipeline.cpp
     src/TestAssetConverterProcessing.cpp
@@ -73,6 +77,7 @@ elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetConverterCli.h
     include/TestAssetConverterModel.h
+    include/TestAssetConverterPackIndex.h
     include/TestAssetConverterParticles.h
     include/TestAssetConverterPipeline.h
     include/TestAssetConverterProcessing.h
@@ -87,6 +92,7 @@ elseif (WIN32)
     src/AssetConverterLib_TestApp.cpp
     src/TestAssetConverterCli.cpp
     src/TestAssetConverterModel.cpp
+    src/TestAssetConverterPackIndex.cpp
     src/TestAssetConverterParticles.cpp
     src/TestAssetConverterPipeline.cpp
     src/TestAssetConverterProcessing.cpp
@@ -101,6 +107,7 @@ elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestAssetConverterCli.h
     include/TestAssetConverterModel.h
+    include/TestAssetConverterPackIndex.h
     include/TestAssetConverterParticles.h
     include/TestAssetConverterPipeline.h
     include/TestAssetConverterProcessing.h
@@ -115,6 +122,7 @@ elseif (WIN64)
     src/AssetConverterLib_TestApp.cpp
     src/TestAssetConverterCli.cpp
     src/TestAssetConverterModel.cpp
+    src/TestAssetConverterPackIndex.cpp
     src/TestAssetConverterParticles.cpp
     src/TestAssetConverterPipeline.cpp
     src/TestAssetConverterProcessing.cpp

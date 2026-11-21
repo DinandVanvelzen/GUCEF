@@ -44,6 +44,14 @@
  */
 void BuildCharacterScene( GUCEF::ASSETCONVERTER::CAssetScene& scene, const GUCEF::CORE::CString& textureFolder );
 
+/**
+ *  A rig with more bones than a submesh of Ogre can address: a chain of 'boneCount' joints (J0 to J<n-1>, a skin with inverse
+ *  bind matrices at the rest pose) and the skinned mesh RibbonMesh, one submesh of 'boneCount' quads; the quad j has its
+ *  corners at x = 0.1 * j +- 0.04, y = +- 0.04, and the influences J(j) 0.4, J(j+1) 0.3, J(j+2) 0.2 and J(j+3) 0.1, the
+ *  joints taken modulo the number of joints. The node Body uses the mesh and the skin.
+ */
+void BuildManyBonesScene( GUCEF::ASSETCONVERTER::CAssetScene& scene, GUCEF::UInt32 boneCount );
+
 /** A board of ten quads, one per material of the mapping table (see the test of the materials) */
 void BuildMaterialScene( GUCEF::ASSETCONVERTER::CAssetScene& scene, const GUCEF::CORE::CString& textureFolder );
 

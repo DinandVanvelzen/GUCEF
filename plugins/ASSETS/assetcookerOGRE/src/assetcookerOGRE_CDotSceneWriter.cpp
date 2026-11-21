@@ -111,6 +111,17 @@ CDotSceneWriter::SetEntity( UInt32 node, const CORE::CString& meshName, bool ski
 
 /*-------------------------------------------------------------------------*/
 
+void
+CDotSceneWriter::SetEntityProperty( UInt32 node, const CORE::CString& name, const CORE::CString& value )
+{GUCEF_TRACE;
+
+    TEntityMap::iterator entity = m_entities.find( node );
+    if ( entity != m_entities.end() )
+        (*entity).second.properties.push_back( "<property type=\"str\"" + Attribute( "name", name ) + Attribute( "data", value ) + " />" );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void CDotSceneWriter::Exclude( UInt32 node ) { m_excluded.insert( node ); }
 void CDotSceneWriter::SetMaterialNames( const CORE::CString::StringVector& materialNames ) { m_materialNames = materialNames; }
 const CORE::CString::StringVector& CDotSceneWriter::GetReferences( void ) const { return m_references; }
@@ -390,18 +401,24 @@ CDotSceneWriter::WriteNode( UInt32 node, UInt32 depth )
             single = overrides[ i ] == overrides[ 0 ];
         if ( single )
             line += Attribute( "material", overrides[ 0 ] );
-        if ( overrides.empty() || single )
+        CORE::CString::StringVector properties( (*entity).second.properties );
+        if ( !overrides.empty() && !single )
+        {
+            CORE::CString list;
+            for ( size_t i=0; i<overrides.size(); ++i )
+                list += ( 0 == i ? "" : ";" ) + overrides[ i ];
+            properties.insert( properties.begin(), "<property type=\"str\" name=\"materials\"" + Attribute( "data", list ) + " />" );
+        }
+        if ( properties.empty() )
         {
             Line( depth+1, line + " />" );
         }
         else
         {
-            CORE::CString list;
-            for ( size_t i=0; i<overrides.size(); ++i )
-                list += ( 0 == i ? "" : ";" ) + overrides[ i ];
             Line( depth+1, line + ">" );
             Line( depth+2, "<userData>" );
-            Line( depth+3, "<property type=\"str\" name=\"materials\"" + Attribute( "data", list ) + " />" );
+            for ( size_t i=0; i<properties.size(); ++i )
+                Line( depth+3, properties[ i ] );
             Line( depth+2, "</userData>" );
             Line( depth+1, "</entity>" );
         }
@@ -447,7 +464,20 @@ CDotSceneWriter::Write( const TUInt32Vector& roots, const ASSETCONVERTER::CAsset
             const CORE::CString holder = COutputNames::MakeUnique( (*written).second + ".skin", CORE::CString::Empty, m_usedNames );
             Line( 2, "<node" + Attribute( "name", holder ) + ">" );
             WriteTransform( spaceTrs, 3, false );
-            Line( 3, "<entity" + Attribute( "name", (*written).second ) + Attribute( "meshFile", (*e).second.mesh ) + " />" );
+            const CORE::CString line = "<entity" + Attribute( "name", (*written).second ) + Attribute( "meshFile", (*e).second.mesh );
+            if ( (*e).second.properties.empty() )
+            {
+                Line( 3, line + " />" );
+            }
+            else
+            {
+                Line( 3, line + ">" );
+                Line( 4, "<userData>" );
+                for ( size_t i=0; i<(*e).second.properties.size(); ++i )
+                    Line( 5, (*e).second.properties[ i ] );
+                Line( 4, "</userData>" );
+                Line( 3, "</entity>" );
+            }
             Line( 2, "</node>" );
             AddReference( (*e).second.mesh );
         }

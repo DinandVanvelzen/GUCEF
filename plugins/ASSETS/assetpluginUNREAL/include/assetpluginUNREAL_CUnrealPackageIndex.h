@@ -1,0 +1,94 @@
+/*
+ *  assetpluginUNREAL: A reference to an import or an export of a package, or null
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALPACKAGEINDEX_H
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALPACKAGEINDEX_H
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      INCLUDES                                                           //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_MACROS_H
+#include "assetpluginUNREAL_macros.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_MACROS_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_MACROS_H ? */
+
+#ifndef GUCEF_CORE_CSTRING_H
+#include "gucefCORE_CString.h"
+#define GUCEF_CORE_CSTRING_H
+#endif /* GUCEF_CORE_CSTRING_H ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace GUCEF {
+namespace ASSETPLUGIN {
+namespace UNREAL {
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CLASSES                                                            //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** One 32 bit value in the file: 0 is null, a positive value is an export (one based), a negative value is an import */
+class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealPackageIndex
+{
+    public:
+
+    Int32 index;
+
+    CUnrealPackageIndex( void );
+
+    explicit CUnrealPackageIndex( Int32 value );
+
+    bool IsNull( void ) const;
+
+    bool IsImport( void ) const;
+
+    bool IsExport( void ) const;
+
+    /** Position in the import table; only meaningful when IsImport() */
+    UInt32 ToImportIndex( void ) const;
+
+    /** Position in the export table; only meaningful when IsExport() */
+    UInt32 ToExportIndex( void ) const;
+
+    bool operator==( const CUnrealPackageIndex& other ) const;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+}; /* namespace UNREAL */
+}; /* namespace ASSETPLUGIN */
+}; /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALPACKAGEINDEX_H ? */

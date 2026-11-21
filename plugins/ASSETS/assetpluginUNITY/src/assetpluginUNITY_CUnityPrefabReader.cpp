@@ -84,6 +84,10 @@ const Int32 ClassSkinnedMeshRenderer = 137;
 const Int32 ClassParticleSystem = 198;
 const Int32 ClassParticleSystemRenderer = 199;
 const Int32 ClassLodGroup = 205;
+const Int32 ClassOcclusionCullingSettings = 29;
+const Int32 ClassRenderSettings = 104;
+const Int32 ClassLightmapSettings = 157;
+const Int32 ClassNavMeshSettings = 196;
 const Int32 ClassPrefab = 1001;
 const Int32 ClassEditorExtension = 1002;
 const UInt32 MaxNesting = 16;
@@ -126,6 +130,9 @@ CUnityPrefabReader::CUnityPrefabReader( CUnityProject& project, CUnityMaterialRe
     , m_particles( project, materials )
     , m_stack()
     , m_inactive()
+    , m_sourceMeshCount( 0 )
+    , m_instanceCount( 0 )
+    , m_unresolvedCount( 0 )
 {GUCEF_TRACE;
 
 }
@@ -531,10 +538,13 @@ CUnityPrefabReader::ExpandInstance( const CUnityYamlDocument& instance, const CO
                                     ASSETCONVERTER::CAssetPrefabInstance& record )
 {GUCEF_TRACE;
 
+    if ( m_project.IsCancelled() )
+        return false;
     CUnityReference source = CUnityReference::Get( body, "m_SourcePrefab" );
     if ( source.IsNull() )
         source = CUnityReference::Get( body, "m_ParentPrefab" );
     const CORE::CString subject = m_project.Describe( vfsPath ) + " &" + CORE::Int64ToString( instance.fileId );
+    ++m_instanceCount;
 
     const CORE::CDataNode* modification = body.FindChild( "m_Modification" );
     CUnityYamlReader::TNodeList modifications;
@@ -564,6 +574,10 @@ CUnityPrefabReader::ExpandInstance( const CUnityYamlDocument& instance, const CO
     const bool modelSource = resolved && CUnityModel::IsModelExtension( ASSETCONVERTER::CVfsPaths::ExtensionOf( sourcePath ) );
     const CUnityYamlFile* sourceFile = resolved && !modelSource && !cycle && depth < MaxNesting ? m_project.GetYaml( sourcePath ) : GUCEF_NULL;
     record.sourcePrefab = resolved ? m_project.Describe( sourcePath ) : source.ToString();
+    if ( resolved )
+        m_project.AddReference( modelSource ? ASSETCONVERTER::CAssetReference::KindUsesMesh : ASSETCONVERTER::CAssetReference::KindInstancesPrefab, sourcePath, source.guid );
+    else
+        m_project.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindInstancesPrefab, source.guid );
 
     // the modifications, on copies of the objects of the source prefab
     TObjectOverrideMap overrides;
@@ -613,6 +627,7 @@ CUnityPrefabReader::ExpandInstance( const CUnityYamlDocument& instance, const CO
 
     if ( GUCEF_NULL == sourceFile )
     {
+        ++m_unresolvedCount;
         if ( !resolved )
             m_project.Warn( subject, "the prefab instance uses the prefab " + source.ToString() + ", which is not in the package: an empty node stands in for it" );
         else
@@ -650,6 +665,7 @@ CUnityPrefabReader::GetSourceMesh( const CUnityReference& reference, const CORE:
 
     skin = GUCEF_NULL;
     model = GUCEF_NULL;
+    ++m_sourceMeshCount;
     if ( reference.IsNull() )
         return false;
     if ( reference.IsBuiltin() )
@@ -671,8 +687,11 @@ CUnityPrefabReader::GetSourceMesh( const CUnityReference& reference, const CORE:
     if ( !reference.guid.IsNULLOrEmpty() && !m_project.ResolveGuid( reference.guid, path ) )
     {
         m_project.Warn( subject, "uses the mesh " + reference.ToString() + ", which is not in the package: the node has no mesh" );
+        m_project.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesMesh, reference.guid );
         return false;
     }
+    if ( !reference.guid.IsNULLOrEmpty() )
+        m_project.AddReference( ASSETCONVERTER::CAssetReference::KindUsesMesh, path, reference.guid );
     const CORE::CString extension = ASSETCONVERTER::CVfsPaths::ExtensionOf( path );
     if ( CUnityModel::IsModelExtension( extension ) )
     {
@@ -717,19 +736,71 @@ CUnityPrefabReader::GetSourceMesh( const CUnityReference& reference, const CORE:
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CUnityPrefabReader::TryGetMeshKey( const CUnityReference& reference, const CORE::CString& vfsPath, const CORE::CString& userName, CORE::CString& key,
+                                   const ASSETCONVERTER::CAssetSkin*& skin, const CUnityModel*& model )
+{GUCEF_TRACE;
+
+    skin = GUCEF_NULL;
+    model = GUCEF_NULL;
+    if ( reference.IsNull() )
+        return false;
+    if ( reference.IsBuiltin() )
+    {
+        key = "builtin|" + reference.ToString();
+        return true;
+    }
+    CORE::CString path = vfsPath;
+    if ( !reference.guid.IsNULLOrEmpty() && !m_project.ResolveGuid( reference.guid, path ) )
+        return false;
+    if ( !CUnityModel::IsModelExtension( ASSETCONVERTER::CVfsPaths::ExtensionOf( path ) ) )
+    {
+        key = path + "|" + CORE::Int64ToString( reference.fileId );
+        return true;
+    }
+    CUnityModel* source = m_project.GetModel( path );
+    if ( GUCEF_NULL == source )
+        return false;
+    bool guessed = false;
+    const Int32 node = source->FindMeshNode( reference.fileId, userName, &guessed );
+    if ( guessed || node < 0 || source->scene.nodes[ node ].mesh < 0 )
+        return false;
+    if ( source->scene.nodes[ node ].skin >= 0 )
+        skin = &source->scene.skins[ source->scene.nodes[ node ].skin ];
+    model = source;
+    key = path + "|" + CORE::Int32ToString( node );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 Int32
 CUnityPrefabReader::GetRenderMesh( const CUnityReference& reference, const CORE::CString& vfsPath, const GUCEF::vector< Int32 >& materials, const CORE::CString& subject,
                                    const CORE::CString& userName, const ASSETCONVERTER::CAssetSkin*& skin, const CUnityModel*& model )
 {GUCEF_TRACE;
 
+    // a definite source mesh with the same materials is the mesh made before, without reading and copying the source mesh again
+    CORE::CString sourceKey;
+    CORE::CString materialKey;
+    for ( size_t m=0; m<materials.size(); ++m )
+        materialKey += "|" + CORE::Int32ToString( materials[ m ] );
+    Int32 index = -1;
+    if ( TryGetMeshKey( reference, vfsPath, userName, sourceKey, skin, model ) )
+    {
+        sourceKey = "meshes|" + sourceKey + materialKey;
+        if ( m_project.TryGetCached( sourceKey, index ) )
+            return index;
+    }
+    else
+    {
+        sourceKey.Clear();
+    }
+
     ASSETCONVERTER::CAssetMesh mesh;
     if ( !GetSourceMesh( reference, vfsPath, subject, userName, mesh, skin, model ) )
         return -1;
 
-    CORE::CString key = "mesh|" + ( reference.guid.IsNULLOrEmpty() ? vfsPath + "|" : CORE::CString::Empty ) + reference.ToString() + "|" + userName;
-    for ( size_t m=0; m<materials.size(); ++m )
-        key += "|" + CORE::Int32ToString( materials[ m ] );
-    Int32 index = -1;
+    CORE::CString key = "mesh|" + ( reference.guid.IsNULLOrEmpty() ? vfsPath + "|" : CORE::CString::Empty ) + reference.ToString() + "|" + userName + materialKey;
     if ( m_project.TryGetCached( key, index ) )
         return index;
 
@@ -745,6 +816,8 @@ CUnityPrefabReader::GetRenderMesh( const CUnityReference& reference, const CORE:
     m_project.GetScene().meshes.push_back( mesh );
     index = (Int32) m_project.GetScene().meshes.size() - 1;
     m_project.SetCached( key, index );
+    if ( !sourceKey.IsNULLOrEmpty() )
+        m_project.SetCached( sourceKey, index );
     return index;
 }
 
@@ -962,6 +1035,102 @@ CUnityPrefabReader::ReadCollider( const CUnityYamlDocument& document, const CORE
 /*-------------------------------------------------------------------------*/
 
 void
+CUnityPrefabReader::AnnotateReferences( CORE::CDataNode& tree )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != tree.GetAttribute( "fileID" ) )
+    {
+        CUnityReference reference;
+        CORE::CString path;
+        if ( reference.Read( &tree ) && !reference.IsBuiltin() && m_project.ResolveGuid( reference.guid, path ) )
+            tree.SetAttribute( "path", m_project.Describe( path ) );
+    }
+    CORE::CDataNode::iterator i = tree.Begin();
+    while ( i != tree.End() )
+    {
+        AnnotateReferences( *(*i) );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityPrefabReader::RecordComponent( const CUnityYamlDocument& document, const CORE::CDataNode& body, UInt32 node )
+{GUCEF_TRACE;
+
+    ASSETCONVERTER::CAssetNode& target = m_project.GetScene().nodes[ node ];
+    const CORE::CString typeName = document.typeName.IsNULLOrEmpty() ? "class " + CORE::Int32ToString( document.classId ) : document.typeName;
+
+    CORE::CDataNode* list = target.extras.FindOrAddChild( "components", GUCEF_DATATYPE_ARRAY );
+    CORE::CDataNode* entry = list->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+    entry->SetAttribute( "type", typeName );
+    entry->SetAttribute( "classId", document.classId );
+    CORE::CDataNode* properties = entry->AddChild( "properties", GUCEF_DATATYPE_OBJECT );
+    *properties = body;
+    properties->SetName( "properties" );
+    properties->DelChild( "m_GameObject" );
+    properties->DelChild( "m_CorrespondingSourceObject" );
+    properties->DelChild( "m_PrefabInstance" );
+    properties->DelChild( "m_PrefabAsset" );
+    AnnotateReferences( *properties );
+
+    // a script says which one it is
+    const CUnityReference script = CUnityReference::Get( body, "m_Script" );
+    CORE::CString scriptPath;
+    if ( !script.IsNull() && m_project.ResolveGuid( script.guid, scriptPath ) )
+    {
+        entry->SetAttribute( "script", m_project.Describe( scriptPath ) );
+        m_project.AddReference( ASSETCONVERTER::CAssetReference::KindDependsOn, scriptPath, script.guid, true );
+    }
+
+    if ( "Camera" == typeName )
+    {
+        CORE::CDataNode* camera = target.extras.FindOrAddChild( "camera", GUCEF_DATATYPE_OBJECT );
+        camera->SetAttribute( "orthographic", CUnityYamlReader::GetBool( body, "orthographic", false ) );
+        camera->SetAttribute( "fieldOfView", CUnityYamlReader::GetFloat( body, "field of view", 60.0f ) );
+        camera->SetAttribute( "orthographicSize", CUnityYamlReader::GetFloat( body, "orthographic size", 5.0f ) );
+        camera->SetAttribute( "nearClip", CUnityYamlReader::GetFloat( body, "near clip plane", 0.3f ) );
+        camera->SetAttribute( "farClip", CUnityYamlReader::GetFloat( body, "far clip plane", 1000.0f ) );
+        camera->SetAttribute( "depth", CUnityYamlReader::GetFloat( body, "m_Depth", 0.0f ) );
+        camera->SetAttribute( "enabled", 0 != CUnityYamlReader::GetInt32( body, "m_Enabled", 1 ) );
+    }
+    else
+    if ( "AudioSource" == typeName )
+    {
+        CORE::CDataNode* audio = target.extras.FindOrAddChild( "audioSource", GUCEF_DATATYPE_OBJECT );
+        const CUnityReference clip = CUnityReference::Get( body, "m_audioClip" );
+        CORE::CString clipPath;
+        if ( !clip.IsNull() && m_project.ResolveGuid( clip.guid, clipPath ) )
+        {
+            audio->SetAttribute( "clip", m_project.Describe( clipPath ) );
+            m_project.AddReference( ASSETCONVERTER::CAssetReference::KindDependsOn, clipPath, clip.guid, true );
+        }
+        audio->SetAttribute( "volume", CUnityYamlReader::GetFloat( body, "m_Volume", 1.0f ) );
+        audio->SetAttribute( "pitch", CUnityYamlReader::GetFloat( body, "m_Pitch", 1.0f ) );
+        audio->SetAttribute( "loop", CUnityYamlReader::GetBool( body, "Loop", false ) );
+        audio->SetAttribute( "playOnAwake", CUnityYamlReader::GetBool( body, "m_PlayOnAwake", true ) );
+        audio->SetAttribute( "spatialBlend", CUnityYamlReader::GetFloat( body, "m_SpatialBlend", 0.0f ) );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityPrefabReader::RecordSceneSettings( const CUnityYamlDocument& document, const CORE::CDataNode& body )
+{GUCEF_TRACE;
+
+    CORE::CDataNode* facts = m_project.GetScene().extras.FindOrAddChild( CUnityProject::SettingsName, GUCEF_DATATYPE_OBJECT );
+    CORE::CDataNode* settings = facts->FindOrAddChild( "sceneSettings", GUCEF_DATATYPE_OBJECT );
+    CORE::CDataNode* entry = settings->FindOrAddChild( document.typeName, GUCEF_DATATYPE_OBJECT );
+    *entry = body;
+    entry->SetName( document.typeName );
+    AnnotateReferences( *entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CUnityPrefabReader::ReadLight( const CORE::CDataNode& body, UInt32 node )
 {GUCEF_TRACE;
 
@@ -1050,10 +1219,15 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
     GUCEF::map< Int64, ASSETCONVERTER::CAssetPrefabInstance > instanceRecords;
     for ( UInt32 d=0; d<count; ++d )
     {
+        // a conversion that is asked to stop ends here, with what it has: its result is dropped by the caller
+        if ( m_project.IsCancelled() )
+            return false;
         const CUnityYamlDocument& document = file->GetDocument( d );
         const CORE::CDataNode& body = BodyOf( document, overrides );
         if ( !IsInstance( document, body ) )
             continue;
+        if ( 0 == depth )
+            m_project.ReportProgress( 0.9f * (Float32) d / (Float32) count );
         SFileResult inner;
         ASSETCONVERTER::CAssetPrefabInstance instance;
         if ( ExpandInstance( document, body, vfsPath, depth, inner, instance ) )
@@ -1067,6 +1241,8 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
     // the GameObjects
     for ( UInt32 d=0; d<count; ++d )
     {
+        if ( 0 == ( d & 63 ) && m_project.IsCancelled() )
+            return false;
         const CUnityYamlDocument& document = file->GetDocument( d );
         if ( ClassGameObject != document.classId || document.stripped )
             continue;
@@ -1200,6 +1376,8 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
     CORE::CString::StringSet skippedKinds;
     for ( UInt32 d=0; d<count; ++d )
     {
+        if ( 0 == ( d & 63 ) && m_project.IsCancelled() )
+            return false;
         const CUnityYamlDocument& document = file->GetDocument( d );
         if ( document.stripped || ClassGameObject == document.classId || ClassTransform == document.classId || ClassRectTransform == document.classId ||
              ClassPrefab == document.classId || ClassEditorExtension == document.classId )
@@ -1207,7 +1385,13 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
         const CORE::CDataNode& body = BodyOf( document, overrides );
         const CUnityReference gameObject = CUnityReference::Get( body, "m_GameObject" );
         if ( gameObject.IsNull() )
-            continue;   // no component: settings of a scene, assets inside the file
+        {
+            // no component: settings of a scene (kept with the scene), assets inside the file
+            if ( 0 == depth && ( ClassRenderSettings == document.classId || ClassLightmapSettings == document.classId ||
+                                 ClassNavMeshSettings == document.classId || ClassOcclusionCullingSettings == document.classId ) )
+                RecordSceneSettings( document, body );
+            continue;
+        }
         TObjectNodeMap::const_iterator owner = result.nodes.find( gameObject.fileId );
         if ( owner == result.nodes.end() )
         {
@@ -1256,13 +1440,18 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
             }
             default:
                 skippedKinds.insert( document.typeName.IsNULLOrEmpty() ? "class " + CORE::Int32ToString( document.classId ) : document.typeName );
+                RecordComponent( document, body, node );
                 break;
         }
     }
     for ( CORE::CString::StringSet::const_iterator k = skippedKinds.begin(); k != skippedKinds.end(); ++k )
-        m_project.Skip( fileSubject, "the " + (*k) + " components are not part of the intermediate" );
+        m_project.Approximate( fileSubject, "the " + (*k) + " components have no element in the intermediate: they are kept with their properties in the extras of their nodes (components)" );
     for ( size_t r=0; r<renderers.size(); ++r )
     {
+        if ( m_project.IsCancelled() )
+            return false;
+        if ( 0 == depth && 0 == ( r & 15 ) )
+            m_project.ReportProgress( 0.9f + 0.1f * (Float32) r / (Float32) renderers.size() );
         const UInt32 node = renderers[ r ].first;
         const CUnityYamlDocument& document = *renderers[ r ].second;
         const CORE::CDataNode& body = BodyOf( document, overrides );
@@ -1374,6 +1563,15 @@ CUnityPrefabReader::ReadFile( const CORE::CString& vfsPath, const TObjectOverrid
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CUnityPrefabReader::GetSourceMeshCount( void ) const
+{GUCEF_TRACE;
+
+    return m_sourceMeshCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CUnityPrefabReader::ReadAsset( const CORE::CString& vfsPath )
 {GUCEF_TRACE;
@@ -1385,7 +1583,7 @@ CUnityPrefabReader::ReadAsset( const CORE::CString& vfsPath )
     m_stack.push_back( vfsPath );
     const bool ok = ReadFile( vfsPath, GUCEF_NULL, GUCEF_NULL, 0, result, &prefab );
     m_stack.pop_back();
-    if ( !ok )
+    if ( !ok || m_project.IsCancelled() )
         return false;
     if ( result.roots.empty() )
     {
@@ -1408,6 +1606,9 @@ CUnityPrefabReader::ReadAsset( const CORE::CString& vfsPath )
     }
     prefab.rootNode = root;
     scene.prefabs.push_back( prefab );
+    if ( m_instanceCount > 0 )
+        m_project.Info( m_project.Describe( vfsPath ), CORE::UInt32ToString( m_instanceCount ) + " prefab instance(s) met, " + CORE::UInt32ToString( m_instanceCount - m_unresolvedCount ) +
+                        " expanded, " + CORE::UInt32ToString( m_unresolvedCount ) + " unresolved (an empty node stands in for each)" );
 
     // node names made unique, in the order of the hierarchy: skeletons and the cookers' lookups by name need it
     GUCEF::set< CORE::CString > taken;

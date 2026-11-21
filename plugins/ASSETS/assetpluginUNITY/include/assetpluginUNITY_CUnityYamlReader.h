@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef ASSETCONVERTERLIB_CCONVERSIONREPORT_H
+#include "AssetConverterLib_CConversionReport.h"
+#define ASSETCONVERTERLIB_CCONVERSIONREPORT_H
+#endif /* ASSETCONVERTERLIB_CCONVERSIONREPORT_H ? */
+
 #ifndef GUCEF_ASSETPLUGIN_UNITY_CUNITYYAMLFILE_H
 #include "assetpluginUNITY_CUnityYamlFile.h"
 #define GUCEF_ASSETPLUGIN_UNITY_CUNITYYAMLFILE_H
@@ -69,13 +74,16 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityYamlReader
 
     typedef GUCEF::vector< const CORE::CDataNode* > TNodeList;
 
-    /** Reads the text; false when a document could not be read ('problem' names the first), the others are in 'file' */
-    static bool Parse( const char* text, UInt32 byteSize, CUnityYamlFile& file, CORE::CString& problem );
+    /**
+     *  Reads the text; false when a document could not be read ('problem' names the first), the others are in 'file'. A conversion
+     *  that is asked to stop (cancelSource, may be NULL) ends the reading at the next document: the file is then empty and 'problem' says so
+     */
+    static bool Parse( const char* text, UInt32 byteSize, CUnityYamlFile& file, CORE::CString& problem, const ASSETCONVERTER::CConversionReport* cancelSource = GUCEF_NULL );
 
     static bool Parse( const CORE::CString& text, CUnityYamlFile& file, CORE::CString& problem );
 
     /** Reads a file of the VFS */
-    static bool Load( const CORE::CString& vfsPath, CUnityYamlFile& file, CORE::CString& problem );
+    static bool Load( const CORE::CString& vfsPath, CUnityYamlFile& file, CORE::CString& problem, const ASSETCONVERTER::CConversionReport* cancelSource = GUCEF_NULL );
 
     /** A signed 64 bit integer: an optional sign and digits; false for other texts and overflows */
     static bool ParseInt64( const CORE::CString& text, Int64& value );

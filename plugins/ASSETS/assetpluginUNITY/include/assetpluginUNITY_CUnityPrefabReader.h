@@ -88,6 +88,9 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityPrefabReader
     /** Reads the prefab or scene into the scene of the project and records it as the prefab of the asset */
     bool ReadAsset( const CORE::CString& vfsPath );
 
+    /** How often a source mesh was fetched and copied for a renderer: renderers that use the same mesh share it, so this is the number of different meshes */
+    UInt32 GetSourceMeshCount( void ) const;
+
     /**
      *  Applies a property modification to the object of a document: "m_LocalPosition.x", "m_Name",
      *  "m_Materials.Array.data[1]", "m_Materials.Array.size". A non-null objectReference sets a reference.
@@ -118,6 +121,19 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityPrefabReader
 
     static bool IsInstance( const CUnityYamlDocument& document, const CORE::CDataNode& body );
 
+    /**
+     *  A component the intermediate has no element for (cameras, audio sources, scripts, video players, ...) is kept with all its
+     *  properties in the extras of its node, in the list "components", with the references to assets given as paths of the package;
+     *  cameras and audio sources also get the members the cookers of the engines read, "camera" and "audioSource"
+     */
+    void RecordComponent( const CUnityYamlDocument& document, const CORE::CDataNode& body, UInt32 node );
+
+    /** The settings of a scene (render, lightmap, navigation and occlusion settings): kept in the extras of the scene, not applied */
+    void RecordSceneSettings( const CUnityYamlDocument& document, const CORE::CDataNode& body );
+
+    /** Gives the references of a tree that resolve to an asset of the package the member "path" */
+    void AnnotateReferences( CORE::CDataNode& tree );
+
     UInt32 NewNode( const CORE::CString& name );
     void Link( UInt32 child, Int32 parent );
 
@@ -126,6 +142,14 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityPrefabReader
     /** The mesh of a reference in Unity's coordinates, with the skin of the model and the model it came from; false when it cannot be had */
     bool GetSourceMesh( const CUnityReference& reference, const CORE::CString& vfsPath, const CORE::CString& subject, const CORE::CString& userName,
                         ASSETCONVERTER::CAssetMesh& mesh, const ASSETCONVERTER::CAssetSkin*& skin, const CUnityModel*& model );
+
+    /**
+     *  The key of the source mesh of a reference when it is a definite one: the file and the mesh in it, so that renderers (instances of a
+     *  prefab, for one) that use the same mesh share the mesh of the scene without the source mesh being copied again. False when the mesh
+     *  is not known, or is found by its name only: the renderer takes the longer way, which reports what it finds.
+     */
+    bool TryGetMeshKey( const CUnityReference& reference, const CORE::CString& vfsPath, const CORE::CString& userName, CORE::CString& key,
+                        const ASSETCONVERTER::CAssetSkin*& skin, const CUnityModel*& model );
 
     /** The mesh of the scene for a renderer: the source mesh with the materials of the renderer per submesh */
     Int32 GetRenderMesh( const CUnityReference& reference, const CORE::CString& vfsPath, const GUCEF::vector< Int32 >& materials, const CORE::CString& subject,
@@ -148,6 +172,9 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityPrefabReader
     CUnityParticleReader m_particles;
     CORE::CString::StringVector m_stack;
     TIdSet m_inactive;
+    UInt32 m_sourceMeshCount;       /**< the source meshes fetched */
+    UInt32 m_instanceCount;         /**< the prefab instances met, nested ones included */
+    UInt32 m_unresolvedCount;       /**< of those, the ones whose prefab is not in the package or nests too deep: an empty node stands in */
 };
 
 /*-------------------------------------------------------------------------//

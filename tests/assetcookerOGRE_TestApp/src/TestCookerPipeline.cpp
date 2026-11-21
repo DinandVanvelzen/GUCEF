@@ -237,6 +237,21 @@ PerformCookerPipelineTests( void )
         const CORE::CDataNode* scene = FindFileEntry( references, "heroes/Hero/Hero.scene" );
         ASSERT_TRUE( GUCEF_NULL != scene );
 
+        // the normalized relations of the asset (converter design 5.8.5), from its sidecar: its texture files in the pack, translated per asset
+        CReferenceGraph graph;
+        ASSERT_TRUE( graph.Load( profile + "/references.json" ) );
+        CReferenceGraph::TAssetRelationMap::const_iterator hero = graph.GetAssetRelations().find( "Hero.gltf" );
+        ASSERT_TRUE( hero != graph.GetAssetRelations().end() );
+        if ( hero != graph.GetAssetRelations().end() )
+        {
+            UInt32 textures = 0;
+            for ( size_t r=0; r<(*hero).second.size(); ++r )
+                if ( CAssetReference::KindUsesTexture == (*hero).second[ r ].relation.kind && (*hero).second[ r ].relation.IsResolved() )
+                    ++textures;
+            ASSERT_TRUE( textures >= 1 );
+        }
+        const CORE::CString referencesText = ReadVfsText( profile + "/references.json" );
+
         // sizes.json: the size of every file and the size of the asset
         CORE::CDataNode sizes;
         ASSERT_TRUE( CCanonicalJson::Load( profile + "/sizes.json", sizes ) );
@@ -261,6 +276,8 @@ PerformCookerPipelineTests( void )
         ASSERT_TRUE( ReportHasFile( second, profile + "/heroes/Hero/BodyMesh.mesh" ) );
         CORE::CDataNode referencesAgain;
         ASSERT_TRUE( CCanonicalJson::Load( profile + "/references.json", referencesAgain ) && GUCEF_NULL != FindFileEntry( referencesAgain, "heroes/Hero/BodyMesh.mesh" ) );
+        // a cached asset keeps its relations in the graph: the same file as the run that cooked it
+        ASSERT_TRUE( referencesText == ReadVfsText( profile + "/references.json" ) );
 
         // another version of the cooker: the cache entry is no longer current
         versioned->SetVersion( real->GetVersion() + 1 );
@@ -311,6 +328,40 @@ PerformCookerPipelineTests( void )
             ASSERT_TRUE( 6 == mesh->getSkeleton()->getNumBones() && 2 == mesh->getSkeleton()->getNumAnimations() );
         }
         DropOgreGroup( group );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Target names: the cooker is \"ogre\"; gucef-ogre3d, the name of the cooked area of the store, finds it and cooks the same files; a name that is neither is refused" )
+    try
+    {
+        CAssetPluginRegistry& registry = CAssetConverterGlobal::Instance()->GetPluginRegistry();
+        TAssetCookerPtr byName;
+        TAssetCookerPtr byArea;
+        ASSERT_TRUE( registry.TryGetCooker( "ogre", byName ) && registry.TryGetCooker( "gucef-ogre3d", byArea ) && byName.GetPointerAlways() == byArea.GetPointerAlways() );
+        ASSERT_TRUE( "ogre" == byArea->GetTargetName() && "ogre" == registry.ResolveCookerName( "GUCEF-OGRE3D" ) );
+        TAssetCookerPtr none;
+        ASSERT_FALSE( registry.TryGetCooker( "ogre3d", none ) );
+
+        // the command line with either name cooks into the same files
+        ASSERT_TRUE( WriteCharacterSource( "cliarea" ) );
+        CCommandLine commandLine;
+        commandLine.Add( "--mount" ).Add( "src=" + WorkDiskPath( "cliarea/src" ) ).Add( "--input" ).Add( "src/Hero.gltf" ).Add( "--importer" ).Add( "gltf" )
+                   .Add( "--licence" ).Add( WorkDiskPath( "cliarea/licences/lic.licence.json" ) ).Add( "--cook" ).Add( "gucef-ogre3d" )
+                   .Add( "--out" ).Add( WorkDiskPath( "cliarea/out" ) ).Add( "--report" ).Add( WorkDiskPath( "cliarea/report.json" ) );
+        CConversionReport report;
+        {
+            CAssetConverterApp app( commandLine.GetCount(), commandLine.GetArguments() );
+            ASSERT_TRUE( app.ParseCommandLine() );
+            ASSERT_TRUE( CAssetConverterApp::ExitSuccess == app.Run() );
+            report = app.GetReport();
+            app.Unmount();
+        }
+        ASSERT_FALSE( report.HasFailures() );
+        ASSERT_TRUE( CORE::FileExists( WorkDiskPath( "cliarea/out/desktop/Hero/Hero/BodyMesh.mesh" ) ) );
     }
     catch ( ... )
     {

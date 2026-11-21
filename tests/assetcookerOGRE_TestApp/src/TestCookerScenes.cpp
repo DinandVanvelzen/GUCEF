@@ -136,6 +136,60 @@ AddTexture( CAssetScene& scene, const CORE::CString& path, TTextureUsage usage )
 //-------------------------------------------------------------------------*/
 
 void
+BuildManyBonesScene( CAssetScene& scene, UInt32 boneCount )
+{GUCEF_TRACE;
+
+    const UInt32 root = scene.AddNode( "Root" );
+    CAssetSkin skeleton;
+    skeleton.name = "Chain";
+    Int32 parent = (Int32) root;
+    for ( UInt32 j=0; j<boneCount; ++j )
+    {
+        const UInt32 joint = scene.AddNode( "J" + CORE::UInt32ToString( j ), parent );
+        SetPosition( scene.nodes[ joint ], 0.1f, 0.0f, 0.0f );
+        skeleton.joints.push_back( joint );
+        skeleton.inverseBindMatrices.push_back( Translation( -0.1f * (Float32) ( j + 1 ), 0.0f, 0.0f ) );
+        parent = (Int32) joint;
+    }
+    skeleton.skeletonRoot = skeleton.joints.empty() ? -1 : (Int32) skeleton.joints[ 0 ];
+    scene.skins.push_back( skeleton );
+
+    CAssetMesh ribbon;
+    ribbon.name = "RibbonMesh";
+    CAssetSubMesh subMesh;
+    subMesh.materialIndex = -1;
+    subMesh.influencesPerVertex = 4;
+    const Float32 corners[ 4 ][ 2 ] = { { -1.0f, -1.0f }, { 1.0f, -1.0f }, { 1.0f, 1.0f }, { -1.0f, 1.0f } };
+    const Float32 influenceWeights[ 4 ] = { 0.4f, 0.3f, 0.2f, 0.1f };
+    for ( UInt32 j=0; j<boneCount; ++j )
+    {
+        const UInt32 first = (UInt32) subMesh.positions.size() / 3;
+        for ( UInt32 c=0; c<4; ++c )
+        {
+            Append( subMesh.positions, 0.1f * (Float32) j + 0.04f * corners[ c ][ 0 ], 0.04f * corners[ c ][ 1 ], 0.0f );
+            Append( subMesh.normals, 0.0f, 0.0f, 1.0f );
+            subMesh.uvSets[ 0 ].push_back( corners[ c ][ 0 ] * 0.5f + 0.5f );
+            subMesh.uvSets[ 0 ].push_back( 0.5f - corners[ c ][ 1 ] * 0.5f );
+            for ( UInt32 i=0; i<4; ++i )
+            {
+                subMesh.joints.push_back( ( j + i ) % boneCount );
+                subMesh.weights.push_back( influenceWeights[ i ] );
+            }
+        }
+        const UInt32 indices[ 6 ] = { 0, 1, 2, 0, 2, 3 };
+        for ( UInt32 i=0; i<6; ++i )
+            subMesh.indices.push_back( first + indices[ i ] );
+    }
+    ribbon.subMeshes.push_back( subMesh );
+    scene.meshes.push_back( ribbon );
+    const UInt32 body = scene.AddNode( "Body", (Int32) root );
+    scene.nodes[ body ].mesh = 0;
+    scene.nodes[ body ].skin = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 BuildCharacterScene( CAssetScene& scene, const CORE::CString& textureFolder )
 {GUCEF_TRACE;
 
@@ -233,6 +287,11 @@ BuildCharacterScene( CAssetScene& scene, const CORE::CString& textureFolder )
         third.uvSets[ 0 ].push_back( 0.0f ); third.uvSets[ 0 ].push_back( 0.0f );
         third.indices.push_back( 0 ); third.indices.push_back( 1 ); third.indices.push_back( 2 );
         third.materialIndex = 1;
+        // masks of the vertices (data of the material, not colours): R 0, 0.5, 1 per vertex, G 0.25, B 0, A 1
+        for ( UInt32 v=0; v<3; ++v )
+        {
+            third.masks.push_back( 0.5f * v ); third.masks.push_back( 0.25f ); third.masks.push_back( 0.0f ); third.masks.push_back( 1.0f );
+        }
         bodyMesh.subMeshes.push_back( third );
     }
     scene.meshes.push_back( bodyMesh );

@@ -21,6 +21,9 @@ set( HEADER_FILES
   include/AssetConverterLib_CAssetConversionTaskConsumer.h
   include/AssetConverterLib_CAssetConverterApp.h
   include/AssetConverterLib_CAssetConverterGlobal.h
+  include/AssetConverterLib_CAssetFileKind.h
+  include/AssetConverterLib_CAssetHiddenFaceSet.h
+  include/AssetConverterLib_CAssetKindRegistry.h
   include/AssetConverterLib_CAssetLight.h
   include/AssetConverterLib_CAssetLodGroup.h
   include/AssetConverterLib_CAssetMaterial.h
@@ -29,8 +32,10 @@ set( HEADER_FILES
   include/AssetConverterLib_CAssetNode.h
   include/AssetConverterLib_CAssetNormaliser.h
   include/AssetConverterLib_CAssetPackContext.h
+  include/AssetConverterLib_CAssetPackListing.h
   include/AssetConverterLib_CAssetPackManifest.h
   include/AssetConverterLib_CAssetPackPlan.h
+  include/AssetConverterLib_CAssetPackProfile.h
   include/AssetConverterLib_CAssetParticleCurve.h
   include/AssetConverterLib_CAssetParticleGradient.h
   include/AssetConverterLib_CAssetParticleSystem.h
@@ -42,6 +47,7 @@ set( HEADER_FILES
   include/AssetConverterLib_CAssetPrefabInstance.h
   include/AssetConverterLib_CAssetPreset.h
   include/AssetConverterLib_CAssetProvenance.h
+  include/AssetConverterLib_CAssetReference.h
   include/AssetConverterLib_CAssetScene.h
   include/AssetConverterLib_CAssetSceneSummary.h
   include/AssetConverterLib_CAssetSkin.h
@@ -65,16 +71,52 @@ set( HEADER_FILES
   include/AssetConverterLib_CIAssetPipelineObserver.h
   include/AssetConverterLib_CIAssetPostProcessor.h
   include/AssetConverterLib_CIAssetValidator.h
+  include/AssetConverterLib_CIPackIndexObserver.h
   include/AssetConverterLib_CImportActivityEntry.h
   include/AssetConverterLib_CImportActivityLog.h
   include/AssetConverterLib_CImportSettingsBuilder.h
   include/AssetConverterLib_CIntermediateLock.h
+  include/AssetConverterLib_CLayerPenetrationValidator.h
   include/AssetConverterLib_CLicenceRecord.h
   include/AssetConverterLib_CMergeIdenticalMaterialsPostProcessor.h
   include/AssetConverterLib_CMissingTexturesValidator.h
   include/AssetConverterLib_CModule.h
   include/AssetConverterLib_CNameHintsPostProcessor.h
   include/AssetConverterLib_CNamingValidator.h
+  include/AssetConverterLib_CPackGateDecision.h
+  include/AssetConverterLib_CPackGroupRule.h
+  include/AssetConverterLib_CPackGroupRules.h
+  include/AssetConverterLib_CPackGroupVocabulary.h
+  include/AssetConverterLib_CPackIndexAnalyser.h
+  include/AssetConverterLib_CPackIndexBuildOptions.h
+  include/AssetConverterLib_CPackIndexBuilder.h
+  include/AssetConverterLib_CPackIndexCounts.h
+  include/AssetConverterLib_CPackIndexDocument.h
+  include/AssetConverterLib_CPackIndexGroup.h
+  include/AssetConverterLib_CPackIndexIdentity.h
+  include/AssetConverterLib_CPackIndexImageProbe.h
+  include/AssetConverterLib_CPackIndexLicence.h
+  include/AssetConverterLib_CPackIndexLocator.h
+  include/AssetConverterLib_CPackIndexOutputFile.h
+  include/AssetConverterLib_CPackIndexOutputs.h
+  include/AssetConverterLib_CPackIndexProducer.h
+  include/AssetConverterLib_CPackIndexProfile.h
+  include/AssetConverterLib_CPackIndexReader.h
+  include/AssetConverterLib_CPackIndexReference.h
+  include/AssetConverterLib_CPackIndexResource.h
+  include/AssetConverterLib_CPackIndexRunResult.h
+  include/AssetConverterLib_CPackIndexSerial.h
+  include/AssetConverterLib_CPackIndexShardInfo.h
+  include/AssetConverterLib_CPackIndexStatus.h
+  include/AssetConverterLib_CPackIndexStepStatus.h
+  include/AssetConverterLib_CPackIndexSubGroup.h
+  include/AssetConverterLib_CPackIndexThumbnail.h
+  include/AssetConverterLib_CPackIndexUpdateOptions.h
+  include/AssetConverterLib_CPackIndexUpdater.h
+  include/AssetConverterLib_CPackIndexWriter.h
+  include/AssetConverterLib_CPackNamingConventions.h
+  include/AssetConverterLib_CPackRedoRequest.h
+  include/AssetConverterLib_CPackWorkGate.h
   include/AssetConverterLib_CPluginStackEntry.h
   include/AssetConverterLib_CPruneEmptyNodesPostProcessor.h
   include/AssetConverterLib_CReferenceGraph.h
@@ -100,6 +142,9 @@ set( SOURCE_FILES
   src/AssetConverterLib_CAssetConversionTaskConsumer.cpp
   src/AssetConverterLib_CAssetConverterApp.cpp
   src/AssetConverterLib_CAssetConverterGlobal.cpp
+  src/AssetConverterLib_CAssetFileKind.cpp
+  src/AssetConverterLib_CAssetHiddenFaceSet.cpp
+  src/AssetConverterLib_CAssetKindRegistry.cpp
   src/AssetConverterLib_CAssetLight.cpp
   src/AssetConverterLib_CAssetLodGroup.cpp
   src/AssetConverterLib_CAssetMaterial.cpp
@@ -108,8 +153,10 @@ set( SOURCE_FILES
   src/AssetConverterLib_CAssetNode.cpp
   src/AssetConverterLib_CAssetNormaliser.cpp
   src/AssetConverterLib_CAssetPackContext.cpp
+  src/AssetConverterLib_CAssetPackListing.cpp
   src/AssetConverterLib_CAssetPackManifest.cpp
   src/AssetConverterLib_CAssetPackPlan.cpp
+  src/AssetConverterLib_CAssetPackProfile.cpp
   src/AssetConverterLib_CAssetParticleCurve.cpp
   src/AssetConverterLib_CAssetParticleGradient.cpp
   src/AssetConverterLib_CAssetParticleSystem.cpp
@@ -121,6 +168,7 @@ set( SOURCE_FILES
   src/AssetConverterLib_CAssetPrefabInstance.cpp
   src/AssetConverterLib_CAssetPreset.cpp
   src/AssetConverterLib_CAssetProvenance.cpp
+  src/AssetConverterLib_CAssetReference.cpp
   src/AssetConverterLib_CAssetScene.cpp
   src/AssetConverterLib_CAssetSceneSummary.cpp
   src/AssetConverterLib_CAssetSkin.cpp
@@ -144,16 +192,52 @@ set( SOURCE_FILES
   src/AssetConverterLib_CIAssetPipelineObserver.cpp
   src/AssetConverterLib_CIAssetPostProcessor.cpp
   src/AssetConverterLib_CIAssetValidator.cpp
+  src/AssetConverterLib_CIPackIndexObserver.cpp
   src/AssetConverterLib_CImportActivityEntry.cpp
   src/AssetConverterLib_CImportActivityLog.cpp
   src/AssetConverterLib_CImportSettingsBuilder.cpp
   src/AssetConverterLib_CIntermediateLock.cpp
+  src/AssetConverterLib_CLayerPenetrationValidator.cpp
   src/AssetConverterLib_CLicenceRecord.cpp
   src/AssetConverterLib_CMergeIdenticalMaterialsPostProcessor.cpp
   src/AssetConverterLib_CMissingTexturesValidator.cpp
   src/AssetConverterLib_CModule.cpp
   src/AssetConverterLib_CNameHintsPostProcessor.cpp
   src/AssetConverterLib_CNamingValidator.cpp
+  src/AssetConverterLib_CPackGateDecision.cpp
+  src/AssetConverterLib_CPackGroupRule.cpp
+  src/AssetConverterLib_CPackGroupRules.cpp
+  src/AssetConverterLib_CPackGroupVocabulary.cpp
+  src/AssetConverterLib_CPackIndexAnalyser.cpp
+  src/AssetConverterLib_CPackIndexBuildOptions.cpp
+  src/AssetConverterLib_CPackIndexBuilder.cpp
+  src/AssetConverterLib_CPackIndexCounts.cpp
+  src/AssetConverterLib_CPackIndexDocument.cpp
+  src/AssetConverterLib_CPackIndexGroup.cpp
+  src/AssetConverterLib_CPackIndexIdentity.cpp
+  src/AssetConverterLib_CPackIndexImageProbe.cpp
+  src/AssetConverterLib_CPackIndexLicence.cpp
+  src/AssetConverterLib_CPackIndexLocator.cpp
+  src/AssetConverterLib_CPackIndexOutputFile.cpp
+  src/AssetConverterLib_CPackIndexOutputs.cpp
+  src/AssetConverterLib_CPackIndexProducer.cpp
+  src/AssetConverterLib_CPackIndexProfile.cpp
+  src/AssetConverterLib_CPackIndexReader.cpp
+  src/AssetConverterLib_CPackIndexReference.cpp
+  src/AssetConverterLib_CPackIndexResource.cpp
+  src/AssetConverterLib_CPackIndexRunResult.cpp
+  src/AssetConverterLib_CPackIndexSerial.cpp
+  src/AssetConverterLib_CPackIndexShardInfo.cpp
+  src/AssetConverterLib_CPackIndexStatus.cpp
+  src/AssetConverterLib_CPackIndexStepStatus.cpp
+  src/AssetConverterLib_CPackIndexSubGroup.cpp
+  src/AssetConverterLib_CPackIndexThumbnail.cpp
+  src/AssetConverterLib_CPackIndexUpdateOptions.cpp
+  src/AssetConverterLib_CPackIndexUpdater.cpp
+  src/AssetConverterLib_CPackIndexWriter.cpp
+  src/AssetConverterLib_CPackNamingConventions.cpp
+  src/AssetConverterLib_CPackRedoRequest.cpp
+  src/AssetConverterLib_CPackWorkGate.cpp
   src/AssetConverterLib_CPluginStackEntry.cpp
   src/AssetConverterLib_CPruneEmptyNodesPostProcessor.cpp
   src/AssetConverterLib_CReferenceGraph.cpp

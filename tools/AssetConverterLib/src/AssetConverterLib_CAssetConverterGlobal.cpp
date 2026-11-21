@@ -156,7 +156,8 @@ UInt32
 CAssetConverterGlobal::GetConverterVersion( void )
 {GUCEF_TRACE;
 
-    return 1;
+    // 2: the sidecar holds the normalized relations of the asset ("relations")
+    return 2;
 }
 
 /*-------------------------------------------------------------------------*/

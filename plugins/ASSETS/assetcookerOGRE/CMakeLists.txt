@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/assetcookerOGRE.h
   include/assetcookerOGRE_CAssetCook.h
+  include/assetcookerOGRE_CBoneSubsetSplitter.h
   include/assetcookerOGRE_CBufferDataStream.h
   include/assetcookerOGRE_CCollisionWriter.h
   include/assetcookerOGRE_CDotSceneWriter.h
@@ -35,6 +36,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/assetcookerOGRE.cpp
   src/assetcookerOGRE_CAssetCook.cpp
+  src/assetcookerOGRE_CBoneSubsetSplitter.cpp
   src/assetcookerOGRE_CBufferDataStream.cpp
   src/assetcookerOGRE_CCollisionWriter.cpp
   src/assetcookerOGRE_CDotSceneWriter.cpp

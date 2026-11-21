@@ -97,7 +97,6 @@ class GUCEF_ASSETPLUGIN_FBX_EXPORT_CPP CFbxMaterialReader
     CFbxMaterialReader& operator=( const CFbxMaterialReader& src );     /**< not implemented */
 
     typedef GUCEF::map< CORE::CString, Int32 > TTextureMap;
-    typedef GUCEF::map< CORE::CString, CORE::CString::StringVector > TFileMap;
 
     void ReadMaterial( const ufbx_material& source, ASSETCONVERTER::CAssetMaterial& material );
     void ReadPbr( const ufbx_material& source, ASSETCONVERTER::CAssetMaterial& material );
@@ -106,6 +105,9 @@ class GUCEF_ASSETPLUGIN_FBX_EXPORT_CPP CFbxMaterialReader
     CORE::CString ResolveFile( const ufbx_texture& texture );
     CORE::CString ExtractContent( const ufbx_texture& texture );
     const ufbx_texture* GetFileTexture( const ufbx_texture* texture ) const;
+
+    /** The file name of a file texture as the FBX file wrote it (relative where it has one): the 'via' of its relation */
+    static CORE::CString ReferenceText( const ufbx_texture& texture );
     bool SetReference( const ufbx_material_map& map, ASSETCONVERTER::TTextureUsage usage, ASSETCONVERTER::CAssetTextureReference& reference, const CORE::CString& owner );
     Int32 AddFileTexture( const ufbx_texture& texture, ASSETCONVERTER::TTextureUsage usage, const CORE::CString& owner );
     Int32 AddDerivedTexture( const CORE::CString::StringVector& sources, const GUCEF::vector< ASSETCONVERTER::CTextureOperation >& operations, const CORE::CString& name );
@@ -120,8 +122,6 @@ class GUCEF_ASSETPLUGIN_FBX_EXPORT_CPP CFbxMaterialReader
     ASSETCONVERTER::CAssetScene& m_scene;
     ASSETCONVERTER::CConversionReport& m_report;
     TTextureMap m_textures;
-    TFileMap m_packFiles;
-    bool m_packFilesBuilt;
     CORE::CString::StringSet m_embedded;
     CORE::CString m_materialName;
 };

@@ -40,6 +40,7 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#include "assetcookerOGRE_CBoneSubsetSplitter.h"
 #include "assetcookerOGRE_CBufferDataStream.h"
 #include "assetcookerOGRE_CNodeAnimationSampler.h"
 #include "assetcookerOGRE_COgreCookEnvironment.h"
@@ -64,6 +65,7 @@ namespace OGRE {
 
 static const char* const SourceName = "ogre";
 static const UInt32 MaxWeights = 4;
+static const UInt32 MaxBonesPerSubMesh = 256;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -94,7 +96,7 @@ HaveSameStreams( const ASSETCONVERTER::CAssetSubMesh& a, const ASSETCONVERTER::C
     if ( 0 == a.GetVertexCount() || 0 == b.GetVertexCount() )
         return false;
     if ( a.HasNormals() != b.HasNormals() || a.HasTangents() != b.HasTangents() || a.GetUvSetCount() != b.GetUvSetCount() ||
-         a.colours.empty() != b.colours.empty() || a.IsSkinned() != b.IsSkinned() || a.morphTargets.size() != b.morphTargets.size() )
+         a.colours.empty() != b.colours.empty() || a.masks.empty() != b.masks.empty() || a.IsSkinned() != b.IsSkinned() || a.morphTargets.size() != b.morphTargets.size() )
         return false;
     if ( !a.colours.empty() && a.colours.size() / a.GetVertexCount() != b.colours.size() / b.GetVertexCount() )
         return false;
@@ -104,6 +106,14 @@ HaveSameStreams( const ASSETCONVERTER::CAssetSubMesh& a, const ASSETCONVERTER::C
         if ( a.morphTargets[ t ].name != b.morphTargets[ t ].name || a.morphTargets[ t ].normalDeltas.empty() != b.morphTargets[ t ].normalDeltas.empty() )
             return false;
     return true;
+}
+
+/** A part of one as percent with one decimal: 0.15 is "15.0" */
+CORE::CString
+ToPercent( Float64 part )
+{
+    const UInt32 tenths = (UInt32) ( 1000.0 * part + 0.5 );
+    return CORE::UInt32ToString( tenths / 10 ) + "." + CORE::UInt32ToString( tenths % 10 );
 }
 
 template< typename T >
@@ -121,14 +131,82 @@ AppendAll( GUCEF::vector< T >& to, const GUCEF::vector< T >& from )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+CMeshCooker::SInfluenceReduction::SInfluenceReduction( void )
+    : reducedVertices( 0 )
+    , mostInfluences( 0 )
+    , lostWeightSum( 0.0 )
+    , lostWeightMax( 0.0f )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMeshCooker::ReduceInfluences( ASSETCONVERTER::CAssetSubMesh& subMesh, SInfluenceReduction& reduction )
+{GUCEF_TRACE;
+
+    const UInt32 n = subMesh.influencesPerVertex;
+    const UInt32 vertexCount = subMesh.GetVertexCount();
+    if ( n <= MaxWeights || !subMesh.IsSkinned() )
+        return;
+
+    ASSETCONVERTER::CAssetSubMesh::TUInt32Vector joints( (size_t) vertexCount * MaxWeights, 0 );
+    ASSETCONVERTER::CAssetSubMesh::TFloatVector weights( (size_t) vertexCount * MaxWeights, 0.0f );
+    GUCEF::vector< SInfluence > influences;
+    for ( UInt32 v=0; v<vertexCount; ++v )
+    {
+        influences.clear();
+        Float32 all = 0.0f;
+        for ( UInt32 i=0; i<n; ++i )
+        {
+            const size_t at = (size_t) v * n + i;
+            if ( at >= subMesh.weights.size() || at >= subMesh.joints.size() || subMesh.weights[ at ] <= 0.0f )
+                continue;
+            SInfluence influence;
+            influence.joint = subMesh.joints[ at ];
+            influence.weight = subMesh.weights[ at ];
+            influences.push_back( influence );
+            all += influence.weight;
+        }
+        std::sort( influences.begin(), influences.end(), IsStronger );
+        if ( influences.size() > MaxWeights )
+        {
+            ++reduction.reducedVertices;
+            if ( influences.size() > reduction.mostInfluences )
+                reduction.mostInfluences = (UInt32) influences.size();
+            influences.resize( MaxWeights );
+        }
+        Float32 kept = 0.0f;
+        for ( size_t i=0; i<influences.size(); ++i )
+            kept += influences[ i ].weight;
+        if ( all > 0.0f && kept < all )
+        {
+            const Float32 lost = ( all - kept ) / all;
+            reduction.lostWeightSum += lost;
+            if ( lost > reduction.lostWeightMax )
+                reduction.lostWeightMax = lost;
+        }
+        for ( size_t i=0; i<influences.size(); ++i )
+        {
+            joints[ (size_t) v * MaxWeights + i ] = influences[ i ].joint;
+            weights[ (size_t) v * MaxWeights + i ] = kept > 0.0f ? influences[ i ].weight / kept : 0.0f;
+        }
+    }
+    subMesh.joints.swap( joints );
+    subMesh.weights.swap( weights );
+    subMesh.influencesPerVertex = MaxWeights;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CMeshCooker::CMeshCooker( const ASSETCONVERTER::CAssetScene& scene, ASSETCONVERTER::CConversionReport& report )
     : m_scene( scene )
     , m_report( report )
     , m_mesh()
     , m_madeMaterials()
     , m_name()
-    , m_reducedVertices( 0 )
-    , m_mostInfluences( 0 )
+    , m_reduction()
 {GUCEF_TRACE;
 
 }
@@ -167,6 +245,24 @@ CMeshCooker::Destroy( void )
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CMeshCooker::GetHiddenFaceMaterialName( const CORE::CString& baseMaterialName, const ASSETCONVERTER::CAssetScene& scene, UInt32 hiddenBy )
+{GUCEF_TRACE;
+
+    return baseMaterialName + "/hiddenBy=" + COutputNames::Sanitize( ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( scene.hiddenFaceSets, hiddenBy, "+" ), "set" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CMeshCooker::GetHiddenFaceSubMeshName( const ASSETCONVERTER::CAssetScene& scene, UInt32 hiddenBy, UInt32 index )
+{GUCEF_TRACE;
+
+    return "hiddenBy=" + COutputNames::Sanitize( ASSETCONVERTER::CAssetHiddenFaceSet::NamesOf( scene.hiddenFaceSets, hiddenBy, "+" ), "set" ) + "#" + CORE::UInt32ToString( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CMeshCooker::MergeSubMeshesByMaterial( const ASSETCONVERTER::CAssetMesh& mesh, ASSETCONVERTER::CAssetMesh& merged )
 {GUCEF_TRACE;
@@ -179,7 +275,7 @@ CMeshCooker::MergeSubMeshesByMaterial( const ASSETCONVERTER::CAssetMesh& mesh, A
         const ASSETCONVERTER::CAssetSubMesh& source = mesh.subMeshes[ s ];
         ASSETCONVERTER::CAssetSubMesh* target = GUCEF_NULL;
         for ( size_t m=0; m<merged.subMeshes.size() && GUCEF_NULL == target; ++m )
-            if ( merged.subMeshes[ m ].materialIndex == source.materialIndex && HaveSameStreams( merged.subMeshes[ m ], source ) )
+            if ( merged.subMeshes[ m ].materialIndex == source.materialIndex && merged.subMeshes[ m ].hiddenBy == source.hiddenBy && HaveSameStreams( merged.subMeshes[ m ], source ) )
                 target = &merged.subMeshes[ m ];
         if ( GUCEF_NULL == target )
         {
@@ -194,6 +290,7 @@ CMeshCooker::MergeSubMeshesByMaterial( const ASSETCONVERTER::CAssetMesh& mesh, A
         for ( UInt32 u=0; u<ASSETCONVERTER::CAssetSubMesh::MaxUvSets; ++u )
             AppendAll( target->uvSets[ u ], source.uvSets[ u ] );
         AppendAll( target->colours, source.colours );
+        AppendAll( target->masks, source.masks );
         AppendAll( target->joints, source.joints );
         AppendAll( target->weights, source.weights );
         for ( size_t i=0; i<source.indices.size(); ++i )
@@ -342,6 +439,14 @@ CMeshCooker::BuildSubMesh( const ASSETCONVERTER::CAssetSubMesh& sourceSubMesh, U
         declaration->addElement( 0, offset, Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE );
         offset += Ogre::VertexElement::getTypeSize( Ogre::VET_UBYTE4_NORM );
     }
+    // the masks of the vertices (data of the materials of the source, not colours) as the second colour of Ogre: nothing reads it
+    // unless a pass asks for it, so the masks do not tint the model
+    const bool masks = source.masks.size() == (size_t) vertexCount * 4;
+    if ( masks )
+    {
+        declaration->addElement( 0, offset, Ogre::VET_UBYTE4_NORM, Ogre::VES_SPECULAR );
+        offset += Ogre::VertexElement::getTypeSize( Ogre::VET_UBYTE4_NORM );
+    }
     const UInt32 uvSets = source.GetUvSetCount();
     for ( UInt32 u=0; u<uvSets; ++u )
     {
@@ -375,6 +480,17 @@ CMeshCooker::BuildSubMesh( const ASSETCONVERTER::CAssetSubMesh& sourceSubMesh, U
                 Float32 value = c < colourComponents ? source.colours[ (size_t) v * colourComponents + c ] : 1.0f;
                 value = value < 0.0f ? 0.0f : ( value > 1.0f ? 1.0f : value );
                 colour[ c ] = (UInt8) ( value * 255.0f + 0.5f );
+            }
+            ++at;
+        }
+        if ( masks )
+        {
+            UInt8* mask = reinterpret_cast< UInt8* >( f + at );
+            for ( UInt32 c=0; c<4; ++c )
+            {
+                Float32 value = source.masks[ (size_t) v * 4 + c ];
+                value = value < 0.0f ? 0.0f : ( value > 1.0f ? 1.0f : value );
+                mask[ c ] = (UInt8) ( value * 255.0f + 0.5f );
             }
             ++at;
         }
@@ -431,12 +547,7 @@ CMeshCooker::BuildSubMesh( const ASSETCONVERTER::CAssetSubMesh& sourceSubMesh, U
             }
             std::sort( influences.begin(), influences.end(), IsStronger );
             if ( influences.size() > MaxWeights )
-            {
-                ++m_reducedVertices;
-                if ( influences.size() > m_mostInfluences )
-                    m_mostInfluences = (UInt32) influences.size();
-                influences.resize( MaxWeights );
-            }
+                influences.resize( MaxWeights );    // the submesh is reduced before it gets here, this keeps the limit whatever comes in
             Float32 total = 0.0f;
             for ( size_t i=0; i<influences.size(); ++i )
                 total += influences[ i ].weight;
@@ -560,8 +671,7 @@ CMeshCooker::Build( UInt32 meshIndex                                ,
 {GUCEF_TRACE;
 
     Destroy();
-    m_reducedVertices = 0;
-    m_mostInfluences = 0;
+    m_reduction = SInfluenceReduction();
     if ( meshIndex >= m_scene.meshes.size() )
         return false;
     m_name = m_scene.meshes[ meshIndex ].name;
@@ -572,6 +682,23 @@ CMeshCooker::Build( UInt32 meshIndex                                ,
         m_report.AddInfo( SourceName, m_name, CORE::UInt32ToString( mergedAway ) + " submesh(es) merged into others of the same material" );
 
     const bool skinned = skinIndex >= 0 && (bool) skeleton;
+    if ( skinned )
+    {
+        // the influences are reduced to what Ogre keeps first: the bones that count are those that remain. Then a submesh that
+        // uses more bones than its blend indices can address is split by bone subsets
+        for ( size_t s=0; s<mesh.subMeshes.size(); ++s )
+            ReduceInfluences( mesh.subMeshes[ s ], m_reduction );
+        ASSETCONVERTER::CAssetMesh split;
+        UInt32 extraSubMeshes = 0;
+        const UInt32 splitCount = CBoneSubsetSplitter::Split( mesh, MaxBonesPerSubMesh, split, extraSubMeshes );
+        if ( splitCount > 0 )
+        {
+            mesh = split;
+            m_report.AddInfo( SourceName, m_name, CORE::UInt32ToString( splitCount ) + " submesh(es) use more than " + CORE::UInt32ToString( MaxBonesPerSubMesh ) +
+                              " bones: split by bone subsets into " + CORE::UInt32ToString( extraSubMeshes + splitCount ) + " submeshes (the skeleton has " +
+                              CORE::UInt32ToString( skeleton->getNumBones() ) + " bones)" );
+        }
+    }
     try
     {
         m_mesh = Ogre::MeshManager::getSingleton().createManual( resourceName.STL_String(), COgreCookEnvironment::ResourceGroupName.STL_String() );
@@ -581,9 +708,17 @@ CMeshCooker::Build( UInt32 meshIndex                                ,
         for ( size_t s=0; s<mesh.subMeshes.size(); ++s )
         {
             const Int32 material = mesh.subMeshes[ s ].materialIndex;
-            const CORE::CString materialName = material >= 0 && (size_t) material < materialNames.size() ? materialNames[ material ] : defaultMaterialName;
+            const UInt32 hiddenBy = mesh.subMeshes[ s ].hiddenBy;
+            CORE::CString materialName = material >= 0 && (size_t) material < materialNames.size() ? materialNames[ material ] : defaultMaterialName;
+            // the triangles that hidden face sets hide: a material variant and a submesh name that say so (the mesh keeps them)
+            if ( 0 != hiddenBy )
+                materialName = GetHiddenFaceMaterialName( materialName, m_scene, hiddenBy );
             if ( BuildSubMesh( mesh.subMeshes[ s ], (UInt32) s, materialName, skinned, bounds ) )
+            {
                 built.subMeshes.push_back( mesh.subMeshes[ s ] );
+                if ( 0 != hiddenBy )
+                    m_mesh->nameSubMesh( GetHiddenFaceSubMeshName( m_scene, hiddenBy, (UInt32) ( m_mesh->getNumSubMeshes() - 1 ) ).STL_String(), (unsigned short) ( m_mesh->getNumSubMeshes() - 1 ) );
+            }
         }
         if ( 0 == m_mesh->getNumSubMeshes() )
         {
@@ -607,9 +742,11 @@ CMeshCooker::Build( UInt32 meshIndex                                ,
         return false;
     }
 
-    if ( m_reducedVertices > 0 )
-        m_report.AddApproximation( SourceName, m_name, CORE::UInt32ToString( m_reducedVertices ) + " vertices had up to " + CORE::UInt32ToString( m_mostInfluences ) +
-                                   " influences; reduced to the strongest 4 and renormalised for hardware skinning" );
+    if ( m_reduction.reducedVertices > 0 )
+        m_report.AddApproximation( SourceName, m_name, CORE::UInt32ToString( m_reduction.reducedVertices ) + " vertices had up to " + CORE::UInt32ToString( m_reduction.mostInfluences ) +
+                                   " influences; reduced to the strongest 4 and renormalised for hardware skinning (the dropped influences had " +
+                                   ToPercent( m_reduction.lostWeightSum / (Float64) m_reduction.reducedVertices ) + " percent of the weight of such a vertex on average, " +
+                                   ToPercent( m_reduction.lostWeightMax ) + " percent at most)" );
     return true;
 }
 

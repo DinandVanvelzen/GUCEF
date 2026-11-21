@@ -316,6 +316,12 @@ CGltfSceneReader::ReadAsset( void )
         CORE::CDataNode::const_iterator c = sceneExtras->ConstBegin();
         while ( c != sceneExtras->ConstEnd() )
         {
+            // the hidden face sets are part of the model (read with the meshes), not extras
+            if ( ASSETCONVERTER::CAssetHiddenFaceSet::SceneExtrasKey == (*c)->GetName() )
+            {
+                ++c;
+                continue;
+            }
             m_scene.extras.DelChild( (*c)->GetName() );
             m_scene.extras.AddChild( *(*c) );
             ++c;
@@ -713,6 +719,18 @@ CGltfSceneReader::ReadPrimitive( const cgltf_mesh& mesh, UInt32 meshIndex, UInt3
     if ( GUCEF_NULL != cgltf_find_accessor( &primitive, cgltf_attribute_type_color, 1 ) )
         m_report.AddApproximation( SourceName, subject, "more than one colour set: the first is kept" );
 
+    // the masks of the vertices (the attribute _MASK_0 of the GUCEF converter): RGBA data of the materials
+    for ( cgltf_size a=0; a<primitive.attributes_count; ++a )
+    {
+        const cgltf_attribute& attribute = primitive.attributes[ a ];
+        if ( cgltf_attribute_type_custom != attribute.type || GUCEF_NULL == attribute.name || CORE::CString( "_MASK_0" ) != attribute.name || GUCEF_NULL == attribute.data )
+            continue;
+        if ( 4 == cgltf_num_components( attribute.data->type ) && ReadFloats( attribute.data, 4, values ) && values.size() == vertexCount * 4 )
+            subMesh.masks.swap( values );
+        else
+            m_report.AddWarning( SourceName, subject, "the attribute _MASK_0 is not four values per vertex: left out" );
+    }
+
     // the joints and weights: every set of four, then trimmed to the influences that are used
     UInt32 sets = 0;
     while ( GUCEF_NULL != cgltf_find_accessor( &primitive, cgltf_attribute_type_joints, (cgltf_int) sets ) &&
@@ -823,6 +841,11 @@ void
 CGltfSceneReader::ReadMeshes( void )
 {GUCEF_TRACE;
 
+    // the outfits whose faces of a body the primitives name (written by the GUCEF converter in the extras of the scene)
+    const CORE::CDataNode* sets = GetMember( GetMember( GetElement( &m_json, "scenes", 0 ), "extras" ), ASSETCONVERTER::CAssetHiddenFaceSet::SceneExtrasKey.C_String() );
+    if ( GUCEF_NULL != sets && !ASSETCONVERTER::CAssetHiddenFaceSet::DeserializeList( *sets, m_scene.hiddenFaceSets ) )
+        m_report.AddWarning( SourceName, m_vfsPath, "a hidden face set of the extras cannot be read (or there are more than " + CORE::UInt32ToString( ASSETCONVERTER::CAssetHiddenFaceSet::MaxSets ) + "): left out" );
+
     const cgltf_data* data = m_document.GetData();
     for ( cgltf_size m=0; m<data->meshes_count; ++m )
     {
@@ -832,8 +855,19 @@ CGltfSceneReader::ReadMeshes( void )
         for ( cgltf_size p=0; p<source.primitives_count; ++p )
         {
             ASSETCONVERTER::CAssetSubMesh subMesh;
-            if ( ReadPrimitive( source, (UInt32) m, (UInt32) p, subMesh ) )
-                mesh.subMeshes.push_back( subMesh );
+            if ( !ReadPrimitive( source, (UInt32) m, (UInt32) p, subMesh ) )
+                continue;
+            const CORE::CDataNode* hiddenBy = GetMember( GetMember( GetElement( GetElement( &m_json, "meshes", m ), "primitives", p ), "extras" ), ASSETCONVERTER::CAssetHiddenFaceSet::SubMeshExtrasKey.C_String() );
+            if ( GUCEF_NULL != hiddenBy )
+                for ( const CORE::CDataNode* entry = hiddenBy->GetFirstChild(); GUCEF_NULL != entry; entry = entry->GetNext() )
+                {
+                    const Int32 set = ASSETCONVERTER::CAssetHiddenFaceSet::Find( m_scene.hiddenFaceSets, entry->GetValue().AsString() );
+                    if ( set >= 0 )
+                        subMesh.hiddenBy |= ASSETCONVERTER::CAssetHiddenFaceSet::BitOf( (UInt32) set );
+                    else
+                        m_report.AddWarning( SourceName, mesh.name, "a primitive names the hidden face set " + entry->GetValue().AsString() + " that the scene does not have" );
+                }
+            mesh.subMeshes.push_back( subMesh );
         }
         m_scene.meshes.push_back( mesh );
     }
@@ -1246,13 +1280,33 @@ CGltfSceneReader::ReadDependencies( void )
         {
             const CORE::CString path = CGltfUri::Resolve( folder, data->buffers[ b ].uri );
             if ( vfs.FileExists( path ) )
+            {
                 m_scene.AddDependency( path );
+                m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesFile, path, data->buffers[ b ].uri );
+            }
+            else
+            {
+                m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesFile, data->buffers[ b ].uri );
+            }
         }
     }
     for ( size_t t=0; t<m_scene.textures.size(); ++t )
         for ( size_t s=0; s<m_scene.textures[ t ].sources.size(); ++s )
             if ( m_embedded.find( m_scene.textures[ t ].sources[ s ] ) == m_embedded.end() && vfs.FileExists( m_scene.textures[ t ].sources[ s ] ) )
                 m_scene.AddDependency( m_scene.textures[ t ].sources[ s ] );
+
+    // the normalized relations (converter design 5.8): every external image, with its uri as the source wrote it
+    for ( cgltf_size i=0; i<data->images_count; ++i )
+    {
+        const char* uri = data->images[ i ].uri;
+        if ( GUCEF_NULL == uri || CGltfUri::IsDataUri( uri ) )
+            continue;
+        const CORE::CString path = CGltfUri::Resolve( folder, uri );
+        if ( vfs.FileExists( path ) )
+            m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, path, uri );
+        else
+            m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, uri );
+    }
 }
 
 /*-------------------------------------------------------------------------//

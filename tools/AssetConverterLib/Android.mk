@@ -31,6 +31,9 @@ LOCAL_SRC_FILES := \
   src/AssetConverterLib_CAssetConversionTaskConsumer.cpp \
   src/AssetConverterLib_CAssetConverterApp.cpp \
   src/AssetConverterLib_CAssetConverterGlobal.cpp \
+  src/AssetConverterLib_CAssetFileKind.cpp \
+  src/AssetConverterLib_CAssetHiddenFaceSet.cpp \
+  src/AssetConverterLib_CAssetKindRegistry.cpp \
   src/AssetConverterLib_CAssetLight.cpp \
   src/AssetConverterLib_CAssetLodGroup.cpp \
   src/AssetConverterLib_CAssetMaterial.cpp \
@@ -39,8 +42,10 @@ LOCAL_SRC_FILES := \
   src/AssetConverterLib_CAssetNode.cpp \
   src/AssetConverterLib_CAssetNormaliser.cpp \
   src/AssetConverterLib_CAssetPackContext.cpp \
+  src/AssetConverterLib_CAssetPackListing.cpp \
   src/AssetConverterLib_CAssetPackManifest.cpp \
   src/AssetConverterLib_CAssetPackPlan.cpp \
+  src/AssetConverterLib_CAssetPackProfile.cpp \
   src/AssetConverterLib_CAssetParticleCurve.cpp \
   src/AssetConverterLib_CAssetParticleGradient.cpp \
   src/AssetConverterLib_CAssetParticleSystem.cpp \
@@ -52,6 +57,7 @@ LOCAL_SRC_FILES := \
   src/AssetConverterLib_CAssetPrefabInstance.cpp \
   src/AssetConverterLib_CAssetPreset.cpp \
   src/AssetConverterLib_CAssetProvenance.cpp \
+  src/AssetConverterLib_CAssetReference.cpp \
   src/AssetConverterLib_CAssetScene.cpp \
   src/AssetConverterLib_CAssetSceneSummary.cpp \
   src/AssetConverterLib_CAssetSkin.cpp \
@@ -75,16 +81,52 @@ LOCAL_SRC_FILES := \
   src/AssetConverterLib_CIAssetPipelineObserver.cpp \
   src/AssetConverterLib_CIAssetPostProcessor.cpp \
   src/AssetConverterLib_CIAssetValidator.cpp \
+  src/AssetConverterLib_CIPackIndexObserver.cpp \
   src/AssetConverterLib_CImportActivityEntry.cpp \
   src/AssetConverterLib_CImportActivityLog.cpp \
   src/AssetConverterLib_CImportSettingsBuilder.cpp \
   src/AssetConverterLib_CIntermediateLock.cpp \
+  src/AssetConverterLib_CLayerPenetrationValidator.cpp \
   src/AssetConverterLib_CLicenceRecord.cpp \
   src/AssetConverterLib_CMergeIdenticalMaterialsPostProcessor.cpp \
   src/AssetConverterLib_CMissingTexturesValidator.cpp \
   src/AssetConverterLib_CModule.cpp \
   src/AssetConverterLib_CNameHintsPostProcessor.cpp \
   src/AssetConverterLib_CNamingValidator.cpp \
+  src/AssetConverterLib_CPackGateDecision.cpp \
+  src/AssetConverterLib_CPackGroupRule.cpp \
+  src/AssetConverterLib_CPackGroupRules.cpp \
+  src/AssetConverterLib_CPackGroupVocabulary.cpp \
+  src/AssetConverterLib_CPackIndexAnalyser.cpp \
+  src/AssetConverterLib_CPackIndexBuildOptions.cpp \
+  src/AssetConverterLib_CPackIndexBuilder.cpp \
+  src/AssetConverterLib_CPackIndexCounts.cpp \
+  src/AssetConverterLib_CPackIndexDocument.cpp \
+  src/AssetConverterLib_CPackIndexGroup.cpp \
+  src/AssetConverterLib_CPackIndexIdentity.cpp \
+  src/AssetConverterLib_CPackIndexImageProbe.cpp \
+  src/AssetConverterLib_CPackIndexLicence.cpp \
+  src/AssetConverterLib_CPackIndexLocator.cpp \
+  src/AssetConverterLib_CPackIndexOutputFile.cpp \
+  src/AssetConverterLib_CPackIndexOutputs.cpp \
+  src/AssetConverterLib_CPackIndexProducer.cpp \
+  src/AssetConverterLib_CPackIndexProfile.cpp \
+  src/AssetConverterLib_CPackIndexReader.cpp \
+  src/AssetConverterLib_CPackIndexReference.cpp \
+  src/AssetConverterLib_CPackIndexResource.cpp \
+  src/AssetConverterLib_CPackIndexRunResult.cpp \
+  src/AssetConverterLib_CPackIndexSerial.cpp \
+  src/AssetConverterLib_CPackIndexShardInfo.cpp \
+  src/AssetConverterLib_CPackIndexStatus.cpp \
+  src/AssetConverterLib_CPackIndexStepStatus.cpp \
+  src/AssetConverterLib_CPackIndexSubGroup.cpp \
+  src/AssetConverterLib_CPackIndexThumbnail.cpp \
+  src/AssetConverterLib_CPackIndexUpdateOptions.cpp \
+  src/AssetConverterLib_CPackIndexUpdater.cpp \
+  src/AssetConverterLib_CPackIndexWriter.cpp \
+  src/AssetConverterLib_CPackNamingConventions.cpp \
+  src/AssetConverterLib_CPackRedoRequest.cpp \
+  src/AssetConverterLib_CPackWorkGate.cpp \
   src/AssetConverterLib_CPluginStackEntry.cpp \
   src/AssetConverterLib_CPruneEmptyNodesPostProcessor.cpp \
   src/AssetConverterLib_CReferenceGraph.cpp \

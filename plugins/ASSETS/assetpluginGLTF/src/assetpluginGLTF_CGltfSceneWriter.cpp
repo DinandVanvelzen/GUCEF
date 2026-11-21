@@ -137,7 +137,9 @@ UInt32
 CGltfSceneWriter::GetVersion( void )
 {GUCEF_TRACE;
 
-    return 1;
+    // 2: the masks of the vertices as the attribute _MASK_0
+    // 3: the hidden face sets (extras of the scene "gucefHiddenFaceSets", of the primitives "gucefHiddenBy")
+    return 3;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -283,6 +285,10 @@ CGltfSceneWriter::WriteScenes( void )
     CORE::CDataNode extras( m_scene.extras );
     extras.DelChild( "gltf" );
     extras.DelChild( "fbx" );
+    // the outfits whose faces of a body the primitives name in "gucefHiddenBy"
+    extras.DelChild( ASSETCONVERTER::CAssetHiddenFaceSet::SceneExtrasKey );
+    if ( !m_scene.hiddenFaceSets.empty() )
+        ASSETCONVERTER::CAssetHiddenFaceSet::SerializeList( m_scene.hiddenFaceSets, *extras.AddChild( ASSETCONVERTER::CAssetHiddenFaceSet::SceneExtrasKey, GUCEF_DATATYPE_ARRAY ) );
     if ( extras.GetAttCount() > 0 || extras.HasChildren() )
         m_writer.MemberNode( "extras", extras );
     m_writer.EndObject();
@@ -479,6 +485,12 @@ CGltfSceneWriter::WritePrimitive( const ASSETCONVERTER::CAssetSubMesh& subMesh, 
     }
     if ( subMesh.colours.size() == (size_t) count * 4 )
         m_writer.Member( "COLOR_0", m_binary.AddFloats( &subMesh.colours[ 0 ], count, TBuilder::ELEMENT_VEC4, TBuilder::TARGET_ARRAY, false ) );
+    // masks are data of the materials, not colours: an attribute of the application (a name with an underscore), RGBA
+    if ( subMesh.masks.size() == (size_t) count * 4 )
+        m_writer.Member( "_MASK_0", m_binary.AddFloats( &subMesh.masks[ 0 ], count, TBuilder::ELEMENT_VEC4, TBuilder::TARGET_ARRAY, false ) );
+    else
+    if ( !subMesh.masks.empty() )
+        m_report.AddWarning( SourceName, m_scene.name, "the masks of a submesh do not have four values per vertex and are left out" );
 
     const UInt32 influences = subMesh.influencesPerVertex;
     const bool skinned = influences > 0 && subMesh.joints.size() == (size_t) count * influences && subMesh.weights.size() == (size_t) count * influences;
@@ -530,11 +542,25 @@ CGltfSceneWriter::WritePrimitive( const ASSETCONVERTER::CAssetSubMesh& subMesh, 
     if ( morphTargetCount > 0 )
         WriteMorphTargets( subMesh, morphTargetCount, count );
 
-    if ( skinned )
+    // the hidden face sets that hide the triangles of the primitive, by name (the sets are in the extras of the scene)
+    CORE::CString::StringVector hiddenBy;
+    for ( size_t h=0; h<m_scene.hiddenFaceSets.size(); ++h )
+        if ( 0 != ( subMesh.hiddenBy & ASSETCONVERTER::CAssetHiddenFaceSet::BitOf( (UInt32) h ) ) )
+            hiddenBy.push_back( m_scene.hiddenFaceSets[ h ].name );
+    if ( skinned || !hiddenBy.empty() )
     {
         m_writer.Key( "extras" );
         m_writer.BeginObject();
-        m_writer.Member( "gucefInfluences", influences );
+        if ( skinned )
+            m_writer.Member( "gucefInfluences", influences );
+        if ( !hiddenBy.empty() )
+        {
+            m_writer.Key( ASSETCONVERTER::CAssetHiddenFaceSet::SubMeshExtrasKey.C_String() );
+            m_writer.BeginArray();
+            for ( size_t h=0; h<hiddenBy.size(); ++h )
+                m_writer.String( hiddenBy[ h ] );
+            m_writer.EndArray();
+        }
         m_writer.EndObject();
     }
     m_writer.EndObject();

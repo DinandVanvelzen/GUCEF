@@ -948,7 +948,7 @@ ReadHeader( const char* text, UInt32 length, Int32& classId, Int64& fileId, bool
 //-------------------------------------------------------------------------*/
 
 bool
-CUnityYamlReader::Parse( const char* text, UInt32 byteSize, CUnityYamlFile& file, CORE::CString& problem )
+CUnityYamlReader::Parse( const char* text, UInt32 byteSize, CUnityYamlFile& file, CORE::CString& problem, const ASSETCONVERTER::CConversionReport* cancelSource )
 {GUCEF_TRACE;
 
     file.Clear();
@@ -994,8 +994,15 @@ CUnityYamlReader::Parse( const char* text, UInt32 byteSize, CUnityYamlFile& file
     bool ok = true;
     UInt32 i = 0;
     const UInt32 count = (UInt32) lines.size();
+    UInt32 documentsRead = 0;
     while ( i < count )
     {
+        if ( GUCEF_NULL != cancelSource && 0 == ( ++documentsRead & 63 ) && cancelSource->IsCancellationRequested() )
+        {
+            file.Clear();
+            problem = "cancelled";
+            return false;
+        }
         Int32 classId = -1;
         Int64 fileId = 0;
         bool stripped = false;
@@ -1069,7 +1076,7 @@ CUnityYamlReader::Parse( const CORE::CString& text, CUnityYamlFile& file, CORE::
 /*-------------------------------------------------------------------------*/
 
 bool
-CUnityYamlReader::Load( const CORE::CString& vfsPath, CUnityYamlFile& file, CORE::CString& problem )
+CUnityYamlReader::Load( const CORE::CString& vfsPath, CUnityYamlFile& file, CORE::CString& problem, const ASSETCONVERTER::CConversionReport* cancelSource )
 {GUCEF_TRACE;
 
     CORE::CDynamicBuffer buffer;
@@ -1079,7 +1086,7 @@ CUnityYamlReader::Load( const CORE::CString& vfsPath, CUnityYamlFile& file, CORE
         problem = "the file cannot be read";
         return false;
     }
-    return Parse( static_cast< const char* >( buffer.GetConstBufferPtr() ), buffer.GetDataSize(), file, problem );
+    return Parse( static_cast< const char* >( buffer.GetConstBufferPtr() ), buffer.GetDataSize(), file, problem, cancelSource );
 }
 
 /*-------------------------------------------------------------------------*/

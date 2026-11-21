@@ -131,6 +131,11 @@ AddTexture( CAssetScene& scene, GUCEF::map< CORE::CString, Int32 >& known, const
     texture.usage = usage;
     scene.textures.push_back( texture );
     known[ vfsPath ] = (Int32) scene.textures.size() - 1;
+    // the normalized relation, as a real importer records it: the file, or the name when it is not there
+    if ( VFS::CVfsGlobal::Instance()->GetVfs().FileExists( vfsPath ) )
+        scene.AddReference( CAssetReference::KindUsesTexture, vfsPath, CVfsPaths::NameOf( vfsPath ) );
+    else
+        scene.AddUnresolvedReference( CAssetReference::KindUsesTexture, CVfsPaths::NameOf( vfsPath ) );
     return known[ vfsPath ];
 }
 
@@ -291,6 +296,23 @@ CStubImporter::Import( const CORE::CString& vfsPath, CAssetPackContext& /* conte
     source.GetValuesOfChildByName( "dependencies", dependencies );
     for ( size_t d=0; d<dependencies.size(); ++d )
         out.AddDependency( CVfsPaths::Join( folder, dependencies[ d ] ) );
+
+    // relations of other kinds: { "kind", "path" (relative to the folder of the source, absent for an unresolved one), "via", "optional" }
+    const CORE::CDataNode* references = source.FindChild( "references" );
+    if ( GUCEF_NULL != references )
+    {
+        for ( const CORE::CDataNode* reference = references->GetFirstChild(); GUCEF_NULL != reference; reference = reference->GetNext() )
+        {
+            const CORE::CString kind = reference->GetAttributeValueOrChildValueByName( "kind" ).AsString();
+            const CORE::CString path = reference->GetAttributeValueOrChildValueByName( "path" ).AsString();
+            const CORE::CString via = reference->GetAttributeValueOrChildValueByName( "via" ).AsString();
+            const bool optional = reference->GetAttributeValueOrChildValueByName( "optional" ).AsBool( false );
+            if ( path.IsNULLOrEmpty() )
+                out.AddUnresolvedReference( kind, via, optional );
+            else
+                out.AddReference( kind, CVfsPaths::Join( folder, path ), via, optional );
+        }
+    }
 
     const CORE::CString approximation = source.GetAttributeValueOrChildValueByName( "approximation" ).AsString();
     if ( !approximation.IsNULLOrEmpty() )

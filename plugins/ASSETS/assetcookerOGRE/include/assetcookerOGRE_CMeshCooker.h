@@ -71,8 +71,10 @@ namespace OGRE {
  *    up to four UV sets. Where the material of a submesh uses a normal map and the submesh has no tangents, tangents are
  *    generated per triangle from the normal map's UV set (reported: not MikkTSpace).
  *  - Skinning: at most four weights per vertex. A vertex with more influences keeps the four strongest, renormalised;
- *    the number of such vertices and the most influences seen are reported as an approximation. The mesh links to the
- *    skeleton given; the bone of a weight is the index of its joint in the skin.
+ *    the number of such vertices, the most influences seen and the weight that was dropped (on average and at most,
+ *    per reduced vertex) are reported as an approximation. A submesh that uses more bones than a submesh of Ogre can
+ *    address (256: its blend indices have 8 bits) is split by bone subsets (CBoneSubsetSplitter), so a rig of any size
+ *    works. The mesh links to the skeleton given; the bone of a weight is the index of its joint in the skin.
  *  - Morph targets become poses (one per target and submesh, offsets and, where the target has them, normal offsets)
  *    and every clip that animates the weights of a node that uses the mesh becomes a pose animation of the length of
  *    the clip, a key per key of the weights. Default weights other than 0 are reported: Ogre has no base weights.
@@ -115,8 +117,39 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CMeshCooker
     /** Takes the mesh and the materials made for it out of their managers */
     void Destroy( void );
 
-    /** Merges the submeshes of the mesh that have the same material and the same streams; the number merged away */
+    /**
+     *  The Ogre material of the triangles of a submesh that hidden face sets hide (CAssetSubMesh::hiddenBy): a variant of the
+     *  material of the submesh, '<material>/hiddenBy=<set>+<set>'. The material script decides what it shows: nothing while one of
+     *  the sets is active, the material of the submesh otherwise. The base name is the part before "/hiddenBy=".
+     */
+    static CORE::CString GetHiddenFaceMaterialName( const CORE::CString& baseMaterialName, const ASSETCONVERTER::CAssetScene& scene, UInt32 hiddenBy );
+
+    /**
+     *  The name of an Ogre submesh whose triangles hidden face sets hide: 'hiddenBy=<set>+<set>#<index>' (index: of the submesh in
+     *  the mesh, for unique names). An application that switches outfits hides such a submesh with SubEntity::setVisible() while
+     *  one of the named sets is active, and gives it the base material when none is.
+     */
+    static CORE::CString GetHiddenFaceSubMeshName( const ASSETCONVERTER::CAssetScene& scene, UInt32 hiddenBy, UInt32 index );
+
+    /** Merges the submeshes of the mesh that have the same material, the same hidden face sets and the same streams; the number merged away */
     static UInt32 MergeSubMeshesByMaterial( const ASSETCONVERTER::CAssetMesh& mesh, ASSETCONVERTER::CAssetMesh& merged );
+
+    /** What the reduction of the influences of the vertices of a submesh to the four that Ogre keeps cost */
+    struct SInfluenceReduction
+    {
+        UInt32 reducedVertices;         /**< the vertices that had more than four influences */
+        UInt32 mostInfluences;          /**< the most influences one vertex had */
+        Float64 lostWeightSum;          /**< the sum, over the reduced vertices, of the part of the weight that the dropped influences had */
+        Float32 lostWeightMax;          /**< the biggest such part of one vertex */
+        SInfluenceReduction( void );
+    };
+
+    /**
+     *  Keeps the four strongest influences of every vertex of the submesh and renormalises them to a sum of one; the
+     *  influences of the submesh become four per vertex at most. The weight that the dropped influences had is added
+     *  to 'reduction' (the approximation: a vertex with more influences moves a little differently than in the source).
+     */
+    static void ReduceInfluences( ASSETCONVERTER::CAssetSubMesh& subMesh, SInfluenceReduction& reduction );
 
     /** Tangents (x, y, z, handedness) per vertex from positions, normals and a UV set; false without them */
     static bool GenerateTangents( ASSETCONVERTER::CAssetSubMesh& subMesh, UInt32 uvSet );
@@ -139,8 +172,7 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CMeshCooker
     Ogre::MeshPtr m_mesh;
     GUCEF::vector< Ogre::MaterialPtr > m_madeMaterials;
     CORE::CString m_name;
-    UInt32 m_reducedVertices;
-    UInt32 m_mostInfluences;
+    SInfluenceReduction m_reduction;
 };
 
 /*-------------------------------------------------------------------------//

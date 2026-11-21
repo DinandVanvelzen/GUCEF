@@ -105,6 +105,12 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPackContext
 
     UInt32 GetIndexSize( const CORE::CString& indexName ) const;
 
+    /**
+     *  The VFS paths of the files of the pack that have a file name, case ignored and without a folder, in the order
+     *  of GetFiles(). The map of names is made once, on the first call, and shared by every importer and thread.
+     */
+    bool FindFilesByName( const CORE::CString& fileName, CORE::CString::StringVector& vfsPaths ) const;
+
     private:
 
     CAssetPackContext( const CAssetPackContext& src );              /**< not implemented: it owns a mount */
@@ -112,6 +118,7 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPackContext
 
     typedef GUCEF::map< CORE::CString, CORE::CString > TKeyMap;
     typedef GUCEF::map< CORE::CString, TKeyMap > TIndexMap;
+    typedef GUCEF::map< CORE::CString, CORE::CString::StringVector > TNameMap;
 
     CAssetPackManifest m_manifest;
     CORE::CString m_sourceRoot;
@@ -119,6 +126,8 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPackContext
     CORE::CString::StringVector m_files;
     CORE::CString::StringSet m_fileSet;
     TIndexMap m_index;
+    mutable TNameMap m_nameIndex;
+    mutable bool m_nameIndexBuilt;
     MT::CMutex m_indexLock;
     bool m_open;
 };

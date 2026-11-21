@@ -60,6 +60,7 @@ CAssetPackPlan::CAssetPackPlan( void )
     , cookTargets()
     , intermediateDir()
     , lockHolder()
+    , indexNote()
     , filteredOut( 0 )
     , problems()
     , entries()
@@ -129,6 +130,8 @@ CAssetPackPlan::Serialize( CORE::CDataNode& node ) const
     node.SetAttribute( "intermediate", intermediateDir );
     if ( !lockHolder.IsNULLOrEmpty() )
         node.SetAttribute( "lockHolder", lockHolder );
+    if ( !indexNote.IsNULLOrEmpty() )
+        node.SetAttribute( "indexNote", indexNote );
     node.SetAttribute( "filteredOut", filteredOut );
     node.SetValuesOfChildByName( "problems", problems );
     CORE::CDataNode* counts = node.AddChild( "counts", GUCEF_DATATYPE_OBJECT );
@@ -157,6 +160,7 @@ CAssetPackPlan::Deserialize( const CORE::CDataNode& node )
     node.GetValuesOfChildByName( "cookTargets", plan.cookTargets );
     plan.intermediateDir = node.GetAttributeValueOrChildValueByName( "intermediate" ).AsString();
     plan.lockHolder = node.GetAttributeValueOrChildValueByName( "lockHolder" ).AsString();
+    plan.indexNote = node.GetAttributeValueOrChildValueByName( "indexNote" ).AsString();
     plan.filteredOut = node.GetAttributeValueOrChildValueByName( "filteredOut" ).AsUInt32( 0 );
     node.GetValuesOfChildByName( "problems", plan.problems );
     const CORE::CDataNode* assets = node.FindChild( "assets" );
@@ -218,6 +222,8 @@ CAssetPackPlan::ToSummaryText( void ) const
         text += "Assets restricted to " + CORE::ToString( (UInt32) assetFilter.size() ) + " globs; " + CORE::ToString( filteredOut ) + " assets left out\n";
     if ( !lockHolder.IsNULLOrEmpty() )
         text += "The intermediate is locked by " + lockHolder + "\n";
+    if ( !indexNote.IsNULLOrEmpty() )
+        text += "Pack index: " + indexNote + "\n";
     for ( size_t p=0; p<problems.size(); ++p )
         text += "PROBLEM: " + problems[ p ] + "\n";
     for ( Int32 a=0; a<PLANACTION_COUNT; ++a )

@@ -86,6 +86,9 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CDotSceneWriter
     /** The cooked mesh of a node */
     void SetEntity( UInt32 node, const CORE::CString& meshName, bool skinned );
 
+    /** A text property of the entity of a node (a <userData> property of the entity element); after SetEntity() */
+    void SetEntityProperty( UInt32 node, const CORE::CString& name, const CORE::CString& value );
+
     /** The particle system template of a node, with the values the template cannot hold */
     void SetParticleSystem( UInt32 node, const CORE::CString& templateName, Float32 prewarm, Float32 startDelay, bool playOnAwake );
 
@@ -133,6 +136,7 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CDotSceneWriter
     {
         CORE::CString mesh;
         bool skinned;
+        CORE::CString::StringVector properties;     /**< <property> elements of the user data of the entity */
     };
     typedef GUCEF::map< UInt32, SEntity > TEntityMap;
 

@@ -422,6 +422,22 @@ PerformGodotMaterialTests( void )
         // wood.tres and the sub resource use the same file in the same way: one texture
         ASSERT_TRUE( 1 == scene.textures.size() && scene.materials[ 0 ].baseColorTexture.textureIndex == scene.materials[ 1 ].baseColorTexture.textureIndex );
         ASSERT_TRUE( ReportHas( report, REPORTITEM_WARNING, "normal_texture" ) && !scene.materials[ 1 ].normalTexture.IsUsed() );
+
+        // the relations: the texture that is there, the one that is not by its path, the material file
+        bool texture = false;
+        bool nowhere = false;
+        bool material = false;
+        for ( size_t r=0; r<scene.references.size(); ++r )
+        {
+            const CAssetReference& reference = scene.references[ r ];
+            if ( CAssetReference::KindUsesTexture == reference.kind && reference.target.EndsWith( "mat12/shared.png" ) && "res://shared.png" == reference.via )
+                texture = true;
+            if ( CAssetReference::KindUsesTexture == reference.kind && !reference.IsResolved() && "res://nowhere.png" == reference.via )
+                nowhere = true;
+            if ( CAssetReference::KindUsesMaterial == reference.kind && reference.target.EndsWith( "mat12/wood.tres" ) )
+                material = true;
+        }
+        ASSERT_TRUE( texture && nowhere && material );
     }
     catch ( ... )
     {

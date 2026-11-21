@@ -386,6 +386,98 @@ PerformCookerOutputsTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Hidden faces: the triangles a worn outfit hides stay in the mesh as a named submesh whose material variant draws nothing; another choice of outfits shows them" )
+    try
+    {
+        // a body of two quads in one material: the right quad is hidden by the outfit "Coat"
+        CAssetScene scene;
+        scene.name = "Dressed";
+        CAssetMaterial skin;
+        skin.name = "Skin";
+        scene.materials.push_back( skin );
+        CAssetMesh body;
+        body.name = "BodyMesh";
+        for ( UInt32 q=0; q<2; ++q )
+        {
+            CAssetSubMesh quad;
+            quad.materialIndex = 0;
+            const Float32 corners[ 4 ][ 2 ] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+            for ( UInt32 c=0; c<4; ++c )
+            {
+                quad.positions.push_back( corners[ c ][ 0 ] + (Float32) q ); quad.positions.push_back( corners[ c ][ 1 ] ); quad.positions.push_back( 0.0f );
+                quad.normals.push_back( 0.0f ); quad.normals.push_back( 0.0f ); quad.normals.push_back( 1.0f );
+            }
+            const UInt32 indices[] = { 0, 1, 2,  0, 2, 3 };
+            quad.indices.assign( indices, indices + 6 );
+            quad.hiddenBy = q;
+            body.subMeshes.push_back( quad );
+        }
+        scene.meshes.push_back( body );
+        const UInt32 node = scene.AddNode( "Body" );
+        scene.nodes[ node ].mesh = 0;
+        CAssetHiddenFaceSet coat;
+        coat.name = "Coat";
+        coat.active = true;
+        coat.hiddenTriangles = 2;
+        scene.hiddenFaceSets.push_back( coat );
+
+        const CORE::CString folder = "hiddenfaces";
+        MakeWorkFolder( folder );
+        CCookSettings settings;
+        CCookSettings::SAsset asset;
+        ASSERT_TRUE( MakeIntermediate( scene, folder, "Models/Dressed.fbx", asset ) );
+        settings.assets.push_back( asset );
+        CConversionReport cookReport;
+        ASSERT_TRUE( CookIntermediate( folder, settings, cookReport ) );
+        ASSERT_FALSE( cookReport.HasFailures() );
+        ASSERT_TRUE( ReportHas( cookReport, REPORTITEM_INFO, "worn (their faces of the body are not drawn): Coat" ) );
+
+        const CORE::CString base = "pack/Models/Dressed/Skin";
+        const CORE::CString variant = base + "/hiddenBy=Coat";
+        const CORE::CString script = ReadVfsText( GetProfileDir( folder ) + "/pack/Models/Dressed/Dressed.material" );
+        ASSERT_TRUE( script.HasSubstr( "material \"" + variant + "\"\n{\n    technique\n    {\n    }\n}" ) >= 0 );
+        const CORE::CString sceneText = ReadVfsText( GetProfileDir( folder ) + "/pack/Models/Dressed/Dressed.scene" );
+        ASSERT_TRUE( sceneText.HasSubstr( "name=\"gucefActiveHiddenFaceSets\" data=\"Coat\"" ) >= 0 && sceneText.HasSubstr( "name=\"gucefHiddenFaceSets\" data=\"Coat\"" ) >= 0 );
+
+        const Ogre::String group = "CookerHiddenFaces";
+        ASSERT_TRUE( UseOgreGroup( group, GetProfileDir( folder ) ) );
+        Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().load( "pack/Models/Dressed/BodyMesh.mesh", group );
+        ASSERT_TRUE( (bool) mesh && 2 == mesh->getNumSubMeshes() );
+        if ( mesh && 2 == mesh->getNumSubMeshes() )
+        {
+            // the mesh keeps both quads; the hidden one is named and uses the variant
+            ASSERT_TRUE( base.STL_String() == mesh->getSubMesh( 0 )->getMaterialName() && variant.STL_String() == mesh->getSubMesh( 1 )->getMaterialName() );
+            ASSERT_TRUE( 4 == mesh->getSubMesh( 1 )->vertexData->vertexCount && 6 == mesh->getSubMesh( 1 )->indexData->indexCount );
+            const Ogre::Mesh::SubMeshNameMap& names = mesh->getSubMeshNameMap();
+            Ogre::Mesh::SubMeshNameMap::const_iterator named = names.find( "hiddenBy=Coat#1" );
+            ASSERT_TRUE( named != names.end() && 1 == named->second );
+        }
+        // the variant of the worn outfit: one technique without a pass
+        Ogre::MaterialPtr hidden = Ogre::MaterialManager::getSingleton().getByName( variant.STL_String(), group );
+        ASSERT_TRUE( (bool) hidden && 1 == hidden->getNumTechniques() && 0 == hidden->getTechnique( 0 )->getNumPasses() );
+        Ogre::MaterialPtr shownBase = Ogre::MaterialManager::getSingleton().getByName( base.STL_String(), group );
+        ASSERT_TRUE( (bool) shownBase && 1 == shownBase->getTechnique( 0 )->getNumPasses() );
+        DropOgreGroup( group );
+
+        // the pack setting chooses no outfit: the variant is a copy of the material, the mesh is the same
+        CCookSettings bare;
+        bare.settings.SetAttribute( "hiddenFaceSets", "none" );
+        bare.force = true;
+        bare.assets.push_back( asset );
+        CConversionReport bareReport;
+        ASSERT_TRUE( CookIntermediate( folder, bare, bareReport ) );
+        ASSERT_TRUE( ReportHas( bareReport, REPORTITEM_INFO, "worn (their faces of the body are not drawn): none" ) );
+        const CORE::CString bareScript = ReadVfsText( GetProfileDir( folder ) + "/pack/Models/Dressed/Dressed.material" );
+        const Int32 at = bareScript.HasSubstr( "material \"" + variant + "\"" );
+        ASSERT_TRUE( at >= 0 && bareScript.SubstrFromRange( (UInt32) at, bareScript.Length() ).HasSubstr( "pass" ) >= 0 );
+        ASSERT_TRUE( ReadVfsText( GetProfileDir( folder ) + "/pack/Models/Dressed/Dressed.scene" ).HasSubstr( "name=\"gucefActiveHiddenFaceSets\" data=\"\"" ) >= 0 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

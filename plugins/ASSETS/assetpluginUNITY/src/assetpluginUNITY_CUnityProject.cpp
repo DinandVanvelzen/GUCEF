@@ -91,6 +91,9 @@ CUnityProject::CUnityProject( ASSETCONVERTER::CAssetPackContext& context, ASSETC
     , m_shaders()
     , m_models()
     , m_cache()
+    , m_metaLoads( 0 )
+    , m_yamlLoads( 0 )
+    , m_modelLoads( 0 )
     , m_reported()
 {GUCEF_TRACE;
 
@@ -120,6 +123,8 @@ ASSETCONVERTER::CAssetPackContext& CUnityProject::GetContext( void ) { return m_
 ASSETCONVERTER::CAssetScene& CUnityProject::GetScene( void ) { return m_scene; }
 ASSETCONVERTER::CConversionReport& CUnityProject::GetReport( void ) { return m_report; }
 const CORE::CString& CUnityProject::GetAssetPath( void ) const { return m_assetPath; }
+bool CUnityProject::IsCancelled( void ) const { return m_report.IsCancellationRequested(); }
+void CUnityProject::ReportProgress( Float32 fraction ) const { m_report.ReportProgress( fraction ); }
 const CORE::CDataNode& CUnityProject::GetSettings( void ) const { return m_settings; }
 
 /*-------------------------------------------------------------------------*/
@@ -133,6 +138,12 @@ CUnityProject::GetSettingBool( const CORE::CString& name, bool defaultValue ) co
         return defaultValue;
     return value.AsBool( defaultValue, true );
 }
+
+/*-------------------------------------------------------------------------*/
+
+UInt32 CUnityProject::GetMetaLoadCount( void ) const { return m_metaLoads; }
+UInt32 CUnityProject::GetYamlLoadCount( void ) const { return m_yamlLoads; }
+UInt32 CUnityProject::GetModelLoadCount( void ) const { return m_modelLoads; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -159,6 +170,7 @@ CUnityProject::GetMeta( const CORE::CString& assetVfsPath )
     const CORE::CString metaPath = assetVfsPath + ".meta";
     if ( VFS::CVfsGlobal::Instance()->GetVfs().FileExists( metaPath ) )
     {
+        ++m_metaLoads;
         meta = GUCEF_NEW CUnityMeta();
         CORE::CString problem;
         if ( !meta->Load( metaPath, problem ) )
@@ -186,10 +198,18 @@ CUnityProject::GetYaml( const CORE::CString& vfsPath )
     if ( known != m_yamls.end() )
         return (*known).second;
 
+    if ( IsCancelled() )
+        return GUCEF_NULL;
+    ++m_yamlLoads;
     CUnityYamlFile* file = GUCEF_NEW CUnityYamlFile();
     CORE::CString problem;
-    if ( !CUnityYamlReader::Load( vfsPath, *file, problem ) )
+    if ( !CUnityYamlReader::Load( vfsPath, *file, problem, &m_report ) )
     {
+        if ( m_report.IsCancellationRequested() )
+        {
+            GUCEF_DELETE file;
+            return GUCEF_NULL;
+        }
         if ( 0 == file->GetDocumentCount() )
         {
             Warn( Describe( vfsPath ), "the file cannot be read as Unity YAML: " + problem );
@@ -269,6 +289,9 @@ CUnityProject::GetModel( const CORE::CString& vfsPath )
     if ( known != m_models.end() )
         return (*known).second;
 
+    if ( IsCancelled() )
+        return GUCEF_NULL;
+    ++m_modelLoads;
     CUnityModel* model = GUCEF_NEW CUnityModel();
     if ( !model->Load( *this, vfsPath ) )
     {
@@ -309,6 +332,54 @@ CUnityProject::AddDependency( const CORE::CString& vfsPath )
 
     if ( vfsPath != m_assetPath )
         m_scene.AddDependency( vfsPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CUnityProject::GuidVia( const CORE::CString& guid )
+{GUCEF_TRACE;
+
+    return "guid:" + guid.Lowercase();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityProject::AddReference( const CORE::CString& kind, const CORE::CString& vfsPath, const CORE::CString& guid, bool optional )
+{GUCEF_TRACE;
+
+    if ( vfsPath.IsNULLOrEmpty() || vfsPath == m_assetPath )
+        return;
+    m_scene.AddReference( kind, vfsPath, guid.IsNULLOrEmpty() ? CORE::CString::Empty : GuidVia( guid ), optional );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityProject::AddNestedReferences( const ASSETCONVERTER::CAssetScene& nested )
+{GUCEF_TRACE;
+
+    for ( size_t r=0; r<nested.references.size(); ++r )
+    {
+        const ASSETCONVERTER::CAssetReference& reference = nested.references[ r ];
+        if ( !reference.IsResolved() )
+            m_scene.AddUnresolvedReference( reference.kind, reference.via, reference.optional );
+        else
+        if ( reference.target != m_assetPath )
+            m_scene.AddReference( reference.kind, reference.target, reference.via, reference.optional );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUnityProject::AddUnresolvedReference( const CORE::CString& kind, const CORE::CString& guid, bool optional )
+{GUCEF_TRACE;
+
+    if ( guid.IsNULLOrEmpty() )
+        return;
+    m_scene.AddUnresolvedReference( kind, GuidVia( guid ), optional );
 }
 
 /*-------------------------------------------------------------------------*/

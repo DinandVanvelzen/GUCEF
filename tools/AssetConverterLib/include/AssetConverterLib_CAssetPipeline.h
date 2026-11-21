@@ -35,6 +35,11 @@
 #define ASSETCONVERTERLIB_CASSETPACKMANIFEST_H
 #endif /* ASSETCONVERTERLIB_CASSETPACKMANIFEST_H ? */
 
+#ifndef ASSETCONVERTERLIB_CPACKINDEXRUNRESULT_H
+#include "AssetConverterLib_CPackIndexRunResult.h"
+#define ASSETCONVERTERLIB_CPACKINDEXRUNRESULT_H
+#endif /* ASSETCONVERTERLIB_CPACKINDEXRUNRESULT_H ? */
+
 #ifndef ASSETCONVERTERLIB_CASSETPIPELINEOPTIONS_H
 #include "AssetConverterLib_CAssetPipelineOptions.h"
 #define ASSETCONVERTERLIB_CASSETPIPELINEOPTIONS_H
@@ -122,8 +127,19 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPipeline
     /** The activity of the last run */
     const CImportActivityLog::SRun& GetLastRun( void ) const;
 
+    /** What the pack index step of the last run did and why (counters: the work that was done); empty when the run had none */
+    const CPackIndexRunResult& GetLastIndexResult( void ) const;
+
     /** Converts the asset of the job on the calling thread; the results go into the job */
     static bool ConvertAsset( CAssetConversionJob& job );
+
+    /**
+     *  Stores the cache entry of an asset that ConvertAsset() converted without errors, so that the next ConvertAsset() of the same asset with the
+     *  same source, settings and plugin versions is a cache hit (job.cached). A run of a whole pack does this itself; a caller that converts single
+     *  assets (an application that shows one asset) calls it after ConvertAsset(). False when there is nothing to store (the asset did not convert,
+     *  was cancelled, or has errors), or the entry cannot be written
+     */
+    static bool StoreCacheEntry( CAssetConversionJob& job, bool cookPending = false );
 
     /** Converts the asset of the job as a task on the pool; the future gives the job with its results (TryGetResult()) */
     static CORE::CFutureResult ConvertAssetAsync( const CAssetConversionJob& job, const CORE::CString& threadPoolName );
@@ -133,6 +149,17 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPipeline
 
     /** The current version of a plugin of a cache key ("importer:fbx", "cooker:ogre", "converter:AssetConverterLib", ...) */
     static bool GetCurrentPluginVersion( const CORE::CString& pluginKey, UInt32& version );
+
+    /**
+     *  Whether a stored cache entry still stands for its source, without the manifest of the pack: the parts of its key that
+     *  can be known without one are compared with the current state. The SHA-256 of the source (the VFS path of the file the
+     *  asset was imported from), the version of every plugin of the entry that is registered now (a plugin that is not
+     *  registered cannot be judged and is left as it was), the hashes of its dependencies (a dependency that cannot be read
+     *  is left as it was), and, when 'expectedSettingsHash' is not empty, the hash of the effective settings. The entry of a
+     *  source that cannot be read is not judged on its source: 'sourceVerified' is false then.
+     *  @return ACTIVITYREASON_UNCHANGED when the entry stands, else the first part that differs, 'detail' names the plugin or dependency
+     */
+    static TActivityReason CheckStoredEntry( const CAssetCacheEntry& stored, const CORE::CString& sourceVfsPath, const CORE::CString& expectedSettingsHash, CORE::CString& detail, bool& sourceVerified );
 
     /**
      *  The cache comparison of an asset without importing it: the effective settings (with their layers), the parts of
@@ -163,10 +190,12 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPipeline
 
     /** RunPack() once the lock of the intermediate is held (or not needed) */
     bool RunPackImpl( const CAssetPackManifest& manifest, const CAssetPipelineOptions& options, CConversionReport& report );
+    void UpdateIndex( const CAssetPackManifest& manifest, const CAssetPipelineOptions& options, const CAssetPackContext& context, const CConversionReport* report, bool licenceRefused );
 
     private:
 
     CImportActivityLog::SRun m_lastRun;
+    CPackIndexRunResult m_lastIndexResult;
 };
 
 /*-------------------------------------------------------------------------//

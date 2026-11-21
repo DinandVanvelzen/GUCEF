@@ -461,6 +461,25 @@ CMaterialScriptWriter::AddMaterial( const CORE::CString& materialName, const ASS
 /*-------------------------------------------------------------------------*/
 
 void
+CMaterialScriptWriter::AddHiddenMaterial( const CORE::CString& materialName, const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    if ( m_materialCount > 0 )
+        m_text += "\n";
+    ++m_materialCount;
+    if ( !reason.IsNULLOrEmpty() )
+        Line( 0, "// " + reason );
+    Line( 0, "material " + Quote( materialName ) );
+    Line( 0, "{" );
+    Line( 1, "technique" );
+    Line( 1, "{" );
+    Line( 1, "}" );
+    Line( 0, "}" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CMaterialScriptWriter::AddParticleMaterial( const CORE::CString& materialName, const ASSETCONVERTER::CAssetParticleSystem& system )
 {GUCEF_TRACE;
 

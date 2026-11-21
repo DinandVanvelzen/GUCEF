@@ -163,7 +163,7 @@ CGodotMaterialReader::Choice( const CORE::CString& key, Int32 fallback ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CGodotMaterialReader::ResolveFile( const CGodotDocument& document, const CORE::CDataNode* value, CORE::CString& assetPath )
+CGodotMaterialReader::ResolveFile( const CGodotDocument& document, const CORE::CDataNode* value, CORE::CString& assetPath, CORE::CString* via )
 {GUCEF_TRACE;
 
     CORE::CString kind;
@@ -175,6 +175,8 @@ CGodotMaterialReader::ResolveFile( const CGodotDocument& document, const CORE::C
     CORE::CString uid;
     if ( !document.GetExtResourceInfo( id, type, path, uid ) )
         return false;
+    if ( GUCEF_NULL != via )
+        *via = path.IsNULLOrEmpty() ? uid : path;
     return CGodotPaths::Resolve( m_context, document.GetAssetPath(), path, uid, assetPath );
 }
 
@@ -188,12 +190,20 @@ CGodotMaterialReader::TextureFile( const CORE::CString& key )
     if ( GUCEF_NULL == value || CGodotVariant::IsType( value, "null" ) )
         return CORE::CString::Empty;
     CORE::CString assetPath;
-    if ( ResolveFile( *m_document, value, assetPath ) )
-        return m_context.ToVfsPath( assetPath );
+    CORE::CString via;
+    if ( ResolveFile( *m_document, value, assetPath, &via ) )
+    {
+        const CORE::CString vfsPath = m_context.ToVfsPath( assetPath );
+        m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, vfsPath, via );
+        return vfsPath;
+    }
     CORE::CString kind;
     CORE::CString id;
     if ( CGodotVariant::GetReference( value, kind, id ) )
+    {
         m_report.AddWarning( SourceName, m_subject, "the texture of " + key + " is not a file of the pack: the slot stays empty" );
+        m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, via );
+    }
     return CORE::CString::Empty;
 }
 

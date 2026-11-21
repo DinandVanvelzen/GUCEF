@@ -197,6 +197,13 @@ CConversionSidecar::Build( const CAssetScene& scene                     ,
         }
     }
 
+    if ( !scene.hiddenFaceSets.empty() )
+    {
+        // the outfits whose faces of the body are hidden while they are worn; each submesh names its sets in the glTF extras
+        CORE::CDataNode* sets = sidecar.AddChild( "hiddenFaceSets", GUCEF_DATATYPE_ARRAY );
+        CAssetHiddenFaceSet::SerializeList( scene.hiddenFaceSets, *sets );
+    }
+
     CORE::CDataNode* extras = sidecar.AddChild( scene.extras );
     extras->SetName( "extras" );
 
@@ -215,6 +222,63 @@ CConversionSidecar::Build( const CAssetScene& scene                     ,
     for ( size_t i=0; i<scene.dependencies.size(); ++i )
         dependencies.push_back( InPack( context, scene.dependencies[ i ] ) );
     sidecar.SetValuesOfChildByName( "dependencies", dependencies );
+
+    CAssetReference::TReferenceVector relations;
+    BuildRelations( scene, context, entry.assetPath, relations );
+    CAssetReference::SerializeList( relations, sidecar, "relations" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConversionSidecar::BuildRelations( const CAssetScene& scene                    ,
+                                    const CAssetPackContext& context            ,
+                                    const CORE::CString& assetPath              ,
+                                    CAssetReference::TReferenceVector& relations )
+{GUCEF_TRACE;
+
+    relations.clear();
+    const CORE::CString self = CVfsPaths::Normalize( assetPath );
+    CORE::CString::StringSet recorded;
+    for ( size_t i=0; i<scene.references.size(); ++i )
+    {
+        CAssetReference relation = scene.references[ i ];
+        if ( relation.IsResolved() )
+        {
+            CORE::CString inPack;
+            if ( !context.ToAssetPath( relation.target, inPack ) )
+                continue;                                   // not a file of the pack: no relation of the pack
+            inPack = CVfsPaths::Normalize( inPack );
+            if ( inPack == self )
+                continue;
+            relation.target = inPack;
+            recorded.insert( inPack );
+        }
+        relations.push_back( relation );
+    }
+
+    // the safety net: a file the import read that the importer did not record as a relation is one all the same
+    for ( size_t i=0; i<scene.dependencies.size(); ++i )
+    {
+        CORE::CString inPack;
+        if ( !context.ToAssetPath( scene.dependencies[ i ], inPack ) )
+            continue;
+        inPack = CVfsPaths::Normalize( inPack );
+        if ( inPack == self || recorded.find( inPack ) != recorded.end() )
+            continue;
+        relations.push_back( CAssetReference( CAssetReference::GetKindOfDependency( inPack ), inPack, CORE::CString::Empty, false ) );
+        recorded.insert( inPack );
+    }
+    CAssetReference::Normalise( relations );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CConversionSidecar::ReadRelations( const CORE::CDataNode& sidecar, CAssetReference::TReferenceVector& relations )
+{GUCEF_TRACE;
+
+    return CAssetReference::DeserializeList( sidecar, "relations", relations );
 }
 
 /*-------------------------------------------------------------------------*/

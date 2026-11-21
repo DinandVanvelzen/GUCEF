@@ -76,6 +76,8 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "assetcookerOGRE: The cooker \"" << COgreCooker::TargetName << "\" is registered already" );
         return 0;
     }
+    // the cooked area of the asset store that the output of this cooker goes to has the name of the Ogre runtime files
+    registry.RegisterCookerAlias( COgreCooker::CookedAreaName, COgreCooker::TargetName );
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "assetcookerOGRE: Loaded, cooking for Ogre " << OGRE_VERSION_MAJOR << "." << OGRE_VERSION_MINOR << "." << OGRE_VERSION_PATCH );
     return 1;
 }
@@ -97,6 +99,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
             if ( GUCEF_NULL != ogreCooker )
                 ogreCooker->Release();
         }
+        global->GetPluginRegistry().UnregisterCookerAlias( COgreCooker::CookedAreaName );
         global->GetPluginRegistry().UnregisterCooker( COgreCooker::TargetName );
     }
 }

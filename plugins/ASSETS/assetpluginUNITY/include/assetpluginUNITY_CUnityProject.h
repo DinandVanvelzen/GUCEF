@@ -99,6 +99,12 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityProject
     ASSETCONVERTER::CConversionReport& GetReport( void );
     const CORE::CString& GetAssetPath( void ) const;
 
+    /** Whether the conversion was asked to stop: the long loops of the readers look at this and end at once, with what they have */
+    bool IsCancelled( void ) const;
+
+    /** Tells how far the import is, 0 to 1, to whoever listens (the activity of the caller) */
+    void ReportProgress( Float32 fraction ) const;
+
     /** The importer's member of the effective settings of the asset (an empty object when there is none) */
     const CORE::CDataNode& GetSettings( void ) const;
 
@@ -120,6 +126,14 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityProject
     /** The model file read through the importer of its format and brought into Unity's space; NULL when it cannot be */
     CUnityModel* GetModel( const CORE::CString& vfsPath );
 
+    /**
+     *  How often the import went to the files: the .meta, YAML and model files read (a file is read once per import, however
+     *  often it is used), which is what a test of the cost of an import counts
+     */
+    UInt32 GetMetaLoadCount( void ) const;
+    UInt32 GetYamlLoadCount( void ) const;
+    UInt32 GetModelLoadCount( void ) const;
+
     /** Reads a text file of the VFS */
     static bool LoadText( const CORE::CString& vfsPath, CORE::CString& text );
 
@@ -129,6 +143,21 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityProject
 
     /** Adds a dependency of the asset */
     void AddDependency( const CORE::CString& vfsPath );
+
+    /**
+     *  Records a normalized relation of the asset (converter design 5.8) to the file a GUID resolved to; the 'via' is "guid:<guid>".
+     *  A relation to the asset itself is not recorded
+     */
+    void AddReference( const CORE::CString& kind, const CORE::CString& vfsPath, const CORE::CString& guid, bool optional = false );
+
+    /** Records a GUID that is not in the package as an unresolved relation of the asset */
+    void AddUnresolvedReference( const CORE::CString& kind, const CORE::CString& guid, bool optional = false );
+
+    /** Takes over the relations of a model that was imported into a scene of its own (through the importer of its format) */
+    void AddNestedReferences( const ASSETCONVERTER::CAssetScene& nested );
+
+    /** "guid:<guid>" in lower case: the original reference of a relation */
+    static CORE::CString GuidVia( const CORE::CString& guid );
 
     /** Report items; the same subject and message are reported once per import */
     void Warn( const CORE::CString& subject, const CORE::CString& message );
@@ -162,6 +191,9 @@ class GUCEF_ASSETPLUGIN_UNITY_EXPORT_CPP CUnityProject
     TShaderMap m_shaders;
     TModelMap m_models;
     TIndexMap m_cache;
+    UInt32 m_metaLoads;
+    UInt32 m_yamlLoads;
+    UInt32 m_modelLoads;
     CORE::CString::StringSet m_reported;
 };
 

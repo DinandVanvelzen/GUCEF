@@ -19,7 +19,9 @@ if (LINUX32)
     include/TestUnityContent.h
     include/TestUnityFbxWriter.h
     include/TestUnityImport.h
+    include/TestUnityPackIndexCorpus.h
     include/TestUnityParticles.h
+    include/TestUnityScenes.h
     include/TestUnitySupport.h
     include/TestUnityYaml.h
   )
@@ -32,7 +34,9 @@ if (LINUX32)
     src/TestUnityContent.cpp
     src/TestUnityFbxWriter.cpp
     src/TestUnityImport.cpp
+    src/TestUnityPackIndexCorpus.cpp
     src/TestUnityParticles.cpp
+    src/TestUnityScenes.cpp
     src/TestUnitySupport.cpp
     src/TestUnityYaml.cpp
     src/assetpluginUNITY_TestApp.cpp
@@ -47,7 +51,9 @@ elseif (LINUX64)
     include/TestUnityContent.h
     include/TestUnityFbxWriter.h
     include/TestUnityImport.h
+    include/TestUnityPackIndexCorpus.h
     include/TestUnityParticles.h
+    include/TestUnityScenes.h
     include/TestUnitySupport.h
     include/TestUnityYaml.h
   )
@@ -60,7 +66,9 @@ elseif (LINUX64)
     src/TestUnityContent.cpp
     src/TestUnityFbxWriter.cpp
     src/TestUnityImport.cpp
+    src/TestUnityPackIndexCorpus.cpp
     src/TestUnityParticles.cpp
+    src/TestUnityScenes.cpp
     src/TestUnitySupport.cpp
     src/TestUnityYaml.cpp
     src/assetpluginUNITY_TestApp.cpp
@@ -75,7 +83,9 @@ elseif (WIN32)
     include/TestUnityContent.h
     include/TestUnityFbxWriter.h
     include/TestUnityImport.h
+    include/TestUnityPackIndexCorpus.h
     include/TestUnityParticles.h
+    include/TestUnityScenes.h
     include/TestUnitySupport.h
     include/TestUnityYaml.h
   )
@@ -88,7 +98,9 @@ elseif (WIN32)
     src/TestUnityContent.cpp
     src/TestUnityFbxWriter.cpp
     src/TestUnityImport.cpp
+    src/TestUnityPackIndexCorpus.cpp
     src/TestUnityParticles.cpp
+    src/TestUnityScenes.cpp
     src/TestUnitySupport.cpp
     src/TestUnityYaml.cpp
     src/assetpluginUNITY_TestApp.cpp
@@ -103,7 +115,9 @@ elseif (WIN64)
     include/TestUnityContent.h
     include/TestUnityFbxWriter.h
     include/TestUnityImport.h
+    include/TestUnityPackIndexCorpus.h
     include/TestUnityParticles.h
+    include/TestUnityScenes.h
     include/TestUnitySupport.h
     include/TestUnityYaml.h
   )
@@ -116,7 +130,9 @@ elseif (WIN64)
     src/TestUnityContent.cpp
     src/TestUnityFbxWriter.cpp
     src/TestUnityImport.cpp
+    src/TestUnityPackIndexCorpus.cpp
     src/TestUnityParticles.cpp
+    src/TestUnityScenes.cpp
     src/TestUnitySupport.cpp
     src/TestUnityYaml.cpp
     src/assetpluginUNITY_TestApp.cpp

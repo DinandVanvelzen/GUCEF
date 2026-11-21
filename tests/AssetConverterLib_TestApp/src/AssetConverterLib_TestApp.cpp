@@ -46,6 +46,7 @@
 #include "TestAssetConverterCli.h"
 #include "TestAssetConverterParticles.h"
 #include "TestAssetConverterRunModes.h"
+#include "TestAssetConverterPackIndex.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -106,6 +107,7 @@ GUCEF_OSMAIN_BEGIN
             PerformAssetConverterProcessingTests();
             PerformAssetConverterPipelineTests();
             PerformAssetConverterRunModeTests();
+            PerformAssetConverterPackIndexTests();
             PerformAssetConverterCliTests();
         }
         TearDownConverterTests();

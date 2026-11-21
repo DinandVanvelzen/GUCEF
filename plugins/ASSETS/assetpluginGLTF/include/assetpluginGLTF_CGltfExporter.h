@@ -68,6 +68,8 @@ class GUCEF_ASSETPLUGIN_GLTF_EXPORT_CPP CGltfExporter : public ASSETCONVERTER::C
 
     virtual UInt32 GetVersion( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual void GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool Export( const ASSETCONVERTER::CAssetScene& scene, const CORE::CString& vfsDir, ASSETCONVERTER::CConversionReport& report ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** Runs cgltf_validate on a glTF or GLB file of the VFS, buffers included; 'problem' says what failed */

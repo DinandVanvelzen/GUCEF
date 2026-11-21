@@ -29,6 +29,8 @@
 #define GUCEF_TESTFW_H
 #endif /* GUCEF_TESTFW_H ? */
 
+#include "AssetConverterLib_CAssetPluginRegistry.h"
+#include "AssetConverterLib_CAssetConverterGlobal.h"
 #include "assetpluginUNITY_CUnityImporter.h"
 #include "assetpluginUNITY_CUnityProject.h"
 
@@ -144,11 +146,133 @@ SourceEndsWith( const CAssetTexture* texture, const char* name )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------*/
+
+static void
+TestUnityPackRecogniser( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: a Unity project is recognised by its editor version file, a package by its .meta files, with entry scenes, grouping and noise" )
+    try
+    {
+        CUnityImporter importer;
+        CAssetPackListing project;
+        project.AddFile( "ProjectSettings/ProjectVersion.txt", "m_EditorVersion: 2022.3.10f1\nm_EditorVersionWithRevision: 2022.3.10f1 (ff3792e53c62)\n" );
+        project.AddFile( "Assets/Scenes/Level1.unity" );
+        project.AddFile( "Assets/Scenes/Level1.unity.meta" );
+        project.AddFile( "Assets/Demo/DemoScene.unity" );
+        project.AddFile( "Assets/Models/Rock.fbx" );
+        project.AddFile( "Assets/Models/Rock.fbx.meta" );
+        project.AddFile( "Library/Cache/a.bin" );
+        CAssetPackProfile profile;
+        ASSERT_TRUE( importer.RecognisePack( project, profile ) );
+        ASSERT_TRUE( "unity-project" == profile.packType && "Unity project" == profile.packTypeName && "Unity" == profile.engine && "2022.3.10f1" == profile.engineVersion && 90 == profile.confidence );
+        ASSERT_TRUE( 2 == profile.showcaseCandidates.size() && "Assets/Demo/DemoScene.unity" == profile.showcaseCandidates[ 0 ] && "Assets/Scenes/Level1.unity" == profile.showcaseCandidates[ 1 ] );
+        ASSERT_TRUE( 3 == profile.groupingHints.size() && "Assets/Demo" == profile.groupingHints[ 0 ] );
+        ASSERT_TRUE( profile.IsNoise( "Assets/Models/Rock.fbx.meta" ) && profile.IsNoise( "Library/Cache/a.bin" ) && !profile.IsNoise( "Assets/Models/Rock.fbx" ) );
+
+        // a package: no editor version, only the files with their .meta files
+        CAssetPackListing package;
+        package.AddFile( "Assets/Pack/Tree.prefab" );
+        package.AddFile( "Assets/Pack/Tree.prefab.meta" );
+        ASSERT_TRUE( importer.RecognisePack( package, profile ) );
+        ASSERT_TRUE( "unity-package" == profile.packType && "Unity package" == profile.packTypeName && profile.engineVersion.IsNULLOrEmpty() && 70 == profile.confidence && profile.showcaseCandidates.empty() );
+        ASSERT_TRUE( profile.IsNoise( "Assets/Pack/Tree.prefab.meta" ) && !profile.IsNoise( "Library/Cache/a.bin" ) );
+
+        // not a Unity pack
+        CAssetPackListing other;
+        other.AddFile( "project.godot" );
+        other.AddFile( "models/rock.fbx" );
+        ASSERT_FALSE( importer.RecognisePack( other, profile ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: of the scenes of two packs bundled in one package those of the pack named by the package come first, demo before sample before showcase before overview" )
+    try
+    {
+        CUnityImporter importer;
+        CAssetPackListing bundle;
+        bundle.SetPackName( "POLYGON_Shops_Unity_2022_3_v1_6_6" );
+        const char* const files[] = {
+            "Assets/Synty/PolygonGeneric/Scenes/Overview.unity",
+            "Assets/Synty/PolygonGeneric/Scenes/Demo.unity",
+            "Assets/Synty/PolygonShops/Scenes/Overview.unity",
+            "Assets/Synty/PolygonShops/Scenes/Demo_Lite.unity",
+            "Assets/Synty/PolygonShops/Scenes/Demo.unity",
+            "Assets/Synty/PolygonShops/Scenes/Sample.unity",
+            "Assets/Synty/PolygonShops/Scenes/Showcase.unity",
+            "Assets/Synty/PolygonShops/Scenes/Level.unity",
+            "Assets/Synty/PolygonGeneric/Models/Rock.fbx.meta",
+            GUCEF_NULL };
+        for ( const char* const* f = files; GUCEF_NULL != *f; ++f )
+            bundle.AddFile( *f );
+        CAssetPackProfile profile;
+        ASSERT_TRUE( importer.RecognisePack( bundle, profile ) );
+        ASSERT_TRUE( 8 == profile.showcaseCandidates.size() );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Demo.unity" == profile.showcaseCandidates[ 0 ] );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Demo_Lite.unity" == profile.showcaseCandidates[ 1 ] );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Sample.unity" == profile.showcaseCandidates[ 2 ] );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Showcase.unity" == profile.showcaseCandidates[ 3 ] );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Overview.unity" == profile.showcaseCandidates[ 4 ] );
+        ASSERT_TRUE( "Assets/Synty/PolygonShops/Scenes/Level.unity" == profile.showcaseCandidates[ 5 ] );
+        // the scenes of the pack that was bundled come last
+        ASSERT_TRUE( "Assets/Synty/PolygonGeneric/Scenes/Demo.unity" == profile.showcaseCandidates[ 6 ] && "Assets/Synty/PolygonGeneric/Scenes/Overview.unity" == profile.showcaseCandidates[ 7 ] );
+
+        // the same listing gives the same order, in whatever order the files were added
+        CAssetPackListing reversed;
+        reversed.SetPackName( "POLYGON_Shops_Unity_2022_3_v1_6_6" );
+        const size_t count = sizeof( files ) / sizeof( files[ 0 ] ) - 1;
+        for ( size_t i=count; i>0; --i )
+            reversed.AddFile( files[ i - 1 ] );
+        CAssetPackProfile again;
+        ASSERT_TRUE( importer.RecognisePack( reversed, again ) && 8 == again.showcaseCandidates.size() );
+        ASSERT_TRUE( profile.showcaseCandidates[ 0 ] == again.showcaseCandidates[ 0 ] && profile.showcaseCandidates[ 1 ] == again.showcaseCandidates[ 1 ] &&
+                     profile.showcaseCandidates[ 4 ] == again.showcaseCandidates[ 4 ] );
+
+        // without a name of the pack the demo scene of the first folder in listing order wins, as before
+        CAssetPackListing nameless;
+        for ( const char* const* f = files; GUCEF_NULL != *f; ++f )
+            nameless.AddFile( *f );
+        CAssetPackProfile plain;
+        ASSERT_TRUE( importer.RecognisePack( nameless, plain ) && 8 == plain.showcaseCandidates.size() && plain.showcaseCandidates[ 0 ].EndsWith( "Scenes/Demo.unity" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: the Unity importer declares its file kinds (scene, prefab, material, animation, shader, package, metadata)" )
+    try
+    {
+        CUnityImporter importer;
+        TAssetFileKindVector declared;
+        importer.GetFileKinds( declared );
+        CAssetKindRegistry kinds;
+        kinds.RegisterFileKinds( declared, "importer:unity" );
+        ASSERT_TRUE( ASSETKIND_SCENE == kinds.GetKindOfPath( "Assets/Level.unity" ) && ASSETKIND_PREFAB == kinds.GetKindOfPath( "a.PREFAB" ) && ASSETKIND_MATERIAL == kinds.GetKindOfPath( "a.mat" ) );
+        ASSERT_TRUE( ASSETKIND_ANIMATION == kinds.GetKindOfPath( "a.anim" ) && ASSETKIND_ANIMATION == kinds.GetKindOfPath( "a.controller" ) && ASSETKIND_SHADER == kinds.GetKindOfPath( "a.shader" ) );
+        ASSERT_TRUE( ASSETKIND_PACKAGE == kinds.GetKindOfPath( "a.unitypackage" ) && ASSETKIND_METADATA == kinds.GetKindOfPath( "a.png.meta" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+
 void
 PerformUnityImportTests( void )
 {GUCEF_TRACE;
 
     GUCEF_TESTFW_SUITE_SCOPE( "assetpluginUNITY.Import" );
+
+    TestUnityPackRecogniser();
 
     bool written = false;
     GUCEF_TESTFW_TESTCASE( "Project: the synthetic project is written as a package and as a folder, and both are indexed by GUID" )
@@ -412,6 +536,52 @@ PerformUnityImportTests( void )
             ASSERT_TRUE( 1 == instance.overrides.GetAttributeValueOrChildValueByName( "unapplied" ).AsInt32( 0, true ) );
         }
         ASSERT_TRUE( CountItems( report, REPORTITEM_WARNING, "modification(s) of the prefab instance" ) >= 1 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Relations: the GUIDs the importer resolves become relations of their kinds with the GUID as the original reference; a GUID that is not in the package is kept unresolved" )
+    try
+    {
+        CAssetScene street;
+        CConversionReport report;
+        ASSERT_TRUE( ImportAsset( true, "Assets/Prefabs/Street.prefab", street, report ) );
+        UInt32 instances = 0, materials = 0, textures = 0, unresolved = 0;
+        for ( size_t r=0; r<street.references.size(); ++r )
+        {
+            const CAssetReference& reference = street.references[ r ];
+            if ( !reference.IsResolved() )
+            {
+                ++unresolved;
+                continue;
+            }
+            ASSERT_TRUE( reference.via.StartsWith( "guid:" ) && reference.via.Lowercase() == reference.via );
+            if ( CAssetReference::KindInstancesPrefab == reference.kind && reference.target.EndsWith( "Assets/Prefabs/House.prefab" ) )
+                ++instances;
+            if ( CAssetReference::KindUsesMaterial == reference.kind && reference.target.EndsWith( ".mat" ) )
+                ++materials;
+            if ( CAssetReference::KindUsesTexture == reference.kind && reference.target.EndsWith( "albedo.png" ) )
+                ++textures;
+            ASSERT_FALSE( reference.target.EndsWith( "Street.prefab" ) );
+        }
+        ASSERT_TRUE( 1 == instances && materials >= 1 && textures >= 1 );
+
+        // the mesh of an unknown GUID: unresolved, with the GUID
+        CAssetScene house;
+        ASSERT_TRUE( ImportAsset( true, "Assets/Prefabs/House.prefab", house, report ) );
+        bool lost = false;
+        bool mesh = false;
+        for ( size_t r=0; r<house.references.size(); ++r )
+        {
+            if ( !house.references[ r ].IsResolved() && CAssetReference::KindUsesMesh == house.references[ r ].kind && "guid:99999999999999999999999999999999" == house.references[ r ].via )
+                lost = true;
+            if ( house.references[ r ].IsResolved() && CAssetReference::KindUsesMesh == house.references[ r ].kind )
+                mesh = true;
+        }
+        ASSERT_TRUE( lost && mesh );
     }
     catch ( ... )
     {

@@ -52,6 +52,16 @@
 #define GUCEF_IMAGE_CIMAGE_H
 #endif /* GUCEF_IMAGE_CIMAGE_H ? */
 
+#ifndef GUCEF_IMAGE_CIMAGECODECREGISTRY_H
+#include "gucefIMAGE_CImageCodecRegistry.h"
+#define GUCEF_IMAGE_CIMAGECODECREGISTRY_H
+#endif /* GUCEF_IMAGE_CIMAGECODECREGISTRY_H ? */
+
+#ifndef GUCEF_IMAGE_CIMAGEGLOBAL_H
+#include "gucefIMAGE_CImageGlobal.h"
+#define GUCEF_IMAGE_CIMAGEGLOBAL_H
+#endif /* GUCEF_IMAGE_CIMAGEGLOBAL_H ? */
+
 #ifndef GUCEF_IMAGE_CCHANNELOPERATIONS_H
 #include "gucefIMAGE_CChannelOperations.h"
 #define GUCEF_IMAGE_CCHANNELOPERATIONS_H
@@ -166,38 +176,95 @@ bool
 CTextureBaker::LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& picture )
 {GUCEF_TRACE;
 
+    CORE::CString problem;
+    return LoadPicture( vfsPath, picture, problem );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTextureBaker::LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& picture, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    problem.Clear();
     VFS::TBasicVfsResourcePtr resource = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( vfsPath, "rb", false );
     if ( resource.IsNULL() || resource->GetAccess().IsNULL() )
+    {
+        problem = "the file cannot be opened";
         return false;
+    }
+    const CORE::CString extension = CVfsPaths::ExtensionOf( vfsPath ).Lowercase();
     IMAGE::CImage image;
-    if ( !image.Load( *resource->GetAccess(), CVfsPaths::ExtensionOf( vfsPath ), true, false ) || !image.HasFrames() )
+    if ( !image.Load( *resource->GetAccess(), extension, true, false ) || !image.HasFrames() )
+    {
+        IMAGE::CImageCodecRegistry::TImageCodecPtr codec;
+        if ( !IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry().TryLookup( extension, codec, false ) )
+            problem = "no image codec for ." + extension + " is loaded";
+        else
+            problem = "the image codec for ." + extension + " cannot decode the file (damaged, or a variant it does not support)";
         return false;
+    }
     IMAGE::TPixelMapPtr pixels = image.GetPixelMap( 0, 0 );
     if ( pixels.IsNULL() )
+    {
+        problem = "the decoded image has no pixels";
         return false;
+    }
+
+    // floating point channels (hdr, exr): clamped to 0..1 and kept as 8 bits, as a texture of a model is read by the renderers
+    const IMAGE::TPixelStorageFormat storage = pixels->GetPixelStorageFormat();
+    if ( GUCEF::DATATYPE_LE_FLOAT32 == pixels->GetPixelComponentDataType() &&
+         ( IMAGE::PSF_RGB == storage || IMAGE::PSF_RGBA == storage || IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE == storage ) )
+    {
+        const UInt32 values = pixels->GetPixelCount() * pixels->GetNumberOfChannelsPerPixel();
+        const Float32* source = static_cast< const Float32* >( pixels->GetDataPtr() );
+        GUCEF::vector< UInt8 > bytes( values );
+        for ( UInt32 i=0; i<values; ++i )
+        {
+            const Float32 v = source[ i ] < 0.0f ? 0.0f : ( source[ i ] > 1.0f ? 1.0f : source[ i ] );
+            bytes[ i ] = (UInt8) ( v * 255.0f + 0.5f );
+        }
+        picture = IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( &bytes[ 0 ], pixels->GetWidthInPixels(), pixels->GetHeightInPixels(), storage, GUCEF::DATATYPE_UINT8 ) );
+        return true;
+    }
 
     // red first, whatever order the codec gives
-    switch ( pixels->GetPixelStorageFormat() )
+    switch ( storage )
     {
         case IMAGE::PSF_BGR:
-            return IMAGE::CChannelOperations::Swizzle( *pixels, "RGB", picture );
+        {
+            if ( IMAGE::CChannelOperations::Swizzle( *pixels, "RGB", picture ) )
+                return true;
+            break;
+        }
         case IMAGE::PSF_BGRA:
-            return IMAGE::CChannelOperations::Swizzle( *pixels, "RGBA", picture );
+        {
+            if ( IMAGE::CChannelOperations::Swizzle( *pixels, "RGBA", picture ) )
+                return true;
+            break;
+        }
         case IMAGE::PSF_RGB:
         case IMAGE::PSF_RGBA:
         case IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE:
+        {
             picture = IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( *pixels ) );
             return true;
+        }
         default:
         {
             IMAGE::TPixelMapPtr converted;
             const IMAGE::TPixelStorageFormat target = pixels->GetHasAlpha() ? IMAGE::PSF_RGBA : IMAGE::PSF_RGB;
-            if ( !pixels->ConvertFormatTo( target, pixels->GetPixelComponentDataType(), converted ) || converted.IsNULL() )
-                return false;
-            picture = converted;
-            return true;
+            if ( pixels->ConvertFormatTo( target, pixels->GetPixelComponentDataType(), converted ) && !converted.IsNULL() )
+            {
+                picture = converted;
+                return true;
+            }
+            break;
         }
     }
+    problem = "the pixel format of the decoded image (storage format " + CORE::UInt32ToString( (UInt32) storage ) + ", component type " +
+              CORE::UInt32ToString( (UInt32) pixels->GetPixelComponentDataType() ) + ") cannot be converted to RGB";
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -338,9 +405,10 @@ CTextureBaker::DoBake( const CAssetTexture& texture, const CORE::CString& path, 
     for ( size_t i=0; i<texture.sources.size(); ++i )
     {
         IMAGE::TPixelMapPtr picture;
-        if ( !LoadPicture( texture.sources[ i ], picture ) )
+        CORE::CString reason;
+        if ( !LoadPicture( texture.sources[ i ], picture, reason ) )
         {
-            bake.problem = "the source " + texture.sources[ i ] + " cannot be read as a picture (is the image codec of its format loaded?)";
+            bake.problem = "the source " + texture.sources[ i ] + " cannot be read as a picture: " + reason;
             return false;
         }
         sources.push_back( picture );

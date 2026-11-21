@@ -104,6 +104,12 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CMaterialScriptWriter
     void AddMaterial( const CORE::CString& materialName, const ASSETCONVERTER::CAssetMaterial& material );
 
     /**
+     *  Adds a material that draws nothing: one technique without passes (Ogre queues no pass of it, so the triangles are neither
+     *  drawn nor cast shadows). The material of body triangles that an active hidden face set hides; 'reason' becomes a comment.
+     */
+    void AddHiddenMaterial( const CORE::CString& materialName, const CORE::CString& reason );
+
+    /**
      *  Adds the material a particle system draws with (design section 5.7.4): unlit, the particle colour as the vertex
      *  colour (when the system uses it) times the base colour texture, decoded as sRGB like every colour texture of the
      *  cooked materials (Ogre refuses one texture with and without the gamma flag; the particle colours are written

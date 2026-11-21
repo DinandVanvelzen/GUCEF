@@ -90,7 +90,9 @@ CAssetScene::CAssetScene( void )
     , lodGroups()
     , prefabs()
     , particleSystems()
+    , hiddenFaceSets()
     , dependencies()
+    , references()
     , settings( "settings", GUCEF_DATATYPE_OBJECT )
     , extras( "extras", GUCEF_DATATYPE_OBJECT )
     , normalisation( "normalisation", GUCEF_DATATYPE_OBJECT )
@@ -161,6 +163,57 @@ CAssetScene::AddDependency( const CORE::CString& vfsPath )
         if ( dependencies[ i ] == vfsPath )
             return;
     dependencies.push_back( vfsPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetScene::AddReference( const CORE::CString& kind, const CORE::CString& vfsPath, const CORE::CString& via, bool optional )
+{GUCEF_TRACE;
+
+    if ( vfsPath.IsNULLOrEmpty() )
+    {
+        AddUnresolvedReference( kind, via, optional );
+        return;
+    }
+    const CAssetReference reference( kind, vfsPath, via, optional );
+    for ( size_t i=0; i<references.size(); ++i )
+        if ( references[ i ] == reference )
+            return;
+    references.push_back( reference );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetScene::AddUnresolvedReference( const CORE::CString& kind, const CORE::CString& via, bool optional )
+{GUCEF_TRACE;
+
+    if ( via.IsNULLOrEmpty() )
+        return;
+    const CAssetReference reference( kind, CORE::CString::Empty, via, optional );
+    for ( size_t i=0; i<references.size(); ++i )
+        if ( references[ i ] == reference )
+            return;
+    references.push_back( reference );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAssetScene::MergeDependenciesOf( const CAssetScene& nested )
+{GUCEF_TRACE;
+
+    for ( size_t d=0; d<nested.dependencies.size(); ++d )
+        AddDependency( nested.dependencies[ d ] );
+    for ( size_t r=0; r<nested.references.size(); ++r )
+    {
+        const CAssetReference& reference = nested.references[ r ];
+        if ( reference.IsResolved() )
+            AddReference( reference.kind, reference.target, reference.via, reference.optional );
+        else
+            AddUnresolvedReference( reference.kind, reference.via, reference.optional );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -562,6 +615,24 @@ CAssetScene::GetVertexCount( void ) const
     for ( size_t m=0; m<meshes.size(); ++m )
         count += meshes[ m ].GetVertexCount();
     return count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAssetScene::GetActiveHiddenFaceMask( void ) const
+{GUCEF_TRACE;
+
+    return CAssetHiddenFaceSet::GetActiveMask( hiddenFaceSets );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetScene::IsHiddenByActiveSet( const CAssetSubMesh& subMesh ) const
+{GUCEF_TRACE;
+
+    return 0 != ( subMesh.hiddenBy & GetActiveHiddenFaceMask() );
 }
 
 /*-------------------------------------------------------------------------//

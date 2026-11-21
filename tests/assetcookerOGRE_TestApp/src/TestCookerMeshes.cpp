@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <math.h>
+#include <string.h>
 
 #include "Ogre.h"
 #include "OgreLodStrategy.h"
@@ -59,6 +60,7 @@ namespace {
 
 const Ogre::String CharacterGroup = "CookerCharacter";
 const Ogre::String LodGroup = "CookerLod";
+const Ogre::String ManyBonesGroup = "CookerManyBones";
 const Float32 QuarterPi = 0.78539816f;
 
 /** Cooks the character of BuildCharacterScene() as "Characters/Hero.fbx" into "work/character" */
@@ -157,6 +159,21 @@ PerformCookerMeshesTests( void )
                 if ( HasElement( armour, Ogre::VES_TANGENT ) )
                     ASSERT_TRUE( Ogre::VET_FLOAT4 == armour->vertexData->vertexDeclaration->findElementBySemantic( Ogre::VES_TANGENT )->getType() );
                 ASSERT_TRUE( ReportHas( characterReport, REPORTITEM_APPROXIMATION, "tangents of submesh" ) );
+                // the masks of the vertices became the second colour (VES_SPECULAR), the first colour stays absent
+                ASSERT_FALSE( HasElement( skin, Ogre::VES_SPECULAR ) || HasElement( armour, Ogre::VES_DIFFUSE ) );
+                ASSERT_TRUE( HasElement( armour, Ogre::VES_SPECULAR ) );
+                if ( HasElement( armour, Ogre::VES_SPECULAR ) )
+                {
+                    const Ogre::VertexElement* element = armour->vertexData->vertexDeclaration->findElementBySemantic( Ogre::VES_SPECULAR );
+                    ASSERT_TRUE( Ogre::VET_UBYTE4_NORM == element->getType() );
+                    Ogre::HardwareVertexBufferSharedPtr buffer = armour->vertexData->vertexBufferBinding->getBuffer( element->getSource() );
+                    const UInt8* bytes = static_cast< const UInt8* >( buffer->lock( Ogre::HardwareBuffer::HBL_READ_ONLY ) );
+                    UInt8 mask[ 3 ][ 4 ];
+                    for ( UInt32 v=0; v<3; ++v )
+                        memcpy( mask[ v ], bytes + v * buffer->getVertexSize() + element->getOffset(), 4 );
+                    buffer->unlock();
+                    ASSERT_TRUE( 0 == mask[ 0 ][ 0 ] && 128 == mask[ 1 ][ 0 ] && 255 == mask[ 2 ][ 0 ] && 64 == mask[ 0 ][ 1 ] && 0 == mask[ 0 ][ 2 ] && 255 == mask[ 2 ][ 3 ] );
+                }
             }
             ASSERT_TRUE( NearVector( mesh->getBounds().getMinimum(), -1.0f, -1.0f, 0.0f ) && NearVector( mesh->getBounds().getMaximum(), 1.0f, 1.0f, 0.0f ) );
         }
@@ -197,7 +214,123 @@ PerformCookerMeshesTests( void )
             ASSERT_TRUE( 4 == assignments.count( 3 ) );
         }
         ASSERT_TRUE( ReportHas( characterReport, REPORTITEM_APPROXIMATION, "1 vertices had up to 6 influences; reduced to the strongest 4 and renormalised" ) );
-        ASSERT_TRUE( 256 == GetOgreCooker()->GetMaxBonesPerSubMesh() );
+        // the quality: the dropped influences had 0.1 + 0.05 of the weight of the vertex (15.0 percent), the only reduced vertex
+        ASSERT_TRUE( ReportHas( characterReport, REPORTITEM_APPROXIMATION, "(the dropped influences had 15.0 percent of the weight of such a vertex on average, 15.0 percent at most)" ) );
+        ASSERT_TRUE( 0 == GetOgreCooker()->GetMaxBonesPerSubMesh() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mesh: a rig of 400 bones splits the submesh by bone subsets, each part uses at most 256 bones and every vertex keeps its four bones and weights" )
+    try
+    {
+        MakeWorkFolder( "manybones" );
+        CAssetScene scene;
+        BuildManyBonesScene( scene, 400 );
+        CCookSettings settings;
+        CCookSettings::SAsset asset;
+        ASSERT_TRUE( MakeIntermediate( scene, "manybones", "Characters/Chain.fbx", asset ) );
+        settings.assets.push_back( asset );
+        CConversionReport report;
+        ASSERT_TRUE( CookIntermediate( "manybones", settings, report ) );
+        ASSERT_FALSE( report.HasFailures() );
+        ASSERT_TRUE( ReportHas( report, REPORTITEM_INFO, "1 submesh(es) use more than 256 bones: split by bone subsets into" ) );
+        ASSERT_TRUE( ReportHas( report, REPORTITEM_INFO, "the skeleton has 400 bones" ) );
+        ASSERT_TRUE( UseOgreGroup( ManyBonesGroup, GetProfileDir( "manybones" ) ) );
+
+        Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().load( "pack/Characters/Chain/RibbonMesh.mesh", ManyBonesGroup );
+        ASSERT_TRUE( (bool) mesh );
+        if ( mesh )
+        {
+            ASSERT_TRUE( mesh->hasSkeleton() && (bool) mesh->getSkeleton() && 400 == mesh->getSkeleton()->getNumBones() );
+            mesh->_updateCompiledBoneAssignments();
+            // 400 bones in 256 or less per part: at least two parts, and no vertex or triangle lost
+            ASSERT_TRUE( mesh->getNumSubMeshes() >= 2 && mesh->getNumSubMeshes() <= 4 );
+            UInt32 vertices = 0, indices = 0, wrong = 0, decoded = 0;
+            for ( unsigned short s=0; s<mesh->getNumSubMeshes(); ++s )
+            {
+                Ogre::SubMesh* subMesh = mesh->getSubMesh( s );
+                ASSERT_TRUE( !subMesh->blendIndexToBoneIndexMap.empty() && subMesh->blendIndexToBoneIndexMap.size() <= 256 );
+                vertices += (UInt32) subMesh->vertexData->vertexCount;
+                indices += (UInt32) subMesh->indexData->indexCount;
+
+                // every vertex: the four bones its blend indices lead to, with their weights, are those of its quad
+                Ogre::VertexData* data = subMesh->vertexData;
+                const Ogre::VertexElement* position = data->vertexDeclaration->findElementBySemantic( Ogre::VES_POSITION );
+                const Ogre::VertexElement* blendIndices = data->vertexDeclaration->findElementBySemantic( Ogre::VES_BLEND_INDICES );
+                const Ogre::VertexElement* blendWeights = data->vertexDeclaration->findElementBySemantic( Ogre::VES_BLEND_WEIGHTS );
+                ASSERT_TRUE( GUCEF_NULL != position && GUCEF_NULL != blendIndices && GUCEF_NULL != blendWeights );
+                if ( GUCEF_NULL == position || GUCEF_NULL == blendIndices || GUCEF_NULL == blendWeights )
+                    continue;
+                Ogre::HardwareVertexBufferSharedPtr positionBuffer = data->vertexBufferBinding->getBuffer( position->getSource() );
+                Ogre::HardwareVertexBufferSharedPtr blendBuffer = data->vertexBufferBinding->getBuffer( blendIndices->getSource() );
+                const unsigned char* positionBase = static_cast< const unsigned char* >( positionBuffer->lock( Ogre::HardwareBuffer::HBL_READ_ONLY ) );
+                const unsigned char* blendBase = positionBuffer == blendBuffer ? positionBase : static_cast< const unsigned char* >( blendBuffer->lock( Ogre::HardwareBuffer::HBL_READ_ONLY ) );
+                for ( size_t v=0; v<data->vertexCount; ++v )
+                {
+                    float* p = GUCEF_NULL;
+                    position->baseVertexPointerToElement( const_cast< unsigned char* >( positionBase ) + v * positionBuffer->getVertexSize(), &p );
+                    unsigned char* indexPointer = GUCEF_NULL;
+                    blendIndices->baseVertexPointerToElement( const_cast< unsigned char* >( blendBase ) + v * blendBuffer->getVertexSize(), &indexPointer );
+                    float* weightPointer = GUCEF_NULL;
+                    blendWeights->baseVertexPointerToElement( const_cast< unsigned char* >( blendBase ) + v * blendBuffer->getVertexSize(), &weightPointer );
+                    const UInt32 quad = (UInt32) ( p[ 0 ] / 0.1f + 0.5f );
+                    const Float32 expected[ 4 ] = { 0.4f, 0.3f, 0.2f, 0.1f };
+                    bool right = true;
+                    for ( UInt32 i=0; i<4; ++i )
+                    {
+                        const UInt32 index = indexPointer[ i ];
+                        const UInt32 bone = index < subMesh->blendIndexToBoneIndexMap.size() ? subMesh->blendIndexToBoneIndexMap[ index ] : 0xFFFFFFFF;
+                        // the bones of the quad are quad, quad+1, quad+2 and quad+3, the weight of a bone that of its place in the list
+                        UInt32 place = 4;
+                        for ( UInt32 e=0; e<4; ++e )
+                            if ( bone == ( quad + e ) % 400 )
+                                place = e;
+                        if ( 4 == place || !Near( weightPointer[ i ], expected[ place ] ) )
+                            right = false;
+                    }
+                    if ( !right )
+                        ++wrong;
+                    ++decoded;
+                }
+                if ( positionBase != blendBase )
+                    blendBuffer->unlock();
+                positionBuffer->unlock();
+            }
+            // 400 quads of four vertices and two triangles; every vertex is in the part of its triangles only once
+            ASSERT_TRUE( 1600 == vertices && 2400 == indices );
+            ASSERT_TRUE( 1600 == decoded );
+            ASSERT_TRUE( 0 == wrong );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mesh: a rig of 60 bones is not split: one submesh, the same bones" )
+    try
+    {
+        MakeWorkFolder( "fewbones" );
+        CAssetScene scene;
+        BuildManyBonesScene( scene, 60 );
+        CCookSettings settings;
+        CCookSettings::SAsset asset;
+        ASSERT_TRUE( MakeIntermediate( scene, "fewbones", "Characters/Chain.fbx", asset ) );
+        settings.assets.push_back( asset );
+        CConversionReport report;
+        ASSERT_TRUE( CookIntermediate( "fewbones", settings, report ) );
+        ASSERT_FALSE( report.HasFailures() );
+        ASSERT_FALSE( ReportHas( report, REPORTITEM_INFO, "split by bone subsets" ) );
+        ASSERT_TRUE( UseOgreGroup( ManyBonesGroup + "Few", GetProfileDir( "fewbones" ) ) );
+        Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().load( "pack/Characters/Chain/RibbonMesh.mesh", ManyBonesGroup + "Few" );
+        ASSERT_TRUE( mesh && 1 == mesh->getNumSubMeshes() );
+        if ( mesh && 1 == mesh->getNumSubMeshes() )
+            ASSERT_TRUE( 240 == mesh->getSubMesh( 0 )->vertexData->vertexCount );
     }
     catch ( ... )
     {

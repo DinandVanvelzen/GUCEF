@@ -523,6 +523,14 @@ PerformGodotSceneTests( void )
             if ( scene.dependencies[ d ].HasSubstr( "scenes/wall.tscn" ) >= 0 )
                 wallDependency = true;
         ASSERT_TRUE( wallDependency );
+
+        // and a relation (converter design 5.8): the instanced scene, with the reference as the file wrote it
+        bool wallRelation = false;
+        for ( size_t r=0; r<scene.references.size(); ++r )
+            if ( CAssetReference::KindInstancesPrefab == scene.references[ r ].kind && scene.references[ r ].target.EndsWith( "scenes/wall.tscn" ) &&
+                 ( scene.references[ r ].via.StartsWith( "res://" ) || scene.references[ r ].via.StartsWith( "uid://" ) ) )
+                wallRelation = true;
+        ASSERT_TRUE( wallRelation );
     }
     catch ( ... )
     {
@@ -590,6 +598,19 @@ PerformGodotSceneTests( void )
         REQUIRE( real >= 0 );
         ASSERT_TRUE( 2 == scene.nodes[ real ].children.size() + 1 || FindNodeByName( scene, "Inner" ) >= 0 );
         ASSERT_TRUE( "moved/real.tscn" == scene.nodes[ real ].prefabInstance );
+
+        // the relations: the scene found by its uid with the path as written, the model that is not in the pack unresolved
+        bool found = false;
+        bool gone = false;
+        for ( size_t r=0; r<scene.references.size(); ++r )
+        {
+            const CAssetReference& reference = scene.references[ r ];
+            if ( CAssetReference::KindInstancesPrefab == reference.kind && reference.target.EndsWith( "moved/real.tscn" ) && "res://old/place.tscn" == reference.via )
+                found = true;
+            if ( !reference.IsResolved() && "res://gone.glb" == reference.via )
+                gone = true;
+        }
+        ASSERT_TRUE( found && gone );
     }
     catch ( ... )
     {

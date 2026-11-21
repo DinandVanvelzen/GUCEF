@@ -50,6 +50,21 @@
 #define ASSETCONVERTERLIB_CIASSETVALIDATOR_H
 #endif /* ASSETCONVERTERLIB_CIASSETVALIDATOR_H ? */
 
+#ifndef ASSETCONVERTERLIB_CASSETKINDREGISTRY_H
+#include "AssetConverterLib_CAssetKindRegistry.h"
+#define ASSETCONVERTERLIB_CASSETKINDREGISTRY_H
+#endif /* ASSETCONVERTERLIB_CASSETKINDREGISTRY_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPACKLISTING_H
+#include "AssetConverterLib_CAssetPackListing.h"
+#define ASSETCONVERTERLIB_CASSETPACKLISTING_H
+#endif /* ASSETCONVERTERLIB_CASSETPACKLISTING_H ? */
+
+#ifndef ASSETCONVERTERLIB_CASSETPACKPROFILE_H
+#include "AssetConverterLib_CAssetPackProfile.h"
+#define ASSETCONVERTERLIB_CASSETPACKPROFILE_H
+#endif /* ASSETCONVERTERLIB_CASSETPACKPROFILE_H ? */
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -99,6 +114,17 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPluginRegistry
     bool UnregisterImporter( const CORE::CString& name );
     bool UnregisterExporter( const CORE::CString& name );
     bool UnregisterCooker( const CORE::CString& targetName );
+
+    /**
+     *  Another name under which the cooker of a target is found (the cooked area that its output goes to is named differently
+     *  from the cooker: "gucef-ogre3d" for "ogre"). The alias is resolved by TryGetCooker() and ResolveCookerName(); a name
+     *  that a cooker is registered under is never an alias. False when the alias is empty or is a registered target name.
+     */
+    bool RegisterCookerAlias( const CORE::CString& alias, const CORE::CString& targetName );
+    bool UnregisterCookerAlias( const CORE::CString& alias );
+
+    /** The target name for a name that is a target name or an alias; the name as it is when it is neither */
+    CORE::CString ResolveCookerName( const CORE::CString& name ) const;
     bool UnregisterPostProcessor( const CORE::CString& name );
     bool UnregisterValidator( const CORE::CString& name );
 
@@ -110,6 +136,16 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPluginRegistry
 
     /** The importers by name (the order in which 'auto' asks them) */
     void GetImporters( GUCEF::vector< TAssetImporterPtr >& importers ) const;
+
+    /** The table of file kinds: the built-in extensions and the declarations of the importers and exporters that are registered */
+    CAssetKindRegistry& GetKinds( void );
+    const CAssetKindRegistry& GetKinds( void ) const;
+
+    /**
+     *  Asks the importers, in the order of their names, whether the files are a pack they know; the most sure recogniser fills the
+     *  profile (the first of equal ones). False when none recognises it, with the profile cleared.
+     */
+    bool RecognisePack( const CAssetPackListing& listing, CAssetPackProfile& profile ) const;
 
     private:
     friend class CAssetConverterGlobal;
@@ -129,8 +165,11 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CAssetPluginRegistry
     TAssetImporterRegistry m_importers;
     TAssetExporterRegistry m_exporters;
     TAssetCookerRegistry m_cookers;
+    GUCEF::map< CORE::CString, CORE::CString > m_cookerAliases;     /**< lower case alias to target name */
+    mutable MT::CMutex m_aliasLock;
     TAssetPostProcessorRegistry m_postProcessors;
     TAssetValidatorRegistry m_validators;
+    CAssetKindRegistry m_kinds;
 };
 
 /*-------------------------------------------------------------------------//

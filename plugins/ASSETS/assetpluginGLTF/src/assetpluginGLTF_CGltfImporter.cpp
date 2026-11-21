@@ -42,6 +42,9 @@
 #define GUCEF_ASSETPLUGIN_GLTF_CGLTFSCENEREADER_H
 #endif /* GUCEF_ASSETPLUGIN_GLTF_CGLTFSCENEREADER_H ? */
 
+#include "AssetConverterLib_CAssetPackListing.h"
+#include "AssetConverterLib_CAssetPackProfile.h"
+
 #include "assetpluginGLTF_CGltfImporter.h"
 
 /*-------------------------------------------------------------------------//
@@ -88,7 +91,10 @@ UInt32
 CGltfImporter::GetVersion( void ) const
 {GUCEF_TRACE;
 
-    return 1;
+    // 2: reads the masks of the vertices (_MASK_0)
+    // 3: reads the hidden face sets (gucefHiddenFaceSets, gucefHiddenBy)
+    // 4: records the normalized relations: external buffers (usesFile) and images (usesTexture), unresolved uris kept
+    return 4;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -112,6 +118,42 @@ CGltfImporter::Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPackC
     CGltfSceneReader reader( vfsPath, context, out, report );
     return reader.Read();
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGltfImporter::GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const
+{GUCEF_TRACE;
+
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "gltf", ASSETCONVERTER::ASSETKIND_MODEL ) );
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "glb", ASSETCONVERTER::ASSETKIND_MODEL ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGltfImporter::RecognisePack( const ASSETCONVERTER::CAssetPackListing& listing, ASSETCONVERTER::CAssetPackProfile& profile ) const
+{GUCEF_TRACE;
+
+    // a folder with glTF files and nothing that says it belongs to an engine: a pack of models
+    CORE::CString::StringVector keywords;
+    keywords.push_back( "scene" );
+    keywords.push_back( "demo" );
+    keywords.push_back( "sample" );
+    CORE::CString::StringVector models;
+    listing.FindFilesRanked( "*.gltf", keywords, models, 16 );
+    listing.FindFilesRanked( "*.glb", keywords, models, 16 );
+    if ( models.empty() )
+        return false;
+    profile.Clear();
+    profile.packType = "model-pack";
+    profile.packTypeName = "Model pack";
+    profile.confidence = 30;
+    profile.showcaseCandidates = models;
+    listing.GetSubFolders( CORE::CString::Empty, profile.groupingHints );
+    return true;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

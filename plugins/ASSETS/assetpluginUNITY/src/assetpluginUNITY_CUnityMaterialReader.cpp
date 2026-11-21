@@ -243,11 +243,13 @@ CUnityMaterialReader::GetMaterial( const CUnityReference& reference, const CORE:
         if ( !m_project.ResolveGuid( reference.guid, path ) )
         {
             m_project.Warn( user, "uses the material " + reference.ToString() + ", which is not in the package: the default material is used" );
+            m_project.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesMaterial, reference.guid );
             index = GetDefaultMaterial();
         }
         else
         {
             const CORE::CString extension = ASSETCONVERTER::CVfsPaths::ExtensionOf( path );
+            m_project.AddReference( "mat" == extension ? ASSETCONVERTER::CAssetReference::KindUsesMaterial : ASSETCONVERTER::CAssetReference::KindDependsOn, path, reference.guid );
             if ( "mat" == extension )
             {
                 index = ReadMaterialFile( path, reference.fileId );
@@ -386,7 +388,10 @@ CUnityMaterialReader::RecordSource( const SValues& values, const CUnityReference
         if ( !(*t).second.texture.IsNull() )
         {
             if ( !(*t).second.texture.IsBuiltin() && m_project.ResolveGuid( (*t).second.texture.guid, path ) )
+            {
                 source.textures.SetAttribute( (*t).first, path );
+                m_project.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, path, (*t).second.texture.guid );
+            }
             else
                 source.textures.SetAttribute( (*t).first, (*t).second.texture.ToString() );
         }
@@ -442,6 +447,7 @@ CUnityMaterialReader::MapMaterial( const CORE::CDataNode& materialObject, const 
         CORE::CString shaderPath;
         if ( m_project.ResolveGuid( shader.guid, shaderPath ) )
         {
+            m_project.AddReference( ASSETCONVERTER::CAssetReference::KindDependsOn, shaderPath, shader.guid, true );
             values.shader = m_project.GetShader( shaderPath );
             const bool graph = "shadergraph" == ASSETCONVERTER::CVfsPaths::ExtensionOf( shaderPath );
             values.kind = graph ? CUnityBuiltins::SHADERKIND_SHADERGRAPH : CUnityBuiltins::SHADERKIND_CUSTOM;
@@ -538,9 +544,11 @@ CUnityMaterialReader::ResolveTexture( SValues& values, const CORE::CString& prop
     if ( !m_project.ResolveGuid( texture.guid, vfsPath ) || !VFS::CVfsGlobal::Instance()->GetVfs().FileExists( vfsPath ) )
     {
         m_project.Warn( values.subject, property + " uses the texture " + texture.ToString() + ", which is not in the package: the slot is left empty" );
+        m_project.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, texture.guid );
         return false;
     }
     m_project.AddDependency( vfsPath );
+    m_project.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, vfsPath, texture.guid );
     return true;
 }
 

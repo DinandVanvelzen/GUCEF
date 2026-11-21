@@ -114,7 +114,9 @@ configuration( { "LINUX32" } )
       "include/TestUnityContent.h",
       "include/TestUnityFbxWriter.h",
       "include/TestUnityImport.h",
+      "include/TestUnityPackIndexCorpus.h",
       "include/TestUnityParticles.h",
+      "include/TestUnityScenes.h",
       "include/TestUnitySupport.h",
       "include/TestUnityYaml.h"
     } )
@@ -125,7 +127,9 @@ configuration( { "LINUX32" } )
       "src/TestUnityContent.cpp",
       "src/TestUnityFbxWriter.cpp",
       "src/TestUnityImport.cpp",
+      "src/TestUnityPackIndexCorpus.cpp",
       "src/TestUnityParticles.cpp",
+      "src/TestUnityScenes.cpp",
       "src/TestUnitySupport.cpp",
       "src/TestUnityYaml.cpp",
       "src/assetpluginUNITY_TestApp.cpp"
@@ -140,7 +144,9 @@ configuration( { "LINUX64" } )
       "include/TestUnityContent.h",
       "include/TestUnityFbxWriter.h",
       "include/TestUnityImport.h",
+      "include/TestUnityPackIndexCorpus.h",
       "include/TestUnityParticles.h",
+      "include/TestUnityScenes.h",
       "include/TestUnitySupport.h",
       "include/TestUnityYaml.h"
     } )
@@ -151,7 +157,9 @@ configuration( { "LINUX64" } )
       "src/TestUnityContent.cpp",
       "src/TestUnityFbxWriter.cpp",
       "src/TestUnityImport.cpp",
+      "src/TestUnityPackIndexCorpus.cpp",
       "src/TestUnityParticles.cpp",
+      "src/TestUnityScenes.cpp",
       "src/TestUnitySupport.cpp",
       "src/TestUnityYaml.cpp",
       "src/assetpluginUNITY_TestApp.cpp"
@@ -166,7 +174,9 @@ configuration( { "WIN32" } )
       "include/TestUnityContent.h",
       "include/TestUnityFbxWriter.h",
       "include/TestUnityImport.h",
+      "include/TestUnityPackIndexCorpus.h",
       "include/TestUnityParticles.h",
+      "include/TestUnityScenes.h",
       "include/TestUnitySupport.h",
       "include/TestUnityYaml.h"
     } )
@@ -177,7 +187,9 @@ configuration( { "WIN32" } )
       "src/TestUnityContent.cpp",
       "src/TestUnityFbxWriter.cpp",
       "src/TestUnityImport.cpp",
+      "src/TestUnityPackIndexCorpus.cpp",
       "src/TestUnityParticles.cpp",
+      "src/TestUnityScenes.cpp",
       "src/TestUnitySupport.cpp",
       "src/TestUnityYaml.cpp",
       "src/assetpluginUNITY_TestApp.cpp"
@@ -192,7 +204,9 @@ configuration( { "WIN64" } )
       "include/TestUnityContent.h",
       "include/TestUnityFbxWriter.h",
       "include/TestUnityImport.h",
+      "include/TestUnityPackIndexCorpus.h",
       "include/TestUnityParticles.h",
+      "include/TestUnityScenes.h",
       "include/TestUnitySupport.h",
       "include/TestUnityYaml.h"
     } )
@@ -203,7 +217,9 @@ configuration( { "WIN64" } )
       "src/TestUnityContent.cpp",
       "src/TestUnityFbxWriter.cpp",
       "src/TestUnityImport.cpp",
+      "src/TestUnityPackIndexCorpus.cpp",
       "src/TestUnityParticles.cpp",
+      "src/TestUnityScenes.cpp",
       "src/TestUnitySupport.cpp",
       "src/TestUnityYaml.cpp",
       "src/assetpluginUNITY_TestApp.cpp"

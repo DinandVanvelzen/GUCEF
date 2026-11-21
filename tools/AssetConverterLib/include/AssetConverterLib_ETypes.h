@@ -57,6 +57,36 @@ enum ETextureUsage
 };
 typedef enum ETextureUsage TTextureUsage;
 
+/**
+ *  The kinds of files an asset tool tells apart, from the built-in table of the kind registry (CAssetKindRegistry) and what the
+ *  importer and exporter plugins declare. An Image is a source raster picture, a Texture is GPU-ready data (and a picture in its
+ *  role as a material slot).
+ */
+enum EAssetKind
+{
+    ASSETKIND_OTHER = 0 ,   /**< nothing known about it */
+    ASSETKIND_MODEL     ,   /**< an Ogre .mesh or a source model */
+    ASSETKIND_TEXTURE   ,   /**< GPU-ready picture data: dds, ktx, ktx2, astc, pvr, pkm, basis */
+    ASSETKIND_MATERIAL  ,   /**< a material script or material resource */
+    ASSETKIND_SCENE     ,   /**< a scene, level or map */
+    ASSETKIND_SKELETON  ,   /**< a skeleton */
+    ASSETKIND_FOLDER    ,   /**< a directory, for the type column */
+    ASSETKIND_PARTICLE  ,   /**< a particle system */
+    ASSETKIND_IMAGE     ,   /**< a source raster picture: png, jpg, tga, bmp, gif, tif, psd, webp, hdr, exr */
+    ASSETKIND_ANIMATION ,   /**< an animation clip or controller */
+    ASSETKIND_SHADER    ,   /**< shader source or a shader graph */
+    ASSETKIND_PREFAB    ,   /**< a prefab or packed scene part of an engine */
+    ASSETKIND_AUDIO     ,   /**< music or a sound effect */
+    ASSETKIND_FONT      ,   /**< a font */
+    ASSETKIND_DOCUMENT  ,   /**< text for people: txt, md, pdf */
+    ASSETKIND_DATA      ,   /**< structured data: json, xml, yaml, csv */
+    ASSETKIND_PACKAGE   ,   /**< a container of assets: unitypackage, zip, pck, mhpkg */
+    ASSETKIND_METADATA  ,   /**< a file that belongs to an asset: Unity .meta, Godot .import, Unreal .uexp and .ubulk */
+
+    ASSETKIND_COUNT
+};
+typedef enum EAssetKind TAssetKind;
+
 /** The steps of the operation chain of a texture (CTextureOperation) */
 enum ETextureOperationType
 {
@@ -197,6 +227,8 @@ enum EActivityReason
     ACTIVITYREASON_LICENCE           ,  /**< refused by the licence record (the detail says why) */
     ACTIVITYREASON_CANCELLED         ,  /**< the run was asked to stop before the asset was converted */
     ACTIVITYREASON_COOK_PENDING      ,  /**< the intermediate is up to date, the cooked files are not made yet (an interrupted run) */
+    ACTIVITYREASON_SCHEMA_CHANGED    ,  /**< a stored document has another schema version than this build reads or writes (the pack index) */
+    ACTIVITYREASON_DOCUMENT_CORRUPT  ,  /**< a stored document failed its parse or hash check (the pack index) */
 
     ACTIVITYREASON_COUNT
 };
@@ -389,7 +421,7 @@ inline const char* const* GetNormalMapConventionNames( void ) { static const cha
 inline const char* const* GetReportItemKindNames( void ) { static const char* const names[] = { "info", "approximation", "skipped", "warning", "error" }; return names; }
 inline const char* const* GetAssetStatusNames( void ) { static const char* const names[] = { "converted", "approximated", "skipped", "failed", "cached", "refused" }; return names; }
 inline const char* const* GetActivityActionNames( void ) { static const char* const names[] = { "imported", "cached", "failed", "refused", "skipped" }; return names; }
-inline const char* const* GetActivityReasonNames( void ) { static const char* const names[] = { "new", "unchanged", "source changed", "settings changed", "version changed", "dependency changed", "output missing", "forced", "licence", "cancelled", "cook pending" }; return names; }
+inline const char* const* GetActivityReasonNames( void ) { static const char* const names[] = { "new", "unchanged", "source changed", "settings changed", "version changed", "dependency changed", "output missing", "forced", "licence", "cancelled", "cook pending", "schema changed", "document corrupt" }; return names; }
 inline const char* const* GetPipelineModeNames( void ) { static const char* const names[] = { "full", "validateOnly", "cookOnly" }; return names; }
 inline const char* const* GetPipelinePhaseNames( void ) { static const char* const names[] = { "licence", "index", "convert", "cook", "report" }; return names; }
 inline const char* const* GetPlanActionNames( void ) { static const char* const names[] = { "import", "cached", "cook", "refused", "failed", "validate", "no intermediate" }; return names; }

@@ -272,6 +272,46 @@ PerformAssetConverterRunModeTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Stored entry check: a cache entry is compared with its source, the plugins that are registered and its dependencies without the manifest: unchanged, settings, plugin version, dependency and source changed, and a source that is gone is not judged" )
+    try
+    {
+        const CORE::CString manifest = WriteStandardPack( "stored", CORE::CString::Empty );
+        CAssetPipeline pipeline;
+        CConversionReport report;
+        ASSERT_TRUE( Run( manifest, pipeline, report ) );
+        CAssetCacheEntry stored;
+        ASSERT_TRUE( stored.Load( CAssetCacheEntry::GetEntryPath( "work/stored/intermediate", "props/rock.stub" ) ) );
+        ASSERT_TRUE( !stored.dependencies.empty() && !stored.plugins.empty() );
+        const CORE::CString source = "work/stored/src/props/rock.stub";
+        CORE::CString detail;
+        bool verified = false;
+        ASSERT_TRUE( ACTIVITYREASON_UNCHANGED == CAssetPipeline::CheckStoredEntry( stored, source, CORE::CString::Empty, detail, verified ) && verified );
+        ASSERT_TRUE( ACTIVITYREASON_UNCHANGED == CAssetPipeline::CheckStoredEntry( stored, source, stored.settingsHash, detail, verified ) && verified );
+        ASSERT_TRUE( ACTIVITYREASON_SETTINGS_CHANGED == CAssetPipeline::CheckStoredEntry( stored, source, "another", detail, verified ) );
+
+        // a source that is gone is not judged; the rest of the key is
+        ASSERT_TRUE( ACTIVITYREASON_UNCHANGED == CAssetPipeline::CheckStoredEntry( stored, "work/stored/src/props/gone.stub", CORE::CString::Empty, detail, verified ) && !verified );
+
+        // a plugin of the stack with another version than the registered one; a plugin that is not registered is left alone
+        CAssetCacheEntry older = stored;
+        older.plugins[ "converter:AssetConverterLib" ] += 9;
+        ASSERT_TRUE( ACTIVITYREASON_VERSION_CHANGED == CAssetPipeline::CheckStoredEntry( older, source, CORE::CString::Empty, detail, verified ) && detail.HasSubstr( "AssetConverterLib" ) >= 0 );
+        CAssetCacheEntry unknown = stored;
+        unknown.plugins[ "importer:notregistered" ] = 3;
+        ASSERT_TRUE( ACTIVITYREASON_UNCHANGED == CAssetPipeline::CheckStoredEntry( unknown, source, CORE::CString::Empty, detail, verified ) );
+
+        // a file the import read besides the source, then the source
+        WriteWorkFile( "stored/src/props/rock.notes.txt", "notes that changed" );
+        ASSERT_TRUE( ACTIVITYREASON_DEPENDENCY_CHANGED == CAssetPipeline::CheckStoredEntry( stored, source, CORE::CString::Empty, detail, verified ) );
+        WriteWorkFile( "stored/src/props/rock.stub", "{ \"nodes\": [ { \"name\": \"Rock\", \"mesh\": true, \"size\": 5, \"material\": 0 } ] }" );
+        ASSERT_TRUE( ACTIVITYREASON_SOURCE_CHANGED == CAssetPipeline::CheckStoredEntry( stored, source, CORE::CString::Empty, detail, verified ) && verified );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Resume: a cancelled run keeps the cache entries of what it finished (cook pending) and lists the rest as skipped; the next run converts only the rest and cooks all" )
     try
     {

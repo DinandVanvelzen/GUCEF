@@ -334,6 +334,7 @@ CAssetPackManifest::GetValidators( CPluginStackEntry::TEntryVector& list ) const
     list.push_back( CPluginStackEntry( "MissingTextures" ) );
     list.push_back( CPluginStackEntry( "TextureSize" ) );
     list.push_back( CPluginStackEntry( "BoneLimit" ) );
+    list.push_back( CPluginStackEntry( "LayerPenetration" ) );
 }
 
 /*-------------------------------------------------------------------------*/

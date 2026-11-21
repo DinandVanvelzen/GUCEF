@@ -51,6 +51,14 @@ CIAssetExporter::~CIAssetExporter()
 
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CIAssetExporter::GetFileKinds( TAssetFileKindVector& /* kinds */ ) const
+{GUCEF_TRACE;
+
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

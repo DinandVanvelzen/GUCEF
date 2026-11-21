@@ -107,7 +107,12 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CTextureBaker
     /** Runs the operation chain of the texture on the pictures of its sources */
     static bool ApplyOperations( const CAssetTexture& texture, const TPixelMapVector& sources, IMAGE::TPixelMapPtr& result, CORE::CString& problem );
 
-    /** Reads a picture of the VFS as RGB, RGBA or a single channel, red first */
+    /**
+     *  Reads a picture of the VFS as RGB, RGBA or a single channel, red first, through the image codecs that are loaded (the codec of the
+     *  extension: png, jpg, tga, bmp, psd, tif, tiff, dds, hdr, exr and the others of the FreeImage plugin). A picture of floating point
+     *  channels (hdr, exr) is clamped to 0..1 and kept as 8 bits. When it cannot be read the reason is in 'problem'
+     */
+    static bool LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& picture, CORE::CString& problem );
     static bool LoadPicture( const CORE::CString& vfsPath, IMAGE::TPixelMapPtr& picture );
 
     /** Writes the picture as PNG (8 bits per channel) to the VFS */

@@ -78,6 +78,13 @@ class CSkeletonCooker;
  *    - the DotScene of the asset (every root node), and one for every prefab of the sidecar (a prefab that is the whole
  *      asset only gives its overrides to the scene of the asset);
  *    - <asset>.collision.json with the colliders, unless the collider policy is "none".
+ *
+ *  Triangles of a body that hidden face sets hide (the outfits of a character, CAssetHiddenFaceSet) stay in the mesh, in
+ *  submeshes named by CMeshCooker::GetHiddenFaceSubMeshName() with a material variant per material and sets. The variant draws
+ *  nothing while one of its sets is worn (active in the intermediate, or named by the pack setting "hiddenFaceSets") and
+ *  is a copy of the material otherwise; the entity of the mesh in the DotScene names the sets in its user data
+ *  ("gucefHiddenFaceSets", "gucefActiveHiddenFaceSets"). Stock Ogre shows the body under the worn outfit hidden; an
+ *  application that switches outfits uses SubEntity::setVisible() and the base material.
  */
 class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CAssetCook
 {
@@ -103,6 +110,8 @@ class GUCEF_ASSETCOOKER_OGRE_EXPORT_CPP CAssetCook
         CORE::CString name;
     };
     typedef GUCEF::vector< SCookedMesh > TCookedMeshVector;
+    typedef std::pair< Int32, UInt32 > TMaterialVariant;              /**< a material (-1: the default) and the hidden face sets of its triangles */
+    typedef GUCEF::vector< TMaterialVariant > TMaterialVariantVector;
     typedef GUCEF::vector< UInt32 > TUInt32Vector;
 
     CORE::CString ToVfsPath( const CORE::CString& name ) const;

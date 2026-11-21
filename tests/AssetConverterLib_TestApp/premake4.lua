@@ -112,6 +112,7 @@ configuration( { "LINUX32" } )
     files( {
       "include/TestAssetConverterCli.h",
       "include/TestAssetConverterModel.h",
+      "include/TestAssetConverterPackIndex.h",
       "include/TestAssetConverterParticles.h",
       "include/TestAssetConverterPipeline.h",
       "include/TestAssetConverterProcessing.h",
@@ -124,6 +125,7 @@ configuration( { "LINUX32" } )
       "src/AssetConverterLib_TestApp.cpp",
       "src/TestAssetConverterCli.cpp",
       "src/TestAssetConverterModel.cpp",
+      "src/TestAssetConverterPackIndex.cpp",
       "src/TestAssetConverterParticles.cpp",
       "src/TestAssetConverterPipeline.cpp",
       "src/TestAssetConverterProcessing.cpp",
@@ -138,6 +140,7 @@ configuration( { "LINUX64" } )
     files( {
       "include/TestAssetConverterCli.h",
       "include/TestAssetConverterModel.h",
+      "include/TestAssetConverterPackIndex.h",
       "include/TestAssetConverterParticles.h",
       "include/TestAssetConverterPipeline.h",
       "include/TestAssetConverterProcessing.h",
@@ -150,6 +153,7 @@ configuration( { "LINUX64" } )
       "src/AssetConverterLib_TestApp.cpp",
       "src/TestAssetConverterCli.cpp",
       "src/TestAssetConverterModel.cpp",
+      "src/TestAssetConverterPackIndex.cpp",
       "src/TestAssetConverterParticles.cpp",
       "src/TestAssetConverterPipeline.cpp",
       "src/TestAssetConverterProcessing.cpp",
@@ -164,6 +168,7 @@ configuration( { "WIN32" } )
     files( {
       "include/TestAssetConverterCli.h",
       "include/TestAssetConverterModel.h",
+      "include/TestAssetConverterPackIndex.h",
       "include/TestAssetConverterParticles.h",
       "include/TestAssetConverterPipeline.h",
       "include/TestAssetConverterProcessing.h",
@@ -176,6 +181,7 @@ configuration( { "WIN32" } )
       "src/AssetConverterLib_TestApp.cpp",
       "src/TestAssetConverterCli.cpp",
       "src/TestAssetConverterModel.cpp",
+      "src/TestAssetConverterPackIndex.cpp",
       "src/TestAssetConverterParticles.cpp",
       "src/TestAssetConverterPipeline.cpp",
       "src/TestAssetConverterProcessing.cpp",
@@ -190,6 +196,7 @@ configuration( { "WIN64" } )
     files( {
       "include/TestAssetConverterCli.h",
       "include/TestAssetConverterModel.h",
+      "include/TestAssetConverterPackIndex.h",
       "include/TestAssetConverterParticles.h",
       "include/TestAssetConverterPipeline.h",
       "include/TestAssetConverterProcessing.h",
@@ -202,6 +209,7 @@ configuration( { "WIN64" } )
       "src/AssetConverterLib_TestApp.cpp",
       "src/TestAssetConverterCli.cpp",
       "src/TestAssetConverterModel.cpp",
+      "src/TestAssetConverterPackIndex.cpp",
       "src/TestAssetConverterParticles.cpp",
       "src/TestAssetConverterPipeline.cpp",
       "src/TestAssetConverterProcessing.cpp",

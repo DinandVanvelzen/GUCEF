@@ -43,6 +43,8 @@
 #include "TestUnityImport.h"
 #include "TestUnityCli.h"
 #include "TestUnityParticles.h"
+#include "TestUnityScenes.h"
+#include "TestUnityPackIndexCorpus.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -101,6 +103,8 @@ GUCEF_OSMAIN_BEGIN
             PerformUnityYamlTests();
             PerformUnityImportTests();
             PerformUnityParticleTests();
+            PerformUnitySceneTests();
+            PerformUnityPackIndexCorpusTests();
             PerformUnityCliTests();
         }
         TearDownUnityTests();

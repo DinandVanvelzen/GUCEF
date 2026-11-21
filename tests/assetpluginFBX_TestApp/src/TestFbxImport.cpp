@@ -30,6 +30,8 @@
 #define GUCEF_TESTFW_H
 #endif /* GUCEF_TESTFW_H ? */
 
+#include "AssetConverterLib_CAssetPluginRegistry.h"
+#include "AssetConverterLib_CAssetConverterGlobal.h"
 #include "TestFbxSupport.h"
 #include "TestFbxWriter.h"
 #include "TestFbxImport.h"
@@ -119,18 +121,58 @@ FindVertex( const CAssetSubMesh& subMesh, Float32 x, Float32 y, Float32 z, Float
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------*/
+
+static void
+TestFbxPackRecogniser( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: a folder of FBX files is a model pack with the models as entry points" )
+    try
+    {
+        TAssetImporterPtr importer;
+        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "fbx", importer ) );
+        CAssetPackListing listing;
+        listing.AddFile( "models/rock.fbx" );
+        listing.AddFile( "models/scene_overview.fbx" );
+        listing.AddFile( "textures/rock.png" );
+        CAssetPackProfile profile;
+        ASSERT_TRUE( importer->RecognisePack( listing, profile ) );
+        ASSERT_TRUE( "model-pack" == profile.packType && "Model pack" == profile.packTypeName && profile.engine.IsNULLOrEmpty() && 30 == profile.confidence );
+        ASSERT_TRUE( 2 == profile.showcaseCandidates.size() && "models/scene_overview.fbx" == profile.showcaseCandidates[ 0 ] && 2 == profile.groupingHints.size() );
+
+        CAssetPackListing other;
+        other.AddFile( "textures/rock.png" );
+        ASSERT_FALSE( importer->RecognisePack( other, profile ) );
+
+        TAssetFileKindVector declared;
+        importer->GetFileKinds( declared );
+        CAssetKindRegistry kinds;
+        kinds.RegisterFileKinds( declared, "importer:test" );
+        ASSERT_TRUE( ASSETKIND_MODEL == kinds.GetKindOfPath( "a.fbx" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+
 void
 PerformFbxImportTests( void )
 {GUCEF_TRACE;
 
     GUCEF_TESTFW_SUITE_SCOPE( "assetpluginFBX.Import" );
 
+    TestFbxPackRecogniser();
+
     GUCEF_TESTFW_TESTCASE( "Plugin: the importer \"fbx\" is registered with its version and takes .fbx files only" )
     try
     {
         TAssetImporterPtr importer;
         ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "fbx", importer ) );
-        ASSERT_TRUE( 1 == importer->GetVersion() );
+        ASSERT_TRUE( 2 == importer->GetVersion() );
         CAssetPackContext context;
         ASSERT_TRUE( importer->CanImport( "pack/model.fbx", context ) && importer->CanImport( "pack/MODEL.FBX", context ) );
         ASSERT_FALSE( importer->CanImport( "pack/model.gltf", context ) || importer->CanImport( "pack/model", context ) );
@@ -185,6 +227,44 @@ PerformFbxImportTests( void )
         ASSERT_TRUE( "FBX/FBX Phong" == material.source.shaderName && !material.source.properties.GetAttributeValueOrChildValueByName( "ShininessExponent" ).IsNULLOrEmpty() );
         ASSERT_TRUE( report.GetItemCount( REPORTITEM_APPROXIMATION ) >= 1 );
         ASSERT_TRUE( scene.dependencies.size() == 2 );
+
+        // the normalized relations (converter design 5.8): both texture files, with their names as the file wrote them
+        ASSERT_TRUE( 2 == scene.references.size() );
+        for ( size_t r=0; r<scene.references.size(); ++r )
+        {
+            const CAssetReference& reference = scene.references[ r ];
+            ASSERT_TRUE( CAssetReference::KindUsesTexture == reference.kind && reference.IsResolved() && !reference.optional );
+            ASSERT_TRUE( ( "work/cube/albedo.png" == reference.target && reference.via.HasSubstr( "albedo.png" ) >= 0 ) ||
+                         ( "work/cube/normal.png" == reference.target && reference.via.HasSubstr( "normal.png" ) >= 0 ) );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Relations: a texture file that is in the pack nowhere is kept as an unresolved relation with its file name; the slot stays empty" )
+    try
+    {
+        MakeWorkFolder( "lostcube" );
+        ASSERT_TRUE( WriteTestPng( "work/lostcube/albedo.png", 4, 4, 255, 0, 0, 255 ) );
+        const double translation[ 3 ] = { 0.0, 0.0, 0.0 };
+        ASSERT_TRUE( WriteWorkText( "lostcube/cube.fbx", MakeCubeFbx( FbxYUpMetres(), 1.0, translation, "albedo.png", "lost_normal.png" ) ) );
+        CAssetScene scene;
+        CConversionReport report;
+        REQUIRE( ImportFile( "work/lostcube", "cube.fbx", scene, report ) );
+        ASSERT_FALSE( scene.materials.empty() || scene.materials[ 0 ].normalTexture.IsUsed() );
+        bool resolved = false;
+        bool unresolved = false;
+        for ( size_t r=0; r<scene.references.size(); ++r )
+        {
+            if ( scene.references[ r ].IsResolved() )
+                resolved = "work/lostcube/albedo.png" == scene.references[ r ].target;
+            else
+                unresolved = CAssetReference::KindUsesTexture == scene.references[ r ].kind && scene.references[ r ].via.HasSubstr( "lost_normal.png" ) >= 0;
+        }
+        ASSERT_TRUE( resolved && unresolved && 2 == scene.references.size() );
     }
     catch ( ... )
     {
@@ -374,7 +454,7 @@ PerformFbxImportTests( void )
         CORE::CDynamicBuffer extracted;
         ASSERT_TRUE( VFS::CVfsGlobal::Instance()->GetVfs().LoadFile( extracted, scene.textures[ 0 ].sources[ 0 ], "rb" ) );
         ASSERT_TRUE( extracted.GetDataSize() == png.GetDataSize() && 0 == memcmp( extracted.GetConstBufferPtr(), png.GetConstBufferPtr(), png.GetDataSize() ) );
-        ASSERT_TRUE( 0 == scene.dependencies.size() );
+        ASSERT_TRUE( 0 == scene.dependencies.size() && scene.references.empty() );
     }
     catch ( ... )
     {

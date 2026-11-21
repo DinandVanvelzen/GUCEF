@@ -93,7 +93,8 @@ namespace OGRE {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString COgreCooker::TargetName = "ogre";
-const UInt32 COgreCooker::Version = 2;
+const CORE::CString COgreCooker::CookedAreaName = "gucef-ogre3d";
+const UInt32 COgreCooker::Version = 4;     /**< 3: the masks of the vertices as the second colour (VES_SPECULAR); 4: hidden face sets (named submeshes, material variants) */
 
 static const char* const IntermediateImporter = "gltf";
 
@@ -122,7 +123,7 @@ COgreCooker::~COgreCooker()
 
 CORE::CString COgreCooker::GetTargetName( void ) const { return TargetName; }
 UInt32 COgreCooker::GetVersion( void ) const { return Version; }
-UInt32 COgreCooker::GetMaxBonesPerSubMesh( void ) const { return 256; }
+UInt32 COgreCooker::GetMaxBonesPerSubMesh( void ) const { return 0; }
 
 /*-------------------------------------------------------------------------*/
 

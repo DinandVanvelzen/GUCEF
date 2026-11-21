@@ -185,6 +185,17 @@ CGltfExporter::Export( const ASSETCONVERTER::CAssetScene& scene, const CORE::CSt
     return true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CGltfExporter::GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const
+{GUCEF_TRACE;
+
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "gltf", ASSETCONVERTER::ASSETKIND_MODEL ) );
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "glb", ASSETCONVERTER::ASSETKIND_MODEL ) );
+}
+
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

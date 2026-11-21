@@ -82,8 +82,7 @@ CGodotSceneMerger::Append( ASSETCONVERTER::CAssetScene& target, const ASSETCONVE
         }
         for ( size_t l=0; l<source.lights.size(); ++l )
             target.lights.push_back( source.lights[ l ] );
-        for ( size_t d=0; d<source.dependencies.size(); ++d )
-            target.AddDependency( source.dependencies[ d ] );
+        target.MergeDependenciesOf( source );
     }
 
     // the nodes

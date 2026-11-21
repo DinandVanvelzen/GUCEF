@@ -147,8 +147,6 @@ CFbxMaterialReader::CFbxMaterialReader( const ufbx_scene& fbx                   
     , m_scene( scene )
     , m_report( report )
     , m_textures()
-    , m_packFiles()
-    , m_packFilesBuilt( false )
     , m_embedded()
     , m_materialName()
 {GUCEF_TRACE;
@@ -245,35 +243,39 @@ CFbxMaterialReader::ResolveFile( const ufbx_texture& texture )
             return sibling;
     }
 
-    // the same file name somewhere in the pack: the nearest to the FBX
-    if ( !m_packFilesBuilt )
-    {
-        m_packFilesBuilt = true;
-        const CORE::CString::StringVector& files = m_context.GetFiles();
-        for ( size_t f=0; f<files.size(); ++f )
-            m_packFiles[ ASSETCONVERTER::CVfsPaths::NameOf( files[ f ] ).Lowercase() ].push_back( m_context.ToVfsPath( files[ f ] ) );
-    }
+    // the same file name somewhere in the pack: the nearest to the FBX; the names of the pack are mapped once for the pack
     for ( UInt32 n=0; n<3; ++n )
     {
         if ( names[ n ].IsNULLOrEmpty() )
             continue;
-        TFileMap::const_iterator found = m_packFiles.find( ASSETCONVERTER::CVfsPaths::NameOf( names[ n ] ).Lowercase() );
-        if ( found == m_packFiles.end() )
+        CORE::CString::StringVector candidates;
+        if ( !m_context.FindFilesByName( ASSETCONVERTER::CVfsPaths::NameOf( names[ n ] ), candidates ) )
             continue;
         CORE::CString best;
         UInt32 bestLength = 0;
-        for ( size_t c=0; c<(*found).second.size(); ++c )
+        for ( size_t c=0; c<candidates.size(); ++c )
         {
-            const UInt32 length = CommonPrefix( (*found).second[ c ], folder );
+            const UInt32 length = CommonPrefix( candidates[ c ], folder );
             if ( best.IsNULLOrEmpty() || length > bestLength )
             {
-                best = (*found).second[ c ];
+                best = candidates[ c ];
                 bestLength = length;
             }
         }
         return best;
     }
     return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CFbxMaterialReader::ReferenceText( const ufbx_texture& texture )
+{GUCEF_TRACE;
+
+    // the file name as the FBX file wrote it: relative where it has one, else absolute
+    const CORE::CString relative = ToString( texture.relative_filename );
+    return relative.IsNULLOrEmpty() ? ToString( texture.filename ) : relative;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -301,6 +303,7 @@ CFbxMaterialReader::AddFileTexture( const ufbx_texture& texture, ASSETCONVERTER:
     if ( path.IsNULLOrEmpty() )
     {
         m_report.AddWarning( SourceName, owner, "the texture file " + ToString( texture.filename ) + " is not in the pack: the slot stays empty" );
+        m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, ReferenceText( texture ) );
         return -1;
     }
     const IMAGE::TWrapMode wrapU = UFBX_WRAP_CLAMP == texture.wrap_u ? IMAGE::WRAPMODE_CLAMP : IMAGE::WRAPMODE_REPEAT;
@@ -319,7 +322,10 @@ CFbxMaterialReader::AddFileTexture( const ufbx_texture& texture, ASSETCONVERTER:
     m_scene.textures.push_back( result );
     m_textures[ key ] = (Int32) m_scene.textures.size() - 1;
     if ( m_embedded.find( path ) == m_embedded.end() )
+    {
         m_scene.AddDependency( path );
+        m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, path, ReferenceText( texture ) );
+    }
     return (Int32) m_scene.textures.size() - 1;
 }
 
@@ -347,7 +353,10 @@ CFbxMaterialReader::AddDerivedTexture( const CORE::CString::StringVector& source
     m_textures[ key ] = (Int32) m_scene.textures.size() - 1;
     for ( size_t s=0; s<sources.size(); ++s )
         if ( m_embedded.find( sources[ s ] ) == m_embedded.end() )
+        {
             m_scene.AddDependency( sources[ s ] );
+            m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesTexture, sources[ s ], CORE::CString::Empty );
+        }
     return (Int32) m_scene.textures.size() - 1;
 }
 

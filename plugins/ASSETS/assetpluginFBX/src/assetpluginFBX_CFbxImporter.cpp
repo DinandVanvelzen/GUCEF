@@ -42,6 +42,9 @@
 #define GUCEF_ASSETPLUGIN_FBX_CFBXSCENEREADER_H
 #endif /* GUCEF_ASSETPLUGIN_FBX_CFBXSCENEREADER_H ? */
 
+#include "AssetConverterLib_CAssetPackListing.h"
+#include "AssetConverterLib_CAssetPackProfile.h"
+
 #include "assetpluginFBX_CFbxImporter.h"
 
 /*-------------------------------------------------------------------------//
@@ -88,7 +91,8 @@ UInt32
 CFbxImporter::GetVersion( void ) const
 {GUCEF_TRACE;
 
-    return 1;
+    // 2: records the normalized relations: texture files (usesTexture), texture files that are not found kept unresolved
+    return 2;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -112,6 +116,39 @@ CFbxImporter::Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPackCo
     CFbxSceneReader reader( vfsPath, context, out, report );
     return reader.Read();
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFbxImporter::GetFileKinds( ASSETCONVERTER::TAssetFileKindVector& kinds ) const
+{GUCEF_TRACE;
+
+    kinds.push_back( ASSETCONVERTER::CAssetFileKind( "fbx", ASSETCONVERTER::ASSETKIND_MODEL ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFbxImporter::RecognisePack( const ASSETCONVERTER::CAssetPackListing& listing, ASSETCONVERTER::CAssetPackProfile& profile ) const
+{GUCEF_TRACE;
+
+    // a folder with FBX files and nothing that says it belongs to an engine: a pack of models
+    CORE::CString::StringVector keywords;
+    keywords.push_back( "scene" );
+    keywords.push_back( "demo" );
+    keywords.push_back( "sample" );
+    CORE::CString::StringVector models;
+    if ( 0 == listing.FindFilesRanked( "*.fbx", keywords, models, 16 ) )
+        return false;
+    profile.Clear();
+    profile.packType = "model-pack";
+    profile.packTypeName = "Model pack";
+    profile.confidence = 30;
+    profile.showcaseCandidates = models;
+    listing.GetSubFolders( CORE::CString::Empty, profile.groupingHints );
+    return true;
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

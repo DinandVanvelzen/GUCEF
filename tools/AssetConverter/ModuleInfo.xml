@@ -43,7 +43,9 @@
             <RuntimeDependency Name="assetpluginFBX" />
             <RuntimeDependency Name="assetpluginUNITY" />
             <RuntimeDependency Name="assetpluginGODOT" />
+            <RuntimeDependency Name="assetpluginUNREAL" />
             <RuntimeDependency Name="assetcookerOGRE" />
+            <RuntimeDependency Name="ooz_extract" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

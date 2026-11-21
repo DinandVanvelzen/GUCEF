@@ -82,8 +82,8 @@ PerformAssetConverterModelTests( void )
             ASSERT_TRUE( plugins.TryGetPostProcessor( processors[ i ], processor ) && processor->GetName() == processors[ i ] && processor->GetVersion() >= 1 );
             ASSERT_TRUE( plugins.GetPostProcessors().IsBuiltIn( processors[ i ] ) );
         }
-        const char* const validators[] = { "TextureSize", "MissingTextures", "BoneLimit", "TriangleBudget", "Naming" };
-        for ( UInt32 i=0; i<5; ++i )
+        const char* const validators[] = { "TextureSize", "MissingTextures", "BoneLimit", "TriangleBudget", "Naming", "LayerPenetration" };
+        for ( UInt32 i=0; i<6; ++i )
         {
             TAssetValidatorPtr validator;
             ASSERT_TRUE( plugins.TryGetValidator( validators[ i ], validator ) && validator->GetName() == validators[ i ] );
@@ -97,6 +97,17 @@ PerformAssetConverterModelTests( void )
         TAssetCookerPtr cooker;
         ASSERT_TRUE( plugins.TryGetCooker( "stubcook", cooker ) && "stubcook" == cooker->GetTargetName() );
         ASSERT_FALSE( plugins.TryGetImporter( "nosuchimporter", importer ) );
+
+        // a cooker is also found by an alias (the name of the cooked area of the store): the target name is what the cooker has
+        ASSERT_FALSE( plugins.TryGetCooker( "stubcook-area", cooker ) );
+        ASSERT_TRUE( plugins.RegisterCookerAlias( "Stubcook-Area", "stubcook" ) );
+        ASSERT_TRUE( plugins.TryGetCooker( "stubcook-area", cooker ) && "stubcook" == cooker->GetTargetName() );
+        ASSERT_TRUE( "stubcook" == plugins.ResolveCookerName( "STUBCOOK-AREA" ) && "stubcook" == plugins.ResolveCookerName( "stubcook" ) && "other" == plugins.ResolveCookerName( "other" ) );
+        ASSERT_FALSE( plugins.RegisterCookerAlias( "stubcook", "stubcook" ) );
+        ASSERT_FALSE( plugins.RegisterCookerAlias( CORE::CString::Empty, "stubcook" ) );
+        ASSERT_TRUE( plugins.UnregisterCookerAlias( "stubcook-area" ) && !plugins.UnregisterCookerAlias( "stubcook-area" ) );
+        ASSERT_FALSE( plugins.TryGetCooker( "stubcook-area", cooker ) );
+        ASSERT_TRUE( plugins.TryGetCooker( "stubcook", cooker ) );
 
         // a name is taken once; it can be taken again after it was given up
         ASSERT_FALSE( plugins.RegisterPostProcessor( TAssetPostProcessorPtr( GUCEF_NEW COrderPostProcessor( "OrderA" ) ) ) );
@@ -346,7 +357,7 @@ PerformAssetConverterModelTests( void )
 
         CPluginStackEntry::TEntryVector validators;
         manifest.GetValidators( validators );
-        ASSERT_TRUE( !manifest.hasValidators && 3 == validators.size() && "MissingTextures" == validators[ 0 ].name );
+        ASSERT_TRUE( !manifest.hasValidators && 4 == validators.size() && "MissingTextures" == validators[ 0 ].name && "LayerPenetration" == validators[ 3 ].name );
 
         ASSERT_TRUE( "generate" == manifest.GetLodPolicy() && "none" == manifest.GetColliderPolicy() );
         CORE::CDataNode pack;
@@ -648,6 +659,114 @@ PerformAssetConverterModelTests( void )
         CReferenceGraph web;
         web.Build( report, "web", "out/web" );
         ASSERT_TRUE( 1 == web.GetFiles().size() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Relations: the importer's references become the normalized relations of the sidecar, paths in the pack, canonical, unresolved kept, dependencies by the safety net; the graph keeps them with the cooked files of their targets" )
+    try
+    {
+        // the vocabulary and the closure rules
+        ASSERT_TRUE( CAssetReference::IsKnownKind( "usesTexture" ) && CAssetReference::IsKnownKind( "usesFile" ) && !CAssetReference::IsKnownKind( "uses-texture" ) );
+        ASSERT_TRUE( CAssetReference::IsFollowedKind( "usesMesh" ) && CAssetReference::IsFollowedKind( "dependsOn" ) );
+        ASSERT_FALSE( CAssetReference::IsFollowedKind( "inScene" ) || CAssetReference::IsFollowedKind( "fitsSkeleton" ) || CAssetReference::IsFollowedKind( "somethingNew" ) );
+        ASSERT_TRUE( CAssetReference::KindUsesFile == CAssetReference::GetKindOfDependency( "props/rock.stub.meta" ) && CAssetReference::KindDependsOn == CAssetReference::GetKindOfDependency( "props/rock.notes.txt" ) );
+        ASSERT_TRUE( 8 == CAssetReference::MaxClosureDepth && 4096 == CAssetReference::MaxClosureFiles );
+
+        const CORE::CString manifestPath = WriteStandardPack( "relations_model", CORE::CString::Empty );
+        WriteWorkFile( "relations_model/src/props/rock.bin", "buffer" );
+        CAssetPackManifest manifest;
+        ASSERT_TRUE( manifest.Load( manifestPath ) );
+        CAssetPackContext context;
+        ASSERT_TRUE( context.Open( manifest ) );
+
+        CAssetScene scene;
+        const CORE::CString root = context.GetSourceRoot();
+        scene.AddReference( CAssetReference::KindUsesTexture, CVfsPaths::Join( root, "props/rock.png" ), "rock.png" );
+        scene.AddReference( CAssetReference::KindUsesTexture, CVfsPaths::Join( root, "props/rock.png" ), "rock.png" );    // once
+        scene.AddReference( CAssetReference::KindUsesFile, CVfsPaths::Join( root, "props/rock.bin" ), "rock.bin" );
+        scene.AddReference( CAssetReference::KindDependsOn, CVfsPaths::Join( root, "props/rock.stub" ), "self" );          // the asset itself
+        scene.AddReference( CAssetReference::KindUsesMesh, "work/elsewhere/other.fbx", "other.fbx" );                     // not in the pack
+        scene.AddReference( CAssetReference::KindDependsOn, CVfsPaths::Join( root, "readme.txt" ), "readme", true );
+        scene.AddUnresolvedReference( CAssetReference::KindUsesTexture, "guid:0123456789abcdef" );
+        scene.AddUnresolvedReference( CAssetReference::KindUsesTexture, CORE::CString::Empty );                         // nothing to keep
+        scene.AddDependency( CVfsPaths::Join( root, "props/rock.png" ) );                                                 // recorded already
+        scene.AddDependency( CVfsPaths::Join( root, "props/rock.notes.txt" ) );                                           // the safety net
+        ASSERT_TRUE( 6 == scene.references.size() );
+
+        CAssetReference::TReferenceVector relations;
+        CConversionSidecar::BuildRelations( scene, context, "props/rock.stub", relations );
+        ASSERT_TRUE( 5 == relations.size() );
+        // canonical: by kind, then path, then via; the unresolved one (no path) first of its kind
+        ASSERT_TRUE( "dependsOn" == relations[ 0 ].kind && "props/rock.notes.txt" == relations[ 0 ].target && relations[ 0 ].via.IsNULLOrEmpty() && !relations[ 0 ].optional );
+        ASSERT_TRUE( "dependsOn" == relations[ 1 ].kind && "readme.txt" == relations[ 1 ].target && relations[ 1 ].optional );
+        ASSERT_TRUE( "usesFile" == relations[ 2 ].kind && "props/rock.bin" == relations[ 2 ].target && "rock.bin" == relations[ 2 ].via );
+        ASSERT_TRUE( "usesTexture" == relations[ 3 ].kind && !relations[ 3 ].IsResolved() && "guid:0123456789abcdef" == relations[ 3 ].via );
+        ASSERT_TRUE( "usesTexture" == relations[ 4 ].kind && "props/rock.png" == relations[ 4 ].target );
+
+        // the sidecar holds them, through canonical JSON and back
+        CConversionReportEntry entry;
+        entry.assetPath = "props/rock.stub";
+        CORE::CDataNode sidecar;
+        CConversionSidecar::Build( scene, entry, CORE::CString::StringVector(), "rec", context, "work/relations_model/intermediate", sidecar );
+        const CORE::CString json = CCanonicalJson::ToJson( sidecar );
+        ASSERT_TRUE( json.HasSubstr( "\"relations\"" ) > 0 && json.HasSubstr( "\"optional\": true" ) > 0 );
+        CORE::CDataNode parsed;
+        ASSERT_TRUE( CCanonicalJson::Parse( json, parsed ) );
+        CAssetReference::TReferenceVector read;
+        ASSERT_TRUE( CConversionSidecar::ReadRelations( parsed, read ) && read.size() == relations.size() );
+        for ( size_t i=0; i<read.size(); ++i )
+            ASSERT_TRUE( read[ i ] == relations[ i ] );
+        ASSERT_TRUE( json == CCanonicalJson::ToJson( sidecar ) );
+        CORE::CDataNode old( "sidecar", GUCEF_DATATYPE_OBJECT );
+        ASSERT_TRUE( CConversionSidecar::ReadRelations( old, read ) && read.empty() );
+
+        // a nested scene's dependencies and relations are taken over once
+        CAssetScene outer;
+        outer.MergeDependenciesOf( scene );
+        outer.MergeDependenciesOf( scene );
+        ASSERT_TRUE( outer.references.size() == scene.references.size() && outer.dependencies.size() == scene.dependencies.size() );
+
+        // the graph of a profile keeps the relations with the cooked files of the targets that are converted assets
+        CConversionReport report;
+        report.SelectAsset( "props/rock.stub" );
+        report.AddOutputFile( "out/desktop/rock.mesh", CORE::CString::StringVector(), "desktop" );
+        report.SelectAsset( "props/crate.stub" );
+        report.AddOutputFile( "out/desktop/crate.mesh", CORE::CString::StringVector(), "desktop" );
+        report.AddOutputFile( "out/desktop/crate.scene", CORE::CString::StringVector(), "desktop" );
+        CReferenceGraph graph;
+        graph.Build( report, "desktop", "out/desktop" );
+        CAssetReference::TReferenceVector rockRelations = relations;
+        rockRelations.push_back( CAssetReference( CAssetReference::KindInstancesPrefab, "props/crate.stub", "crate", false ) );
+        graph.SetRelations( "props/rock.stub", rockRelations );
+        graph.SetRelations( "props/crate.stub", CAssetReference::TReferenceVector() );
+        ASSERT_TRUE( 1 == graph.GetAssetRelations().size() );
+        const CReferenceGraph::TRelationVector& listed = graph.GetAssetRelations().find( "props/rock.stub" )->second;
+        ASSERT_TRUE( 6 == listed.size() );
+        bool instance = false;
+        for ( size_t i=0; i<listed.size(); ++i )
+            if ( "instancesPrefab" == listed[ i ].relation.kind )
+                instance = 2 == listed[ i ].files.size() && "crate.mesh" == listed[ i ].files[ 0 ] && "crate.scene" == listed[ i ].files[ 1 ];
+            else
+                ASSERT_TRUE( listed[ i ].files.empty() );
+        ASSERT_TRUE( instance );
+        MakeWorkFolder( "relations_graph" );
+        ASSERT_TRUE( graph.Save( "work/relations_graph/references.json" ) );
+        const CORE::CString written = ReadVfsText( "work/relations_graph/references.json" );
+        ASSERT_TRUE( written.HasSubstr( "\"assets\"" ) > 0 && written.HasSubstr( "guid:0123456789abcdef" ) > 0 );
+        CReferenceGraph again;
+        ASSERT_TRUE( again.Load( "work/relations_graph/references.json" ) && 1 == again.GetAssetRelations().size() && 6 == again.GetAssetRelations().begin()->second.size() );
+        CORE::CString::StringVector crateFiles;
+        again.GetFilesOfAsset( "props/crate.stub", crateFiles );
+        ASSERT_TRUE( 2 == crateFiles.size() );
+
+        // a graph without relations is written as before: no member "assets"
+        CReferenceGraph plain;
+        plain.Build( report, "desktop", "out/desktop" );
+        ASSERT_TRUE( plain.Save( "work/relations_graph/plain.json" ) && ReadVfsText( "work/relations_graph/plain.json" ).HasSubstr( "\"assets\"" ) < 0 );
     }
     catch ( ... )
     {

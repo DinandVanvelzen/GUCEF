@@ -40,6 +40,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef ASSETCONVERTERLIB_CASSETFILEKIND_H
+#include "AssetConverterLib_CAssetFileKind.h"
+#define ASSETCONVERTERLIB_CASSETFILEKIND_H
+#endif /* ASSETCONVERTERLIB_CASSETFILEKIND_H ? */
+
 #ifndef ASSETCONVERTERLIB_MACROS_H
 #include "AssetConverterLib_macros.h"
 #define ASSETCONVERTERLIB_MACROS_H
@@ -62,6 +67,8 @@ namespace ASSETCONVERTER {
 //-------------------------------------------------------------------------*/
 
 class CAssetPackContext;
+class CAssetPackListing;
+class CAssetPackProfile;
 class CAssetScene;
 class CConversionReport;
 
@@ -110,6 +117,16 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CIAssetImporter
      *  built-in NameHints, GenerateTangents, PruneEmptyNodes and MergeIdenticalMaterials.
      */
     virtual void GetDefaultPostProcessors( CORE::CString::StringVector& names ) const;
+
+    /** The file kinds this importer declares for the kind registry (extension, kind; metadata files with the asset they belong to); the default declares none */
+    virtual void GetFileKinds( TAssetFileKindVector& kinds ) const;
+
+    /**
+     *  Pack recogniser: says whether the files of a folder or archive are a pack of this importer (a Unity project, a Godot project,
+     *  an Unreal project or package) and fills the profile of the pack: engine and version when readable, the entry points to show first,
+     *  the grouping of the contents and the noise patterns. Called on the calling thread with a listing; the default recognises nothing.
+     */
+    virtual bool RecognisePack( const CAssetPackListing& listing, CAssetPackProfile& profile ) const;
 
     private:
 

@@ -29,6 +29,8 @@
 #define GUCEF_TESTFW_H
 #endif /* GUCEF_TESTFW_H ? */
 
+#include "AssetConverterLib_CAssetPluginRegistry.h"
+#include "AssetConverterLib_CAssetConverterGlobal.h"
 #include "TestGltfSupport.h"
 #include "TestGltfImport.h"
 
@@ -121,11 +123,51 @@ ImportFile( const CORE::CString& folder, const CORE::CString& file, CAssetScene&
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------*/
+
+static void
+TestGltfPackRecogniser( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Recogniser: a folder of glTF files is a model pack with the models as entry points" )
+    try
+    {
+        TAssetImporterPtr importer;
+        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "gltf", importer ) );
+        CAssetPackListing listing;
+        listing.AddFile( "models/rock.gltf" );
+        listing.AddFile( "models/scene_overview.gltf" );
+        listing.AddFile( "textures/rock.png" );
+        CAssetPackProfile profile;
+        ASSERT_TRUE( importer->RecognisePack( listing, profile ) );
+        ASSERT_TRUE( "model-pack" == profile.packType && "Model pack" == profile.packTypeName && profile.engine.IsNULLOrEmpty() && 30 == profile.confidence );
+        ASSERT_TRUE( 2 == profile.showcaseCandidates.size() && "models/scene_overview.gltf" == profile.showcaseCandidates[ 0 ] && 2 == profile.groupingHints.size() );
+
+        CAssetPackListing other;
+        other.AddFile( "textures/rock.png" );
+        ASSERT_FALSE( importer->RecognisePack( other, profile ) );
+
+        TAssetFileKindVector declared;
+        importer->GetFileKinds( declared );
+        CAssetKindRegistry kinds;
+        kinds.RegisterFileKinds( declared, "importer:test" );
+        ASSERT_TRUE( ASSETKIND_MODEL == kinds.GetKindOfPath( "a.gltf" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+
 void
 PerformGltfImportTests( void )
 {GUCEF_TRACE;
 
     GUCEF_TESTFW_SUITE_SCOPE( "assetpluginGLTF.Import" );
+
+    TestGltfPackRecogniser();
 
     GUCEF_TESTFW_TESTCASE( "Import: a GLB with an image inside it: the geometry, the material, and the image written below the intermediate folder" )
     try

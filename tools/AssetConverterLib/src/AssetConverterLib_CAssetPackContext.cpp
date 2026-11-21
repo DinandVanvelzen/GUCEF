@@ -72,6 +72,8 @@ CAssetPackContext::CAssetPackContext( void )
     , m_files()
     , m_fileSet()
     , m_index()
+    , m_nameIndex()
+    , m_nameIndexBuilt( false )
     , m_indexLock()
     , m_open( false )
 {GUCEF_TRACE;
@@ -169,6 +171,8 @@ CAssetPackContext::Close( void )
     {
         MT::CScopeMutex lock( m_indexLock );
         m_index.clear();
+        m_nameIndex.clear();
+        m_nameIndexBuilt = false;
     }
     m_open = false;
 }
@@ -244,6 +248,26 @@ CAssetPackContext::GetIndexSize( const CORE::CString& indexName ) const
     MT::CScopeMutex lock( m_indexLock );
     TIndexMap::const_iterator index = m_index.find( indexName );
     return index == m_index.end() ? 0 : (UInt32) (*index).second.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAssetPackContext::FindFilesByName( const CORE::CString& fileName, CORE::CString::StringVector& vfsPaths ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_indexLock );
+    if ( !m_nameIndexBuilt )
+    {
+        for ( size_t f=0; f<m_files.size(); ++f )
+            m_nameIndex[ CVfsPaths::NameOf( m_files[ f ] ).Lowercase() ].push_back( ToVfsPath( m_files[ f ] ) );
+        m_nameIndexBuilt = true;
+    }
+    TNameMap::const_iterator found = m_nameIndex.find( fileName.Lowercase() );
+    if ( found == m_nameIndex.end() )
+        return false;
+    vfsPaths = (*found).second;
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

@@ -144,6 +144,13 @@ CAssetConverterApp::LogUsage( void )
         "  --report <file>                        the report (JSON; the summary as .txt next to it)\n"
         "  --force                                cooks assets with validation errors\n"
         "  --reimport                             ignores the cache\n"
+        "  --index-only                           builds the pack index (pack-index.json in the intermediate) and stops\n"
+        "  --no-index                             does not write the pack index\n"
+        "  --reindex                              builds the structure and grouping of the pack index again\n"
+        "  --analyse                              adds the analysis level to the pack index: the sizes of the pictures from their headers (slow in an archive)\n"
+        "  --reanalyse                            reads the files again for the statistics of the pack index\n"
+        "  --rethumbnail                          renders the thumbnails again (carried in the options: the viewer renders them)\n"
+        "  --retry-failed                         analyses again what failed before\n"
         "  --only <glob>                          converts only the assets whose path in the pack matches (repeatable)\n"
         "  --validate-only                        imports and validates; writes nothing but the report of --report\n"
         "  --cook-only                            cooks what the intermediate holds\n"
@@ -166,6 +173,20 @@ CAssetConverterApp::ParseCommandLine( void )
             return false;
         else if ( "--force" == arg )
             m_options.force = true;
+        else if ( "--index-only" == arg )
+            m_options.indexOnly = true;
+        else if ( "--no-index" == arg )
+            m_options.noIndex = true;
+        else if ( "--reindex" == arg )
+            m_options.reindex = true;
+        else if ( "--analyse" == arg )
+            m_options.analyse = true;
+        else if ( "--reanalyse" == arg )
+            m_options.reanalyse = true;
+        else if ( "--rethumbnail" == arg )
+            m_options.rethumbnail = true;
+        else if ( "--retry-failed" == arg )
+            m_options.retryFailed = true;
         else if ( "--reimport" == arg )
             m_options.reimport = true;
         else if ( "--validate-only" == arg )

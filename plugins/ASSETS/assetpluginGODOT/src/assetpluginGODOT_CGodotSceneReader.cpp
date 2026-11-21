@@ -112,6 +112,25 @@ static const UInt32 MaxInstanceDepth = 16;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** The kind of the normalized relation to an external resource of a Godot type (converter design 5.8.2) */
+static const CORE::CString&
+KindOfResourceType( const CORE::CString& type )
+{
+    if ( type.HasSubstr( "Material" ) >= 0 )
+        return ASSETCONVERTER::CAssetReference::KindUsesMaterial;
+    if ( type.HasSubstr( "Mesh" ) >= 0 )
+        return ASSETCONVERTER::CAssetReference::KindUsesMesh;
+    if ( type.HasSubstr( "Texture" ) >= 0 )
+        return ASSETCONVERTER::CAssetReference::KindUsesTexture;
+    if ( type.HasSubstr( "Animation" ) >= 0 )
+        return ASSETCONVERTER::CAssetReference::KindUsesAnimation;
+    if ( "PackedScene" == type )
+        return ASSETCONVERTER::CAssetReference::KindInstancesPrefab;
+    return ASSETCONVERTER::CAssetReference::KindDependsOn;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static bool
 IsBodyType( const CORE::CString& type )
 {
@@ -452,10 +471,13 @@ CGodotSceneReader::InstanceNode( const CGodotDocument& document, const CORE::CDa
     if ( !CGodotPaths::Resolve( m_context, document.GetAssetPath(), path, uid, assetPath ) )
     {
         m_report.AddWarning( SourceName, nodeName, "the instanced scene " + path + " is not in the pack: the node stays empty" );
+        m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindInstancesPrefab, path.IsNULLOrEmpty() ? uid : path );
         return;
     }
     m_scene.nodes[ node ].extras.SetAttribute( "instanceOf", assetPath );
     const CORE::CString extension = ASSETCONVERTER::CVfsPaths::ExtensionOf( assetPath );
+    m_scene.AddReference( "tscn" == extension || "scn" == extension ? ASSETCONVERTER::CAssetReference::KindInstancesPrefab : ASSETCONVERTER::CAssetReference::KindUsesMesh, m_context.ToVfsPath( assetPath ),
+                          path.IsNULLOrEmpty() ? uid : path );
 
     if ( "tscn" == extension )
     {
@@ -584,8 +606,8 @@ CGodotSceneReader::GetModel( const CORE::CString& assetPath, const CORE::CString
         return GUCEF_NULL;
     }
     m_scene.AddDependency( vfsPath );
-    for ( size_t d=0; d<model->dependencies.size(); ++d )
-        m_scene.AddDependency( model->dependencies[ d ] );
+    m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesMesh, vfsPath, CORE::CString::Empty );
+    m_scene.MergeDependenciesOf( *model );
 
     CGodotImportSettings settings;
     if ( settings.Load( m_context, assetPath ) )
@@ -630,8 +652,10 @@ CGodotSceneReader::ReplaceExternalMaterials( const ASSETCONVERTER::CAssetScene& 
         if ( !CGodotPaths::Resolve( m_context, settings.GetSettingsPath(), path, uid, assetPath ) )
         {
             m_report.AddWarning( SourceName, model.materials[ m ].name, "the external material " + path + " of the import settings is not in the pack: the material of the file stays" );
+            m_scene.AddUnresolvedReference( ASSETCONVERTER::CAssetReference::KindUsesMaterial, path.IsNULLOrEmpty() ? uid : path );
             continue;
         }
+        m_scene.AddReference( ASSETCONVERTER::CAssetReference::KindUsesMaterial, m_context.ToVfsPath( assetPath ), path.IsNULLOrEmpty() ? uid : path );
         const CGodotDocument* document = LoadDocument( assetPath );
         if ( GUCEF_NULL == document || GUCEF_NULL == document->GetMainResource() )
             continue;
@@ -693,8 +717,10 @@ CGodotSceneReader::ResolveResource( const CGodotDocument& document, const CORE::
     if ( !document.GetExtResourceInfo( id, type, path, uid ) || !CGodotPaths::Resolve( m_context, document.GetAssetPath(), path, uid, assetPath ) )
     {
         m_report.AddWarning( SourceName, document.GetAssetPath(), "the resource " + path + " is not in the pack" );
+        m_scene.AddUnresolvedReference( KindOfResourceType( type ), path.IsNULLOrEmpty() ? uid : path );
         return false;
     }
+    m_scene.AddReference( KindOfResourceType( type ), m_context.ToVfsPath( assetPath ), path.IsNULLOrEmpty() ? uid : path );
     const CORE::CString extension = ASSETCONVERTER::CVfsPaths::ExtensionOf( assetPath );
     if ( "tres" != extension && "res" != extension && "mesh" != extension )
     {
