@@ -1,0 +1,68 @@
+# gucefIrcHub: the LLM bots. Rendered by ../setup.sh (placeholders ${IRC_...}).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: irc-hub
+  namespace: irc
+  labels:
+    app: irc-hub
+spec:
+  replicas: 1
+  # one set of bot connections at a time
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: irc-hub
+  template:
+    metadata:
+      labels:
+        app: irc-hub
+      annotations:
+        # a changed configuration or secret starts the hub again
+        gucef.org/config-hash: "${IRC_HUB_CONFIG_HASH}"
+    spec:
+      # Never: the image is imported into the containerd of this node only; a registry image by digest: IfNotPresent
+      nodeSelector:
+        kubernetes.io/hostname: ${IRC_NODE}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+      containers:
+        - name: hub
+          image: ${IRC_HUB_IMAGE}
+          imagePullPolicy: ${IRC_HUB_PULL_POLICY}
+          args: ["--config", "/etc/gucef-irc-hub/hub.json"]
+          envFrom:
+            - secretRef:
+                name: irc-hub-secrets
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gucef-irc-hub
+              readOnly: true
+            - name: server-ca
+              mountPath: /irc-tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: irc-hub-config
+        # the self-signed certificate of the server, to verify it
+        - name: server-ca
+          secret:
+            secretName: irc-lan-tls
+            items:
+              - key: ca.crt
+                path: ca.crt

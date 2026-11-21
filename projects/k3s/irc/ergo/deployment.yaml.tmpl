@@ -1,0 +1,123 @@
+# Ergo IRC server. Rendered by ../setup.sh (placeholders ${IRC_...}).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ergo
+  namespace: irc
+  labels:
+    app: ergo
+spec:
+  replicas: 1
+  # one writer of the account database (ReadWriteOnce volume, lock file)
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ergo
+  template:
+    metadata:
+      labels:
+        app: ergo
+    spec:
+      # Clients connect to a host port of this node; a host port keeps the client addresses,
+      # which Ergo needs for its per-IP connection limits.
+      nodeSelector:
+        kubernetes.io/hostname: ${IRC_NODE}
+      containers:
+        - name: ergo
+          image: ${IRC_ERGO_IMAGE}
+          command: ["/ircd-bin/ergo", "run", "--conf", "/ircd-config/ircd.yaml"]
+          workingDir: /ircd
+          ports:
+            - name: ircs-lan
+              containerPort: 6697
+              hostPort: ${IRC_LAN_PORT}
+          readinessProbe:
+            tcpSocket:
+              port: 6697
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6697
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /ircd
+            - name: config
+              mountPath: /ircd-config
+              readOnly: true
+            - name: tls-lan
+              mountPath: /ircd-tls-lan
+              readOnly: true
+        # Reloads Ergo (HTTP API /v1/rehash) when the configuration or a certificate changes.
+        # Mounted Secrets are updated in place by the kubelet; no restart is needed.
+        - name: reloader
+          image: ${IRC_RELOADER_IMAGE}
+          env:
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: irc-credentials
+                  key: API_TOKEN
+          command:
+            - sh
+            - -c
+            - |
+              last=""
+              while true; do
+                cur=$(cat /ircd-config/ircd.yaml /ircd-config/ergo.motd /ircd-tls-lan/tls.crt /ircd-tls-lan/tls.key 2>/dev/null | md5sum)
+                if [ -n "$last" ] && [ "$cur" != "$last" ]; then
+                  echo "$(date -u +%FT%TZ) configuration or certificate changed: rehash"
+                  wget -q -O- --header "Authorization: Bearer ${API_TOKEN}" --post-data "" http://127.0.0.1:8089/v1/rehash
+                  echo
+                fi
+                last="$cur"
+                sleep 30
+              done
+          resources:
+            requests:
+              cpu: 1m
+              memory: 4Mi
+            limits:
+              memory: 16Mi
+          volumeMounts:
+            - name: config
+              mountPath: /ircd-config
+              readOnly: true
+            - name: tls-lan
+              mountPath: /ircd-tls-lan
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ergo-data-pvc
+        - name: config
+          secret:
+            secretName: ergo-config
+        - name: tls-lan
+          secret:
+            secretName: irc-lan-tls
+---
+# In-cluster address of the server (gucefIrcHub): ergo.irc.svc.cluster.local:6697
+apiVersion: v1
+kind: Service
+metadata:
+  name: ergo
+  namespace: irc
+spec:
+  type: ClusterIP
+  ports:
+    - name: ircs
+      port: 6697
+      targetPort: 6697
+      protocol: TCP
+  selector:
+    app: ergo

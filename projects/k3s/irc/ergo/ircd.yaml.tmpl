@@ -1,0 +1,299 @@
+# Ergo IRC server configuration, rendered by ../setup.sh into the Secret ergo-config.
+# Placeholders ${...} are filled in from config.env and the Secret irc-credentials.
+# Reference for every setting: https://github.com/ergochat/ergo/blob/v2.19.1/default.yaml
+# Changes are applied without a restart: the reloader container calls /v1/rehash
+# when the mounted configuration or certificates change.
+
+network:
+    name: "${IRC_NETWORK_NAME}"
+
+server:
+    name: "${IRC_SERVER_NAME}"
+
+    listeners:
+        # plaintext, only inside the pod: setup.sh provisions channels through it (kubectl port-forward)
+        "127.0.0.1:6667":
+        # TLS for the LAN and the tailnet (Service port IRC_LAN_PORT)
+        ":6697":
+            tls:
+                cert: /ircd-tls-lan/tls.crt
+                key: /ircd-tls-lan/tls.key
+            min-tls-version: 1.2
+
+    sts:
+        enabled: false
+
+    casemapping: "ascii"
+    enforce-utf8: true
+    lookup-hostnames: false
+    forward-confirm-hostnames: false
+    check-ident: false
+    coerce-ident: '~u'
+    motd: /ircd-config/ergo.motd
+    motd-formatting: true
+
+    idle-timeouts:
+        registration: 60s
+        ping: 1m30s
+        disconnect: 2m30s
+
+    relaymsg:
+        enabled: true
+        separators: "/"
+        available-to-chanops: false
+
+    proxy-allowed-from:
+        - localhost
+
+    max-sendq: 96k
+
+    compatibility:
+        force-trailing: true
+        send-unprefixed-sasl: true
+        allow-truncation: false
+
+    ip-limits:
+        count: true
+        max-concurrent-connections: 16
+        throttle: true
+        window: 10m
+        max-connections-per-window: 32
+        cidr-len-ipv4: 32
+        cidr-len-ipv6: 64
+        # the pod network of the node: the kubelet's health checks and gucefIrcHub
+        exempted:
+            - "localhost"
+            - "${IRC_POD_CIDR}"
+
+    ip-cloaking:
+        enabled: true
+        enabled-for-always-on: true
+        netname: "irc"
+        cidr-len-ipv4: 32
+        cidr-len-ipv6: 64
+        num-bits: 64
+
+    oper-throttle: 10s
+    suppress-lusers: false
+
+accounts:
+    authentication-enabled: true
+
+    # Private server: accounts are created by setup.sh only
+    registration:
+        enabled: false
+        allow-before-connect: false
+        bcrypt-cost: 10
+
+    login-throttling:
+        enabled: true
+        duration: 1m
+        max-attempts: 3
+
+    skip-server-password: false
+    login-via-pass-command: true
+    advertise-scram: true
+
+    # Every connection must log in; the in-pod loopback listener is exempt
+    require-sasl:
+        enabled: true
+        exempted:
+            - "localhost"
+
+    nick-reservation:
+        enabled: true
+        additional-nick-limit: 0
+        method: strict
+        allow-custom-enforcement: false
+        guest-nickname-format: "Guest-*"
+        force-guest-format: false
+        force-nick-equals-account: true
+        forbid-anonymous-nick-changes: false
+
+    # Built-in bouncer: an account stays in its channels while its devices are offline
+    # and gets the missed messages when it reconnects.
+    multiclient:
+        enabled: true
+        allowed-by-default: true
+        always-on: "opt-out"
+        auto-away: "opt-out"
+        always-on-expiration: 0
+
+    vhosts:
+        enabled: false
+
+    default-user-modes: +i
+
+channels:
+    default-modes: +ntC
+    max-channels-per-client: 100
+    # Channels may be created by anyone; registration (ChanServ) is for operators only
+    operator-only-creation: false
+    registration:
+        enabled: true
+        operator-only: true
+        max-channels-per-account: 100
+    list-delay: 0s
+    invite-expiration: 24h
+
+oper-classes:
+    "chat-moderator":
+        title: Chat Moderator
+        capabilities:
+            - "kill"
+            - "ban"
+            - "nofakelag"
+            - "relaymsg"
+            - "sajoin"
+            - "samode"
+            - "snomasks"
+
+    "server-admin":
+        title: Server Admin
+        extends: "chat-moderator"
+        capabilities:
+            - "rehash"
+            - "accreg"
+            - "chanreg"
+            - "history"
+            - "defcon"
+            - "massmessage"
+            - "metadata"
+
+    # The LLM bots of gucefIrcHub: no flood limits, so a long answer arrives without delays
+    "bot":
+        title: Bot
+        capabilities:
+            - "nofakelag"
+
+opers:
+    # The administrator: /OPER admin <IRC_ADMIN_OPER_PASSWORD>
+    admin:
+        class: "server-admin"
+        hidden: true
+        whois-line: is the server administrator
+        password: "${ADMIN_OPER_HASH}"
+
+    # The Steward account (setup.sh provisioning, later gucefIrcHub)
+    steward:
+        class: "server-admin"
+        hidden: true
+        whois-line: manages accounts and channels
+        password: "${STEWARD_OPER_HASH}"
+
+    # Every LLM bot of gucefIrcHub: /OPER bot <IRC_BOT_OPER_PASSWORD>
+    bot:
+        class: "bot"
+        hidden: true
+        whois-line: is an LLM bot
+        password: "${BOT_OPER_HASH}"
+
+logging:
+    -
+        method: stderr
+        type: "* -userinput -useroutput"
+        level: info
+
+debug:
+    recover-from-errors: true
+
+lock-file: "/ircd/ircd.lock"
+
+datastore:
+    # accounts, channel registrations
+    path: /ircd/ircd.db
+    autoupgrade: true
+
+    # persistent history
+    postgresql:
+        enabled: true
+        host: "${IRC_PG_HOST}"
+        port: 5432
+        ssl-mode: "disable"
+        user: "ergo"
+        password: "${IRC_DB_PASSWORD}"
+        history-database: "ergo"
+        timeout: 3s
+        max-conns: 4
+
+languages:
+    enabled: true
+    default: en
+    path: /ircd-bin/languages
+
+limits:
+    nicklen: 32
+    identlen: 20
+    realnamelen: 150
+    channellen: 64
+    awaylen: 390
+    kicklen: 390
+    topiclen: 390
+    monitor-entries: 100
+    whowas-entries: 100
+    chan-list-modes: 100
+    registration-messages: 1024
+    multiline:
+        max-bytes: 4096
+        max-lines: 100
+
+fakelag:
+    enabled: true
+    window: 1s
+    burst-limit: 5
+    messages-per-window: 2
+    cooldown: 2s
+    command-budgets:
+        "CHATHISTORY": 16
+        "MARKREAD":    16
+        "MONITOR":     1
+        "WHO":         4
+        "WEBPUSH":     1
+
+history:
+    enabled: true
+    channel-length: 2048
+    client-length: 256
+    autoresize-window: 3d
+    autoreplay-on-join: 0
+    chathistory-maxmessages: 1000
+    znc-maxmessages: 2048
+    restrictions:
+        expire-time: ${IRC_HISTORY_EXPIRE}
+        query-cutoff: 'none'
+        grace-period: 1h
+    persistent:
+        enabled: true
+        unregistered-channels: false
+        registered-channels: "opt-out"
+        direct-messages: "opt-out"
+    retention:
+        allow-individual-delete: false
+        enable-account-indexing: false
+    tagmsg-storage:
+        default: false
+        whitelist:
+            - "+draft/react"
+            - "+react"
+
+allow-environment-overrides: false
+
+metadata:
+    enabled: true
+    operator-only-modification: false
+    max-subs: 100
+    max-keys: 100
+    client-throttle:
+        enabled: true
+        duration: 2m
+        max-attempts: 10
+
+webpush:
+    enabled: false
+
+# HTTP API, loopback only: setup.sh (kubectl port-forward) and the reloader container
+api:
+    enabled: true
+    listener: "127.0.0.1:8089"
+    bearer-tokens:
+        - "${IRC_API_TOKEN}"
