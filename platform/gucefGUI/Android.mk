@@ -23,6 +23,10 @@ LOCAL_MODULE_FILENAME := libgucefGUI
 
 LOCAL_SRC_FILES := \
   src/gucefGUI.cpp \
+  src/gucefGUI_CActivityIndicatorForm.cpp \
+  src/gucefGUI_CActivityInfo.cpp \
+  src/gucefGUI_CActivityScope.cpp \
+  src/gucefGUI_CActivityService.cpp \
   src/gucefGUI_CAssetSearchForm.cpp \
   src/gucefGUI_CAsyncGridCsvExport.cpp \
   src/gucefGUI_CAudioPlayer.cpp \
@@ -50,6 +54,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CFileOpenDialogForm.cpp \
   src/gucefGUI_CFileSaveDialogForm.cpp \
   src/gucefGUI_CFileSystemDialogForm.cpp \
+  src/gucefGUI_CFoldablePanel.cpp \
   src/gucefGUI_CFontRasterizer.cpp \
   src/gucefGUI_CFontRasterizerRegistry.cpp \
   src/gucefGUI_CForm.cpp \
@@ -100,10 +105,12 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CISearchModel.cpp \
   src/gucefGUI_CITableViewModel.cpp \
   src/gucefGUI_CIThumbnailProvider.cpp \
+  src/gucefGUI_CITooltipTextProvider.cpp \
   src/gucefGUI_CITransferQueueModel.cpp \
   src/gucefGUI_CIViewportController.cpp \
   src/gucefGUI_CImageFrame.cpp \
   src/gucefGUI_CImageViewForm.cpp \
+  src/gucefGUI_CInputSettingsForm.cpp \
   src/gucefGUI_CKeyboardLayout.cpp \
   src/gucefGUI_CKeyboardLayoutRegistry.cpp \
   src/gucefGUI_CKeyboardShortcutMap.cpp \
@@ -115,6 +122,8 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CLayoutLintMatrix.cpp \
   src/gucefGUI_CLayoutLintOptions.cpp \
   src/gucefGUI_CLayoutLintSweep.cpp \
+  src/gucefGUI_CLayoutManager.cpp \
+  src/gucefGUI_CLayoutState.cpp \
   src/gucefGUI_CListbox.cpp \
   src/gucefGUI_CLocalGridPreferenceStore.cpp \
   src/gucefGUI_CMenuBar.cpp \
@@ -148,6 +157,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CSlider.cpp \
   src/gucefGUI_CSoftwareRenderer.cpp \
   src/gucefGUI_CSpinner.cpp \
+  src/gucefGUI_CSplitter.cpp \
   src/gucefGUI_CTabAreaNavigator.cpp \
   src/gucefGUI_CTabContentPane.cpp \
   src/gucefGUI_CTabControl.cpp \

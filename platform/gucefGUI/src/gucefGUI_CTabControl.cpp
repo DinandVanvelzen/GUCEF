@@ -163,6 +163,24 @@ CTabControl::GetTabCount( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+Int32
+CTabControl::GetTabHeight( void ) const
+{GUCEF_TRACE;
+
+    // a tab is never less than a line of its text: a larger font or line spacing makes the strip higher
+    Int32 height = GetIntProperty( EWidgetProperty_TabHeight );
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL != context )
+    {
+        const Int32 line = context->GetLineHeight( GetPropertyRef( EWidgetProperty_Font ) ) + 4;
+        if ( line > height )
+            height = line;
+    }
+    return height;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CRect
 CTabControl::GetTabRect( UInt32 tabIndex ) const
 {GUCEF_TRACE;
@@ -178,7 +196,7 @@ CTabControl::GetTabRect( UInt32 tabIndex ) const
         return tabIndex < (UInt32) rects.size() ? rects[ tabIndex ] : CRect();
     }
     Int32 width = GetRect().width / (Int32) count;
-    return CRect( (Int32) tabIndex * width, 0, width, GetIntProperty( EWidgetProperty_TabHeight ) );
+    return CRect( (Int32) tabIndex * width, 0, width, GetTabHeight() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -252,7 +270,7 @@ CTabControl::ComputeContentLayout( TRectVector& rects, bool& overflow ) const
     overflow = false;
     if ( 0 == count )
         return;
-    const Int32 height = GetIntProperty( EWidgetProperty_TabHeight );
+    const Int32 height = GetTabHeight();
     const Int32 controlWidth = GetRect().width;
     GUCEF::vector< Int32 > widths( count, 0 );
     Int32 total = 0;
@@ -332,7 +350,7 @@ CTabControl::GetOverflowButtonRect( void ) const
 
     if ( !HasOverflow() )
         return CRect();
-    const Int32 height = GetIntProperty( EWidgetProperty_TabHeight );
+    const Int32 height = GetTabHeight();
     return CRect( GetRect().width - height, 0, height, height );
 }
 
@@ -451,7 +469,7 @@ CTabControl::OpenOverflowMenu( void )
     m_overflowMenu->SetItems( items );
     CRect button = GetOverflowButtonRect();
     if ( button.IsEmpty() )
-        button = CRect( GetRect().width - GetIntProperty( EWidgetProperty_TabHeight ), 0, GetIntProperty( EWidgetProperty_TabHeight ), GetIntProperty( EWidgetProperty_TabHeight ) );
+        button = CRect( GetRect().width - GetTabHeight(), 0, GetTabHeight(), GetTabHeight() );
     return m_overflowMenu->ShowAt( GetRect().left + button.left, GetRect().top + button.Bottom() );
 }
 

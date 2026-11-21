@@ -118,7 +118,12 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiGridUxTests();
         PerformGuiNavigationUxTests();
         PerformGuiWebViewTests();
+        PerformGuiActivityServiceTests();
         PerformGuiLayoutLintTests();
+        PerformGuiSplitterTests();
+        // GUCEF_TEST_REPEAT_SPLITTER=<n> runs the suite of the splitters and the layout n times (to see that it does not depend on the order)
+        for ( GUCEF::UInt32 repeat=1; repeat<GUCEF::CORE::StringToUInt32( GUCEF::CORE::CString( GUCEF::TESTFW::GetEnvVar( "GUCEF_TEST_REPEAT_SPLITTER" ).c_str() ), 1 ); ++repeat )
+            PerformGuiSplitterTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

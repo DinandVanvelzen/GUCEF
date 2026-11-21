@@ -84,6 +84,21 @@
 #define GUCEF_GUI_CFORMEX_H
 #endif /* GUCEF_GUI_CFORMEX_H ? */
 
+#ifndef GUCEF_GUI_CSPLITTER_H
+#include "gucefGUI_CSplitter.h"
+#define GUCEF_GUI_CSPLITTER_H
+#endif /* GUCEF_GUI_CSPLITTER_H ? */
+
+#ifndef GUCEF_GUI_CFOLDABLEPANEL_H
+#include "gucefGUI_CFoldablePanel.h"
+#define GUCEF_GUI_CFOLDABLEPANEL_H
+#endif /* GUCEF_GUI_CFOLDABLEPANEL_H ? */
+
+#ifndef GUCEF_GUI_CTABCONTROL_H
+#include "gucefGUI_CTabControl.h"
+#define GUCEF_GUI_CTABCONTROL_H
+#endif /* GUCEF_GUI_CTABCONTROL_H ? */
+
 #ifndef GUCEF_GUI_CGROUPBOX_H
 #include "gucefGUI_CGroupBox.h"
 #define GUCEF_GUI_CGROUPBOX_H
@@ -259,6 +274,8 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     , m_cursorHotspotY( 0 )
     , m_cursorVisible( true )
     , m_systemCursorShape( CURSORSHAPE_ARROW )
+    , m_cursorShapeOverride( CURSORSHAPE_ARROW )
+    , m_cursorShapeOverridden( false )
     , m_keyboardPassThrough( false )
     , m_previewConsumedButtons( 0 )
     , m_pointerX( 0 )
@@ -1539,9 +1556,49 @@ CGUIContext::SetSystemCursorShape( TCursorShape shape )
         return;
     m_systemCursorShape = shape;
 
+    // while an override is set the shape that is shown does not change
+    if ( m_cursorShapeOverridden )
+        return;
+
     // the window decides whether it is this layer that has the pointer, and asks its own driver only when the shape of that layer changes
     if ( !m_windowContext.IsNULL() )
         m_windowContext->UpdateSystemCursor();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::SetSystemCursorShapeOverride( TCursorShape shape )
+{GUCEF_TRACE;
+
+    if ( m_cursorShapeOverridden && shape == m_cursorShapeOverride )
+        return;
+    m_cursorShapeOverridden = true;
+    m_cursorShapeOverride = shape;
+    if ( !m_windowContext.IsNULL() )
+        m_windowContext->UpdateSystemCursor();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::ClearSystemCursorShapeOverride( void )
+{GUCEF_TRACE;
+
+    if ( !m_cursorShapeOverridden )
+        return;
+    m_cursorShapeOverridden = false;
+    if ( !m_windowContext.IsNULL() )
+        m_windowContext->UpdateSystemCursor();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::IsSystemCursorShapeOverridden( void ) const
+{GUCEF_TRACE;
+
+    return m_cursorShapeOverridden;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1550,7 +1607,7 @@ TCursorShape
 CGUIContext::GetSystemCursorShape( void ) const
 {GUCEF_TRACE;
 
-    return m_systemCursorShape;
+    return m_cursorShapeOverridden ? m_cursorShapeOverride : m_systemCursorShape;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2850,7 +2907,8 @@ CGUIContext::LayoutChildren( CWidget& widget )
     if ( registry.IsA( type, "TabControl" ) )
     {
         // the pages fill the area below the tabs
-        Int32 header = widget.GetIntProperty( EWidgetProperty_TabHeight );
+        CTabControl* tabControl = CWidget::As< CTabControl >( &widget );
+        Int32 header = GUCEF_NULL != tabControl ? tabControl->GetTabHeight() : widget.GetIntProperty( EWidgetProperty_TabHeight );
         CRect pages( widget.m_rect.left, widget.m_rect.top + header, widget.m_rect.width, widget.m_rect.height - header );
         if ( pages.height < 0 )
             pages.height = 0;
@@ -2863,6 +2921,41 @@ CGUIContext::LayoutChildren( CWidget& widget )
                 PlaceWidget( child, widget.m_rect, false );
         }
         return;
+    }
+
+    if ( registry.IsA( type, "Splitter" ) )
+    {
+        // the first two children are the panes, on either side of the handle; any other child covers the splitter
+        CSplitter* splitter = CWidget::As< CSplitter >( &widget );
+        if ( GUCEF_NULL != splitter )
+        {
+            CRect firstArea, secondArea;
+            splitter->GetPaneRects( firstArea, secondArea );
+            for ( UInt32 i=0; i<(UInt32)widget.m_children.size(); ++i )
+            {
+                if ( 0 == i )
+                    PlaceWidget( *widget.m_children[ i ], firstArea, true );
+                else
+                if ( 1 == i )
+                    PlaceWidget( *widget.m_children[ i ], secondArea, true );
+                else
+                    PlaceWidget( *widget.m_children[ i ], widget.m_rect, false );
+            }
+            return;
+        }
+    }
+
+    if ( registry.IsA( type, "FoldablePanel" ) )
+    {
+        // the children fill the area below the header
+        CFoldablePanel* panel = CWidget::As< CFoldablePanel >( &widget );
+        if ( GUCEF_NULL != panel )
+        {
+            const CRect content = panel->GetContentRect();
+            for ( UInt32 i=0; i<(UInt32)widget.m_children.size(); ++i )
+                PlaceWidget( *widget.m_children[ i ], content, false );
+            return;
+        }
     }
 
     if ( !hbox && !vbox && !grid && !margin )

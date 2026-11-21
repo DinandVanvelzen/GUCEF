@@ -142,6 +142,48 @@ BuildContentScene( GUI::CGUIContext* context )
     return new CContentScene( context );
 }
 
+/**
+ *  The browser in a host of a fixed width at the left of the screen, as the workbench has it in its left panel: 448 pixels at 1600 wide,
+ *  280 at 1000 wide. The tool bar has to put its controls in one, two or three rows so that none is drawn over another
+ */
+class CHostedContentScene : public CFormScene
+{
+    public:
+
+    GUI::CContentBrowserForm form;
+    CTestThumbnailProvider provider;
+    CTestTypeResolver resolver;
+
+    CHostedContentScene( GUI::CGUIContext* context, UInt32 hostWidth ) : CFormScene(), form( context ), provider(), resolver()
+    {
+        context->RegisterImage( "icon_folder", MakeSolidImage( 8, 8, 200, 170, 60, 255 ) );
+        GUI::CWidget* screen = MakeScreen( context );
+        GUI::CWidget* host = context->CreateWidget( "Panel", "Host", screen );
+        host->SetProperty( "Position", "0,0 0,0" );
+        host->SetProperty( "Size", "0," + CORE::UInt32ToString( hostWidth ) + " 1,0" );
+        form.Build( host );
+        provider.answerAtOnce = true;
+        form.SetThumbnailProvider( &provider );
+        form.SetContentTypeResolver( &resolver );
+        form.AddRoot( "Content", MakeContent() );
+        form.NavigateTo( "Content", "/textures" );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+    }
+};
+
+CFormScene*
+BuildContentHost448Scene( GUI::CGUIContext* context )
+{
+    return new CHostedContentScene( context, 448 );
+}
+
+CFormScene*
+BuildContentHost280Scene( GUI::CGUIContext* context )
+{
+    return new CHostedContentScene( context, 280 );
+}
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -718,8 +760,139 @@ PerformGuiContentBrowserFormTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Content browser: An alternate root gets a switch in the tool bar, the switch and the functions go between the two views and remember the folder of the files, and the filter and the opening of a folder are notified" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CContentBrowserForm form( context );
+        ASSERT_TRUE( form.Build() );
+        ASSERT_TRUE( form.AddRoot( "Content", MakeContent() ) && form.AddRoot( "Grouped", MakeContent() ) );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        GUI::CWidget* viewSwitch = form.GetWidget( "ViewSwitch" );
+        ASSERT_TRUE( GUCEF_NULL != viewSwitch && !viewSwitch->GetBoolProperty( GUI::EWidgetProperty_Visible ) );
+        ASSERT_TRUE( form.GetAlternateRootName().IsNULLOrEmpty() && !form.IsAlternateViewActive() );
+        ASSERT_FALSE( form.SetAlternateRoot( "Nothing", "Files", "Resources" ) );
+
+        // the switch is there when there is an alternate root
+        ASSERT_TRUE( form.SetAlternateRoot( "Grouped", "Files", "Resources" ) && "Grouped" == form.GetAlternateRootName() );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        ASSERT_TRUE( viewSwitch->GetBoolProperty( GUI::EWidgetProperty_Visible ) && !form.IsAlternateViewActive() );
+        GUI::CCombobox* combobox = form.GetWidgetAs< GUI::CCombobox >( "ViewSwitch" );
+        ASSERT_TRUE( GUCEF_NULL != combobox && 0 == combobox->GetSelectedIndex() );
+
+        // to the alternate view and back: the folder of the files is where it was
+        CEventRecorder switched( &form, GUI::CContentBrowserForm::ViewSwitchedEvent );
+        ASSERT_TRUE( form.NavigateTo( "Content", "/textures" ) && "Content" == form.GetCurrentRootName() );
+        form.SetAlternateViewActive( true );
+        ASSERT_TRUE( form.IsAlternateViewActive() && "Grouped" == form.GetCurrentRootName() && "/" == form.GetCurrentDirectory() && 1 == combobox->GetSelectedIndex() );
+        ASSERT_TRUE( 0 == switched.count );
+        form.SetAlternateViewActive( false );
+        ASSERT_TRUE( !form.IsAlternateViewActive() && "Content" == form.GetCurrentRootName() && "/textures" == form.GetCurrentDirectory() && 0 == combobox->GetSelectedIndex() );
+
+        // the person's choice with the switch is notified; going to the root another way moves the switch
+        combobox->ChangeValueByUser( GUI::EWidgetProperty_SelectedIndex, "1" );
+        ASSERT_TRUE( 1 == switched.count && form.IsAlternateViewActive() && "Grouped" == form.GetCurrentRootName() );
+        combobox->ChangeValueByUser( GUI::EWidgetProperty_SelectedIndex, "0" );
+        ASSERT_TRUE( 2 == switched.count && !form.IsAlternateViewActive() && "/textures" == form.GetCurrentDirectory() );
+        ASSERT_TRUE( form.NavigateTo( "Grouped", "/" ) && 1 == combobox->GetSelectedIndex() && form.IsAlternateViewActive() );
+        ASSERT_TRUE( 2 == switched.count );
+
+        // the filter line and the opening of a folder tell the application
+        CEventRecorder filterChanged( &form, GUI::CContentBrowserForm::FilterChangedEvent );
+        form.SetFilter( "rock" );
+        ASSERT_TRUE( 1 == filterChanged.count );
+        form.SetFilter( "rock" );
+        ASSERT_TRUE( 1 == filterChanged.count );
+        form.SetFilter( CORE::CString::Empty );
+        ASSERT_TRUE( 2 == filterChanged.count );
+        form.NavigateTo( "", "/" );
+        context->RenderFrame( 16 );
+        GUI::CGridView* grid = form.GetWidgetAs< GUI::CGridView >( "Items" );
+        CEventRecorder folderActivated( &form, GUI::CContentBrowserForm::FolderActivatedEvent );
+        CEventRecorder fileActivated( &form, GUI::CContentBrowserForm::ItemActivatedEvent );
+        DoubleClickRow( context, grid, 2 );
+        ASSERT_TRUE( 1 == folderActivated.count && 0 == fileActivated.count && "/textures" == static_cast< CORE::TCloneableString* >( folderActivated.data[ 0 ] )->GetData() );
+        ASSERT_TRUE( "/textures" == form.GetCurrentDirectory() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Content browser: A root with an order of its own lists its folders by rank in the list and in the tree, and the alternate view gives the tree and the list the room for long names" )
+    try
+    {
+        class COrderOfTheTest : public GUI::CIContentItemOrder
+        {
+            public:
+            virtual Int32 GetRank( const CORE::CString& path, bool isDirectory ) const
+            {
+                return isDirectory ? ( "/textures" == path ? 1 : ( "/meshes" == path ? 2 : ( "/empty" == path ? 3 : 0 ) ) ) : 0;
+            }
+        };
+        COrderOfTheTest order;
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CContentBrowserForm form( context );
+        ASSERT_TRUE( form.Build() );
+        ASSERT_TRUE( form.AddRoot( "Content", MakeContent() ) && form.AddRoot( "Ordered", MakeContent() ) );
+        ASSERT_FALSE( form.SetRootOrder( "Nothing", &order ) );
+        ASSERT_TRUE( form.SetRootOrder( "Ordered", &order ) );
+        context->RenderFrame( 16 );
+
+        // by name in the root without an order, by rank in the root with one; the files stay behind the folders, by name
+        ASSERT_TRUE( form.NavigateTo( "Content", "/" ) );
+        CORE::CString::StringVector names = form.GetListedNames();
+        ASSERT_TRUE( 6 == names.size() && "empty/" == names[ 0 ] && "meshes/" == names[ 1 ] && "textures/" == names[ 2 ] && "a.png" == names[ 3 ] );
+        ASSERT_TRUE( form.NavigateTo( "Ordered", "/" ) );
+        names = form.GetListedNames();
+        ASSERT_TRUE( 6 == names.size() && "textures/" == names[ 0 ] && "meshes/" == names[ 1 ] && "empty/" == names[ 2 ] && "a.png" == names[ 3 ] );
+        // the tree of the root has the same order
+        form.GoBack();
+        form.NavigateTo( "Ordered", "/" );
+        context->RenderFrame( 16 );
+        const CORE::CString::StringVector tree = TreeItems( form );
+        size_t texturesAt = tree.size(), emptyAt = tree.size();
+        for ( size_t i=0; i<tree.size(); ++i )
+        {
+            if ( tree[ i ].HasSubstr( "textures" ) >= 0 && texturesAt == tree.size() && tree[ i ].HasSubstr( "detail" ) < 0 ) texturesAt = i;
+            if ( tree[ i ].HasSubstr( "empty" ) >= 0 ) emptyAt = i;
+        }
+        ASSERT_TRUE( texturesAt < emptyAt && emptyAt < tree.size() );
+
+        // the alternate view: the tree has more room than in the files view
+        ASSERT_TRUE( form.SetAlternateRoot( "Ordered", "Files", "Resources" ) );
+        form.NavigateTo( "Content", "/" );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        context->RenderFrame( 16 );
+        const Int32 filesTree = form.GetWidget( "Folders" )->GetRect().width;
+        form.SetAlternateViewActive( true );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        context->RenderFrame( 16 );
+        const Int32 alternateTree = form.GetWidget( "Folders" )->GetRect().width;
+        ASSERT_TRUE( alternateTree > filesTree + 20 );
+        form.SetAlternateViewActive( false );
+        context->RenderFrame( 16 );
+        form.Update( 0 );
+        context->RenderFrame( 16 );
+        ASSERT_TRUE( form.GetWidget( "Folders" )->GetRect().width == filesTree );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     RunFormRenderTests( "content browser", &BuildContentScene );
     RunFormLintBaseline( "ContentBrowser", &BuildContentScene );
+    RunFormLintBaseline( "ContentBrowserHost448", &BuildContentHost448Scene );
+    RunFormLintBaseline( "ContentBrowserHost280", &BuildContentHost280Scene );
 }
 
 /*-------------------------------------------------------------------------*/

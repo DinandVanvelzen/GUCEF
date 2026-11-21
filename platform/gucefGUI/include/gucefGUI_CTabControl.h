@@ -96,6 +96,9 @@ class GUCEF_GUI_PUBLIC_CPP CTabControl : public CWidget
     UInt32 GetTabCount( void ) const;
 
     /** Where the header of a tab is, relative to the control; tabs share the width equally (TabSizing Equal) or have the width of their title (Content). Empty for a tab that is not shown (Content, overflow) */
+    /** The height of the tab strip: TabHeight, and at least a line of the text of the tabs with a little room */
+    Int32 GetTabHeight( void ) const;
+
     CRect GetTabRect( UInt32 tabIndex ) const;
 
     /** The tab at a position relative to the control, -1 when none */

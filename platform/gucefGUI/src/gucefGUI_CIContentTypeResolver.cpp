@@ -60,6 +60,15 @@ CIContentTypeResolver::GetIconName( const CString& path, bool isDirectory )
     return CString::Empty;
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CIContentTypeResolver::IsSidecar( const CString& path, bool isDirectory )
+{GUCEF_TRACE;
+
+    return false;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

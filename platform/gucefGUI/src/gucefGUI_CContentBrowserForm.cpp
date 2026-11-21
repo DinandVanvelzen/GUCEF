@@ -104,6 +104,9 @@ namespace GUI {
 const CORE::CEvent CContentBrowserForm::SelectionChangedEvent = "GUCEF::GUI::CContentBrowserForm::SelectionChangedEvent";
 const CORE::CEvent CContentBrowserForm::ItemActivatedEvent = "GUCEF::GUI::CContentBrowserForm::ItemActivatedEvent";
 const CORE::CEvent CContentBrowserForm::FolderChangedEvent = "GUCEF::GUI::CContentBrowserForm::FolderChangedEvent";
+const CORE::CEvent CContentBrowserForm::FolderActivatedEvent = "GUCEF::GUI::CContentBrowserForm::FolderActivatedEvent";
+const CORE::CEvent CContentBrowserForm::FilterChangedEvent = "GUCEF::GUI::CContentBrowserForm::FilterChangedEvent";
+const CORE::CEvent CContentBrowserForm::ViewSwitchedEvent = "GUCEF::GUI::CContentBrowserForm::ViewSwitchedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -238,6 +241,8 @@ class CItemOrder
     {
         if ( a.isDirectory != b.isDirectory )
             return a.isDirectory;
+        if ( 0 == m_column && a.rank != b.rank )
+            return m_ascending ? a.rank < b.rank : a.rank > b.rank;
         Int32 compared = 0;
         if ( 1 == m_column )
         {
@@ -264,6 +269,25 @@ class CItemOrder
     bool m_ascending;
 };
 
+/** The order of the tree: the rank of the root first, then the names */
+class CRankNameOrder
+{
+    public:
+
+    explicit CRankNameOrder( GUCEF::map< CString, Int32 >* ranks ) : m_ranks( ranks ) {}
+
+    bool operator()( const CString& a, const CString& b ) const
+    {
+        const Int32 rankA = (*m_ranks)[ a ];
+        const Int32 rankB = (*m_ranks)[ b ];
+        return rankA != rankB ? rankA < rankB : a < b;
+    }
+
+    private:
+
+    GUCEF::map< CString, Int32 >* m_ranks;
+};
+
 CString
 TileName( UInt32 slot )
 {
@@ -287,6 +311,8 @@ CContentBrowserForm::SItem::SItem( void )
     , hasModified( false )
     , modified()
     , hidden( false )
+    , sidecar( false )
+    , rank( 0 )
     , typeName()
     , iconName()
 {GUCEF_TRACE;
@@ -302,6 +328,9 @@ CContentBrowserForm::RegisterEvents( void )
     SelectionChangedEvent.Initialize();
     ItemActivatedEvent.Initialize();
     FolderChangedEvent.Initialize();
+    FolderActivatedEvent.Initialize();
+    FilterChangedEvent.Initialize();
+    ViewSwitchedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -322,6 +351,7 @@ CContentBrowserForm::CContentBrowserForm( void )
     , m_typeFilter()
     , m_typeChoices()
     , m_showHidden( false )
+    , m_showSidecars( false )
     , m_viewMode( VIEWMODE_DETAILS )
     , m_thumbnailSize( DEFAULT_THUMBNAIL_SIZE )
     , m_selection()
@@ -340,6 +370,13 @@ CContentBrowserForm::CContentBrowserForm( void )
     , m_tilesDirty( true )
     , m_updatingWidgets( false )
     , m_frameSubscribed( false )
+    , m_toolbarMode( -1 )
+    , m_toolbarRowHeight( 0 )
+    , m_alternateRoot( -1 )
+    , m_normalRoot( 0 )
+    , m_normalDirectory()
+    , m_normalLabel( "Files" )
+    , m_alternateLabel( "Alternate" )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -363,6 +400,7 @@ CContentBrowserForm::CContentBrowserForm( CIGUIContext* context )
     , m_typeFilter()
     , m_typeChoices()
     , m_showHidden( false )
+    , m_showSidecars( false )
     , m_viewMode( VIEWMODE_DETAILS )
     , m_thumbnailSize( DEFAULT_THUMBNAIL_SIZE )
     , m_selection()
@@ -381,6 +419,13 @@ CContentBrowserForm::CContentBrowserForm( CIGUIContext* context )
     , m_tilesDirty( true )
     , m_updatingWidgets( false )
     , m_frameSubscribed( false )
+    , m_toolbarMode( -1 )
+    , m_toolbarRowHeight( 0 )
+    , m_alternateRoot( -1 )
+    , m_normalRoot( 0 )
+    , m_normalDirectory()
+    , m_normalLabel( "Files" )
+    , m_alternateLabel( "Alternate" )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -413,7 +458,8 @@ CContentBrowserForm::BuildLayout( CORE::CDataNode& layout, bool asWindow, const 
     else
         content = CFormLayout::AddWidgetNode( layout, "Panel", "ContentBrowserForm", "0,0 0,0", "1,0 1,0" );
 
-    // the tool bar: back, forward, up, the filter, the type filter and the view
+    // the tool bar, in two rows so nothing depends on the room beside the other controls: back, forward and up with the view
+    // at the right, then the filter and the type filter in proportions of the full width
     struct SButtonSpec { const char* name; const char* text; const char* tooltip; const char* position; const char* size; };
     static const SButtonSpec buttons[] = { { "Back", "Back", "Back to the folder before", "0,6 0,4", "0,56 0,28" },
                                            { "Forward", "Forward", "Forward again", "0,66 0,4", "0,76 0,28" },
@@ -424,23 +470,30 @@ CContentBrowserForm::BuildLayout( CORE::CDataNode& layout, bool asWindow, const 
         CFormLayout::SetWidgetNodeProperty( *button, EWidgetProperty_Text, buttons[ i ].text );
         CFormLayout::SetWidgetNodeProperty( *button, EWidgetProperty_Tooltip, buttons[ i ].tooltip );
     }
-    CORE::CDataNode* filter = CFormLayout::AddWidgetNode( *content, "Editbox", "Filter", "0,198 0,4", "0.3,0 0,28" );
+    CORE::CDataNode* filter = CFormLayout::AddWidgetNode( *content, "Editbox", "Filter", "0,6 0,38", "0.6,-9 0,28" );
     CFormLayout::SetWidgetNodeProperty( *filter, EWidgetProperty_Tooltip, "Filter the names: a glob such as *.png, or a part of a name" );
-    CORE::CDataNode* types = CFormLayout::AddWidgetNode( *content, "Combobox", "TypeFilter", "0.3,204 0,4", "0.2,0 0,28" );
+    CORE::CDataNode* types = CFormLayout::AddWidgetNode( *content, "Combobox", "TypeFilter", "0.6,3 0,38", "0.4,-9 0,28" );
     CFormLayout::SetWidgetNodeProperty( *types, EWidgetProperty_Items, AllTypesText );
     CFormLayout::SetWidgetNodeProperty( *types, EWidgetProperty_SelectedIndex, "0" );
     CFormLayout::SetWidgetNodeProperty( *types, EWidgetProperty_DropDownRows, "10" );
+    CORE::CDataNode* viewSwitch = CFormLayout::AddWidgetNode( *content, "Combobox", "ViewSwitch", "0,198 0,4", "0,170 0,28" );
+    CFormLayout::SetWidgetNodeProperty( *viewSwitch, EWidgetProperty_Visible, "false" );
+    CFormLayout::SetWidgetNodeProperty( *viewSwitch, EWidgetProperty_Tooltip, "Show the content as files, or grouped by function (scenes, models, textures, ...): the resources of the pack" );
+    CFormLayout::SetWidgetNodeProperty( *viewSwitch, EWidgetProperty_DropDownRows, "2" );
+    CORE::CDataNode* sidecars = CFormLayout::AddWidgetNode( *content, "Checkbox", "Sidecars", "1,-236 0,4", "0,108 0,28" );
+    CFormLayout::SetWidgetNodeProperty( *sidecars, EWidgetProperty_Text, "Metadata" );
+    CFormLayout::SetWidgetNodeProperty( *sidecars, EWidgetProperty_Tooltip, "Show the metadata files that belong to an asset (Unity .meta, Godot .import, Unreal .uexp)" );
     CORE::CDataNode* view = CFormLayout::AddWidgetNode( *content, "Checkbox", "Thumbnails", "1,-124 0,4", "0,118 0,28" );
     CFormLayout::SetWidgetNodeProperty( *view, EWidgetProperty_Text, "Thumbnails" );
 
     // the folders at the left, the items of the open folder at the right: a list, or tiles
-    CFormLayout::AddWidgetNode( *content, "Treeview", "Folders", "0,0 0,36", "0.25,0 1,-36" );
-    CORE::CDataNode* items = CFormLayout::AddWidgetNode( *content, "GridView", "Items", "0.25,6 0,36", "0.75,-6 1,-36" );
+    CFormLayout::AddWidgetNode( *content, "Treeview", "Folders", "0,0 0,72", "0.25,0 1,-72" );
+    CORE::CDataNode* items = CFormLayout::AddWidgetNode( *content, "GridView", "Items", "0.25,6 0,72", "0.75,-6 1,-72" );
     CFormLayout::SetWidgetNodeProperty( *items, EWidgetProperty_Columns, "Name\nType\nSize\nModified" );
     CFormLayout::SetWidgetNodeProperty( *items, EWidgetProperty_MultiSelect, "true" );
     CFormLayout::SetWidgetNodeProperty( *items, EWidgetProperty_FitColumns, "true" );
     CFormLayout::SetWidgetNodeProperty( *items, EWidgetProperty_TextOverflow, "Ellipsis" );
-    CORE::CDataNode* tiles = CFormLayout::AddWidgetNode( *content, "ScrollPanel", "Thumbs", "0.25,6 0,36", "0.75,-6 1,-36" );
+    CORE::CDataNode* tiles = CFormLayout::AddWidgetNode( *content, "ScrollPanel", "Thumbs", "0.25,6 0,72", "0.75,-6 1,-72" );
     CFormLayout::SetWidgetNodeProperty( *tiles, EWidgetProperty_Visible, "false" );
     CFormLayout::SetWidgetNodeProperty( *tiles, EWidgetProperty_Focusable, "true" );
     CFormLayout::SetWidgetNodeProperty( *tiles, EWidgetProperty_BackgroundColour, "30,32,38,255" );
@@ -516,12 +569,26 @@ CContentBrowserForm::OnPostLayoutLoad( void )
         TEventCallback callback( this, &CContentBrowserForm::OnTypeFilterValueChanged );
         SubscribeTo( widget, CWidget::ValueChangedEvent, callback );
     }
+    widget = GetWidget( "ViewSwitch" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CContentBrowserForm::OnViewSwitchValueChanged );
+        SubscribeTo( widget, CWidget::ValueChangedEvent, callback );
+    }
     widget = GetWidget( "Thumbnails" );
     if ( GUCEF_NULL != widget )
     {
         TEventCallback checkedCallback( this, &CContentBrowserForm::OnThumbnailsChecked );
         SubscribeTo( widget, CCheckbox::BoxCheckedEvent, checkedCallback );
         TEventCallback uncheckedCallback( this, &CContentBrowserForm::OnThumbnailsUnchecked );
+        SubscribeTo( widget, CCheckbox::BoxUncheckedEvent, uncheckedCallback );
+    }
+    widget = GetWidget( "Sidecars" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback checkedCallback( this, &CContentBrowserForm::OnSidecarsChecked );
+        SubscribeTo( widget, CCheckbox::BoxCheckedEvent, checkedCallback );
+        TEventCallback uncheckedCallback( this, &CContentBrowserForm::OnSidecarsUnchecked );
         SubscribeTo( widget, CCheckbox::BoxUncheckedEvent, uncheckedCallback );
     }
     widget = GetWidget( "Folders" );
@@ -565,12 +632,16 @@ CContentBrowserForm::OnPostLayoutLoad( void )
     }
 
     // a layout that was loaded again has new widgets: what the form knows goes into them
+    m_toolbarMode = -1;
     m_tiles.clear();
     m_tilesDirty = true;
     m_updatingWidgets = true;
     widget = GetWidget( "Thumbnails" );
     if ( GUCEF_NULL != widget )
         widget->SetBoolProperty( EWidgetProperty_Checked, VIEWMODE_THUMBNAILS == m_viewMode );
+    widget = GetWidget( "Sidecars" );
+    if ( GUCEF_NULL != widget )
+        widget->SetBoolProperty( EWidgetProperty_Checked, m_showSidecars );
     widget = GetWidget( "Filter" );
     if ( GUCEF_NULL != widget )
         widget->SetProperty( EWidgetProperty_Text, m_filter );
@@ -598,6 +669,7 @@ CContentBrowserForm::AddRoot( const CString& displayName, CORE::TFileSystemAcces
     root.access = access;
     root.initialDirectory = initialDirectory;
     root.topDirectory = NormalizeDirectory( access->GetRootPath() );
+    root.order = GUCEF_NULL;
     m_roots.push_back( root );
     if ( 1 == m_roots.size() )
     {
@@ -721,6 +793,10 @@ CContentBrowserForm::GoTo( UInt32 root, const CString& directory, bool remember 
     ReadDirectory();
     RevealInTree( root, directory );
     UpdateButtons();
+    UpdateViewSwitch();
+    // the tree and the list share the room differently in the alternate view
+    if ( m_alternateRoot >= 0 )
+        m_toolbarMode = -1;
     CORE::TCloneableString eventData( m_currentDirectory );
     NotifyObservers( FolderChangedEvent, &eventData );
 }
@@ -894,6 +970,8 @@ CContentBrowserForm::ReadDirectory( void )
                     if ( item.hasModified )
                         item.modified = metaData.modifiedDateTime;
                     item.hidden = ( item.name.Length() > 0 && '.' == item.name[ 0 ] ) || ( hasMetaData && metaData.hasIsHidden && metaData.isHidden );
+                    item.sidecar = GUCEF_NULL != m_resolver && !item.isDirectory && m_resolver->IsSidecar( item.path, item.isDirectory );
+                    item.rank = GUCEF_NULL != m_roots[ m_currentRoot ].order ? m_roots[ m_currentRoot ].order->GetRank( item.path, item.isDirectory ) : 0;
                     item.typeName = TypeNameOf( item );
                     if ( GUCEF_NULL != m_resolver )
                         item.iconName = m_resolver->GetIconName( item.path, item.isDirectory );
@@ -929,7 +1007,7 @@ CContentBrowserForm::UpdateTypeFilterChoices( void )
 
     GUCEF::set< CString > types;
     for ( UInt32 i=0; i<(UInt32)m_items.size(); ++i )
-        if ( !m_items[ i ].isDirectory && ( m_showHidden || !m_items[ i ].hidden ) )
+        if ( !m_items[ i ].isDirectory && ( m_showHidden || !m_items[ i ].hidden ) && ( m_showSidecars || !m_items[ i ].sidecar ) )
             types.insert( m_items[ i ].typeName );
     m_typeChoices.clear();
     for ( GUCEF::set< CString >::const_iterator t = types.begin(); t != types.end(); ++t )
@@ -969,6 +1047,8 @@ CContentBrowserForm::ApplyFilters( void )
     {
         const TItem& item = m_items[ i ];
         if ( item.hidden && !m_showHidden )
+            continue;
+        if ( item.sidecar && !m_showSidecars )
             continue;
         if ( !item.isDirectory )
         {
@@ -1148,6 +1228,7 @@ CContentBrowserForm::SetFilter( const CString& glob )
     ApplyFilters();
     m_selection.clear();
     ShowItems();
+    NotifyObservers( FilterChangedEvent );
     if ( !before.empty() )
         NotifySelectionChanged();
 }
@@ -1195,6 +1276,51 @@ CContentBrowserForm::GetTypeFilterChoices( void ) const
 {GUCEF_TRACE;
 
     return m_typeChoices;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::SetShowSidecars( bool showSidecars )
+{GUCEF_TRACE;
+
+    if ( showSidecars == m_showSidecars )
+        return;
+    m_showSidecars = showSidecars;
+    UpdateTypeFilterChoices();
+    ApplyFilters();
+    m_selection.clear();
+    ShowItems();
+    CWidget* box = GetWidget( "Sidecars" );
+    if ( GUCEF_NULL != box && box->GetBoolProperty( EWidgetProperty_Checked ) != showSidecars )
+    {
+        m_updatingWidgets = true;
+        box->SetBoolProperty( EWidgetProperty_Checked, showSidecars );
+        m_updatingWidgets = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CContentBrowserForm::GetShowSidecars( void ) const
+{GUCEF_TRACE;
+
+    return m_showSidecars;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CContentBrowserForm::GetHiddenSidecarCount( void ) const
+{GUCEF_TRACE;
+
+    UInt32 count = 0;
+    if ( !m_showSidecars )
+        for ( UInt32 i=0; i<(UInt32)m_items.size(); ++i )
+            if ( m_items[ i ].sidecar && ( m_showHidden || !m_items[ i ].hidden ) )
+                ++count;
+    return count;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1356,7 +1482,12 @@ CContentBrowserForm::ActivateItem( UInt32 index )
         return false;
     const TItem item = m_items[ m_listed[ index ] ];
     if ( item.isDirectory )
+    {
         GoTo( m_currentRoot, item.path, true );
+        // a folder is entered; the people who listen may do more with it (the group of a resource view opens its presentation)
+        CORE::TCloneableString folderData( item.path );
+        NotifyObservers( FolderActivatedEvent, &folderData );
+    }
     else
     {
         CORE::TCloneableString eventData( item.path );
@@ -1408,9 +1539,115 @@ CContentBrowserForm::GetTilesPerRow( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
+CContentBrowserForm::UpdateToolbarLayout( void )
+{GUCEF_TRACE;
+
+    // the tool bar follows the room the form has: one row (wide), two rows, or three rows (narrow), so that no control is drawn over another
+    // and each keeps room for its text (one row needs the 656 pixels of the buttons and the type filter and room for the filter). The room is the width of the panel the buttons are in, as it was laid out last
+    CWidget* back = GetWidget( "Back" );
+    CWidget* content = GUCEF_NULL != back ? back->GetParentWidget() : GUCEF_NULL;
+    if ( GUCEF_NULL == content || content->GetRect().width <= 0 )
+        return;
+    const Int32 width = content->GetRect().width;
+    // with the switch for the alternate view the one row of the tool bar needs more room before it is chosen
+    const Int32 mode = width >= ( m_alternateRoot >= 0 ? 1100 : 700 ) ? 0 : width >= 380 ? 1 : 2;
+
+    // the rows are as high as a line of the text of the controls (28 pixels, more for a larger font or line spacing: the controls
+    // take that height anyway and would overlap the next row and the list)
+    Int32 rowHeight = 28;
+    CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context )
+    {
+        const Int32 line = context->GetMinimumLineHeight( back->GetPropertyRef( EWidgetProperty_Font ) );
+        if ( line > rowHeight )
+            rowHeight = line;
+    }
+    if ( mode == m_toolbarMode && rowHeight == m_toolbarRowHeight )
+        return;
+    m_toolbarMode = mode;
+    m_toolbarRowHeight = rowHeight;
+    const Int32 pitch = rowHeight + 6;
+
+    // the left and the width of each control per mode, and the row it is in
+    struct SSlot { const char* name; const char* left[ 3 ]; Int32 row[ 3 ]; const char* width[ 3 ]; };
+    static const SSlot slots[] =
+    {
+        { "Back",       { "0,6",        "0,6",      "0,6"       }, { 0, 0, 0 }, { "0,56",      "0,56",     "0.3,-9"    } },
+        { "Forward",    { "0,66",       "0,66",     "0.3,3"     }, { 0, 0, 0 }, { "0,76",      "0,76",     "0.4,-6"    } },
+        { "Up",         { "0,146",      "0,146",    "0.7,3"     }, { 0, 0, 0 }, { "0,44",      "0,44",     "0.3,-9"    } },
+        { "Filter",     { "0,198",      "0,6",      "0,6"       }, { 0, 1, 1 }, { "1,-656",    "0.4,-9",   "0.55,-9"   } },
+        { "TypeFilter", { "1,-450",     "0.4,3",    "0,6"       }, { 0, 1, 2 }, { "0,210",     "0.3,-6",   "0.55,-9"   } },
+        { "Sidecars",   { "1,-236",     "0.7,3",    "0.55,3"    }, { 0, 1, 1 }, { "0,108",     "0.3,-9",   "0.45,-9"   } },
+        { "Thumbnails", { "1,-124",     "1,-124",   "0.55,3"    }, { 0, 0, 2 }, { "0,118",     "0,118",    "0.45,-9"   } }
+    };
+    for ( UInt32 i=0; i<sizeof( slots ) / sizeof( slots[ 0 ] ); ++i )
+    {
+        CWidget* widget = GetWidget( slots[ i ].name );
+        if ( GUCEF_NULL == widget )
+            continue;
+        widget->SetProperty( EWidgetProperty_Position, CString( slots[ i ].left[ mode ] ) + " 0," + CORE::Int32ToString( 4 + pitch * slots[ i ].row[ mode ] ) );
+        widget->SetProperty( EWidgetProperty_Size, CString( slots[ i ].width[ mode ] ) + " 0," + CORE::Int32ToString( rowHeight ) );
+    }
+
+    // the switch between the two views, when there is an alternate view: after "Up" in the first row (below the filter in a narrow form);
+    // the filter makes room for it
+    CWidget* viewSwitch = GetWidget( "ViewSwitch" );
+    if ( GUCEF_NULL != viewSwitch )
+    {
+        const bool shown = m_alternateRoot >= 0;
+        viewSwitch->SetProperty( EWidgetProperty_Visible, shown ? "true" : "false" );
+        CWidget* filter = GetWidget( "Filter" );
+        if ( shown && GUCEF_NULL != filter )
+        {
+            const CString height = CORE::Int32ToString( rowHeight );
+            if ( 0 == mode )
+            {
+                viewSwitch->SetProperty( EWidgetProperty_Position, "0,198 0,4" );
+                viewSwitch->SetProperty( EWidgetProperty_Size, "0,210 0," + height );
+                filter->SetProperty( EWidgetProperty_Position, "0,416 0,4" );
+                filter->SetProperty( EWidgetProperty_Size, "1,-874 0," + height );
+            }
+            else
+            {
+                // a form that is not wide has a row of its own for it, below the others
+                viewSwitch->SetProperty( EWidgetProperty_Position, "0,6 0," + CORE::Int32ToString( 4 + pitch * ( 1 == mode ? 2 : 3 ) ) );
+                viewSwitch->SetProperty( EWidgetProperty_Size, "1,-12 0," + height );
+            }
+        }
+    }
+
+    // below the last row of the tool bar
+    static const Int32 bodyTop[ 3 ] = { 36, 72, 106 };
+    const CString top = CORE::Int32ToString( bodyTop[ mode ] + ( rowHeight - 28 ) * ( mode + 1 ) + ( m_alternateRoot >= 0 && mode >= 1 ? pitch : 0 ) );
+    // the names of the groups of the alternate view and their counts need more room than folder names do
+    const bool alternateShown = IsAlternateViewActive();
+    const char* const split = alternateShown ? "0.54" : "0.25";
+    const char* const rest = alternateShown ? "0.46" : "0.75";
+    CWidget* folders = GetWidget( "Folders" );
+    if ( GUCEF_NULL != folders )
+    {
+        folders->SetProperty( EWidgetProperty_Position, "0,0 0," + top );
+        folders->SetProperty( EWidgetProperty_Size, CString( split ) + ",0 1,-" + top );
+    }
+    const char* const bodyNames[ 2 ] = { "Items", "Thumbs" };
+    for ( UInt32 i=0; i<2; ++i )
+    {
+        CWidget* widget = GetWidget( bodyNames[ i ] );
+        if ( GUCEF_NULL != widget )
+        {
+            widget->SetProperty( EWidgetProperty_Position, CString( split ) + ",6 0," + top );
+            widget->SetProperty( EWidgetProperty_Size, CString( rest ) + ",-6 1,-" + top );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CContentBrowserForm::Update( UInt32 deltaInMs )
 {GUCEF_TRACE;
 
+    UpdateToolbarLayout();
     if ( VIEWMODE_THUMBNAILS != m_viewMode )
         return;
     CScrollPanel* thumbs = CWidget::ToScrollPanel( GetWidget( "Thumbs" ) );
@@ -1782,6 +2019,17 @@ CContentBrowserForm::LoadTreeChildren( Int32 node )
         while ( (UInt32) names.size() < MaxEntriesPerFolder && iterator->FindNext() );
         iterator->FindClose();
     }
+    CIContentItemOrder* order = m_roots[ location.root ].order;
+    if ( GUCEF_NULL != order )
+    {
+        // the order of the root first, then the names
+        GUCEF::map< CString, Int32 > ranks;
+        for ( UInt32 i=0; i<(UInt32)names.size(); ++i )
+            ranks[ names[ i ] ] = order->GetRank( paths[ names[ i ] ], true );
+        CRankNameOrder rankOrder( &ranks );
+        std::sort( names.begin(), names.end(), rankOrder );
+    }
+    else
     std::sort( names.begin(), names.end() );
     for ( UInt32 i=0; i<(UInt32)names.size(); ++i )
     {
@@ -1932,6 +2180,131 @@ CContentBrowserForm::OnUpActivated( CORE::CNotifier* notifier    ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CContentBrowserForm::SetAlternateRoot( const CString& rootName, const CString& normalLabel, const CString& alternateLabel )
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32) m_roots.size(); ++i )
+    {
+        if ( m_roots[ i ].name != rootName )
+            continue;
+        m_alternateRoot = (Int32) i;
+        m_normalLabel = normalLabel;
+        m_alternateLabel = alternateLabel;
+        CCombobox* combobox = GetWidgetAs< CCombobox >( "ViewSwitch" );
+        if ( GUCEF_NULL != combobox )
+        {
+            CCombobox::TStringVector items;
+            items.push_back( m_normalLabel );
+            items.push_back( m_alternateLabel );
+            m_updatingWidgets = true;
+            combobox->SetListItems( items );
+            combobox->SetSelectedIndex( m_currentRoot == i ? 1 : 0 );
+            m_updatingWidgets = false;
+        }
+        // the tool bar is laid out again with the switch in it
+        m_toolbarMode = -1;
+        UpdateToolbarLayout();
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CContentBrowserForm::GetAlternateRootName( void ) const
+{GUCEF_TRACE;
+
+    static const CString none;
+    return m_alternateRoot >= 0 ? m_roots[ (size_t) m_alternateRoot ].name : none;
+}
+
+/*-------------------------------------------------------------------------*/
+bool
+CContentBrowserForm::SetRootOrder( const CString& rootName, CIContentItemOrder* order )
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32) m_roots.size(); ++i )
+    {
+        if ( m_roots[ i ].name == rootName )
+        {
+            m_roots[ i ].order = order;
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+
+bool
+CContentBrowserForm::IsAlternateViewActive( void ) const
+{GUCEF_TRACE;
+
+    return m_alternateRoot >= 0 && (Int32) m_currentRoot == m_alternateRoot;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::SetAlternateViewActive( bool active )
+{GUCEF_TRACE;
+
+    if ( m_alternateRoot < 0 || active == IsAlternateViewActive() )
+        return;
+    if ( active )
+    {
+        m_normalRoot = m_currentRoot;
+        m_normalDirectory = m_currentDirectory;
+        NavigateTo( m_roots[ (size_t) m_alternateRoot ].name, CString::Empty );
+    }
+    else
+    {
+        const UInt32 root = m_normalRoot < (UInt32) m_roots.size() && (Int32) m_normalRoot != m_alternateRoot ? m_normalRoot : ( 0 == m_alternateRoot && m_roots.size() > 1 ? 1 : 0 );
+        GoTo( root, m_normalDirectory, true );
+    }
+    UpdateViewSwitch();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::UpdateViewSwitch( void )
+{GUCEF_TRACE;
+
+    CCombobox* combobox = GetWidgetAs< CCombobox >( "ViewSwitch" );
+    if ( GUCEF_NULL == combobox || m_alternateRoot < 0 )
+        return;
+    const Int32 wanted = IsAlternateViewActive() ? 1 : 0;
+    if ( combobox->GetSelectedIndex() != wanted )
+    {
+        m_updatingWidgets = true;
+        combobox->SetSelectedIndex( wanted );
+        m_updatingWidgets = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::OnViewSwitchValueChanged( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_updatingWidgets )
+        return;
+    CCombobox* combobox = GetWidgetAs< CCombobox >( "ViewSwitch" );
+    if ( GUCEF_NULL == combobox )
+        return;
+    SetAlternateViewActive( 1 == combobox->GetSelectedIndex() );
+    NotifyObservers( ViewSwitchedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CContentBrowserForm::OnFilterTextChanged( CORE::CNotifier* notifier    ,
                                           const CORE::CEvent& eventId  ,
@@ -1988,6 +2361,30 @@ CContentBrowserForm::OnThumbnailsUnchecked( CORE::CNotifier* notifier    ,
 
     if ( !m_updatingWidgets )
         SetViewMode( VIEWMODE_DETAILS );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::OnSidecarsChecked( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_updatingWidgets )
+        SetShowSidecars( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CContentBrowserForm::OnSidecarsUnchecked( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_updatingWidgets )
+        SetShowSidecars( false );
 }
 
 /*-------------------------------------------------------------------------*/

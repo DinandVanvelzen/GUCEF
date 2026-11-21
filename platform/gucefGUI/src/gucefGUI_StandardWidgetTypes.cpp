@@ -39,6 +39,8 @@
 #include "gucefGUI_CCombobox.h"
 #include "gucefGUI_CSpinner.h"
 #include "gucefGUI_CSlider.h"
+#include "gucefGUI_CSplitter.h"
+#include "gucefGUI_CFoldablePanel.h"
 #include "gucefGUI_CProgressBar.h"
 #include "gucefGUI_CImageFrame.h"
 #include "gucefGUI_CDrawSurface.h"
@@ -220,6 +222,31 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     window.AddProperty( Prop( EWidgetProperty_FoldButtonHovered, PD::VALUETYPE_BOOL, "false", RUNTIMEFLAGS, "State", "The pointer is on the fold button" ) );
     window.AddProperty( Prop( EWidgetProperty_FoldButtonPressed, PD::VALUETYPE_BOOL, "false", RUNTIMEFLAGS, "State", "The fold button is pressed" ) );
     registry.RegisterType( window );
+
+    CWidgetTypeInfo splitter = Type( "Splitter", "Panel", "Containers", &CSplitter::Create, "Two panes with a handle between them that the user drags; the first two children are the panes" );
+    splitter.AddProperty( EnumProp( EWidgetProperty_Orientation, "Horizontal", "Horizontal,Vertical", LAYOUTFLAGS, "Splitter", "Horizontal puts the panes side by side, Vertical above each other" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_SplitRatio, PD::VALUETYPE_FLOAT, "0.5", LAYOUTFLAGS, "Splitter", "The part of the room (less the handle) that the first pane has, 0 to 1" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_DefaultSplitRatio, PD::VALUETYPE_FLOAT, "0.5", DEFAULTFLAGS, "Splitter", "The ratio a double click on the handle goes back to" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_FirstMinSize, PD::VALUETYPE_INT, "32", LAYOUTFLAGS, "Splitter", "The least pixels the first pane keeps along the splitter" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_SecondMinSize, PD::VALUETYPE_INT, "32", LAYOUTFLAGS, "Splitter", "The least pixels the second pane keeps along the splitter" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_HandleSize, PD::VALUETYPE_INT, "6", LAYOUTFLAGS, "Splitter", "The thickness of the handle in pixels" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_HandleColour, PD::VALUETYPE_COLOUR, "52,56,68,255", DEFAULTFLAGS, "Look", "The colour of the handle" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_HoverColour, PD::VALUETYPE_COLOUR, "86,124,196,255", DEFAULTFLAGS, "Look", "The colour of the handle under the pointer or while it is dragged" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus (the arrow keys then move the handle)" ) );
+    splitter.AddProperty( Prop( EWidgetProperty_ThumbHovered, PD::VALUETYPE_BOOL, "false", RUNTIMEFLAGS, "State", "The pointer is on the handle" ) );
+    registry.RegisterType( splitter );
+
+    CWidgetTypeInfo foldable = Type( "FoldablePanel", "Panel", "Containers", &CFoldablePanel::Create, "A panel with a header that folds into a thin strip at one edge of its parent, showing only its title" );
+    foldable.AddProperty( Prop( EWidgetProperty_Title, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Panel", "The text of the header and of the strip" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_TitleHeight, PD::VALUETYPE_INT, "24", LAYOUTFLAGS, "Panel", "The thickness of the header and of the folded strip" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_TitleBarColour, PD::VALUETYPE_COLOUR, "40,44,56,255", DEFAULTFLAGS, "Panel", "Colour of the header" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_TitleColour, PD::VALUETYPE_COLOUR, "220,224,234,255", DEFAULTFLAGS, "Panel", "Colour of the title" ) );
+    foldable.AddProperty( EnumProp( EWidgetProperty_Dock, "Top", "Left,Right,Top,Bottom", LAYOUTFLAGS, "Panel", "The edge of the parent the panel sits at: where the folded strip is" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_Collapsed, PD::VALUETYPE_BOOL, "false", LAYOUTFLAGS, "Panel", "Whether the panel is folded into its strip: its children are not shown and take no input" ) );
+    foldable.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A title wider than the header: cut, or shortened with \"...\"" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_FoldButtonHoverColour, PD::VALUETYPE_COLOUR, "255,255,255,30", DEFAULTFLAGS, "Panel", "Fill of the fold button while the pointer is on it" ) );
+    foldable.AddProperty( Prop( EWidgetProperty_FoldButtonHovered, PD::VALUETYPE_BOOL, "false", RUNTIMEFLAGS, "State", "The pointer is on the fold button" ) );
+    registry.RegisterType( foldable );
 
     CWidgetTypeInfo scrollPanel = Type( "ScrollPanel", "Panel", "Containers", &CScrollPanel::Create, "A panel that cuts its children off at its edge and scrolls them vertically with a scroll bar" );
     scrollPanel.AddProperty( Prop( EWidgetProperty_Clip, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Layout", "Children are cut off at the edge of the widget" ) );

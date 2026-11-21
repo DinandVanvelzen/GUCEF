@@ -63,6 +63,7 @@ CTooltipService::CTooltipService( void )
     , m_text( 0, 0, 0, 255 )
     , m_helpSource()
     , m_moreHint()
+    , m_textProvider( GUCEF_NULL )
     , m_restStartInMs( 0 )
     , m_suppressed( false )
     , m_showing( false )
@@ -294,6 +295,8 @@ CTooltipService::GetTooltipText( const CWidget& widget, Int32 localX, Int32 loca
 {GUCEF_TRACE;
 
     CString text = widget.GetTooltipAt( localX, localY );
+    if ( text.IsNULLOrEmpty() && GUCEF_NULL != m_textProvider )
+        text = m_textProvider->GetTooltipFor( widget, localX, localY );
 
     // a text the widget shows shortened ("...") is shown whole: as the tooltip, or above the tooltip the widget has
     CGUIContext* context = widget.GetContext();
@@ -314,6 +317,24 @@ CTooltipService::GetTooltipText( const CWidget& widget, Int32 localX, Int32 loca
     if ( !text.IsNULLOrEmpty() && !m_moreHint.IsNULLOrEmpty() && !moreTopic.IsNULLOrEmpty() && m_helpSource->HasTopic( moreTopic ) )
         text += "\n" + m_moreHint;
     return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTooltipService::SetTextProvider( const CITooltipTextProvider* provider )
+{GUCEF_TRACE;
+
+    m_textProvider = provider;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CITooltipTextProvider*
+CTooltipService::GetTextProvider( void ) const
+{GUCEF_TRACE;
+
+    return m_textProvider;
 }
 
 /*-------------------------------------------------------------------------*/

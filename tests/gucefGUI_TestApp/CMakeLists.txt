@@ -35,6 +35,7 @@ if (ANDROID32)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -70,6 +71,7 @@ if (ANDROID32)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -106,6 +108,7 @@ elseif (ANDROID64)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -141,6 +144,7 @@ elseif (ANDROID64)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -177,6 +181,7 @@ elseif (EMSCRIPTEN32)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -212,6 +217,7 @@ elseif (EMSCRIPTEN32)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -248,6 +254,7 @@ elseif (EMSCRIPTEN64)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -283,6 +290,7 @@ elseif (EMSCRIPTEN64)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -319,6 +327,7 @@ elseif (LINUX32)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -354,6 +363,7 @@ elseif (LINUX32)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -390,6 +400,7 @@ elseif (LINUX64)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -425,6 +436,7 @@ elseif (LINUX64)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -461,6 +473,7 @@ elseif (WIN32)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -496,6 +509,7 @@ elseif (WIN32)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp
@@ -532,6 +546,7 @@ elseif (WIN64)
     ../gucefWEB_TestApp/src/TestFakeWebView.cpp
     ../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp
     src/TestAudioSettingsForm.cpp
+    src/TestGuiActivityService.cpp
     src/TestGuiArbitration.cpp
     src/TestGuiAssetFormRender.cpp
     src/TestGuiAssetSearchForm.cpp
@@ -567,6 +582,7 @@ elseif (WIN64)
     src/TestGuiScrollPanel.cpp
     src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
+    src/TestGuiSplitter.cpp
     src/TestGuiTimelineForm.cpp
     src/TestGuiTooltipAndHelp.cpp
     src/TestGuiTransferQueueForm.cpp

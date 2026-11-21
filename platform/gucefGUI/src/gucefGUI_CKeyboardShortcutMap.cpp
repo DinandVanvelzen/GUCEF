@@ -27,6 +27,8 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#include <string.h>
+
 #include "gucefGUI_CKeyboardShortcutMap.h"
 
 /*-------------------------------------------------------------------------//
@@ -60,6 +62,14 @@ struct SKeyName
     const char* name;
 };
 
+/** A chord read from a settings node */
+struct SRead
+{
+    CString actionId;
+    INPUT::KeyCode key;
+    UInt32 modifiers;
+};
+
 const SKeyName KeyNames[] =
 {
     { INPUT::KEYCODE_A, "A" }, { INPUT::KEYCODE_B, "B" }, { INPUT::KEYCODE_C, "C" }, { INPUT::KEYCODE_D, "D" },
@@ -82,6 +92,8 @@ const SKeyName KeyNames[] =
     { INPUT::KEYCODE_ESCAPE, "Escape" }, { INPUT::KEYCODE_SPACE, "Space" }, { INPUT::KEYCODE_APPS, "Menu" },
     { INPUT::KEYCODE_MINUS, "-" }, { INPUT::KEYCODE_EQUALS, "=" }, { INPUT::KEYCODE_COMMA, "," }, { INPUT::KEYCODE_PERIOD, "." },
     { INPUT::KEYCODE_SLASH, "/" }, { INPUT::KEYCODE_ADD, "Num+" }, { INPUT::KEYCODE_SUBTRACT, "Num-" },
+    { INPUT::KEYCODE_GRAVE, "Grave" }, { INPUT::KEYCODE_BACKSLASH, "\\" }, { INPUT::KEYCODE_LBRACKET, "[" }, { INPUT::KEYCODE_RBRACKET, "]" },
+    { INPUT::KEYCODE_SEMICOLON, ";" }, { INPUT::KEYCODE_APOSTROPHE, "'" },
     { INPUT::KEYCODE_WEBBACK, "Back" }, { INPUT::KEYCODE_WEBFORWARD, "Forward" }
 };
 
@@ -283,6 +295,104 @@ CKeyboardShortcutMap::DescribeChord( INPUT::KeyCode key, UInt32 modifiers )
         text += "Meta+";
     text += DescribeKey( key );
     return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CKeyboardShortcutMap::GetActionIds( GUCEF::vector< CString >& actionIds ) const
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32)m_bindings.size(); ++i )
+        actionIds.push_back( m_bindings[ i ].actionId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CKeyboardShortcutMap::ParseChord( const CString& text, INPUT::KeyCode& key, UInt32& modifiers )
+{GUCEF_TRACE;
+
+    key = INPUT::KEYCODE_UNASSIGNED;
+    modifiers = 0;
+
+    // the modifiers come first, each followed by a plus; what remains is the key (which may be a plus itself)
+    const char* begin = text.C_String();
+    UInt32 length = (UInt32) strlen( begin );
+    while ( length > 0 && ' ' == begin[ 0 ] ) { ++begin; --length; }
+    while ( length > 0 && ' ' == begin[ length - 1 ] ) { --length; }
+    for ( ;; )
+    {
+        UInt32 plus = 1;    // a plus at the first place is the key, not a separator
+        while ( plus < length && '+' != begin[ plus ] )
+            ++plus;
+        if ( plus + 1 >= length )
+            break;
+        UInt32 flag = 0;
+        if ( 4 == plus && 0 == strncmp( begin, "Ctrl", 4 ) )
+            flag = INPUT::KEYMOD_CTRL;
+        else
+        if ( 3 == plus && 0 == strncmp( begin, "Alt", 3 ) )
+            flag = INPUT::KEYMOD_ALT;
+        else
+        if ( 5 == plus && 0 == strncmp( begin, "Shift", 5 ) )
+            flag = INPUT::KEYMOD_SHIFT;
+        else
+        if ( 4 == plus && 0 == strncmp( begin, "Meta", 4 ) )
+            flag = INPUT::KEYMOD_META;
+        else
+            return false;
+        modifiers |= flag;
+        begin += plus + 1;
+        length -= plus + 1;
+    }
+    for ( UInt32 i=0; i<(UInt32)( sizeof( KeyNames ) / sizeof( KeyNames[ 0 ] ) ); ++i )
+    {
+        if ( strlen( KeyNames[ i ].name ) == length && 0 == strncmp( begin, KeyNames[ i ].name, length ) )
+        {
+            key = KeyNames[ i ].key;
+            return true;
+        }
+    }
+    modifiers = 0;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CKeyboardShortcutMap::SaveBindings( CORE::CDataNode& node ) const
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32)m_bindings.size(); ++i )
+        node.SetAttribute( m_bindings[ i ].actionId, DescribeChord( m_bindings[ i ].key, m_bindings[ i ].modifiers ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CKeyboardShortcutMap::LoadBindings( const CORE::CDataNode& node )
+{GUCEF_TRACE;
+
+    // what is read first, bound after: the actions of the file may take each other's chords
+    GUCEF::vector< SRead > reads;
+    for ( CORE::CDataNode::TAttributeMap::const_iterator a = node.AttributeBegin(); a != node.AttributeEnd(); ++a )
+    {
+        SRead read;
+        read.actionId = (*a).first;
+        read.key = INPUT::KEYCODE_UNASSIGNED;
+        read.modifiers = 0;
+        if ( ParseChord( (*a).second.AsString( CString::Empty, true ), read.key, read.modifiers ) )
+            reads.push_back( read );
+    }
+    for ( UInt32 i=0; i<(UInt32)reads.size(); ++i )
+        Unbind( reads[ i ].actionId );
+    UInt32 bound = 0;
+    for ( UInt32 i=0; i<(UInt32)reads.size(); ++i )
+        if ( Bind( reads[ i ].actionId, reads[ i ].key, reads[ i ].modifiers ) )
+            ++bound;
+    return bound;
 }
 
 /*-------------------------------------------------------------------------//

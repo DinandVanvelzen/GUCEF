@@ -111,6 +111,28 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
 
     INPUT::KeyCode GetConsoleKey( void ) const;
 
+    /**
+     *  Whether the console watches the keyboards of gucefINPUT itself, which is the default. Off, the application hands it the keys
+     *  and the text that reach its GUI (HandleKey(), HandleText()), as it does when its keys come as events of the widgets
+     */
+    void SetWatchesInputDevices( bool watches );
+
+    bool WatchesInputDevices( void ) const;
+
+    /**
+     *  A key down that reached the GUI: the console key opens or closes the console, unless the console is closed and a text field
+     *  other than its own command line has the keyboard focus (the key is typed there). True when the key was the console key and the
+     *  console took it
+     */
+    bool HandleKey( INPUT::KeyCode key, UInt32 modifiers );
+
+    /**
+     *  Text that reached the GUI: the character the console key typed is swallowed (the key event came first), and for the console key
+     *  Grave the character itself ("`", "~") opens or closes the console when no key event did, which is how a layout that has the
+     *  character on another key delivers it; not while another text field has the focus and the console is closed. True when the text is consumed
+     */
+    bool HandleText( const CString& text );
+
     /** Only keys of this gucefINPUT context (the window) count; AnyInputContext by default */
     void SetInputContextId( Int32 inputContextId );
 
@@ -140,6 +162,12 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
 
     /** How far the console is down: 0 gone, 1 all the way */
     Float32 GetSlidePosition( void ) const;
+
+    /**
+     *  A command as if it was typed: echoed in the output, the layout lint command handled, and CommandEnteredEvent raised. For the
+     *  application's own shortcuts to commands (a menu entry that does what a command does)
+     */
+    void ExecuteCommand( const CString& command );
 
     void AppendLine( const CString& line );
 
@@ -185,6 +213,17 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
 
     void AttachToKeyboards( void );
 
+    /** Whether a text field other than the command line of the console has the keyboard focus */
+    bool IsOtherTextFieldFocused( void ) const;
+
+    /** A key down of the console key from either route: the toggle with the swallow of its character */
+    bool ToggleOnKey( INPUT::KeyCode key );
+
+    /** The key down of a widget of the console: for an application that does not let the console watch the devices */
+    void OnRootKeyDown( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
     void ApplySlidePosition( void );
 
     void OnCommandEntered( void );
@@ -201,6 +240,7 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
     bool m_open;
     bool m_swallowText;
     bool m_keyboardsAttached;
+    bool m_watchesInputDevices;
     INPUT::KeyCode m_consoleKey;
     Int32 m_inputContextId;
     UInt32 m_slideTimeInMs;

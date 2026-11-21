@@ -35,6 +35,11 @@
 #define GUCEF_GUI_CIHELPSOURCE_H
 #endif /* GUCEF_GUI_CIHELPSOURCE_H ? */
 
+#ifndef GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H
+#include "gucefGUI_CITooltipTextProvider.h"
+#define GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H
+#endif /* GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -108,6 +113,13 @@ class GUCEF_GUI_PUBLIC_CPP CTooltipService
     void SetHelpSource( const THelpSourcePtr& source );
     const THelpSourcePtr& GetHelpSource( void ) const;
 
+    /**
+     *  Where the tooltips of widgets that have none of their own come from, before the brief of their help topic; not owned, it has to
+     *  be there as long as the service has it. NULL for none
+     */
+    void SetTextProvider( const CITooltipTextProvider* provider );
+    const CITooltipTextProvider* GetTextProvider( void ) const;
+
     /** The line added under a tooltip whose help topic has a long explainer (for example "F1: more about this"); empty: none */
     void SetMoreHint( const CString& hint );
     const CString& GetMoreHint( void ) const;
@@ -161,6 +173,7 @@ class GUCEF_GUI_PUBLIC_CPP CTooltipService
     CColour m_text;
     THelpSourcePtr m_helpSource;
     CString m_moreHint;
+    const CITooltipTextProvider* m_textProvider;
     UInt64 m_restStartInMs;
     bool m_suppressed;
     bool m_showing;

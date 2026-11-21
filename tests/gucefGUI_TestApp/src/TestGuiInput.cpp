@@ -598,6 +598,128 @@ PerformGuiInputTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Input: The developer console key is typed in a text field that has the focus, and the console opens on it again once the field lost the focus" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        context->RegisterFont( "Test", MakeTestFont( 8, 10 ) );
+        CORE::CDataNode theme;
+        GUI::BuildDarkTheme( theme, "Test" );
+        context->SetTheme( theme );
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( GUI::EWidgetProperty_Size, "1,0 1,0" );
+        GUI::CWidget* field = context->CreateWidget( "Editbox", "Field", screen );
+        field->SetProperty( GUI::EWidgetProperty_Position, "0,10 0,10" );
+        field->SetProperty( GUI::EWidgetProperty_Size, "0,200 0,30" );
+        ASSERT_TRUE( context->ShowRoot( screen, false ) );
+        context->FlushChanges();
+
+        GUI::CDeveloperConsoleForm console( context );
+        console.SetSlideTimeInMs( 0 );
+        ASSERT_TRUE( console.Build() );
+        console.SetEnabled( true );
+        CScriptedInputDriver driver;
+        driver.Keyboard( TestKeyboardId );
+        GUI::CGUIInputAdapter adapter( *context );
+        adapter.Attach();
+
+        // typing in a text field: the key does not open the console, its character is typed
+        ASSERT_TRUE( field->SetFocus() );
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, true );
+        driver.Text( 1, TestKeyboardId, "`" );
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, false );
+        ASSERT_FALSE( console.IsOpen() );
+        ASSERT_TRUE( "`" == GUI::CWidget::As< GUI::CEditbox >( field )->GetText() );
+
+        // without a text field in focus it opens, and the character is not typed anywhere
+        context->SetFocus( GUCEF_NULL );
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, true );
+        driver.Text( 1, TestKeyboardId, "`" );
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, false );
+        ASSERT_TRUE( console.IsOpen() );
+        ASSERT_TRUE( "`" == GUI::CWidget::As< GUI::CEditbox >( field )->GetText() );
+
+        // it closes on the key while its own command line has the focus
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, true );
+        driver.Text( 1, TestKeyboardId, "`" );
+        driver.Key( 1, TestKeyboardId, INPUT::KEYCODE_GRAVE, false );
+        ASSERT_FALSE( console.IsOpen() );
+
+        adapter.Detach();
+        driver.NoKeyboard( TestKeyboardId );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Input: The developer console of an application that feeds it the keys of the GUI opens on the key code and on the character, once, and not in a text field" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        context->RegisterFont( "Test", MakeTestFont( 8, 10 ) );
+        CORE::CDataNode theme;
+        GUI::BuildDarkTheme( theme, "Test" );
+        context->SetTheme( theme );
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( GUI::EWidgetProperty_Size, "1,0 1,0" );
+        GUI::CWidget* field = context->CreateWidget( "Editbox", "Field", screen );
+        field->SetProperty( GUI::EWidgetProperty_Size, "0,200 0,30" );
+        ASSERT_TRUE( context->ShowRoot( screen, false ) );
+        context->FlushChanges();
+
+        GUI::CDeveloperConsoleForm console( context );
+        console.SetSlideTimeInMs( 0 );
+        console.SetWatchesInputDevices( false );
+        ASSERT_TRUE( console.Build() && !console.WatchesInputDevices() );
+
+        // switched off it does nothing
+        ASSERT_FALSE( console.HandleKey( INPUT::KEYCODE_GRAVE, 0 ) || console.HandleText( "`" ) );
+        console.SetEnabled( true );
+
+        // the key as the window of the platform delivers it: the key code of the physical key, then its character
+        ASSERT_TRUE( console.HandleKey( INPUT::KEYCODE_GRAVE, 0 ) && console.IsOpen() );
+        ASSERT_TRUE( console.HandleText( "`" ) && console.IsOpen() );
+        ASSERT_FALSE( console.HandleKey( INPUT::KEYCODE_A, 0 ) );
+
+        // another key code than the console key is no console key; the character of a layout that has the backquote elsewhere is
+        ASSERT_TRUE( console.HandleText( "`" ) && !console.IsOpen() );
+        ASSERT_FALSE( console.HandleText( "a" ) );
+        ASSERT_TRUE( console.HandleText( "~" ) && console.IsOpen() );
+        ASSERT_TRUE( console.HandleKey( INPUT::KEYCODE_GRAVE, INPUT::KEYMOD_SHIFT ) && !console.IsOpen() );
+        ASSERT_TRUE( console.HandleText( "~" ) && !console.IsOpen() );
+
+        // in a text field the key is a character
+        ASSERT_TRUE( field->SetFocus() );
+        ASSERT_FALSE( console.HandleKey( INPUT::KEYCODE_GRAVE, 0 ) || console.HandleText( "`" ) );
+        ASSERT_FALSE( console.IsOpen() );
+
+        // the key events of the GUI reach the console through its own root while it is open
+        context->SetFocus( GUCEF_NULL );
+        ASSERT_TRUE( console.Open() );
+        console.GetWidgetAs< GUI::CEditbox >( "CommandLine" )->SetFocus();
+        context->InjectKey( INPUT::KEYCODE_GRAVE, true, 0 );
+        context->InjectText( "`" );
+        context->InjectKey( INPUT::KEYCODE_GRAVE, false, 0 );
+        ASSERT_FALSE( console.IsOpen() );
+        ASSERT_TRUE( GUI::CWidget::As< GUI::CEditbox >( field )->GetText().IsNULLOrEmpty() );
+
+        // a command goes through ExecuteCommand like a typed one
+        CTargetCount entered( &console, GUI::CDeveloperConsoleForm::CommandEnteredEvent );
+        console.ExecuteCommand( "help" );
+        ASSERT_TRUE( 1 == entered.count );
+        GUI::CTextbox* output = console.GetWidgetAs< GUI::CTextbox >( "Output" );
+        ASSERT_TRUE( GUCEF_NULL != output && output->GetTextAsString().HasSubstr( "> help" ) >= 0 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Input: An adapter for one input context ignores the input of other windows" )
     try
     {

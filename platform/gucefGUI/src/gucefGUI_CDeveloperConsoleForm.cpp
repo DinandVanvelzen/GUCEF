@@ -113,6 +113,7 @@ CDeveloperConsoleForm::CDeveloperConsoleForm( void )
     , m_open( false )
     , m_swallowText( false )
     , m_keyboardsAttached( false )
+    , m_watchesInputDevices( true )
     , m_consoleKey( INPUT::KEYCODE_GRAVE )
     , m_inputContextId( AnyInputContext )
     , m_slideTimeInMs( 150 )
@@ -132,6 +133,7 @@ CDeveloperConsoleForm::CDeveloperConsoleForm( CIGUIContext* context )
     , m_open( false )
     , m_swallowText( false )
     , m_keyboardsAttached( false )
+    , m_watchesInputDevices( true )
     , m_consoleKey( INPUT::KEYCODE_GRAVE )
     , m_inputContextId( AnyInputContext )
     , m_slideTimeInMs( 150 )
@@ -191,6 +193,8 @@ CDeveloperConsoleForm::OnPostLayoutLoad( void )
     {
         TEventCallback textInputCallback( this, &CDeveloperConsoleForm::OnTextInput );
         SubscribeTo( root, CWidget::TextInputEvent, textInputCallback );
+        TEventCallback keyDownCallback( this, &CDeveloperConsoleForm::OnRootKeyDown );
+        SubscribeTo( root, CWidget::KeyDownEvent, keyDownCallback );
     }
     CWidget* commandLine = GetWidget( "CommandLine" );
     if ( GUCEF_NULL != commandLine )
@@ -507,6 +511,15 @@ CDeveloperConsoleForm::OnCommandEntered( void )
     if ( command.IsNULLOrEmpty() )
         return;
     commandLine->SetText( CString::Empty );
+    ExecuteCommand( command );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::ExecuteCommand( const CString& command )
+{GUCEF_TRACE;
+
     AppendLine( "> " + command );
     HandleLayoutLintCommand( command );
     TCommandEnteredEventData eventData( command );
@@ -575,16 +588,8 @@ CDeveloperConsoleForm::OnKeyStateChanged( CORE::CNotifier* notifier    ,
         return;
     if ( AnyInputContext != m_inputContextId && key->GetContextId() != m_inputContextId )
         return;
-    if ( key->GetKeyCode() == m_consoleKey )
-    {
-        // the character the key types next is not for the command line
-        m_swallowText = true;
-        Toggle();
-    }
-    else
-    {
-        m_swallowText = false;
-    }
+    if ( m_watchesInputDevices )
+        ToggleOnKey( key->GetKeyCode() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -598,11 +603,8 @@ CDeveloperConsoleForm::OnTextInput( CORE::CNotifier* notifier    ,
     if ( GUCEF_NULL == eventData )
         return;
     CTextEventData* text = static_cast< CTextEventData* >( eventData );
-    if ( m_swallowText && EVENTPHASE_BUBBLE != text->phase )
-    {
-        m_swallowText = false;
+    if ( EVENTPHASE_BUBBLE != text->phase && HandleText( text->text ) )
         text->handled = true;
-    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -627,6 +629,107 @@ CDeveloperConsoleForm::OnFrameStarted( CORE::CNotifier* notifier    ,
     if ( GUCEF_NULL == eventData )
         return;
     Update( static_cast< CORE::TCloneableUInt32* >( eventData )->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::IsOtherTextFieldFocused( void ) const
+{GUCEF_TRACE;
+
+    CDeveloperConsoleForm* self = const_cast< CDeveloperConsoleForm* >( this );
+    CGUIContext* context = self->GetGUIContext();
+    if ( GUCEF_NULL == context )
+        return false;
+    CWidget* focus = context->GetFocus();
+    return GUCEF_NULL != CWidget::As< CEditbox >( focus ) && focus != self->GetWidget( "CommandLine" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::ToggleOnKey( INPUT::KeyCode key )
+{GUCEF_TRACE;
+
+    if ( !m_enabled )
+        return false;
+    if ( key != m_consoleKey )
+    {
+        m_swallowText = false;
+        return false;
+    }
+    // the key is a character in a text field that is not ours
+    if ( !m_open && IsOtherTextFieldFocused() )
+        return false;
+    // the character the key types next is not for the command line
+    m_swallowText = true;
+    Toggle();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::SetWatchesInputDevices( bool watches )
+{GUCEF_TRACE;
+
+    m_watchesInputDevices = watches;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::WatchesInputDevices( void ) const
+{GUCEF_TRACE;
+
+    return m_watchesInputDevices;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::HandleKey( INPUT::KeyCode key, UInt32 modifiers )
+{GUCEF_TRACE;
+
+    return ToggleOnKey( key );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::HandleText( const CString& text )
+{GUCEF_TRACE;
+
+    if ( !m_enabled )
+        return false;
+    if ( m_swallowText )
+    {
+        m_swallowText = false;
+        return true;
+    }
+    if ( INPUT::KEYCODE_GRAVE == m_consoleKey && ( "`" == text || "~" == text ) && ( m_open || !IsOtherTextFieldFocused() ) )
+    {
+        Toggle();
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::OnRootKeyDown( CORE::CNotifier* notifier    ,
+                                      const CORE::CEvent& eventId  ,
+                                      CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_watchesInputDevices )
+        return;
+    CKeyEventData* key = CORE::CICloneable::CloneableAs< CKeyEventData >( eventData );
+    if ( GUCEF_NULL == key || key->handled || EVENTPHASE_BUBBLE == key->phase )
+        return;
+    if ( HandleKey( key->keyCode, key->modifiers ) )
+        key->handled = true;
 }
 
 /*-------------------------------------------------------------------------*/

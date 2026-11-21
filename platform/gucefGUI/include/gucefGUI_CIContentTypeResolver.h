@@ -68,6 +68,12 @@ class GUCEF_GUI_PUBLIC_CPP CIContentTypeResolver
     /** The name of a registered image for the type, empty for none */
     virtual CString GetIconName( const CString& path, bool isDirectory );
 
+    /**
+     *  Whether the file is a sidecar: a metadata file that belongs to another file (a Unity .meta, a Godot .import). The content browser
+     *  hides sidecars unless it is told to show them (SetShowSidecars()). The default has none.
+     */
+    virtual bool IsSidecar( const CString& path, bool isDirectory );
+
     private:
 
     CIContentTypeResolver( const CIContentTypeResolver& src );

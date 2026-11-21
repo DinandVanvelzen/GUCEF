@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CLONEABLES_H
 #endif /* GUCEF_CORE_CLONEABLES_H ? */
 
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
 #ifndef GUCEF_GUI_CROUTEDEVENTDATA_H
 #include "gucefGUI_CRoutedEventData.h"
 #define GUCEF_GUI_CROUTEDEVENTDATA_H
@@ -111,6 +116,24 @@ class GUCEF_GUI_PUBLIC_CPP CKeyboardShortcutMap : public CORE::CNotifier
 
     /** Only the flags of Shift, Ctrl, Alt and Meta */
     static UInt32 NormalizeModifiers( UInt32 modifiers );
+
+    /** The ids of the actions that have a chord, in the order they were bound */
+    void GetActionIds( GUCEF::vector< CString >& actionIds ) const;
+
+    /** The chord of a text as DescribeChord() makes it ("Ctrl+Shift+F10", "Grave", ","); false for a text that is none */
+    static bool ParseChord( const CString& text, INPUT::KeyCode& key, UInt32& modifiers );
+
+    /**
+     *  Writes the chord of every action as an attribute of the node, named by the id of the action, with the text of the chord
+     *  as value: the form the settings keep
+     */
+    bool SaveBindings( CORE::CDataNode& node ) const;
+
+    /**
+     *  Reads chords from the attributes of the node: the actions it names get the chord that it holds (all of them are unbound
+     *  first, so that actions can swap chords), an attribute that is no chord is left out. The number of chords bound
+     */
+    UInt32 LoadBindings( const CORE::CDataNode& node );
 
     private:
 

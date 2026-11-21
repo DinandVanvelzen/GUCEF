@@ -142,6 +142,26 @@
 #define GUCEF_GUI_CLABEL_H
 #endif /* GUCEF_GUI_CLABEL_H ? */
 
+#ifndef GUCEF_GUI_CACTIVITYINDICATORFORM_H
+#include "gucefGUI_CActivityIndicatorForm.h"
+#define GUCEF_GUI_CACTIVITYINDICATORFORM_H
+#endif /* GUCEF_GUI_CACTIVITYINDICATORFORM_H ? */
+
+#ifndef GUCEF_GUI_CACTIVITYINFO_H
+#include "gucefGUI_CActivityInfo.h"
+#define GUCEF_GUI_CACTIVITYINFO_H
+#endif /* GUCEF_GUI_CACTIVITYINFO_H ? */
+
+#ifndef GUCEF_GUI_CACTIVITYSCOPE_H
+#include "gucefGUI_CActivityScope.h"
+#define GUCEF_GUI_CACTIVITYSCOPE_H
+#endif /* GUCEF_GUI_CACTIVITYSCOPE_H ? */
+
+#ifndef GUCEF_GUI_CACTIVITYSERVICE_H
+#include "gucefGUI_CActivityService.h"
+#define GUCEF_GUI_CACTIVITYSERVICE_H
+#endif /* GUCEF_GUI_CACTIVITYSERVICE_H ? */
+
 #ifndef GUCEF_GUI_CMESSAGEBOXFORM_H
 #include "gucefGUI_CMessageBoxForm.h"
 #define GUCEF_GUI_CMESSAGEBOXFORM_H
@@ -331,6 +351,10 @@
 #include "gucefGUI_CGeneralSettingsForm.h"
 #define GUCEF_GUI_CGENERALSETTINGSFORM_H
 #endif /* GUCEF_GUI_CGENERALSETTINGSFORM_H ? */
+#ifndef GUCEF_GUI_CINPUTSETTINGSFORM_H
+#include "gucefGUI_CInputSettingsForm.h"
+#define GUCEF_GUI_CINPUTSETTINGSFORM_H
+#endif /* GUCEF_GUI_CINPUTSETTINGSFORM_H ? */
 
 #ifndef GUCEF_GUI_CAUDIOSETTINGSFORM_H
 #include "gucefGUI_CAudioSettingsForm.h"
@@ -616,6 +640,10 @@
 #include "gucefGUI_CTooltipService.h"
 #define GUCEF_GUI_CTOOLTIPSERVICE_H
 #endif /* GUCEF_GUI_CTOOLTIPSERVICE_H ? */
+#ifndef GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H
+#include "gucefGUI_CITooltipTextProvider.h"
+#define GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H
+#endif /* GUCEF_GUI_CITOOLTIPTEXTPROVIDER_H ? */
 
 #ifndef GUCEF_GUI_CTOOLTIPLAYOUT_H
 #include "gucefGUI_CTooltipLayout.h"
@@ -756,6 +784,26 @@
 #include "gucefGUI_CSlider.h"
 #define GUCEF_GUI_CSLIDER_H
 #endif /* GUCEF_GUI_CSLIDER_H ? */
+
+#ifndef GUCEF_GUI_CSPLITTER_H
+#include "gucefGUI_CSplitter.h"
+#define GUCEF_GUI_CSPLITTER_H
+#endif /* GUCEF_GUI_CSPLITTER_H ? */
+
+#ifndef GUCEF_GUI_CFOLDABLEPANEL_H
+#include "gucefGUI_CFoldablePanel.h"
+#define GUCEF_GUI_CFOLDABLEPANEL_H
+#endif /* GUCEF_GUI_CFOLDABLEPANEL_H ? */
+
+#ifndef GUCEF_GUI_CLAYOUTSTATE_H
+#include "gucefGUI_CLayoutState.h"
+#define GUCEF_GUI_CLAYOUTSTATE_H
+#endif /* GUCEF_GUI_CLAYOUTSTATE_H ? */
+
+#ifndef GUCEF_GUI_CLAYOUTMANAGER_H
+#include "gucefGUI_CLayoutManager.h"
+#define GUCEF_GUI_CLAYOUTMANAGER_H
+#endif /* GUCEF_GUI_CLAYOUTMANAGER_H ? */
 
 #ifndef GUCEF_GUI_CPROGRESSBAR_H
 #include "gucefGUI_CProgressBar.h"

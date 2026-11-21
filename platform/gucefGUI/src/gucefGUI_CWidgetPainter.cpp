@@ -59,6 +59,8 @@
 #include "gucefGUI_CCombobox.h"
 #include "gucefGUI_CSpinner.h"
 #include "gucefGUI_CSlider.h"
+#include "gucefGUI_CSplitter.h"
+#include "gucefGUI_CFoldablePanel.h"
 #include "gucefGUI_CProgressBar.h"
 #include "gucefGUI_CDrawSurface.h"
 #include "gucefGUI_CTabControl.h"
@@ -1095,6 +1097,75 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
         }
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Title ), CRect( 10, 0, textRight - 10 > 0 ? textRight - 10 : 0, titleHeight ),
                    "Left", "Center", false, titleColour, commands, OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
+    }
+    if ( const CSplitter* splitter = AsType< CSplitter >( widget ) )
+    {
+        // the handle between the panes with three grip dots; lighter under the pointer and while it is dragged
+        const CRect handle = splitter->GetHandleRect();
+        if ( !handle.IsEmpty() )
+        {
+            Fill( commands, handle, splitter->IsHandleActive() ? ColourOr( widget, EWidgetProperty_HoverColour, CColour( 86, 124, 196, 255 ) ) : ColourOr( widget, EWidgetProperty_HandleColour, CColour( 52, 56, 68, 255 ) ) );
+            const CColour grip( 170, 176, 192, 255 );
+            const bool sideBySide = splitter->IsSideBySide();
+            const Int32 cx = handle.left + handle.width / 2;
+            const Int32 cy = handle.top + handle.height / 2;
+            const Int32 thickness = ( sideBySide ? handle.width : handle.height ) >= 4 ? 2 : 1;
+            for ( Int32 dot=-1; dot<=1; ++dot )
+            {
+                const Int32 offset = dot * 5;
+                Fill( commands, sideBySide ? CRect( cx - thickness / 2, cy + offset, thickness, thickness ) : CRect( cx + offset, cy - thickness / 2, thickness, thickness ), grip );
+            }
+        }
+    }
+    if ( const CFoldablePanel* foldable = AsType< CFoldablePanel >( widget ) )
+    {
+        // the header with the title and the fold button; folded it is the strip, a vertical one with the title a letter to a line
+        const CRect header = foldable->GetHeaderRect();
+        const CColour titleColour = ColourOr( widget, EWidgetProperty_TitleColour, CColour( 220, 224, 234, 255 ) );
+        Fill( commands, header, ColourOr( widget, EWidgetProperty_TitleBarColour, CColour( 40, 44, 56, 255 ) ) );
+        const CRect button = foldable->GetFoldButtonRect();
+        if ( widget.GetBoolProperty( EWidgetProperty_FoldButtonHovered ) )
+            Fill( commands, button, ColourOr( widget, EWidgetProperty_FoldButtonHoverColour, CColour( 255, 255, 255, 30 ) ) );
+        // the chevron points at the edge the panel folds into, and away from it while it is folded
+        const CString& dock = widget.GetPropertyRef( EWidgetProperty_Dock );
+        const bool folded = foldable->IsFolded();
+        const Int32 cx = button.left + button.width / 2;
+        const Int32 cy = button.top + button.height / 2;
+        for ( Int32 thick=0; thick<2; ++thick )
+        {
+            if ( dock == "Left" || dock == "Right" )
+            {
+                const Int32 direction = ( ( dock == "Left" ) != folded ) ? -1 : 1;
+                Line( commands, cx - direction * 2 + thick, cy - 5, cx + direction * 2 + thick, cy, titleColour );
+                Line( commands, cx + direction * 2 + thick, cy, cx - direction * 2 + thick, cy + 5, titleColour );
+            }
+            else
+            {
+                const Int32 direction = ( ( dock == "Bottom" ) != folded ) ? 1 : -1;
+                Line( commands, cx - 5, cy + direction * 2 + thick, cx, cy - direction * 2 + thick, titleColour );
+                Line( commands, cx, cy - direction * 2 + thick, cx + 5, cy + direction * 2 + thick, titleColour );
+            }
+        }
+        const CString& title = widget.GetPropertyRef( EWidgetProperty_Title );
+        const CString font = widget.GetPropertyRef( EWidgetProperty_Font );
+        if ( folded && foldable->IsStripVertical() )
+        {
+            const Int32 lineHeight = context.GetLineHeight( font );
+            Int32 y = button.Bottom() + 4;
+            for ( UInt32 i=0; i<title.Length() && lineHeight > 0 && y + lineHeight <= header.Bottom(); ++i, y += lineHeight )
+            {
+                const CString letter = title.SubstrFromRange( i, i + 1 );
+                PaintText( context, font, letter, CRect( 0, y, header.width, lineHeight ), "Center", "Center", false, titleColour, commands );
+            }
+        }
+        else
+        {
+            const Int32 textLeft = button.left < 8 ? button.Right() + 4 : 10;
+            const Int32 textRight = button.left < 8 ? header.width - 8 : button.left - 4;
+            if ( textRight > textLeft )
+                PaintText( context, font, title, CRect( textLeft, header.top, textRight - textLeft, header.height ), "Left", "Center", false, titleColour, commands,
+                           OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
+        }
     }
     if ( const CScrollPanel* scrollPanel = CWidget::ToScrollPanel( &widget ) )
     {

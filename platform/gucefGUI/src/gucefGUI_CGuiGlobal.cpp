@@ -159,6 +159,7 @@ CGuiGlobal::Initialize( void )
     CEditbox::RegisterEvents();
     CSecretInput::RegisterEvents();
     CMessageBoxForm::RegisterEvents();
+    CActivityService::RegisterEvents();
     CPathFieldForm::RegisterEvents();
     CFileSystemDialogForm::RegisterEvents();
     CGridView::RegisterEvents();

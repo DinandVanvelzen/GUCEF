@@ -113,7 +113,9 @@ void PerformGuiTooltipAndHelpTests( void );
 void PerformGuiGridUxTests( void );
 void PerformGuiNavigationUxTests( void );
 void PerformGuiWebViewTests( void );
+void PerformGuiActivityServiceTests( void );
 void PerformGuiLayoutLintTests( void );
+void PerformGuiSplitterTests( void );
 
 /*-------------------------------------------------------------------------*/
 

@@ -157,6 +157,9 @@ CViewportForm::CViewportForm( void )
     , m_sizeKnown( false )
     , m_updatingWidgets( false )
     , m_frameSubscribed( false )
+    , m_labelWidths()
+    , m_widgetWidths()
+    , m_toolbarWidth( -1 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -173,6 +176,9 @@ CViewportForm::CViewportForm( CIGUIContext* context )
     , m_sizeKnown( false )
     , m_updatingWidgets( false )
     , m_frameSubscribed( false )
+    , m_labelWidths()
+    , m_widgetWidths()
+    , m_toolbarWidth( -1 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -398,8 +404,10 @@ CViewportForm::BuildToggleWidgets( void )
     for ( UInt32 i=0; i<(UInt32)old.size(); ++i )
         context->DestroyWidget( old[ i ] );
 
+    // the widgets get their size here; where they are is decided by LayoutToolbar(), which wraps them into rows to the width of the tool bar
     m_updatingWidgets = true;
-    Int32 x = 6;
+    m_labelWidths.assign( m_toggles.size(), 0 );
+    m_widgetWidths.assign( m_toggles.size(), 0 );
     for ( UInt32 i=0; i<(UInt32)m_toggles.size(); ++i )
     {
         const TToggle& toggle = m_toggles[ i ];
@@ -410,13 +418,10 @@ CViewportForm::BuildToggleWidgets( void )
                 continue;
             Int32 textWidth = 0, textHeight = 0;
             context->MeasureText( box->GetProperty( EWidgetProperty_Font ), toggle.text, 0, textWidth, textHeight );
-            const Int32 width = textWidth + 40;
-            box->SetProperty( EWidgetProperty_Position, "0," + CORE::Int32ToString( x ) + " 0,3" );
-            box->SetProperty( EWidgetProperty_Size, "0," + CORE::Int32ToString( width ) + " 0,28" );
+            m_widgetWidths[ i ] = textWidth + 40;
             box->SetProperty( EWidgetProperty_Text, toggle.text );
             box->SetProperty( EWidgetProperty_Tooltip, toggle.tooltip );
             box->SetBoolProperty( EWidgetProperty_Checked, toggle.checked );
-            x += width + 6;
         }
         else
         {
@@ -425,10 +430,8 @@ CViewportForm::BuildToggleWidgets( void )
             if ( GUCEF_NULL != label )
             {
                 context->MeasureText( label->GetProperty( EWidgetProperty_Font ), toggle.text, 0, labelWidth, textHeight );
-                label->SetProperty( EWidgetProperty_Position, "0," + CORE::Int32ToString( x ) + " 0,8" );
-                label->SetProperty( EWidgetProperty_Size, "0," + CORE::Int32ToString( labelWidth + 4 ) + " 0,24" );
+                m_labelWidths[ i ] = labelWidth + 10;
                 label->SetProperty( EWidgetProperty_Text, toggle.text );
-                x += labelWidth + 10;
             }
             CWidget* list = context->CreateWidget( "Combobox", ToggleWidgetName( i ), toolbar );
             if ( GUCEF_NULL == list )
@@ -443,23 +446,80 @@ CViewportForm::BuildToggleWidgets( void )
                     widest = choiceWidth;
                 items += ( c > 0 ? "\n" : "" ) + toggle.choices[ c ];
             }
-            const Int32 width = widest + 44;
-            list->SetProperty( EWidgetProperty_Position, "0," + CORE::Int32ToString( x ) + " 0,3" );
-            list->SetProperty( EWidgetProperty_Size, "0," + CORE::Int32ToString( width ) + " 0,28" );
+            m_widgetWidths[ i ] = widest + 44;
             list->SetProperty( EWidgetProperty_Items, items );
             list->SetProperty( EWidgetProperty_Tooltip, toggle.tooltip );
             list->SetIntProperty( EWidgetProperty_SelectedIndex, toggle.choice );
-            x += width + 6;
         }
     }
     m_updatingWidgets = false;
     SubscribeToggleWidgets();
 
     // the tool bar is there for toggles only; the surface takes the room it leaves
+    toolbar->SetBoolProperty( EWidgetProperty_Visible, !m_toggles.empty() );
+    m_toolbarWidth = -1;
+    LayoutToolbar();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CViewportForm::LayoutToolbar( void )
+{GUCEF_TRACE;
+
+    CWidget* toolbar = GetWidget( "Toolbar" );
+    CWidget* surface = GetWidget( "Surface" );
+    if ( GUCEF_NULL == toolbar || GUCEF_NULL == surface )
+        return;
+    // the room is the width the tool bar has as it was laid out last; until there is one the toggles are in one row
+    const Int32 width = toolbar->GetRect().width > 0 ? toolbar->GetRect().width : 0x7fff;
+    if ( width == m_toolbarWidth )
+        return;
+    m_toolbarWidth = width;
+
+    // a toggle (its label and its check box or combo box) goes in the row it fits; the one that does not goes to the next row, and a
+    // combo box wider than a row is cut to the row, so that nothing is drawn beyond the tool bar or over what is next to it
+    const Int32 margin = 6;
+    Int32 x = margin;
+    Int32 row = 0;
+    for ( UInt32 i=0; i<(UInt32)m_toggles.size() && i<(UInt32)m_widgetWidths.size(); ++i )
+    {
+        CWidget* widget = GetWidget( ToggleWidgetName( i ) );
+        if ( GUCEF_NULL == widget )
+            continue;
+        const Int32 labelWidth = m_labelWidths[ i ];
+        Int32 widgetWidth = m_widgetWidths[ i ];
+        if ( x > margin && x + labelWidth + widgetWidth + margin > width )
+        {
+            x = margin;
+            ++row;
+        }
+        if ( x + labelWidth + widgetWidth + margin > width )
+        {
+            widgetWidth = width - margin - x - labelWidth - margin;
+            if ( widgetWidth < 48 )
+                widgetWidth = 48;
+        }
+        const Int32 y = row * ToolbarHeight;
+        if ( labelWidth > 0 )
+        {
+            CWidget* label = GetWidget( ToggleLabelName( i ) );
+            if ( GUCEF_NULL != label )
+            {
+                label->SetProperty( EWidgetProperty_Position, "0," + CORE::Int32ToString( x ) + " 0," + CORE::Int32ToString( y + 8 ) );
+                label->SetProperty( EWidgetProperty_Size, "0," + CORE::Int32ToString( labelWidth - 6 ) + " 0,24" );
+            }
+        }
+        widget->SetProperty( EWidgetProperty_Position, "0," + CORE::Int32ToString( x + labelWidth ) + " 0," + CORE::Int32ToString( y + 3 ) );
+        widget->SetProperty( EWidgetProperty_Size, "0," + CORE::Int32ToString( widgetWidth ) + " 0,28" );
+        x += labelWidth + widgetWidth + margin;
+    }
+
     const bool haveToggles = !m_toggles.empty();
-    toolbar->SetBoolProperty( EWidgetProperty_Visible, haveToggles );
-    surface->SetProperty( EWidgetProperty_Position, haveToggles ? "0,0 0," + CORE::Int32ToString( ToolbarHeight ) : CString( "0,0 0,0" ) );
-    surface->SetProperty( EWidgetProperty_Size, haveToggles ? "1,0 1,-" + CORE::Int32ToString( ToolbarHeight ) : CString( "1,0 1,0" ) );
+    const Int32 height = haveToggles ? ( row + 1 ) * ToolbarHeight : 0;
+    toolbar->SetProperty( EWidgetProperty_Size, "1,0 0," + CORE::Int32ToString( height ) );
+    surface->SetProperty( EWidgetProperty_Position, "0,0 0," + CORE::Int32ToString( height ) );
+    surface->SetProperty( EWidgetProperty_Size, "1,0 1,-" + CORE::Int32ToString( height ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -590,6 +650,48 @@ CViewportForm::SetToggleChoice( const CString& id, Int32 choice )
         m_updatingWidgets = false;
     }
     ChangeToggle( (UInt32) index, false, choice );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewportForm::SetToggleChoiceSilently( const CString& id, Int32 choice )
+{GUCEF_TRACE;
+
+    const Int32 index = FindToggle( id );
+    if ( index < 0 || m_toggles[ index ].choices.empty() || choice < 0 || choice >= (Int32) m_toggles[ index ].choices.size() )
+        return false;
+    CWidget* widget = GetWidget( ToggleWidgetName( (UInt32) index ) );
+    if ( GUCEF_NULL != widget )
+    {
+        m_updatingWidgets = true;
+        widget->SetIntProperty( EWidgetProperty_SelectedIndex, -2 );    // not the index of the choice, so that the choice is a change of the widget
+        widget->SetIntProperty( EWidgetProperty_SelectedIndex, choice );
+        m_updatingWidgets = false;
+    }
+    m_toggles[ index ].choice = choice;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CViewportForm::SetToggleDisplayText( const CString& id, const CString& text )
+{GUCEF_TRACE;
+
+    const Int32 index = FindToggle( id );
+    if ( index < 0 || m_toggles[ index ].choices.empty() )
+        return false;
+    CWidget* widget = GetWidget( ToggleWidgetName( (UInt32) index ) );
+    if ( GUCEF_NULL != widget )
+    {
+        m_updatingWidgets = true;
+        widget->SetIntProperty( EWidgetProperty_SelectedIndex, -1 );
+        widget->SetProperty( EWidgetProperty_Text, text );
+        m_updatingWidgets = false;
+    }
+    m_toggles[ index ].choice = -1;
     return true;
 }
 
@@ -746,6 +848,7 @@ CViewportForm::OnFrameRendered( CORE::CNotifier* notifier    ,
                                 CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    LayoutToolbar();
     CheckSurfaceSize();
 }
 

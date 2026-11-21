@@ -380,7 +380,18 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
      */
     void SetSystemCursorShape( TCursorShape shape );
 
+    /** The shape that is shown: the override while there is one (SetSystemCursorShapeOverride()), else the shape that was set */
     TCursorShape GetSystemCursorShape( void ) const;
+
+    /**
+     *  A shape that takes the place of the one the layer sets (a driver sets it from what is under the pointer, every frame) until it is
+     *  cleared: the busy cursor of CActivityService. The shape that is set goes on underneath and is shown again after
+     */
+    void SetSystemCursorShapeOverride( TCursorShape shape );
+
+    void ClearSystemCursorShapeOverride( void );
+
+    bool IsSystemCursorShapeOverridden( void ) const;
 
     Int32 GetCursorHotspotX( void ) const;
 
@@ -689,6 +700,8 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     Int32 m_cursorHotspotY;
     bool m_cursorVisible;
     TCursorShape m_systemCursorShape;
+    TCursorShape m_cursorShapeOverride;
+    bool m_cursorShapeOverridden;
     bool m_keyboardPassThrough;
     UInt32 m_previewConsumedButtons;    /**< the buttons whose press a preview consumed: their release is not for the widgets either */
     Int32 m_pointerX;

@@ -49,6 +49,11 @@
 #define GUCEF_GUI_CITHUMBNAILPROVIDER_H
 #endif /* GUCEF_GUI_CITHUMBNAILPROVIDER_H ? */
 
+#ifndef GUCEF_GUI_CICONTENTITEMORDER_H
+#include "gucefGUI_CIContentItemOrder.h"
+#define GUCEF_GUI_CICONTENTITEMORDER_H
+#endif /* GUCEF_GUI_CICONTENTITEMORDER_H ? */
+
 #ifndef GUCEF_GUI_CICONTENTTYPERESOLVER_H
 #include "gucefGUI_CIContentTypeResolver.h"
 #define GUCEF_GUI_CICONTENTTYPERESOLVER_H
@@ -106,6 +111,9 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     static const CORE::CEvent SelectionChangedEvent;
     static const CORE::CEvent ItemActivatedEvent;
     static const CORE::CEvent FolderChangedEvent;
+    static const CORE::CEvent FolderActivatedEvent;     /**< TCloneableString with the path of a folder that was opened as an item: a double click or Enter on it (the folder is entered as well) */
+    static const CORE::CEvent FilterChangedEvent;       /**< no data: the text of the filter line changed, read GetFilter() */
+    static const CORE::CEvent ViewSwitchedEvent;        /**< no data: the person chose the other view with the switch, read IsAlternateViewActive() */
 
     static void RegisterEvents( void );
 
@@ -136,6 +144,8 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
         bool hasModified;
         CORE::CDateTime modified;
         bool hidden;
+        bool sidecar;               /**< a metadata file of another file (CIContentTypeResolver::IsSidecar()): listed only when sidecars are shown */
+        Int32 rank;                 /**< the rank the order of the root gives it (CIContentItemOrder): lower first */
         CString typeName;
         CString iconName;
 
@@ -192,6 +202,21 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
 
     bool GoUp( void );
 
+    /*
+     *  A second view of the same content: one root named as the alternate view. The tool bar then has a switch of two choices
+     *  (the labels are those given: "Files" and "Resources" in the workbench), the form remembers the folder of the files view,
+     *  and the switch takes the person between the two. The roots stay what they are; the alternate root is a file system like the rest.
+     */
+
+    /** Names the root (by its display name) as the alternate view and shows the switch; false when there is no such root */
+    bool SetAlternateRoot( const CString& rootName, const CString& normalLabel, const CString& alternateLabel );
+    const CString& GetAlternateRootName( void ) const;
+    bool IsAlternateViewActive( void ) const;
+    /** Gives a root (by its display name) an order of its own for the items that are listed by name: NULL for none; the order is not owned */
+    bool SetRootOrder( const CString& rootName, CIContentItemOrder* order );
+    /** Goes to the alternate root (its start) or back to where the files view was; the switch follows. No event: the caller asked */
+    void SetAlternateViewActive( bool active );
+
     /** Reads the folder again */
     void Refresh( void );
 
@@ -228,6 +253,14 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     void SetShowHidden( bool showHidden );
 
     bool GetShowHidden( void ) const;
+
+    /** Shows the sidecars (the metadata files that belong to an asset: Unity .meta, Godot .import) or hides them; they are hidden at first */
+    void SetShowSidecars( bool showSidecars );
+
+    bool GetShowSidecars( void ) const;
+
+    /** How many sidecars the open folder holds that the listing leaves out now */
+    UInt32 GetHiddenSidecarCount( void ) const;
 
     /** Brings the thumbnail tiles up to date after the view scrolled or changed size; only the tiles in view and a row more are made */
     void Update( UInt32 deltaInMs );
@@ -284,6 +317,7 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
         CORE::TFileSystemAccessPtr access;
         CString initialDirectory;
         CString topDirectory;
+        CIContentItemOrder* order;   /**< not owned, NULL for none */
     };
     typedef GUCEF::vector< SRoot > TRootVector;
 
@@ -321,11 +355,15 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     void OnForwardActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnUpActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnFilterTextChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnViewSwitchValueChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void UpdateViewSwitch( void );
     void OnTypeFilterValueChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnThumbnailsChecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnThumbnailsUnchecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnTreeValueChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnTreePropertyChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSidecarsChecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSidecarsUnchecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnItemsSelectionChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnItemsColumnClicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnItemsItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
@@ -334,6 +372,9 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     void OnRootKeyDown( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnThumbnailReady( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    /** Puts the tool bar in one, two or three rows by the width the form has; nothing happens until the form was laid out */
+    void UpdateToolbarLayout( void );
 
     void BuildLayout( CORE::CDataNode& layout, bool asWindow, const CString& title );
     CORE::IFileSystemAccess* GetCurrentAccess( void ) const;
@@ -384,6 +425,7 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     CString m_typeFilter;
     CString::StringVector m_typeChoices;
     bool m_showHidden;
+    bool m_showSidecars;
     EViewMode m_viewMode;
     UInt32 m_thumbnailSize;
     TInt32Vector m_selection;               /**< the selected listed items, ascending */
@@ -402,6 +444,13 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     bool m_tilesDirty;
     bool m_updatingWidgets;
     bool m_frameSubscribed;
+    Int32 m_toolbarMode;
+    Int32 m_toolbarRowHeight;                /**< 0: one row, 1: two rows, 2: three rows, -1: not decided yet (see UpdateToolbarLayout()) */
+    Int32 m_alternateRoot;                   /**< index of the root of the alternate view, -1 for none */
+    UInt32 m_normalRoot;                     /**< the root the files view was in when the alternate view was entered */
+    CString m_normalDirectory;
+    CString m_normalLabel;
+    CString m_alternateLabel;
 };
 
 /*-------------------------------------------------------------------------//

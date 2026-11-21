@@ -38,7 +38,11 @@
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "gucefGUI_CScrollPanel.h"
+#include "gucefGUI_CListBox.h"
+#include "gucefGUI_CInputSettingsForm.h"
+#include "gucefGUI_CITooltipTextProvider.h"
 #include "gucefGUI_TestCommon.h"
+#include "gucefGUI_TestAssetFormSupport.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -275,6 +279,41 @@ IsEnabled( GUI::CForm* form, const CORE::CString& name )
 {
     GUI::CWidget* widget = form->GetWidget( name );
     return GUCEF_NULL != widget && widget->GetBoolProperty( "Enabled" );
+}
+
+/** The input page in a settings form for the layout lint: the actions of an application with their keys */
+class CInputSettingsScene : public GUITEST::CFormScene
+{
+    public:
+
+    GUI::CKeyboardShortcutMap map;
+    GUI::CInputSettingsForm page;
+    GUI::CSettingsForm form;
+
+    explicit CInputSettingsScene( GUI::CGUIContext* context ) : GUITEST::CFormScene(), map(), page(), form( context )
+    {
+        const char* ids[] = { "file", "folder", "fold", "inspector", "preview", "settings", "help", "console" };
+        const char* titles[] = { "Open a file", "Open a folder", "Fold or unfold the resources", "Fold or unfold the inspector", "Preview layout on or off",
+                                 "Open the settings", "Help of the place you are at", "Open or close the developer console" };
+        const INPUT::KeyCode keys[] = { INPUT::KEYCODE_O, INPUT::KEYCODE_O, INPUT::KEYCODE_F9, INPUT::KEYCODE_F10, INPUT::KEYCODE_F11, INPUT::KEYCODE_COMMA, INPUT::KEYCODE_F1, INPUT::KEYCODE_GRAVE };
+        const UInt32 modifiers[] = { INPUT::KEYMOD_CTRL, INPUT::KEYMOD_CTRL | INPUT::KEYMOD_SHIFT, 0, 0, 0, INPUT::KEYMOD_CTRL, 0, 0 };
+        page.SetShortcutMap( &map );
+        for ( UInt32 i=0; i<8; ++i )
+        {
+            map.Bind( ids[ i ], keys[ i ], modifiers[ i ] );
+            page.AddAction( ids[ i ], titles[ i ], keys[ i ], modifiers[ i ] );
+        }
+        form.AddPage( &page );
+        form.Build();
+        form.Open();
+        context->FlushChanges();
+    }
+};
+
+GUITEST::CFormScene*
+BuildInputSettingsScene( GUI::CGUIContext* context )
+{
+    return new CInputSettingsScene( context );
 }
 
 /** A context of the null driver at 1280 x 960 in the dark theme, with the fixed width test font */
@@ -884,6 +923,156 @@ PerformGuiSettingsTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Shortcuts: a chord is parsed from its text, and the bindings are saved and read back, also when two actions swap their keys" )
+    try
+    {
+        INPUT::KeyCode key = INPUT::KEYCODE_UNASSIGNED;
+        UInt32 modifiers = 0;
+        ASSERT_TRUE( GUI::CKeyboardShortcutMap::ParseChord( "Ctrl+Shift+F10", key, modifiers ) && INPUT::KEYCODE_F10 == key && ( INPUT::KEYMOD_CTRL | INPUT::KEYMOD_SHIFT ) == modifiers );
+        ASSERT_TRUE( GUI::CKeyboardShortcutMap::ParseChord( "Ctrl+,", key, modifiers ) && INPUT::KEYCODE_COMMA == key && INPUT::KEYMOD_CTRL == modifiers );
+        ASSERT_TRUE( GUI::CKeyboardShortcutMap::ParseChord( "Grave", key, modifiers ) && INPUT::KEYCODE_GRAVE == key && 0 == modifiers );
+        ASSERT_TRUE( GUI::CKeyboardShortcutMap::ParseChord( "Alt+Left", key, modifiers ) && INPUT::KEYCODE_LEFT == key && INPUT::KEYMOD_ALT == modifiers );
+        ASSERT_FALSE( GUI::CKeyboardShortcutMap::ParseChord( "Hyper+X", key, modifiers ) || GUI::CKeyboardShortcutMap::ParseChord( "", key, modifiers ) || GUI::CKeyboardShortcutMap::ParseChord( "Ctrl+Nonsense", key, modifiers ) );
+        ASSERT_TRUE( "Grave" == GUI::CKeyboardShortcutMap::DescribeKey( INPUT::KEYCODE_GRAVE ) );
+
+        GUI::CKeyboardShortcutMap map;
+        ASSERT_TRUE( map.Bind( "a", INPUT::KEYCODE_F9, 0 ) && map.Bind( "b", INPUT::KEYCODE_F10, 0 ) && map.Bind( "c", INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+        // a and b swap their keys: written, then read into a map that has the old keys
+        GUI::CKeyboardShortcutMap swapped;
+        ASSERT_TRUE( swapped.Bind( "a", INPUT::KEYCODE_F10, 0 ) && swapped.Bind( "b", INPUT::KEYCODE_F9, 0 ) && swapped.Bind( "c", INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+        CORE::CDataNode node( "Shortcuts" );
+        ASSERT_TRUE( swapped.SaveBindings( node ) );
+        ASSERT_TRUE( 3 == map.LoadBindings( node ) );
+        ASSERT_TRUE( "a" == map.FindAction( INPUT::KEYCODE_F10, 0 ) && "b" == map.FindAction( INPUT::KEYCODE_F9, 0 ) && "c" == map.FindAction( INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+        // an entry that is no chord is left out and leaves the action as it was
+        node.SetAttribute( "c", "nonsense" );
+        ASSERT_TRUE( 2 == map.LoadBindings( node ) && "c" == map.FindAction( INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+        CORE::CString::StringVector ids;
+        map.GetActionIds( ids );
+        ASSERT_TRUE( 3 == ids.size() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Settings: The input page lists the actions with their keys, refuses a key that another action has, Escape cancels a change, Reset puts the shipped key back and Apply binds them" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateSettingsContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            GUI::CKeyboardShortcutMap map;
+            ASSERT_TRUE( map.Bind( "fold", INPUT::KEYCODE_F9, 0 ) && map.Bind( "preview", INPUT::KEYCODE_F11, 0 ) && map.Bind( "open", INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+            GUI::CSettingsForm form( context );
+            GUI::CInputSettingsForm page;
+            page.SetShortcutMap( &map );
+            ASSERT_TRUE( page.AddAction( "fold", "Fold the side", INPUT::KEYCODE_F9, 0 ) && page.AddAction( "preview", "Preview", INPUT::KEYCODE_F11, 0 ) && page.AddAction( "open", "Open", INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
+            ASSERT_FALSE( page.AddAction( "fold", "Again", INPUT::KEYCODE_F1, 0 ) || page.AddAction( "", "None", INPUT::KEYCODE_F1, 0 ) );
+            ASSERT_TRUE( form.AddPage( &page ) && form.Build() && form.Open() );
+            CEventCount applied( &page, GUI::CSettingsPageForm::SettingsAppliedEvent );
+            ASSERT_TRUE( "Input" == page.GetTitle() && 3 == page.GetActionCount() );
+            ASSERT_TRUE( "Fold the side    F9" == page.GetActionLine( 0 ) && "Open    Ctrl+O" == page.GetActionLine( 2 ) );
+            GUI::CListbox* list = page.GetWidgetAs< GUI::CListbox >( "Actions" );
+            ASSERT_TRUE( GUCEF_NULL != list && 3 == list->GetItems().size() && "Fold the side    F9" == list->GetItems()[ 0 ] );
+            ASSERT_FALSE( page.HasChanges() || page.IsRebinding() );
+
+            // change: select the action, press Change, press the key
+            ASSERT_TRUE( page.SelectAction( "fold" ) );
+            ClickWidget( context, page.GetWidget( "Change" ) );
+            ASSERT_TRUE( page.IsRebinding() );
+            context->InjectKey( INPUT::KEYCODE_F8, true, 0 );
+            context->InjectKey( INPUT::KEYCODE_F8, false, 0 );
+            ASSERT_FALSE( page.IsRebinding() );
+            ASSERT_TRUE( "Fold the side    F8" == page.GetActionLine( 0 ) && page.HasChanges() && IsEnabled( &form, "Apply" ) );
+            ASSERT_TRUE( "F9" == map.GetShortcutText( "fold" ) );
+
+            // a key another action has: refused with the name of that action, nothing changes
+            ClickWidget( context, page.GetWidget( "Change" ) );
+            context->InjectKey( INPUT::KEYCODE_F11, true, 0 );
+            ASSERT_FALSE( page.IsRebinding() );
+            ASSERT_TRUE( "Fold the side    F8" == page.GetActionLine( 0 ) && page.GetStatusText().HasSubstr( "F11 is the key of Preview already" ) >= 0 );
+            // with a modifier it is another chord
+            ClickWidget( context, page.GetWidget( "Change" ) );
+            context->InjectKey( INPUT::KEYCODE_LSHIFT, true, INPUT::KEYMOD_SHIFT );
+            ASSERT_TRUE( page.IsRebinding() );
+            context->InjectKey( INPUT::KEYCODE_F11, true, INPUT::KEYMOD_SHIFT );
+            ASSERT_TRUE( "Fold the side    Shift+F11" == page.GetActionLine( 0 ) );
+
+            // Escape cancels a change
+            ClickWidget( context, page.GetWidget( "Change" ) );
+            context->InjectKey( INPUT::KEYCODE_ESCAPE, true, 0 );
+            ASSERT_FALSE( page.IsRebinding() );
+            ASSERT_TRUE( "Fold the side    Shift+F11" == page.GetActionLine( 0 ) && form.IsVisible() );
+
+            // reset puts the shipped key back; a key that is taken by another action keeps the reset from happening
+            ClickWidget( context, page.GetWidget( "Reset" ) );
+            ASSERT_TRUE( "Fold the side    F9" == page.GetActionLine( 0 ) );
+            ASSERT_TRUE( page.Rebind( "fold", INPUT::KEYCODE_F5, 0 ) && page.Rebind( "preview", INPUT::KEYCODE_F9, 0 ) );
+            ASSERT_FALSE( page.ResetAction( "fold" ) );
+            ASSERT_TRUE( "Fold the side    F5" == page.GetActionLine( 0 ) );
+            ClickWidget( context, page.GetWidget( "ResetAll" ) );
+            ASSERT_TRUE( "Fold the side    F9" == page.GetActionLine( 0 ) && "Preview    F11" == page.GetActionLine( 1 ) );
+
+            // apply binds the keys in the map, once
+            ASSERT_TRUE( page.Rebind( "fold", INPUT::KEYCODE_F5, 0 ) && page.Rebind( "preview", INPUT::KEYCODE_F9, 0 ) );
+            ClickWidget( context, form.GetWidget( "Apply" ) );
+            ASSERT_TRUE( 1 == applied.count && !page.HasChanges() );
+            ASSERT_TRUE( "F5" == map.GetShortcutText( "fold" ) && "F9" == map.GetShortcutText( "preview" ) && "fold" == map.FindAction( INPUT::KEYCODE_F5, 0 ) );
+            // cancel puts the keys of the map back in the page
+            ASSERT_TRUE( page.Rebind( "open", INPUT::KEYCODE_P, INPUT::KEYMOD_CTRL ) );
+            form.Cancel();
+            ASSERT_TRUE( "Open    Ctrl+O" == page.GetActionLine( 2 ) && "F5" == map.GetShortcutText( "fold" ) );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Tooltips: a text provider gives the tooltip of a widget that has none of its own, and the tooltip of the widget goes first" )
+    try
+    {
+        class CTableProvider : public GUI::CITooltipTextProvider
+        {
+            public:
+            virtual CORE::CString GetTooltipFor( const GUI::CWidget& widget, Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE
+            {
+                return "Close" == widget.GetName() ? CORE::CString( "from the table" ) : CORE::CString::Empty;
+            }
+        };
+
+        GUI::TGuiContextPtr contextPtr = CreateSettingsContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+            GUI::CWidget* close = context->CreateWidget( "Button", "Close", screen );
+            GUI::CWidget* own = context->CreateWidget( "Button", "Own", screen );
+            GUI::CWidget* none = context->CreateWidget( "Button", "None", screen );
+            own->SetProperty( GUI::EWidgetProperty_Tooltip, "its own" );
+            CTableProvider provider;
+            GUI::CTooltipService& tooltips = context->GetTooltipService();
+            ASSERT_TRUE( GUCEF_NULL == tooltips.GetTextProvider() && tooltips.GetTooltipText( *close, 1, 1 ).IsNULLOrEmpty() );
+            tooltips.SetTextProvider( &provider );
+            ASSERT_TRUE( &provider == tooltips.GetTextProvider() );
+            ASSERT_TRUE( "from the table" == tooltips.GetTooltipText( *close, 1, 1 ) && "its own" == tooltips.GetTooltipText( *own, 1, 1 ) && tooltips.GetTooltipText( *none, 1, 1 ).IsNULLOrEmpty() );
+            close->SetProperty( GUI::EWidgetProperty_Tooltip, "the widget says" );
+            ASSERT_TRUE( "the widget says" == tooltips.GetTooltipText( *close, 1, 1 ) );
+            tooltips.SetTextProvider( GUCEF_NULL );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Settings: The scope of reading settings ends at the end of the block, on a return and when an exception unwinds it, and nests" )
     try
     {
@@ -1144,6 +1333,8 @@ PerformGuiSettingsTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    RunFormLintBaseline( "InputSettings", &BuildInputSettingsScene );
 }
 
 /*-------------------------------------------------------------------------*/

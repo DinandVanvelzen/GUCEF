@@ -171,6 +171,15 @@ class GUCEF_GUI_PUBLIC_CPP CViewportForm : public CFormEx
 
     Int32 GetToggleChoice( const CString& id ) const;
 
+    /** As SetToggleChoice() but without ToggleChangedEvent: for the application that follows its own state (the choice is what the application did, not what the user did) */
+    bool SetToggleChoiceSilently( const CString& id, Int32 choice );
+
+    /**
+     *  Shows a text in the list of a toggle that is none of its choices ("Custom": the state the choices cannot say); the choice
+     *  is -1 then. No ToggleChangedEvent. Picking a choice of the list, or SetToggleChoice() and SetToggleChoiceSilently(), puts the choices back.
+     */
+    bool SetToggleDisplayText( const CString& id, const CString& text );
+
     /** The widget of a toggle (a check box or a combo box), NULL for an id that is none */
     CWidget* GetToggleWidget( const CString& id );
 
@@ -198,6 +207,7 @@ class GUCEF_GUI_PUBLIC_CPP CViewportForm : public CFormEx
 
     void BuildLayout( CORE::CDataNode& layout, bool asWindow, const CString& title );
     void BuildToggleWidgets( void );
+    void LayoutToolbar( void );
     void SubscribeToggleWidgets( void );
     Int32 FindToggle( const CString& id ) const;
     Int32 FindToggleOfWidget( CORE::CNotifier* widget ) const;
@@ -215,6 +225,9 @@ class GUCEF_GUI_PUBLIC_CPP CViewportForm : public CFormEx
     bool m_sizeKnown;
     bool m_updatingWidgets;
     bool m_frameSubscribed;
+    GUCEF::vector< Int32 > m_labelWidths;     /**< the room a toggle keeps for its label, 0 for a check box */
+    GUCEF::vector< Int32 > m_widgetWidths;    /**< the width of the check box or combo box of a toggle */
+    Int32 m_toolbarWidth;                     /**< the width the tool bar was laid out for, -1 for not yet */
 };
 
 /*-------------------------------------------------------------------------//
