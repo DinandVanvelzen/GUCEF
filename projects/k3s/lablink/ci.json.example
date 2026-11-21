@@ -21,7 +21,29 @@
         "http://172.16.1.125:32001/forgejo-admin/GUCEF.git",
         "ssh://git@172.16.1.125:32002/forgejo-admin/GUCEF.git"
       ],
-      "defaults": { "mode": "build", "toolchains": [], "cppStandards": [], "products": [] }
+      "defaults": { "mode": "build", "toolchains": [], "cppStandards": [], "products": [] },
+      "registryHost": "worker.lan:32001",
+      "registryUser": "ci-bot",
+      "deploy": {
+        "images": [
+          {
+            "name": "asset-store-service",
+            "registryName": "asset-store-service",
+            "registryOwner": "ci",
+            "targets": {
+              "live": { "namespace": "assetstore", "deployment": "assetstore", "container": "service", "allowScratch": false }
+            }
+          },
+          {
+            "name": "irc-hub",
+            "registryName": "gucef-irc-hub",
+            "registryOwner": "ci",
+            "targets": {
+              "live": { "namespace": "irc", "deployment": "irc-hub", "container": "hub", "allowScratch": true }
+            }
+          }
+        ]
+      }
     }
   ]
 }

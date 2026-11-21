@@ -74,6 +74,15 @@ namespace GUCEFLabLink {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const char* CCiGatewayTokens::ScopeBuild = "build";
+const char* CCiGatewayTokens::ScopeDeploy = "deploy";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -123,6 +132,8 @@ CCiGatewayTokens::CCiGatewayTokens( CStore& store                     ,
     : m_store( store )
     , m_hashFilePath( hashFilePath )
     , m_gatewayUser( StripText( gatewayUser ) )
+    , m_deployMachines()
+    , m_deployMachinesSet( false )
     , m_reported()
     , m_lock()
 {GUCEF_TRACE;
@@ -146,11 +157,153 @@ CORE::CString
 CCiGatewayTokens::HashFileContent( const TTokenMap& tokens )
 {GUCEF_TRACE;
 
-    CORE::CString content = "# The tokens of the CI gateway, written by gucefLabLink on the hub: <SHA-256 of the token as hex><TAB><machine id>\n"
-                            "# Replaced whenever a token is made or taken away; do not edit.\n";
+    return HashFileContent( tokens, TScopeMap() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCiGatewayTokens::HashFileContent( const TTokenMap& tokens, const TScopeMap& scopes )
+{GUCEF_TRACE;
+
+    CORE::CString content = "# The tokens of the CI gateway, written by gucefLabLink on the hub: <SHA-256 of the token as hex><TAB><machine id><TAB><scopes>\n"
+                            "# Scopes: build, or build,deploy for the machines of --ci-deploy-machines. Replaced whenever a token or a scope changes; do not edit.\n";
     for ( TTokenMap::const_iterator i = tokens.begin(); i != tokens.end(); ++i )
-        content += Sha256Hex( (*i).second ) + "\t" + (*i).first + "\n";
+    {
+        TScopeMap::const_iterator scope = scopes.find( (*i).first );
+        const CORE::CString machineScopes = scope != scopes.end() ? (*scope).second : CORE::CString( ScopeBuild );
+        content += Sha256Hex( (*i).second ) + "\t" + (*i).first + "\t" + machineScopes + "\n";
+    }
     return content;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCiGatewayTokens::ParseScopes( const CORE::CString& hashFileContent, TScopeMap& scopes )
+{GUCEF_TRACE;
+
+    scopes.clear();
+    CORE::CString::StringVector lines = hashFileContent.ParseElements( '\n', false );
+    for ( size_t i=0; i<lines.size(); ++i )
+    {
+        const CORE::CString line = StripText( lines[ i ] );
+        if ( line.IsNULLOrEmpty() || '#' == line[ 0 ] )
+            continue;
+        CORE::CString::StringVector fields = line.ParseElements( '\t', true );
+        if ( fields.size() < 2 )
+            continue;
+        const CORE::CString machineId = StripText( fields[ 1 ] );
+        if ( !IsMachineId( machineId ) )
+            continue;
+        // every machine builds; deploy only when the line says so
+        bool deploy = false;
+        if ( fields.size() >= 3 )
+        {
+            CORE::CString::StringVector names = fields[ 2 ].ParseElements( ',', false );
+            for ( size_t n=0; n<names.size(); ++n )
+                if ( StripText( names[ n ] ) == ScopeDeploy )
+                    deploy = true;
+        }
+        scopes[ machineId ] = deploy ? CORE::CString( ScopeBuild ) + "," + ScopeDeploy : CORE::CString( ScopeBuild );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCiGatewayTokens::LoadScopes( TScopeMap& scopes, CORE::CString& problem ) const
+{GUCEF_TRACE;
+
+    scopes.clear();
+    const CORE::CString path = GetHashFilePath();
+    if ( !CORE::FileExists( path ) )
+        return true;
+    CORE::CDynamicBuffer content;
+    if ( !content.LoadContentFromFile( path ) )
+    {
+        problem = "cannot read " + path;
+        return false;
+    }
+    if ( content.GetDataSize() > 0 )
+        ParseScopes( CORE::CString( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() ), scopes );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCiGatewayTokens::SetDeployMachines( const CORE::CString::StringSet& namesOrIds )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_deployMachines.clear();
+    for ( CORE::CString::StringSet::const_iterator i = namesOrIds.begin(); i != namesOrIds.end(); ++i )
+    {
+        const CORE::CString nameOrId = StripText( (*i) );
+        if ( !nameOrId.IsNULLOrEmpty() )
+            m_deployMachines.insert( nameOrId );
+    }
+    m_deployMachinesSet = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCiGatewayTokens::ResolveScopes( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, TScopeMap& scopes )
+{GUCEF_TRACE;
+
+    scopes.clear();
+    if ( !m_deployMachinesSet )
+    {
+        // the command line: every machine keeps the scopes the hash file gives it, nothing is granted or taken away
+        TScopeMap current;
+        CORE::CString problem;
+        if ( !LoadScopes( current, problem ) )
+            ReportOnce( "the scopes of the CI gateway tokens cannot be read, every machine gets \"" + CORE::CString( ScopeBuild ) + "\": " + problem, true );
+        for ( TTokenMap::const_iterator i = tokens.begin(); i != tokens.end(); ++i )
+        {
+            TScopeMap::const_iterator found = current.find( (*i).first );
+            scopes[ (*i).first ] = found != current.end() ? (*found).second : CORE::CString( ScopeBuild );
+        }
+        return;
+    }
+
+    GUCEF::vector< SApproval > loaded;
+    if ( GUCEF_NULL == approvals )
+    {
+        CORE::CString problem;
+        if ( !m_deployMachines.empty() && !m_store.LoadApprovals( loaded, problem ) )
+            ReportOnce( "the approvals cannot be read, no machine gets the CI deploy scope: " + problem, true );
+        approvals = &loaded;
+    }
+
+    // a name or machine id of exactly one approved machine; the same identities as --approve and --revoke take
+    CORE::CString::StringSet deployIds;
+    for ( CORE::CString::StringSet::const_iterator i = m_deployMachines.begin(); i != m_deployMachines.end(); ++i )
+    {
+        UInt32 matches = 0;
+        CORE::CString machineId;
+        for ( size_t a=0; a<approvals->size(); ++a )
+        {
+            const SApproval& approval = (*approvals)[ a ];
+            if ( approval.state != AccessApproved || ( approval.name != (*i) && approval.machineId != (*i) ) )
+                continue;
+            ++matches;
+            machineId = approval.machineId;
+        }
+        if ( 0 == matches )
+            ReportOnce( "the CI deploy machine \"" + (*i) + "\" (--ci-deploy-machines) is not an approved machine: ignored", false );
+        else if ( matches > 1 )
+            ReportOnce( "the CI deploy machine \"" + (*i) + "\" (--ci-deploy-machines) names " + CORE::ToString( matches ) + " approved machines: ignored, name it by its machine id", false );
+        else
+            deployIds.insert( machineId );
+    }
+    for ( TTokenMap::const_iterator i = tokens.begin(); i != tokens.end(); ++i )
+    {
+        const bool deploy = deployIds.find( (*i).first ) != deployIds.end();
+        scopes[ (*i).first ] = deploy ? CORE::CString( ScopeBuild ) + "," + ScopeDeploy : CORE::CString( ScopeBuild );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -191,7 +344,7 @@ CCiGatewayTokens::Load( TTokenMap& tokens, CORE::CString& problem ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CCiGatewayTokens::Save( const TTokenMap& tokens, CORE::CString& problem )
+CCiGatewayTokens::Save( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, CORE::CString& problem )
 {GUCEF_TRACE;
 
     CORE::CString content;
@@ -199,17 +352,19 @@ CCiGatewayTokens::Save( const TTokenMap& tokens, CORE::CString& problem )
         content += (*i).first + "\t" + (*i).second + "\n";
     if ( !m_store.WriteCiGatewayTokens( content, problem ) )
         return false;
-    return WriteHashFile( tokens, problem );
+    return WriteHashFile( tokens, approvals, problem );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CCiGatewayTokens::WriteHashFile( const TTokenMap& tokens, CORE::CString& problem )
+CCiGatewayTokens::WriteHashFile( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, CORE::CString& problem )
 {GUCEF_TRACE;
 
     const CORE::CString path = GetHashFilePath();
-    const CORE::CString content = HashFileContent( tokens );
+    TScopeMap scopes;
+    ResolveScopes( tokens, approvals, scopes );
+    const CORE::CString content = HashFileContent( tokens, scopes );
 
     // no tokens and no file: nothing to say
     if ( tokens.empty() && !CORE::FileExists( path ) )
@@ -298,7 +453,7 @@ CCiGatewayTokens::GetOrMake( const CORE::CString& machineId, CORE::CString& toke
     {
         token = (*found).second;
         // the hash file follows the tokens, also when it went missing
-        return WriteHashFile( tokens, problem );
+        return WriteHashFile( tokens, GUCEF_NULL, problem );
     }
     if ( tokens.size() >= MaxMachines )
     {
@@ -313,7 +468,7 @@ CCiGatewayTokens::GetOrMake( const CORE::CString& machineId, CORE::CString& toke
         return false;
     }
     tokens[ machineId ] = fresh;
-    if ( !Save( tokens, problem ) )
+    if ( !Save( tokens, GUCEF_NULL, problem ) )
         return false;
     token = fresh;
     made = true;
@@ -334,8 +489,8 @@ CCiGatewayTokens::Remove( const CORE::CString::StringVector& machineIds, UInt32&
     for ( size_t i=0; i<machineIds.size(); ++i )
         removed += (UInt32) tokens.erase( machineIds[ i ] );
     if ( removed > 0 )
-        return Save( tokens, problem );
-    return WriteHashFile( tokens, problem );
+        return Save( tokens, GUCEF_NULL, problem );
+    return WriteHashFile( tokens, GUCEF_NULL, problem );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -362,9 +517,9 @@ CCiGatewayTokens::Reconcile( const GUCEF::vector< SApproval >& approvals, UInt32
             ++removed;
     }
     if ( removed > 0 )
-        return Save( kept, problem );
-    // nothing to take away: the hash file only when it is not what it should be
-    return WriteHashFile( kept, problem );
+        return Save( kept, &approvals, problem );
+    // nothing to take away: the hash file only when it is not what it should be, also for a scope that changed
+    return WriteHashFile( kept, &approvals, problem );
 }
 
 /*-------------------------------------------------------------------------//

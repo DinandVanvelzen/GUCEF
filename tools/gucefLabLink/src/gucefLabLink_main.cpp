@@ -124,7 +124,8 @@ using namespace GUCEFLabLink;
  *    --set-secret SECRET    machine: keeps the lab secret of the cluster
  *    --approve NAME|ID      cluster: approves a machine that asked for access
  *    --revoke NAME|ID       cluster: takes an approval back; the machine's token is refused from then on, its CI gateway token is removed
- *    --list                 cluster: the machines that asked for access; "ci-token" after those that have a CI gateway token
+ *    --list                 cluster: the machines that asked for access; "ci-token" after those that have a CI gateway token,
+ *                           "ci-deploy" after those whose gateway token may also deploy
  *
  *  Service (without a command):
  *    --role cluster|machine default: cluster on a k3s server node (/etc/systemd/system/k3s.service), else machine
@@ -158,6 +159,8 @@ using namespace GUCEFLabLink;
  *    --ci-gateway-tokens FILE  cluster: the SHA-256 of every gateway token, for the gateway (mode 0600); default
  *                           ci/gateway-tokens in the state directory. A directory outside the state directory has to exist
  *    --ci-gateway-user NAME cluster: the user the gateway runs as, who is given that file; default the account of the hub
+ *    --ci-deploy-machines A,B   cluster: names or machine ids of approved machines whose gateway token may also deploy
+ *                           (scope "build,deploy" in the hash file), repeatable; default none: every machine may only build
  *    --no-ci                machine: do not ask the cluster for the CI configuration (<mcp dir>/ci)
  *    --web and its options, the user commands of the website: see gucefLabLink_WebCommands.h
  */
@@ -239,6 +242,16 @@ ParseOptions( int argc, char* argv[], SOptions& options )
         else if ( arg == "--ci-gateway-url" ) s.ciGatewayUrl = value;
         else if ( arg == "--ci-gateway-tokens" ) s.ciGatewayTokensFile = value;
         else if ( arg == "--ci-gateway-user" ) s.ciGatewayUser = value;
+        else if ( arg == "--ci-deploy-machines" )
+        {
+            CORE::CString::StringVector machines = value.ParseElements( ',', false );
+            for ( size_t m=0; m<machines.size(); ++m )
+            {
+                const CORE::CString machine = StripText( machines[ m ] );
+                if ( !machine.IsNULLOrEmpty() )
+                    s.ciDeployMachines.insert( machine );
+            }
+        }
         else if ( arg == "--no-ci" ) s.ci = false;
         else if ( CWebCommands::ParseOption( arg, value, s.web, options.command, options.commandArgument ) ) continue;
         else if ( arg == "--help" ) options.help = true;
@@ -261,7 +274,7 @@ PrintUsage( void )
                      "  --local-node NAME, --refresh SECONDS, --retry SECONDS, --no-report, --report-interval SECONDS,\n"
                      "  --db vfstables|postgresql|none, --db-dir DIR, --db-host HOST, --db-port N, --db-name NAME, --db-user NAME, --db-ssl-mode MODE,\n"
                      "  --db-schema NAME, --db-password-file PATH, --history-days N, --history-max N,\n"
-                     "  --ci-registry FILE, --ci-gateway-url URL, --ci-gateway-tokens FILE, --ci-gateway-user NAME, --no-ci\n" );
+                     "  --ci-registry FILE, --ci-gateway-url URL, --ci-gateway-tokens FILE, --ci-gateway-user NAME, --ci-deploy-machines A,B, --no-ci\n" );
     fprintf( stdout, "%s", CWebCommands::Usage() );
 }
 
@@ -319,18 +332,29 @@ ChangeApprovals( CStore& store, const SSettings& settings, const CORE::CString& 
         return 1;
     }
     CCiGatewayTokens ciTokens( store, settings.ciGatewayTokensFile, settings.ciGatewayUser );
+    // without the option the command line keeps the scopes of the hash file; the service applies its own within a minute
+    if ( !settings.ciDeployMachines.empty() )
+        ciTokens.SetDeployMachines( settings.ciDeployMachines );
     if ( command == "--list" )
     {
-        // the machines that have a gateway token of the CI get "ci-token" after their id
+        // the machines that have a gateway token of the CI get "ci-token" after their id, "ci-deploy" when it may also deploy
         CCiGatewayTokens::TTokenMap tokens;
         if ( !ciTokens.Load( tokens, problem ) )
             fprintf( stderr, "gucefLabLink: the gateway tokens of the CI cannot be read: %s\n", problem.C_String() );
+        CCiGatewayTokens::TScopeMap scopes;
+        if ( !ciTokens.LoadScopes( scopes, problem ) )
+            fprintf( stderr, "gucefLabLink: the scopes of the CI gateway tokens cannot be read: %s\n", problem.C_String() );
         if ( approvals.empty() )
             fprintf( stdout, "No machine asked for access.\n" );
         for ( size_t i=0; i<approvals.size(); ++i )
-            fprintf( stdout, "%-9s %-24s %-16s %-8s %s%s\n", approvals[ i ].state.C_String(), approvals[ i ].name.C_String(),
+        {
+            const bool hasToken = tokens.find( approvals[ i ].machineId ) != tokens.end();
+            CCiGatewayTokens::TScopeMap::const_iterator scope = scopes.find( approvals[ i ].machineId );
+            const bool mayDeploy = hasToken && scope != scopes.end() && (*scope).second.HasSubstr( CCiGatewayTokens::ScopeDeploy ) >= 0;
+            fprintf( stdout, "%-9s %-24s %-16s %-8s %s%s%s\n", approvals[ i ].state.C_String(), approvals[ i ].name.C_String(),
                      approvals[ i ].address.C_String(), approvals[ i ].os.C_String(), approvals[ i ].machineId.C_String(),
-                     tokens.find( approvals[ i ].machineId ) != tokens.end() ? " ci-token" : "" );
+                     hasToken ? " ci-token" : "", mayDeploy ? " ci-deploy" : "" );
+        }
         return 0;
     }
 

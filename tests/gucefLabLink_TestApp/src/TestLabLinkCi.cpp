@@ -399,6 +399,24 @@ class CCiLab
 
 /*-------------------------------------------------------------------------*/
 
+/** The third column of the line of the machine in a hash file: "missing" without a line, empty without the column */
+CORE::CString
+ScopeColumnOf( const CORE::CString& hashFile, const CORE::CString& machineId )
+{
+    CORE::CString::StringVector lines = hashFile.ParseElements( '\n', false );
+    for ( size_t i=0; i<lines.size(); ++i )
+    {
+        if ( lines[ i ].IsNULLOrEmpty() || '#' == lines[ i ][ 0 ] )
+            continue;
+        CORE::CString::StringVector fields = lines[ i ].ParseElements( '\t', true );
+        if ( fields.size() >= 2 && fields[ 1 ] == machineId )
+            return fields.size() >= 3 ? fields[ 2 ] : CORE::CString::Empty;
+    }
+    return "missing";
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** A role set of one approval token */
 CORE::CString::StringSet
 Roles( const char* role )
@@ -559,10 +577,10 @@ PerformLabLinkCiTests( void )
 
             // the token store and the hash file are their owner's only; the hash file holds hashes and machine ids
             const CORE::CString hashes = ReadText( tokens.GetHashFilePath() );
-            ASSERT_TRUE( Contains( hashes, Sha256Hex( tokenA ) + "\t" + a + "\n" ) && Contains( hashes, Sha256Hex( tokenB ) + "\t" + b + "\n" ) );
+            ASSERT_TRUE( Contains( hashes, Sha256Hex( tokenA ) + "\t" + a + "\tbuild\n" ) && Contains( hashes, Sha256Hex( tokenB ) + "\t" + b + "\tbuild\n" ) );
             ASSERT_FALSE( Contains( hashes, tokenA ) || Contains( hashes, tokenB ) );
             ASSERT_TRUE( hashes.StartsWith( "#" ) && hashes == CCiGatewayTokens::HashFileContent( CCiGatewayTokens::TTokenMap() ) +
-                         Sha256Hex( tokenA ) + "\t" + a + "\n" + Sha256Hex( tokenB ) + "\t" + b + "\n" );
+                         Sha256Hex( tokenA ) + "\t" + a + "\tbuild\n" + Sha256Hex( tokenB ) + "\t" + b + "\tbuild\n" );
             CORE::CString::StringVector lines = hashes.ParseElements( '\n', false );
             UInt32 entries = 0;
             for ( size_t i=0; i<lines.size(); ++i )
@@ -570,7 +588,7 @@ PerformLabLinkCiTests( void )
                 if ( lines[ i ].IsNULLOrEmpty() || '#' == lines[ i ][ 0 ] )
                     continue;
                 CORE::CString::StringVector fields = lines[ i ].ParseElements( '\t', true );
-                ASSERT_TRUE( 2 == fields.size() && IsHex64( fields[ 0 ] ) && fields[ 0 ] == fields[ 0 ].Lowercase() );
+                ASSERT_TRUE( 3 == fields.size() && IsHex64( fields[ 0 ] ) && fields[ 0 ] == fields[ 0 ].Lowercase() && fields[ 2 ] == "build" );
                 ++entries;
             }
             ASSERT_TRUE( 2 == entries );
@@ -653,7 +671,7 @@ PerformLabLinkCiTests( void )
             const UInt64 inode = InfoOf( path ).inode;
             #endif
             ASSERT_TRUE( CORE::CString( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() ) ==
-                         CCiGatewayTokens::HashFileContent( CCiGatewayTokens::TTokenMap() ) + Sha256Hex( tokenA ) + "\t" + a + "\n" );
+                         CCiGatewayTokens::HashFileContent( CCiGatewayTokens::TTokenMap() ) + Sha256Hex( tokenA ) + "\t" + a + "\tbuild\n" );
 
             // rewritten for a new token, the same again for a request that changes nothing, after a revoke
             ASSERT_TRUE( tokens.GetOrMake( b, tokenB, made, full, problem ) && made );
@@ -670,7 +688,7 @@ PerformLabLinkCiTests( void )
             #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
             ASSERT_TRUE( 0600 == InfoOf( path ).mode && CORE::ReadOwnerOnlyFile( path, content, problem ) );
             #endif
-            ASSERT_TRUE( ReadText( path ) == CCiGatewayTokens::HashFileContent( CCiGatewayTokens::TTokenMap() ) + Sha256Hex( tokenB ) + "\t" + b + "\n" );
+            ASSERT_TRUE( ReadText( path ) == CCiGatewayTokens::HashFileContent( CCiGatewayTokens::TTokenMap() ) + Sha256Hex( tokenB ) + "\t" + b + "\tbuild\n" );
 
             // a gateway user that does not exist: the file stays with the account of the hub, said once in the log
             {
@@ -692,7 +710,7 @@ PerformLabLinkCiTests( void )
             ASSERT_TRUE( elsewhere.GetHashFilePath() == custom );
             ASSERT_TRUE( elsewhere.Remove( ids, removed, problem ) && 1 == removed );
             ASSERT_TRUE( elsewhere.GetOrMake( a, tokenA, made, full, problem ) && made );
-            ASSERT_TRUE( Contains( ReadText( custom ), Sha256Hex( tokenA ) + "\t" + a + "\n" ) && Contains( ReadText( custom ), Sha256Hex( tokenB ) + "\t" + b + "\n" ) );
+            ASSERT_TRUE( Contains( ReadText( custom ), Sha256Hex( tokenA ) + "\t" + a + "\tbuild\n" ) && Contains( ReadText( custom ), Sha256Hex( tokenB ) + "\t" + b + "\tbuild\n" ) );
             #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
             ASSERT_TRUE( 0600 == InfoOf( custom ).mode && CORE::ReadOwnerOnlyFile( custom, content, problem ) );
             #endif
@@ -1053,6 +1071,270 @@ PerformLabLinkCiTests( void )
             CCiGatewayTokens::TTokenMap loaded;
             ASSERT_TRUE( tokens.Load( loaded, problem ) && loaded.empty() );
             ASSERT_FALSE( Contains( ReadText( tokens.GetHashFilePath() ), withToken ) );
+        }
+        catch ( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CI gateway token scopes: the third column, deploy machines by name or id, absent option all build, rewrites only on a difference, unknown names ignored once, revoke removes, mode 0600" )
+        try
+        {
+            GUCEF_TESTFW_SKIP_IF( !LoadCryptography(), "codecspluginMONOCYPHER is not available" );
+            TESTFW::CLogTextCapture capture;
+            TESTFW::CScopedTestDir dir( "gucefLabLink_TestApp_CiScopes" );
+            CStore store( dir.GetPath() );
+            const CORE::CString a = "aaaaaaaaaaaaaaaa0000000000000101";
+            const CORE::CString b = "bbbbbbbbbbbbbbbb0000000000000202";
+            const CORE::CString c = "cccccccccccccccc0000000000000303";
+            const CORE::CString d = "dddddddddddddddd0000000000000404";
+            const CORE::CString e = "eeeeeeeeeeeeeeee0000000000000505";
+            ASSERT_TRUE( AddApproval( store, a, "deploy-pc", AccessApproved ) && AddApproval( store, b, "build-pc", AccessApproved ) );
+            ASSERT_TRUE( AddApproval( store, c, "twin", AccessApproved ) && AddApproval( store, d, "twin", AccessApproved ) );
+            ASSERT_TRUE( AddApproval( store, e, "waiting-pc", AccessPending ) );
+            GUCEF::vector< SApproval > approvals;
+            CORE::CString problem;
+            ASSERT_TRUE( store.LoadApprovals( approvals, problem ) && 5 == approvals.size() );
+
+            // as the command line makes them (no deploy machines set): every machine "build", in the third column
+            CCiGatewayTokens tokens( store );
+            CORE::CString tokenA, tokenB, tokenC, tokenD, tokenE;
+            bool made = false, full = false;
+            ASSERT_TRUE( tokens.GetOrMake( a, tokenA, made, full, problem ) && tokens.GetOrMake( b, tokenB, made, full, problem ) );
+            ASSERT_TRUE( tokens.GetOrMake( c, tokenC, made, full, problem ) && tokens.GetOrMake( d, tokenD, made, full, problem ) );
+            const CORE::CString path = tokens.GetHashFilePath();
+            CORE::CString hashes = ReadText( path );
+            ASSERT_TRUE( hashes.StartsWith( "# The tokens of the CI gateway, written by gucefLabLink on the hub: <SHA-256 of the token as hex><TAB><machine id><TAB><scopes>\n" ) );
+            ASSERT_TRUE( Contains( hashes, "\n# Scopes: build, or build,deploy for the machines of --ci-deploy-machines." ) );
+            ASSERT_TRUE( Contains( hashes, Sha256Hex( tokenA ) + "\t" + a + "\tbuild\n" ) && Contains( hashes, Sha256Hex( tokenD ) + "\t" + d + "\tbuild\n" ) );
+            ASSERT_FALSE( Contains( hashes, "deploy\n" ) );
+            CCiGatewayTokens::TScopeMap scopes;
+            ASSERT_TRUE( tokens.LoadScopes( scopes, problem ) && 4 == scopes.size() && scopes[ a ] == "build" && scopes[ d ] == "build" );
+
+            // the option absent (the service with an empty set): all "build", and the same content is not written again
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            UInt64 inode = InfoOf( path ).inode;
+            #endif
+            UInt32 removed = 0;
+            tokens.SetDeployMachines( CORE::CString::StringSet() );
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 0 == removed && ReadText( path ) == hashes );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            ASSERT_TRUE( inode == InfoOf( path ).inode );
+            #endif
+
+            // by name and by machine id; a name of no approved machine, of a waiting one and of two machines is ignored
+            CORE::CString::StringSet deployers;
+            deployers.insert( "deploy-pc" );
+            deployers.insert( d );
+            deployers.insert( "unknown-pc" );
+            deployers.insert( "twin" );
+            deployers.insert( "waiting-pc" );
+            tokens.SetDeployMachines( deployers );
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 0 == removed );
+            hashes = ReadText( path );
+            ASSERT_TRUE( ScopeColumnOf( hashes, a ) == "build,deploy" && ScopeColumnOf( hashes, d ) == "build,deploy" );
+            ASSERT_TRUE( ScopeColumnOf( hashes, b ) == "build" && ScopeColumnOf( hashes, c ) == "build" );
+            ASSERT_TRUE( Contains( hashes, Sha256Hex( tokenA ) + "\t" + a + "\tbuild,deploy\n" ) );
+            ASSERT_TRUE( tokens.LoadScopes( scopes, problem ) && scopes[ a ] == "build,deploy" && scopes[ b ] == "build" );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            ASSERT_TRUE( inode != InfoOf( path ).inode && 0600 == InfoOf( path ).mode && (UInt32) ::geteuid() == InfoOf( path ).uid );
+            CORE::CDynamicBuffer content;
+            ASSERT_TRUE( CORE::ReadOwnerOnlyFile( path, content, problem ) );
+            inode = InfoOf( path ).inode;
+            #endif
+
+            // the same again, by the check of the service and by a request of a machine: nothing written, each name said once
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 0 == removed );
+            ASSERT_TRUE( tokens.GetOrMake( a, tokenA, made, full, problem ) && !made );
+            ASSERT_TRUE( ReadText( path ) == hashes );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            ASSERT_TRUE( inode == InfoOf( path ).inode );
+            #endif
+            ASSERT_TRUE( 1 == Count( capture.GetText(), "\"unknown-pc\" (--ci-deploy-machines) is not an approved machine: ignored" ) );
+            ASSERT_TRUE( 1 == Count( capture.GetText(), "\"waiting-pc\" (--ci-deploy-machines) is not an approved machine: ignored" ) );
+            ASSERT_TRUE( 1 == Count( capture.GetText(), "\"twin\" (--ci-deploy-machines) names 2 approved machines: ignored" ) );
+
+            // the command line (no deploy machines set) keeps the scopes of the others when it takes one away
+            {
+                CCiGatewayTokens commandLine( store );
+                CORE::CString::StringVector ids;
+                ids.push_back( b );
+                ASSERT_TRUE( commandLine.Remove( ids, removed, problem ) && 1 == removed );
+                hashes = ReadText( path );
+                ASSERT_TRUE( ScopeColumnOf( hashes, b ) == "missing" && !Contains( hashes, Sha256Hex( tokenB ) ) );
+                ASSERT_TRUE( ScopeColumnOf( hashes, a ) == "build,deploy" && ScopeColumnOf( hashes, d ) == "build,deploy" && ScopeColumnOf( hashes, c ) == "build" );
+                #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+                ASSERT_TRUE( 0600 == InfoOf( path ).mode );
+                #endif
+            }
+
+            // the option changes: the file follows
+            deployers.clear();
+            deployers.insert( c );
+            deployers.insert( "waiting-pc" );
+            tokens.SetDeployMachines( deployers );
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 0 == removed );
+            hashes = ReadText( path );
+            ASSERT_TRUE( ScopeColumnOf( hashes, a ) == "build" && ScopeColumnOf( hashes, c ) == "build,deploy" && ScopeColumnOf( hashes, d ) == "build" );
+
+            // the approvals change: a machine that is approved now gets what the option gives it, one taken back loses its line
+            for ( size_t i=0; i<approvals.size(); ++i )
+            {
+                if ( approvals[ i ].machineId == e )
+                    approvals[ i ].state = AccessApproved;
+                if ( approvals[ i ].machineId == c )
+                    approvals[ i ].state = AccessRefused;
+            }
+            ASSERT_TRUE( store.SaveApprovals( approvals, problem ) );
+            ASSERT_TRUE( tokens.GetOrMake( e, tokenE, made, full, problem ) && made );
+            ASSERT_TRUE( ScopeColumnOf( ReadText( path ), e ) == "build,deploy" );
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 1 == removed );
+            hashes = ReadText( path );
+            ASSERT_TRUE( ScopeColumnOf( hashes, c ) == "missing" && !Contains( hashes, Sha256Hex( tokenC ) ) && ScopeColumnOf( hashes, e ) == "build,deploy" );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            ASSERT_TRUE( 0600 == InfoOf( path ).mode && CORE::ReadOwnerOnlyFile( path, content, problem ) );
+            #endif
+
+            // the option taken away: every machine "build" again
+            tokens.SetDeployMachines( CORE::CString::StringSet() );
+            ASSERT_TRUE( tokens.Reconcile( approvals, removed, problem ) && 0 == removed );
+            hashes = ReadText( path );
+            ASSERT_FALSE( Contains( hashes, "\tbuild,deploy\n" ) );
+            ASSERT_TRUE( ScopeColumnOf( hashes, a ) == "build" && ScopeColumnOf( hashes, e ) == "build" );
+
+            // what a reader takes from a line: no third column is "build", unknown scopes are dropped, deploy implies build
+            CCiGatewayTokens::ParseScopes( "# comment\n" + Sha256Hex( "x" ) + "\t" + a + "\n" + Sha256Hex( "y" ) + "\t" + b + "\tdeploy\n" +
+                                           Sha256Hex( "z" ) + "\t" + c + "\tadmin,build\n" + Sha256Hex( "w" ) + "\tshort\tbuild,deploy\n", scopes );
+            ASSERT_TRUE( 3 == scopes.size() && scopes[ a ] == "build" && scopes[ b ] == "build,deploy" && scopes[ c ] == "build" );
+
+            // no token in the log
+            ASSERT_FALSE( capture.Contains( tokenA ) || capture.Contains( tokenB ) || capture.Contains( tokenC ) || capture.Contains( tokenD ) || capture.Contains( tokenE ) );
+        }
+        catch ( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CI hub scopes: --ci-deploy-machines grants deploy at the start of the hub and on CiConfig, a hub without it writes build only" )
+        try
+        {
+            GUCEF_TESTFW_SKIP_IF( !LoadCryptography(), "codecspluginMONOCYPHER is not available" );
+            TESTFW::CScopedTestDir dir( "gucefLabLink_TestApp_CiHubScopes" );
+            SSettings settings;
+            settings.stateDir = CORE::CombinePath( dir.GetPath(), "state" );
+            settings.mcpDir = CORE::CombinePath( dir.GetPath(), "mcp" );
+            settings.clusterName = "hub";
+            CORE::CreateDirs( settings.stateDir );
+            CStore store( settings.stateDir );
+            const CORE::CString workstation = "6666666666666666aaaaaaaaaaaaaaaa";
+            const CORE::CString laptop = "7777777777777777bbbbbbbbbbbbbbbb";
+            ASSERT_TRUE( AddApproval( store, workstation, "workstation", AccessApproved ) && AddApproval( store, laptop, "laptop", AccessApproved ) );
+            CORE::CString token, problem;
+            bool made = false, full = false;
+            {
+                CCiGatewayTokens tokens( store );
+                ASSERT_TRUE( tokens.GetOrMake( workstation, token, made, full, problem ) && tokens.GetOrMake( laptop, token, made, full, problem ) );
+            }
+
+            // the hub with the option: its start brings the file in line
+            settings.ciDeployMachines.insert( "workstation" );
+            {
+                CCiHub hub( settings, store );
+                hub.Start();
+                const CORE::CString hashes = ReadText( hub.GetTokens().GetHashFilePath() );
+                ASSERT_TRUE( ScopeColumnOf( hashes, workstation ) == "build,deploy" && ScopeColumnOf( hashes, laptop ) == "build" );
+                #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+                ASSERT_TRUE( 0600 == InfoOf( hub.GetTokens().GetHashFilePath() ).mode );
+                #endif
+
+                // a machine that asks keeps its scope
+                if ( CCiRegistryFile::IsJsonCodecAvailable() )
+                {
+                    ASSERT_TRUE( WriteText( CCiHub::RegistryFileOf( settings ), Registry ) );
+                    SCiConfigAnswer answer;
+                    ASSERT_TRUE( hub.Answer( "drn:" + workstation, Roles( RoleApproved ), "10.0.0.7", answer ).IsOk() );
+                    ASSERT_TRUE( ScopeColumnOf( ReadText( hub.GetTokens().GetHashFilePath() ), workstation ) == "build,deploy" );
+                }
+            }
+
+            // the hub without the option: build only
+            settings.ciDeployMachines.clear();
+            CCiHub plain( settings, store );
+            plain.Start();
+            const CORE::CString hashes = ReadText( plain.GetTokens().GetHashFilePath() );
+            ASSERT_TRUE( ScopeColumnOf( hashes, workstation ) == "build" && ScopeColumnOf( hashes, laptop ) == "build" );
+        }
+        catch ( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Program: --list marks a machine that may deploy with ci-deploy, --revoke keeps the scope of the others and removes the line of the one" )
+        try
+        {
+            const CORE::CString program = CORE::RelativePath( "$MODULEDIR$/gucefLabLink" );
+            GUCEF_TESTFW_SKIP_IF( !CORE::FileExists( program ), "gucefLabLink is not next to the test application" );
+            GUCEF_TESTFW_SKIP_IF( !LoadCryptography(), "codecspluginMONOCYPHER is not available" );
+            TESTFW::CScopedTestDir dir( "gucefLabLink_TestApp_CiProgramScopes" );
+            const CORE::CString stateDir = CORE::CombinePath( dir.GetPath(), "state" );
+            CORE::CreateDirs( stateDir );
+            CStore store( stateDir );
+            const CORE::CString deployer = "8888888888888888dddddddddddddddd";
+            const CORE::CString builder = "9999999999999999eeeeeeeeeeeeeeee";
+            ASSERT_TRUE( AddApproval( store, deployer, "deploy-pc", AccessApproved ) && AddApproval( store, builder, "build-pc", AccessApproved ) );
+            CCiGatewayTokens tokens( store );
+            CORE::CString::StringSet deployers;
+            deployers.insert( "deploy-pc" );
+            tokens.SetDeployMachines( deployers );
+            CORE::CString token, problem;
+            bool made = false, full = false;
+            ASSERT_TRUE( tokens.GetOrMake( deployer, token, made, full, problem ) && tokens.GetOrMake( builder, token, made, full, problem ) );
+
+            CORE::CProcess::TStringMap environment;
+            environment[ "GUCEF_CONSOLE_LOGGER" ] = "none";
+            CORE::CProcess::TStringVector args;
+            args.push_back( "--state-dir" );
+            args.push_back( stateDir );
+            args.push_back( "--list" );
+            std::string output;
+            Int32 exitCode = -1;
+            ASSERT_TRUE( RunProgram( program, args, environment, 60000, output, exitCode ) );
+            GUCEF_TESTFW_SKIP_IF( 3 == exitCode, "codecspluginMONOCYPHER is not next to gucefLabLink" );
+            ASSERT_TRUE( 0 == exitCode );
+            const CORE::CString list = output.c_str();
+            ASSERT_TRUE( Contains( list, deployer + " ci-token ci-deploy\n" ) && Contains( list, builder + " ci-token\n" ) );
+
+            // the command line without the option neither grants nor takes away
+            args.clear();
+            args.push_back( "--state-dir" );
+            args.push_back( stateDir );
+            args.push_back( "--revoke" );
+            args.push_back( "build-pc" );
+            ASSERT_TRUE( RunProgram( program, args, environment, 60000, output, exitCode ) && 0 == exitCode );
+            CORE::CString hashes = ReadText( tokens.GetHashFilePath() );
+            ASSERT_TRUE( ScopeColumnOf( hashes, builder ) == "missing" && ScopeColumnOf( hashes, deployer ) == "build,deploy" );
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            ASSERT_TRUE( 0600 == InfoOf( tokens.GetHashFilePath() ).mode );
+            #endif
+            args.back() = "deploy-pc";
+            ASSERT_TRUE( RunProgram( program, args, environment, 60000, output, exitCode ) && 0 == exitCode );
+            hashes = ReadText( tokens.GetHashFilePath() );
+            ASSERT_TRUE( ScopeColumnOf( hashes, deployer ) == "missing" && !Contains( hashes, "deploy\n" ) );
         }
         catch ( const TESTFW::STestSkipRequest& )
         {

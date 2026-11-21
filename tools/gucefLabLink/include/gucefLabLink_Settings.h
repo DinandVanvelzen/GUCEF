@@ -97,6 +97,7 @@ struct SSettings
     GUCEF::CORE::CString ciGatewayUrl;          /**< cluster: the URL of the CI gateway; empty: https://<cluster name>:8792 */
     GUCEF::CORE::CString ciGatewayTokensFile;   /**< cluster: the hashes of the gateway tokens, for the gateway; empty: ci/gateway-tokens in the state directory */
     GUCEF::CORE::CString ciGatewayUser;         /**< cluster: the user the gateway runs as, who gets that file (Linux); empty: the account of the hub */
+    GUCEF::CORE::CString::StringSet ciDeployMachines;  /**< cluster: names or machine ids of approved machines whose gateway token may also deploy; empty: every machine may only build */
     bool ci;                                    /**< machine: ask the cluster for the CI configuration and write it to <mcp dir>/ci */
     GUCEF::UInt32 offeredLabMinor;              /**< cluster: the minor of gucef.lab it offers; lower only to test machines against an older hub */
 
@@ -141,6 +142,7 @@ struct SSettings
         , ciGatewayUrl()
         , ciGatewayTokensFile()
         , ciGatewayUser()
+        , ciDeployMachines()
         , ci( true )
         , offeredLabMinor( LabContractMinor )
     {}

@@ -286,6 +286,9 @@ if [ "${ROLE}" = "cluster" ]; then
     [ -n "${LAB_CI_GATEWAY_URL:-}" ] && ARGS="${ARGS} --ci-gateway-url ${LAB_CI_GATEWAY_URL}"
     [ -n "${LAB_CI_GATEWAY_TOKENS:-}" ] && ARGS="${ARGS} --ci-gateway-tokens ${LAB_CI_GATEWAY_TOKENS}"
     [ -n "${LAB_CI_GATEWAY_USER:-}" ] && ARGS="${ARGS} --ci-gateway-user ${LAB_CI_GATEWAY_USER}"
+    # the machines whose gateway token may also deploy (names or machine ids, comma separated, no spaces)
+    LAB_CI_DEPLOY_MACHINES="$(printf '%s' "${LAB_CI_DEPLOY_MACHINES:-}" | tr -d '[:space:]')"
+    [ -n "${LAB_CI_DEPLOY_MACHINES}" ] && ARGS="${ARGS} --ci-deploy-machines ${LAB_CI_DEPLOY_MACHINES}"
 else
     [ "${LAB_JOIN}" = "true" ] && ARGS="${ARGS} --join-script ${K3S_DIR}/agent-node/join.sh"
     [ "${LAB_PERMANENT}" = "true" ] && ARGS="${ARGS} --permanent"

@@ -228,21 +228,27 @@ the hub answers that no CI is configured. The machines receive the text of the f
 identity. A token made with the lab secret names a machine id its maker chose; it is refused, and the refusal is
 logged with the address of the caller. A machine that links with the lab secret therefore gets no CI configuration.
 
-**Gateway tokens.** Each approved machine that asks gets a gateway token of its own: 32 random bytes as 64 hex
-digits, made when it first asks and the same on every later request. The hub keeps at most 256. They are kept in
+**Gateway tokens.** Each approved machine that asks gets a gateway token of its own: 32 random bytes as 64 hex digits,
+made when it first asks and the same on every later request. The hub keeps at most 256. They are kept in
 `ci-gateway-tokens` of the state directory, readable by its owner only and replaced atomically. For the CI gateway,
 which runs on the hub box, the hub keeps the hash file (`--ci-gateway-tokens FILE`, by default `ci/gateway-tokens` of
-the state directory): one `<SHA-256 of the token as hex><TAB><machine id>` per line, comment lines start with `#`. The
-gateway reads it with `CORE::ReadOwnerOnlyFile()`, so the file is mode 0600 and belongs to the user the gateway runs
-as: with `--ci-gateway-user NAME` (Linux) the hub gives it to that user before it replaces the old file; without it,
-or when that user does not exist (said once in the log), the file belongs to the account of the hub, and the gateway
-runs as that account. The file is replaced atomically whenever a token is made or taken away, and only when its
-content differs. A missing directory of the file is made, mode 0755, only when it is inside the state directory; a
-directory elsewhere has to exist (the hub says once in its log when it does not) and has to let the gateway user in.
-The state directory is root's only by default, so a gateway that runs as another user needs a file elsewhere, in a
-directory the installer prepares. `--revoke` takes the token of the machine away at once;
-the service also takes away the tokens of machines that are no longer approved, by whatever means, at its start and
-once a minute. The token of a machine stays the same when its approval token is renewed.
+the state directory): one `<SHA-256 of the token as hex><TAB><machine id><TAB><scopes>` per line, comment lines start
+with `#`. The scopes are a comma separated list: `build` for every machine, `build,deploy` for the machines named by
+`--ci-deploy-machines A,B` (names or machine ids, as `--approve` and `--revoke` take them, of approved machines only;
+a name that fits no approved machine, or more than one, is ignored and said once in the log). The hub always writes
+the third column; a reader takes a line without it as `build`. The gateway reads it with `CORE::ReadOwnerOnlyFile()`,
+so the file is mode 0600 and belongs to the user the gateway runs as: with `--ci-gateway-user NAME` (Linux) the hub
+gives it to that user before it replaces the old file; without it, or when that user does not exist (said once in the
+log), the file belongs to the account of the hub, and the gateway runs as that account. The file is replaced
+atomically whenever a token is made or taken away or a scope changes (a change of `--ci-deploy-machines` at the start
+of the service, a change of the approvals within a minute), and only when its content differs. `--revoke` on the
+command line keeps the scopes of the other machines as the file has them, unless it is given `--ci-deploy-machines` as
+well. A missing directory of the file is made, mode 0755, only when it is inside the state directory; a directory
+elsewhere has to exist (the hub says once in its log when it does not) and has to let the gateway user in. The state
+directory is root's only by default, so a gateway that runs as another user needs a file elsewhere, in a directory the
+installer prepares. `--revoke` takes the token of the machine away at once; the service also takes away the tokens of
+machines that are no longer approved, by whatever means, at its start and once a minute. The token of a machine stays
+the same when its approval token is renewed.
 
 **On the machine.** A machine that links with the token of its approval asks for the CI configuration on every visit
 (`--refresh`, 600 seconds by default) and writes it to the directory `ci` of the MCP directory (`--mcp-dir`, Linux
@@ -278,6 +284,7 @@ nobody else can read:
 | `--ci-gateway-url URL` | cluster | `https://<cluster name>:8792` | the CI gateway the machines are told |
 | `--ci-gateway-tokens FILE` | cluster | `ci/gateway-tokens` in the state directory | the hashes of the gateway tokens, for the gateway |
 | `--ci-gateway-user NAME` | cluster | the account of the hub | the user the gateway runs as, who is given the hash file (Linux) |
+| `--ci-deploy-machines A,B` | cluster | none: every machine may only build | approved machines (names or machine ids) whose gateway token may also deploy; repeatable |
 | `--no-ci` | machine | off | do not ask for the CI configuration |
 
 ## Commands
@@ -286,7 +293,7 @@ nobody else can read:
 |---|---|---|
 | `gucefLabLink --init` | cluster | makes the lab secret when there is none, prints it |
 | `gucefLabLink --set-secret SECRET` | machine | keeps the lab secret |
-| `gucefLabLink --list` | cluster | the machines that asked for access; `ci-token` after the id of a machine that has a CI gateway token |
+| `gucefLabLink --list` | cluster | the machines that asked for access; `ci-token` after the id of a machine that has a CI gateway token, `ci-deploy` when that token may also deploy |
 | `gucefLabLink --approve NAME\|ID` / `--revoke NAME\|ID` | cluster | approves a machine / refuses its token from then on and takes its CI gateway token away |
 | `gucefLabLink --add-user NAME --role admin\|viewer` | cluster | adds a user of the website; the password is asked for |
 | `gucefLabLink --set-password NAME` | cluster | gives a user of the website a new password; its sessions end |
@@ -365,7 +372,7 @@ On Windows the program is the Windows service `gucefLabLink`, installed by `proj
 | `/var/lib/gucef-lablink/claude-registrations` | machine | what it registered with Claude Code, to change only what differs |
 | `/var/lib/gucef-lablink/ci.json` | cluster | the CI registry (`--ci-registry`), written by the administrator |
 | `/var/lib/gucef-lablink/ci-gateway-tokens` | cluster, root only | the CI gateway token of every machine that has one |
-| `/var/lib/gucef-lablink/ci/gateway-tokens` | cluster, the gateway user only | the SHA-256 of every CI gateway token with its machine id, for the CI gateway (`--ci-gateway-tokens`) |
+| `/var/lib/gucef-lablink/ci/gateway-tokens` | cluster, the gateway user only | the SHA-256 of every CI gateway token with its machine id and scopes, for the CI gateway (`--ci-gateway-tokens`) |
 | `/var/lib/gucef-mcp/ci/` | machine | `ci.json`, `gateway.token` and `ca.crt` for `gucefMcpCi`, owned by the user of Claude Code |
 
 On Windows the same files are in `%ProgramData%\gucef-lablink`, with `lablink.conf` (the settings of the service) and

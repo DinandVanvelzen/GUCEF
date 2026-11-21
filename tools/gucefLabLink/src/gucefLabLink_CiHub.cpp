@@ -129,6 +129,8 @@ CCiHub::CCiHub( const SSettings& settings, CStore& store )
     , m_lock()
 {GUCEF_TRACE;
 
+    // the service decides the scopes: without --ci-deploy-machines every machine may only build
+    m_tokens.SetDeployMachines( settings.ciDeployMachines );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -165,6 +167,17 @@ CCiHub::Start( void )
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The CI gateway user " << m_settings.ciGatewayUser << " cannot enter " << m_settings.stateDir <<
                            ", where the gateway tokens are (" << m_tokens.GetHashFilePath() << "): name a file in a directory it can enter with --ci-gateway-tokens" );
     #endif
+    if ( !m_settings.ciDeployMachines.empty() )
+    {
+        CORE::CString machines;
+        for ( CORE::CString::StringSet::const_iterator i = m_settings.ciDeployMachines.begin(); i != m_settings.ciDeployMachines.end(); ++i )
+        {
+            if ( !machines.IsNULLOrEmpty() )
+                machines += ", ";
+            machines += (*i);
+        }
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: The CI gateway tokens of these machines may also deploy: " << machines );
+    }
     CORE::CString merged, problem;
     m_registry.Get( merged, problem );
     Reconcile();

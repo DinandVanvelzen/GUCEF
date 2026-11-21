@@ -64,6 +64,7 @@ within 2 minutes after a machine joined, so the new node's MCP service gets its 
 | `LAB_CI_GATEWAY_URL` | cluster: `https://<cluster name>:8792`, the CI gateway approved machines are told |
 | `LAB_CI_GATEWAY_TOKENS` | cluster: `/var/lib/gucef-lablink/ci/gateway-tokens`, the hashes of the gateway tokens for the gateway |
 | `LAB_CI_GATEWAY_USER` | cluster: empty (root), the user the gateway runs as, who is given that file |
+| `LAB_CI_DEPLOY_MACHINES` | cluster: empty, every machine may only build; otherwise the approved machines (names or machine ids, comma separated) whose gateway token may also deploy |
 | `LAB_CI` | machine: `true`, the machine asks the hub for the CI configuration; `false`: it does not |
 
 Ports: 47810/tcp and 47811/tcp on the cluster, 5353/udp (mDNS) and 47812/udp (broadcast) everywhere, and those of k3s
@@ -97,9 +98,12 @@ sudo install -m 0644 lablink/ci.json.example /var/lib/gucef-lablink/ci.json    #
 ```
 
 The hub reads the file again when it changes; without it no CI is configured and the machines remove their files.
-`sudo gucefLabLink --list` shows `ci-token` after the machines that have a gateway token, and `--revoke` takes the
-token away. The CI gateway on the hub box checks the tokens against the hash file, which holds their SHA-256 hashes
-only: `/var/lib/gucef-lablink/ci/gateway-tokens` by default (`LAB_CI_GATEWAY_TOKENS`), mode 0600 and owned by the user
+`sudo gucefLabLink --list` shows `ci-token` after the machines that have a gateway token, and `ci-deploy` after those
+whose token may also deploy, and `--revoke` takes the token away. Every gateway token has the scope `build`; the
+machines named in `LAB_CI_DEPLOY_MACHINES` (as `--list` names them, or by machine id; for example
+`LAB_CI_DEPLOY_MACHINES=workstation`) have `build,deploy`. A change of the setting takes effect when `install.sh` runs
+again. The CI gateway on the hub box checks the tokens and their scopes against the hash file, which holds the SHA-256
+hashes of the tokens only: `/var/lib/gucef-lablink/ci/gateway-tokens` by default (`LAB_CI_GATEWAY_TOKENS`), mode 0600 and owned by the user
 the gateway runs as (`LAB_CI_GATEWAY_USER`; unset: root). A gateway that runs as another user than root needs
 `LAB_CI_GATEWAY_TOKENS` in a directory it can enter, which has to exist before the hub writes to it. Details: [tools/gucefLabLink/README.md](../../../tools/gucefLabLink/README.md#ci-configuration).
 

@@ -57,11 +57,15 @@ namespace GUCEFLabLink {
  *  directory (CStore: readable by its owner only, replaced atomically), one "<machine id><TAB><token>" per line.
  *
  *  For the gateway, which runs on the hub box, the hash file (--ci-gateway-tokens, default ci/gateway-tokens of the
- *  state directory) holds the SHA-256 of every token: "<sha256 hex><TAB><machine id>" per line, comments start with
- *  '#'. The gateway reads it with CORE::ReadOwnerOnlyFile(), so it is mode 0600 and, with a gateway user
+ *  state directory) holds the SHA-256 of every token: "<sha256 hex><TAB><machine id><TAB><scopes>" per line, comments
+ *  start with '#'. The scopes are a comma separated list of ScopeBuild and ScopeDeploy: every machine has "build", the
+ *  machines named by SetDeployMachines() (--ci-deploy-machines, by name or machine id, approved machines only) have
+ *  "build,deploy"; a reader takes a line without the third column as "build". The gateway reads the file with
+ *  CORE::ReadOwnerOnlyFile(), so it is mode 0600 and, with a gateway user
  *  (--ci-gateway-user) that exists, owned by that user (Linux; given away before it replaces the old file); otherwise
- *  it belongs to the account of the hub. It is replaced atomically whenever a token is made or removed, and written
- *  only when its content differs. Without tokens and without such a file none is made. Its directory is made (0755)
+ *  it belongs to the account of the hub. It is replaced atomically whenever a token or a scope changes, and written
+ *  only when its content differs. Without SetDeployMachines() (the command line) every machine keeps the scopes the
+ *  file gives it, so that --revoke neither grants nor takes away the scope of another machine. Without tokens and without such a file none is made. Its directory is made (0755)
  *  when it is missing and inside the state directory; a directory elsewhere has to exist, and has to let the gateway
  *  user in: that is the decision of the installer.
  *
@@ -73,9 +77,14 @@ class CCiGatewayTokens
     public:
 
     typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::CORE::CString > TTokenMap;   /**< machine id -> token */
+    typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::CORE::CString > TScopeMap;   /**< machine id -> scopes, "build" or "build,deploy" */
 
     /** The most machines that have a token */
     static const GUCEF::UInt32 MaxMachines = 256;
+
+    /** The scopes of the hash file: every machine may build; a machine named by SetDeployMachines() may also deploy */
+    static const char* ScopeBuild;
+    static const char* ScopeDeploy;
 
     /**
      *  @param hashFilePath     the hash file; empty: ci/gateway-tokens of the state directory
@@ -105,20 +114,41 @@ class CCiGatewayTokens
     /** The tokens of the file; an empty map when there is no file */
     bool Load( TTokenMap& tokens, GUCEF::CORE::CString& problem ) const;
 
+    /**
+     *  The machines that get the deploy scope as well as the build scope: names or machine ids as --approve and
+     *  --revoke take them, of approved machines; a name that fits no approved machine, or more than one, is ignored
+     *  and said once in the log. Once set, also to an empty set (nobody deploys), the scopes follow it at every write
+     *  of the hash file; before, every machine keeps the scopes the hash file gives it (absent: "build").
+     */
+    void SetDeployMachines( const GUCEF::CORE::CString::StringSet& namesOrIds );
+
+    /** The scopes of the hash file per machine id; an empty map when there is no file */
+    bool LoadScopes( TScopeMap& scopes, GUCEF::CORE::CString& problem ) const;
+
+    /** The scopes of the lines of a hash file: a line without the third column is "build"; unknown scopes are dropped */
+    static void ParseScopes( const GUCEF::CORE::CString& hashFileContent, TScopeMap& scopes );
+
     /** The hash file: the one given, else <state dir>/ci/gateway-tokens */
     GUCEF::CORE::CString GetHashFilePath( void ) const;
 
-    /** What the hash file holds for the tokens */
+    /** What the hash file holds for the tokens, every machine with the scope "build" */
     static GUCEF::CORE::CString HashFileContent( const TTokenMap& tokens );
+
+    /** What the hash file holds for the tokens with the scopes of their machines; a machine that is not in scopes has "build" */
+    static GUCEF::CORE::CString HashFileContent( const TTokenMap& tokens, const TScopeMap& scopes );
 
     private:
 
     CCiGatewayTokens( const CCiGatewayTokens& src );
     CCiGatewayTokens& operator=( const CCiGatewayTokens& src );
 
-    bool Save( const TTokenMap& tokens, GUCEF::CORE::CString& problem );
+    bool Save( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, GUCEF::CORE::CString& problem );
 
-    bool WriteHashFile( const TTokenMap& tokens, GUCEF::CORE::CString& problem );
+    /** @param approvals    the approvals the deploy machines are found in; GUCEF_NULL: read from the store */
+    bool WriteHashFile( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, GUCEF::CORE::CString& problem );
+
+    /** The scopes of the machines of the tokens, see SetDeployMachines() */
+    void ResolveScopes( const TTokenMap& tokens, const GUCEF::vector< SApproval >* approvals, TScopeMap& scopes );
 
     /** Logs a problem with the hash file the first time it occurs */
     void ReportOnce( const GUCEF::CORE::CString& problem, bool error );
@@ -126,6 +156,8 @@ class CCiGatewayTokens
     CStore& m_store;
     GUCEF::CORE::CString m_hashFilePath;
     GUCEF::CORE::CString m_gatewayUser;
+    GUCEF::CORE::CString::StringSet m_deployMachines;  /**< names or machine ids, see SetDeployMachines() */
+    bool m_deployMachinesSet;
     GUCEF::CORE::CString::StringSet m_reported;     /**< the problems with the hash file that were logged */
     mutable GUCEF::MT::CMutex m_lock;
 };
