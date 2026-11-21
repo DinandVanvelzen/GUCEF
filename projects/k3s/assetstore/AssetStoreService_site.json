@@ -5,7 +5,7 @@
         "drainSeconds": 20,
         "expectedBackSeconds": 30,
         "resourceLogSeconds": 300,
-        "memorySoftLimitMB": 5120,
+        "memorySoftLimitMB": 28672,
         "healthPort": 47480,
         "healthBindAddress": "",
         "adminPort": 47403,
@@ -49,6 +49,7 @@
     },
     "AssetStoreService": {
         "stateDirectory": "/data/state/assetstore",
+        "allowSettingsChanges": true,
         "thumbnailsDirectory": "",
         "resumeIngestsOnStart": true,
         "ingestResumeAttempts": 3,
@@ -58,6 +59,16 @@
         },
         "primaryStore": {
             "indexAfterIngest": true
+        },
+        "reprocess": {
+            "maxConcurrentJobs": 0,
+            "threadsPerJob": 0,
+            "reservedCores": 2,
+            "memoryBudgetMB": 0,
+            "memoryPerJobMB": 2048,
+            "memoryLargestAssetFactor": 4,
+            "maxConcurrentWritesPerLocation": 0,
+            "maxQueuedJobs": 64
         }
     },
     "ConverterHook": {

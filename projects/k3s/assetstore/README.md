@@ -18,7 +18,7 @@ The service folder of `tools/AssetStoreService` for the scripts and templates of
 | state | everything on the claim at `/data`: `state/` (devices, bans, admin token), `staging/`, `commands/`, `credentials/` (the credential store and its key, made at the first start; so no credentials key Secret), the library `library/main` (storage location `main`) |
 | storage | `STORAGE_CLASS=auto`: on the cluster with `longhorn-raid` the claim is `longhorn-raid`; `DATA_SIZE=500Gi`; a claim's class never changes afterwards (see the kit's "Storage") |
 | database | PostgreSQL `my-postgres.postgresql.svc.cluster.local:5432`, database and role `gucef_assets`; the password only as the file `/secrets/assetstore-db/password` (Secret `assetstore-db`, key `password`, mode 0400): the program refuses a password in its settings |
-| resources | request 250m CPU and 1Gi, limit 6Gi memory (no CPU limit): a pack conversion holds a model set in memory. `memorySoftLimitMB` 5120 in the settings logs a warning before the limit; two conversion threads (`ConverterHook.threads`). Edit `MEMORY_LIMIT` and `memorySoftLimitMB` together (the tests check that the soft limit stays below) |
+| resources | request 250m CPU and 1Gi, limit 32Gi memory (no CPU limit): a pack conversion holds a model set in memory and the reprocessing jobs of different packs run in parallel (see "Reprocessing packs"). `memorySoftLimitMB` 28672 in the settings logs a warning before the limit; the reprocessing admits jobs within 70 percent of the limit (`AssetStoreService.reprocess.memoryBudgetMB` 0). Two conversion threads for ingests (`ConverterHook.threads`). Edit `MEMORY_LIMIT` and `memorySoftLimitMB` together (the tests check that the soft limit stays below) |
 | lifecycle | `drainSeconds` 20 = `DRAIN_SECONDS`, grace 45 s, startup up to 300 s (catalogue migrations) |
 | `/tmp` | an emptyDir of 2Gi (`TMP_SIZE`): HOME and the cache directory of the image |
 | plugins | the sixteen plugin `RuntimeDependencies` of the program's `ModuleInfo.xml`, all required, loaded from `plugins/` through the bootstrap file (no `PLUGIN_LINKS`); a missing one ends the program with exit code 3. Order: codecs and databases, the archives of the VFS (`vfspluginLIBARCHIVE`, `vfspluginUNITYPACKAGE`), the image codecs (`imgpluginFreeImage`), the importers (`assetpluginGLTF`, `assetpluginFBX`, `assetpluginUNITY`, `assetpluginGODOT`, `assetpluginUNREAL`) and the Ogre cooker (`assetcookerOGRE`) last, so that everything it uses is there when it loads |
@@ -239,8 +239,8 @@ The service makes the outputs of a pack again with the converter of the running 
 (`library/main/intermediate/<pack>/`) and the engine target resources (`library/main/gucef-ogre3d/<pack>/`). A
 regeneration writes to `staging/regen-...` and swaps the result in; the replaced outputs are kept as
 `library/main/generations/<pack>/previous/` until the next successful regeneration, so `reprocess-rollback` undoes it.
-Originals are never changed. One job per pack at a time, one job runs at a time (the others wait in the job list); each
-step writes an audit entry in the ingest history of the pack. Plan first (read only), then the job, followed to its end
+Originals are never changed. One job per pack at a time; the jobs of different packs run in parallel (below), the
+others wait in the job list; each step writes an audit entry in the ingest history of the pack. Plan first (read only), then the job, followed to its end
 (the answer has the counts before and after, the improved and regressed assets and the report path per pack):
 
     ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin reprocess-plan <pack id> [<pack id> ...] --steps intermediate
@@ -253,5 +253,72 @@ store; `--allow-large true` for the size guard), `reprocess` (`--steps redownloa
 `reprocess-rollback`, `reprocess-plan`, `reprocess-status`, `reprocess-cancel`. Options: `--failed true`, `--statuses a,b`,
 `--kinds a,b`, `--assets <paths or globs>`, `--targets ogre`, `--accept-errors true`, `--dry-run true`, `--follow true`.
 Limits for machine callers (MCP): the child `reprocess` of the service configuration (`maxJobsPerPackPerHour` 4,
-`maxMachineJobsPerHour` 20, `maxMachineRedownloadsPerDay` 6, `maxQueuedJobs` 8, `maxConcurrentJobs` 1). Design:
-`gucefASSETSTORE_RemoteService_Design.md` section 17.
+`maxMachineJobsPerHour` 20, `maxMachineRedownloadsPerDay` 6; a device with the role `owner` and the admin command line
+are not held to them unless `limitOwner`). Design: `gucefASSETSTORE_RemoteService_Design.md` section 17.
+
+**Parallel jobs.** Packs are independent of each other (the assets of one pack are converted together in one job), so the
+jobs of different packs run at the same time, within a budget of threads and memory that the service computes from the
+node and its container at the start (logged as "The reprocessing of packs may use ..."; `reprocess-status` answers it
+as `reprocessing` with what the running and waiting jobs use). Settings, all in `AssetStoreService.reprocess` of the
+site file (`AssetStoreService_site.json` has them with their automatic values):
+
+| key | default | what |
+|---|---|---|
+| `maxConcurrentJobs` | 0: automatic, a quarter of the logical cores, at least 1, at most 8 (28 cores: 7) | jobs that run at a time; the others wait in the job list with the state text `waiting for slot` and hold no thread |
+| `threadsPerJob` | 0: automatic, (logical cores - `reservedCores`) / jobs at a time, at least 1 (28 cores: 3) | converter threads of one job, on a thread pool of its own (`AssetStoreService.reprocess<slot>`); they replace `ConverterHook.threads` for that run, so the busy converter threads of all jobs stay within the cores the service does not keep |
+| `reservedCores` | 2 | cores the automatic `threadsPerJob` leaves to the service (sessions, ingests of the library sync with `ConverterHook.threads`, the database) |
+| `memoryBudgetMB` | 0: automatic, 70 percent of the memory limit of the container (cgroup v2 `memory.max`, v1 `memory.limit_in_bytes`), of the node when the container has none (32Gi: 22937 MB) | the estimated memory the running jobs may hold together; a job that does not fit waits (`waiting for memory`), in the order of the queue; a job estimated at more than the whole budget runs alone |
+| `memoryPerJobMB` | 2048 | the least a job with a conversion step is estimated at |
+| `memoryLargestAssetFactor` | 4 | a job is estimated at this many times the largest asset of its pack when that is more than `memoryPerJobMB` |
+| `maxConcurrentWritesPerLocation` | 0: no limit | jobs that write to the staging of the same storage location at a time (`waiting for location`) |
+| `maxQueuedJobs` | 64 | jobs that wait or run; one more is refused as busy |
+
+A running job shows `running (<threads> thread(s), <MB> MB)` in the job list, `reprocess-status` and the MCP `job_list`.
+The cook step of the Ogre target (Ogre is not thread safe there) runs for one job at a time; the imports and the
+intermediate of the jobs run in parallel. The jobs that wait or run are kept in `/data/state/assetstore/service-state.json`
+(`reprocessJobs`): after a restart they wait for their turn again, and a job that ran starts from the beginning (its
+outputs are swapped in only at its end, so a stopped job left nothing half done). The settings can be changed while the
+service runs (see "Run-time settings" below): running jobs finish with their share, the waiting jobs are looked at
+again at once.
+
+**A library on a network share.** Every job reads the originals of its pack and writes its staging folder in the storage
+location, so seven jobs on a CIFS share are seven streams of reads and writes over the network at once. When the share
+or the network is the bottleneck (the jobs spend their time waiting for files rather than converting), set
+`maxConcurrentWritesPerLocation` to 1 or 2: the jobs of that location then take turns while those of other locations
+still run.
+
+## Run-time settings: read and change them while the service runs
+
+Selected plain settings of the section `AssetStoreService` can be read by every paired device and changed by a device
+with the role `owner` (the workbench, Server > Settings..., or its console: `server settings`, `server set <key> <value>`,
+`server reset <key>`) and by the admin command line, without a restart. A change is checked first (one key that is
+not a setting, or a value outside its type or range, changes nothing and every such key is named), then applied at
+once or, for the settings that say so, at the next start. The changes are kept as overrides in
+`/data/state/assetstore/settings-overrides.json` (written to a temporary file and renamed in place) and applied over the
+site file at every start; a reset puts the value of the site file back. Every change and every refusal is audited in
+`/data/state/assetstore/settings-audit.json` (the newest 500 entries: time, device id and name, key, old and new value
+of the public settings) and in the log; the connected clients are told of each change.
+
+| keys | apply |
+|---|---|
+| `reprocess.*`: `enabled`, `maxConcurrentJobs`, `threadsPerJob`, `reservedCores`, `maxQueuedJobs`, `maxJobsPerPackPerHour`, `maxMachineJobsPerHour`, `maxMachineRedownloadsPerDay`, `limitOwner`, `downloadTimeoutMinutes`, `memoryBudgetMB`, `memoryPerJobMB`, `memoryLargestAssetFactor`, `maxConcurrentWritesPerLocation` | at once (the waiting jobs are looked at again) |
+| `downloads.*`: `maxConcurrentJobs`, `maxConcurrentJobsPerProvider`, `maxAttempts`, `retryBaseDelayInMs`, `retryMaxDelayInMs`, `progressIntervalInMs`, `connectTimeoutInMs`, `maxBytesPerSecond` | at once (the transfer limits from the next transfer) |
+| `downloadStagingKeepHours` | at the next staging sweep |
+| `signInPromptSeconds` | at the next step of a sign in; its value is read by devices with the role `owner` only |
+| `resumeIngestsOnStart`, `ingestResumeAttempts` | at the next start (shown as pending until then) |
+
+Everything else stays in the site file only and is neither readable nor changeable by a client: paths and folders,
+ports, plugin lists, the database, credentials, the keyring, and `allowSettingsChanges` itself. The sync profiles of the
+stores keep their own operations and are shown on the same page of the workbench.
+
+`AssetStoreService.allowSettingsChanges` (default `true`): with `false` every change by a client is refused with
+"settings changes by clients are switched off on this server" (and audited); reading still works. The admin command
+line is the site administrator: it may change the settings either way, and is audited as `admin`. Devices with the
+machine role `mcp` and viewers read the public settings only (MCP: the read-only tool `settings_get`) and are refused a
+change.
+
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin settings-describe
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin settings-set reprocess.maxConcurrentJobs=4 downloads.maxConcurrentJobs=2
+    ssh k3smaster kubectl -n assetstore exec deployment/assetstore -- env GUCEF_CONSOLE_LOGGER=none /opt/assetstore/bin/AssetStoreService --config /opt/assetstore/config/site/AssetStoreService.json --data-dir /data --admin settings-reset reprocess.maxConcurrentJobs
+
+Design: `gucefASSETSTORE_RemoteService_Design.md` section 18.
