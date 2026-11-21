@@ -65,12 +65,15 @@ namespace WEB {
  *  The journal of site discovery: an append-only JSON Lines file, one line per observed request and per user action,
  *  from which the endpoint catalog and its report can be rebuilt at any time without a browser (Load()).
  *
- *  Every line is redacted by the redactor (see CSiteDiscoveryRedactor, SetRedactor()) before it is written. A line that
- *  would still contain a secret value the redactor registered is not written as it is: a stub takes its place, with the
- *  sequence number, the time, the method and the host only (or the action number of an action) and the class of the
- *  secret that was found, never its value, and the line is counted (GetRefusedCount()). The journal is thereby complete
- *  in its numbering and a catalog rebuilt from it counts the stubs. The file is made owner-only (0600) and
- *  every line is flushed when it is written. Request lines start with {"seq": so GetNextSequenceOf() finds the next
+ *  Every line is written as it was observed, never reduced and never left out: the journal is the user's private record
+ *  and everything heuristic (the value rules, the search for registered secret values) happens when a report is made from
+ *  it, so a report can be made again with other settings. Only credentials are masked as the line is written, the value
+ *  and not the line: cookie and Set-Cookie values, the values of Authorization and other secret headers, the values of
+ *  secret query items (hashed, see secretValueMode) and of secret fields of request bodies, and every cookie,
+ *  credential-header or password value the redactor registered wherever it stands in the line (see
+ *  CSiteDiscoveryRedactor::SetJournalMode()). Never-record requests are written as their stub, as always. Stub lines of
+ *  older recorders ("redacted") are read back and counted; what they held cannot be recovered. The file is made
+ *  owner-only (0600) and every line is flushed when it is written. Request lines start with {"seq": so GetNextSequenceOf() finds the next
  *  sequence number from the end of the file; the format of the lines is described in the design of site discovery.
  *
  *  Not thread-safe.
@@ -86,10 +89,12 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
         UInt32 stubbedRequests;     /**< request lines that matched a never-record rule and were reduced to the line of a never-record request */
         UInt32 droppedRequests;     /**< the same, left out altogether because noteNeverRecorded is off */
         UInt32 stubbedActions;      /**< action lines whose page matched a never-record rule: label and page removed */
+        UInt32 maskedRequests;      /**< request lines rewritten because the value rules of the redactor masked something in them */
+        UInt32 maskedActions;       /**< action lines rewritten for the same reason (label or page) */
         UInt32 unreadableLines;     /**< lines that could not be read, kept as they were */
         CORE::CString backupPath;   /**< the copy of the journal as it was, owner-only */
 
-        SScrubResult( void ) : lines( 0 ), stubbedRequests( 0 ), droppedRequests( 0 ), stubbedActions( 0 ), unreadableLines( 0 ), backupPath() {}
+        SScrubResult( void ) : lines( 0 ), stubbedRequests( 0 ), droppedRequests( 0 ), stubbedActions( 0 ), maskedRequests( 0 ), maskedActions( 0 ), unreadableLines( 0 ), backupPath() {}
     };
 
     CSiteDiscoveryJournal( void );
@@ -110,7 +115,7 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
 
     const CORE::CString& GetPath( void ) const;
 
-    /** Appends a request line; false when the journal is not open, a stub had to be written in its place or the line could not be written */
+    /** Appends a request line; false when the journal is not open or the line could not be written */
     bool Append( const CObservedWebRequest& observation );
 
     bool AppendAction( const CObservedUserAction& action );
@@ -118,19 +123,11 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
     /** The sequence number to give the next observation: one past the highest in the journal */
     UInt32 GetNextSequence( void ) const;
 
-    /** The lines that were replaced by a stub because they would have contained a secret value */
-    UInt32 GetRefusedCount( void ) const;
-
-    /** The same lines per class of the secret that was found: "cookie: 2, query-value: 1"; empty when there were none */
-    CORE::CString GetRefusedSummary( void ) const;
-
-    const CSiteDiscoveryRedactor::TClassCountMap& GetRefusedClassCounts( void ) const;
-
     virtual void OnWebRequestObserved( const CObservedWebRequest& observation ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void OnUserActionObserved( const CObservedUserAction& action ) GUCEF_VIRTUAL_OVERRIDE;
 
-    /** The journal line of a request, redacted, without the line end */
+    /** The journal line of a request as observed, credentials masked, without the line end */
     CORE::CString ToJournalLine( const CObservedWebRequest& observation ) const;
 
     CORE::CString ToJournalLine( const CObservedUserAction& action ) const;
@@ -150,12 +147,14 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
     UInt32 Load( const CORE::CString& path, CIWebObservationSink& sink, UInt32* nextSequence = GUCEF_NULL ) const;
 
     /**
-     *  Applies the never-record rules of the redactor's settings to an existing journal file: copies it first to a backup
+     *  Applies the never-record rules and the value rules of the redactor's settings to an existing journal file: copies it first to a backup
      *  next to it (the path with .bak, or .bak.1, .bak.2 ... when that exists; owner-only), then rewrites it so that
      *  a request line that matches a rule but was written as an ordinary request is reduced to the line of a never-record
      *  request (method, host, path template, status; no query, headers, shapes, bodies, cookies), or left out when
-     *  noteNeverRecorded is off, and an action line whose page matches a rule loses its label and page. Other lines are
-     *  kept byte for byte, so sequence numbers stay. The journal must not be open for appending. Needs the json codec plugin.
+     *  noteNeverRecorded is off, and an action line whose page matches a rule loses its label and page. A line in which
+     *  the value rules of the redactor (see CSiteDiscoveryRedactor::RedactObservation()) mask something is written again
+     *  with those rules applied. Other lines are kept byte for byte, so sequence numbers stay. The journal must not be
+     *  open for appending. Needs the json codec plugin.
      */
     bool Scrub( const CORE::CString& path, SScrubResult& result, CORE::CString& problem ) const;
 
@@ -171,9 +170,6 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
     CSiteDiscoveryJournal& operator=( const CSiteDiscoveryJournal& src );   /**< not implemented */
 
     bool WriteLine( const CORE::CString& line );
-    void NoteRefused( CSiteDiscoveryRedactor::ESecretClass secretClass, const CORE::CString& what );
-    CORE::CString ToStubLine( const CObservedWebRequest& observation, const CORE::CString& className ) const;
-    CORE::CString ToStubLine( const CObservedUserAction& action, const CORE::CString& className ) const;
 
     private:
 
@@ -182,8 +178,6 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoveryJournal : public CIWebObservationSink
     CORE::CFileAccess m_file;
     CORE::CString m_path;
     UInt32 m_nextSequence;
-    UInt32 m_refusedCount;
-    CSiteDiscoveryRedactor::TClassCountMap m_refusedByClass;
 };
 
 /*-------------------------------------------------------------------------//

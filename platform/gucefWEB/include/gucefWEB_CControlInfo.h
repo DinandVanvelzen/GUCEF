@@ -53,8 +53,9 @@ namespace WEB {
 
 /**
  *  A control of a page as CDevToolsPage::ListControls() reports it: what kind of control it is and what it is called,
- *  never what it holds. No input values, no password fields, and no text of table cells: a control inside a table cell
- *  has inTableCell set and neither a label nor option labels.
+ *  never what it holds. No input values, no password fields, and no text of table cells. A control inside a table cell
+ *  has inTableCell set and is reported with its accessible name and role like any other (CDevToolsPage::
+ *  SetReportTableCellControlNames( false ) withholds the label and the option labels of those controls).
  */
 class GUCEF_WEB_PUBLIC_CPP CControlInfo
 {
@@ -70,7 +71,7 @@ class GUCEF_WEB_PUBLIC_CPP CControlInfo
     static const CORE::CString RoleRadio;           /**< "radio" */
 
     CORE::CString role;                             /**< one of the roles above */
-    CORE::CString label;                            /**< the accessible name, whitespace collapsed, at most 80 characters; empty in a table cell */
+    CORE::CString label;                            /**< the accessible name, whitespace collapsed, at most 80 characters; empty when the control has no name, or in a table cell when the page withholds those names */
     bool visible;                                   /**< rendered, not hidden from assistive technology, with a box of non-zero size */
     bool enabled;                                   /**< not disabled */
     bool inTableCell;                               /**< inside a td, th or an element with a cell or header role */

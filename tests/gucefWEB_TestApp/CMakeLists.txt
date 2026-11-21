@@ -32,6 +32,7 @@ set( HEADER_FILES
   include/TestIrcWebSocket.h
   include/TestJsonRpcWebSocket.h
   include/TestMcpStreamableHttp.h
+  include/TestReactFlightPayload.h
   include/TestRealBrowser.h
   include/TestServiceHealthHttpEndpoints.h
   include/TestSiteDiscovery.h
@@ -42,6 +43,7 @@ set( HEADER_FILES
   include/TestWebViewSuites.h
   include/TestWebViewSupport.h
   include/TestWorkerThread.h
+  include/TestWriteRequestGuard.h
 )
 
 set( SOURCE_FILES 
@@ -63,6 +65,7 @@ set( SOURCE_FILES
   src/TestIrcWebSocket.cpp
   src/TestJsonRpcWebSocket.cpp
   src/TestMcpStreamableHttp.cpp
+  src/TestReactFlightPayload.cpp
   src/TestRealBrowser.cpp
   src/TestServiceHealthHttpEndpoints.cpp
   src/TestSiteDiscovery.cpp
@@ -73,6 +76,7 @@ set( SOURCE_FILES
   src/TestWebViewEngineHost.cpp
   src/TestWebViewFrameExchange.cpp
   src/TestWebViewTypes.cpp
+  src/TestWriteRequestGuard.cpp
   src/gucefWEB_TestApp_main.cpp
 )
 

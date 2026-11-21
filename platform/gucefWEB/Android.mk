@@ -88,6 +88,8 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CObservedResponseBody.cpp \
   src/gucefWEB_CObservedUserAction.cpp \
   src/gucefWEB_CObservedWebRequest.cpp \
+  src/gucefWEB_CReactFlightPayload.cpp \
+  src/gucefWEB_CReactFlightRow.cpp \
   src/gucefWEB_CServiceHealthHttpEndpoints.cpp \
   src/gucefWEB_CSiteDiscoveryJournal.cpp \
   src/gucefWEB_CSiteDiscoveryRedactor.cpp \
@@ -153,6 +155,10 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CWebViewScriptDialog.cpp \
   src/gucefWEB_CWebViewSemaphoreEngineLoop.cpp \
   src/gucefWEB_CWebViewSettings.cpp \
+  src/gucefWEB_CWriteRequestGuard.cpp \
+  src/gucefWEB_CWriteRequestGuardSettings.cpp \
+  src/gucefWEB_CWriteRequestRefusal.cpp \
+  src/gucefWEB_CWriteRequestRule.cpp \
   src/gucefWEB_IWebView.cpp \
   src/gucefWEB_IWebViewEngine.cpp \
   src/gucefWEB_WebViewTypeNames.cpp

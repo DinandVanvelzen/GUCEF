@@ -96,6 +96,22 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoverySettings : public CORE::CIConfigurable
     bool recordEnumQueryValues;                             /**< record the value of a query parameter when it is enum-like (at most 32 characters of [A-Za-z0-9_.,:+-], not a secret name, not token or id like), with counts per endpoint; default false */
     UInt32 knownSecretMinLength;                            /**< the tripwire only looks for registered secret values of at least this many bytes, default 12, minimum MinKnownSecretLengthFloor (8); see CSiteDiscoveryRedactor */
     UInt32 knownSecretMinEntropyBits;                       /**< and with at least this much Shannon entropy in total (bits), default 32; 0: no entropy rule */
+    CORE::CString::StringVector ignoredSecretFields;        /**< glob patterns (case insensitive) of field, query and header names whose values the report check never looks for; not cookies, Authorization or password fields; default empty */
+    UInt32 tripwireMaxLineShare;                            /**< percent: a registered value that is not a credential and appears in more of the journal lines than this is taken for a public value and not looked for in the report; default 20, 0: off */
+
+    // values where structure is expected: member names, path segments, query names and values, labels, file names
+    bool maskIdLikeMemberNames;                             /**< JSON member names that are data (digit runs, GUIDs, hex runs, generated ids, token-like names) are shown as {key}, so a map keyed by identifiers gives one line; default true */
+    bool maskTokenLikeParameterNames;                       /**< query parameter names that look like an encoded token (a plausible secret, a run of base64 characters mixing cases and digits, or longer than maxParameterNameLength) are shown as {token-like name}; default true */
+    UInt32 maxParameterNameLength;                          /**< see maskTokenLikeParameterNames; default 40 */
+    CORE::CString::StringVector valueQueryNames;            /**< query parameters whose values are free text of the user (a search), never recorded, also not with example or enum values: {value}; case insensitive; default q, query, search, searchterm, term, keyword, keywords, text */
+    CORE::CString::StringVector enumQueryNames;             /**< when not empty, recordEnumQueryValues records the values of these parameters only (case insensitive); default empty: of every parameter */
+    CORE::CString::StringVector valuePathSegmentsAfter;     /**< a path segment that follows a segment of one of these names is a value of the user: {value}; case insensitive; default search, lookup, autocomplete, suggest, typeahead */
+    bool maskUppercaseTokens;                               /**< treat short tokens of capital letters (1 to uppercaseTokenMaxLength letters, such as codes and symbols, also with a class suffix such as XY.Z) as values: {value} in labels, path segments, query values and file names, {key} as member names; the words of nonSensitiveValues excepted; default false */
+    UInt32 uppercaseTokenMaxLength;                         /**< see maskUppercaseTokens; default 5 */
+    CORE::CString::StringVector nonSensitiveValues;         /**< words maskUppercaseTokens leaves alone, case insensitive; default OK, ID, PDF, CSV, TXT, XLS, XLSX, JSON, XML, HTML, URL, API, FAQ, AM, PM, UTC, GMT */
+    CORE::CString::StringVector sensitiveValues;            /**< a dictionary of values of the user (names, labels, codes) shown as {value} or {key} wherever they occur as whole words, case insensitive; default empty */
+    CORE::CString::StringVector sensitiveValuePatterns;     /**< glob patterns of tokens (runs of letters and digits) treated the same way, case insensitive; default empty */
+    bool maskFileNameWords;                                 /**< in the names of downloaded files, the words between two masked parts ({n}, {value}) become {text}; default true */
 
     // bodies
     bool recordResponseShapes;                              /**< describe the data responses of each endpoint: the first and every later one that adds something (see maxShapesPerEndpoint), default true */
@@ -112,6 +128,7 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoverySettings : public CORE::CIConfigurable
 
     // behaviour towards the browser
     bool disableBrowserCache;                               /**< Network.setCacheDisabled, default false so the recorder only listens */
+    bool reportTableCellControlNames;                       /**< label a click on a control inside a table cell with the accessible name of the control (the plain text of a cell is never recorded), default true; false: such a click is recorded by its role only, as <button in table> */
     bool captureClicks;                                     /**< install a passive click and submit listener in watched pages, default false */
 
     // grouping of requests by user action
@@ -158,6 +175,10 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoverySettings : public CORE::CIConfigurable
 
     /** The default secret name patterns on top of the word rule of CORE::CRedactor */
     static CORE::CString::StringVector GetDefaultSecretNamePatterns( void );
+
+    static CORE::CString::StringVector GetDefaultValueQueryNames( void );
+    static CORE::CString::StringVector GetDefaultValuePathSegmentsAfter( void );
+    static CORE::CString::StringVector GetDefaultNonSensitiveValues( void );
 
     static CORE::CString SecretValueModeToString( ESecretValueMode mode );
     static bool SecretValueModeFromString( const CORE::CString& text, ESecretValueMode& mode );

@@ -98,6 +98,25 @@ CSiteDiscoverySession::SetSettings( const CSiteDiscoverySettings& settings )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CSiteDiscoverySession::AddHostFilterTerm( const CORE::CString& term )
+{GUCEF_TRACE;
+
+    const CORE::CString lower = term.Trim( true ).Trim( false ).Lowercase();
+    if ( lower.IsNULLOrEmpty() || CSiteDiscoveryRedactor::MatchesHostFilter( m_settings.hostFilter, lower ) )
+        return false;       // an empty filter records every host already, and a host the filter covers is recorded
+    for ( size_t i=0; i<m_settings.hostFilter.size(); ++i )
+        if ( m_settings.hostFilter[ i ].Lowercase() == lower )
+            return false;
+    // the registry of the redactor stays: SetSettings() keeps the registered values
+    m_settings.hostFilter.push_back( lower );
+    m_redactor.SetSettings( m_settings );
+    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "SiteDiscoverySession: Recording the hosts that contain " << lower << " from now on" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CSiteDiscoverySession::SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator )
 {GUCEF_TRACE;
@@ -322,6 +341,14 @@ bool
 CSiteDiscoverySession::WriteReport( CORE::CString& problem )
 {GUCEF_TRACE;
 
+    // which registered values the journal holds and where: a value in a large share of the lines is a public one
+    if ( m_redactor.GetSecretInfoCount() > 0 )
+    {
+        CORE::CString journalText;
+        if ( CORE::FileExists( GetJournalPath() ) && CSiteDiscoveryJournal::ReadWholeFile( GetJournalPath(), journalText ) )
+            m_redactor.AssessJournal( journalText );
+    }
+
     CORE::CString report;
     if ( !m_catalog.RenderReport( report ) )
     {
@@ -397,7 +424,8 @@ CSiteDiscoverySession::ScrubJournal( CSiteDiscoveryJournal::SScrubResult& result
     if ( !m_journal.Scrub( journalPath, result, problem ) )
         return false;
     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "SiteDiscoverySession: Scrubbed the journal " << journalPath << ": " << result.stubbedRequests << " request line(s) reduced, " <<
-               result.droppedRequests << " dropped, " << result.stubbedActions << " action line(s) cleared; the journal as it was is at " << result.backupPath );
+               result.droppedRequests << " dropped, " << result.stubbedActions << " action line(s) cleared, " << result.maskedRequests << " request and " <<
+               result.maskedActions << " action line(s) rewritten by the value rules; the journal as it was is at " << result.backupPath );
     return RebuildReportFromJournal( problem );
 }
 
@@ -408,19 +436,41 @@ CSiteDiscoverySession::GetRedactionNotice( void ) const
 {GUCEF_TRACE;
 
     const UInt32 parts = m_catalog.GetRedactedEntryCount();
-    const UInt32 lines = m_journal.GetRefusedCount() + m_catalog.GetStubCount();
-    if ( 0 == parts && 0 == lines )
+    UInt32 suspected = 0;
+    for ( UInt32 i=0; i<m_redactor.GetSecretInfoCount(); ++i )
+        if ( m_redactor.GetSecretInfo( i ).suspectedPublic )
+            ++suspected;
+    if ( 0 == parts && 0 == m_catalog.GetStubCount() && 0 == suspected )
         return CORE::CString::Empty;
 
     CORE::CString notice;
     if ( parts > 0 )
-        notice += CORE::UInt32ToString( parts ) + " part(s) of the report were left out and replaced by a placeholder (secret classes: " + m_catalog.GetRedactionSummary() + "). ";
-    if ( m_journal.GetRefusedCount() > 0 )
-        notice += CORE::UInt32ToString( m_journal.GetRefusedCount() ) + " journal line(s) of this run were reduced to a stub (secret classes: " + m_journal.GetRefusedSummary() + "). ";
+    {
+        notice += CORE::UInt32ToString( parts ) + " part(s) of the report were left out and replaced by a placeholder (secret classes: " + m_catalog.GetRedactionSummary() +
+                  "), each because a value seen during recording in a field with a secret name would have appeared in it; the journal holds every line. The values, never shown themselves: ";
+        const CSiteEndpointCatalog::TValueCountMap& byValue = m_catalog.GetRedactedValueCounts();
+        for ( CSiteEndpointCatalog::TValueCountMap::const_iterator v = byValue.begin(); v != byValue.end(); ++v )
+            notice += ( v == byValue.begin() ? "" : "; " ) + CORE::UInt32ToString( v->second ) + " part(s): " + m_redactor.DescribeSecretUse( v->first );
+        notice += ". To see those parts: discover-report rebuilds the report from the journal without any registered value, "
+                  "or add the field to ignoredSecretFields. ";
+    }
+    if ( suspected > 0 )
+    {
+        notice += CORE::UInt32ToString( suspected ) + " value(s) from fields with a secret looking name were in more than " +
+                  CORE::UInt32ToString( m_settings.tripwireMaxLineShare ) + " percent of the journal lines and were taken for public values (tripwireMaxLineShare): ";
+        bool first = true;
+        for ( UInt32 i=0; i<m_redactor.GetSecretInfoCount(); ++i )
+        {
+            if ( !m_redactor.GetSecretInfo( i ).suspectedPublic )
+                continue;
+            notice += ( first ? "" : "; " ) + m_redactor.DescribeSecretUse( i );
+            first = false;
+        }
+        notice += ". ";
+    }
     if ( m_catalog.GetStubCount() > 0 )
-        notice += CORE::UInt32ToString( m_catalog.GetStubCount() ) + " stub line(s) of the journal were counted and not catalogued (secret classes: " + m_catalog.GetStubSummary() + "). ";
-    notice += "Each was left out because a secret value that was seen during recording would have appeared in it; no value is shown. "
-              "Usually an ordinary word or number was registered from a field whose name looks secret: the settings knownSecretMinLength and knownSecretMinEntropyBits decide which values are looked for.";
+        notice += CORE::UInt32ToString( m_catalog.GetStubCount() ) + " journal line(s) are stubs that an older recorder wrote in place of the line (secret classes: " + m_catalog.GetStubSummary() +
+                  "): what they held was never written and cannot be recovered; record again for those requests. ";
     return notice;
 }
 

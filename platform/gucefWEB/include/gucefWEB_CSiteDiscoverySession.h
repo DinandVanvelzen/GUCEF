@@ -126,6 +126,13 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoverySession
 
     const CSiteDiscoverySettings& GetSettings( void ) const;
 
+    /**
+     *  Adds a term to the host filter, also while recording: requests of hosts that contain it are recorded from then on,
+     *  and tabs on such hosts are watched. What was noted or left out before stays as it was. False when the term is empty
+     *  or the filter covers it already (an empty filter covers every host)
+     */
+    bool AddHostFilterTerm( const CORE::CString& term );
+
     /** Reads the journal of earlier runs (continueJournal), opens the journal, finds or starts the browser, connects and starts recording */
     bool Open( CORE::CString& problem );
 
@@ -149,15 +156,16 @@ class GUCEF_WEB_PUBLIC_CPP CSiteDiscoverySession
 
     /**
      *  Rebuilds the report from the journal of the output folder, without a browser and without a network: reads
-     *  the journal into a fresh catalog and writes the report as WriteReport() does. The journal only holds what the
-     *  recorder already redacted, a journal line that was reduced to a stub is counted and not catalogued. The journal is
-     *  only read. Needs the json codec plugin. False, with the problem, when the session is recording, there is no
+     *  the journal into a fresh catalog and writes the report as WriteReport() does. The journal holds every line as it
+     *  was observed (credentials masked), so the value rules of the settings given now decide the report, and a rebuild
+     *  with other settings gives another report; no registered value is known, so the rebuild leaves no part out. A stub
+     *  line that an older recorder wrote is counted and not catalogued: what it held cannot be recovered. The journal is only read. Needs the json codec plugin. False, with the problem, when the session is recording, there is no
      *  journal, or the report could not be written
      */
     bool RebuildReportFromJournal( CORE::CString& problem );
 
     /**
-     *  Applies the never-record rules of the settings to the journal of the output folder (see CSiteDiscoveryJournal::Scrub(),
+     *  Applies the never-record and value rules of the settings to the journal of the output folder (see CSiteDiscoveryJournal::Scrub(),
      *  which first copies the journal to a backup) and rebuilds the report from the scrubbed journal. No browser, no
      *  network. False, with the problem, when the session is recording, there is no journal, the backup or the rewrite
      *  failed; the result then holds what was done up to there. Needs the json codec plugin

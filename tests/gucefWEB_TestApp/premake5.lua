@@ -68,6 +68,7 @@ files( {
   "include/TestIrcWebSocket.h",
   "include/TestJsonRpcWebSocket.h",
   "include/TestMcpStreamableHttp.h",
+  "include/TestReactFlightPayload.h",
   "include/TestRealBrowser.h",
   "include/TestServiceHealthHttpEndpoints.h",
   "include/TestSiteDiscovery.h",
@@ -77,7 +78,8 @@ files( {
   "include/TestWebViewEventLog.h",
   "include/TestWebViewSuites.h",
   "include/TestWebViewSupport.h",
-  "include/TestWorkerThread.h"
+  "include/TestWorkerThread.h",
+  "include/TestWriteRequestGuard.h"
  } )
 
 
@@ -103,6 +105,7 @@ files( {
   "src/TestIrcWebSocket.cpp",
   "src/TestJsonRpcWebSocket.cpp",
   "src/TestMcpStreamableHttp.cpp",
+  "src/TestReactFlightPayload.cpp",
   "src/TestRealBrowser.cpp",
   "src/TestServiceHealthHttpEndpoints.cpp",
   "src/TestSiteDiscovery.cpp",
@@ -113,6 +116,7 @@ files( {
   "src/TestWebViewEngineHost.cpp",
   "src/TestWebViewFrameExchange.cpp",
   "src/TestWebViewTypes.cpp",
+  "src/TestWriteRequestGuard.cpp",
   "src/gucefWEB_TestApp_main.cpp"
  } )
 

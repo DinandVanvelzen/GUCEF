@@ -84,6 +84,7 @@ CNavigationGuard::CNavigationGuard( void )
     , m_refusedCount( 0 )
     , m_allowedCount( 0 )
     , m_recent()
+    , m_writeGuard( GUCEF_NULL )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -95,6 +96,9 @@ CNavigationGuard::~CNavigationGuard()
 {GUCEF_TRACE;
 
     Stop();
+    if ( GUCEF_NULL != m_writeGuard )
+        m_writeGuard->SetHost( GUCEF_NULL, GUCEF_NULL, false );
+    m_writeGuard = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -349,22 +353,92 @@ CNavigationGuard::Start( CChromeDevToolsClient& browserClient )
     discover.SetAttribute( "discover", true );
     bool ok = m_client->SendCommandOnSessionAndWait( CORE::CString::Empty, "Target.setDiscoverTargets", &discover, result );
 
-    // every document request of every tab and frame waits for our answer
-    CORE::CDataNode fetch( GUCEF_DATATYPE_OBJECT );
-    CORE::CDataNode* patterns = fetch.AddChild( "patterns", GUCEF_DATATYPE_ARRAY );
-    CORE::CDataNode* pattern = patterns->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
-    pattern->SetAttribute( "urlPattern", CORE::CVariant( CORE::CString( "*" ) ) );
-    pattern->SetAttribute( "resourceType", CORE::CVariant( CORE::CString( "Document" ) ) );
-    pattern->SetAttribute( "requestStage", CORE::CVariant( CORE::CString( "Request" ) ) );
-    ok = m_client->SendCommandOnSessionAndWait( CORE::CString::Empty, "Fetch.enable", &fetch, result ) && ok;
+    // every document request of every tab and frame waits for our answer; every request at all with a write request guard
+    ok = EnableInterception( GUCEF_NULL != m_writeGuard, true ) && ok;
     if ( !ok )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: The browser would not let the guard intercept navigations" );
         Stop();
         return false;
     }
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: Guarding navigations with " << m_allow.size() << " allow and " << m_deny.size() << " deny rules" );
+    if ( GUCEF_NULL != m_writeGuard )
+        m_writeGuard->SetHost( this, m_client, true );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: Guarding navigations with " << m_allow.size() << " allow and " << m_deny.size() << " deny rules" <<
+               ( GUCEF_NULL != m_writeGuard ? ", and every request other than GET, HEAD and OPTIONS with the write request guard" : "" ) );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CNavigationGuard::EnableInterception( bool everyRequest, bool wait )
+{GUCEF_TRACE;
+
+    CORE::CDataNode fetch( GUCEF_DATATYPE_OBJECT );
+    CORE::CDataNode* patterns = fetch.AddChild( "patterns", GUCEF_DATATYPE_ARRAY );
+    CORE::CDataNode* pattern = patterns->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+    pattern->SetAttribute( "urlPattern", CORE::CVariant( CORE::CString( "*" ) ) );
+    if ( !everyRequest )
+        pattern->SetAttribute( "resourceType", CORE::CVariant( CORE::CString( "Document" ) ) );
+    pattern->SetAttribute( "requestStage", CORE::CVariant( CORE::CString( "Request" ) ) );
+    if ( !wait )
+    {
+        UInt64 commandId = 0;
+        return m_client->SendCommandOnSession( CORE::CString::Empty, "Fetch.enable", &fetch, commandId );
+    }
+    CORE::CDataNode result;
+    return m_client->SendCommandOnSessionAndWait( CORE::CString::Empty, "Fetch.enable", &fetch, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CNavigationGuard::SetWriteRequestGuard( CWriteRequestGuard* writeGuard )
+{GUCEF_TRACE;
+
+    if ( writeGuard == m_writeGuard )
+        return true;
+    if ( GUCEF_NULL != writeGuard && GUCEF_NULL != writeGuard->m_host && writeGuard->m_host != this )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: The write request guard already serves another navigation guard" );
+        return false;
+    }
+    if ( IsStarted() && !EnableInterception( GUCEF_NULL != writeGuard, true ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: The browser would not change what the guard intercepts; the write request guard is as it was" );
+        return false;
+    }
+    if ( GUCEF_NULL != m_writeGuard )
+        m_writeGuard->SetHost( GUCEF_NULL, GUCEF_NULL, false );
+    m_writeGuard = writeGuard;
+    if ( GUCEF_NULL != m_writeGuard )
+        m_writeGuard->SetHost( this, m_client, IsStarted() );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "NavigationGuard: " << ( GUCEF_NULL != m_writeGuard ? "A write request guard is " : "No write request guard is " ) <<
+               ( IsStarted() ? "in force now" : "given, in force from the start" ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWriteRequestGuard*
+CNavigationGuard::GetWriteRequestGuard( void ) const
+{GUCEF_TRACE;
+
+    return m_writeGuard;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNavigationGuard::ReleaseWriteRequestGuard( CWriteRequestGuard* writeGuard )
+{GUCEF_TRACE;
+
+    // the write request guard goes away: from now on only documents are intercepted, as without one
+    if ( writeGuard != m_writeGuard || GUCEF_NULL == writeGuard )
+        return;
+    m_writeGuard = GUCEF_NULL;
+    if ( IsStarted() && m_client->IsConnected() )
+        EnableInterception( false, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -384,6 +458,8 @@ CNavigationGuard::Stop( void )
     m_client = GUCEF_NULL;
     m_pageTargets.clear();
     m_reportedCommits.clear();
+    if ( GUCEF_NULL != m_writeGuard )
+        m_writeGuard->SetHost( this, GUCEF_NULL, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -407,6 +483,11 @@ CNavigationGuard::OnClientDisconnected( CORE::CNotifier* notifier, const CORE::C
         m_client = GUCEF_NULL;
         m_pageTargets.clear();
         m_reportedCommits.clear();
+        if ( GUCEF_NULL != m_writeGuard )
+        {
+            m_writeGuard->SetHost( this, GUCEF_NULL, false );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "NavigationGuard: The connection to the browser ended: the write request guard is no longer in force" );
+        }
     }
 }
 
@@ -443,12 +524,28 @@ CNavigationGuard::HandleRequestPaused( const SChromeProtocolEvent& event )
     const bool redirected = !event.params.GetAttributeValue( "redirectedRequestId" ).AsString( CORE::CString::Empty, false ).IsNULLOrEmpty();
     const bool isMainFrame = m_pageTargets.find( frameId ) != m_pageTargets.end();
 
+    const CORE::CString method = GUCEF_NULL != request ? request->GetAttributeValue( "method" ).AsString( CORE::CString::Empty, false ) : CORE::CString::Empty;
+    const CORE::CString resourceType = event.params.GetAttributeValue( "resourceType" ).AsString( CORE::CString::Empty, false );
+
     // the request waits in the browser: it is answered right away, also when the answer cannot be sent the browser has to hear of it
-    CORE::CString reason;
-    const bool allowed = IsAllowed( url, isMainFrame, &reason );
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "requestId", CORE::CVariant( requestId ) );
     UInt64 commandId = 0;
+    if ( GUCEF_NULL != m_writeGuard && !m_writeGuard->CheckPausedRequest( method, url, resourceType, frameId, isMainFrame, redirected ) )
+    {
+        // the page sees a failed request; the write request guard has reported it
+        params.SetAttribute( "errorReason", CORE::CVariant( CORE::CString( "BlockedByClient" ) ) );
+        m_client->SendCommandOnSession( CORE::CString::Empty, "Fetch.failRequest", &params, commandId );
+        return;
+    }
+    if ( !resourceType.IsNULLOrEmpty() && resourceType != "Document" )
+    {
+        // not a navigation: only the write request guard has a say over it
+        m_client->SendCommandOnSession( CORE::CString::Empty, "Fetch.continueRequest", &params, commandId );
+        return;
+    }
+    CORE::CString reason;
+    const bool allowed = IsAllowed( url, isMainFrame, &reason );
     if ( allowed )
     {
         ++m_allowedCount;

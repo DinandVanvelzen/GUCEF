@@ -40,6 +40,16 @@
 #define GUCEF_WEB_CJSONRPCSERVER_H
 #endif /* GUCEF_WEB_CJSONRPCSERVER_H ? */
 
+#ifndef GUCEF_CORE_COBSERVER_H
+#include "CObserver.h"
+#define GUCEF_CORE_COBSERVER_H
+#endif /* GUCEF_CORE_COBSERVER_H ? */
+
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -51,6 +61,10 @@
  *  discovery pages (/json/version, /json/list) and a JSON-RPC web socket at /devtools/browser/B1 on the same port, which
  *  answers the Target, Network, Page and Runtime commands the recorder sends and sends the events a test scripts, with
  *  the session id of a tab in the envelope as Chrome does. Runs on the application's pulse generator.
+ *
+ *  Answers can be scripted per command (lasting, or once), and so can the events a command makes the browser send,
+ *  before its answer or after it. Page.getNavigationHistory reports the address of the tab, which follows the
+ *  Page.frameNavigated and Page.navigatedWithinDocument events of the main frame it sends.
  */
 class CFakeDevToolsBrowser : public GUCEF::COM::CIJsonRpcRequestHandler
 {
@@ -107,6 +121,33 @@ class CFakeDevToolsBrowser : public GUCEF::COM::CIJsonRpcRequestHandler
     /** Answers the command with this key (as SetCommandResult()) with a protocol error */
     void SetCommandError( const GUCEF::CORE::CString& key, const GUCEF::CORE::CString& message );
 
+    /**
+     *  An answer for the next command with this key only (as SetCommandResult()), looked at before the lasting answers
+     *  and errors. Several queue up in order
+     */
+    void QueueCommandResult( const GUCEF::CORE::CString& key, const GUCEF::CORE::CDataNode& result );
+
+    /** Answers only the next command with this key with a protocol error, before the lasting answers */
+    void QueueCommandError( const GUCEF::CORE::CString& key, const GUCEF::CORE::CString& message );
+
+    /**
+     *  An event the browser sends on the session of every command with this key (as SetCommandResult()): before the
+     *  answer, or after it on a later pulse (at least delayInMs later), as Chrome reports the commit and the load of a
+     *  navigation after its answer. Events after the answer go out in the order they are due
+     */
+    void AddCommandEvent( const GUCEF::CORE::CString& key, const GUCEF::CORE::CString& method, const GUCEF::CORE::CDataNode& params,
+                          bool afterAnswer, GUCEF::UInt32 delayInMs = 0 );
+
+    /** Forgets the scripted answers, errors and events of the key */
+    void ClearCommandScript( const GUCEF::CORE::CString& key );
+
+    /**
+     *  With this on, a Runtime.evaluate whose expression fetches an address of the write request guard's probe host makes
+     *  the browser report that request as paused (Fetch.requestPaused on the browser target, a POST of resource type
+     *  Fetch) before it answers "refused", as a browser with the guard's interception would
+     */
+    void SetEmulateProbeInterception( bool emulate );
+
     /** The parameters of the latest command of the method on the session (any session when '*') */
     bool GetLastCommandParams( const GUCEF::CORE::CString& method, const GUCEF::CORE::CString& sessionId, GUCEF::CORE::CDataNode& params ) const;
 
@@ -133,6 +174,47 @@ class CFakeDevToolsBrowser : public GUCEF::COM::CIJsonRpcRequestHandler
         GUCEF::CORE::CString url;
     };
 
+    struct SScriptedAnswer
+    {
+        bool isError;
+        GUCEF::CORE::CString message;
+        GUCEF::CORE::CDataNode result;
+    };
+
+    struct SScriptedEvent
+    {
+        GUCEF::CORE::CString sessionId;
+        GUCEF::CORE::CString method;
+        GUCEF::CORE::CDataNode params;
+        bool afterAnswer;
+        GUCEF::UInt32 delayInMs;
+        GUCEF::UInt64 dueInMs;
+    };
+
+    typedef GUCEF::vector< SScriptedAnswer > TScriptedAnswerVector;
+    typedef GUCEF::vector< SScriptedEvent > TScriptedEventVector;
+
+    /** Sends the events that come after an answer, on the pulse after it */
+    class CPulseSink : public GUCEF::CORE::CObserver
+    {
+        public:
+
+        explicit CPulseSink( CFakeDevToolsBrowser& owner );
+
+        virtual ~CPulseSink();
+
+        private:
+
+        typedef GUCEF::CORE::CTEventHandlerFunctor< CPulseSink > TEventCallback;
+
+        void OnPulse( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData );
+
+        CFakeDevToolsBrowser& m_owner;
+    };
+
+    void EmitScripted( const SScriptedEvent& event );
+    void SendPendingEvents( void );
+
     GUCEF::WEB::THttpServerRequestHandlerFactory* m_handlerFactory;
     GUCEF::WEB::CHttpServerSettings m_httpSettings;
     GUCEF::WEB::CHTTPServer* m_httpServer;
@@ -144,7 +226,14 @@ class CFakeDevToolsBrowser : public GUCEF::COM::CIJsonRpcRequestHandler
     TStringMap m_postData;
     GUCEF::map< GUCEF::CORE::CString, GUCEF::CORE::CDataNode > m_results;
     TStringMap m_errors;
+    GUCEF::map< GUCEF::CORE::CString, TScriptedAnswerVector > m_queued;
+    GUCEF::map< GUCEF::CORE::CString, TScriptedEventVector > m_commandEvents;
+    TScriptedEventVector m_pendingEvents;
+    TStringMap m_tabUrls;
+    CPulseSink* m_pulseSink;
     GUCEF::CORE::CString::StringSet m_attached;
+    bool m_emulateProbe;
+    GUCEF::UInt32 m_probeCount;
 };
 
 /*-------------------------------------------------------------------------*/

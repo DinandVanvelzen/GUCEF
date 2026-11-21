@@ -39,6 +39,7 @@ LOCAL_SRC_FILES := \
   src/TestIrcWebSocket.cpp \
   src/TestJsonRpcWebSocket.cpp \
   src/TestMcpStreamableHttp.cpp \
+  src/TestReactFlightPayload.cpp \
   src/TestRealBrowser.cpp \
   src/TestServiceHealthHttpEndpoints.cpp \
   src/TestSiteDiscovery.cpp \
@@ -49,6 +50,7 @@ LOCAL_SRC_FILES := \
   src/TestWebViewEngineHost.cpp \
   src/TestWebViewFrameExchange.cpp \
   src/TestWebViewTypes.cpp \
+  src/TestWriteRequestGuard.cpp \
   src/gucefWEB_TestApp_main.cpp
 
 LOCAL_C_INCLUDES := \

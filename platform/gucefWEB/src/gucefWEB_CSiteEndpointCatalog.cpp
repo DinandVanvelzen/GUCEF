@@ -162,6 +162,7 @@ CSiteEndpointCatalog::CSiteEndpointCatalog( void )
     , m_stubByClass()
     , m_lastRedactedCount( 0 )
     , m_lastRedactedByClass()
+    , m_lastRedactedByValue()
 {GUCEF_TRACE;
 
 }
@@ -197,6 +198,7 @@ CSiteEndpointCatalog::Clear( void )
     m_stubByClass.clear();
     m_lastRedactedCount = 0;
     m_lastRedactedByClass.clear();
+    m_lastRedactedByValue.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -258,7 +260,7 @@ CSiteEndpointCatalog::NeedsShape( const CObservedWebRequest& observation ) const
     if ( observation.neverRecorded || observation.isDownload || !Contains( observation.mimeType.Lowercase(), "json" ) )
         return false;
     CUrlPathTemplate parsed;
-    if ( !CUrlPathTemplate::Parse( observation.url, parsed ) || m_redactor->IsNeverRecord( parsed ) )
+    if ( !CUrlPathTemplate::Parse( m_redactor->MaskUrl( observation.url ), parsed ) || m_redactor->IsNeverRecord( parsed ) )
         return false;
     TEndpointMap::const_iterator i = m_entryMap.find( observation.method + " " + parsed.GetKey() );
     if ( i == m_entryMap.end() )
@@ -285,7 +287,7 @@ CSiteEndpointCatalog::IsNewResponseShape( const CObservedWebRequest& observation
 {GUCEF_TRACE;
 
     CUrlPathTemplate parsed;
-    if ( !CUrlPathTemplate::Parse( observation.url, parsed ) )
+    if ( !CUrlPathTemplate::Parse( m_redactor->MaskUrl( observation.url ), parsed ) )
         return false;
     TEndpointMap::const_iterator i = m_entryMap.find( observation.method + " " + parsed.GetKey() );
     if ( i == m_entryMap.end() )
@@ -293,7 +295,9 @@ CSiteEndpointCatalog::IsNewResponseShape( const CObservedWebRequest& observation
     const UInt32 maxShapes = m_redactor->GetSettings().maxShapesPerEndpoint;
     if ( 0 != maxShapes && i->second->shape.mergedCount >= maxShapes )
         return false;
-    return shape.AddsToMerged( i->second->shape, GetMergedShapeLimit() );
+    CWebBodyShape masked( shape );
+    m_redactor->RedactShape( masked );
+    return masked.AddsToMerged( i->second->shape, GetMergedShapeLimit() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -339,6 +343,7 @@ CSiteEndpointCatalog::AddAction( const CObservedUserAction& action )
     }
     SActionRecord record;
     record.action = action;
+    m_redactor->RedactAction( record.action );
     m_actionIndex[ action.id ] = m_actions.size();
     m_actions.push_back( record );
 }
@@ -367,8 +372,12 @@ CSiteEndpointCatalog::AddStep( UInt32 actionId, const CORE::CString& step )
 /*-------------------------------------------------------------------------*/
 
 bool
-CSiteEndpointCatalog::Add( const CObservedWebRequest& observation )
+CSiteEndpointCatalog::Add( const CObservedWebRequest& input )
 {GUCEF_TRACE;
+
+    // the value rules of today, also for an observation read back from an older journal
+    CObservedWebRequest observation( input );
+    m_redactor->RedactObservation( observation );
 
     if ( !observation.redactedClass.IsNULLOrEmpty() )
     {
@@ -391,6 +400,9 @@ CSiteEndpointCatalog::Add( const CObservedWebRequest& observation )
     const bool neverRecorded = observation.neverRecorded || m_redactor->IsNeverRecord( parsed );
     if ( neverRecorded && !settings.noteNeverRecorded )
         return false;
+
+    // a host is shown in every report: a value that stands in one is public
+    m_redactor->NotePublicHost( parsed.host );
 
     ++m_requestCount;
     if ( m_requestCount == 1 || observation.timestamp < m_firstTimestamp )
@@ -580,7 +592,7 @@ CSiteEndpointCatalog::FindEntry( const CORE::CString& method, const CORE::CStrin
 {GUCEF_TRACE;
 
     CUrlPathTemplate parsed;
-    if ( !CUrlPathTemplate::Parse( url, parsed ) )
+    if ( !CUrlPathTemplate::Parse( m_redactor->MaskUrl( url ), parsed ) )
         return GUCEF_NULL;
     TEndpointMap::const_iterator i = m_entryMap.find( method + " " + parsed.GetKey() );
     return i == m_entryMap.end() ? GUCEF_NULL : i->second;
@@ -692,6 +704,15 @@ CSiteEndpointCatalog::GetRedactionSummary( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CSiteEndpointCatalog::TValueCountMap&
+CSiteEndpointCatalog::GetRedactedValueCounts( void ) const
+{GUCEF_TRACE;
+
+    return m_lastRedactedByValue;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CSiteEndpointCatalog::GetStubCount( void ) const
 {GUCEF_TRACE;
@@ -714,14 +735,27 @@ bool
 CSiteEndpointCatalog::Guard( const CORE::CString& block, CORE::CString& reason ) const
 {GUCEF_TRACE;
 
-    CSiteDiscoveryRedactor::ESecretClass secretClass = CSiteDiscoveryRedactor::SECRET_CLASS_OTHER;
-    if ( !m_redactor->FindKnownSecret( block, secretClass ) )
+    UInt32 index = 0;
+    if ( !m_redactor->FindKnownSecretIndex( block, index ) )
         return true;
-    const CORE::CString className = CSiteDiscoveryRedactor::SecretClassToString( secretClass );
+    const CORE::CString className = CSiteDiscoveryRedactor::SecretClassToString( m_redactor->GetSecretInfo( index ).secretClass );
     ++m_lastRedactedCount;
     ++m_lastRedactedByClass[ className ];
-    reason = "secret class " + className + ", left out " + CORE::UInt32ToString( m_lastRedactedCount );
+    ++m_lastRedactedByValue[ index ];
+    reason = "secret class " + className + ", left out " + CORE::UInt32ToString( m_lastRedactedCount ) + ": " + m_redactor->DescribeSecret( index );
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CSiteEndpointCatalog::HostOf( const CORE::CString& url )
+{GUCEF_TRACE;
+
+    CUrlPathTemplate parsed;
+    if ( url.IsNULLOrEmpty() || !CUrlPathTemplate::Parse( url, parsed ) )
+        return CORE::CString::Empty;
+    return parsed.host;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -732,6 +766,7 @@ CSiteEndpointCatalog::RenderReport( CORE::CString& report, const CORE::CString::
 
     m_lastRedactedCount = 0;
     m_lastRedactedByClass.clear();
+    m_lastRedactedByValue.clear();
 
     // every part is checked on its own, so a part that would hold a secret value is the only one that is left out
     CORE::CString out;
@@ -745,32 +780,22 @@ CSiteEndpointCatalog::RenderReport( CORE::CString& report, const CORE::CString::
     }
 
     out += "## Hosts\n\n| host | requests |\n|---|---|\n";
-    UInt32 hostIndex = 0;
     for ( TCountMap::const_iterator h = m_hostCounts.begin(); h != m_hostCounts.end(); ++h )
-    {
-        ++hostIndex;
-        const CORE::CString row = "| " + h->first + " | " + CORE::UInt32ToString( h->second ) + " |\n";
-        if ( Guard( row, reason ) )
-            out += row;
-        else
-            out += "| (host " + CORE::UInt32ToString( hostIndex ) + " left out: " + reason + ") | " + CORE::UInt32ToString( h->second ) + " |\n";
-    }
+        out += "| " + h->first + " | " + CORE::UInt32ToString( h->second ) + " |\n";       // host names are public, never hidden
     out += "\n";
 
     if ( !m_hostInfo.empty() )
     {
         out += "## Request headers and cookies per host\n\nNames only, never values.\n\n";
-        hostIndex = 0;
         for ( THostInfoMap::const_iterator h = m_hostInfo.begin(); h != m_hostInfo.end(); ++h )
         {
-            ++hostIndex;
             CORE::CString row = "- `" + h->first + "`: request headers: " + ( h->second.requestHeaders.empty() ? CORE::CString( "none" ) : JoinSet( h->second.requestHeaders ) ) +
                                 "; cookies sent: " + ( h->second.cookiesSent.empty() ? CORE::CString( "none" ) : JoinSet( h->second.cookiesSent ) ) +
                                 "; cookies set: " + ( h->second.cookiesSet.empty() ? CORE::CString( "none" ) : JoinSet( h->second.cookiesSet ) ) + "\n";
             if ( Guard( row, reason ) )
                 out += row;
             else
-                out += "- (host " + CORE::UInt32ToString( hostIndex ) + " left out: " + reason + ")\n";
+                out += "- `" + h->first + "`: names left out (" + reason + ")\n";
         }
         out += "\n";
     }
@@ -794,7 +819,8 @@ CSiteEndpointCatalog::RenderReport( CORE::CString& report, const CORE::CString::
             {
                 leftOut[ i ] = 1;
                 out += "### Endpoint " + CORE::UInt32ToString( (UInt32) i + 1 ) + " of " + CORE::UInt32ToString( (UInt32) m_entries.size() ) +
-                       ": left out\n\n- This endpoint would have contained a secret value that was seen during recording (" + reason + "). Its content is not shown; the other endpoints are complete.\n\n";
+                       ": left out\n\n- Host `" + m_entries[ i ]->host + "`, method " + m_entries[ i ]->method + ". This endpoint would have contained a value that was seen during recording in a field with a secret name (" +
+                       reason + "). Its content is not shown; the other endpoints are complete. The journal holds it; see the head of this report.\n\n";
             }
             any = true;
         }
@@ -850,7 +876,8 @@ CSiteEndpointCatalog::RenderReport( CORE::CString& report, const CORE::CString::
         if ( Guard( text, reason ) )
             out += text;
         else
-            out += "### Action " + CORE::UInt32ToString( record.action.id ) + ": left out\n\n- This action would have contained a secret value that was seen during recording (" + reason +
+            out += "### Action " + CORE::UInt32ToString( record.action.id ) + ": left out\n\n- On host `" + HostOf( record.action.page ) +
+                   "`. This action would have contained a value that was seen during recording in a field with a secret name (" + reason +
                    "). Its label, page and steps are not shown.\n\n";
     }
     if ( !anyAction )
@@ -878,11 +905,24 @@ CSiteEndpointCatalog::RenderReport( CORE::CString& report, const CORE::CString::
     head += "Requests observed: " + CORE::UInt32ToString( m_requestCount ) + ", distinct endpoints: " + CORE::UInt32ToString( (UInt32) m_entries.size() ) +
             ", user actions: " + CORE::UInt32ToString( (UInt32) ( m_actions.size() + m_droppedActions ) ) + ", observed over " + seconds + " seconds.\n\n";
     if ( m_lastRedactedCount > 0 )
+    {
         head += "Parts of this report left out because they would have contained a secret value that was seen during recording: " + CORE::UInt32ToString( m_lastRedactedCount ) +
-                " (" + GetRedactionSummary() + "). Only the class of the secret is named, never its value; every other part is complete.\n\n";
+                " (" + GetRedactionSummary() + "). The values are named by their class, field, length and entropy, never by the value; every other part is complete, "
+                "and the journal holds every line. A report rebuilt from the journal (discover-report) knows no registered value and leaves nothing out.\n\n";
+        for ( TValueCountMap::const_iterator v = m_lastRedactedByValue.begin(); v != m_lastRedactedByValue.end(); ++v )
+            head += "- " + CORE::UInt32ToString( v->second ) + " part(s): " + m_redactor->DescribeSecretUse( v->first ) + "\n";
+        head += "\n";
+    }
+    CORE::CString suspected;
+    for ( UInt32 i=0; i<m_redactor->GetSecretInfoCount(); ++i )
+        if ( m_redactor->GetSecretInfo( i ).suspectedPublic )
+            suspected += "- " + m_redactor->DescribeSecretUse( i ) + "\n";
+    if ( !suspected.IsNULLOrEmpty() )
+        head += "Values from fields with a secret looking name that are in more than " + CORE::UInt32ToString( m_redactor->GetSettings().tripwireMaxLineShare ) +
+                " percent of the journal lines, taken for public values and not left out (tripwireMaxLineShare):\n\n" + suspected + "\n";
     if ( m_stubCount > 0 )
-        head += "Journal lines that were reduced to a stub when they were written, for the same reason: " + CORE::UInt32ToString( m_stubCount ) +
-                " (" + GetStubSummary() + "). They are counted in the requests above and not catalogued.\n\n";
+        head += "Journal lines that an older recorder reduced to a stub when it wrote them: " + CORE::UInt32ToString( m_stubCount ) +
+                " (" + GetStubSummary() + "). They are counted in the requests above and not catalogued; what they held was never written and cannot be recovered.\n\n";
     out = head + out;
 
     // a value that spans two parts is the only thing left that the parts could not see

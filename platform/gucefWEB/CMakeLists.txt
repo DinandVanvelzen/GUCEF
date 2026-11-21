@@ -80,6 +80,8 @@ set( HEADER_FILES
   include/gucefWEB_CObservedResponseBody.h
   include/gucefWEB_CObservedUserAction.h
   include/gucefWEB_CObservedWebRequest.h
+  include/gucefWEB_CReactFlightPayload.h
+  include/gucefWEB_CReactFlightRow.h
   include/gucefWEB_CServiceHealthHttpEndpoints.h
   include/gucefWEB_CSiteDiscoveryJournal.h
   include/gucefWEB_CSiteDiscoveryRedactor.h
@@ -146,6 +148,10 @@ set( HEADER_FILES
   include/gucefWEB_CWebViewScriptDialog.h
   include/gucefWEB_CWebViewSemaphoreEngineLoop.h
   include/gucefWEB_CWebViewSettings.h
+  include/gucefWEB_CWriteRequestGuard.h
+  include/gucefWEB_CWriteRequestGuardSettings.h
+  include/gucefWEB_CWriteRequestRefusal.h
+  include/gucefWEB_CWriteRequestRule.h
   include/gucefWEB_ETypes.h
   include/gucefWEB_HTTPCode.h
   include/gucefWEB_IWebView.h
@@ -227,6 +233,8 @@ set( SOURCE_FILES
   src/gucefWEB_CObservedResponseBody.cpp
   src/gucefWEB_CObservedUserAction.cpp
   src/gucefWEB_CObservedWebRequest.cpp
+  src/gucefWEB_CReactFlightPayload.cpp
+  src/gucefWEB_CReactFlightRow.cpp
   src/gucefWEB_CServiceHealthHttpEndpoints.cpp
   src/gucefWEB_CSiteDiscoveryJournal.cpp
   src/gucefWEB_CSiteDiscoveryRedactor.cpp
@@ -292,6 +300,10 @@ set( SOURCE_FILES
   src/gucefWEB_CWebViewScriptDialog.cpp
   src/gucefWEB_CWebViewSemaphoreEngineLoop.cpp
   src/gucefWEB_CWebViewSettings.cpp
+  src/gucefWEB_CWriteRequestGuard.cpp
+  src/gucefWEB_CWriteRequestGuardSettings.cpp
+  src/gucefWEB_CWriteRequestRefusal.cpp
+  src/gucefWEB_CWriteRequestRule.cpp
   src/gucefWEB_IWebView.cpp
   src/gucefWEB_IWebViewEngine.cpp
   src/gucefWEB_WebViewTypeNames.cpp

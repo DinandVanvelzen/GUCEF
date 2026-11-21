@@ -69,6 +69,40 @@ namespace WEB {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+namespace {
+
+/** The redactor in journal mode for the life of a scope, see CSiteDiscoveryRedactor::SetJournalMode() */
+class CJournalModeScope
+{
+    public:
+
+    explicit CJournalModeScope( CSiteDiscoveryRedactor& redactor )
+        : m_redactor( redactor )
+        , m_before( redactor.IsJournalMode() )
+    {GUCEF_TRACE;
+
+        m_redactor.SetJournalMode( true );
+    }
+
+    ~CJournalModeScope()
+    {GUCEF_TRACE;
+
+        m_redactor.SetJournalMode( m_before );
+    }
+
+    private:
+
+    CJournalModeScope( const CJournalModeScope& src );              /**< not implemented */
+    CJournalModeScope& operator=( const CJournalModeScope& src );   /**< not implemented */
+
+    CSiteDiscoveryRedactor& m_redactor;
+    bool m_before;
+};
+
+}; /* anonymous namespace */
+
+/*-------------------------------------------------------------------------*/
+
 static CORE::CString
 Quote( const CORE::CString& text )
 {
@@ -135,8 +169,6 @@ CSiteDiscoveryJournal::CSiteDiscoveryJournal( void )
     , m_file()
     , m_path()
     , m_nextSequence( 1 )
-    , m_refusedCount( 0 )
-    , m_refusedByClass()
 {GUCEF_TRACE;
 
 }
@@ -237,8 +269,6 @@ CSiteDiscoveryJournal::Open( const CORE::CString& path )
 {GUCEF_TRACE;
 
     Close();
-    m_refusedCount = 0;
-    m_refusedByClass.clear();
     m_nextSequence = GetNextSequenceOf( path );
 
     const CORE::CString dir = CORE::StripFilename( path );
@@ -304,84 +334,13 @@ CSiteDiscoveryJournal::GetNextSequence( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
-CSiteDiscoveryJournal::GetRefusedCount( void ) const
-{GUCEF_TRACE;
-
-    return m_refusedCount;
-}
-
-/*-------------------------------------------------------------------------*/
-
 CORE::CString
-CSiteDiscoveryJournal::GetRefusedSummary( void ) const
+CSiteDiscoveryJournal::ToJournalLine( const CObservedWebRequest& input ) const
 {GUCEF_TRACE;
 
-    return CSiteDiscoveryRedactor::FormatClassCounts( m_refusedByClass );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const CSiteDiscoveryRedactor::TClassCountMap&
-CSiteDiscoveryJournal::GetRefusedClassCounts( void ) const
-{GUCEF_TRACE;
-
-    return m_refusedByClass;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CSiteDiscoveryJournal::NoteRefused( CSiteDiscoveryRedactor::ESecretClass secretClass, const CORE::CString& what )
-{GUCEF_TRACE;
-
-    ++m_refusedCount;
-    const CORE::CString className = CSiteDiscoveryRedactor::SecretClassToString( secretClass );
-    ++m_refusedByClass[ className ];
-    GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "SiteDiscoveryJournal: " << what << " would contain a secret value of class " << className <<
-                       " that was seen during recording; a stub with its number and host only is written instead (" << m_refusedCount << " so far)" );
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CString
-CSiteDiscoveryJournal::ToStubLine( const CObservedWebRequest& observation, const CORE::CString& className ) const
-{GUCEF_TRACE;
-
-    CUrlPathTemplate parsed;
-    CORE::CString url = "{redacted}";
-    if ( CUrlPathTemplate::Parse( observation.url, parsed ) )
-        url = parsed.scheme + "://" + parsed.host + "/";
-    CORE::CString method = observation.method;
-    CORE::CString line;
-    for ( int attempt=0; attempt<2; ++attempt )
-    {
-        line = "{\"seq\":" + CORE::UInt32ToString( observation.sequence ) + ",\"ts\":" + FormatSeconds( observation.timestamp ) +
-               ",\"method\":" + Quote( method ) + ",\"url\":" + Quote( url ) + ",\"redacted\":" + Quote( className ) + "}";
-        if ( !m_redactor->ContainsKnownSecret( line ) )
-            return line;
-        // the host or the method itself held it: neither is kept
-        url = "{redacted}";
-        method = CORE::CString::Empty;
-    }
-    return line;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CString
-CSiteDiscoveryJournal::ToStubLine( const CObservedUserAction& action, const CORE::CString& className ) const
-{GUCEF_TRACE;
-
-    return "{\"action\":" + CORE::UInt32ToString( action.id ) + ",\"ts\":" + FormatSeconds( action.timestamp ) + ",\"kind\":" + Quote( action.kind ) +
-           ",\"label\":\"{redacted}\",\"page\":\"\",\"redacted\":" + Quote( className ) + "}";
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CString
-CSiteDiscoveryJournal::ToJournalLine( const CObservedWebRequest& observation ) const
-{GUCEF_TRACE;
+    // what was observed: no value rules and no registered value but the credentials, those are for the report
+    const CObservedWebRequest& observation = input;
+    CJournalModeScope journalMode( *m_redactor );
 
     const CSiteDiscoverySettings& settings = m_redactor->GetSettings();
     const bool neverRecorded = observation.neverRecorded || m_redactor->IsNeverRecordUrl( observation.url );
@@ -456,17 +415,21 @@ CSiteDiscoveryJournal::ToJournalLine( const CObservedWebRequest& observation ) c
         }
     }
     line += CORE::CString( ",\"neverRecorded\":" ) + ( neverRecorded ? "true" : "false" ) + "}";
-    return line;
+
+    // a cookie, credential header or password value that stands somewhere else in the line: the value is masked, the line stays
+    return m_redactor->ScrubKnownSecrets( line );
 }
 
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
-CSiteDiscoveryJournal::ToJournalLine( const CObservedUserAction& action ) const
+CSiteDiscoveryJournal::ToJournalLine( const CObservedUserAction& input ) const
 {GUCEF_TRACE;
 
-    return "{\"action\":" + CORE::UInt32ToString( action.id ) + ",\"ts\":" + FormatSeconds( action.timestamp ) + ",\"kind\":" + Quote( action.kind ) +
-           ",\"label\":" + Quote( m_redactor->RedactLabel( action.label ) ) + ",\"page\":" + Quote( action.page ) + "}";
+    const CObservedUserAction& action = input;
+    CJournalModeScope journalMode( *m_redactor );
+    return m_redactor->ScrubKnownSecrets( "{\"action\":" + CORE::UInt32ToString( action.id ) + ",\"ts\":" + FormatSeconds( action.timestamp ) + ",\"kind\":" + Quote( action.kind ) +
+                                          ",\"label\":" + Quote( action.label ) + ",\"page\":" + Quote( action.page ) + "}" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -492,16 +455,8 @@ CSiteDiscoveryJournal::Append( const CObservedWebRequest& observation )
 
     if ( !m_file.Opened() )
         return false;
-    bool ok = false;
-    const CORE::CString line = ToJournalLine( observation );
-    CSiteDiscoveryRedactor::ESecretClass secretClass = CSiteDiscoveryRedactor::SECRET_CLASS_OTHER;
-    if ( m_redactor->FindKnownSecret( line, secretClass ) )
-    {
-        NoteRefused( secretClass, "Journal line " + CORE::UInt32ToString( observation.sequence ) );
-        WriteLine( ToStubLine( observation, CSiteDiscoveryRedactor::SecretClassToString( secretClass ) ) );
-    }
-    else
-        ok = WriteLine( line );
+    // every line is written as observed; what may not reach a report is decided when the report is made
+    const bool ok = WriteLine( ToJournalLine( observation ) );
     if ( observation.sequence >= m_nextSequence )
         m_nextSequence = observation.sequence + 1;
     return ok;
@@ -515,15 +470,7 @@ CSiteDiscoveryJournal::AppendAction( const CObservedUserAction& action )
 
     if ( !m_file.Opened() )
         return false;
-    const CORE::CString line = ToJournalLine( action );
-    CSiteDiscoveryRedactor::ESecretClass secretClass = CSiteDiscoveryRedactor::SECRET_CLASS_OTHER;
-    if ( m_redactor->FindKnownSecret( line, secretClass ) )
-    {
-        NoteRefused( secretClass, "The line of action " + CORE::UInt32ToString( action.id ) );
-        WriteLine( ToStubLine( action, CSiteDiscoveryRedactor::SecretClassToString( secretClass ) ) );
-        return false;
-    }
-    return WriteLine( line );
+    return WriteLine( ToJournalLine( action ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -770,21 +717,36 @@ CSiteDiscoveryJournal::Scrub( const CORE::CString& path, SScrubResult& result, C
                     replacement = ToJournalLine( action );
                     ++result.stubbedActions;
                 }
+                else
+                if ( m_redactor->RedactAction( action ) )
+                {
+                    replacement = ToJournalLine( action );
+                    ++result.maskedActions;
+                }
             }
             else
-            if ( FromJournalDocument( document, observation ) && observation.redactedClass.IsNULLOrEmpty() &&
-                 !observation.neverRecorded && m_redactor->IsNeverRecordUrl( observation.url ) )
+            if ( FromJournalDocument( document, observation ) && observation.redactedClass.IsNULLOrEmpty() )
             {
-                if ( settings.noteNeverRecorded )
+                if ( !observation.neverRecorded && m_redactor->IsNeverRecordUrl( observation.url ) )
                 {
-                    observation.neverRecorded = true;
-                    replacement = ToJournalLine( observation );
-                    ++result.stubbedRequests;
+                    if ( settings.noteNeverRecorded )
+                    {
+                        observation.neverRecorded = true;
+                        replacement = ToJournalLine( observation );
+                        ++result.stubbedRequests;
+                    }
+                    else
+                    {
+                        keep = false;
+                        ++result.droppedRequests;
+                    }
                 }
                 else
+                if ( m_redactor->RedactObservation( observation ) )
                 {
-                    keep = false;
-                    ++result.droppedRequests;
+                    // the value rules of today: values of the user that the line still held
+                    replacement = ToJournalLine( observation );
+                    ++result.maskedRequests;
                 }
             }
         }

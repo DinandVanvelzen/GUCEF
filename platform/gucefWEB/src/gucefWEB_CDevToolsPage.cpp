@@ -40,6 +40,16 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_CORE_COBSERVER_H
+#include "CObserver.h"
+#define GUCEF_CORE_COBSERVER_H
+#endif /* GUCEF_CORE_COBSERVER_H ? */
+
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #include "gucefWEB_CDevToolsPage.h"
 
 /*-------------------------------------------------------------------------//
@@ -84,7 +94,7 @@ static const char* const ControlRoles[][ 2 ] = {
     { "menuitem", "menuitem" }, { "menuitemcheckbox", "menuitem" }, { "menuitemradio", "menuitem" },
     { "checkbox", "checkbox" }, { "switch", "checkbox" }, { "radio", "radio" }, { GUCEF_NULL, GUCEF_NULL } };
 
-/** What counts as a table cell: nothing of its text is reported */
+/** What counts as a table cell: the text of the cell is never reported, the names of the controls in it only when asked for (default) */
 static const char* const TableCellSelector =
     "td,th,[role=cell],[role=gridcell],[role=rowheader],[role=columnheader],"
     "td *,th *,[role=cell] *,[role=gridcell] *,[role=rowheader] *,[role=columnheader] *";
@@ -157,12 +167,152 @@ GetInt64List( const CORE::CDataNode* list, GUCEF::vector< Int64 >& values )
 
 /*-------------------------------------------------------------------------*/
 
+static bool
+Mentions( const CORE::CString& text, const char* part )
+{
+    return text.HasSubstr( part, true ) >= 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** An answer of the browser that says the node is no longer there (removed, or its id is stale) */
+static bool
+IsNodeGoneError( const COM::SJsonRpcError& error )
+{
+    const CORE::CString message = error.message.Lowercase();
+    return Mentions( message, "could not find node" ) || Mentions( message, "no node" ) || Mentions( message, "node not found" ) ||
+           Mentions( message, "detached" ) || Mentions( message, "does not belong to the document" ) || Mentions( message, "no document" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static UInt64
+NowInMs( void )
+{
+    return (UInt64) ( MT::PrecisionTickCount() / ( MT::PrecisionTimerResolution() / 1000.0 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/**
+ *  What the browser reports about the documents of one session while Navigate() waits, in the order it arrives.
+ *  Subscribed for its own lifetime only, before the navigation is sent, so nothing that comes before the answer is missed
+ */
+class CNavigationWatch : public CORE::CObserver
+{
+    public:
+
+    struct SEvent
+    {
+        CORE::CString method;
+        CORE::CString frameId;
+        CORE::CString parentId;
+        CORE::CString loaderId;
+        CORE::CString name;         /**< of Page.lifecycleEvent */
+    };
+
+    typedef GUCEF::vector< SEvent > TEventVector;
+
+    TEventVector events;
+    bool sessionEnded;
+
+    CNavigationWatch( CChromeDevToolsClient& client, const CORE::CString& sessionId )
+        : CORE::CObserver()
+        , events()
+        , sessionEnded( false )
+        , m_sessionId( sessionId )
+    {GUCEF_TRACE;
+
+        TEventCallback callback( this, &CNavigationWatch::OnClientEvent );
+        SubscribeTo( &client, CChromeDevToolsClient::ProtocolEvent, callback );
+        SubscribeTo( &client, CChromeDevToolsClient::DisconnectedEvent, callback );
+    }
+
+    virtual ~CNavigationWatch()
+    {GUCEF_TRACE;
+
+        UnsubscribeAllFromObserver();
+    }
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CNavigationWatch > TEventCallback;
+
+    CNavigationWatch( const CNavigationWatch& src );
+    CNavigationWatch& operator=( const CNavigationWatch& src );
+
+    void OnClientEvent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        if ( eventId == CChromeDevToolsClient::DisconnectedEvent )
+        {
+            sessionEnded = true;
+            return;
+        }
+        if ( GUCEF_NULL == eventData )
+            return;
+        const SChromeProtocolEvent& event = static_cast< TChromeProtocolEventData* >( eventData )->GetData();
+
+        // the session itself can end: on the browser's own session, or as the last event of ours
+        if ( event.method == "Target.detachedFromTarget" )
+        {
+            if ( GetText( event.params, "sessionId" ) == m_sessionId )
+                sessionEnded = true;
+            return;
+        }
+        if ( event.sessionId != m_sessionId )
+            return;
+        if ( event.method == "Inspector.detached" )
+        {
+            sessionEnded = true;
+            return;
+        }
+
+        SEvent entry;
+        entry.method = event.method;
+        if ( event.method == "Page.frameNavigated" )
+        {
+            const CORE::CDataNode* frame = event.params.FindChild( "frame" );
+            if ( GUCEF_NULL == frame )
+                return;
+            entry.frameId = GetText( *frame, "id" );
+            entry.parentId = GetText( *frame, "parentId" );
+            entry.loaderId = GetText( *frame, "loaderId" );
+        }
+        else
+        if ( event.method == "Page.navigatedWithinDocument" || event.method == "Page.lifecycleEvent" )
+        {
+            entry.frameId = GetText( event.params, "frameId" );
+            entry.loaderId = GetText( event.params, "loaderId" );
+            entry.name = GetText( event.params, "name" );
+        }
+        else
+        if ( event.method != "Page.loadEventFired" && event.method != "Page.domContentEventFired" )
+            return;
+        events.push_back( entry );
+    }
+
+    CORE::CString m_sessionId;
+};
+
+}; /* anonymous namespace */
+
+/*-------------------------------------------------------------------------*/
+
 CDevToolsPage::CDevToolsPage( CChromeDevToolsClient& client, const CORE::CString& sessionId )
     : m_client( client )
     , m_sessionId( sessionId )
     , m_guard( GUCEF_NULL )
     , m_commandTimeoutInMs( 30000 )
+    , m_reportTableCellControlNames( true )
     , m_isolatedContextId( 0 )
+    , m_navigationTimeoutInMs( 30000 )
+    , m_pageEnabled( false )
+    , m_lastNavigationLoaded( false )
+    , m_lastNavigationError()
+    , m_lastListSkippedCount( 0 )
 {GUCEF_TRACE;
 
 }
@@ -201,6 +351,7 @@ CDevToolsPage::SetSessionId( const CORE::CString& sessionId )
 
     m_sessionId = sessionId;
     m_isolatedContextId = 0;
+    m_pageEnabled = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -241,16 +392,130 @@ CDevToolsPage::SetCommandTimeout( UInt32 timeoutInMs )
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CDevToolsPage::Send( const CORE::CString& method, const CORE::CDataNode* params, CORE::CDataNode& result, bool logFailure )
+void
+CDevToolsPage::SetReportTableCellControlNames( bool report )
 {GUCEF_TRACE;
 
-    COM::SJsonRpcError error;
-    if ( m_client.SendCommandOnSessionAndWait( m_sessionId, method, params, result, &error, m_commandTimeoutInMs ) )
+    m_reportTableCellControlNames = report;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::GetReportTableCellControlNames( void ) const
+{GUCEF_TRACE;
+
+    return m_reportTableCellControlNames;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDevToolsPage::SetNavigationTimeout( UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    m_navigationTimeoutInMs = timeoutInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDevToolsPage::GetNavigationTimeout( void ) const
+{GUCEF_TRACE;
+
+    return m_navigationTimeoutInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::GetLastNavigationLoaded( void ) const
+{GUCEF_TRACE;
+
+    return m_lastNavigationLoaded;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CDevToolsPage::GetLastNavigationError( void ) const
+{GUCEF_TRACE;
+
+    return m_lastNavigationError;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDevToolsPage::GetLastListSkippedCount( void ) const
+{GUCEF_TRACE;
+
+    return m_lastListSkippedCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::Send( const CORE::CString& method, const CORE::CDataNode* params, CORE::CDataNode& result, bool logFailure, COM::SJsonRpcError* error )
+{GUCEF_TRACE;
+
+    COM::SJsonRpcError localError;
+    COM::SJsonRpcError& failure = GUCEF_NULL != error ? *error : localError;
+    failure.code = 0;
+    failure.message.Clear();
+    if ( m_client.SendCommandOnSessionAndWait( m_sessionId, method, params, result, &failure, m_commandTimeoutInMs ) )
         return true;
+    if ( 0 == failure.code )
+        failure.code = COM::JSONRPC_ERROR_INTERNAL;
     if ( logFailure )
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: " << method << " failed: " << error.message );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: " << method << " failed: " << failure.message );
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::IsSessionLost( const COM::SJsonRpcError& error ) const
+{GUCEF_TRACE;
+
+    // no answer at all, or the browser no longer knows the session (Chrome answers that with -32001 too)
+    return !m_client.IsConnected() || error.code == COM::JSONRPC_ERROR_TRANSPORT_CLOSED || error.code == COM::JSONRPC_ERROR_CALL_TIMEOUT ||
+           Mentions( error.message, "Session with given id not found" ) || Mentions( error.message, "Target closed" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDevToolsPage::SetNavigationError( const CORE::CString& url, const CORE::CString& reason )
+{GUCEF_TRACE;
+
+    m_lastNavigationError = reason;
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The navigation to " << CNavigationGuard::MakeUrlTemplate( url ) << " failed: " << reason );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::NavigateWithoutWait( const CORE::CString& url )
+{GUCEF_TRACE;
+
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "url", CORE::CVariant( url ) );
+    CORE::CDataNode result;
+    COM::SJsonRpcError error;
+    if ( !Send( "Page.navigate", &params, result, true, &error ) )
+    {
+        SetNavigationError( url, "Page.navigate failed: " + error.message );
+        return false;
+    }
+    m_isolatedContextId = 0;
+    const CORE::CString errorText = GetText( result, "errorText" );
+    if ( !errorText.IsNULLOrEmpty() )
+    {
+        SetNavigationError( url, errorText );
+        return false;
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -259,20 +524,127 @@ bool
 CDevToolsPage::Navigate( const CORE::CString& url )
 {GUCEF_TRACE;
 
+    m_lastNavigationLoaded = false;
+    m_lastNavigationError.Clear();
     if ( GUCEF_NULL != m_guard && !m_guard->CheckNavigate( url ) )
+    {
+        m_lastNavigationError = "refused by the navigation guard";
         return false;
+    }
+    if ( 0 == m_navigationTimeoutInMs )
+        return NavigateWithoutWait( url );
+
+    // the Page domain reports the commit and the load of the documents of this session
+    if ( !m_pageEnabled )
+    {
+        CORE::CDataNode enabled;
+        COM::SJsonRpcError error;
+        if ( !Send( "Page.enable", GUCEF_NULL, enabled, true, &error ) )
+        {
+            SetNavigationError( url, "Page.enable failed: " + error.message );
+            return false;
+        }
+        m_pageEnabled = true;
+    }
+
+    CNavigationWatch watch( m_client, m_sessionId );
+    const UInt64 deadline = NowInMs() + m_navigationTimeoutInMs;
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "url", CORE::CVariant( url ) );
     CORE::CDataNode result;
-    if ( !Send( "Page.navigate", &params, result ) )
+    COM::SJsonRpcError error;
+    if ( !Send( "Page.navigate", &params, result, true, &error ) )
+    {
+        SetNavigationError( url, "Page.navigate failed: " + error.message );
         return false;
+    }
     m_isolatedContextId = 0;
+
+    // the answer comes when the navigation started or failed, not when the new document is there
     const CORE::CString errorText = GetText( result, "errorText" );
     if ( !errorText.IsNULLOrEmpty() )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The navigation to " << CNavigationGuard::MakeUrlTemplate( url ) << " ended with " << errorText );
+        SetNavigationError( url, errorText );
         return false;
     }
+    if ( result.GetAttributeValue( "isDownload" ).AsBool( false ) )
+    {
+        SetNavigationError( url, "the address is a download, the page stays where it was" );
+        return false;
+    }
+    const CORE::CString frameId = GetText( result, "frameId" );
+    const CORE::CString loaderId = GetText( result, "loaderId" );
+    const bool sameDocument = loaderId.IsNULLOrEmpty();
+
+    bool committed = false;
+    bool loaded = false;
+    bool domContentLoaded = false;
+    size_t next = 0;
+    CORE::PulseGeneratorPtr pulseGenerator = m_client.GetPulseGenerator();
+    while ( true )
+    {
+        for ( ; next < watch.events.size(); ++next )
+        {
+            const CNavigationWatch::SEvent& event = watch.events[ next ];
+            const bool ourFrame = frameId.IsNULLOrEmpty() || event.frameId == frameId;
+            if ( !committed )
+            {
+                if ( sameDocument )
+                    committed = event.method == "Page.navigatedWithinDocument" && ourFrame;
+                else
+                    committed = event.method == "Page.frameNavigated" && event.parentId.IsNULLOrEmpty() && ourFrame &&
+                                ( event.loaderId.IsNULLOrEmpty() || event.loaderId == loaderId );
+                continue;
+            }
+            // only what comes after the commit belongs to the new document
+            if ( event.method == "Page.loadEventFired" )
+                loaded = true;
+            else
+            if ( event.method == "Page.domContentEventFired" )
+                domContentLoaded = true;
+            else
+            if ( event.method == "Page.lifecycleEvent" && ourFrame && ( event.loaderId.IsNULLOrEmpty() || event.loaderId == loaderId ) )
+            {
+                if ( event.name == "load" )
+                    loaded = true;
+                else
+                if ( event.name == "DOMContentLoaded" )
+                    domContentLoaded = true;
+            }
+        }
+
+        if ( committed && ( loaded || sameDocument ) )
+            break;
+        if ( sameDocument && frameId.IsNULLOrEmpty() )
+        {
+            // an answer without a frame cannot be matched to a report of the browser: it accepted the navigation, take that
+            committed = true;
+            break;
+        }
+        if ( watch.sessionEnded || !m_client.IsConnected() )
+        {
+            SetNavigationError( url, "the connection or the session ended during the navigation" );
+            return false;
+        }
+        if ( NowInMs() >= deadline || pulseGenerator.IsNULL() )
+            break;
+        pulseGenerator->ForceDirectPulse();
+        MT::ThreadDelay( 1 );
+    }
+
+    if ( !committed )
+    {
+        if ( sameDocument )
+            SetNavigationError( url, "the browser did not report the navigation within the document within " + CORE::UInt32ToString( m_navigationTimeoutInMs ) + " ms" );
+        else
+            SetNavigationError( url, "no new document was committed within " + CORE::UInt32ToString( m_navigationTimeoutInMs ) +
+                                     " ms (a response without content, a download or a slow site)" );
+        return false;
+    }
+    m_lastNavigationLoaded = loaded || domContentLoaded || sameDocument;
+    if ( !loaded && !sameDocument )
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The document of " << CNavigationGuard::MakeUrlTemplate( url ) << " is committed but did not load within " <<
+                         m_navigationTimeoutInMs << " ms" << ( domContentLoaded ? " (its DOM is complete)" : "" ) );
     return true;
 }
 
@@ -304,13 +676,14 @@ CDevToolsPage::GetUrl( CORE::CString& url )
 /*-------------------------------------------------------------------------*/
 
 bool
-CDevToolsPage::GetDocumentRoot( Int64& rootNodeId )
+CDevToolsPage::GetDocumentRoot( Int64& rootNodeId, COM::SJsonRpcError* error )
 {GUCEF_TRACE;
 
+    rootNodeId = 0;
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "depth", (Int32) 0 );
     CORE::CDataNode result;
-    if ( !Send( "DOM.getDocument", &params, result ) )
+    if ( !Send( "DOM.getDocument", &params, result, true, error ) )
         return false;
     const CORE::CDataNode* root = result.FindChild( "root" );
     rootNodeId = GUCEF_NULL != root ? root->GetAttributeValue( "nodeId" ).AsInt64( 0 ) : 0;
@@ -320,12 +693,14 @@ CDevToolsPage::GetDocumentRoot( Int64& rootNodeId )
 /*-------------------------------------------------------------------------*/
 
 bool
-CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing )
+CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing, COM::SJsonRpcError* error )
 {GUCEF_TRACE;
 
     nodeId = 0;
+    if ( GUCEF_NULL != error )
+        error->code = 0;
     Int64 root = 0;
-    if ( selector.IsNULLOrEmpty() || !GetDocumentRoot( root ) )
+    if ( selector.IsNULLOrEmpty() || !GetDocumentRoot( root, error ) )
         return false;
 
     if ( !selector.StartsWith( AriaSelectorPrefix ) )
@@ -334,7 +709,7 @@ CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMi
         params.SetAttribute( "nodeId", CORE::CVariant( root ) );
         params.SetAttribute( "selector", CORE::CVariant( selector ) );
         CORE::CDataNode result;
-        if ( !Send( "DOM.querySelector", &params, result ) )
+        if ( !Send( "DOM.querySelector", &params, result, true, error ) )
             return false;
         nodeId = result.GetAttributeValue( "nodeId" ).AsInt64( 0 );
     }
@@ -346,7 +721,7 @@ CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMi
         params.SetAttribute( "nodeId", CORE::CVariant( root ) );
         params.SetAttribute( "accessibleName", CORE::CVariant( name ) );
         CORE::CDataNode result;
-        if ( !Send( "Accessibility.queryAXTree", &params, result ) )
+        if ( !Send( "Accessibility.queryAXTree", &params, result, true, error ) )
             return false;
         Int64 backendNodeId = 0;
         Int64 textNodeId = 0;
@@ -376,7 +751,7 @@ CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMi
             CORE::CDataNode push( GUCEF_DATATYPE_OBJECT );
             push.AddChild( "backendNodeIds", GUCEF_DATATYPE_ARRAY )->AddValueAsChild( CORE::CVariant( backendNodeId ) );
             CORE::CDataNode pushed;
-            if ( !Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed ) )
+            if ( !Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed, true, error ) )
                 return false;
             GUCEF::vector< Int64 > ids;
             GetInt64List( pushed.FindChild( "nodeIds" ), ids );
@@ -391,13 +766,13 @@ CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMi
 /*-------------------------------------------------------------------------*/
 
 bool
-CDevToolsPage::DescribeNode( Int64 nodeId, CORE::CString& nodeName, CORE::CString::StringMap& attributes )
+CDevToolsPage::DescribeNode( Int64 nodeId, CORE::CString& nodeName, CORE::CString::StringMap& attributes, COM::SJsonRpcError* error )
 {GUCEF_TRACE;
 
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "nodeId", CORE::CVariant( nodeId ) );
     CORE::CDataNode result;
-    if ( !Send( "DOM.describeNode", &params, result ) )
+    if ( !Send( "DOM.describeNode", &params, result, true, error ) )
         return false;
     const CORE::CDataNode* node = result.FindChild( "node" );
     if ( GUCEF_NULL == node )
@@ -716,16 +1091,46 @@ bool
 CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVector& result )
 {GUCEF_TRACE;
 
-    result.clear();
-    Int64 scope = 0;
-    if ( scopeSelector.IsNULLOrEmpty() )
+    m_lastListSkippedCount = 0;
+    for ( UInt32 attempt=0; attempt<2; ++attempt )
     {
-        if ( !GetDocumentRoot( scope ) )
+        UInt32 skipped = 0;
+        const EListOutcome outcome = ListControlsOnce( scopeSelector, result, skipped );
+        if ( LIST_DONE == outcome )
+        {
+            m_lastListSkippedCount = skipped;
+            if ( 0 != skipped )
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: ListControls() left out " << skipped << " control(s) that went away while they were listed" );
+            return true;
+        }
+        result.clear();
+        if ( LIST_FAILED == outcome )
             return false;
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The scope of ListControls() went away (the document changed)" <<
+                         ( 0 == attempt ? ", listing once more on a fresh document" : " again, giving up" ) );
     }
-    else
-    if ( !Resolve( scopeSelector, scope ) )
-        return false;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDevToolsPage::EListOutcome
+CDevToolsPage::ListControlsOnce( const CORE::CString& scopeSelector, TControlInfoVector& result, UInt32& skipped )
+{GUCEF_TRACE;
+
+    result.clear();
+    skipped = 0;
+
+    // the scope on a fresh document: node ids of an earlier DOM.getDocument may be stale
+    COM::SJsonRpcError error;
+    Int64 scope = 0;
+    const bool resolved = scopeSelector.IsNULLOrEmpty() ? GetDocumentRoot( scope, &error ) : Resolve( scopeSelector, scope, true, &error );
+    if ( !resolved )
+    {
+        if ( 0 == error.code )
+            return LIST_FAILED;     // the browser answered: there is no such scope
+        return IsSessionLost( error ) ? LIST_FAILED : LIST_STALE;
+    }
 
     // the controls, by role, through the accessibility tree: names as the browser computes them
     typedef GUCEF::map< Int64, CControlInfo > TControlMap;
@@ -736,8 +1141,8 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
         params.SetAttribute( "nodeId", CORE::CVariant( scope ) );
         params.SetAttribute( "role", CORE::CVariant( CORE::CString( ControlRoles[ r ][ 0 ] ) ) );
         CORE::CDataNode found;
-        if ( !Send( "Accessibility.queryAXTree", &params, found ) )
-            return false;
+        if ( !Send( "Accessibility.queryAXTree", &params, found, true, &error ) )
+            return IsSessionLost( error ) ? LIST_FAILED : LIST_STALE;
         const CORE::CDataNode* nodes = found.FindChild( "nodes" );
         if ( GUCEF_NULL == nodes )
             continue;
@@ -764,9 +1169,9 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
         }
     }
     if ( controls.empty() )
-        return true;
+        return LIST_DONE;
 
-    // their element ids, in the order the ids were asked for
+    // their element ids, in the order the ids were asked for; 0 for an element that is gone
     GUCEF::vector< Int64 > backendIds;
     for ( TControlMap::const_iterator i = controls.begin(); i != controls.end(); ++i )
         backendIds.push_back( i->first );
@@ -775,20 +1180,38 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
     for ( size_t i=0; i<backendIds.size(); ++i )
         list->AddValueAsChild( CORE::CVariant( backendIds[ i ] ) );
     CORE::CDataNode pushed;
-    if ( !Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed ) )
-        return false;
     GUCEF::vector< Int64 > nodeIds;
-    GetInt64List( pushed.FindChild( "nodeIds" ), nodeIds );
-    if ( nodeIds.size() != backendIds.size() )
-        return false;
+    const bool allPushed = Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed, true, &error );
+    if ( !allPushed && IsSessionLost( error ) )
+        return LIST_FAILED;
+    if ( allPushed )
+        GetInt64List( pushed.FindChild( "nodeIds" ), nodeIds );
+    if ( !allPushed || nodeIds.size() != backendIds.size() )
+    {
+        // one by one, so that an element that went away does not take the others with it
+        nodeIds.clear();
+        for ( size_t i=0; i<backendIds.size(); ++i )
+        {
+            CORE::CDataNode single( GUCEF_DATATYPE_OBJECT );
+            single.AddChild( "backendNodeIds", GUCEF_DATATYPE_ARRAY )->AddValueAsChild( CORE::CVariant( backendIds[ i ] ) );
+            CORE::CDataNode one;
+            GUCEF::vector< Int64 > ids;
+            if ( Send( "DOM.pushNodesByBackendIdsToFrontend", &single, one, false, &error ) )
+                GetInt64List( one.FindChild( "nodeIds" ), ids );
+            else
+            if ( IsSessionLost( error ) )
+                return LIST_FAILED;
+            nodeIds.push_back( ids.size() == 1 ? ids[ 0 ] : 0 );
+        }
+    }
 
     // which of them are inside a table cell, and the order of the document
     CORE::CDataNode cellQuery( GUCEF_DATATYPE_OBJECT );
     cellQuery.SetAttribute( "nodeId", CORE::CVariant( scope ) );
     cellQuery.SetAttribute( "selector", CORE::CVariant( CORE::CString( TableCellSelector ) ) );
     CORE::CDataNode cells;
-    if ( !Send( "DOM.querySelectorAll", &cellQuery, cells ) )
-        return false;
+    if ( !Send( "DOM.querySelectorAll", &cellQuery, cells, true, &error ) )
+        return IsSessionLost( error ) ? LIST_FAILED : LIST_STALE;
     GUCEF::vector< Int64 > cellIds;
     GetInt64List( cells.FindChild( "nodeIds" ), cellIds );
     GUCEF::set< Int64 > inCells( cellIds.begin(), cellIds.end() );
@@ -797,8 +1220,8 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
     orderQuery.SetAttribute( "nodeId", CORE::CVariant( scope ) );
     orderQuery.SetAttribute( "selector", CORE::CVariant( CORE::CString( "*" ) ) );
     CORE::CDataNode all;
-    if ( !Send( "DOM.querySelectorAll", &orderQuery, all ) )
-        return false;
+    if ( !Send( "DOM.querySelectorAll", &orderQuery, all, true, &error ) )
+        return IsSessionLost( error ) ? LIST_FAILED : LIST_STALE;
     GUCEF::vector< Int64 > allIds;
     GetInt64List( all.FindChild( "nodeIds" ), allIds );
     GUCEF::map< Int64, UInt32 > position;
@@ -812,21 +1235,40 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
     {
         CControlInfo info = controls[ backendIds[ i ] ];
         const Int64 nodeId = nodeIds[ i ];
+        if ( 0 == nodeId )
+        {
+            ++skipped;      // gone since the accessibility tree reported it
+            continue;
+        }
         info.inTableCell = inCells.find( nodeId ) != inCells.end();
 
-        CORE::CString nodeName;
-        CORE::CString::StringMap attributes;
-        if ( info.role == CControlInfo::RoleCombobox && DescribeNode( nodeId, nodeName, attributes ) && nodeName == "SELECT" )
+        if ( info.role == CControlInfo::RoleCombobox )
         {
-            info.role = CControlInfo::RoleSelect;
-            if ( !info.inTableCell )
+            CORE::CString nodeName;
+            CORE::CString::StringMap attributes;
+            if ( !DescribeNode( nodeId, nodeName, attributes, &error ) )
             {
-                CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
-                params.SetAttribute( "backendNodeId", CORE::CVariant( backendIds[ i ] ) );
-                params.SetAttribute( "role", CORE::CVariant( CORE::CString( "option" ) ) );
-                CORE::CDataNode options;
-                if ( Send( "Accessibility.queryAXTree", &params, options ) )
+                if ( IsSessionLost( error ) )
+                    return LIST_FAILED;
+                ++skipped;
+                continue;
+            }
+            if ( nodeName == "SELECT" )
+            {
+                info.role = CControlInfo::RoleSelect;
+                if ( !info.inTableCell || m_reportTableCellControlNames )
                 {
+                    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+                    params.SetAttribute( "backendNodeId", CORE::CVariant( backendIds[ i ] ) );
+                    params.SetAttribute( "role", CORE::CVariant( CORE::CString( "option" ) ) );
+                    CORE::CDataNode options;
+                    if ( !Send( "Accessibility.queryAXTree", &params, options, true, &error ) )
+                    {
+                        if ( IsSessionLost( error ) )
+                            return LIST_FAILED;
+                        ++skipped;
+                        continue;
+                    }
                     const CORE::CDataNode* nodes = options.FindChild( "nodes" );
                     if ( GUCEF_NULL != nodes )
                         for ( CORE::CDataNode::const_iterator o = nodes->ConstBegin(); o != nodes->ConstEnd(); ++o )
@@ -834,20 +1276,20 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
                 }
             }
         }
-        if ( info.inTableCell )
+        if ( info.inTableCell && !m_reportTableCellControlNames )
         {
             info.label.Clear();
             info.optionLabels.clear();
         }
 
-        // a box of some size: rendered, not collapsed
+        // a box of some size: rendered, not collapsed. An element without layout has no quads, which is no failure
         if ( info.visible )
         {
             CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
             params.SetAttribute( "backendNodeId", CORE::CVariant( backendIds[ i ] ) );
             CORE::CDataNode quadsResult;
             bool hasArea = false;
-            if ( Send( "DOM.getContentQuads", &params, quadsResult, false ) )
+            if ( Send( "DOM.getContentQuads", &params, quadsResult, false, &error ) )
             {
                 const CORE::CDataNode* quads = quadsResult.FindChild( "quads" );
                 if ( GUCEF_NULL != quads )
@@ -861,6 +1303,16 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
                     }
                 }
             }
+            else
+            {
+                if ( IsSessionLost( error ) )
+                    return LIST_FAILED;
+                if ( IsNodeGoneError( error ) )
+                {
+                    ++skipped;
+                    continue;
+                }
+            }
             info.visible = hasArea;
         }
 
@@ -869,7 +1321,7 @@ CDevToolsPage::ListControls( const CORE::CString& scopeSelector, TControlInfoVec
     }
     for ( TOrderedMap::const_iterator i = ordered.begin(); i != ordered.end() && result.size() < MaxControls; ++i )
         result.push_back( i->second );
-    return true;
+    return LIST_DONE;
 }
 
 /*-------------------------------------------------------------------------//
