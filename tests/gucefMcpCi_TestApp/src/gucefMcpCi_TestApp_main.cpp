@@ -51,6 +51,7 @@
 
 #include "TestMcpCi.h"
 #include "TestMcpCiGateway.h"
+#include "TestMcpCiDeploy.h"
 
 /*
  *      Application entry point
@@ -80,6 +81,7 @@ GUCEF_OSMAIN_BEGIN
 
         PerformMcpCiTests();
         PerformMcpCiGatewayTests();
+        PerformMcpCiDeployTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

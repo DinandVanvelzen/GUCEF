@@ -37,6 +37,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #include "gucefMcpCi_CCiUtils.h"
 #include "gucefMcpCi_CCiRegistry.h"
 
@@ -149,7 +154,15 @@ CCiRegistry::LoadFromJson( const CORE::CString& jsonText, CORE::CString& problem
             continue;
         CCiDefinition definition;
         if ( !definition.LoadConfig( entry, problem ) )
-            return false;
+        {
+            if ( definition.deployProblem.IsNULLOrEmpty() )
+                return false;
+            // a deploy block that is not right refuses its entry, the others are used
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefMcpCi: The CI registry entry \"" << definition.id << "\" is refused: " <<
+                             definition.deployProblem );
+            problem.Clear();
+            continue;
+        }
         for ( size_t d=0; d<definitions.size(); ++d )
         {
             if ( definitions[ d ].id == definition.id )

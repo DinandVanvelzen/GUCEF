@@ -141,6 +141,9 @@ CCiJson::Write( const CCiSubmitOptions& options, CORE::CDataNode& node )
     node.SetAttribute( "mode", options.mode );
     node.SetAttribute( "includeUncommitted", options.includeUncommitted );
     node.SetAttribute( "dryRun", options.dryRun );
+    WriteStrings( options.images, "images", node );
+    if ( !options.commit.IsNULLOrEmpty() )
+        node.SetAttribute( "commit", options.commit );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -156,6 +159,8 @@ CCiJson::Read( const CORE::CDataNode& node, CCiSubmitOptions& options )
     options.mode = CCiUtils::Trimmed( Text( node, "mode" ) );
     options.includeUncommitted = Flag( node, "includeUncommitted", true );
     options.dryRun = Flag( node, "dryRun", false );
+    options.images = CCiUtils::GetStringArray( node, "images" );
+    options.commit = CCiUtils::Trimmed( Text( node, "commit" ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -349,6 +354,10 @@ CCiJson::Write( const CCiReport::CCell& cell, CORE::CDataNode& node )
         productNode->SetAttribute( "seconds", product.seconds );
         productNode->SetAttribute( "logFile", product.logFile );
         productNode->SetAttribute( "logTail", product.logTail );
+        if ( !product.tag.IsNULLOrEmpty() )
+            productNode->SetAttribute( "tag", product.tag );
+        if ( !product.digest.IsNULLOrEmpty() )
+            productNode->SetAttribute( "digest", product.digest );
         CORE::CDataNode* tests = productNode->AddChild( "tests", GUCEF_DATATYPE_ARRAY );
         for ( size_t t=0; t<product.tests.size(); ++t )
         {
@@ -413,6 +422,8 @@ CCiJson::Read( const CORE::CDataNode& node, CCiReport::CCell& cell )
         product.seconds = Count( productNode, "seconds" );
         product.logFile = Text( productNode, "logFile" );
         product.logTail = Text( productNode, "logTail" );
+        product.tag = Text( productNode, "tag" );
+        product.digest = Text( productNode, "digest" );
         const CORE::CDataNode* tests = productNode.FindChild( "tests" );
         if ( GUCEF_NULL != tests )
         {

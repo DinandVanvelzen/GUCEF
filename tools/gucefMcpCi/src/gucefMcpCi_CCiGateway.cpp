@@ -386,6 +386,8 @@ CCiGateway::Start( const CSettings& settings, CORE::CString& problem )
         problem = "the thread pool of the gateway cannot be made";
         return false;
     }
+    // the threads are there from the start: a deployment that waits minutes for its rollout holds one, not all
+    pool->SetDesiredMinNrOfWorkerThreads( m_settings.threads );
     pool->SetDesiredMaxTotalNrOfThreads( (Int32) m_settings.threads );
     if ( 0 == g_gatewayJobFactoryUsers++ )
         pool->RegisterTaskConsumerFactory( CGatewayJobTaskConsumer::TaskType, &g_gatewayJobFactory );
@@ -661,12 +663,13 @@ CCiGateway::OnHttpRequest( WEB::CHTTPServer& server             ,
                            WEB::CHttpServerExchange& exchange   )
 {GUCEF_TRACE;
 
-    CORE::CString machineId;
-    if ( !m_tokens.Authenticate( HeaderOf( request, "authorization" ), machineId ) )
+    CCiCaller caller;
+    if ( !m_tokens.Authenticate( HeaderOf( request, "authorization" ), caller ) )
     {
         SendError( exchange, 401, "token", "an accepted bearer token is needed" );
         return;
     }
+    const CORE::CString machineId = caller.machineId;
 
     // bounded: what waits or runs, and the waiting statuses
     const bool isPoll = request.requestType == "GET" && request.requestUri == "/v1/runs";
@@ -706,6 +709,7 @@ CCiGateway::OnHttpRequest( WEB::CHTTPServer& server             ,
     pending->request.parameters = parameters;
     pending->request.body = request.content;
     pending->request.machineId = machineId;
+    pending->request.caller = caller;
     pending->exchange = exchange.GetSharedPtr();
     pending->receivedInMs = CCiUtils::MonotonicMs();
     if ( waitSeconds > 0 )

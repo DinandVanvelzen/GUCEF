@@ -94,6 +94,7 @@ static const UInt32 ChunkTimeoutInMs = 300000;
 static const UInt32 CommitTimeoutInMs = 1800000;          /**< the gateway may fetch and push a large history */
 static const UInt32 StatusMarginInMs = 60000;
 static const UInt32 DetailTimeoutInMs = 300000;
+static const UInt32 DeployTimeoutInMs = 3900000;            /**< the longest rollout the gateway waits for, and some */
 static const UInt64 MaxJsonAnswerBytes = (UInt64) 8 * 1024 * 1024;
 static const UInt64 MaxDetailAnswerBytes = (UInt64) 96 * 1024 * 1024;
 static const UInt32 MaxChunkTries = 5;
@@ -398,6 +399,10 @@ CRemoteCiService::CallJson( const CORE::CString& method             ,
         return false;
     }
     const CORE::CString message = isJson ? CCiUtils::Trimmed( json.GetAttributeValue( "error" ).AsString() ) : CORE::CString::Empty;
+    const CORE::CString code = isJson ? CCiUtils::Trimmed( json.GetAttributeValue( "code" ).AsString() ) : CORE::CString::Empty;
+    if ( 403 == status && !message.IsNULLOrEmpty() && ( code == "scope" || code == "not_listed" ) )
+        error = message;            // the token was taken, what it asked for is not allowed
+    else
     if ( 401 == status || 403 == status )
         error = "The CI gateway refused the token of this machine (HTTP " + CORE::Int32ToString( status ) + "): the machine may have been revoked, "
                 "or lablink did not renew its token yet";
@@ -700,6 +705,8 @@ CRemoteCiService::Submit( const CORE::CString& ciId       ,
                           ICiProgress* progress           )
 {GUCEF_TRACE;
 
+    if ( !options.commit.IsNULLOrEmpty() )
+        return SubmitCommit( ciId, options, snapshot, runId, error, progress );
     if ( repoDir.IsNULLOrEmpty() || !CORE::DirExists( repoDir ) )
     {
         error = "repo_dir is not an existing directory: " + repoDir;
@@ -933,6 +940,152 @@ CRemoteCiService::Cleanup( const CORE::CString& ciId      ,
         return false;
     summary = json.GetAttributeValue( "summary" ).AsString();
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::SubmitCommit( const CORE::CString& ciId       ,
+                                const CCiSubmitOptions& options ,
+                                CCiSnapshot& snapshot           ,
+                                CORE::CString& runId            ,
+                                CORE::CString& error            ,
+                                ICiProgress* progress           )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != progress )
+        progress->OnProgress( 0.0, -1.0, "the gateway sends the published commit to the CI" );
+    CORE::CDataNode body( GUCEF_DATATYPE_OBJECT );
+    body.SetAttribute( "ci", ciId );
+    CCiJson::Write( options, *body.AddChild( "options", GUCEF_DATATYPE_OBJECT ) );
+    CORE::CString bodyText;
+    CCiUtils::ToJson( body, bodyText );
+    CORE::CDataNode started;
+    if ( !CallJson( "POST", "/v1/runs", bodyText, CommitTimeoutInMs, MaxJsonAnswerBytes, started, error ) )
+        return false;
+    snapshot = CCiSnapshot();
+    const CORE::CDataNode* sent = started.FindChild( "snapshot" );
+    if ( GUCEF_NULL != sent )
+        CCiJson::Read( *sent, snapshot );
+    runId = CCiUtils::Trimmed( started.GetAttributeValue( "runId" ).AsString() );
+    if ( runId.IsNULLOrEmpty() && !options.dryRun )
+    {
+        error = "The CI gateway at " + GetUrl() + " answered without a run id";
+        return false;
+    }
+    if ( !runId.IsNULLOrEmpty() )
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Run " << runId << " started for the published commit " << options.commit << " on " << snapshot.branchName );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::Images( const CORE::CString& runId      ,
+                          CCiImageReport& report          ,
+                          CORE::CString& error            )
+{GUCEF_TRACE;
+
+    CORE::CDataNode json;
+    if ( !CallJson( "GET", "/v1/images?id=" + Encode( runId ), CORE::CString::Empty, JsonTimeoutInMs, MaxJsonAnswerBytes, json, error ) )
+        return false;
+    CORE::CString problem;
+    if ( !report.LoadFromJson( json, problem ) )
+    {
+        error = "The CI gateway at " + GetUrl() + " answered without the images of the run: " + problem;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::CallDeploy( const CORE::CString& path, const CORE::CString& bodyText, CCiDeployResult& result, CORE::CString& error )
+{GUCEF_TRACE;
+
+    result = CCiDeployResult();
+    CORE::CDataNode json;
+    Int32 status = 0;
+    const bool answered = CallJson( "POST", path, bodyText, DeployTimeoutInMs, MaxJsonAnswerBytes, json, error, &status );
+    const CORE::CDataNode* resultNode = json.FindChild( "result" );
+    if ( GUCEF_NULL != resultNode && 0 != status )
+        result.LoadFromJson( *resultNode );
+    if ( answered && GUCEF_NULL == resultNode )
+    {
+        error = "The CI gateway at " + GetUrl() + " answered without the result of the call";
+        return false;
+    }
+    return answered;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::Deploy( const CORE::CString& ciId         ,
+                          const CORE::CString& image        ,
+                          const CORE::CString& target       ,
+                          const CORE::CString& runOrCommit  ,
+                          bool confirm                      ,
+                          const CCiCaller& caller           ,
+                          CCiDeployResult& result           ,
+                          CORE::CString& error              ,
+                          ICiProgress* progress             )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != progress )
+        progress->OnProgress( 0.0, -1.0, "the gateway deploys " + image + " to " + target );
+    CORE::CDataNode body( GUCEF_DATATYPE_OBJECT );
+    body.SetAttribute( "ci", ciId );
+    body.SetAttribute( "image", image );
+    body.SetAttribute( "target", target );
+    const CORE::CString given = CCiUtils::Trimmed( runOrCommit );
+    body.SetAttribute( given.HasChar( ':', false ) > 0 ? "run" : "commit", given );
+    body.SetAttribute( "confirm", confirm );
+    CORE::CString bodyText;
+    CCiUtils::ToJson( body, bodyText );
+    return CallDeploy( "/v1/deploy", bodyText, result, error );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::ReleaseStatus( const CORE::CString& ciId     ,
+                                 const CORE::CString& target   ,
+                                 CCiReleaseStatus& status      ,
+                                 CORE::CString& error          )
+{GUCEF_TRACE;
+
+    CORE::CDataNode json;
+    if ( !CallJson( "GET", "/v1/release?ci=" + Encode( ciId ) + "&target=" + Encode( target ), CORE::CString::Empty, DetailTimeoutInMs, MaxJsonAnswerBytes, json, error ) )
+        return false;
+    status.LoadFromJson( json );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRemoteCiService::Rollback( const CORE::CString& ciId       ,
+                            const CORE::CString& image      ,
+                            const CORE::CString& target     ,
+                            bool confirm                    ,
+                            const CCiCaller& caller         ,
+                            CCiDeployResult& result         ,
+                            CORE::CString& error            ,
+                            ICiProgress* progress           )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != progress )
+        progress->OnProgress( 0.0, -1.0, "the gateway rolls " + target + " back" );
+    CORE::CDataNode body( GUCEF_DATATYPE_OBJECT );
+    body.SetAttribute( "ci", ciId );
+    body.SetAttribute( "image", image );
+    body.SetAttribute( "target", target );
+    body.SetAttribute( "confirm", confirm );
+    CORE::CString bodyText;
+    CCiUtils::ToJson( body, bodyText );
+    return CallDeploy( "/v1/rollback", bodyText, result, error );
 }
 
 /*-------------------------------------------------------------------------*/

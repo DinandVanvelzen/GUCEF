@@ -44,6 +44,14 @@ using namespace GUCEF;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const char* CCiReport::ImagePhase = "image";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -162,8 +170,19 @@ CCiReport::CProduct::CProduct( void )
     , logFile()
     , logTail()
     , tests()
+    , tag()
+    , digest()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCiReport::CProduct::IsImage( void ) const
+{GUCEF_TRACE;
+
+    return phase == ImagePhase;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -211,6 +230,44 @@ CCiReport::CCell::CCell( void )
     , products()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCiReport::CCell::LoadFromImageReport( const CCiImageReport& report )
+{GUCEF_TRACE;
+
+    schema = (Int32) report.schema;
+    cell = jobId;
+    mode = "images";
+    runId = report.run;
+    commit = report.commit;
+    products.clear();
+    seconds = 0;
+    bool anyFailed = false;
+    for ( size_t i=0; i<report.images.size(); ++i )
+    {
+        const CCiImageReport::CImage& image = report.images[ i ];
+        CProduct product;
+        product.name = image.name;
+        // the status word as the report gives it; an image without a digest was not pushed
+        product.status = image.status.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : image.status;
+        if ( product.status == "ok" && !CCiImageReport::IsDigest( image.digest ) )
+            product.status = "failed";
+        product.phase = ImagePhase;
+        product.exitCode = product.status == "ok" ? 0 : 1;
+        product.seconds = (UInt32) image.seconds;
+        product.logFile = image.name + ".log.gz";
+        product.logTail = image.logTail;
+        product.tag = image.tag;
+        product.digest = image.digest;
+        anyFailed = anyFailed || product.status != "ok";
+        seconds += product.seconds;
+        products.push_back( product );
+    }
+    status = report.status.IsNULLOrEmpty() ? ( anyFailed ? CORE::CString( "failed" ) : CORE::CString( "ok" ) ) : report.status;
+    hasReport = true;
 }
 
 /*-------------------------------------------------------------------------*/

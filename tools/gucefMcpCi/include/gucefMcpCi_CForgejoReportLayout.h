@@ -58,6 +58,9 @@ namespace GUCEFMcpCi {
  *      <product>.log           the same uncompressed, used when the compressed one is missing or cannot be read
  *
  *    URL of a file: <url>/api/packages/<owner>/generic/<PackageName>/<version>/<file>
+ *
+ *    The images job publishes ImagesFileName (see CCiImageReport) in the same package, version MakeImagesVersion( run ):
+ *    "<run>-images".
  */
 class CForgejoReportLayout
 {
@@ -69,6 +72,11 @@ class CForgejoReportLayout
     static const char* ReportFileName;          /**< "report.json" */
     static const char* CompressedLogSuffix;     /**< ".log.gz" */
     static const char* LogSuffix;               /**< ".log" */
+    static const char* ImagesFileName;          /**< "images.json" */
+    static const char* ImagesVersionSuffix;     /**< "images" */
+
+    /** The package version of the image report of a run: "<runId>-images" */
+    static GUCEF::CORE::CString MakeImagesVersion( const GUCEF::CORE::CString& runId );
 
     /** The package version of the report of a job: "<runId>-<jobId>" */
     static GUCEF::CORE::CString MakeVersion( const GUCEF::CORE::CString& runId, const GUCEF::CORE::CString& jobId );

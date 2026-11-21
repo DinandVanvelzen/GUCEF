@@ -66,6 +66,9 @@ namespace GUCEFMcpCi {
  *    base commits GET /api/v1/repos/{o}/{r} for the default branch and GET .../branches: its head and those of the
  *                 newest scratch branches
  *    fetch        git fetch of the branches of the scratch repository, the token in the environment of git as for the push
+ *    images       images.json of the run from the generic package registry, see CForgejoReportLayout
+ *    published    git fetch of the published repository (owner/repo, or publishedUrl), with the token as for the push
+ *    run of a commit  GET .../actions/runs?head_sha=<commit>, the newest
  *
  *  Requests carry "Authorization: token <token>", verify the certificate of an https server (with the CA file when
  *  given) and always have a time limit and a size limit for the response.
@@ -150,6 +153,21 @@ class CForgejoBackend : public ICiBackend
                           GUCEF::UInt32 olderThanDays         ,
                           GUCEF::CORE::CString& summary       ,
                           GUCEF::CORE::CString& error         ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool GetImageReport( const CCiDefinition& ci             ,
+                                 const GUCEF::CORE::CString& runId   ,
+                                 CCiImageReport& report              ,
+                                 bool& missing                       ,
+                                 GUCEF::CORE::CString& error         ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool FetchPublishedRepository( const CCiDefinition& ci                 ,
+                                           const GUCEF::CORE::CString& bareRepoDir ,
+                                           GUCEF::CORE::CString& error             ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool FindRunOfCommit( const CCiDefinition& ci             ,
+                                  const GUCEF::CORE::CString& commit  ,
+                                  GUCEF::CORE::CString& runId         ,
+                                  GUCEF::CORE::CString& error         ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** Forgejo states as the states of the interface */
     static CCiRunStatus::EState MapState( const GUCEF::CORE::CString& forgejoStatus );

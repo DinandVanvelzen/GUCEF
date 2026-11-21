@@ -35,6 +35,8 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
+#include "gucefMcpCi_CCiCaller.h"
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -53,11 +55,13 @@ namespace GUCEFMcpCi {
  *  The tokens a gateway accepts, each for one machine:
  *
  *    - the tokens file (--gateway-tokens-file) that the lablink hub keeps: one line per machine,
- *      "<SHA-256 of the token as 64 hexadecimal digits><TAB><machine id>", lines starting with # are comments.
+ *      "<SHA-256 of the token as 64 hexadecimal digits><TAB><machine id>[<TAB><scopes>]", lines starting with # are
+ *      comments. The scopes are comma separated (build, deploy, see CCiCaller); without the column a machine has
+ *      the scope build. Unknown scope names are ignored with a line in the log.
  *      It is read through CORE::ReadOwnerOnlyFile() and read again when its time or size changes, and at least
  *      every 30 seconds, so that a machine that is revoked (its line removed) is refused from then on. A file that
  *      cannot be read accepts nobody.
- *    - optionally one static token (--token-file), for the administrator, as machine "admin"
+ *    - optionally one static token (--token-file), for the administrator, as machine "admin" with the scope build
  *
  *  Clients send "Authorization: Bearer <token>". The given token is hashed and its digest compared with every
  *  digest in constant time, so neither the time nor the logs tell anything about the tokens. Tokens are never kept,
@@ -90,6 +94,9 @@ class CGatewayTokens
      */
     bool Authenticate( const GUCEF::CORE::CString& authorizationHeader, GUCEF::CORE::CString& machineId );
 
+    /** As Authenticate() above, with the machine and its scopes as the caller */
+    bool Authenticate( const GUCEF::CORE::CString& authorizationHeader, CCiCaller& caller );
+
     /** The number of machines of the tokens file, after the last read */
     GUCEF::UInt32 GetMachineCount( void );
 
@@ -106,6 +113,7 @@ class CGatewayTokens
 
         GUCEF::UInt8 digest[ 32 ];
         GUCEF::CORE::CString machineId;
+        GUCEF::CORE::CString::StringSet scopes;
 
         CEntry( void );
     };

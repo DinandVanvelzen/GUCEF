@@ -24,28 +24,38 @@ LOCAL_SRC_FILES := \
   ../gucefMcpLocalLlm/src/gucefMcpLocalLlm_BuildLogDigest.cpp \
   ../gucefMcpLocalLlm/src/gucefMcpLocalLlm_ProcessRun.cpp \
   src/gucefMcpCi_CBundleReceiver.cpp \
+  src/gucefMcpCi_CCiCaller.cpp \
   src/gucefMcpCi_CCiDefinition.cpp \
+  src/gucefMcpCi_CCiDeployImage.cpp \
+  src/gucefMcpCi_CCiDeployManager.cpp \
+  src/gucefMcpCi_CCiDeployResult.cpp \
   src/gucefMcpCi_CCiDescription.cpp \
   src/gucefMcpCi_CCiGateway.cpp \
   src/gucefMcpCi_CCiGatewayEndpoint.cpp \
+  src/gucefMcpCi_CCiImageReport.cpp \
   src/gucefMcpCi_CCiJobDetail.cpp \
   src/gucefMcpCi_CCiJson.cpp \
   src/gucefMcpCi_CCiRegistry.cpp \
+  src/gucefMcpCi_CCiReleaseStatus.cpp \
   src/gucefMcpCi_CCiReport.cpp \
   src/gucefMcpCi_CCiRunStatus.cpp \
   src/gucefMcpCi_CCiSnapshot.cpp \
   src/gucefMcpCi_CCiSubmitOptions.cpp \
   src/gucefMcpCi_CCiUtils.cpp \
+  src/gucefMcpCi_CDeployAudit.cpp \
   src/gucefMcpCi_CDirectCiService.cpp \
   src/gucefMcpCi_CForgejoBackend.cpp \
   src/gucefMcpCi_CForgejoReportLayout.cpp \
   src/gucefMcpCi_CGatewayApi.cpp \
   src/gucefMcpCi_CGatewayTokens.cpp \
+  src/gucefMcpCi_CKubectlDeployer.cpp \
+  src/gucefMcpCi_CRegistryClient.cpp \
   src/gucefMcpCi_CRemoteCiService.cpp \
   src/gucefMcpCi_CRequestRateLimiter.cpp \
   src/gucefMcpCi_CSnapshotBuilder.cpp \
   src/gucefMcpCi_CUploadStore.cpp \
   src/gucefMcpCi_ICiBackend.cpp \
+  src/gucefMcpCi_ICiDeployer.cpp \
   src/gucefMcpCi_ICiProgress.cpp \
   src/gucefMcpCi_ICiService.cpp \
   src/gucefMcpCi_Tools.cpp \

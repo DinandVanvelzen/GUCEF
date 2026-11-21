@@ -611,6 +611,8 @@ CForgejoBackend::StartRun( const CCiDefinition& ci             ,
         inputs->SetAttribute( "products", CCiUtils::Join( options.products, "," ) );
     if ( !options.mode.IsNULLOrEmpty() && options.mode != "build" )
         inputs->SetAttribute( "mode", options.mode );
+    if ( !options.images.empty() )
+        inputs->SetAttribute( "images", CCiUtils::Join( options.images, "," ) );
     CORE::CString bodyText;
     if ( !CCiUtils::ToJson( body, bodyText ) )
     {
@@ -919,6 +921,18 @@ CForgejoBackend::GetReport( const CCiDefinition& ci         ,
         CCiReport::CCell cell;
         bool missing = false;
         CORE::CString problem;
+        cell.jobId = job.id;
+        if ( CCiImageReport::IsImagesJob( job.id ) )
+        {
+            // the images job publishes images.json, not report.json
+            CCiImageReport images;
+            if ( GetImageReport( ci, runId, images, missing, problem ) )
+                cell.LoadFromImageReport( images );
+            else
+                cell.problem = missing ? CORE::CString( "the image job published no report (images.json): it failed before or outside the image builds" )
+                                       : "the image report could not be read: " + problem;
+        }
+        else
         if ( !LoadCellReport( ci, runId, job.id, cell, missing, problem ) && !missing )
             cell.problem = "the report could not be read: " + problem;
         cell.jobId = job.id;
@@ -1024,6 +1038,22 @@ CForgejoBackend::GetJobDetail( const CCiDefinition& ci             ,
 
     bool missing = false;
     CORE::CString problem;
+    const bool isImagesJob = CCiImageReport::IsImagesJob( jobId );
+    if ( isImagesJob )
+    {
+        // the images job: images.json and the logs of the image builds, in the package version of the images
+        CCiImageReport images;
+        detail.cell.jobId = jobId;
+        if ( !GetImageReport( ci, runId, images, missing, problem ) )
+        {
+            detail.cell.state = detail.state;
+            detail.note = missing ? CORE::CString( "The image job published no report (images.json): it did not get to building images (see its state), or it is still running." )
+                                  : "The image report of the job could not be read: " + problem;
+            return true;
+        }
+        detail.cell.LoadFromImageReport( images );
+    }
+    else
     if ( !LoadCellReport( ci, runId, jobId, detail.cell, missing, problem ) )
     {
         detail.cell.jobId = jobId;
@@ -1036,7 +1066,7 @@ CForgejoBackend::GetJobDetail( const CCiDefinition& ci             ,
 
     // the logs to fetch: of the product asked for (or of the product of the test application asked for, which holds
     // its output: test applications have no log file of their own), else of the products that failed
-    const CORE::CString version = CForgejoReportLayout::MakeVersion( runId, jobId );
+    const CORE::CString version = isImagesJob ? CForgejoReportLayout::MakeImagesVersion( runId ) : CForgejoReportLayout::MakeVersion( runId, jobId );
     const CCiReport::CProduct* productOfTest = GUCEF_NULL;
     const bool isTest = !product.IsNULLOrEmpty() && GUCEF_NULL != detail.cell.FindTest( product, &productOfTest );
     CCiJobDetail::TLogVector wanted;
@@ -1220,6 +1250,127 @@ CForgejoBackend::Cleanup( const CCiDefinition& ci         ,
               " report(s) older than " + CORE::UInt32ToString( olderThanDays ) + " day(s); kept " + CORE::UInt32ToString( keptBranches ) + " newer scratch branch(es).";
     if ( failures > 0 )
         summary += " " + CORE::UInt32ToString( failures ) + " could not be removed.";
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CForgejoBackend::GetImageReport( const CCiDefinition& ci         ,
+                                 const CORE::CString& runId      ,
+                                 CCiImageReport& report          ,
+                                 bool& missing                   ,
+                                 CORE::CString& error            )
+{GUCEF_TRACE;
+
+    missing = false;
+    report = CCiImageReport();
+    if ( !IsDigits( runId ) )
+    {
+        missing = true;
+        error = "Unknown run id";
+        return false;
+    }
+    Int32 status = 0;
+    CORE::CDynamicBuffer body;
+    const CORE::CString version = CForgejoReportLayout::MakeImagesVersion( runId );
+    if ( !Execute( "GET", PackageFileUrl( ci, version, CForgejoReportLayout::ImagesFileName ), CORE::CString::Empty, MaxJsonBytes, JsonTimeoutInMs, status, body, error ) )
+        return false;
+    if ( 404 == status )
+    {
+        missing = true;
+        error = "The run published no image report: it built no images (none were asked for with ci_submit images), or its images job did not get "
+                "that far (see ci_status and ci_report)";
+        return false;
+    }
+    if ( 200 != status )
+    {
+        error = "The image report could not be fetched (HTTP " + CORE::Int32ToString( status ) + ")";
+        return false;
+    }
+    CORE::CDataNode json;
+    if ( !CCiUtils::ParseJson( body, json ) )
+    {
+        error = "The image report of the run is not JSON";
+        return false;
+    }
+    CORE::CString problem;
+    if ( !report.LoadFromJson( json, problem ) )
+    {
+        error = "The image report of the run cannot be read: " + problem;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CForgejoBackend::FetchPublishedRepository( const CCiDefinition& ci             ,
+                                           const CORE::CString& bareRepoDir    ,
+                                           CORE::CString& error                )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_pusher )
+    {
+        error = "The backend has nothing to fetch with";
+        return false;
+    }
+    if ( ci.publishedUrl.IsNULLOrEmpty() && ( ci.owner.IsNULLOrEmpty() || ci.repo.IsNULLOrEmpty() ) )
+    {
+        error = "The CI id " + ci.id + " names no published repository (owner and repo, or publishedUrl, in ci.json)";
+        return false;
+    }
+    const CORE::CString authorization = m_token.IsNULLOrEmpty() ? CORE::CString::Empty : "token " + m_token;
+    const CORE::CString url = ci.GetPublishedGitUrl();
+    CORE::CString problem;
+    if ( !m_pusher->Fetch( bareRepoDir, url, authorization, "+refs/heads/*:" + CORE::CString( PublishedRefPrefix ) + "*", problem ) ||
+         !m_pusher->Fetch( bareRepoDir, url, authorization, "+HEAD:" + CORE::CString( PublishedHeadRef ), problem ) )
+    {
+        error = "The published repository of " + ci.id + " could not be fetched: " + problem;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CForgejoBackend::FindRunOfCommit( const CCiDefinition& ci         ,
+                                  const CORE::CString& commit     ,
+                                  CORE::CString& runId            ,
+                                  CORE::CString& error            )
+{GUCEF_TRACE;
+
+    const CORE::CString url = ScratchApi( ci ) + "/actions/runs?event=workflow_dispatch&head_sha=" + CCiUtils::PercentEncode( commit ) +
+                              "&limit=" + CORE::UInt32ToString( PageSize );
+    Int32 status = 0;
+    CORE::CDataNode answer;
+    if ( !ExecuteJson( "GET", url, CORE::CString::Empty, status, answer, error ) )
+        return false;
+    if ( 200 != status )
+    {
+        error = "The CI did not list the runs of the commit (HTTP " + CORE::Int32ToString( status ) + ")" + ServerMessage( answer );
+        return false;
+    }
+    Int64 newest = 0;
+    const CORE::CDataNode* runs = answer.FindChild( "workflow_runs" );
+    if ( GUCEF_NULL != runs )
+    {
+        for ( CORE::CDataNode::const_iterator i = runs->ConstBegin(); i != runs->ConstEnd(); ++i )
+        {
+            const CORE::CString sha = (*i)->GetAttributeValue( "commit_sha" ).AsString();
+            const Int64 id = (*i)->GetAttributeValue( "id" ).AsInt64( 0 );
+            if ( ( sha.IsNULLOrEmpty() || sha == commit ) && id > newest )
+                newest = id;
+        }
+    }
+    if ( 0 == newest )
+    {
+        error = "The CI has no run of the commit " + commit + "; build it with ci_submit commit and images first";
+        return false;
+    }
+    runId = CORE::Int64ToString( newest );
     return true;
 }
 

@@ -57,12 +57,23 @@ const char* CForgejoReportLayout::PackageType = "generic";
 const char* CForgejoReportLayout::ReportFileName = "report.json";
 const char* CForgejoReportLayout::CompressedLogSuffix = ".log.gz";
 const char* CForgejoReportLayout::LogSuffix = ".log";
+const char* CForgejoReportLayout::ImagesFileName = "images.json";
+const char* CForgejoReportLayout::ImagesVersionSuffix = "images";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+CORE::CString
+CForgejoReportLayout::MakeImagesVersion( const CORE::CString& runId )
+{GUCEF_TRACE;
+
+    return runId + "-" + ImagesVersionSuffix;
+}
+
+/*-------------------------------------------------------------------------*/
 
 CORE::CString
 CForgejoReportLayout::MakeVersion( const CORE::CString& runId, const CORE::CString& jobId )

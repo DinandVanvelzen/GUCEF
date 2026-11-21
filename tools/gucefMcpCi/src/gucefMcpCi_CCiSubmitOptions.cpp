@@ -50,6 +50,8 @@ CCiSubmitOptions::CCiSubmitOptions( void )
     , mode( "build" )
     , includeUncommitted( true )
     , dryRun( false )
+    , images()
+    , commit()
 {GUCEF_TRACE;
 
 }

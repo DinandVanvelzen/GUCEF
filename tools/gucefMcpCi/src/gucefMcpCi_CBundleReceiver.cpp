@@ -102,7 +102,6 @@ GitProblem( const CORE::CString& output )
 CBundleReceiver::CBundleReceiver( CDirectCiService& service )
     : m_service( service )
     , m_directory()
-    , m_locks()
     , m_lock()
 {GUCEF_TRACE;
 
@@ -113,9 +112,6 @@ CBundleReceiver::CBundleReceiver( CDirectCiService& service )
 CBundleReceiver::~CBundleReceiver()
 {GUCEF_TRACE;
 
-    for ( TLockMap::iterator i = m_locks.begin(); i != m_locks.end(); ++i )
-        GUCEF_DELETE (*i).second;
-    m_locks.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,14 +130,8 @@ MT::CMutex&
 CBundleReceiver::LockOf( const CORE::CString& ciId )
 {GUCEF_TRACE;
 
-    // one per CI id of the registry: bounded by the registry
-    MT::CScopeMutex lock( m_lock );
-    TLockMap::iterator i = m_locks.find( ciId );
-    if ( i != m_locks.end() )
-        return *(*i).second;
-    MT::CMutex* mutex = GUCEF_NEW MT::CMutex();
-    m_locks[ ciId ] = mutex;
-    return *mutex;
+    // the lock of the service: the check of published commits and the release submits work in the same repository
+    return m_service.GetRepositoryLock( ciId );
 }
 
 /*-------------------------------------------------------------------------*/

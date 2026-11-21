@@ -31,6 +31,10 @@
 #include "gucefMcpCi_CCiRunStatus.h"
 #include "gucefMcpCi_CCiReport.h"
 #include "gucefMcpCi_CCiJobDetail.h"
+#include "gucefMcpCi_CCiImageReport.h"
+#include "gucefMcpCi_CCiDeployResult.h"
+#include "gucefMcpCi_CCiReleaseStatus.h"
+#include "gucefMcpCi_CCiCaller.h"
 #include "gucefMcpCi_ICiProgress.h"
 
 /*-------------------------------------------------------------------------//
@@ -79,7 +83,8 @@ class ICiService
 
     /**
      *  Makes the snapshot of the repository and starts a run on it; with options.dryRun only the snapshot.
-     *  The repository must be one of the CI id.
+     *  The repository must be one of the CI id. With options.commit no snapshot is made and repoDir is not used: that
+     *  commit of the published repository is sent to the CI from the clone of the service and built.
      *  @param progress     optional: told how far sending the snapshot is, and asked whether to stop
      */
     virtual bool Submit( const GUCEF::CORE::CString& ciId       ,
@@ -114,6 +119,50 @@ class ICiService
                           GUCEF::UInt32 olderThanDays           ,
                           GUCEF::CORE::CString& summary         ,
                           GUCEF::CORE::CString& error           ) = 0;
+
+    /** The images a run built, from the report of its images job */
+    virtual bool Images( const GUCEF::CORE::CString& runId      ,
+                         CCiImageReport& report                 ,
+                         GUCEF::CORE::CString& error            ) = 0;
+
+    /**
+     *  Rolls an image a run built out to a target of the deploy block of the CI id, after the guards of the service:
+     *  the image and the target are listed, the caller has the scope deploy, 'confirm' is true, the run is green and
+     *  built the image, a target without allowScratch gets only a commit of the published repository, the registry has
+     *  the digest, the Deployment pulls from a registry, and no other deployment of the target runs.
+     *  @param runOrCommit  the run id of the service, or the full commit whose newest run is meant
+     *  @param result       what was done or why not, as far as known, also when false is returned
+     *  @return whether the target runs the image now
+     */
+    virtual bool Deploy( const GUCEF::CORE::CString& ciId         ,
+                         const GUCEF::CORE::CString& image        ,
+                         const GUCEF::CORE::CString& target       ,
+                         const GUCEF::CORE::CString& runOrCommit  ,
+                         bool confirm                             ,
+                         const CCiCaller& caller                  ,
+                         CCiDeployResult& result                  ,
+                         GUCEF::CORE::CString& error              ,
+                         ICiProgress* progress = GUCEF_NULL       ) = 0;
+
+    /** What the Deployments of a target run now, with their revision history */
+    virtual bool ReleaseStatus( const GUCEF::CORE::CString& ciId     ,
+                                const GUCEF::CORE::CString& target   ,
+                                CCiReleaseStatus& status             ,
+                                GUCEF::CORE::CString& error          ) = 0;
+
+    /**
+     *  Returns the Deployment of an image of a target to its previous revision, with the guards of a deployment that
+     *  apply: listed, scope deploy, 'confirm' true, one deployment of the target at a time.
+     *  @param image    may be empty when only one image of the CI id has the target
+     */
+    virtual bool Rollback( const GUCEF::CORE::CString& ciId       ,
+                           const GUCEF::CORE::CString& image      ,
+                           const GUCEF::CORE::CString& target     ,
+                           bool confirm                           ,
+                           const CCiCaller& caller                ,
+                           CCiDeployResult& result                ,
+                           GUCEF::CORE::CString& error            ,
+                           ICiProgress* progress = GUCEF_NULL     ) = 0;
 
     /** The CI ids that can be used, comma separated */
     virtual GUCEF::CORE::CString ListCiIds( void ) const = 0;

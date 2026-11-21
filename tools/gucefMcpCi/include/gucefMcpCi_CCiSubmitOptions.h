@@ -55,6 +55,8 @@ class CCiSubmitOptions
     GUCEF::CORE::CString mode;          /**< build or test */
     bool includeUncommitted;            /**< modified, deleted and untracked files too, not only the commits */
     bool dryRun;                        /**< only the summary of the snapshot, nothing is sent */
+    GUCEF::CORE::CString::StringVector images;  /**< the images the run also builds: names, or "all"; empty for none */
+    GUCEF::CORE::CString commit;        /**< a published commit to build instead of a snapshot of a working tree */
 
     CCiSubmitOptions( void );
 };

@@ -135,7 +135,29 @@ const char* LablinkExample =
     "        \"http://172.16.1.125:32001/forgejo-admin/GUCEF.git\",\n"
     "        \"ssh://git@172.16.1.125:32002/forgejo-admin/GUCEF.git\"\n"
     "      ],\n"
-    "      \"defaults\": { \"mode\": \"build\", \"toolchains\": [], \"cppStandards\": [], \"products\": [] }\n"
+    "      \"defaults\": { \"mode\": \"build\", \"toolchains\": [], \"cppStandards\": [], \"products\": [] },\n"
+    "      \"registryHost\": \"worker.lan:32001\",\n"
+    "      \"registryUser\": \"ci-bot\",\n"
+    "      \"deploy\": {\n"
+    "        \"images\": [\n"
+    "          {\n"
+    "            \"name\": \"asset-store-service\",\n"
+    "            \"registryName\": \"asset-store-service\",\n"
+    "            \"registryOwner\": \"ci\",\n"
+    "            \"targets\": {\n"
+    "              \"live\": { \"namespace\": \"assetstore\", \"deployment\": \"assetstore\", \"container\": \"service\", \"allowScratch\": false }\n"
+    "            }\n"
+    "          },\n"
+    "          {\n"
+    "            \"name\": \"irc-hub\",\n"
+    "            \"registryName\": \"gucef-irc-hub\",\n"
+    "            \"registryOwner\": \"ci\",\n"
+    "            \"targets\": {\n"
+    "              \"live\": { \"namespace\": \"irc\", \"deployment\": \"irc-hub\", \"container\": \"hub\", \"allowScratch\": true }\n"
+    "            }\n"
+    "          }\n"
+    "        ]\n"
+    "      }\n"
     "    }\n"
     "  ]\n"
     "}\n";
@@ -204,11 +226,12 @@ NoiseText( UInt32 size, UInt32 seed )
 bool
 HasAllTools( const CORE::CString& names )
 {
-    const char* tools[] = { "ci_resolve_repo,", "ci_describe,", "ci_submit,", "ci_status,", "ci_report,", "ci_job_details,", "ci_cancel,", "ci_cleanup," };
-    for ( int i=0; i<8; ++i )
+    const char* tools[] = { "ci_resolve_repo,", "ci_describe,", "ci_submit,", "ci_status,", "ci_report,", "ci_job_details,", "ci_cancel,", "ci_cleanup,",
+                            "ci_images,", "ci_deploy,", "ci_release_status,", "ci_rollback," };
+    for ( int i=0; i<12; ++i )
         if ( !Contains( names, tools[ i ] ) )
             return false;
-    return 8 == names.GetCharacterCount( ',' );
+    return 12 == names.GetCharacterCount( ',' );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -9,9 +9,12 @@ repository are never changed.
 The model never sees the CI product. Forgejo Actions is the first backend; others can be added behind the same
 interface (`ICiBackend`).
 
+A run can also build container images, and an image of a green run can be rolled out to a Kubernetes Deployment that the
+CI registry lists for the repository (see Deployments).
+
 ## Modes
 
-The same eight tools are offered in every mode; only where the work happens differs.
+The same twelve tools are offered in every mode; only where the work happens differs.
 
 | Mode | Where it runs | What it does |
 |---|---|---|
@@ -29,12 +32,16 @@ While it cannot be reached, every tool answers with an error that says so, withi
 |---|---|---|
 | `ci_resolve_repo` | read-only | the CI id of a repository from its remotes, or "no CI is set up"; nothing is guessed |
 | `ci_describe` | read-only | toolchains, C++ standards, products and modes of a CI id; with `repo_dir` from the CI files of that working tree |
-| `ci_submit` | additive | sends the snapshot and starts a run (full matrix by default, optional filters, mode `build` or `test`, `dry_run`); reports progress while a large snapshot is sent and honours cancellation |
+| `ci_submit` | additive | sends the snapshot and starts a run (full matrix by default, optional filters, mode `build` or `test`, `dry_run`); reports progress while a large snapshot is sent and honours cancellation. `images` also builds container images (names, or `["all"]`); `commit` builds a commit of the published repository instead of a working tree, sent by the machine that works with the CI from its own clone |
 | `ci_status` | read-only | state, job counts and failed jobs; `wait_seconds` waits within the call until the run is finished |
 | `ci_report` | read-only | per job and product what failed, the first errors with `file:line`, failed test cases |
 | `ci_job_details` | read-only | one job: the digest of its logs, the end of a log, or its tests; the full logs are saved on the machine of the server and their absolute paths are returned |
 | `ci_cancel` | destructive | stops a run |
 | `ci_cleanup` | destructive | removes scratch branches and reports older than a number of days |
+| `ci_images` | read-only | the images a run built: tag, digest, status, and whether the run built a published commit |
+| `ci_release_status` | read-only | what a deployment target runs now: image and digest, change cause (CI id, run, commit, machine, time), replicas, revision history |
+| `ci_deploy` | destructive, idempotent | rolls an image of a green run out to a listed target; needs `confirm=true` and the scope `deploy`; its description tells the model to deploy only when the user asked for it and to show `ci_release_status` first |
+| `ci_rollback` | destructive | returns the Deployment of a target to its previous revision; needs `confirm=true` and the scope `deploy` |
 
 Only repositories that the CI registry knows are built.
 
@@ -63,7 +70,7 @@ Only repositories that the CI registry knows are built.
 | `--token-file PATH` | all | direct and proxy: the bearer token of MCP HTTP clients, made owner-only when missing. gateway: an optional static token, accepted as machine `admin` |
 | `--allowed-host NAME` | all | a host name clients use for this machine (repeatable); localhost and 127.0.0.1 are always accepted |
 | `--gateway-tokens-file FILE\|none` | gateway | the token digests of the machines; default `/var/lib/gucef-lablink/ci/gateway-tokens` |
-| `--work-dir DIR` | gateway | bare repositories per CI id and the upload staging; default `gateway` in `--log-dir` |
+| `--work-dir DIR` | direct, gateway | bare repositories per CI id, the upload staging and the audit of deployments; default `gateway` in `--log-dir` |
 | `--upload-chunk-kb N` | gateway | the chunk size of uploads, at most 8192 (default) |
 | `--upload-idle-seconds N` | gateway | an upload without a chunk for this long is removed with its file; default 600 |
 | `--max-uploads N` | gateway | uploads at the same time; default 4 |
@@ -71,6 +78,11 @@ Only repositories that the CI registry knows are built.
 | `--max-pending-polls N` | gateway | status requests that wait for their run; default 32 |
 | `--gateway-threads N` | gateway | threads of the gateway; default 6 |
 | `--max-requests-per-minute N` | gateway | per machine; default 600, 0 for no limit |
+| `--kubeconfig FILE` | direct, gateway | the kubeconfig of the restricted ServiceAccount of the deployer; default `/var/lib/gucef-ci/kubeconfig`. The environment variable `KUBECONFIG` is not used |
+| `--kubectl PATH` | direct, gateway | the kubectl executable; default `kubectl` |
+| `--allow-deploy` | direct | the tools of this server may deploy and roll back (scope `deploy`); without it the scope is `build`. A gateway takes the scopes from its tokens file |
+| `--deploy-timeout-seconds N` | direct, gateway | the longest wait for a rollout; default 600, at most 3600 |
+| `--registry-token-file FILE` | direct, gateway | the token for the container registry (read:package), owner-only; default: the CI token |
 
 Tokens are never given on the command line.
 
@@ -88,7 +100,8 @@ configuration from them; it never calls lablink itself.
 
 `ci.json`, `gateway.token` and `forgejo.token` are read with `CORE::ReadOwnerOnlyFile()`, which refuses files that
 others than their owner can read or write, and symbolic links. The server must therefore run as the user that owns
-them. An entry of the registry is described in `include/gucefMcpCi_CCiDefinition.h`.
+them. An entry of the registry is described in `include/gucefMcpCi_CCiDefinition.h`; its optional deploy block in
+`include/gucefMcpCi_CCiDeployImage.h` and under Deployments.
 
 ## Snapshots in proxy mode
 
@@ -122,18 +135,30 @@ status.
 | `GET /v1/uploads?id=U` | how many bytes arrived |
 | `DELETE /v1/uploads?id=U` | gives an upload up |
 | `POST /v1/uploads/commit?id=U` | takes the bundle in and sends the snapshot to the CI |
-| `POST /v1/runs` | `{ "snapshot": U, "options": { ... } }`: the run id |
+| `POST /v1/runs` | `{ "snapshot": U, "options": { ... } }`: the run id; `{ "ci": ID, "options": { "commit": SHA, "images": [ ... ] } }` builds a published commit, which the gateway sends from its own clone |
 | `GET /v1/runs?id=R&wait=N` | the state of a run; with `wait` the answer comes when the run is finished or after N seconds |
 | `GET /v1/runs/report?id=R` | the report of a run |
 | `GET /v1/runs/jobs?id=R&job=J&product=P&part=&limit=&offset=&full=true` | one job: its report, per log the digest and the log within bounds; `full=true` gives the whole log up to the download limit of the gateway (24 MiB per answer), so that the proxy keeps it locally |
 | `POST /v1/runs/cancel?id=R` | cancels a run |
 | `POST /v1/cleanup` | `{ "ci": ID, "olderThanDays": N }` |
+| `GET /v1/images?id=R` | the image report of a run |
+| `POST /v1/deploy` | `{ "ci": ID, "image": I, "target": T, "run": R or "commit": SHA, "confirm": true }`: `{ "result": { ... } }` |
+| `GET /v1/release?ci=ID&target=T` | what the Deployments of the target run now |
+| `POST /v1/rollback` | `{ "ci": ID, "image": I, "target": T, "confirm": true }`: `{ "result": { ... } }` |
+
+A deployment or rollback answers with its result also when it fails; a token without the scope `deploy` gets 403 with
+code `scope`, the other refusals carry the code of the result (`not_listed` 403, `confirm` and `bad_request` 400,
+`unknown_ci` and `unknown_run` 404, `busy` 409, `not_green`, `no_images`, `image_failed`, `unpublished` and `pull_policy`
+422, `registry`, `kubectl` and `rollout` 502).
 
 ## Security
 
 - Machines in proxy mode hold only their own gateway token. The CI token exists only on the gateway or direct machine.
 - The gateway accepts the tokens of `--gateway-tokens-file`: one line per machine, the SHA-256 of its token as 64 lower
-  case hexadecimal digits, a TAB and the machine id; lines starting with `#` are comments. The file is read again when
+  case hexadecimal digits, a TAB, the machine id and optionally a TAB and its scopes, comma separated (`build`,
+  `deploy`); without the column a machine has the scope `build`, unknown scope names are ignored with a line in the log.
+  The lablink hub grants `deploy` to the machines of its option `--ci-deploy-machines`. The static token of
+  `--token-file` has the scope `build`. Lines starting with `#` are comments. The file is read again when
   its time or size changes and at least every 30 seconds, so a revoked machine, whose line the hub removes, is refused
   from then on. A file that cannot be read accepts nobody. The given token is hashed and compared with every digest in
   constant time. The file is read with `CORE::ReadOwnerOnlyFile()`; the default location
@@ -148,6 +173,78 @@ status.
   bounded in size, number, chunk size and idle time; bundles are verified and only ever fetched into bare repositories;
   only CI ids of the registry are served.
 - Scratch branches execute code on the CI runner with the trust of the owner of the checkout that sent them.
+
+## Deployments
+
+The CI registry names per CI id what may be deployed where. Nothing that is not listed is ever touched:
+
+```
+"registryHost": "172.16.1.125:32001",
+"registryUser": "ci-bot",
+"deploy": {
+  "images": [
+    {
+      "name": "asset-store-service", "registryName": "asset-store-service", "registryOwner": "ci",
+      "targets": {
+        "live": { "namespace": "assetstore", "deployment": "assetstore", "container": "assetstore", "allowScratch": false }
+      }
+    }
+  ]
+}
+```
+
+`registryHost` is `host:port` (plain HTTP) or carries `http://` or `https://`; without it the host of `url` with port 32001
+and the scheme of `url` are used. `registryUser` (default `ci-bot`) is the user of the registry token. `registryName`
+defaults to `name`, `registryOwner` to `ci`, `allowScratch` to false. Target names are free. An entry whose deploy block
+lacks a namespace, Deployment or container, or names that are not Kubernetes names, is refused with a line in the log;
+the other entries are used. Entries without a deploy block are what they were. The published repository is
+`owner/repo` of the entry on the same server (a pull mirror); `publishedUrl` gives another git URL for it.
+
+CI builds the images of a run in its images job and publishes `images.json` in the report package (`ci-reports`, version
+`<run>-images`): per image its tag (`sha-<12 characters of the commit>`, `scratch-<run>`, also `candidate`), its digest
+and its status. The logs of the image builds are `<name>.log.gz` (or `<name>.log`) in the same package version.
+`ci_report` and `ci_job_details` describe the images job from this report: per image its status word, tag, digest and
+time, for an image that failed the errors found in the end of its log and that end itself (bounded), and in
+`ci_job_details` its full log, saved on the machine of the server. An images job without `images.json` is reported as
+having published no report. Image references are `<registryHost>/<registryOwner>/<registryName>@sha256:<digest>`.
+
+The flow for a target that takes published commits only: `ci_submit` with `commit` and `images` (the commit must be on a
+branch of the published repository; it is sent as `scratch/release-<12 characters>`), `ci_status` until it is finished,
+`ci_images`, `ci_release_status`, then `ci_deploy` with `confirm=true` once the user asked for it.
+
+The guards are those of the service, so direct mode and the gateway apply the same ones, and every one of them is tested:
+
+1. the image and the target are listed in the deploy block, else the refusal lists what is listed
+2. the caller has the scope `deploy`: on a gateway from the tokens file, in direct mode with `--allow-deploy`
+3. `confirm` is the boolean `true`
+4. the run is finished and every job succeeded, an images job ran, and the image report has the image with status `ok`
+   and a digest
+5. for a target without `allowScratch`: the commit of the run is an ancestor of the default branch of the published
+   repository, as `git fetch` of that repository into the bare repository of the CI id on this machine and
+   `git merge-base --is-ancestor` show; a scratch snapshot or an unknown commit is refused
+6. the registry has the tag of the image with the digest of the report (`HEAD /v2/<repository>/manifests/<tag>`, the
+   bearer token handshake of OCI registries or Basic credentials, the credentials only to the registry itself)
+7. one deployment or rollback per Deployment at a time; another one is refused with `busy`
+8. the Deployment does not use `imagePullPolicy: Never`; such a service is switched to the registry once by its owner
+   (`IMAGE_REGISTRY` in its `service.env` and one run of its `deploy.sh`)
+
+Then kubectl, always with `--kubeconfig <file> --context <namespace> -n <namespace>` and only verbs the ServiceAccount
+of the deployer has (get and patch of the listed Deployments, list and watch of Deployments, ReplicaSets and Pods):
+`get deployment -o jsonpath`, one `patch` that sets the image by digest and `kubernetes.io/change-cause` (CI id, run, commit, image, machine,
+time), and `rollout status --timeout`. A rollout that fails or times out is not undone: the answer
+says what kubectl said and what the Deployment runs (with the strategy RollingUpdate the ready pods of the previous
+revision keep serving, with Recreate the service may be down) and leaves the decision to the user. `ci_rollback` runs
+`rollout undo` and follows the rollout in the same way. The content of the kubeconfig is never read or shown.
+
+Every deployment, rollback and refusal is a line of `<work-dir>/audit/deploy.jsonl`: time, action, caller machine,
+CI id, image, target, namespace, Deployment, run, commit, digest, old digest, result, code and reason. The file is
+rotated at 4 MiB to `deploy.jsonl.1` up to `.3`.
+
+| File | Content |
+|---|---|
+| `/var/lib/gucef-ci/kubeconfig` | the kubeconfig of the ServiceAccount of the deployer, one context per namespace, written by the setup of the deployer |
+| `<work-dir>/repos/<ci>.git` | the bare repository of a CI id: snapshots of proxies, the fetched published repository (`refs/remotes/published/*`, `refs/ci/published-head`) |
+| `<work-dir>/audit/deploy.jsonl` | the audit of deployments |
 
 ## Running the gateway
 
@@ -169,4 +266,8 @@ gucefMcpCi --mode gateway --listen-tls 0.0.0.0:8792 --tls-cert /path/tls.crt --t
 
 `tests/gucefMcpCi_TestApp` runs the server as a child process against a fake Forgejo and temporary git repositories:
 direct mode, and proxy to gateway to the fake Forgejo over loopback HTTP and HTTPS, the gateway API, uploads, tokens,
-limits, a gateway that is down or answers garbage, and chunks that are lost. Nothing goes over the network.
+limits, a gateway that is down or answers garbage, and chunks that are lost. The deployments run against a fake
+registry (token handshake and Basic) and a fake kubectl script that records its arguments, checks the context and the
+verbs of every call and answers from state files: every guard, the exact calls of a deployment, failed and timed out
+rollouts, rollback, release status, the audit, submits of published commits, the scopes of gateway tokens and one
+deployment per target at a time. Nothing goes over the network.

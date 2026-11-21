@@ -32,6 +32,7 @@
 #include "gucefMcpCi_CCiRunStatus.h"
 #include "gucefMcpCi_CCiReport.h"
 #include "gucefMcpCi_CCiJobDetail.h"
+#include "gucefMcpCi_CCiImageReport.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -144,6 +145,36 @@ class ICiBackend
                           GUCEF::UInt32 olderThanDays         ,
                           GUCEF::CORE::CString& summary       ,
                           GUCEF::CORE::CString& error         ) = 0;
+
+    /**
+     *  The images a run built (images.json of its images job).
+     *  @param missing  set when the run published none: it built no images, or the images job did not get to it
+     */
+    virtual bool GetImageReport( const CCiDefinition& ci             ,
+                                 const GUCEF::CORE::CString& runId   ,
+                                 CCiImageReport& report              ,
+                                 bool& missing                       ,
+                                 GUCEF::CORE::CString& error         ) = 0;
+
+    /**
+     *  Fetches the published repository of the CI id (owner/repo, the pull mirror) into the bare repository
+     *  'bareRepoDir': its branches under PublishedRefPrefix, its default branch (HEAD) as PublishedHeadRef
+     */
+    virtual bool FetchPublishedRepository( const CCiDefinition& ci                 ,
+                                           const GUCEF::CORE::CString& bareRepoDir ,
+                                           GUCEF::CORE::CString& error             ) = 0;
+
+    /** The newest run of the scratch repository whose head is the commit; false with 'error' when there is none */
+    virtual bool FindRunOfCommit( const CCiDefinition& ci             ,
+                                  const GUCEF::CORE::CString& commit  ,
+                                  GUCEF::CORE::CString& runId         ,
+                                  GUCEF::CORE::CString& error         ) = 0;
+
+    /** Where FetchPublishedRepository() puts the branches of the published repository: "refs/remotes/published/" */
+    static const char* PublishedRefPrefix;
+
+    /** Where FetchPublishedRepository() puts the default branch of the published repository: "refs/ci/published-head" */
+    static const char* PublishedHeadRef;
 };
 
 /*-------------------------------------------------------------------------*/

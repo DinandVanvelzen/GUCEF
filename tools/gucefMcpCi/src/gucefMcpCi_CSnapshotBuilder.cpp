@@ -734,7 +734,7 @@ CSnapshotBuilder::Fetch( const CORE::CString& repoDir                 ,
         CORE::CString problem = GitProblem( output );
         if ( !authorizationHeader.IsNULLOrEmpty() )
             problem = problem.ReplaceSubstr( authorizationHeader, "***" );
-        error = "Fetching from the scratch repository failed (git fetch, exit " + CORE::Int32ToString( exitCode ) + "): " + problem;
+        error = "Fetching from " + remoteUrl + " failed (git fetch, exit " + CORE::Int32ToString( exitCode ) + "): " + problem;
         return false;
     }
     return true;

@@ -56,7 +56,8 @@ namespace GUCEFMcpCi {
  *    3. git fetch of the bundle into refs/heads/<scratch branch> of the bare repository
  *
  *  Local scratch branches older than the retention of the CI id (14 days when it has none) are removed afterwards,
- *  so the bare repository does not grow without bound. One snapshot at a time per CI id.
+ *  so the bare repository does not grow without bound. One snapshot at a time per CI id, under the repository lock of
+ *  the service (CDirectCiService::GetRepositoryLock()), which its other users of the repository hold too.
  *
  *  Thread-safe.
  */
@@ -97,8 +98,6 @@ class CBundleReceiver
 
     private:
 
-    typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::MT::CMutex* > TLockMap;
-
     CBundleReceiver( const CBundleReceiver& src );                /**< not implemented */
     CBundleReceiver& operator=( const CBundleReceiver& src );     /**< not implemented */
 
@@ -113,7 +112,6 @@ class CBundleReceiver
 
     CDirectCiService& m_service;
     GUCEF::CORE::CString m_directory;
-    TLockMap m_locks;
     GUCEF::MT::CMutex m_lock;
 };
 

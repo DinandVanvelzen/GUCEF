@@ -69,6 +69,9 @@ using namespace GUCEF;
 static const Int64 SweepIntervalInSecs = 6 * 3600;
 static const UInt32 GitTimeoutInMs = 60000;
 static const char RunIdSeparator = ':';
+static const UInt32 MaxCommitChecks = 50;
+
+const char* CDirectCiService::ReleaseBranchPrefix = "scratch/release-";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -109,6 +112,9 @@ CDirectCiService::CDirectCiService( const CCiRegistry& registry, const CSnapshot
     , m_pollIntervalInMs( 5000 )
     , m_lock()
     , m_lastSweeps()
+    , m_repositoryDirectory()
+    , m_repositoryLocks()
+    , m_deployManager()
 {GUCEF_TRACE;
 
 }
@@ -121,6 +127,54 @@ CDirectCiService::~CDirectCiService()
     for ( size_t i=0; i<m_backends.size(); ++i )
         GUCEF_DELETE m_backends[ i ];
     m_backends.clear();
+    for ( TLockMap::iterator i = m_repositoryLocks.begin(); i != m_repositoryLocks.end(); ++i )
+        GUCEF_DELETE (*i).second;
+    m_repositoryLocks.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDirectCiService::SetRepositoryDirectory( const CORE::CString& directory )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_repositoryDirectory = directory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CDirectCiService::GetRepositoryPath( const CORE::CString& ciId ) const
+{GUCEF_TRACE;
+
+    const CORE::CString directory = m_repositoryDirectory.IsNULLOrEmpty() ? CORE::CombinePath( CORE::TempDir(), "gucefMcpCi/repos" ) : m_repositoryDirectory;
+    return CORE::CombinePath( directory, CCiUtils::SafeName( ciId, 60 ) + ".git" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+MT::CMutex&
+CDirectCiService::GetRepositoryLock( const CORE::CString& ciId )
+{GUCEF_TRACE;
+
+    // one per CI id of the registry: bounded by the registry
+    MT::CScopeMutex lock( m_lock );
+    TLockMap::iterator i = m_repositoryLocks.find( ciId );
+    if ( i != m_repositoryLocks.end() )
+        return *(*i).second;
+    MT::CMutex* mutex = GUCEF_NEW MT::CMutex();
+    m_repositoryLocks[ ciId ] = mutex;
+    return *mutex;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CCiDeployManager&
+CDirectCiService::GetDeployManager( void )
+{GUCEF_TRACE;
+
+    return m_deployManager;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -374,6 +428,8 @@ CDirectCiService::Submit( const CORE::CString& ciId       ,
     ICiBackend* backend = FindBackend( *ci, error );
     if ( GUCEF_NULL == backend )
         return false;
+    if ( !options.commit.IsNULLOrEmpty() )
+        return SubmitCommit( *ci, *backend, options, snapshot, runId, error );
     if ( repoDir.IsNULLOrEmpty() || !CORE::DirExists( repoDir ) )
     {
         error = "repo_dir is not an existing directory: " + repoDir;
@@ -656,6 +712,173 @@ CDirectCiService::Cleanup( const CORE::CString& ciId      ,
     if ( GUCEF_NULL == backend )
         return false;
     return backend->Cleanup( *ci, olderThanDays, summary, error );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirectCiService::SubmitCommit( const CCiDefinition& ci             ,
+                                ICiBackend& backend                 ,
+                                const CCiSubmitOptions& options     ,
+                                CCiSnapshot& snapshot               ,
+                                CORE::CString& runId                ,
+                                CORE::CString& error                )
+{GUCEF_TRACE;
+
+    const CORE::CString commit = CCiUtils::Trimmed( options.commit ).Lowercase();
+    if ( 40 != commit.Length() || !CCiUtils::IsHex( commit, 40 ) )
+    {
+        error = "commit must be the full 40 character id of a commit of the published repository";
+        return false;
+    }
+    const CCiSubmitOptions effective = WithDefaults( ci, options );
+    if ( !CheckFilters( ci, backend, CORE::CString::Empty, effective, error ) )
+        return false;
+
+    snapshot = CCiSnapshot();
+    snapshot.repoDir = GetRepositoryPath( ci.id );
+    snapshot.commit = commit;
+    snapshot.baseCommit = commit;
+    snapshot.includesUncommitted = false;
+    snapshot.branchName = ReleaseBranchPrefix + commit.SubstrToIndex( 12, true );
+    {
+        // the commit must be on a branch of the published repository, as fetched now: never the word of the caller
+        MT::CScopeMutex lock( GetRepositoryLock( ci.id ) );
+        if ( !CCiDeployManager::EnsureBareRepository( snapshot.repoDir, error ) || !backend.FetchPublishedRepository( ci, snapshot.repoDir, error ) )
+            return false;
+        CORE::CProcess::TStringVector args;
+        args.push_back( "for-each-ref" );
+        args.push_back( "--count=" + CORE::UInt32ToString( MaxCommitChecks ) );
+        args.push_back( "--format=%(refname)" );
+        args.push_back( "--contains" );
+        args.push_back( commit );
+        args.push_back( CORE::CString( ICiBackend::PublishedRefPrefix ).CutChars( 1, false ) );
+        args.push_back( ICiBackend::PublishedHeadRef );
+        CORE::CString output;
+        const bool known = CSnapshotBuilder::HasCommit( snapshot.repoDir, commit );
+        if ( !known || !CCiUtils::RunGit( snapshot.repoDir, args, CORE::CProcess::TStringMap(), GitTimeoutInMs, output ) || CCiUtils::Trimmed( output ).IsNULLOrEmpty() )
+        {
+            error = "The commit " + commit + " is " + ( known ? CORE::CString( "not on a branch of" ) : CORE::CString( "not in" ) ) + " the published repository " +
+                    ci.owner + "/" + ci.repo + ": only published commits are built this way. Work that is not published goes with repo_dir as a snapshot.";
+            return false;
+        }
+        if ( effective.dryRun )
+            return true;
+        if ( !backend.SendSnapshot( ci, snapshot, error ) )
+            return false;
+    }
+    CORE::CString backendRunId;
+    if ( !backend.StartRun( ci, snapshot, effective, backendRunId, error ) )
+        return false;
+    runId = ci.id + RunIdSeparator + backendRunId;
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Run " << runId << " started for the published commit " << commit << " on " << snapshot.branchName <<
+                      ( effective.images.empty() ? CORE::CString::Empty : ", images " + CCiUtils::Join( effective.images, "," ) ) );
+    SweepIfDue( ci, backend );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirectCiService::Images( const CORE::CString& runId      ,
+                          CCiImageReport& report          ,
+                          CORE::CString& error            )
+{GUCEF_TRACE;
+
+    const CCiDefinition* ci = GUCEF_NULL;
+    ICiBackend* backend = GUCEF_NULL;
+    CORE::CString backendRunId;
+    if ( !SplitRunId( runId, ci, backend, backendRunId, error ) )
+        return false;
+    CCiRunStatus status;
+    bool isUnknown = false;
+    if ( !backend->GetRun( *ci, backendRunId, status, isUnknown, error ) )
+    {
+        if ( isUnknown )
+            error = "Unknown run id \"" + runId + "\"";
+        return false;
+    }
+    bool missing = false;
+    if ( !backend->GetImageReport( *ci, backendRunId, report, missing, error ) )
+    {
+        if ( missing && error == "Unknown run id" )
+            error = "Unknown run id \"" + runId + "\"";
+        return false;
+    }
+    report.runId = runId;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirectCiService::Deploy( const CORE::CString& ciId         ,
+                          const CORE::CString& image        ,
+                          const CORE::CString& target       ,
+                          const CORE::CString& runOrCommit  ,
+                          bool confirm                      ,
+                          const CCiCaller& caller           ,
+                          CCiDeployResult& result           ,
+                          CORE::CString& error              ,
+                          ICiProgress* progress             )
+{GUCEF_TRACE;
+
+    result = CCiDeployResult();
+    const CCiDefinition* ci = FindCi( ciId, error );
+    if ( GUCEF_NULL == ci )
+    {
+        result.action = "deploy";
+        result.outcome = "refused";
+        result.code = "unknown_ci";
+        result.message = error;
+        return false;
+    }
+    ICiBackend* backend = FindBackend( *ci, error );
+    if ( GUCEF_NULL == backend )
+        return false;
+    return m_deployManager.Deploy( *ci, *backend, GetRepositoryPath( ci->id ), GetRepositoryLock( ci->id ), image, target, runOrCommit, confirm, caller,
+                                   result, error, progress );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirectCiService::ReleaseStatus( const CORE::CString& ciId     ,
+                                 const CORE::CString& target   ,
+                                 CCiReleaseStatus& status      ,
+                                 CORE::CString& error          )
+{GUCEF_TRACE;
+
+    const CCiDefinition* ci = FindCi( ciId, error );
+    if ( GUCEF_NULL == ci )
+        return false;
+    return m_deployManager.ReleaseStatus( *ci, target, status, error );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirectCiService::Rollback( const CORE::CString& ciId       ,
+                            const CORE::CString& image      ,
+                            const CORE::CString& target     ,
+                            bool confirm                    ,
+                            const CCiCaller& caller         ,
+                            CCiDeployResult& result         ,
+                            CORE::CString& error            ,
+                            ICiProgress* progress           )
+{GUCEF_TRACE;
+
+    result = CCiDeployResult();
+    const CCiDefinition* ci = FindCi( ciId, error );
+    if ( GUCEF_NULL == ci )
+    {
+        result.action = "rollback";
+        result.outcome = "refused";
+        result.code = "unknown_ci";
+        result.message = error;
+        return false;
+    }
+    return m_deployManager.Rollback( *ci, image, target, confirm, caller, result, error, progress );
 }
 
 /*-------------------------------------------------------------------------*/

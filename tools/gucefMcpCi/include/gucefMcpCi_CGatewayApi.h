@@ -68,7 +68,9 @@ namespace GUCEFMcpCi {
  *    DELETE /v1/uploads?id=U                       gives an upload up
  *    POST   /v1/uploads/commit?id=U                checks size and SHA-256, takes the bundle into the bare repository
  *                                                  of the CI id and sends the snapshot to the backend: the snapshot
- *    POST   /v1/runs                               { "snapshot": U, "options": { ... } } starts a run: its run id
+ *    POST   /v1/runs                               { "snapshot": U, "options": { ... } } starts a run: its run id;
+ *                                                  { "ci": ID, "options": { "commit": SHA, "images": [ ... ], ... } }
+ *                                                  builds a published commit instead, sent from the clone of the gateway
  *    GET    /v1/runs?id=R&wait=N                   the state of a run; with wait the gateway answers when the run is
  *                                                  finished or after N seconds, without holding a thread meanwhile
  *    GET    /v1/runs/report?id=R                   the report of a run
@@ -77,6 +79,15 @@ namespace GUCEFMcpCi {
  *                                                  bounds; with full=true the whole log up to the download limit
  *    POST   /v1/runs/cancel?id=R                   cancels a run
  *    POST   /v1/cleanup                            { "ci": ID, "olderThanDays": N } the retention sweep
+ *    GET    /v1/images?id=R                        the images a run built (its image report)
+ *    POST   /v1/deploy                             { "ci": ID, "image": I, "target": T, "run": R | "commit": SHA,
+ *                                                    "confirm": true } a deployment with the guards of the service; the
+ *                                                  caller is the machine of the token with its scopes
+ *    GET    /v1/release?ci=ID&target=T             what the Deployments of the target run now
+ *    POST   /v1/rollback                           { "ci": ID, "image": I, "target": T, "confirm": true }
+ *
+ *  Deployments and rollbacks answer { "result": { ... } } (CCiDeployResult), also with their errors: a token without
+ *  the scope deploy is 403 with code "scope"; the other refusals have the code of the result.
  *
  *  Answers are JSON; errors are { "error": "...", "code": "..." } with a fitting HTTP status.
  *
@@ -98,6 +109,7 @@ class CGatewayApi
         TParameterMap parameters;               /**< of the query, decoded */
         GUCEF::CORE::CDynamicBuffer body;
         GUCEF::CORE::CString machineId;         /**< the machine of the token */
+        CCiCaller caller;                       /**< the machine of the token and its scopes */
         GUCEF::UInt64 pollDeadlineInMs;         /**< a waiting status: until when (CCiUtils::MonotonicMs()), 0 for no wait */
 
         CRequest( void );
@@ -182,6 +194,14 @@ class CGatewayApi
     void GetJob( const CRequest& request, CResponse& response );
     void CancelRun( const CRequest& request, CResponse& response );
     void Cleanup( const CRequest& request, CResponse& response );
+    void GetImages( const CRequest& request, CResponse& response );
+    void Deploy( const CRequest& request, CResponse& response );
+    void GetRelease( const CRequest& request, CResponse& response );
+    void Rollback( const CRequest& request, CResponse& response );
+    void StartCommitRun( const CRequest& request, const GUCEF::CORE::CString& ciId, const CCiSubmitOptions& options, CResponse& response );
+
+    /** The answer of a deployment or rollback: 200 with the result, else the error, its code and the result */
+    static void SetDeployAnswer( CResponse& response, bool success, const CCiDeployResult& result, const GUCEF::CORE::CString& error );
 
     /** A failed call of the service as an answer */
     static void SetServiceError( CResponse& response, const GUCEF::CORE::CString& error );

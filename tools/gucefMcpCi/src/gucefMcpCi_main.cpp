@@ -154,6 +154,7 @@
 #include "gucefMcpCi_CGatewayTokens.h"
 #include "gucefMcpCi_CGatewayApi.h"
 #include "gucefMcpCi_CCiGateway.h"
+#include "gucefMcpCi_CKubectlDeployer.h"
 #include "gucefMcpCi_Tools.h"
 
 /*-------------------------------------------------------------------------//
@@ -209,6 +210,16 @@ using namespace GUCEF;
  *                          Required with --listen and --listen-tls. gateway: an optional static token (machine "admin")
  *    --allowed-host NAME   a name clients of --listen-tls use for this machine. Repeat for more
  *
+ *  Deployments (direct and gateway):
+ *    --kubeconfig FILE     the kubeconfig of the restricted ServiceAccount of the deployer; default
+ *                          /var/lib/gucef-ci/kubeconfig. The environment variable KUBECONFIG is not used
+ *    --kubectl PATH        the kubectl executable; default kubectl
+ *    --allow-deploy        direct: the tools may deploy and roll back (scope deploy); without it scope build only.
+ *                          A gateway takes the scopes from the tokens file
+ *    --deploy-timeout-seconds N  the longest wait for a rollout; default 600
+ *    --registry-token-file FILE  the token for the container registry (read:package), owner only; default: the CI token
+ *    --work-dir DIR        also in direct mode: the bare repositories per CI id and the audit of deployments
+ *
  *  Gateway only:
  *    --gateway-tokens-file FILE  the tokens of the machines: lines "<sha256 hex of the token><TAB><machine id>", owner
  *                          only, read again when it changes; the hub of lablink keeps it. Default
@@ -255,12 +266,18 @@ struct SOptions
     UInt32 maxPendingPolls;
     UInt32 gatewayThreads;
     UInt32 maxRequestsPerMinute;
+    CORE::CString kubeconfig;
+    CORE::CString kubectl;
+    bool allowDeploy;
+    UInt32 deployTimeoutSeconds;
+    CORE::CString registryTokenFile;
     bool help;
 
     SOptions( void ) : mode( "auto" ), ciConfig(), forgejoTokenFile(), lablinkCiDir(), gatewayUrl(), gatewayTokenFile(), caFile(), reportsOwner(), logDir(), logFile(),
                        maxSnapshotMb( 500 ), machineName(), maxWaitSeconds( 600 ), pollIntervalInMs( 5000 ), stdio( false ), listen(), listenTls(), tlsCert(), tlsKey(),
                        tokenFile(), allowedHosts(), gatewayTokensFile(), workDir(), uploadChunkKb( 8192 ), uploadIdleSeconds( 600 ), maxUploads( 4 ),
-                       maxPendingRequests( 64 ), maxPendingPolls( 32 ), gatewayThreads( 6 ), maxRequestsPerMinute( 600 ), help( false ) {}
+                       maxPendingRequests( 64 ), maxPendingPolls( 32 ), gatewayThreads( 6 ), maxRequestsPerMinute( 600 ),
+                       kubeconfig(), kubectl(), allowDeploy( false ), deployTimeoutSeconds( 600 ), registryTokenFile(), help( false ) {}
 };
 
 /*-------------------------------------------------------------------------*/
@@ -272,7 +289,8 @@ ParseOptions( int argc, char* argv[], SOptions& options )
                                           "--ca-file", "--reports-owner", "--log-dir", "--log-file", "--max-snapshot-mb", "--machine-name", "--max-wait-seconds",
                                           "--poll-interval-ms", "--listen", "--listen-tls", "--tls-cert", "--tls-key", "--token-file", "--allowed-host",
                                           "--gateway-tokens-file", "--work-dir", "--upload-chunk-kb", "--upload-idle-seconds", "--max-uploads",
-                                          "--max-pending-requests", "--max-pending-polls", "--gateway-threads", "--max-requests-per-minute" };
+                                          "--max-pending-requests", "--max-pending-polls", "--gateway-threads", "--max-requests-per-minute",
+                                          "--kubeconfig", "--kubectl", "--deploy-timeout-seconds", "--registry-token-file" };
     for ( int i=1; i<argc; ++i )
     {
         CORE::CString arg = argv[ i ];
@@ -385,6 +403,21 @@ ParseOptions( int argc, char* argv[], SOptions& options )
         if ( arg == "--max-requests-per-minute" )
             options.maxRequestsPerMinute = CORE::StringToUInt32( value, 600 );
         else
+        if ( arg == "--kubeconfig" )
+            options.kubeconfig = value;
+        else
+        if ( arg == "--kubectl" )
+            options.kubectl = value;
+        else
+        if ( arg == "--allow-deploy" )
+            options.allowDeploy = true;
+        else
+        if ( arg == "--deploy-timeout-seconds" )
+            options.deployTimeoutSeconds = CORE::StringToUInt32( value, 600 );
+        else
+        if ( arg == "--registry-token-file" )
+            options.registryTokenFile = value;
+        else
         if ( arg == "--help" )
             options.help = true;
         else
@@ -460,6 +493,12 @@ ApplyDefaults( SOptions& options )
     options.workDir = GUCEFMcpCi::CCiUtils::MakeAbsolute( options.workDir );
     if ( 0 == options.uploadChunkKb || options.uploadChunkKb > 8192 )
         options.uploadChunkKb = 8192;
+    if ( options.kubeconfig.IsNULLOrEmpty() )
+        options.kubeconfig = GUCEFMcpCi::CKubectlDeployer::DefaultKubeconfigPath;
+    if ( options.kubectl.IsNULLOrEmpty() )
+        options.kubectl = "kubectl";
+    if ( 0 == options.deployTimeoutSeconds || options.deployTimeoutSeconds > 3600 )
+        options.deployTimeoutSeconds = 600;
     // the gateway listens on its default port when none is given
     if ( options.mode == "gateway" && !options.listenTls.IsNULLOrEmpty() && options.listenTls.HasChar( ':', false ) < 0 )
         options.listenTls += ":8792";
@@ -565,10 +604,11 @@ struct SConfiguration
     CORE::CString gatewayUrl;
     CORE::CString gatewayToken;
     CORE::CString gatewayCaFile;
+    CORE::CString registryToken;
     CORE::CString missingDirect;        /**< what direct mode lacks, empty when nothing */
     CORE::CString missingProxy;         /**< what proxy mode lacks, empty when nothing */
 
-    SConfiguration( void ) : registry(), forgejoToken(), gatewayUrl(), gatewayToken(), gatewayCaFile(), missingDirect(), missingProxy() {}
+    SConfiguration( void ) : registry(), forgejoToken(), gatewayUrl(), gatewayToken(), gatewayCaFile(), registryToken(), missingDirect(), missingProxy() {}
 };
 
 /*-------------------------------------------------------------------------*/
@@ -604,6 +644,15 @@ LoadConfiguration( const SOptions& options, SConfiguration& config, CORE::CStrin
         if ( !ReadToken( CORE::CombinePath( lablink, "forgejo.token" ), config.forgejoToken, fatal ) )
             return false;
     }
+
+    // the container registry: its own token, or the CI token, which has read:package
+    if ( !options.registryTokenFile.IsNULLOrEmpty() )
+    {
+        if ( !ReadToken( options.registryTokenFile, config.registryToken, fatal ) )
+            return false;
+    }
+    else
+        config.registryToken = config.forgejoToken;
 
     // the gateway of proxy mode
     config.gatewayUrl = GUCEFMcpCi::CCiUtils::Trimmed( options.gatewayUrl );
@@ -778,7 +827,8 @@ PrintUsage( void )
                                              "--poll-interval-ms N, --stdio, --listen ADDR:PORT, --listen-tls ADDR[:PORT], --tls-cert PATH, --tls-key PATH, "
                                              "--token-file PATH, --allowed-host NAME (repeatable). Gateway: --gateway-tokens-file FILE, --work-dir DIR, "
                                              "--upload-chunk-kb N, --upload-idle-seconds N, --max-uploads N, --max-pending-requests N, --max-pending-polls N, "
-                                             "--gateway-threads N, --max-requests-per-minute N. Without --listen and --listen-tls it serves stdio." );
+                                             "--gateway-threads N, --max-requests-per-minute N. Deployments: --kubeconfig FILE, --kubectl PATH, --allow-deploy, "
+                                             "--deploy-timeout-seconds N, --registry-token-file FILE. Without --listen and --listen-tls it serves stdio." );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -806,6 +856,40 @@ AddForgejoBackend( GUCEFMcpCi::CDirectCiService& service, const GUCEFMcpCi::CSna
 
 /*-------------------------------------------------------------------------*/
 
+/** The deployments of a service that works with the CI itself: kubectl, the registry, the audit, the bare repositories */
+static void
+SetUpDeployments( GUCEFMcpCi::CDirectCiService& service, const SOptions& options, const SConfiguration& config )
+{
+    service.SetRepositoryDirectory( CORE::CombinePath( options.workDir, "repos" ) );
+    GUCEFMcpCi::CKubectlDeployer* deployer = GUCEF_NEW GUCEFMcpCi::CKubectlDeployer();
+    deployer->SetKubectl( options.kubectl );
+    deployer->SetKubeconfig( options.kubeconfig );
+    deployer->AddSecret( config.forgejoToken );
+    deployer->AddSecret( config.registryToken );
+    deployer->AddSecret( config.gatewayToken );
+    GUCEFMcpCi::CCiDeployManager& deployments = service.GetDeployManager();
+    deployments.SetDeployer( deployer );
+    deployments.SetRolloutTimeout( options.deployTimeoutSeconds );
+    deployments.GetAudit().SetDirectory( CORE::CombinePath( options.workDir, "audit" ) );
+    deployments.GetAudit().AddSecret( config.forgejoToken );
+    deployments.GetAudit().AddSecret( config.registryToken );
+    deployments.GetAudit().AddSecret( config.gatewayToken );
+    deployments.GetRegistryClient().SetToken( config.registryToken );
+    deployments.GetRegistryClient().SetCaBundlePath( options.caFile );
+    if ( !config.registryToken.IsNULLOrEmpty() )
+        WEB::CHttpLogRedaction::AddSecret( config.registryToken );
+
+    bool anyDeployable = false;
+    const GUCEFMcpCi::CCiRegistry::TDefinitionVector& definitions = config.registry.GetDefinitions();
+    for ( size_t i=0; i<definitions.size(); ++i )
+        anyDeployable = anyDeployable || !definitions[ i ].deployImages.empty();
+    if ( anyDeployable && !CORE::FileExists( options.kubeconfig ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefMcpCi: The registry has deploy blocks but there is no kubeconfig at " << options.kubeconfig <<
+                           " (--kubeconfig): deployments are refused until the setup of the deployer has written it" );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** Mode gateway: the gateway API over the CI of this machine, until the application is asked to stop */
 static int
 RunGateway( const SOptions& options, const SConfiguration& config, int argc, char* argv[] )
@@ -823,6 +907,7 @@ RunGateway( const SOptions& options, const SConfiguration& config, int argc, cha
     service.SetMachineName( options.machineName );
     service.SetPollInterval( options.pollIntervalInMs );
     AddForgejoBackend( service, snapshotBuilder, options, config.forgejoToken );
+    SetUpDeployments( service, options, config );
 
     CORE::CString problem;
     GUCEFMcpCi::CUploadStore uploads;
@@ -914,7 +999,7 @@ RunMcpServer( const SOptions& options, const SConfiguration& config, const CORE:
     COM::CMcpImplementationInfo info;
     info.name = "gucefMcpCi";
     info.title = "GUCEF lab CI";
-    info.version = "1.1.0";
+    info.version = "1.2.0";
     server.SetServerInfo( info );
 
     const CORE::CString::StringVector toolNames = GUCEFMcpCi::GetToolNames();
@@ -931,7 +1016,10 @@ RunMcpServer( const SOptions& options, const SConfiguration& config, const CORE:
     directService.SetMachineName( options.machineName );
     directService.SetPollInterval( options.pollIntervalInMs );
     if ( mode == "direct" )
+    {
         AddForgejoBackend( directService, snapshotBuilder, options, config.forgejoToken );
+        SetUpDeployments( directService, options, config );
+    }
 
     GUCEFMcpCi::CRemoteCiService remoteService( snapshotBuilder );
     remoteService.SetGateway( config.gatewayUrl, config.gatewayToken, config.gatewayCaFile );
@@ -949,6 +1037,9 @@ RunMcpServer( const SOptions& options, const SConfiguration& config, const CORE:
         toolSettings.maxWaitSeconds = options.maxWaitSeconds;
         toolSettings.redactor.AddSecret( config.forgejoToken );
         toolSettings.redactor.AddSecret( config.gatewayToken );
+        toolSettings.redactor.AddSecret( config.registryToken );
+        // direct: deploy only when the owner of this machine allows it; proxy: the gateway decides by the token
+        toolSettings.caller = GUCEFMcpCi::CCiCaller( options.machineName, options.allowDeploy && mode == "direct" ? "build,deploy" : "build" );
         GUCEFMcpCi::RegisterTools( server, service, toolSettings );
 
         // proxy: the state of the gateway as of now, so that a gateway that is down is no surprise
@@ -973,8 +1064,9 @@ RunMcpServer( const SOptions& options, const SConfiguration& config, const CORE:
         instructions = "Lab CI tools: hand the whole build matrix of a repository (all toolchains, C++ standards and products) to the CI "
                        "instead of building or testing variants yourself. Flow: ci_resolve_repo gives the CI id of a repository; ci_submit "
                        "ONCE sends the unpublished work as a snapshot and starts a run; ci_status with wait_seconds until it is finished; "
-                       "ci_report; ci_job_details only for failed jobs. CI ids: " + ( ciIds.IsNULLOrEmpty() ? CORE::CString( "as ci_resolve_repo finds them" ) : ciIds ) +
-                       "." + gatewayState;
+                       "ci_report; ci_job_details only for failed jobs. Deployments (ci_images, ci_release_status, ci_deploy, ci_rollback) "
+                       "change what runs: deploy or roll back only when the user explicitly asks for it, and show ci_release_status first. CI ids: " +
+                       ( ciIds.IsNULLOrEmpty() ? CORE::CString( "as ci_resolve_repo finds them" ) : ciIds ) + "." + gatewayState;
         if ( servesHttp && !options.machineName.IsNULLOrEmpty() )
             instructions += " The tools run on the machine " + options.machineName + ": repo_dir paths are those of that machine.";
     }

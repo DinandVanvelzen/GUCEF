@@ -65,6 +65,11 @@ CCiDefinition::CCiDefinition( void )
     , optionToolchains()
     , optionCppStandards()
     , optionProducts()
+    , publishedUrl()
+    , registryHost()
+    , registryUser( "ci-bot" )
+    , deployImages()
+    , deployProblem()
 {GUCEF_TRACE;
 
 }
@@ -118,6 +123,12 @@ CCiDefinition::LoadConfig( const CORE::CDataNode& node, CORE::CString& problem )
         optionProducts = CCiUtils::GetStringArray( *options, "products" );
     }
 
+    publishedUrl = Attribute( node, "publishedUrl" );
+    registryHost = Attribute( node, "registryHost" );
+    const CORE::CString user = Attribute( node, "registryUser" );
+    if ( !user.IsNULLOrEmpty() )
+        registryUser = user;
+
     if ( backend.IsNULLOrEmpty() )
         backend = "forgejo";
     if ( scratchOwner.IsNULLOrEmpty() )
@@ -161,6 +172,42 @@ CCiDefinition::LoadConfig( const CORE::CDataNode& node, CORE::CString& problem )
         if ( !normalized.IsNULLOrEmpty() )
             normalizedRemotes.push_back( normalized );
     }
+
+    // what may be deployed: strict, an entry with a deploy block that is not right is refused as a whole
+    deployImages.clear();
+    deployProblem.Clear();
+    const CORE::CDataNode* deploy = node.FindChild( "deploy" );
+    if ( GUCEF_NULL != deploy )
+    {
+        const CORE::CDataNode* images = deploy->FindChild( "images" );
+        if ( GUCEF_DATATYPE_OBJECT != deploy->GetNodeType() || GUCEF_NULL == images || GUCEF_DATATYPE_ARRAY != images->GetNodeType() )
+            deployProblem = "the entry \"" + id + "\" has a deploy block without an images array";
+        if ( deployProblem.IsNULLOrEmpty() )
+        {
+            for ( CORE::CDataNode::const_iterator i = images->ConstBegin(); i != images->ConstEnd(); ++i )
+            {
+                CCiDeployImage image;
+                if ( GUCEF_DATATYPE_OBJECT != (*i)->GetNodeType() )
+                    deployProblem = "the deploy block of \"" + id + "\" has an image that is not an object";
+                else
+                if ( image.LoadConfig( *(*i), id, deployProblem ) && GUCEF_NULL != FindDeployImage( image.name ) )
+                    deployProblem = "the deploy block of \"" + id + "\" names the image \"" + image.name + "\" twice";
+                if ( !deployProblem.IsNULLOrEmpty() )
+                    break;
+                deployImages.push_back( image );
+            }
+        }
+        if ( deployProblem.IsNULLOrEmpty() && deployImages.empty() )
+            deployProblem = "the entry \"" + id + "\" has a deploy block without images";
+        if ( deployProblem.IsNULLOrEmpty() && !registryHost.IsNULLOrEmpty() && ( registryHost.HasChar( '@' ) >= 0 || registryHost.HasChar( ' ' ) >= 0 ) )
+            deployProblem = "the entry \"" + id + "\" has a registryHost that is not host:port";
+        if ( !deployProblem.IsNULLOrEmpty() )
+        {
+            deployImages.clear();
+            problem = deployProblem;
+            return false;
+        }
+    }
     return true;
 }
 
@@ -174,6 +221,102 @@ CCiDefinition::GetBaseUrl( void ) const
     while ( base.EndsWith( "/" ) )
         base = base.CutChars( 1, false );
     return base;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCiDefinition::GetPublishedGitUrl( void ) const
+{GUCEF_TRACE;
+
+    if ( !publishedUrl.IsNULLOrEmpty() )
+        return publishedUrl;
+    return GetBaseUrl() + "/" + owner + "/" + repo + ".git";
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The scheme of a URL with "://", empty when it has none */
+static CORE::CString
+SchemeOf( const CORE::CString& url )
+{
+    const Int32 end = url.HasSubstr( "://", true );
+    return end > 0 ? url.SubstrToIndex( (UInt32) end + 3, true ).Lowercase() : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCiDefinition::GetRegistryUrl( void ) const
+{GUCEF_TRACE;
+
+    const CORE::CString ciScheme = SchemeOf( url ).IsNULLOrEmpty() ? CORE::CString( "http://" ) : SchemeOf( url );
+    CORE::CString host = registryHost;
+    if ( host.IsNULLOrEmpty() )
+    {
+        // the host of the web root, with the port of the registry of the lab
+        CORE::CString rest = url.CutChars( SchemeOf( url ).Length(), true );
+        const Int32 slash = rest.HasChar( '/', true );
+        if ( slash >= 0 )
+            rest = rest.SubstrToIndex( (UInt32) slash, true );
+        const Int32 at = rest.HasChar( '@', false );
+        if ( at >= 0 )
+            rest = rest.CutChars( (UInt32) at + 1, true );
+        if ( rest.StartsWith( "[" ) )
+        {
+            const Int32 close = rest.HasChar( ']', true );
+            if ( close > 0 )
+                rest = rest.SubstrToIndex( (UInt32) close + 1, true );
+        }
+        else
+        {
+            const Int32 colon = rest.HasChar( ':', true );
+            if ( colon >= 0 )
+                rest = rest.SubstrToIndex( (UInt32) colon, true );
+        }
+        host = rest + ":32001";
+    }
+    if ( SchemeOf( host ).IsNULLOrEmpty() )
+        host = ciScheme + host;
+    while ( host.EndsWith( "/" ) )
+        host = host.CutChars( 1, false );
+    return host;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCiDefinition::GetRegistryHostForImages( void ) const
+{GUCEF_TRACE;
+
+    const CORE::CString registryUrl = GetRegistryUrl();
+    return registryUrl.CutChars( SchemeOf( registryUrl ).Length(), true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCiDeployImage*
+CCiDefinition::FindDeployImage( const CORE::CString& imageName ) const
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<deployImages.size(); ++i )
+        if ( deployImages[ i ].name == imageName )
+            return &deployImages[ i ];
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCiDefinition::ListDeployables( void ) const
+{GUCEF_TRACE;
+
+    if ( deployImages.empty() )
+        return "none";
+    CORE::CString::StringVector entries;
+    for ( size_t i=0; i<deployImages.size(); ++i )
+        entries.push_back( deployImages[ i ].name + " (" + deployImages[ i ].ListTargets() + ")" );
+    return CCiUtils::Join( entries, ", " );
 }
 
 /*-------------------------------------------------------------------------*/

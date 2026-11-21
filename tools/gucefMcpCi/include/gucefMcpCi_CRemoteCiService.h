@@ -143,6 +143,35 @@ class CRemoteCiService : public ICiService
                           GUCEF::CORE::CString& summary         ,
                           GUCEF::CORE::CString& error           ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool Images( const GUCEF::CORE::CString& runId      ,
+                         CCiImageReport& report                 ,
+                         GUCEF::CORE::CString& error            ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The caller is not sent: the gateway takes the machine and its scopes from the token of this machine */
+    virtual bool Deploy( const GUCEF::CORE::CString& ciId         ,
+                         const GUCEF::CORE::CString& image        ,
+                         const GUCEF::CORE::CString& target       ,
+                         const GUCEF::CORE::CString& runOrCommit  ,
+                         bool confirm                             ,
+                         const CCiCaller& caller                  ,
+                         CCiDeployResult& result                  ,
+                         GUCEF::CORE::CString& error              ,
+                         ICiProgress* progress = GUCEF_NULL       ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool ReleaseStatus( const GUCEF::CORE::CString& ciId     ,
+                                const GUCEF::CORE::CString& target   ,
+                                CCiReleaseStatus& status             ,
+                                GUCEF::CORE::CString& error          ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Rollback( const GUCEF::CORE::CString& ciId       ,
+                           const GUCEF::CORE::CString& image      ,
+                           const GUCEF::CORE::CString& target     ,
+                           bool confirm                           ,
+                           const CCiCaller& caller                ,
+                           CCiDeployResult& result                ,
+                           GUCEF::CORE::CString& error            ,
+                           ICiProgress* progress = GUCEF_NULL     ) GUCEF_VIRTUAL_OVERRIDE;
+
     /** The CI ids of the gateway as of the last answer that named them */
     virtual GUCEF::CORE::CString ListCiIds( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -185,6 +214,17 @@ class CRemoteCiService : public ICiService
                  ICiProgress* progress                     ,
                  GUCEF::CORE::CString& uploadId            ,
                  GUCEF::CORE::CString& error               ) const;
+
+    /** A submit of a published commit: the gateway sends it from its own clone, nothing is uploaded */
+    bool SubmitCommit( const GUCEF::CORE::CString& ciId       ,
+                       const CCiSubmitOptions& options        ,
+                       CCiSnapshot& snapshot                  ,
+                       GUCEF::CORE::CString& runId            ,
+                       GUCEF::CORE::CString& error            ,
+                       ICiProgress* progress                  );
+
+    /** A deployment or rollback call: the result of the answer, also of an error answer */
+    bool CallDeploy( const GUCEF::CORE::CString& path, const GUCEF::CORE::CString& bodyText, CCiDeployResult& result, GUCEF::CORE::CString& error );
 
     /** The commits of 'have' to make the bundle against: those of the repository that the snapshot builds on */
     static GUCEF::CORE::CString::StringVector BundleBase( const CCiSnapshot& snapshot, const GUCEF::CORE::CString::StringVector& have );

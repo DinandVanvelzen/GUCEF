@@ -121,6 +121,7 @@ IsToken68( const char* text, UInt32 size )
 
 CGatewayTokens::CEntry::CEntry( void )
     : machineId()
+    , scopes()
 {GUCEF_TRACE;
 
     ::memset( digest, 0, sizeof( digest ) );
@@ -259,6 +260,7 @@ CGatewayTokens::Load( CORE::CString& problem )
     const CORE::CString text( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() );
     CORE::CString::StringVector lines = text.ReplaceSubstr( "\r", "" ).ParseElements( '\n', false );
     UInt32 skipped = 0;
+    CORE::CString::StringVector unknownScopes;
     for ( size_t i=0; i<lines.size(); ++i )
     {
         const CORE::CString line = CCiUtils::Trimmed( lines[ i ] );
@@ -273,23 +275,50 @@ CGatewayTokens::Load( CORE::CString& problem )
             ++skipped;
             continue;
         }
-        entry.machineId = CCiUtils::Trimmed( line.CutChars( 65, true ) );
+        // <machine id>[<TAB><scopes>]; without a TAB a space ends the machine id too
+        CORE::CString rest = CCiUtils::Trimmed( line.CutChars( 65, true ) );
+        CORE::CString scopeList;
+        Int32 separator = rest.HasChar( '\t', true );
+        if ( separator < 0 )
+            separator = rest.HasChar( ' ', true );
+        if ( separator > 0 )
+        {
+            scopeList = CCiUtils::Trimmed( rest.CutChars( (UInt32) separator + 1, true ) );
+            rest = CCiUtils::Trimmed( rest.SubstrToIndex( (UInt32) separator, true ) );
+        }
+        entry.machineId = rest;
         if ( entry.machineId.IsNULLOrEmpty() )
         {
             ++skipped;
             continue;
         }
+        CORE::CString unknown;
+        entry.scopes = CCiCaller::ParseScopes( scopeList, unknown );
+        if ( !unknown.IsNULLOrEmpty() )
+            unknownScopes.push_back( unknown + " of machine " + entry.machineId );
         entries.push_back( entry );
     }
-    const bool changed = entries.size() != m_entries.size();
+    bool changed = entries.size() != m_entries.size();
+    for ( size_t i=0; i<entries.size() && !changed; ++i )
+        changed = entries[ i ].machineId != m_entries[ i ].machineId || entries[ i ].scopes != m_entries[ i ].scopes;
     m_entries = entries;
     if ( skipped > 0 )
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: " << skipped << " line(s) of the tokens file " << m_tokensFile << " are not <sha256 hex><TAB><machine id> and are ignored" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: " << skipped << " line(s) of the tokens file " << m_tokensFile << " are not <sha256 hex><TAB><machine id>[<TAB><scopes>] and are ignored" );
     if ( m_loadFailed )
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: The tokens file can be read again" );
     m_loadFailed = false;
     if ( changed )
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: " << (UInt32) m_entries.size() << " machine(s) in the tokens file" );
+    {
+        // said once per change of the file, not at every read
+        for ( size_t i=0; i<unknownScopes.size(); ++i )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: The tokens file names the unknown scope(s) " << unknownScopes[ i ] <<
+                               "; they are ignored (known: build, deploy)" );
+        UInt32 deployers = 0;
+        for ( size_t i=0; i<m_entries.size(); ++i )
+            if ( m_entries[ i ].scopes.find( CCiCaller::ScopeDeploy ) != m_entries[ i ].scopes.end() )
+                ++deployers;
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: " << (UInt32) m_entries.size() << " machine(s) in the tokens file, " << deployers << " of them may deploy" );
+    }
     return true;
 }
 
@@ -331,7 +360,20 @@ bool
 CGatewayTokens::Authenticate( const CORE::CString& authorizationHeader, CORE::CString& machineId )
 {GUCEF_TRACE;
 
-    machineId.Clear();
+    CCiCaller caller;
+    const bool accepted = Authenticate( authorizationHeader, caller );
+    machineId = accepted ? caller.machineId : CORE::CString::Empty;
+    return accepted;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGatewayTokens::Authenticate( const CORE::CString& authorizationHeader, CCiCaller& caller )
+{GUCEF_TRACE;
+
+    caller = CCiCaller();
+    CORE::CString& machineId = caller.machineId;
 
     // "Bearer" SP token68, the scheme without regard to case
     const char* text = authorizationHeader.C_String();
@@ -370,6 +412,7 @@ CGatewayTokens::Authenticate( const CORE::CString& authorizationHeader, CORE::CS
     if ( accepted && GUCEF_NULL != match )
     {
         machineId = match->machineId;
+        caller.scopes = match->scopes;
         return true;
     }
     return false;

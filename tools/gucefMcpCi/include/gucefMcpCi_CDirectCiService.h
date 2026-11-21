@@ -34,6 +34,7 @@
 #include "gucefMcpCi_ICiBackend.h"
 #include "gucefMcpCi_CCiRegistry.h"
 #include "gucefMcpCi_CSnapshotBuilder.h"
+#include "gucefMcpCi_CCiDeployManager.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -56,6 +57,11 @@ namespace GUCEFMcpCi {
  *  Only repositories of the registry are built: a submit for a repository whose remotes are not those of the CI id
  *  is refused. Submitting also removes, at most every few hours per CI id, the scratch branches and reports older than
  *  the retention of the CI id.
+ *
+ *  A submit of a published commit (options.commit) fetches the published repository into the bare repository of the
+ *  CI id on this machine (SetRepositoryDirectory()), checks that a branch of it holds the commit, and sends it to the
+ *  scratch repository as scratch/release-<first 12 of the commit>. Deployments go through the deploy manager, which
+ *  holds their guards; the same bare repository serves its check of published commits.
  */
 class CDirectCiService : public ICiService
 {
@@ -73,6 +79,18 @@ class CDirectCiService : public ICiService
 
     /** How often a waiting Status() asks the backend */
     void SetPollInterval( GUCEF::UInt32 pollIntervalInMs );
+
+    /** The directory of the bare repositories per CI id; a gateway shares it with its bundle receiver */
+    void SetRepositoryDirectory( const GUCEF::CORE::CString& directory );
+
+    /** The bare repository of a CI id: <directory>/<safe CI id>.git */
+    GUCEF::CORE::CString GetRepositoryPath( const GUCEF::CORE::CString& ciId ) const;
+
+    /** The lock of the bare repository of a CI id: whoever works in it holds it */
+    GUCEF::MT::CMutex& GetRepositoryLock( const GUCEF::CORE::CString& ciId );
+
+    /** The deployments: the deployer, the registry client, the audit and the rollout timeout are set up through it */
+    CCiDeployManager& GetDeployManager( void );
 
     virtual bool Resolve( const GUCEF::CORE::CString& repoDir                     ,
                           const GUCEF::CORE::CString::StringVector& remotes       ,
@@ -119,6 +137,34 @@ class CDirectCiService : public ICiService
                           GUCEF::CORE::CString& summary         ,
                           GUCEF::CORE::CString& error           ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool Images( const GUCEF::CORE::CString& runId      ,
+                         CCiImageReport& report                 ,
+                         GUCEF::CORE::CString& error            ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Deploy( const GUCEF::CORE::CString& ciId         ,
+                         const GUCEF::CORE::CString& image        ,
+                         const GUCEF::CORE::CString& target       ,
+                         const GUCEF::CORE::CString& runOrCommit  ,
+                         bool confirm                             ,
+                         const CCiCaller& caller                  ,
+                         CCiDeployResult& result                  ,
+                         GUCEF::CORE::CString& error              ,
+                         ICiProgress* progress = GUCEF_NULL       ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool ReleaseStatus( const GUCEF::CORE::CString& ciId     ,
+                                const GUCEF::CORE::CString& target   ,
+                                CCiReleaseStatus& status             ,
+                                GUCEF::CORE::CString& error          ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Rollback( const GUCEF::CORE::CString& ciId       ,
+                           const GUCEF::CORE::CString& image      ,
+                           const GUCEF::CORE::CString& target     ,
+                           bool confirm                           ,
+                           const CCiCaller& caller                ,
+                           CCiDeployResult& result                ,
+                           GUCEF::CORE::CString& error            ,
+                           ICiProgress* progress = GUCEF_NULL     ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual GUCEF::CORE::CString ListCiIds( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /*
@@ -151,10 +197,14 @@ class CDirectCiService : public ICiService
     /** The URLs of the remotes of a repository (git remote -v) */
     static bool GetRemotes( const GUCEF::CORE::CString& repoDir, GUCEF::CORE::CString::StringVector& remotes, GUCEF::CORE::CString& error );
 
+    /** The prefix of the scratch branches of published commits: "scratch/release-" */
+    static const char* ReleaseBranchPrefix;
+
     private:
 
     typedef GUCEF::vector< ICiBackend* > TBackendVector;
     typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::Int64 > TSweepMap;
+    typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::MT::CMutex* > TLockMap;
 
     CDirectCiService( const CDirectCiService& src );                /**< not implemented */
     CDirectCiService& operator=( const CDirectCiService& src );     /**< not implemented */
@@ -174,6 +224,14 @@ class CDirectCiService : public ICiService
 
     void SweepIfDue( const CCiDefinition& ci, ICiBackend& backend );
 
+    /** Submit() of a published commit: fetched, checked, sent from the bare repository of the CI id, and built */
+    bool SubmitCommit( const CCiDefinition& ci             ,
+                       ICiBackend& backend                 ,
+                       const CCiSubmitOptions& options     ,
+                       CCiSnapshot& snapshot               ,
+                       GUCEF::CORE::CString& runId         ,
+                       GUCEF::CORE::CString& error         );
+
     /** The options with the defaults of the CI id filled in */
     static CCiSubmitOptions WithDefaults( const CCiDefinition& ci, const CCiSubmitOptions& options );
 
@@ -184,6 +242,9 @@ class CDirectCiService : public ICiService
     GUCEF::UInt32 m_pollIntervalInMs;
     GUCEF::MT::CMutex m_lock;
     TSweepMap m_lastSweeps;
+    GUCEF::CORE::CString m_repositoryDirectory;
+    TLockMap m_repositoryLocks;
+    CCiDeployManager m_deployManager;
 };
 
 /*-------------------------------------------------------------------------*/

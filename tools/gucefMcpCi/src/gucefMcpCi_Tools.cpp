@@ -44,6 +44,7 @@
 
 #include "gucefMcpLocalLlm_BuildLogDigest.h"
 #include "gucefMcpCi_CCiUtils.h"
+#include "gucefMcpCi_CCiDeployImage.h"
 #include "gucefMcpCi_Tools.h"
 
 /*-------------------------------------------------------------------------//
@@ -73,6 +74,8 @@ static const UInt32 MaxCaseChars = 240;
 static const UInt32 MaxCasesInReport = 10;
 static const UInt32 MaxCasesInDetails = 50;
 static const UInt32 TestTailLines = 30;
+static const UInt32 ImageTailLines = 12;
+static const UInt32 MaxImageTailChars = 1500;
 static const UInt32 DefaultRetentionDays = 14;
 static const UInt32 ProgressIntervalInMs = 2000;
 
@@ -92,7 +95,10 @@ static const char* SubmitDescription =
     "untracked files; .gitignore applies) as a scratch snapshot; your working tree, index and branches are not touched. "
     "Use instead of building variants yourself. Submit ONCE per change, then poll ci_status with wait_seconds; do not "
     "submit again while a run is going, and do not manage variants yourself. Filters are optional and only for a "
-    "deliberate narrow run. dry_run shows what would be sent without sending it. Returns the run id.";
+    "deliberate narrow run. dry_run shows what would be sent without sending it. images also builds container images "
+    "(names, or [\"all\"]); only ask for them when an image is needed. commit builds a commit of the published repository "
+    "instead of the working tree (nothing local is sent, repo_dir is not needed): use it with images to build what may be "
+    "deployed to a target that takes published commits only. Returns the run id.";
 
 static const char* StatusDescription =
     "The state of a CI run: queued, running, succeeded, failed or cancelled, with job counts and the failed jobs. "
@@ -112,6 +118,29 @@ static const char* JobDetailsDescription =
 
 static const char* CancelDescription =
     "Stops a CI run, for example one started on the wrong change. Not needed for a run that is finished.";
+
+static const char* ImagesDescription =
+    "The container images a CI run built: per image its tag, digest and whether it was built and pushed, and whether the "
+    "run built a published commit or a scratch snapshot. Read-only. Use it to see what ci_deploy could roll out.";
+
+static const char* DeployDescription =
+    "Rolls an image that a green CI run built out to a target, a Kubernetes Deployment listed for the CI id. DESTRUCTIVE: "
+    "it changes what runs. Only call it when the user explicitly asked for this deployment, never on your own initiative "
+    "and never to try something out. First show the user what will change: ci_release_status for what runs now and "
+    "ci_images for what the run built; then call it once with confirm=true. Targets that take published commits only "
+    "(such as live) refuse scratch snapshots: build a published commit with ci_submit commit and images first. The run "
+    "must be fully green. When the rollout fails or times out nothing is rolled back: report what the result says and "
+    "let the user decide; ci_rollback restores the previous revision.";
+
+static const char* ReleaseStatusDescription =
+    "What a deployment target of a CI id runs now: per image its Deployment, the image and digest, who deployed which "
+    "commit and run (the change cause), the replicas and the revision history. Read-only. Call it before ci_deploy or "
+    "ci_rollback to show the user what will change, and afterwards to show the result.";
+
+static const char* RollbackDescription =
+    "Returns the Deployment of a target to its previous revision: the image it ran before the last deployment. "
+    "DESTRUCTIVE. Only call it when the user explicitly asked for a rollback; show ci_release_status first, then call it "
+    "once with confirm=true. Another call rolls back again (to the revision before that), so never repeat it to be sure.";
 
 static const char* CleanupDescription =
     "Removes the scratch branches and reports of a CI id that are older than older_than_days (default 14). Submitting "
@@ -268,6 +297,36 @@ DescribeFailedTest( const CCiReport::CTest& test, const CORE::CString& workspace
         if ( test.failedCases.empty() && test.logTail.IsNULLOrEmpty() )
             text += indent + "  the report names no failed cases; its output is in the log of the product\n";
     }
+    return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  An image build as one line with its status word as the report gives it, its tag, digest and time; for an image that
+ *  was not built and pushed the errors the digest finds in the end of its log, and always the end of that log, bounded:
+ *  the errors of image builds seldom have the file:line form
+ */
+static CORE::CString
+DescribeImageBuild( const CORE::CString& name, const CORE::CString& status, const CORE::CString& tag, const CORE::CString::StringVector& alsoTags,
+                    const CORE::CString& digest, UInt64 seconds, const CORE::CString& logTail, const CORE::CString& workspace, const CORE::CString& indent )
+{
+    const bool ok = status == "ok" && CCiImageReport::IsDigest( digest );
+    CORE::CString text = indent + name + ": " + ( status.IsNULLOrEmpty() ? CORE::CString( "no status" ) : status ) +
+                         ( status == "ok" && !ok ? CORE::CString( " but no digest, so not pushed" ) : CORE::CString::Empty ) +
+                         ( tag.IsNULLOrEmpty() ? CORE::CString::Empty : ", tag " + tag ) +
+                         ( alsoTags.empty() ? CORE::CString::Empty : " (also " + CCiUtils::Join( alsoTags, ", " ) + ")" ) +
+                         ( digest.IsNULLOrEmpty() ? CORE::CString::Empty : ", digest " + digest ) +
+                         ( seconds > 0 ? ", " + CCiUtils::FormatDuration( seconds ) : CORE::CString::Empty ) + "\n";
+    if ( ok )
+        return text;
+    if ( logTail.IsNULLOrEmpty() )
+        return text + indent + "  the report has no end of its log\n";
+    text += FirstErrors( logTail, workspace, indent + "  " );
+    UInt32 lines = 0;
+    text += indent + "  the end of its log:\n" + CCiUtils::Bound( CCiUtils::TailLines( logTail, ImageTailLines, 0, lines ), MaxImageTailChars );
+    if ( !text.EndsWith( "\n" ) )
+        text += "\n";
     return text;
 }
 
@@ -506,13 +565,15 @@ class CSubmitTool : public CCiTool
         descriptor.maxDurationMs = 45 * 60 * 1000;      // the first push of a large history
         CORE::CDataNode schema = MakeObjectSchema();
         AddProperty( schema, "ci_id", "string", "The CI id, as ci_resolve_repo gives it", true );
-        AddProperty( schema, "repo_dir", "string", "Absolute path of the working tree to build", true );
+        AddProperty( schema, "repo_dir", "string", "Absolute path of the working tree to build; not used with commit", false );
         AddStringArrayProperty( schema, "toolchains", "Only these toolchains; default: all enabled" );
         AddStringArrayProperty( schema, "cpp_standards", "Only these C++ standards (\"98\", \"17\"); default: all" );
         AddStringArrayProperty( schema, "products", "Only these products; default: all" );
         AddEnumProperty( schema, "mode", "build (default) or test (build and run the tests)", "build", "test" );
         AddProperty( schema, "include_uncommitted", "boolean", "Also send modified, deleted and untracked files (default true); false sends HEAD only", false );
         AddProperty( schema, "dry_run", "boolean", "Only show what would be sent (default false)", false );
+        AddStringArrayProperty( schema, "images", "Also build these container images (their names), or [\"all\"]; default none" );
+        AddProperty( schema, "commit", "string", "Build this commit (40 hexadecimal digits) of the published repository instead of the working tree", false );
         descriptor.inputSchema = schema;
         return true;
     }
@@ -530,15 +591,46 @@ class CSubmitTool : public CCiTool
         options.mode = Argument( arguments, "mode" ).Lowercase();
         options.includeUncommitted = arguments.GetAttributeValue( "include_uncommitted" ).AsBool( true );
         options.dryRun = arguments.GetAttributeValue( "dry_run" ).AsBool( false );
+        options.images = CCiUtils::GetStringArray( arguments, "images" );
+        options.commit = Argument( arguments, "commit" ).Lowercase();
         const CORE::CString ciId = Argument( arguments, "ci_id" );
+        const CORE::CString repoDir = Argument( arguments, "repo_dir" );
+        CORE::CString problem;
+        if ( options.commit.IsNULLOrEmpty() && repoDir.IsNULLOrEmpty() )
+            problem = "Give repo_dir (the working tree to build) or commit (a commit of the published repository)";
+        for ( size_t i=0; i<options.images.size() && problem.IsNULLOrEmpty(); ++i )
+        {
+            if ( options.images[ i ] == "all" && options.images.size() > 1 )
+                problem = "images is [\"all\"] or a list of image names, not both";
+            else
+            if ( options.images[ i ] != "all" && !CCiDeployImage::IsImageName( options.images[ i ] ) )
+                problem = "\"" + options.images[ i ] + "\" is not an image name (lower case letters, digits, - _ . /)";
+        }
+        if ( !problem.IsNULLOrEmpty() )
+        {
+            SetText( result, m_settings, problem, true );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
 
         CCiSnapshot snapshot;
         CORE::CString runId;
         CORE::CString error;
         CContextProgress progress( context );
-        if ( !m_service.Submit( ciId, Argument( arguments, "repo_dir" ), options, snapshot, runId, error, &progress ) )
+        if ( !m_service.Submit( ciId, repoDir, options, snapshot, runId, error, &progress ) )
         {
             SetText( result, m_settings, CCiUtils::Bound( error, MaxOutputChars ), true );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+
+        if ( !options.commit.IsNULLOrEmpty() )
+        {
+            CORE::CString text = "The published commit " + options.commit + ( options.dryRun ? CORE::CString( " is on a branch of the published repository; dry run: nothing was sent." )
+                                                                                             : " was sent to the CI as " + snapshot.branchName + ".\nRun id: " + runId + "\n" ) +
+                                 ( options.images.empty() ? CORE::CString::Empty : "Images: " + CCiUtils::Join( options.images, ", " ) + ".\n" );
+            if ( !options.dryRun )
+                text += "Next: ci_status with run_id " + Quote( runId ) + " and wait_seconds " + CORE::UInt32ToString( m_settings.maxWaitSeconds ) + ", repeated until it is finished" +
+                        ( options.images.empty() ? CORE::CString( ", then ci_report." ) : CORE::CString( ", then ci_images." ) );
+            SetText( result, m_settings, CCiUtils::Bound( text, MaxOutputChars ), false );
             return COM::MCP_EXECUTE_COMPLETE;
         }
 
@@ -702,6 +794,12 @@ class CReportTool : public CCiTool
                 const CCiReport::CProduct& product = cell.products[ p ];
                 if ( !product.IsFailed() )
                     continue;
+                if ( product.IsImage() )
+                {
+                    failedText += DescribeImageBuild( "image " + product.name, product.status, product.tag, CORE::CString::StringVector(), product.digest,
+                                                      product.seconds, product.logTail, cell.workspace, "    " );
+                    continue;
+                }
                 const bool inTests = product.phase == "test" || product.CountFailedTests() > 0;
                 failedText += "    product " + product.name + ": " + ( inTests ? CORE::CString( "tests" ) : ( product.phase.IsNULLOrEmpty() ? CORE::CString( "build" ) : product.phase ) ) +
                               " failed (exit " + CORE::Int32ToString( product.exitCode ) + ")\n";
@@ -712,7 +810,8 @@ class CReportTool : public CCiTool
                         failedText += DescribeFailedTest( product.tests[ t ], cell.workspace, "      ", MaxCasesInReport, false );
             }
             if ( 0 == cell.CountFailedProducts() )
-                failedText += "    the job failed outside the products (the report says " + CCiReport::DescribeStatus( cell.status ) + ")\n";
+                failedText += "    the job failed outside the " + ( cell.mode == "images" ? CORE::CString( "image builds" ) : CORE::CString( "products" ) ) +
+                              " (the report says " + CCiReport::DescribeStatus( cell.status ) + ")\n";
         }
 
         if ( !failedText.IsNULLOrEmpty() )
@@ -791,6 +890,11 @@ class CJobDetailsTool : public CCiTool
             for ( size_t i=0; i<cell.products.size(); ++i )
             {
                 const CCiReport::CProduct& entry = cell.products[ i ];
+                if ( entry.IsImage() )
+                {
+                    products.push_back( "image " + entry.name + " " + entry.status );
+                    continue;
+                }
                 products.push_back( entry.name + " " + ( entry.IsFailed() ? "failed in " + ( entry.phase.IsNULLOrEmpty() ? CORE::CString( "build" ) : entry.phase )
                                                                             : CCiReport::DescribeStatus( entry.status ) ) );
                 for ( size_t t=0; t<entry.tests.size(); ++t )
@@ -801,6 +905,15 @@ class CJobDetailsTool : public CCiTool
         }
         if ( !detail.note.IsNULLOrEmpty() )
             text += detail.note + ( detail.note.EndsWith( "\n" ) ? "" : "\n" );
+
+        // images: the status, tag and digest of each, the reason of those that failed; the logs follow
+        for ( size_t i=0; i<cell.products.size(); ++i )
+        {
+            const CCiReport::CProduct& entry = cell.products[ i ];
+            if ( entry.IsImage() )
+                text += DescribeImageBuild( "image " + entry.name, entry.status, entry.tag, CORE::CString::StringVector(), entry.digest, entry.seconds,
+                                            entry.logTail, cell.workspace, CORE::CString::Empty );
+        }
 
         // test applications: no log of their own, the report has their failed cases and the end of their output
         const CORE::CString product = Argument( arguments, "product" );
@@ -841,7 +954,8 @@ class CJobDetailsTool : public CCiTool
         for ( size_t i=0; i<detail.logs.size(); ++i )
         {
             const CCiJobDetail::CLog& log = detail.logs[ i ];
-            text += "\n== product " + log.name;
+            const bool isImageLog = cell.mode == "images";
+            text += ( isImageLog ? "\n== image " : "\n== product " ) + log.name;
             if ( log.content.IsNULLOrEmpty() )
             {
                 text += ": no log (" + ( log.problem.IsNULLOrEmpty() ? CORE::CString( "empty" ) : log.problem ) + ")\n";
@@ -965,6 +1079,262 @@ class CCleanupTool : public CCiTool
     }
 };
 
+/*-------------------------------------------------------------------------*/
+
+/** Only the boolean true confirms: not "true", not 1 */
+static bool
+IsConfirmed( const CORE::CDataNode& arguments )
+{
+    const CORE::CVariant value = arguments.GetAttributeValue( "confirm" );
+    return value.IsBoolean() && value.AsBool( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A deployment or rollback for the reader: what happened, the state, what to do next */
+static CORE::CString
+DescribeDeployResult( const CCiDeployResult& deploy, const CORE::CString& error )
+{
+    CORE::CString text;
+    if ( deploy.IsSuccess() )
+        text = ( deploy.outcome == "unchanged" ? CORE::CString( "Unchanged: " ) : ( deploy.action == "rollback" ? CORE::CString( "Rolled back: " ) : CORE::CString( "Deployed: " ) ) ) +
+               deploy.message + "\n";
+    else
+    if ( deploy.IsRefused() )
+        text = "Refused (" + deploy.code + "), nothing was changed: " + ( error.IsNULLOrEmpty() ? deploy.message : error ) + "\n";
+    else
+        text = "The " + ( deploy.action.IsNULLOrEmpty() ? CORE::CString( "deployment" ) : ( deploy.action == "rollback" ? CORE::CString( "rollback" ) : CORE::CString( "deployment" ) ) ) +
+               " did not complete (" + ( deploy.outcome.IsNULLOrEmpty() ? CORE::CString( "failed" ) : deploy.outcome ) + "): " + ( error.IsNULLOrEmpty() ? deploy.message : error ) + "\n";
+    if ( !deploy.nameSpace.IsNULLOrEmpty() )
+        text += "Target " + deploy.target + ": Deployment " + deploy.nameSpace + "/" + deploy.deployment + ", container " + deploy.container + ".\n";
+    if ( !deploy.runId.IsNULLOrEmpty() && deploy.action == "deploy" )
+        text += "Run " + deploy.runId + ( deploy.commit.IsNULLOrEmpty() ? CORE::CString::Empty : ", commit " + deploy.commit ) +
+                ( deploy.digest.IsNULLOrEmpty() ? CORE::CString::Empty : ", digest " + deploy.digest ) + ".\n";
+    if ( !deploy.previousImage.IsNULLOrEmpty() && !deploy.IsRefused() )
+        text += "It ran before: " + deploy.previousImage + "\n";
+    if ( !deploy.IsRefused() )
+        text += "Next: ci_release_status with ci_id " + Quote( deploy.ciId ) + " and target " + Quote( deploy.target ) + " shows the state.";
+    return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+class CImagesTool : public CCiTool
+{
+    public:
+
+    CImagesTool( ICiService& service, const SToolSettings& settings ) : CCiTool( service, settings ) {}
+
+    virtual bool GetDescriptor( COM::CMcpToolDescriptor& descriptor ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        descriptor.name = "ci_images";
+        descriptor.title = "Images a CI run built";
+        descriptor.description = ImagesDescription;
+        descriptor.effect = COM::MCP_TOOLEFFECT_READ_ONLY;
+        descriptor.idempotent = true;
+        CORE::CDataNode schema = MakeObjectSchema();
+        AddProperty( schema, "run_id", "string", "The run id, as ci_submit gives it", true );
+        descriptor.inputSchema = schema;
+        return true;
+    }
+
+    virtual COM::EMcpExecuteResult Execute( COM::CMcpRequestContext& context       ,
+                                            const CORE::CDataNode& arguments       ,
+                                            COM::CMcpToolResult& result            ,
+                                            COM::CMcpInputRequired& inputRequired  ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        CCiImageReport report;
+        CORE::CString error;
+        const CORE::CString runId = Argument( arguments, "run_id" );
+        if ( !m_service.Images( runId, report, error ) )
+        {
+            SetText( result, m_settings, error, true );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        CORE::CString text = "Images of run " + runId + ": " + ( report.status.IsNULLOrEmpty() ? CORE::CString( "no status" ) : report.status ) +
+                             ", commit " + ( report.commit.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : report.commit ) +
+                             ( report.ref.IsNULLOrEmpty() ? CORE::CString::Empty : " on " + report.ref ) + ", " +
+                             ( report.scratch ? CORE::CString( "a scratch build" ) : CORE::CString( "a build of a published branch" ) ) + ".\n";
+        UInt32 ok = 0;
+        for ( size_t i=0; i<report.images.size(); ++i )
+        {
+            const CCiImageReport::CImage& image = report.images[ i ];
+            text += DescribeImageBuild( "- " + image.name + ( image.registryName != image.name ? " (" + image.registryName + ")" : CORE::CString::Empty ),
+                                        image.status, image.tag, image.alsoTags, image.digest, image.seconds, image.logTail, CORE::CString::Empty, CORE::CString::Empty );
+            if ( image.IsOk() )
+                ++ok;
+        }
+        if ( report.images.empty() )
+            text += "The report names no images.\n";
+        if ( ok < report.images.size() )
+            text += "ci_job_details with run_id " + Quote( runId ) + " and job_id \"images\" gives the full log of an image that failed.\n";
+        if ( ok > 0 )
+            text += "ci_deploy can roll an image that is ok out, only when the user asks for it; ci_release_status shows what runs now.";
+        SetText( result, m_settings, CCiUtils::Bound( text, MaxOutputChars ), false );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+class CDeployTool : public CCiTool
+{
+    public:
+
+    CDeployTool( ICiService& service, const SToolSettings& settings ) : CCiTool( service, settings ) {}
+
+    virtual bool GetDescriptor( COM::CMcpToolDescriptor& descriptor ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        descriptor.name = "ci_deploy";
+        descriptor.title = "Deploy an image to a target";
+        descriptor.description = DeployDescription;
+        descriptor.effect = COM::MCP_TOOLEFFECT_DESTRUCTIVE;
+        descriptor.idempotent = true;           // the same image again changes nothing
+        descriptor.openWorld = true;
+        descriptor.maxDurationMs = 65 * 60 * 1000;      // the longest rollout and the checks before it
+        CORE::CDataNode schema = MakeObjectSchema();
+        AddProperty( schema, "ci_id", "string", "The CI id, as ci_resolve_repo gives it", true );
+        AddProperty( schema, "image", "string", "The image, as ci_images names it", true );
+        AddProperty( schema, "target", "string", "The target, as ci_release_status names it (for example live)", true );
+        AddProperty( schema, "run_id", "string", "The green run that built the image, as ci_submit gives it", false );
+        AddProperty( schema, "commit", "string", "Instead of run_id: the full commit whose newest run built the image", false );
+        AddProperty( schema, "confirm", "boolean", "Must be true: the user explicitly asked for this deployment", false );
+        descriptor.inputSchema = schema;
+        return true;
+    }
+
+    virtual COM::EMcpExecuteResult Execute( COM::CMcpRequestContext& context       ,
+                                            const CORE::CDataNode& arguments       ,
+                                            COM::CMcpToolResult& result            ,
+                                            COM::CMcpInputRequired& inputRequired  ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        CORE::CString runOrCommit = Argument( arguments, "run_id" );
+        const CORE::CString commit = Argument( arguments, "commit" );
+        if ( runOrCommit.IsNULLOrEmpty() == commit.IsNULLOrEmpty() )
+        {
+            SetText( result, m_settings, "Give run_id or commit, one of them", true );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        if ( runOrCommit.IsNULLOrEmpty() )
+            runOrCommit = commit;
+        CCiDeployResult deploy;
+        CORE::CString error;
+        CContextProgress progress( context );
+        const bool deployed = m_service.Deploy( Argument( arguments, "ci_id" ), Argument( arguments, "image" ), Argument( arguments, "target" ), runOrCommit,
+                                                IsConfirmed( arguments ), m_settings.caller, deploy, error, &progress );
+        const CORE::CString text = deploy.outcome.IsNULLOrEmpty() && !deployed ? error : DescribeDeployResult( deploy, error );
+        SetText( result, m_settings, CCiUtils::Bound( text, MaxOutputChars ), !deployed );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+class CReleaseStatusTool : public CCiTool
+{
+    public:
+
+    CReleaseStatusTool( ICiService& service, const SToolSettings& settings ) : CCiTool( service, settings ) {}
+
+    virtual bool GetDescriptor( COM::CMcpToolDescriptor& descriptor ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        descriptor.name = "ci_release_status";
+        descriptor.title = "What a deployment target runs";
+        descriptor.description = ReleaseStatusDescription;
+        descriptor.effect = COM::MCP_TOOLEFFECT_READ_ONLY;
+        descriptor.idempotent = true;
+        CORE::CDataNode schema = MakeObjectSchema();
+        AddProperty( schema, "ci_id", "string", "The CI id, as ci_resolve_repo gives it", true );
+        AddProperty( schema, "target", "string", "The target, for example live", true );
+        descriptor.inputSchema = schema;
+        return true;
+    }
+
+    virtual COM::EMcpExecuteResult Execute( COM::CMcpRequestContext& context       ,
+                                            const CORE::CDataNode& arguments       ,
+                                            COM::CMcpToolResult& result            ,
+                                            COM::CMcpInputRequired& inputRequired  ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        CCiReleaseStatus status;
+        CORE::CString error;
+        if ( !m_service.ReleaseStatus( Argument( arguments, "ci_id" ), Argument( arguments, "target" ), status, error ) )
+        {
+            SetText( result, m_settings, error, true );
+            return COM::MCP_EXECUTE_COMPLETE;
+        }
+        CORE::CString text = "Target " + status.target + " of CI id " + status.ciId + ":\n";
+        for ( size_t i=0; i<status.entries.size(); ++i )
+        {
+            const CCiReleaseStatus::CEntry& entry = status.entries[ i ];
+            text += "- image " + entry.image + ": Deployment " + entry.nameSpace + "/" + entry.deployment + ", container " + entry.container +
+                    ( entry.allowScratch ? CORE::CString( " (takes scratch builds too)" ) : CORE::CString( " (published commits only)" ) ) + "\n";
+            if ( !entry.problem.IsNULLOrEmpty() )
+            {
+                text += "  its state could not be read: " + entry.problem + "\n";
+                continue;
+            }
+            text += "  runs " + entry.imageReference + "\n";
+            text += "  pull policy " + entry.imagePullPolicy + ", revision " + ( entry.revision.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : entry.revision ) +
+                    ", strategy " + ( entry.strategy.IsNULLOrEmpty() ? CORE::CString( "unknown" ) : entry.strategy ) + ", " + entry.replicas + "\n";
+            if ( entry.imagePullPolicy == "Never" )
+                text += "  it pulls nothing (Never): it cannot be deployed from here until its service is switched to the registry once\n";
+            if ( entry.digest.IsNULLOrEmpty() )
+                text += "  it runs a tag, not a digest: not deployed by the CI\n";
+            text += "  last change: " + ( entry.changeCause.IsNULLOrEmpty() ? CORE::CString( "not recorded" ) : entry.changeCause ) + "\n";
+            if ( !entry.history.IsNULLOrEmpty() )
+                text += "  history:\n" + entry.history + "\n";
+        }
+        SetText( result, m_settings, CCiUtils::Bound( text, MaxOutputChars ), false );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+class CRollbackTool : public CCiTool
+{
+    public:
+
+    CRollbackTool( ICiService& service, const SToolSettings& settings ) : CCiTool( service, settings ) {}
+
+    virtual bool GetDescriptor( COM::CMcpToolDescriptor& descriptor ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        descriptor.name = "ci_rollback";
+        descriptor.title = "Roll a target back";
+        descriptor.description = RollbackDescription;
+        descriptor.effect = COM::MCP_TOOLEFFECT_DESTRUCTIVE;
+        descriptor.idempotent = false;          // a second rollback goes back further
+        descriptor.openWorld = true;
+        descriptor.maxDurationMs = 65 * 60 * 1000;
+        CORE::CDataNode schema = MakeObjectSchema();
+        AddProperty( schema, "ci_id", "string", "The CI id, as ci_resolve_repo gives it", true );
+        AddProperty( schema, "target", "string", "The target, for example live", true );
+        AddProperty( schema, "image", "string", "The image; only needed when more than one image has the target", false );
+        AddProperty( schema, "confirm", "boolean", "Must be true: the user explicitly asked for this rollback", false );
+        descriptor.inputSchema = schema;
+        return true;
+    }
+
+    virtual COM::EMcpExecuteResult Execute( COM::CMcpRequestContext& context       ,
+                                            const CORE::CDataNode& arguments       ,
+                                            COM::CMcpToolResult& result            ,
+                                            COM::CMcpInputRequired& inputRequired  ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        CCiDeployResult rollback;
+        CORE::CString error;
+        CContextProgress progress( context );
+        const bool rolledBack = m_service.Rollback( Argument( arguments, "ci_id" ), Argument( arguments, "image" ), Argument( arguments, "target" ),
+                                                    IsConfirmed( arguments ), m_settings.caller, rollback, error, &progress );
+        const CORE::CString text = rollback.outcome.IsNULLOrEmpty() && !rolledBack ? error : DescribeDeployResult( rollback, error );
+        SetText( result, m_settings, CCiUtils::Bound( text, MaxOutputChars ), !rolledBack );
+        return COM::MCP_EXECUTE_COMPLETE;
+    }
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -975,6 +1345,7 @@ SToolSettings::SToolSettings( void )
     : logDir()
     , maxWaitSeconds( 600 )
     , redactor()
+    , caller()
 {GUCEF_TRACE;
 
 }
@@ -999,7 +1370,8 @@ CORE::CString::StringVector
 GetToolNames( void )
 {GUCEF_TRACE;
 
-    static const char* names[] = { "ci_resolve_repo", "ci_describe", "ci_submit", "ci_status", "ci_report", "ci_job_details", "ci_cancel", "ci_cleanup" };
+    static const char* names[] = { "ci_resolve_repo", "ci_describe", "ci_submit", "ci_status", "ci_report", "ci_job_details", "ci_cancel", "ci_cleanup",
+                                   "ci_images", "ci_deploy", "ci_release_status", "ci_rollback" };
     CORE::CString::StringVector result;
     for ( size_t i=0; i<sizeof( names ) / sizeof( names[ 0 ] ); ++i )
         result.push_back( names[ i ] );
@@ -1023,6 +1395,10 @@ RegisterTools( COM::CMcpServer& server, ICiService& service, const SToolSettings
     allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CJobDetailsTool( service, settings ) ), error ) && allRegistered;
     allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CCancelTool( service, settings ) ), error ) && allRegistered;
     allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CCleanupTool( service, settings ) ), error ) && allRegistered;
+    allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CImagesTool( service, settings ) ), error ) && allRegistered;
+    allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CDeployTool( service, settings ) ), error ) && allRegistered;
+    allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CReleaseStatusTool( service, settings ) ), error ) && allRegistered;
+    allRegistered = registry.Register( COM::CIMcpToolPtr( GUCEF_NEW CRollbackTool( service, settings ) ), error ) && allRegistered;
     if ( !allRegistered )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefMcpCi: A tool could not be registered: " << error );
     return allRegistered;

@@ -57,6 +57,7 @@ struct SToolSettings
     GUCEF::CORE::CString logDir;            /**< where the full logs of jobs are kept, absolute */
     GUCEF::UInt32 maxWaitSeconds;           /**< the longest wait_seconds of ci_status */
     GUCEF::CORE::CRedactor redactor;        /**< what never reaches the output of a tool: the credentials */
+    CCiCaller caller;                       /**< who the tools act for in direct mode; a gateway takes it from the token */
 
     SToolSettings( void );
 };
@@ -68,7 +69,7 @@ struct SToolSettings
 //-------------------------------------------------------------------------*/
 
 /**
- *  Registers the eight CI tools, written against the service so that they are the same in every mode:
+ *  Registers the twelve CI tools, written against the service so that they are the same in every mode:
  *
  *    ci_resolve_repo     the CI id of a repository, from its remotes; "no CI" when the CI does not know it
  *    ci_describe         the toolchains, C++ standards, products and modes of a CI id
@@ -78,6 +79,10 @@ struct SToolSettings
  *    ci_job_details      one job: the digest of its logs, the end of a log or its tests; the full logs are saved
  *    ci_cancel           stops a run
  *    ci_cleanup          removes old scratch branches and reports
+ *    ci_images           the images a run built
+ *    ci_deploy           rolls an image of a green run out to a listed target, with confirm=true
+ *    ci_release_status   what a target runs now and its history
+ *    ci_rollback         returns a target to its previous revision, with confirm=true
  *
  *  The service must outlive the server.
  */

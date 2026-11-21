@@ -52,7 +52,9 @@ files( {
   "include/TestCiServer.h",
   "include/TestFakeForgejo.h",
   "include/TestFakeGatewayFront.h",
+  "include/TestFakeRegistry.h",
   "include/TestMcpCi.h",
+  "include/TestMcpCiDeploy.h",
   "include/TestMcpCiGateway.h",
   "include/TestMcpCiSupport.h"
  } )
@@ -66,7 +68,9 @@ files( {
   "src/TestCiServer.cpp",
   "src/TestFakeForgejo.cpp",
   "src/TestFakeGatewayFront.cpp",
+  "src/TestFakeRegistry.cpp",
   "src/TestMcpCi.cpp",
+  "src/TestMcpCiDeploy.cpp",
   "src/TestMcpCiGateway.cpp",
   "src/TestMcpCiSupport.cpp",
   "src/gucefMcpCi_TestApp_main.cpp"

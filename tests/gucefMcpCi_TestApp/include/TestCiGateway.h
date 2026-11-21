@@ -137,6 +137,15 @@ GUCEF::CORE::CFutureResult GatewayRequestAsync( GUCEF::WEB::CHTTPClient& client 
                                                 const GUCEF::CORE::CString& pathAndQuery ,
                                                 GUCEF::UInt32 timeoutInMs                );
 
+/** As GatewayRequestAsync() with a method and a text body */
+GUCEF::CORE::CFutureResult GatewayRequestAsync( GUCEF::WEB::CHTTPClient& client          ,
+                                                const GUCEF::CORE::CString& baseUrl      ,
+                                                const GUCEF::CORE::CString& token        ,
+                                                const GUCEF::CORE::CString& method       ,
+                                                const GUCEF::CORE::CString& pathAndQuery ,
+                                                const GUCEF::CORE::CString& body         ,
+                                                GUCEF::UInt32 timeoutInMs                );
+
 /** The status of a request of GatewayRequestAsync(), waiting at most timeoutInMs; 0 when none came */
 GUCEF::Int32 GatewayResult( const GUCEF::CORE::CFutureResult& future, GUCEF::UInt32 timeoutInMs );
 

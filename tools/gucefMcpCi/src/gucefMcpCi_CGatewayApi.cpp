@@ -87,7 +87,11 @@ static const SRoute Routes[] = { { "GET", "/v1/ci", false },
                                  { "GET", "/v1/runs/report", false },
                                  { "GET", "/v1/runs/jobs", false },
                                  { "POST", "/v1/runs/cancel", false },
-                                 { "POST", "/v1/cleanup", false } };
+                                 { "POST", "/v1/cleanup", false },
+                                 { "GET", "/v1/images", false },
+                                 { "POST", "/v1/deploy", false },
+                                 { "GET", "/v1/release", false },
+                                 { "POST", "/v1/rollback", false } };
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -171,6 +175,7 @@ CGatewayApi::CRequest::CRequest( void )
     , parameters()
     , body()
     , machineId()
+    , caller()
     , pollDeadlineInMs( 0 )
 {GUCEF_TRACE;
 
@@ -454,6 +459,18 @@ CGatewayApi::Execute( const CRequest& request, CResponse& response )
     if ( path == "/v1/cleanup" && method == "POST" )
         Cleanup( request, response );
     else
+    if ( path == "/v1/images" && method == "GET" )
+        GetImages( request, response );
+    else
+    if ( path == "/v1/deploy" && method == "POST" )
+        Deploy( request, response );
+    else
+    if ( path == "/v1/release" && method == "GET" )
+        GetRelease( request, response );
+    else
+    if ( path == "/v1/rollback" && method == "POST" )
+        Rollback( request, response );
+    else
         SetError( response, 404, "not_found", "no such call: " + method + " " + path );
 }
 
@@ -723,6 +740,12 @@ CGatewayApi::StartRun( const CRequest& request, CResponse& response )
     const CORE::CDataNode* optionsNode = body.FindChild( "options" );
     if ( GUCEF_NULL != optionsNode )
         CCiJson::Read( *optionsNode, options );
+    if ( !options.commit.IsNULLOrEmpty() )
+    {
+        // a published commit: nothing was uploaded, the gateway sends it from its own clone
+        StartCommitRun( request, CCiUtils::Trimmed( body.GetAttributeValue( "ci" ).AsString() ), options, response );
+        return;
+    }
 
     CSentSnapshot sent;
     {
@@ -908,6 +931,147 @@ CGatewayApi::Cleanup( const CRequest& request, CResponse& response )
     CORE::CDataNode json( GUCEF_DATATYPE_OBJECT );
     json.SetAttribute( "summary", summary );
     SetJson( response, 200, json );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::StartCommitRun( const CRequest& request, const CORE::CString& ciId, const CCiSubmitOptions& options, CResponse& response )
+{GUCEF_TRACE;
+
+    CCiSnapshot snapshot;
+    CORE::CString runId;
+    CORE::CString error;
+    if ( !m_service.Submit( ciId, CORE::CString::Empty, options, snapshot, runId, error ) )
+    {
+        if ( error.StartsWith( "commit must be" ) || error.HasSubstr( "the published repository" ) >= 0 )
+            SetError( response, 422, "unpublished", error );
+        else
+            SetServiceError( response, error );
+        return;
+    }
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMcpCi: Gateway: The published commit " << snapshot.commit << " for " << request.machineId << " is on " <<
+                      snapshot.branchName << ( runId.IsNULLOrEmpty() ? CORE::CString::Empty : ", run " + runId ) );
+    CORE::CDataNode json( GUCEF_DATATYPE_OBJECT );
+    json.SetAttribute( "runId", runId );
+    CCiJson::Write( snapshot, *json.AddChild( "snapshot", GUCEF_DATATYPE_OBJECT ) );
+    SetJson( response, options.dryRun ? 200 : 201, json );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::GetImages( const CRequest& request, CResponse& response )
+{GUCEF_TRACE;
+
+    CCiImageReport report;
+    CORE::CString error;
+    if ( !m_service.Images( request.Parameter( "id" ), report, error ) )
+    {
+        if ( error.HasSubstr( "published no image report" ) >= 0 )
+            SetError( response, 404, "no_images", error );
+        else
+            SetServiceError( response, error );
+        return;
+    }
+    CORE::CDataNode json( GUCEF_DATATYPE_OBJECT );
+    report.SaveToJson( json );
+    SetJson( response, 200, json );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::SetDeployAnswer( CResponse& response, bool success, const CCiDeployResult& result, const CORE::CString& error )
+{GUCEF_TRACE;
+
+    CORE::CDataNode json( GUCEF_DATATYPE_OBJECT );
+    Int32 status = 200;
+    if ( !success )
+    {
+        const CORE::CString& code = result.code;
+        if ( code == "scope" || code == "not_listed" )
+            status = 403;
+        else
+        if ( code == "confirm" || code == "bad_request" )
+            status = 400;
+        else
+        if ( code == "unknown_ci" || code == "unknown_run" )
+            status = 404;
+        else
+        if ( code == "busy" )
+            status = 409;
+        else
+        if ( code == "not_green" || code == "no_images" || code == "image_failed" || code == "unpublished" || code == "pull_policy" )
+            status = 422;
+        else
+            status = 502;
+        json.SetAttribute( "error", error );
+        json.SetAttribute( "code", code.IsNULLOrEmpty() ? CORE::CString( "backend" ) : code );
+    }
+    result.SaveToJson( *json.AddChild( "result", GUCEF_DATATYPE_OBJECT ) );
+    SetJson( response, status, json );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::Deploy( const CRequest& request, CResponse& response )
+{GUCEF_TRACE;
+
+    CORE::CDataNode body;
+    if ( !ReadJsonBody( request, response, body ) )
+        return;
+    CORE::CString runOrCommit = CCiUtils::Trimmed( body.GetAttributeValue( "run" ).AsString() );
+    if ( runOrCommit.IsNULLOrEmpty() )
+        runOrCommit = CCiUtils::Trimmed( body.GetAttributeValue( "commit" ).AsString() );
+    // only the boolean true confirms
+    const CORE::CVariant confirmValue = body.GetAttributeValue( "confirm" );
+    const bool confirm = confirmValue.IsBoolean() && confirmValue.AsBool( false );
+    CCiDeployResult result;
+    CORE::CString error;
+    const bool deployed = m_service.Deploy( CCiUtils::Trimmed( body.GetAttributeValue( "ci" ).AsString() ), CCiUtils::Trimmed( body.GetAttributeValue( "image" ).AsString() ),
+                                            CCiUtils::Trimmed( body.GetAttributeValue( "target" ).AsString() ), runOrCommit, confirm, request.caller, result, error );
+    SetDeployAnswer( response, deployed, result, error );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::GetRelease( const CRequest& request, CResponse& response )
+{GUCEF_TRACE;
+
+    CCiReleaseStatus status;
+    CORE::CString error;
+    if ( !m_service.ReleaseStatus( request.Parameter( "ci" ), request.Parameter( "target" ), status, error ) )
+    {
+        if ( error.HasSubstr( "has the target" ) >= 0 || error.HasSubstr( "may be deployed" ) >= 0 )
+            SetError( response, 404, "not_listed", error );
+        else
+            SetServiceError( response, error );
+        return;
+    }
+    CORE::CDataNode json( GUCEF_DATATYPE_OBJECT );
+    status.SaveToJson( json );
+    SetJson( response, 200, json );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGatewayApi::Rollback( const CRequest& request, CResponse& response )
+{GUCEF_TRACE;
+
+    CORE::CDataNode body;
+    if ( !ReadJsonBody( request, response, body ) )
+        return;
+    const CORE::CVariant confirmValue = body.GetAttributeValue( "confirm" );
+    const bool confirm = confirmValue.IsBoolean() && confirmValue.AsBool( false );
+    CCiDeployResult result;
+    CORE::CString error;
+    const bool rolledBack = m_service.Rollback( CCiUtils::Trimmed( body.GetAttributeValue( "ci" ).AsString() ), CCiUtils::Trimmed( body.GetAttributeValue( "image" ).AsString() ),
+                                                CCiUtils::Trimmed( body.GetAttributeValue( "target" ).AsString() ), confirm, request.caller, result, error );
+    SetDeployAnswer( response, rolledBack, result, error );
 }
 
 /*-------------------------------------------------------------------------*/

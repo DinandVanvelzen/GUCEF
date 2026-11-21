@@ -31,6 +31,7 @@
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMcpCi_CCiRunStatus.h"
+#include "gucefMcpCi_CCiImageReport.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -77,7 +78,11 @@ namespace GUCEFMcpCi {
  *      }
  *
  *  Test applications have no log file of their own: their output is part of the log of their product, and the
- *  report holds the end of it. Fields that are not known are ignored; a "workspace" (the checkout on the runner) is
+ *  report holds the end of it.
+ *
+ *  The images job publishes no report.json but images.json (CCiImageReport); its cell is made from that: mode
+ *  "images", and per image a product of phase ImagePhase with the status, tag, digest, seconds and the end of the log
+ *  of the image build as the report gives them, and "<name>.log.gz" as its log. Fields that are not known are ignored; a "workspace" (the checkout on the runner) is
  *  used when a report has one, otherwise it is derived from the build directory in the logs.
  */
 class CCiReport
@@ -137,8 +142,13 @@ class CCiReport
         GUCEF::CORE::CString logFile;
         GUCEF::CORE::CString logTail;
         TTestVector tests;
+        GUCEF::CORE::CString tag;               /**< an image: its tag */
+        GUCEF::CORE::CString digest;            /**< an image: its digest, when it was pushed */
 
         CProduct( void );
+
+        /** Whether it is an image of the images job */
+        bool IsImage( void ) const;
         bool IsFailed( void ) const;
         GUCEF::UInt32 CountFailedTests( void ) const;
     };
@@ -174,6 +184,9 @@ class CCiReport
         /** Reads report.json */
         bool LoadFromReport( const GUCEF::CORE::CDataNode& report );
 
+        /** The cell of the images job, from images.json */
+        void LoadFromImageReport( const CCiImageReport& report );
+
         bool IsFailed( void ) const;
         GUCEF::UInt32 CountFailedProducts( void ) const;
         GUCEF::UInt32 CountFailedTests( void ) const;
@@ -183,6 +196,9 @@ class CCiReport
     };
 
     typedef GUCEF::vector< CCell > TCellVector;
+
+    /** The phase of the products of the images job: "image" */
+    static const char* ImagePhase;
 
     CCiRunStatus status;
     TCellVector cells;

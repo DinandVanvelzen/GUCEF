@@ -247,6 +247,25 @@ GatewayRequestAsync( WEB::CHTTPClient& client, const CORE::CString& baseUrl, con
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CFutureResult
+GatewayRequestAsync( WEB::CHTTPClient& client, const CORE::CString& baseUrl, const CORE::CString& token, const CORE::CString& method,
+                     const CORE::CString& pathAndQuery, const CORE::CString& body, UInt32 timeoutInMs )
+{
+    CORE::CDynamicBuffer bytes;
+    if ( !body.IsNULLOrEmpty() )
+        bytes.CopyFrom( body.ByteSize() - 1, body.C_String() );
+    WEB::CHttpRequestData request;
+    MakeRequest( baseUrl, token, method, pathAndQuery, bytes, request );
+    WEB::CHttpClientRequestOptions options;
+    options.totalTimeoutInMs = timeoutInMs;
+    options.connectTimeoutInMs = 5000;
+    options.maxResponseBodySize = 4 * 1024 * 1024;
+    options.useEnvironmentProxy = false;
+    return client.ExecuteAsync( request, options );
+}
+
+/*-------------------------------------------------------------------------*/
+
 Int32
 GatewayResult( const CORE::CFutureResult& future, UInt32 timeoutInMs )
 {
