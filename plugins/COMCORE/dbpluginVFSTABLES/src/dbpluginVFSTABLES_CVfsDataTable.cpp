@@ -50,6 +50,11 @@
 #define GUCEF_CORE_CDATATABLESCAN_H
 #endif /* GUCEF_CORE_CDATATABLESCAN_H ? */
 
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
+
 #ifndef GUCEF_CORE_CDATATABLEVALUES_H
 #include "gucefCORE_CDataTableValues.h"
 #define GUCEF_CORE_CDATATABLEVALUES_H
@@ -702,7 +707,10 @@ CVfsDataTable::ReadPartition( const CVfsTableScanSource::SPartitionFile& partiti
     CVfsTableScanSource::TPartitionFileVector files;
     files.push_back( partition );
     CORE::CDataTableScanSourcePtr source( GUCEF_NEW CVfsTableScanSource( m_store, m_definition, m_schema, m_codec, m_codecOptions, files ) );
-    CORE::CDataTableScan scan( source, m_schema, m_store->GetBufferPool(), GetPulseGenerator() );
+    // a sync scan raises no events. It runs under the write lock of the table, so it must not subscribe to the pulse generator
+    // of the table: a thread of that generator that waits for the write lock while it dispatches holds the lock a subscription
+    // takes, and the two threads would wait for each other. A pulse generator of its own, which nobody drives, is never busy
+    CORE::CDataTableScan scan( source, m_schema, m_store->GetBufferPool(), CORE::CPulseGenerator::CreateSharedObj() );
     CORE::TDataTableStatus status = scan.Start( CORE::CDataTableQuery() );
     while ( CORE::DATATABLE_STATUS_OK == status )
     {

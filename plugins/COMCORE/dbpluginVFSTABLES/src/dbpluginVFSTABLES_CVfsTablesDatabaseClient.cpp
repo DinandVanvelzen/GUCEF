@@ -103,11 +103,16 @@ struct SModuleState
     GUCEF::map< CORE::CString, UInt32 > liveObjects;
 };
 
+/**
+ *  The state is allocated once and never released on purpose: the plugin is unloaded by the atexit handlers of the
+ *  plugin control and of the global systems, which run after the destructors of function local statics that were
+ *  created after those handlers were registered. A destroyed mutex (a pure virtual call) is then used by the unload.
+ */
 SModuleState&
 GetModuleState( void )
 {
-    static SModuleState state;
-    return state;
+    static SModuleState* state = GUCEF_NEW SModuleState();
+    return *state;
 }
 
 /** A VFS root in one form, for comparing roots */

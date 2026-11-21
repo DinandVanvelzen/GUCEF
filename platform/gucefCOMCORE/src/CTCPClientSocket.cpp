@@ -626,6 +626,11 @@ CTCPClientSocket::CheckRecieveBuffer( void )
             else
             if ( bytesrecv == 0 )
             {
+                // What was read earlier in this cycle is delivered first: the server sent it and closed right after, so the data and
+                // the end of the connection are both there. The end of the connection is seen again by the read of the next cycle
+                if ( m_readbuffer.GetDataSize() > 0 )
+                    break;
+
                 // For the purpose of reconnecting we consider the connection failed if is closed for any reason other than
                 // purposefully closing it on the client's side as the reconnect setting indicates the intent of a persistent connection
                 m_lastConnFailed = true;

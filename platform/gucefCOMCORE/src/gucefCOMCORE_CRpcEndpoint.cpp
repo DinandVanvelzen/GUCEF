@@ -635,6 +635,7 @@ CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGene
     memset( m_resumeToken, 0, sizeof( m_resumeToken ) );
     memset( m_pendingNonce, 0, sizeof( m_pendingNonce ) );
     m_link = CRpcEndpointLink::Create( this );
+    m_link->SetServiceSet( m_services );
     // the courier of the notification pulse generator is linked to it here, on the thread that makes the endpoint
     m_releaseCourier = CComCoreGlobal::Instance()->GetRpcReleaseCourier( notificationPulseGenerator );
     m_durable = CRpcDurableRequestTable::Create( settings.durableResultRetentionMs, settings.maxDurableRequestsPerSubject );
@@ -1195,8 +1196,13 @@ CRpcEndpoint::RegisterService( const CRpcContractPtr& contract, const CORE::CStr
                                CIRpcServiceImpl* impl, TRpcExecutionMode mode )
 {GUCEF_TRACE;
 
-    CLockScope lock( *this );
-    return m_services->RegisterService( contract, serviceName, impl, mode );
+    // outside the endpoint lock: replacing an implementation waits for its handlers under way, which may answer
+    CRpcServiceSetPtr services;
+    {
+        CLockScope lock( *this );
+        services = m_services;
+    }
+    return services->RegisterService( contract, serviceName, impl, mode );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1207,6 +1213,7 @@ CRpcEndpoint::SetServiceSet( const CRpcServiceSetPtr& services )
 
     CLockScope lock( *this );
     m_services = services.IsNULL() ? CRpcServiceSet::Create() : services;
+    m_link->SetServiceSet( m_services );
 }
 
 /*-------------------------------------------------------------------------*/

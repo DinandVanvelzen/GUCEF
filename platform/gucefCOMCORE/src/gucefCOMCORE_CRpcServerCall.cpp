@@ -59,6 +59,11 @@
 #define GUCEF_COMCORE_CRPCENDPOINT_H
 #endif /* GUCEF_COMCORE_CRPCENDPOINT_H ? */
 
+#ifndef GUCEF_COMCORE_CRPCREFLECTIONSERVICE_H
+#include "gucefCOMCORE_CRpcReflectionService.h"
+#define GUCEF_COMCORE_CRPCREFLECTIONSERVICE_H
+#endif /* GUCEF_COMCORE_CRPCREFLECTIONSERVICE_H ? */
+
 #include "gucefCOMCORE_CRpcServerCall.h"
 
 /*-------------------------------------------------------------------------//
@@ -199,23 +204,82 @@ CRpcServerCall::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** Runs the handler; false when it threw (the call is failed then) */
+bool
+InvokeHandler( CIRpcServiceImpl* impl, CRpcServerCall& call, TRpcHandlerResult& result )
+{GUCEF_TRACE;
+
+    try
+    {
+        result = impl->OnCall( call );
+        return true;
+    }
+    catch ( ... )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcServerCall: the handler of " << call.GetMethod().GetPath() << " threw an exception" );
+        call.Fail( CRpcStatus( RPC_STATUS_INTERNAL, "the handler failed" ) );
+        return false;
+    }
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CRpcServerCall::RunHandler( void )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_impl || IsDone() )
         return;
+
+    // The implementation is not owned by the call, and the call may run long after it arrived (a thread pool task, the
+    // notification thread's mail): its owner may have unregistered it and destroyed it meanwhile. The handler runs only
+    // while the implementation is still the registered one, counted as running in the service set, so that
+    // UnregisterService() waits for it. The reflection service belongs to the endpoint: it runs while the endpoint is
+    // held. A call whose endpoint is gone has nobody to answer and nothing to run for
+    CRpcServiceSetPtr services;
+    bool reflection = false;
+    {
+        CRpcEndpointLink::CScope scope( m_link );
+        CRpcEndpoint* endpoint = scope.GetEndpoint();
+        if ( GUCEF_NULL != endpoint )
+        {
+            // not the endpoint's lock: the outermost release of it runs the endpoint's deferred work on this thread
+            reflection = m_impl == endpoint->m_reflection;
+            if ( !reflection )
+                services = m_link->GetServiceSet();
+        }
+    }
+    bool ran = false;
     TRpcHandlerResult result = RPC_HANDLER_DONE;
-    try
+    if ( reflection )
     {
-        result = m_impl->OnCall( *this );
+        CRpcEndpointLink::CScope scope( m_link );
+        if ( GUCEF_NULL != scope.GetEndpoint() )
+        {
+            ran = true;
+            if ( !InvokeHandler( m_impl, *this, result ) )
+                return;
+        }
     }
-    catch ( ... )
+    else
+    if ( !services.IsNULL() && services->BeginHandler( m_contract->GetHash(), *m_method, m_impl ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcServerCall: the handler of " << m_method->GetPath() << " threw an exception" );
-        Fail( CRpcStatus( RPC_STATUS_INTERNAL, "the handler failed" ) );
-        return;
+        ran = true;
+        const bool returned = InvokeHandler( m_impl, *this, result );
+        services->EndHandler( m_impl );
+        if ( !returned )
+            return;
     }
+    if ( !ran )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "RpcServerCall: " << m_method->GetPath() << " is no longer served, call " << m_callRef << " is not carried out" );
+        Fail( CRpcStatus( RPC_STATUS_UNAVAILABLE, m_method->GetPath() + " is no longer served" ) );
+    }
+    else
     if ( RPC_HANDLER_DONE == result && !IsDone() && !IsAccepted() )
         Fail( CRpcStatus( RPC_STATUS_UNKNOWN, "the handler returned without an answer" ) );
 

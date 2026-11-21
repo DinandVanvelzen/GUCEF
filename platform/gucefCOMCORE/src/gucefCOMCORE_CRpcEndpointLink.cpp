@@ -27,6 +27,11 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -91,6 +96,7 @@ CRpcEndpointLink::CRpcEndpointLink( CRpcEndpoint* endpoint )
     , m_lock()
     , m_endpoint( endpoint )
     , m_users( 0 )
+    , m_services()
 {GUCEF_TRACE;
 
 }
@@ -118,8 +124,11 @@ void
 CRpcEndpointLink::Detach( void )
 {GUCEF_TRACE;
 
+    CRpcServiceSetPtr services;     // let go of after the lock: this lock is a leaf
     m_lock.Lock();
     m_endpoint = GUCEF_NULL;
+    services = m_services;
+    m_services.Unlink();
     while ( m_users > 0 )
     {
         m_lock.Unlock();
@@ -128,6 +137,29 @@ CRpcEndpointLink::Detach( void )
     }
     m_lock.Unlock();
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpointLink::SetServiceSet( const CRpcServiceSetPtr& services )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( GUCEF_NULL != m_endpoint )
+        m_services = services;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcServiceSetPtr
+CRpcEndpointLink::GetServiceSet( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_services;
+}
+
+/*-------------------------------------------------------------------------*/
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

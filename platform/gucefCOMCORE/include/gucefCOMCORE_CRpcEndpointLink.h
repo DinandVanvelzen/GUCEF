@@ -40,6 +40,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_COMCORE_CRPCSERVICESET_H
+#include "gucefCOMCORE_CRpcServiceSet.h"
+#define GUCEF_COMCORE_CRPCSERVICESET_H
+#endif /* GUCEF_COMCORE_CRPCSERVICESET_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -91,6 +96,13 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpointLink : public CORE::CTSharedObjCreato
     /** Called by the endpoint's destructor: no new scope reaches the endpoint, scopes in progress are waited for */
     void Detach( void );
 
+    /**
+     *  The service set of the endpoint, kept here as well (CRpcEndpoint::SetServiceSet()): a server call that is about
+     *  to run its handler finds it under this leaf lock, without the endpoint's lock. NULL once the endpoint is gone
+     */
+    void SetServiceSet( const CRpcServiceSetPtr& services );
+    CRpcServiceSetPtr GetServiceSet( void ) const;
+
     private:
     friend class CORE::CTSharedObjCreator< CRpcEndpointLink, MT::CMutex >;
 
@@ -101,6 +113,7 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpointLink : public CORE::CTSharedObjCreato
     MT::CMutex m_lock;
     CRpcEndpoint* m_endpoint;
     UInt32 m_users;
+    CRpcServiceSetPtr m_services;
 };
 
 /*-------------------------------------------------------------------------//

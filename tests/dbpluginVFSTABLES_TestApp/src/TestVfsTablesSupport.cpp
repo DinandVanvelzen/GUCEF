@@ -140,9 +140,10 @@ SetUpTestEnvironment( void )
         registry.TryRegister( "parquet", codec );
     }
 
-    // the backend module is linked as well: its plugin entry point registers it
+    // the backend is loaded as the applications load it: through the plugin control. The plugin control then unloads it
+    // again from its exit handler, after the static destructors of the module: the process has to leave cleanly
     if ( !COMCORE::CComCoreGlobal::Instance()->GetDatabaseClientFactory().IsConstructible( "vfstables" ) )
-        GUCEFPlugin_Load( 0, GUCEF_NULL );
+        AddPlugin( "dbpluginVFSTABLES" );
 
     VFS::CVfsGlobal::Instance()->GetVfs().MountAllDelayMountedArchives();
 }

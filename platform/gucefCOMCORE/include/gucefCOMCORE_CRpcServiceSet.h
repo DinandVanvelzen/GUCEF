@@ -68,7 +68,10 @@ typedef CORE::CTSharedPtr< CRpcServiceSet, MT::CMutex > CRpcServiceSetPtr;
 /**
  *  The services one side exports (gucefCOMCORE RPC design 10.1, 10.5): (contract, service) -> implementation and
  *  execution mode. A host shares one set between all its endpoints. Thread safe.
- *  The set does not own the implementations: they outlive the endpoints that use them.
+ *  The set does not own the implementations. An implementation may be destroyed once UnregisterService() returned for
+ *  every service it was registered for: from then on no handler of it runs and none starts, also not for calls that
+ *  arrived before (a call handed to a thread pool or mailed to the notification thread checks that its implementation
+ *  is still registered when its handler is about to run, and is answered UNAVAILABLE otherwise).
  */
 class GUCEF_COMCORE_EXPORT_CPP CRpcServiceSet : public CORE::CTSharedObjCreator< CRpcServiceSet, MT::CMutex >
 {
@@ -89,9 +92,17 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcServiceSet : public CORE::CTSharedObjCreator<
 
     virtual ~CRpcServiceSet() GUCEF_VIRTUAL_OVERRIDE;
 
-    /** serviceName: full or within the contract. False when the contract has no such service */
+    /**
+     *  serviceName: full or within the contract. False when the contract has no such service. Another implementation
+     *  registered for the service is replaced: as with UnregisterService() its handlers under way finish first
+     */
     bool RegisterService( const CRpcContractPtr& contract, const CORE::CString& serviceName,
                           CIRpcServiceImpl* impl, TRpcExecutionMode mode = RPC_EXECUTION_CALLING_THREAD );
+
+    /**
+     *  Waits for the handlers of the service that run on other threads: when it returns no handler of the
+     *  implementation runs for the service and none starts (a handler that unregisters its own service is not waited for)
+     */
     bool UnregisterService( const CRpcContractPtr& contract, const CORE::CString& serviceName );
 
     /** The implementation of a service of a contract (by hash), false when not exported */
@@ -109,13 +120,35 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcServiceSet : public CORE::CTSharedObjCreator<
 
     private:
     friend class CORE::CTSharedObjCreator< CRpcServiceSet, MT::CMutex >;
+    friend class CRpcServerCall;
+
+    /** A handler that runs: of which implementation, for which service, on which thread */
+    struct SRunningHandler
+    {
+        CIRpcServiceImpl* impl;
+        const CRpcServiceDescriptor* service;   /**< the descriptor of the entry it runs for */
+        TThreadId threadId;
+    };
+    typedef GUCEF::vector< SRunningHandler > TRunningHandlerVector;
 
     CRpcServiceSet( void );
     CRpcServiceSet( const CRpcServiceSet& src );                /**< not implemented */
     CRpcServiceSet& operator=( const CRpcServiceSet& src );     /**< not implemented */
 
+    /**
+     *  Before a handler runs (CRpcServerCall::RunHandler()): true, and the handler counts as running, when the
+     *  implementation is still the one registered for the service of the method; false when the service was
+     *  unregistered or registered with another implementation since the call arrived. Every true is followed by EndHandler()
+     */
+    bool BeginHandler( const CRpcContractHash& hash, const CRpcMethodDescriptor& method, CIRpcServiceImpl* impl );
+    void EndHandler( CIRpcServiceImpl* impl );
+
+    /** Waits until no handler of the implementation for the service runs on another thread; without m_lock held */
+    void WaitForHandlersOf( CIRpcServiceImpl* impl, const CRpcServiceDescriptor* service );
+
     mutable MT::CMutex m_lock;
     TEntryVector m_entries;
+    TRunningHandlerVector m_running;
 };
 
 /*-------------------------------------------------------------------------//

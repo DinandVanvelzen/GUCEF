@@ -195,6 +195,36 @@ class CQuietDeferringService : public COMCORE::CRpcServiceImpl
 
 /*-------------------------------------------------------------------------*/
 
+/** Answers Notes/Get after a delay, counting the handlers that started and that finished: on any thread */
+class CCountingNotesService : public COMCORE::CRpcServiceImpl
+{
+    public:
+
+    MT::CTAtomic< UInt32 > entered;
+    MT::CTAtomic< UInt32 > finished;
+    const UInt32 delayMs;
+
+    explicit CCountingNotesService( UInt32 handlerDelayMs )
+        : COMCORE::CRpcServiceImpl(), entered( 0 ), finished( 0 ), delayMs( handlerDelayMs )
+    {
+        BindMethod( "Get", GUCEF_NEW COMCORE::CTRpcMethodHandler< CCountingNotesService >( this, &CCountingNotesService::OnGet ) );
+    }
+
+    COMCORE::TRpcHandlerResult OnGet( COMCORE::CRpcServerCall& call )
+    {
+        ++entered;
+        if ( delayMs > 0 )
+            MT::PrecisionDelay( delayMs );
+        COMCORE::CRpcMessage note = call.NewResponse();
+        note.SetUInt64( 1, call.GetRequest().GetUInt64( 1 ) );
+        call.Reply( note );
+        ++finished;
+        return COMCORE::RPC_HANDLER_DONE;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** Waits, without pumping, until the counter reaches the target: for events raised by threads of their own */
 bool
 WaitForCount( const CTransportEventCounter& counter, UInt32 ( CTransportEventCounter::*getter )( void ) const, UInt32 target, UInt32 timeoutMs )
@@ -943,6 +973,100 @@ TestEndedServerStreamReleasedAfterItsOwnMailOnOneThread( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+TestCallWaitingForItsHandlerSkipsAnUnregisteredService( void )
+{
+    // A call that arrived while its service was registered, and whose handler waits for its thread (here the
+    // notification thread, the test thread that does not pump yet; the same for a thread pool task), finds the service
+    // unregistered when its turn comes. Its owner may have destroyed the implementation after UnregisterService()
+    // returned (a service host that is detached and deleted while its RPC host still runs): the handler must not run,
+    // the call is answered UNAVAILABLE. Before, the call ran the handler of the unregistered implementation (on a
+    // destroyed one: "pure virtual method called" in the asset store service host)
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !notes.IsNULL() );
+    CCountingNotesService counting( 0 );
+    CRpcEndpointFixture f;
+    COMCORE::CIRpcTransportPtr a;
+    COMCORE::CIRpcTransportPtr b;
+    CORE::PulseGeneratorPtr none;
+    REQUIRE_TRUE( COMCORE::CRpcLoopbackTransport::CreatePair( none, none, a, b ) );     // protocols on tasks of their own
+    f.clientTransport = CRpcLossyTransport::Wrap( a, &f.clientWire );
+    f.serverTransport = CRpcLossyTransport::Wrap( b, &f.serverWire );
+    REQUIRE_TRUE( f.Connect( notes, notes, COMCORE::RPC_EXECUTION_NOTIFICATION_THREAD ) );
+    REQUIRE_TRUE( f.server->RegisterService( notes, "Notes", &counting, COMCORE::RPC_EXECUTION_NOTIFICATION_THREAD ) );
+
+    COMCORE::CRpcMessage request = f.NewClientRequest( g_getPath );
+    request.SetUInt64( 1, 7 );
+    CORE::CFutureResult future = f.client->CallAsync( g_getPath, request );
+
+    // the server's protocol thread takes the call and mails its handler to the test thread, which does not pump
+    UInt64 start = MT::PrecisionTickCount();
+    UInt64 ticksPerMs = MT::PrecisionTimerResolution() / 1000;
+    while ( 0 == TelemetryValueOf( f.server, "serverCallsStarted" ) &&
+            ( MT::PrecisionTickCount() - start ) / ( ticksPerMs > 0 ? ticksPerMs : 1 ) < 5000 )
+        MT::PrecisionDelay( 1 );
+    REQUIRE_TRUE( 1 == TelemetryValueOf( f.server, "serverCallsStarted" ) );
+    ASSERT_TRUE( 0 == counting.entered.Load() );
+
+    COMCORE::CRpcServiceSetPtr services = f.server->GetServiceSet();
+    REQUIRE_TRUE( !services.IsNULL() && services->UnregisterService( notes, "Notes" ) );
+
+    ASSERT_TRUE( f.PumpUntilReady( future, 5000 ) );
+    COMCORE::CRpcCallResult result;
+    COMCORE::CRpcEndpoint::TryGetCallResult( future, result );
+    ASSERT_TRUE( COMCORE::RPC_STATUS_UNAVAILABLE == result.status.code );
+    ASSERT_TRUE( 0 == counting.entered.Load() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestUnregisterServiceWaitsForTheHandlersUnderWay( void )
+{
+    // UnregisterService() returns once no handler of the implementation runs any more: its owner destroys it next.
+    // A thread pool handler that takes a while is under way when the test thread unregisters the service. Before,
+    // UnregisterService() returned at once and the owner destroyed the implementation under the running handler
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !notes.IsNULL() );
+    CCountingNotesService slow( 300 );
+    CRpcEndpointFixture f;
+    REQUIRE_TRUE( f.Connect( notes, notes, COMCORE::RPC_EXECUTION_THREAD_POOL ) );
+    REQUIRE_TRUE( f.server->RegisterService( notes, "Notes", &slow, COMCORE::RPC_EXECUTION_THREAD_POOL ) );
+
+    COMCORE::CRpcMessage request = f.NewClientRequest( g_getPath );
+    request.SetUInt64( 1, 8 );
+    CORE::CFutureResult future = f.client->CallAsync( g_getPath, request );
+    UInt64 start = MT::PrecisionTickCount();
+    UInt64 ticksPerMs = MT::PrecisionTimerResolution() / 1000;
+    while ( 0 == slow.entered.Load() && ( MT::PrecisionTickCount() - start ) / ( ticksPerMs > 0 ? ticksPerMs : 1 ) < 5000 )
+    {
+        f.pulseGenerator->ForceDirectPulse();
+        MT::PrecisionDelay( 1 );
+    }
+    REQUIRE_TRUE( 1 == slow.entered.Load() );
+
+    COMCORE::CRpcServiceSetPtr services = f.server->GetServiceSet();
+    REQUIRE_TRUE( !services.IsNULL() && services->UnregisterService( notes, "Notes" ) );
+    ASSERT_TRUE( 1 == slow.finished.Load() );
+
+    // the handler answered before it returned
+    ASSERT_TRUE( f.PumpUntilReady( future, 5000 ) );
+    COMCORE::CRpcCallResult result;
+    COMCORE::CRpcEndpoint::TryGetCallResult( future, result );
+    ASSERT_OK( result.status );
+
+    // a call that arrives later is not for the service any more
+    request.SetUInt64( 1, 9 );
+    ASSERT_TRUE( COMCORE::RPC_STATUS_UNIMPLEMENTED == f.CallAndPump( g_getPath, request ).status.code );
+    ASSERT_TRUE( 1 == slow.entered.Load() );
+
+    // never leave a handler of the old code running on the implementation that goes with this scope
+    for ( UInt32 waited=0; slow.entered.Load() != slow.finished.Load() && waited<5000; ++waited )
+        MT::PrecisionDelay( 1 );
+}
+
+/*-------------------------------------------------------------------------*/
+
 #define RUN_RPC_CASE( name, call )                                  \
     GUCEF_TESTFW_TESTCASE( "rpc_lifecycle: " name )                 \
     try                                                             \
@@ -969,6 +1093,8 @@ PerformRpcLifecycleTests( void )
     RUN_RPC_CASE( "an endpoint destroyed on another thread while its protocol pulse lets go of a detached transport calls nothing of that transport afterwards", TestEndpointDestroyedWhileItsPulseReleasesATransport() );
     RUN_RPC_CASE( "an ended server call is let go of by the endpoint after its own mail was delivered, never so that a handler of its events holds the last reference", TestEndedCallReleasedAfterItsOwnMail() );
     RUN_RPC_CASE( "a server stream call ended with its session on one thread is let go of after its CancelledEvent was delivered: a handler that lets go of its reference there never holds the last one (B-7)", TestEndedServerStreamReleasedAfterItsOwnMailOnOneThread() );
+    RUN_RPC_CASE( "a call whose handler waits for its thread does not run it when its service was unregistered meanwhile: it is answered UNAVAILABLE", TestCallWaitingForItsHandlerSkipsAnUnregisteredService() );
+    RUN_RPC_CASE( "UnregisterService() returns after the handlers of the service under way on other threads finished", TestUnregisterServiceWaitsForTheHandlersUnderWay() );
 }
 
 /*-------------------------------------------------------------------------*/
