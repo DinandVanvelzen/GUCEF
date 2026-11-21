@@ -104,6 +104,14 @@ if [ -z "${LAB_ALLOW}" ]; then
 fi
 LAB_JOIN="${LAB_JOIN:-true}"
 LAB_PERMANENT="${LAB_PERMANENT:-false}"
+# the website of the hub: on by default on the cluster (k3s server) node, off elsewhere; an upgrade keeps what runs
+if [ "${UPGRADE}" = "true" ]; then
+    LAB_WEB="false"
+    grep -qE -- '--web( |"|$)' "${CONFIG_DIR}/args.env" && LAB_WEB="true"
+elif [ -z "${LAB_WEB}" ]; then
+    LAB_WEB="false"
+    [ "${ROLE}" = "cluster" ] && LAB_WEB="true"
+fi
 LAB_CLAUDE_USER="${LAB_CLAUDE_USER:-${SUDO_USER}}"
 [ "${LAB_CLAUDE_USER}" = "root" ] && LAB_CLAUDE_USER=""
 
@@ -114,6 +122,9 @@ FIREWALL_ROLE="machine"
 [ "${ROLE}" = "cluster" ] && FIREWALL_ROLE="cluster"
 [ "${ROLE}" != "cluster" ] && [ "${LAB_JOIN}" = "true" ] && FIREWALL_ROLE="node"
 "${K3S_DIR}/host-node/open_firewall_ports.sh" "${FIREWALL_ROLE}" ${LAB_ALLOW} || echo "WARNING: the firewall could not be changed; open the ports of the lab by hand."
+if [ "${ROLE}" = "cluster" ] && [ "${LAB_WEB}" = "true" ]; then
+    "${K3S_DIR}/host-node/open_firewall_ports.sh" web ${LAB_ALLOW} || echo "WARNING: the firewall could not be changed; open 47813/tcp of the website by hand."
+fi
 
 MCP_PROBLEM=""
 if [ "${ROLE}" = "cluster" ] && [ "${UPGRADE}" != "true" ]; then
@@ -165,18 +176,31 @@ else
     echo "Building gucefLabLink from ${GUCEF_ROOT}"
     # relocatable: the installed copy finds its libraries next to itself, never in the build tree
     # the generated CMake files of GUCEF ask for CMake 2.6; CMake 4 refuses that without a policy minimum
-    as_builder cmake -S "${GUCEF_ROOT}/projects/CMake/targets/GUCEF_exe_gucefLabLink_TestApp" -B "${BUILD_DIR}" -G Ninja \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
-        > "${STATE_DIR}/logs/build.log" 2>&1 &&
-    as_builder cmake --build "${BUILD_DIR}" --target gucefLabLink gucefLabLink_TestApp codecspluginMONOCYPHER >> "${STATE_DIR}/logs/build.log" 2>&1
-    if [ $? -ne 0 ]; then
+    PLUGINS="codecspluginMONOCYPHER dstorepluginJSONPARSER tablecodecpluginPARQUET dbpluginVFSTABLES"
+    CMAKE_ARGS=(-G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib')
+    # the program and the tests are two projects of GUCEF: the tests compile the sources of the program themselves
+    BUILD_OK=false
+    if as_builder cmake -S "${GUCEF_ROOT}/projects/CMake/targets/GUCEF_exe_gucefLabLink" -B "${BUILD_DIR}/app" "${CMAKE_ARGS[@]}" \
+            > "${STATE_DIR}/logs/build.log" 2>&1 &&
+        as_builder cmake --build "${BUILD_DIR}/app" --target gucefLabLink ${PLUGINS} >> "${STATE_DIR}/logs/build.log" 2>&1; then
+        BUILD_OK=true
+        if [ "${SKIP_TESTS}" != "true" ]; then
+            BUILD_OK=false
+            as_builder cmake -S "${GUCEF_ROOT}/projects/CMake/targets/GUCEF_exe_gucefLabLink_TestApp" -B "${BUILD_DIR}/test" "${CMAKE_ARGS[@]}" \
+                >> "${STATE_DIR}/logs/build.log" 2>&1 &&
+            as_builder cmake --build "${BUILD_DIR}/test" --target gucefLabLink_TestApp ${PLUGINS} >> "${STATE_DIR}/logs/build.log" 2>&1 &&
+            as_builder cp "${BUILD_DIR}/app/bin/gucefLabLink" "${BUILD_DIR}/test/bin/gucefLabLink" && BUILD_OK=true
+        fi
+    fi
+    if [ "${BUILD_OK}" != "true" ]; then
         grep -E 'error' "${STATE_DIR}/logs/build.log" | head -20
         echo "ERROR: the build failed, see ${STATE_DIR}/logs/build.log. The installed version stays."
         exit 1
     fi
     "${K3S_DIR}/cluster-node-installation-media/stage.sh" \
         --doc "${SCRIPT_DIR}/README.md" --doc "${GUCEF_ROOT}/tools/gucefLabLink/README.md:gucefLabLink.md" \
-        "${BUILD_DIR}" "${STAGE}" gucefLabLink libcodecspluginMONOCYPHER.so || exit 1
+        "${BUILD_DIR}/app" "${STAGE}" gucefLabLink libcodecspluginMONOCYPHER.so libdstorepluginJSONPARSER.so \
+        libtablecodecpluginPARQUET.so libdbpluginVFSTABLES.so || exit 1
 fi
 chmod -R a+rX,go-w "${STAGE}"
 VERSION="$(cd "${STAGE}" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-12)"
@@ -187,8 +211,8 @@ if [ "${VERSION}" = "${CURRENT_VERSION}" ]; then
 else
     if [ "${SKIP_TESTS}" != "true" ]; then
         echo "Testing version ${VERSION}"
-        if ! ( cd "${BUILD_DIR}/bin" && as_builder env GUCEF_CONSOLE_LOGGER=none ./gucefLabLink_TestApp > "${STATE_DIR}/logs/test.log" 2>&1 ); then
-            python3 - "${BUILD_DIR}/bin/gucefLabLink_TestApp_Results.xml" <<'PYEOF' 2>/dev/null
+        if ! ( cd "${BUILD_DIR}/test/bin" && as_builder env GUCEF_CONSOLE_LOGGER=none ./gucefLabLink_TestApp > "${STATE_DIR}/logs/test.log" 2>&1 ); then
+            python3 - "${BUILD_DIR}/test/bin/gucefLabLink_TestApp_Results.xml" <<'PYEOF' 2>/dev/null
 import sys, xml.etree.ElementTree as ET
 for case in ET.parse(sys.argv[1]).getroot().iter("testcase"):
     for result in case:
@@ -231,6 +255,19 @@ elif [ -n "${SECRET}" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# The website of the hub: the first user, an administrator with a password made here and shown once at the end
+# ---------------------------------------------------------------------------
+WEB_ADMIN_PASSWORD=""
+if [ "${UPGRADE}" != "true" ] && [ "${ROLE}" = "cluster" ] && [ "${LAB_WEB}" = "true" ] && [ ! -s "${STATE_DIR}/users" ]; then
+    CANDIDATE="$(head -c 48 /dev/urandom | base64 | tr -d '/+=\n' | cut -c1-24)"
+    if printf '%s\n' "${CANDIDATE}" | "${LABLINK}" --state-dir "${STATE_DIR}" --add-user admin --role admin > /dev/null 2>&1; then
+        WEB_ADMIN_PASSWORD="${CANDIDATE}"
+    else
+        echo "WARNING: the first user of the website could not be made: sudo gucefLabLink --add-user NAME --role admin"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
 ARGS="--role ${ROLE} --state-dir ${STATE_DIR}"
@@ -240,6 +277,10 @@ for range in ${LAB_ALLOW}; do ARGS="${ARGS} --allow ${range}"; done
 if [ "${ROLE}" = "cluster" ]; then
     ARGS="${ARGS} --cluster-name ${LAB_CLUSTER_NAME:-$(uname -n | tr '[:upper:]' '[:lower:]')}"
     ARGS="${ARGS} --join-command ${K3S_DIR}/agent-node/join-command.sh"
+    if [ "${LAB_WEB}" = "true" ]; then
+        ARGS="${ARGS} --web"
+        [ "${LAB_WEB_PLAIN_HTTP:-false}" = "true" ] && ARGS="${ARGS} --web-allow-plain-http"
+    fi
 else
     [ "${LAB_JOIN}" = "true" ] && ARGS="${ARGS} --join-script ${K3S_DIR}/agent-node/join.sh"
     [ "${LAB_PERMANENT}" = "true" ] && ARGS="${ARGS} --permanent"
@@ -301,6 +342,22 @@ if [ "${ROLE}" = "cluster" ]; then
         echo "  On a machine:  sudo bash <install medium>/gucef-lab/install.sh  (it asks for the secret),"
         echo "  or from a checkout:  sudo projects/k3s/lablink/install.sh --secret <the secret>"
         echo "  Machines without it wait for approval:  sudo gucefLabLink --list  /  sudo gucefLabLink --approve <name>"
+    fi
+    if [ "${LAB_WEB}" = "true" ]; then
+        WEB_SCHEME="https"
+        WEB_HAS_CERTIFICATE="true"
+        [ -s /var/lib/gucef-mcp/tls/tls.crt ] || WEB_HAS_CERTIFICATE="false"
+        [ "${WEB_HAS_CERTIFICATE}" = "false" ] && [ "${LAB_WEB_PLAIN_HTTP:-false}" = "true" ] && WEB_SCHEME="http"
+        echo "  The website of the hub: ${WEB_SCHEME}://$(uname -n | tr '[:upper:]' '[:lower:]'):47813"
+        if [ -n "${WEB_ADMIN_PASSWORD}" ]; then
+            echo "    first user:  admin  /  ${WEB_ADMIN_PASSWORD}   (shown once; change it: sudo gucefLabLink --set-password admin)"
+        else
+            echo "    users:  sudo gucefLabLink --list-users  /  --add-user NAME --role admin|viewer"
+        fi
+        if [ "${WEB_HAS_CERTIFICATE}" = "false" ] && [ "${LAB_WEB_PLAIN_HTTP:-false}" != "true" ]; then
+            echo "WARNING: there is no certificate (/var/lib/gucef-mcp/tls/tls.crt), so the website does not start. Run llm/mcp/cluster.sh,"
+            echo "         or set LAB_WEB_PLAIN_HTTP=true to serve it without encryption until there is one (passwords cross the network in the clear)."
+        fi
     fi
     if [ -n "${MCP_PROBLEM}" ]; then
         echo "WARNING: ${MCP_PROBLEM}. Machines link, but get no MCP services until this is fixed and this script runs again."

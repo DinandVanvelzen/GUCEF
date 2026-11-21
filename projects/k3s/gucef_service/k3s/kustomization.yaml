@@ -1,6 +1,10 @@
-# kubectl apply -k <rendered directory>    (render_manifests.sh)
-# Not included on purpose: secret.example.yaml (an example; the Secret is created in the cluster). The credentials key
-# Secret mount is the component components/credentials-key.
+# kubectl apply -k <rendered directory>    (render_manifests.sh; deploy.sh builds it and applies the result)
+# Not included on purpose: secret.example.yaml and components/secret-file/secret.example.yaml (examples; Secrets are
+# created in the cluster). render_manifests.sh turns the "# components:" line into the list of the enabled components:
+# lan-discovery (DISCOVERY_MODE=lan), secret-file (SECRET_FILE_SECRET_NAME set) and host-share (HOST_SHARE_HOST_PATH
+# set). The credentials key Secret mount, components/credentials-key (CREDENTIALS_SECRET_NAME set), stays a commented
+# line to enable by hand once its Secret exists. With a local install configuration, its resources follow service.yaml
+# and its patches are listed at the end.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

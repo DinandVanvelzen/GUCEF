@@ -2,7 +2,8 @@
 # Copyright (C) 1998 - 2026.  Dinand Vanvelzen. Licensed under the Apache License, Version 2.0.
 #
 # Checks with ldd that every ELF file below <root> (the programs, libraries and plugins of an image) finds its libraries
-# inside <root> or in the base image, that every plugin the bootstrap files name is present, and that the programs exist.
+# inside <root> or in the base image, that every plugin the bootstrap files name is present, that the programs exist,
+# and that every symbolic link below <root> leads to a file below <root>.
 #
 # usage: check_libs.sh [root] [--program <name>]...
 #   root             default: the directory above this script's bin/
@@ -60,6 +61,19 @@ while IFS= read -r -d '' file; do
         esac
     done <<< "$output"
 done < <(find "$ROOT" -type f -print0)
+
+# a symbolic link must lead to a file of the tree (the plugin links of stage_install.sh --plugin-links)
+while IFS= read -r -d '' link; do
+    target="$(readlink -f "$link" 2> /dev/null || true)"
+    if [ -z "$target" ] || [ ! -e "$target" ]; then
+        problems="${problems}dangling link: ${link#"$ROOT"/} -> $(readlink "$link")"$'\n'
+    else
+        case "$target" in
+            "$ROOT"/*) ;;
+            *) problems="${problems}link outside the image tree: ${link#"$ROOT"/} -> $target"$'\n' ;;
+        esac
+    fi
+done < <(find "$ROOT" -type l -print0)
 
 plugin_count=0
 check_bootstrap() {

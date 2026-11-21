@@ -65,6 +65,15 @@ fi
 
 gs_load_env "$ENV_FILE"
 gs_require SERVICE_NAME SERVICE_PROGRAM IMAGE_NAME IMAGE_TARGETS TARGETS_CHECKOUT BOOTSTRAP_INI SESSION_PORT PAIRING_PORT HEALTH_PORT
+for dir in ${PLUGIN_LINKS:-}; do
+    case "$dir" in
+        bin|lib) ;;
+        *) gs_fail "PLUGIN_LINKS takes bin and lib, not '$dir'" ;;
+    esac
+done
+for extra in ${EXTRA_PROGRAMS:-}; do
+    [[ "$extra" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*=[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] && [[ "$extra" != *..* ]] || gs_fail "EXTRA_PROGRAMS takes name=directory (relative to the targets checkout), not '$extra'"
+done
 
 # 1. the checkouts of the context and the targets
 declare -A CHECKOUTS=( [GUCEF]="$GUCEF_HOME" )
@@ -119,7 +128,8 @@ trap 'rm -rf "$SCRATCH"' EXIT
 gs_render "$DOCKERFILE_TEMPLATE" "$SCRATCH/Dockerfile"
 
 BUILD_ARGS=( --build-arg "DEV_IMAGE=$DEV_IMAGE" --build-arg "IMAGE_TARGETS=$IMAGE_TARGETS"
-             --build-arg "TARGETS_CHECKOUT=$TARGETS_CHECKOUT" --build-arg "REVISION=$REVISION" )
+             --build-arg "TARGETS_CHECKOUT=$TARGETS_CHECKOUT" --build-arg "REVISION=$REVISION"
+             --build-arg "PLUGIN_LINKS=${PLUGIN_LINKS:-}" --build-arg "EXTRA_PROGRAMS=${EXTRA_PROGRAMS:-}" )
 
 if $DRY_RUN; then
     echo "build_image: dry run for $IMAGE"

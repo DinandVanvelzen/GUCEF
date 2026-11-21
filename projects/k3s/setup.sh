@@ -26,12 +26,14 @@ done
 # Optional local settings in ./config.env (gitignored, see config.env.example):
 #   GIT_SERVER=forgejo|none              git server to install (default forgejo)
 #   CI_ENGINE=jenkins|forgejo|all|none   CI to install (default jenkins)
+#   LABLINK=true|false                   the lab link hub and its website on this node (default true)
 if [ -f ./config.env ]; then
     set -a
     source <(sed 's/\r//' ./config.env)
     set +a
 fi
 GIT_SERVER="${GIT_SERVER:-forgejo}"
+LABLINK="${LABLINK:-true}"
 CI_ENGINE="${CI_ENGINE:-jenkins}"
 case "${CI_ENGINE}" in
     jenkins|forgejo|all|none) ;;
@@ -158,6 +160,15 @@ cd ..
 cd ./llm
 ./setup.sh
 cd ..
+
+# The lab link: this node is the hub of the home lab (finds, links and shows the machines of the home network,
+# website on 47813/tcp). Needs sudo for its systemd service; a failure does not stop the rest of the setup.
+if [ "${LABLINK}" = "true" ] && [ -f /etc/systemd/system/k3s.service ]; then
+    sudo env "LAB_ROLE=cluster" ./lablink/install.sh --skip-tests || \
+        echo "WARNING: the lab link was not installed, see above. Run later: sudo projects/k3s/lablink/install.sh"
+else
+    echo "Skipping the lab link (LABLINK=${LABLINK}, or this is not a k3s server node)"
+fi
 
 # setup the K9s TUI (Text User Interface)
 cd ./k9s

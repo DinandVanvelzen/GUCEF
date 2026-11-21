@@ -1,6 +1,6 @@
 # gucef_service: container image and k3s manifests of a GUCEF service
 
-Generic scripts and templates for running a GUCEF service (a program built on GUCEF that runs unattended, such as a remote service host with its clients on the LAN) as a container on the k3s cluster of `projects/k3s`. This folder is a toolkit, not a module: it has no build files and no code. Each service has a folder of its own (for example `projects/k3s/gucef_assetstore/`) with its service file, its bootstrap file and its site settings, and uses the scripts here.
+Generic scripts and templates for running a GUCEF service (a program built on GUCEF that runs unattended, such as a remote service host with its clients on the LAN) as a container on the k3s cluster of `projects/k3s`. This folder is a toolkit, not a module: it has no build files and no code. Each service has a folder of its own (for example `projects/k3s/assetstore/`, the asset store service) with its service file, its bootstrap file and its site settings, and uses the scripts here.
 
 The networking decisions the templates implement are those of `gucefASSETSTORE_RemoteNetworking_Design.md`, section 7 (outside this repository, with the other design documents).
 
@@ -13,11 +13,13 @@ The networking decisions the templates implement are those of `gucefASSETSTORE_R
 | `scripts/lib.sh` | shared functions: the service file reader, the template renderer |
 | `scripts/make_context.sh` | the docker build context from the GUCEF checkout and further checkouts (tracked and untracked, not ignored files) |
 | `scripts/stage_install.sh` | stages `/opt/<service>` from the build directories and sets the RPATHs (runs in the build stage) |
-| `scripts/check_libs.sh` | `ldd` check of every ELF file of the image and of the plugins named by the bootstrap files (runs in the image build) |
+| `scripts/check_libs.sh` | `ldd` check of every ELF file of the image, of the plugins named by the bootstrap files and of every symbolic link (runs in the image build) |
 | `scripts/build_image.sh` | renders the Dockerfile, builds the image with docker, imports it into k3s; `--dry-run` checks without docker |
 | `scripts/run_local.sh` | runs the image with docker with the restrictions of the pod |
+| `scripts/resolve_storage_class.sh` | resolves `STORAGE_CLASS` (auto, a friendly name or a class name) against the StorageClasses of the target cluster ("Storage") |
 | `scripts/render_manifests.sh` | renders the k3s templates from a service file into a directory for `kubectl apply -k` |
-| `k3s/` | templates: namespace, claim, ConfigMap, Deployment, Service, kustomization, an example Secret and the credentials key component |
+| `scripts/deploy.sh` | resolve, render, namespace, Secret check, apply, rollout wait, idempotent, with `KUBECTL` as a command prefix ("Deploy") |
+| `k3s/` | templates: namespace, claim, ConfigMap, Deployment, Service, kustomization, an example Secret, and the optional components lan-discovery, secret-file, host-share and credentials-key |
 | `tests/run_tests.sh` | tests of the scripts and templates on constructed trees, without docker or a cluster |
 
 ## How a service uses it
@@ -25,7 +27,7 @@ The networking decisions the templates implement are those of `gucefASSETSTORE_R
 A service folder holds:
 
 * `service.env`: a copy of `service.env.example` with the service's values (name, namespace, program, build targets, ports, sizes, resources, drain and grace times, site settings file). It holds no secret.
-* the bootstrap file of the image (`BOOTSTRAP_INI`): the plugins of the service, with `"Path"="$MODULEDIR$"`, which the staging points at `plugins/`. Plugins the service cannot run without are marked `"LoadFailAllowed"="false"`; `check_libs.sh` then fails the image build when one is missing.
+* the bootstrap file of the image (`BOOTSTRAP_INI`): the plugins of the service, with `"Path"="$MODULEDIR$"`, which the staging points at `plugins/`. Plugins the service cannot run without are marked `"LoadFailAllowed"="false"`; `check_libs.sh` then fails the image build when one is missing. A program that loads its plugins from its settings instead still has this file: it is the list the image build stages and checks.
 * the site settings (`SITE_CONFIG_SOURCE`), which become the ConfigMap and are mounted read-only at `/opt/<SERVICE_NAME>/config/site/`.
 * optionally its own Dockerfile (`DOCKERFILE`), derived from the template, when the generic one does not fit (an extra stage, a sidecar image).
 
@@ -33,7 +35,9 @@ The program follows the conventions the templates assume: it runs in the foregro
 
 ## Image layout
 
-`/opt/<SERVICE_NAME>/{bin,lib,plugins,data,config}`, user `10001:10001`, read-only root file system; writable are `/data` (the claim) and `/tmp` (an emptyDir). RPATHs are relative to each file: programs `$ORIGIN/../lib:$ORIGIN/../plugins`, libraries `$ORIGIN:$ORIGIN/../plugins` (a library may link a plugin), plugins `$ORIGIN/../lib:$ORIGIN`. A plugin is a library whose name matches `lib<kind>plugin<NAME>.so` or that a bootstrap file names; it is kept in `plugins/` only, so the dynamic loader and the plugin loader load one object.
+`/opt/<SERVICE_NAME>/{bin,lib,plugins,data,config}`, user `10001:10001`, read-only root file system; writable are `/data` (the claim) and `/tmp` (an emptyDir). RPATHs are relative to each file: programs `$ORIGIN/../lib:$ORIGIN/../plugins`, libraries `$ORIGIN:$ORIGIN/../plugins` (a library may link a plugin), plugins `$ORIGIN/../lib:$ORIGIN`. A plugin is a library whose name matches `lib<kind>plugin<NAME>.so` or that a bootstrap file names; it is kept in `plugins/` only, so the dynamic loader and the plugin loader load one object. `PLUGIN_LINKS` is a legacy option, set by no service of this repository: GUCEF programs load their plugins through their bootstrap file, whose `Path` points at `plugins/`. Only for a program that loads its plugins as `$MODULEDIR$/<name>` (its own folder `bin/`, then `lib/` next to it) instead of through a bootstrap file with a `Path`, `PLUGIN_LINKS="lib"` makes `lib/` hold a symbolic link to each plugin; the loader opens the one file of `plugins/` through it (glibc knows a loaded object by its file, so nothing is loaded twice), and `check_libs.sh` fails the image build for a dangling link or a link that leaves the tree.
+
+`EXTRA_PROGRAMS` (`name=directory` words) ships external tools the service starts as child processes. The tool is a module the service program lists as an executable `RuntimeDependency` in its `ModuleInfo.xml`, so the generated target builds it into the same `bin/`; `stage_install.sh --extra-program` requires it there, and copies the `COPYING*`, `LICENSE*`, `NOTICE*` and `README*` files of the directory (relative to the targets checkout) to `/opt/<SERVICE_NAME>/licences/<last part of the directory>/`, an error when there is none (a copyleft tool must ship with its licence). `check_libs.sh` checks the tool like every other ELF file, so its libraries must resolve inside the image or the base set.
 
 ## Build and import
 
@@ -60,23 +64,133 @@ The container runs as the pod does: user 10001 (or the owner of the data directo
 ## Manifests
 
 ```
-projects/k3s/gucef_service/scripts/render_manifests.sh <service folder>/service.env <output directory>
+projects/k3s/gucef_service/scripts/render_manifests.sh [--storage-classes-file FILE | --query-cluster | --storage-class NAME] [--local-dir DIR] <service folder>/service.env <output directory>
 kubectl apply -k <output directory>
 ```
 
-A placeholder in a template takes the value of the key of the same name of the service file; an unset or empty value refuses the rendering. Before the first apply, label the node that holds the imported image and the local-path claim: `kubectl label node <node> <NODE_SELECTOR_KEY>=<NODE_SELECTOR_VALUE>`.
+A placeholder in a template takes the value of the key of the same name of the service file; an unset or empty value refuses the rendering. Before the first apply, label the node that holds the imported image and the local-path claim: `kubectl label node <node> <NODE_SELECTOR_KEY>=<NODE_SELECTOR_VALUE>`. `deploy.sh` ("Deploy") does the whole sequence.
 
 | object | content |
 |---|---|
 | Namespace | Pod Security standard `privileged` enforced with `DISCOVERY_MODE=lan` (the default), `restricted` with `DISCOVERY_MODE=off`; `restricted` as the warn and audit level in both |
-| PersistentVolumeClaim `<name>-data` | `/data`, ReadWriteOnce, the StorageClass of the service file |
+| PersistentVolumeClaim `<name>-data` | `/data`, ReadWriteOnce, the StorageClass resolved from `STORAGE_CLASS` (see "Storage") |
 | ConfigMap `<name>-config` | the site settings, mounted read-only |
 | Deployment | one replica, `Recreate`, the node selector, no service account token, no service links, non-root 10001 with `fsGroup`, seccomp `RuntimeDefault`, read-only root, all capabilities dropped, startup, readiness and liveness probes on the health port, the grace period, `/tmp` as an emptyDir with a size limit, the image with `imagePullPolicy: Never`, no CPU limit |
 | Service | `ClusterIP` in lan mode (the default, component `lan-discovery`); `LoadBalancer` with `externalTrafficPolicy: Local` in off mode; the session and pairing ports only |
 | `components/lan-discovery` | with `DISCOVERY_MODE=lan`, the default (see "LAN discovery"): host network on one node, the discovery port, a ClusterIP Service; enabled in the rendered `kustomization.yaml` by `render_manifests.sh` |
-| `components/credentials-key` | mounts a Secret with the credential store key read-only (mode 0440, group 10001) and sets the program's key file and trust variables; enabled in the rendered `kustomization.yaml` |
+| `components/secret-file` | with `SECRET_FILE_SECRET_NAME` set: one key of a Secret as the read-only file `<SECRET_FILE_MOUNT_DIR>/<SECRET_FILE_KEY>` (mode `SECRET_FILE_MODE`, default 0400) for a value the program reads from a file its settings name, such as a database password (see "Secrets"); rendered and enabled by `render_manifests.sh` |
+| `components/host-share` | with `HOST_SHARE_HOST_PATH` set: a directory of a node-mounted network share at `HOST_SHARE_MOUNT_PATH` (hostPath, `HostToContainer`), with an init container that refuses a path not on a network file system (see "A network share of the node"); rendered and enabled by `render_manifests.sh` |
+| `components/credentials-key` | with `CREDENTIALS_SECRET_NAME` set: mounts a Secret with the credential store key read-only (mode 0440, group 10001) and sets the program's key file and trust variables; rendered as a commented line of the `kustomization.yaml`, to enable once the Secret exists. A program that keeps its key on `/data` leaves the name empty and the component is not rendered |
 
-The credentials key Secret is created in the cluster from a key file, never from a file of a repository (`kubectl -n <namespace> create secret generic <CREDENTIALS_SECRET_NAME> --from-file=credentials.key=<key file>`, or sealed with the cluster's Sealed Secrets); `k3s/secret.example.yaml` only shows its form.
+## Storage
+
+`STORAGE_CLASS` of the service file names what the claim of `/data` wants; `scripts/resolve_storage_class.sh` turns it into a StorageClass the target cluster has:
+
+| `STORAGE_CLASS` | candidates, in order of preference |
+|---|---|
+| `auto` (**the default**, also for a service file without the key) | the first of `raid`, `mirror`, `jbod`, `local-path` (in this order) of which the cluster has a candidate |
+| `raid` | `longhorn-raid`, `raid` |
+| `mirror` | `longhorn-mirror`, `mirror` |
+| `jbod` | `longhorn-jbod`, `jbod` |
+| `local-path` | `local-path` |
+| any other value | a StorageClass name, used as it is (with a class list it must be in it) |
+
+* `raid` and `jbod` without the prefix are the local-path based classes of `projects/k3s/host-node/storage-classes.yaml` (Retain); the `longhorn-*` classes those of `projects/k3s/longhorn` (Longhorn volumes on the disks of the tag; Longhorn enforces the size, local-path does not). When a cluster has both forms, the Longhorn-managed class wins.
+* The list of classes comes from a file (`--storage-classes-file FILE`, `-` for standard input, in the format of `kubectl get storageclass -o name` or as plain names) or from the cluster: `$KUBECTL get storageclass -o name`. `KUBECTL` (default `kubectl`) is a command prefix such as `ssh k3smaster kubectl`: split on white space into words, never evaluated by a shell (`;`, `$( )` and quotes in it stay literal words), and executed, so it is set in the environment of the person who runs the script and never read from a service file.
+* Nothing matching refuses with the classes found and the candidates tried; there is no fallback to the default class or to anything else.
+* `render_manifests.sh` resolves with `--storage-classes-file` or `--query-cluster`, or takes an already resolved `--storage-class NAME`. Without any of them a class name is used as it is (with a note that it was not checked) and `auto` or a friendly name refuses the rendering. The claim notes the request and the result in its comment.
+* The class of a claim cannot change once it exists: `deploy.sh` refuses a resolution that differs from the class of the existing claim and says to set `STORAGE_CLASS` to the existing class (or to move the data first). So a cluster that gains a preferred class later does not move a running service by surprise.
+
+## Secrets
+
+No secret value is in a service file, a site settings file, a ConfigMap, an environment variable or a file of a repository. A value the program reads from a file reaches the pod as a Secret mounted by `components/secret-file`; the Secret is created in the cluster by a separate step before the rollout (the namespace must exist: `deploy.sh` makes it and stops while the Secret is missing):
+
+```
+# from a file that holds only the value (mode 0600):
+kubectl -n <NAMESPACE> create secret generic <SECRET_FILE_SECRET_NAME> --from-file=<SECRET_FILE_KEY>=<file>
+# from a variable of an env file, through a pipe (the value is in no argument and never printed):
+( set -a; . <env file>; printf '%s' "$<VARIABLE>" ) | kubectl -n <NAMESPACE> create secret generic <SECRET_FILE_SECRET_NAME> --from-file=<SECRET_FILE_KEY>=/dev/stdin
+```
+
+With `ssh k3smaster kubectl` in place of `kubectl` the pipe works the same (ssh passes standard input on). To replace the value: delete the Secret, create it again, `kubectl -n <NAMESPACE> rollout restart deployment/<SERVICE_NAME>`. `components/secret-file/secret.example.yaml` and `k3s/secret.example.yaml` only show the form and are never applied; Sealed Secrets (`projects/k3s/sealed-secrets`) are the alternative for a value kept in git. The kubelet gives the files of a Secret volume the group of the pod (`fsGroup` 10001) and adds group read, so mode 0400 is `root:10001 0440` on the node and the non-root user reads it through its group.
+
+The credentials key Secret of `components/credentials-key` is made the same way from its key file (`kubectl -n <NAMESPACE> create secret generic <CREDENTIALS_SECRET_NAME> --from-file=credentials.key=<key file>`, or sealed); `k3s/secret.example.yaml` shows its form.
+
+## Local install configuration
+
+The repository holds what every installation of a service shares; the values of one site (the node path of a share, a
+host, a different memory limit, settings that name local storage) live in a local directory that is **never inside a
+git repository**. `render_manifests.sh` and `deploy.sh` take it with `--local-dir DIR`; without the option, a
+`service.env.local` next to the service file makes that directory the local directory.
+
+| file in the local directory | effect |
+|---|---|
+| `service.env.local` | `KEY=value` lines (the format of the service file) that override keys of `service.env`; a relative `SITE_CONFIG_SOURCE`, `BOOTSTRAP_INI` or `DOCKERFILE` in it is relative to the local directory. No secret here either |
+| `site.json` | replaces the site settings file (`SITE_CONFIG_SOURCE`) as a whole: the ConfigMap holds it instead (no merge; copy the repository's file and change it) |
+| `patches/*.yaml` | kustomize patches (strategic merge, with `kind` and `metadata.name` of their target), applied after the base and the components |
+| `resources/*.yaml` | further objects, added to the resources |
+
+The local files are rendered like the templates (`@KEY@` placeholders, for example `@NAMESPACE@`) into `local/` of the
+output directory, so the rendered directory stays self-contained. A local directory inside a git work tree is refused
+with the reason (it names the site's hosts, paths and shares, which do not belong in a repository); `--allow-local-in-git`
+uses it anyway, with a note. A typical layout:
+
+```
+<outside any repository>/install-local/<service>/
+    service.env.local    HOST_SHARE_HOST_PATH='/mnt/<share>/<folder>', other overrides
+    site.json            the site settings of this installation
+    patches/  resources/ optional
+KUBECTL="ssh <host> kubectl" projects/k3s/gucef_service/scripts/deploy.sh --env projects/k3s/<service>/service.env --local-dir <outside any repository>/install-local/<service>
+```
+
+## A network share of the node
+
+`components/host-share` puts a directory of a network share that the node mounts (CIFS/SMB or NFS, for example a
+systemd automount from `/etc/fstab`) into the pod at `HOST_SHARE_MOUNT_PATH` (default `/share`). It is rendered and
+enabled when `HOST_SHARE_HOST_PATH` is set, normally in `service.env.local`.
+
+* `HOST_SHARE_HOST_PATH`: the directory on the node, at or below the mount point of the share. Any characters except
+  control characters: spaces and names such as `-== Assets ==-` are fine. Write the value in single quotes
+  (`HOST_SHARE_HOST_PATH='/mnt/<share>/-== <folder> ==-/<service>'`); the reader removes one pair of surrounding
+  quotes and expands nothing, and the rendering writes it as one YAML double-quoted scalar. `HOST_SHARE_SUBPATH`
+  (optional) is joined to it; the hostPath is the joined path (not a volume `subPath`, which the kubelet would create
+  when missing and which receives no mount propagation).
+* The volume is a `hostPath` of type `Directory`: a missing node path fails the pod; nothing is created on the node.
+  Both containers mount it with `mountPropagation: HostToContainer`, so a mount the node makes later (an automount, a
+  remount after the server was away) reaches the pod.
+* The init container `host-share-check` runs the service image itself with `/bin/bash` (the runtime image has bash
+  and the coreutils, `check_libs.sh` runs in it) as user 10001 with no capabilities, no privilege escalation and a
+  read-only root. It reads `/proc/self/mountinfo`, finds the mount that holds the path (a subdirectory of the share's
+  mount is fine) and stops the pod when its type is none of `HOST_SHARE_FSTYPES` (default `cifs smb3 nfs nfs4`) or
+  when the user cannot write there, with a message that says so. So when the share is not mounted, the files of the
+  service never land on the node's own disk; the kubelet retries the init container with back-off until the share is
+  there.
+* The node mount must let the pod's user write: for CIFS mount options such as
+  `uid=10001,gid=10001,file_mode=0664,dir_mode=0775` (they only change how the node presents the files) and `nofail`
+  with `x-systemd.automount,_netdev` so the node boots without the server. The credentials file of the mount stays on
+  the node (root, mode 600), never in the cluster or a repository.
+* A `hostPath` volume needs the Pod Security level `privileged` (baseline and restricted refuse it): the namespace is
+  rendered with it while the component is on, with `restricted` kept as the warn and audit level (in lan mode it is
+  `privileged` already). The pod runs on one node anyway (`DISCOVERY_NODE_NAME` in lan mode, else the node label):
+  that node needs the mount.
+
+## Deploy
+
+```
+KUBECTL="ssh k3smaster kubectl" projects/k3s/gucef_service/scripts/deploy.sh --env <service folder>/service.env [--local-dir DIR] [--out DIR] [--timeout SECONDS] [--dry-run]
+```
+
+In order, each step idempotent (a second run changes nothing that is in place):
+
+1. resolve `STORAGE_CLASS` against the cluster's classes; refuse when the existing claim has another class;
+2. render (`render_manifests.sh --storage-class`) and build with kustomize on this machine (`KUSTOMIZE`, default `kubectl kustomize`, offline); the built file is what is applied, through `apply -f -` on standard input, so a remote `kubectl` needs no access to local files; refuse a built Secret;
+3. check that a node carries `NODE_SELECTOR_KEY=NODE_SELECTOR_VALUE` (in lan mode: `DISCOVERY_NODE_NAME`), else stop with the `kubectl label node` command;
+4. create or update the namespace;
+5. with `SECRET_FILE_SECRET_NAME`: check that the Secret has its key (kubectl answers only "present", the value never leaves kubectl), else stop with the command to create it;
+6. warn when the image is not in the image list of the node (it is imported by the owner; the node lists a limited number of images, so this is a warning);
+7. apply and wait for the rollout (`--timeout`, default `STARTUP_FAILURE_THRESHOLD` x 10 + 120 s).
+
+It never builds or imports the image and never creates a Secret. `--dry-run` runs the resolution, the rendering and the read-only checks and applies nothing. The rendered and built manifests are kept below `--out` or `$DEPLOY_WORK_DIR` (default `~/.cache/gucef-deploy/<service>/`). Every argument the script adds to `KUBECTL` is free of white space and shell characters, so a remote shell passes it on unchanged.
 
 ## Networking
 
@@ -169,4 +283,4 @@ To verify on the cluster in lan mode, the default (not done by the tests, which 
 projects/k3s/gucef_service/tests/run_tests.sh
 ```
 
-The tests use constructed trees: no docker, no cluster, nothing downloaded. They check the syntax of every script and that no file holds a tab; the service file reader; the rendering of every template from the example service file and its refusals; both discovery modes, their refusals and, when kubectl is installed, their offline `kubectl kustomize` build; the staging of a program, a library and two plugins built with the local compiler (with a stand-in for patchelf), `check_libs.sh` passing on the staged tree and failing for a missing required plugin, a missing program and a library that resolves outside the tree, and the staged program running from the staged tree alone; the build context of a constructed checkout; the rendered Dockerfile and the refusals of `build_image.sh` before docker; and the docker command of `run_local.sh`. `KEEP_SCRATCH=1` keeps the scratch directory.
+The tests use constructed trees: no docker, no cluster, nothing downloaded. They check the syntax of every script and that no file holds a tab; the service file reader; the rendering of every template from the example service file and its refusals; both discovery modes, their refusals and, when kubectl is installed, their offline `kubectl kustomize` build; the staging of a program, a library and two plugins built with the local compiler (with a stand-in for patchelf), `check_libs.sh` passing on the staged tree and failing for a missing required plugin, a missing program and a library that resolves outside the tree, and the staged program running from the staged tree alone; the build context of a constructed checkout; the rendered Dockerfile and the refusals of `build_image.sh` before docker; and the docker command of `run_local.sh`; the storage class resolution (every friendly name, the auto order on several class lists, both raid forms, no match, an explicit name, the list formats, `KUBECTL` as a prefix through a stand-in kubectl and a stand-in ssh that re-parses the arguments in a shell, shell characters in `KUBECTL` never run) and its use by `render_manifests.sh`; the secret-file and the optional credentials-key components; the plugin links of the staging and `check_libs.sh` on dangling links; `deploy.sh` against the stand-in kubectl (each refusal, the order, the applied manifests, the rollout wait, a second run, the dry run, the run through ssh); the local install configuration (overrides, `site.json`, patches, resources, the refusal inside a git work tree and `--allow-local-in-git`) and `components/host-share` (the quoting of a node path with spaces, quotes and `-== ==-`, the init container and the propagation in the kustomize build, the refusals, and the init container's check itself against constructed mount tables); and the service folder `projects/k3s/assetstore` (rendered, built and checked against its site settings, bootstrap file and the program's `ModuleInfo.xml`). Scratch goes to `$TMPDIR` (default `/tmp`); `KEEP_SCRATCH=1` keeps it.

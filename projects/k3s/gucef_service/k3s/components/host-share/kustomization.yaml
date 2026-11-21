@@ -1,0 +1,18 @@
+# A network share that the node mounts (CIFS/SMB or NFS, for example with a systemd automount) in the pod at
+# @HOST_SHARE_MOUNT_PATH@ (component host-share). render_manifests.sh renders and enables it when HOST_SHARE_HOST_PATH is
+# set, normally in the local install configuration (README.md, "Local install configuration"), never in a file of a
+# repository: the path names the site's storage.
+#
+#   - a hostPath volume of type Directory: a missing node path fails the pod; nothing is created on the node's disk;
+#   - mounted with mountPropagation HostToContainer, so a mount the node makes later (an automount, a remount after the
+#     NAS was away) reaches the pod;
+#   - an init container, host-share-check, that fails the pod when the path does not lie on a file system of the
+#     accepted types (@HOST_SHARE_FSTYPES@) or is not writable by the pod's user: when the share is not mounted, the
+#     files of the service can never land on the node's local disk. It reads /proc/self/mountinfo with bash builtins in
+#     the service image itself (no further image), as non-root with no capabilities; the pod retries with back-off.
+# hostPath needs the Pod Security level "privileged" (baseline and restricted refuse it): render_manifests.sh renders
+# the namespace with it while this component is on, as DISCOVERY_MODE=lan does.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - path: deployment-host-share.yaml

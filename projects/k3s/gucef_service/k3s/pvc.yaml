@@ -1,6 +1,9 @@
-# The state of the service (/data): its credential store, device registry, journals, audit, logs and caches. The
-# StorageClass is one of the cluster (projects/k3s/host-node/storage-classes.yaml); local-path binds when the first pod
-# uses the claim (WaitForFirstConsumer) and does not enforce the size.
+# The state of the service (/data): its credential store, device registry, journals, audit, logs and caches.
+# The StorageClass is resolved by render_manifests.sh from STORAGE_CLASS of the service file (scripts/
+# resolve_storage_class.sh: auto, raid, mirror, jbod, local-path or a class name) against the classes of the target
+# cluster; here: STORAGE_CLASS @STORAGE_CLASS_REQUEST@ -> @STORAGE_CLASS@. local-path binds when the first pod uses the
+# claim (WaitForFirstConsumer) and does not enforce the size; Longhorn does. The class of a claim cannot change once it
+# is made: deploy.sh refuses a resolution that differs from the class of the existing claim.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

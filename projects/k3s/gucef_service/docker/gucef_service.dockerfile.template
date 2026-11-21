@@ -18,6 +18,10 @@ ARG MINIDEB_RELEASE
 FROM ${DEV_IMAGE} AS build
 ARG IMAGE_TARGETS
 ARG TARGETS_CHECKOUT=GUCEF
+# PLUGIN_LINKS of the service file: bin and/or lib get links to the plugins (stage_install.sh --plugin-links)
+ARG PLUGIN_LINKS=
+# EXTRA_PROGRAMS of the service file: "name=source directory" words; stage_install.sh --extra-program stages the program and its licence files
+ARG EXTRA_PROGRAMS=
 RUN install_packages patchelf
 COPY src /src
 COPY service /service
@@ -39,7 +43,8 @@ RUN for target in ${IMAGE_TARGETS}; do \
     done
 
 RUN /src/GUCEF/projects/k3s/gucef_service/scripts/stage_install.sh /out/opt/@SERVICE_NAME@ \
-        --program @SERVICE_PROGRAM@ --bootstrap /service/bootstrap.ini \
+        --program @SERVICE_PROGRAM@ --bootstrap /service/bootstrap.ini --plugin-links "${PLUGIN_LINKS}" \
+        $(for extra in ${EXTRA_PROGRAMS}; do echo "--extra-program ${extra%%=*}=/src/${TARGETS_CHECKOUT}/${extra#*=}"; done) \
         $(for target in ${IMAGE_TARGETS}; do echo "/build/${target}"; done)
 
 # --------------------------------------------------------------------

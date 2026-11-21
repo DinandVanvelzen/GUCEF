@@ -138,11 +138,16 @@ PYEOF
     }
 
     build gucef-mcp GUCEF_exe_gucefMcpLocalLlm_TestApp
-    build gucef-lablink GUCEF_exe_gucefLabLink_TestApp gucefLabLink gucefLabLink_TestApp codecspluginMONOCYPHER
+    # the program and its tests are two projects: the tests compile the sources of the program themselves
+    build gucef-lablink GUCEF_exe_gucefLabLink gucefLabLink codecspluginMONOCYPHER \
+        dstorepluginJSONPARSER tablecodecpluginPARQUET dbpluginVFSTABLES
+    build gucef-lablink-test GUCEF_exe_gucefLabLink_TestApp gucefLabLink_TestApp codecspluginMONOCYPHER \
+        dstorepluginJSONPARSER tablecodecpluginPARQUET dbpluginVFSTABLES
+    as_builder cp "${build_root}/gucef-lablink/bin/gucefLabLink" "${build_root}/gucef-lablink-test/bin/gucefLabLink" || exit 1
     if [ "${SKIP_TESTS}" != "true" ]; then
         run_test gucef-mcp gucefMcpLocalLlm_TestApp LOCAL_AGENT_SCRIPT="${K3S_DIR}/llm/clients/local-agent.sh" \
             LOCAL_LLM_URL= LOCAL_LLM_API_KEY= PATH="${BUILDER_HOME}/.local/bin:${BUILDER_HOME}/.opencode/bin:${BUILDER_HOME}/bin:${PATH}"
-        run_test gucef-lablink gucefLabLink_TestApp
+        run_test gucef-lablink-test gucefLabLink_TestApp
         echo "Tests passed (${arch})."
     fi
 
@@ -153,7 +158,8 @@ PYEOF
     as_builder install -m 755 "${K3S_DIR}/llm/clients/local-agent.sh" "${dist_dir}/gucef-mcp/bin/"
     as_builder "${SCRIPT_DIR}/stage.sh" \
         --doc "${K3S_DIR}/lablink/README.md" --doc "${GUCEF_ROOT}/tools/gucefLabLink/README.md:gucefLabLink.md" \
-        "${build_root}/gucef-lablink" "${dist_dir}/gucef-lablink" gucefLabLink libcodecspluginMONOCYPHER.so || exit 1
+        "${build_root}/gucef-lablink" "${dist_dir}/gucef-lablink" gucefLabLink libcodecspluginMONOCYPHER.so \
+        libdstorepluginJSONPARSER.so libtablecodecpluginPARQUET.so libdbpluginVFSTABLES.so || exit 1
 
     # the newest glibc the programs need, for the package dependencies
     glibc="$(find "${dist_dir}" -type f \( -path '*/bin/*' -o -name '*.so*' \) -exec "${OBJDUMP}" -T {} + 2>/dev/null | \

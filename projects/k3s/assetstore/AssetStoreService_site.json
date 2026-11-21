@@ -1,0 +1,67 @@
+{
+    "Service": {
+        "displayName": "Asset store",
+        "dataDir": "/data",
+        "drainSeconds": 20,
+        "expectedBackSeconds": 30,
+        "resourceLogSeconds": 300,
+        "memorySoftLimitMB": 5120,
+        "healthPort": 47480,
+        "healthBindAddress": "",
+        "adminPort": 47403,
+        "catalogueRetrySeconds": 30
+    },
+    "RemoteHost": {
+        "serviceName": "gucef.assetstore",
+        "drnSessionName": "assetstore",
+        "sessionPort": 47400,
+        "pairingPort": 47401,
+        "sessionEndpoints": [ "tcp://worker.lan:47400" ],
+        "pairingEndpoints": [ "tcp://worker.lan:47401" ],
+        "pairingDefaultSeconds": 300,
+        "pairingMaxSeconds": 900,
+        "lanDiscovery": true,
+        "lanDiscoveryAdvertiser": { "serviceType": "_gucef-assetstore._tcp", "displayName": "Asset store" }
+    },
+    "AssetStoreHost": {
+        "roles": "owner",
+        "signInRoles": "owner",
+        "maxUploadBytesPerSubject": 53687091200,
+        "uploadExpiryHours": 48
+    },
+    "Database": {
+        "type": "postgresql",
+        "host": "my-postgres.postgresql.svc.cluster.local",
+        "port": 5432,
+        "dbname": "gucef_assets",
+        "user": "gucef_assets",
+        "sslMode": "prefer",
+        "applicationName": "AssetStoreService",
+        "passwordFile": "/secrets/assetstore-db/password"
+    },
+    "Storage": {
+        "locations": [ { "id": "main", "name": "Main", "path": "/data/library/main", "vfsRoot": "assetstore/main" } ],
+        "defaultLocationId": "main"
+    },
+    "Credentials": {
+        "directory": "/data/credentials",
+        "keyringIdleLockMinutes": 240
+    },
+    "AssetStoreService": {
+        "stateDirectory": "/data/state/assetstore",
+        "thumbnailsDirectory": "",
+        "resumeIngestsOnStart": true,
+        "ingestResumeAttempts": 3,
+        "downloads": {
+            "queueFilePath": "assetstore-state/downloads.json",
+            "autoSaveQueue": true
+        },
+        "primaryStore": {
+            "indexAfterIngest": true
+        }
+    },
+    "ConverterHook": {
+        "threads": 2,
+        "cookTarget": "ogre"
+    }
+}

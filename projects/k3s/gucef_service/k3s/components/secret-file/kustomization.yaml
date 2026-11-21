@@ -1,0 +1,34 @@
+# One key of the Secret @SECRET_FILE_SECRET_NAME@ as a file for the program: @SECRET_FILE_MOUNT_DIR@/@SECRET_FILE_KEY@
+# (component secret-file). For a value the program reads from a file named in its settings, such as a database
+# password: the value is never in a ConfigMap, an environment variable or a file of a repository. The Secret is
+# created in the cluster before the rollout (secret.example.yaml next to this file shows how); deploy.sh refuses the
+# rollout while it is missing, and without it the pod would not start (the volume is not optional).
+#
+# render_manifests.sh renders and enables this component when SECRET_FILE_SECRET_NAME is set in the service file.
+# The directory is mounted read-only with only this key in it, with the mode @SECRET_FILE_MODE@. The kubelet gives the
+# files of a Secret volume the group of the pod (fsGroup 10001) and adds group read, so the non-root user of the pod
+# reads it through its group: on the node the file is root:10001 0440 for a mode of 0400.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      kind: Deployment
+      name: @SERVICE_NAME@
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: secret-file
+          mountPath: @SECRET_FILE_MOUNT_DIR@
+          readOnly: true
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: secret-file
+          secret:
+            secretName: @SECRET_FILE_SECRET_NAME@
+            defaultMode: @SECRET_FILE_MODE@
+            items:
+              - key: @SECRET_FILE_KEY@
+                path: @SECRET_FILE_KEY@
+                mode: @SECRET_FILE_MODE@

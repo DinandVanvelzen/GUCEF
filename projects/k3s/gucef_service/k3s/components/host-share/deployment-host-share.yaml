@@ -1,0 +1,92 @@
+# The node path @HOST_SHARE_NODE_PATH_YAML@ at @HOST_SHARE_MOUNT_PATH@ (component host-share), checked by an init
+# container before the service starts.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @SERVICE_NAME@
+  namespace: @NAMESPACE@
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: host-share-check
+          image: docker.io/@IMAGE_NAME@:@IMAGE_TAG@
+          imagePullPolicy: Never
+          # arguments: the path in the container, the accepted file system types, the node path (for the message)
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -u
+              path="$1"; accepted=" $2 "; node="$3"
+              # HOST_SHARE_MOUNTINFO: only for the tests of the kit (a constructed table)
+              mountinfo="${HOST_SHARE_MOUNTINFO:-/proc/self/mountinfo}"
+              # /proc/self/mountinfo writes a space, tab, newline and backslash of a path as \040, \011, \012, \134
+              want="${path//\\/\\134}"; want="${want// /\\040}"; want="${want//$'\t'/\\011}"; want="${want//$'\n'/\\012}"
+              best=""; bestfs=""
+              # the mount that holds the path: the longest mount point that is the path or above it, the last one of
+              # equal length (mounts stack in the order of the file)
+              while read -r -a field; do
+                  mountpoint="${field[4]:-}"
+                  [ -n "$mountpoint" ] || continue
+                  if [ "$mountpoint" != "/" ]; then
+                      case "$want/" in
+                          "$mountpoint/"*) ;;
+                          *) continue ;;
+                      esac
+                  fi
+                  fstype=""; i=6
+                  while [ "$i" -lt "${#field[@]}" ]; do
+                      if [ "${field[$i]}" = "-" ]; then fstype="${field[$((i + 1))]:-}"; break; fi
+                      i=$((i + 1))
+                  done
+                  if [ "${#mountpoint}" -ge "${#best}" ]; then best="$mountpoint"; bestfs="$fstype"; fi
+              done < "$mountinfo"
+              case "$accepted" in
+                  *" $bestfs "*) ;;
+                  *)
+                      echo "host-share-check: $path (node path: $node) lies on a '$bestfs' file system mounted at '$best', which is none of:$accepted" >&2
+                      echo "host-share-check: the network share is not mounted on the node, so the files would land on its local disk: refused." >&2
+                      echo "host-share-check: mount it on the node (findmnt, systemctl status of the .automount unit); the pod retries this check by itself." >&2
+                      exit 1 ;;
+              esac
+              probe="$path/.host-share-check-$$"
+              if ! ( : > "$probe" ) 2> /dev/null; then
+                  echo "host-share-check: $path ($bestfs at '$best') is not writable by uid $UID (groups ${GROUPS[*]}): mount the share on the node with uid/gid or file and directory modes that let this user write" >&2
+                  exit 1
+              fi
+              rm -f "$probe"
+              echo "host-share-check: $path lies on $bestfs (mounted at '$best') and is writable by uid $UID"
+            - host-share-check
+            - @HOST_SHARE_MOUNT_PATH@
+            - "@HOST_SHARE_FSTYPES@"
+            - @HOST_SHARE_NODE_PATH_YAML@
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ "ALL" ]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: host-share
+              mountPath: @HOST_SHARE_MOUNT_PATH@
+              mountPropagation: HostToContainer
+      containers:
+        - name: service
+          volumeMounts:
+            - name: host-share
+              mountPath: @HOST_SHARE_MOUNT_PATH@
+              mountPropagation: HostToContainer
+      volumes:
+        - name: host-share
+          hostPath:
+            path: @HOST_SHARE_NODE_PATH_YAML@
+            type: Directory

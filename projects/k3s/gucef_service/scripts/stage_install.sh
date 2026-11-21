@@ -4,18 +4,29 @@
 # Stages the /opt/<service> tree of an image from one or more GUCEF build directories and sets the RPATHs. Runs in the
 # build stage of the image, where patchelf is installed.
 #
-# usage: stage_install.sh <destination> --program <name> [--bootstrap <file>] <build dir>...
+# usage: stage_install.sh <destination> --program <name> [--bootstrap <file>] [--plugin-links <dirs>] [--extra-program <name>=<source dir>]... <build dir>...
 #   destination        the tree to make, for example /out/opt/example-service; must not exist
 #   --program name     the service executable, which must be in a bin/ of the build output
 #   --bootstrap file   the bootstrap file of the image; it replaces config/<name>_bootstrap.ini of the build
+#   --plugin-links dirs  space separated, of bin and lib: a symbolic link there to every plugin of plugins/, for a
+#                      program that loads its plugins as $MODULEDIR$/<name> (its own folder bin/, then lib/ next to it)
+#                      instead of through a bootstrap file with "Path"; the loader opens the one file of plugins/
+#                      through the link (glibc knows a loaded object by its file, so it is never loaded twice)
+#   --extra-program name=dir  repeatable: a further program of the image, for example an external tool the service starts
+#                      as a child process. bin/<name> must be in the build output (it is staged like any program); the
+#                      licence and readme files (COPYING*, LICENSE*, LICENCE*, NOTICE*, README*) of the source directory
+#                      <dir> are copied to licences/<last part of dir>/, and none there is an error (the licence of the
+#                      tool has to ship with it)
 #   build dir          a CMake build directory with bin/ and lib/ (one per target)
 #
 # Result:
 #   bin/       programs (test applications and debug bootstrap files left out), check_libs.sh, links to config/ files
 #   lib/       shared libraries
 #   plugins/   plugin libraries (lib<kind>plugin<NAME>.so*, recognised by name); a plugin a library links stays in
-#              plugins/ only, so the dynamic loader and the plugin loader load one object
+#              plugins/ only, so the dynamic loader and the plugin loader load one object; with --plugin-links, bin/
+#              or lib/ also hold a symbolic link to each
 #   data/      module data of the build directories
+#   licences/  with --extra-program: the licence files of each extra program, one folder per source directory
 #   config/    bootstrap and default settings files (bin/ links to them: programs look next to themselves), site/ for the
 #              ConfigMap mount; "Path"="$MODULEDIR$" of every bootstrap file points at ../plugins
 # RPATH (a RUNPATH serves only the file's own direct dependencies, so each file names every directory of its own):
@@ -30,7 +41,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
 usage() {
-    echo "usage: stage_install.sh <destination> --program <name> [--bootstrap <file>] <build dir>..." >&2
+    echo "usage: stage_install.sh <destination> --program <name> [--bootstrap <file>] [--plugin-links <dirs>] [--extra-program <name>=<source dir>]... <build dir>..." >&2
     exit 2
 }
 
@@ -39,11 +50,15 @@ DEST="${1:-}"
 shift
 PROGRAM=""
 BOOTSTRAP=""
+PLUGIN_LINKS=""
+EXTRA_PROGRAMS=()
 BUILDS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --program) PROGRAM="${2:-}"; [ -n "$PROGRAM" ] || usage; shift ;;
         --bootstrap) BOOTSTRAP="${2:-}"; [ -n "$BOOTSTRAP" ] || usage; shift ;;
+        --plugin-links) PLUGIN_LINKS="${2-}"; [ $# -ge 2 ] || usage; shift ;;
+        --extra-program) [[ "${2:-}" == ?*=?* ]] || usage; EXTRA_PROGRAMS+=( "$2" ); shift ;;
         -*) echo "stage_install: unknown option $1" >&2; usage ;;
         *) BUILDS+=( "$1" ) ;;
     esac
@@ -53,6 +68,12 @@ done
 [ ${#BUILDS[@]} -gt 0 ] || { echo "stage_install: no build directory given" >&2; exit 2; }
 [ ! -e "$DEST" ] || { echo "stage_install: $DEST exists already" >&2; exit 2; }
 [ -z "$BOOTSTRAP" ] || [ -f "$BOOTSTRAP" ] || gs_fail "the bootstrap file $BOOTSTRAP does not exist"
+for dir in $PLUGIN_LINKS; do
+    case "$dir" in
+        bin|lib) ;;
+        *) echo "stage_install: --plugin-links takes bin and lib, not '$dir'" >&2; exit 2 ;;
+    esac
+done
 PATCHELF="${PATCHELF:-patchelf}"
 command -v "$PATCHELF" > /dev/null || { echo "stage_install: $PATCHELF is not installed" >&2; exit 2; }
 
@@ -113,6 +134,23 @@ done
 
 [ -e "$DEST/bin/$PROGRAM" ] || gs_fail "bin/$PROGRAM is not in the build output of: ${BUILDS[*]}"
 
+# external tools the service starts as child processes: staged with the programs above, with their licence files
+for extra in "${EXTRA_PROGRAMS[@]+"${EXTRA_PROGRAMS[@]}"}"; do
+    extra_name="${extra%%=*}"
+    extra_dir="${extra#*=}"
+    [ -x "$DEST/bin/$extra_name" ] || gs_fail "the extra program bin/$extra_name is not in the build output of: ${BUILDS[*]}"
+    [ -d "$extra_dir" ] || gs_fail "the source directory $extra_dir of the extra program $extra_name does not exist"
+    licence_dir="$DEST/licences/$(basename "$extra_dir")"
+    mkdir -p "$licence_dir"
+    licence_count=0
+    for licence in "$extra_dir"/COPYING* "$extra_dir"/LICENSE* "$extra_dir"/LICENCE* "$extra_dir"/NOTICE* "$extra_dir"/README*; do
+        [ -f "$licence" ] || continue
+        cp "$licence" "$licence_dir/"
+        licence_count=$((licence_count + 1))
+    done
+    [ "$licence_count" -gt 0 ] || gs_fail "the extra program $extra_name has no licence file (COPYING*, LICENSE*, ...) in $extra_dir"
+done
+
 if [ -n "$BOOTSTRAP" ]; then
     rm -f "$DEST/config/${PROGRAM}_bootstrap.ini"
     cp "$BOOTSTRAP" "$DEST/config/${PROGRAM}_bootstrap.ini"
@@ -140,6 +178,16 @@ set_rpath() {
 set_rpath "$DEST/bin" '$ORIGIN/../lib:$ORIGIN/../plugins'
 set_rpath "$DEST/lib" '$ORIGIN:$ORIGIN/../plugins'
 set_rpath "$DEST/plugins" '$ORIGIN/../lib:$ORIGIN'
+
+# links to the plugins for a program that loads them from its own folder (--plugin-links)
+for dir in $PLUGIN_LINKS; do
+    for entry in "$DEST"/plugins/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        name="$(basename "$entry")"
+        [ ! -e "$DEST/$dir/$name" ] && [ ! -L "$DEST/$dir/$name" ] || gs_fail "$dir/$name exists already; no link to plugins/$name is made"
+        ln -s "../plugins/$name" "$DEST/$dir/$name"
+    done
+done
 
 # not writable by the service user; its data lives on /data
 chmod -R go-w,a+rX "$DEST"
