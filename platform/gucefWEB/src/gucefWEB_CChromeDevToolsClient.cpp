@@ -770,6 +770,18 @@ CChromeDevToolsClient::TargetCreate( const CORE::CString& url, CORE::CString& ta
 /*-------------------------------------------------------------------------*/
 
 bool
+CChromeDevToolsClient::TargetActivate( const CORE::CString& targetId )
+{GUCEF_TRACE;
+
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "targetId", targetId );
+    CORE::CDataNode result;
+    return SendCommandAndWait( "Target.activateTarget", &params, result, GUCEF_NULL, m_commandTimeoutInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CChromeDevToolsClient::AttachToTarget( const CORE::CString& targetId, CORE::CString& sessionId )
 {GUCEF_TRACE;
 

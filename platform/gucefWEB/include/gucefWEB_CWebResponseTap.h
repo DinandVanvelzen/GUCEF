@@ -139,6 +139,19 @@ class GUCEF_WEB_PUBLIC_CPP CWebResponseTap : public CORE::CObservingNotifier
 
     bool RemoveTap( UInt32 tapId );
 
+    /**
+     *  The query parameters of a matching request whose values the tap hands over with the body (CObservedResponseBody::queryValues),
+     *  for a response whose body does not say what it is about (the identifier of the item is in the address). Only the parameters
+     *  named are kept; the rest of the query is never kept. False for an unknown tap
+     */
+    bool SetTapQueryKeys( UInt32 tapId, const CORE::CString::StringVector& names );
+
+    /**
+     *  Whether the tap hands over the headers of a matching request with its body (CObservedResponseBody::requestHeaders): for a caller that
+     *  asks the site for more of the same as the page itself does. They can carry the session of the page; the tap never logs them. False for an unknown tap
+     */
+    bool SetTapKeepsRequestHeaders( UInt32 tapId, bool keep );
+
     UInt32 GetTapCount( void ) const;
 
     /** Which tabs are watched: the host must contain one of the terms, case insensitive; none: every tab */
@@ -149,6 +162,12 @@ class GUCEF_WEB_PUBLIC_CPP CWebResponseTap : public CORE::CObservingNotifier
 
     /** Starts watching the tabs, over a client connected to the browser itself */
     bool Start( void );
+
+    /**
+     *  Watches this tab from now on, whatever its address (a tab a caller opened itself, still blank): it is attached at once,
+     *  so the requests of the page it is about to load are seen from the first one. False when the tap is not started or the browser refuses
+     */
+    bool WatchTab( const CORE::CString& targetId );
 
     void Stop( void );
 
@@ -190,6 +209,8 @@ class GUCEF_WEB_PUBLIC_CPP CWebResponseTap : public CORE::CObservingNotifier
         CORE::CString pathPattern;
         CIWebResponseSink* sink;
         UInt32 maxBodyBytes;
+        CORE::CString::StringVector queryKeys;     /**< the query parameters kept with a body */
+        bool keepRequestHeaders;
         UInt32 delivered;
         UInt32 tooLarge;
         UInt32 deliveredSeen;       /**< delivered when the previous wait ended */
@@ -212,6 +233,8 @@ class GUCEF_WEB_PUBLIC_CPP CWebResponseTap : public CORE::CObservingNotifier
         UInt32 sequence;
         UInt64 encodedDataLength;
         TUInt32Vector tapIds;
+        TStringMap queryValues;     /**< the query parameters a matching tap keeps */
+        TStringMap requestHeaders;  /**< the headers of the request, when a matching tap keeps them */
 
         SPending( void );
     };
@@ -226,6 +249,7 @@ class GUCEF_WEB_PUBLIC_CPP CWebResponseTap : public CORE::CObservingNotifier
     void HandleLoadingFinished( const SChromeProtocolEvent& event );
     void HandleTarget( const SChromeProtocolEvent& event );
     bool PagePassesFilter( const CORE::CString& url ) const;
+    bool AttachTarget( const CORE::CString& targetId );
     bool SetupSession( const CORE::CString& sessionId );
     void Deliver( SPending& pending );
     void EndWait( STap& tap, EWaitState state );

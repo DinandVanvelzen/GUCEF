@@ -20,6 +20,7 @@ set( HEADER_FILES
   include/TestFakeWebSite.h
   include/TestFakeWebView.h
   include/TestFakeWebViewEngine.h
+  include/TestHtmlTextExtractor.h
   include/TestHttpClient.h
   include/TestHttpHeaderParsing.h
   include/TestHttpLogRedaction.h
@@ -55,6 +56,7 @@ set( SOURCE_FILES
   src/TestFakeWebSite.cpp
   src/TestFakeWebView.cpp
   src/TestFakeWebViewEngine.cpp
+  src/TestHtmlTextExtractor.cpp
   src/TestHttpClient.cpp
   src/TestHttpHeaderParsing.cpp
   src/TestHttpLogRedaction.cpp

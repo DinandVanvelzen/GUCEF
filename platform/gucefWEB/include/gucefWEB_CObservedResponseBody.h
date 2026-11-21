@@ -73,6 +73,8 @@ class GUCEF_WEB_PUBLIC_CPP CObservedResponseBody
     CORE::CString mimeType;
     UInt32 requestSeq;                  /**< the tap's count of matching requests, in the order the page made them */
     UInt32 tapId;                       /**< the tap it is delivered for */
+    CORE::CString::StringMap requestHeaders;    /**< the headers of the request, for a tap that keeps them (CWebResponseTap::SetTapKeepsRequestHeaders()); they may carry the session of the page: never logged or stored */
+    CORE::CString::StringMap queryValues;   /**< the query parameters of the request that the tap keeps (CWebResponseTap::SetTapQueryKeys()), as the address has them; empty for a tap that keeps none */
     const CORE::CDynamicBuffer& body;   /**< decoded, the bytes the page received */
 
     explicit CObservedResponseBody( const CORE::CDynamicBuffer& responseBody );

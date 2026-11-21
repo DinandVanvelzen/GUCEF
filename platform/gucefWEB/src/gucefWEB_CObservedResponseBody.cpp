@@ -48,6 +48,8 @@ CObservedResponseBody::CObservedResponseBody( const CORE::CDynamicBuffer& respon
     , mimeType()
     , requestSeq( 0 )
     , tapId( 0 )
+    , requestHeaders()
+    , queryValues()
     , body( responseBody )
 {GUCEF_TRACE;
 
@@ -63,6 +65,8 @@ CObservedResponseBody::CObservedResponseBody( const CObservedResponseBody& src )
     , mimeType( src.mimeType )
     , requestSeq( src.requestSeq )
     , tapId( src.tapId )
+    , requestHeaders( src.requestHeaders )
+    , queryValues( src.queryValues )
     , body( src.body )
 {GUCEF_TRACE;
 

@@ -172,6 +172,11 @@
 #define GUCEF_WEB_TESTAPP_TESTREACTFLIGHTPAYLOAD_H
 #endif /* GUCEF_WEB_TESTAPP_TESTREACTFLIGHTPAYLOAD_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTHTMLTEXTEXTRACTOR_H
+#include "TestHtmlTextExtractor.h"
+#define GUCEF_WEB_TESTAPP_TESTHTMLTEXTEXTRACTOR_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTMLTEXTEXTRACTOR_H ? */
+
 #ifndef GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
 #include "TestWebViewSuites.h"
 #define GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
@@ -271,6 +276,7 @@ GUCEF_OSMAIN_BEGIN
         PerformServiceHealthHttpEndpointsTests();
         PerformWebLoginScriptTests();
         PerformReactFlightPayloadTests();
+        PerformHtmlTextExtractorTests();
 
         // the web views: the engines of the bootstrap of a real application, each allowed to be absent
         WEB::CWebViewGlobal::Instance()->SetApplicationName( "gucefWEB_TestApp" );

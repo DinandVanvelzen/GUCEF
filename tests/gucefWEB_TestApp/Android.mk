@@ -29,6 +29,7 @@ LOCAL_SRC_FILES := \
   src/TestFakeWebSite.cpp \
   src/TestFakeWebView.cpp \
   src/TestFakeWebViewEngine.cpp \
+  src/TestHtmlTextExtractor.cpp \
   src/TestHttpClient.cpp \
   src/TestHttpHeaderParsing.cpp \
   src/TestHttpLogRedaction.cpp \

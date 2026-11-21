@@ -36,6 +36,7 @@ set( HEADER_FILES
   include/gucefWEB_CGlobalHttpCodecLinks.h
   include/gucefWEB_CHTTPClient.h
   include/gucefWEB_CHTTPServer.h
+  include/gucefWEB_CHtmlTextExtractor.h
   include/gucefWEB_CHttpClientBackendRequestBase.h
   include/gucefWEB_CHttpClientBackendSelection.h
   include/gucefWEB_CHttpClientRequestOptions.h
@@ -191,6 +192,7 @@ set( SOURCE_FILES
   src/gucefWEB_CGlobalHttpCodecLinks.cpp
   src/gucefWEB_CHTTPClient.cpp
   src/gucefWEB_CHTTPServer.cpp
+  src/gucefWEB_CHtmlTextExtractor.cpp
   src/gucefWEB_CHttpClientBackendRequestBase.cpp
   src/gucefWEB_CHttpClientBackendSelection.cpp
   src/gucefWEB_CHttpClientRequestOptions.cpp

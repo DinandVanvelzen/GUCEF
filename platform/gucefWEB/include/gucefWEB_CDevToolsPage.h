@@ -91,6 +91,9 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     /** Attaches to a tab (Target.attachToTarget, flatten) and uses that session from then on */
     bool AttachToTarget( const CORE::CString& targetId );
 
+    /** Lets the page believe it has the focus of the window (Emulation.setFocusEmulationEnabled), as a page the person is looking at has */
+    bool SetFocusEmulation( bool enabled );
+
     void SetSessionId( const CORE::CString& sessionId );
 
     const CORE::CString& GetSessionId( void ) const;
@@ -151,6 +154,26 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     /** A trusted mouse click at the centre of the element, after scrolling it into view */
     bool Click( const CORE::CString& selector );
 
+    /** Click() on the match of the selector at the index (0: the first), in document order: for a control that every row of a list has */
+    bool ClickNth( const CORE::CString& selector, UInt32 index );
+
+    /** The number of elements the selector matches: for an aria selector the controls with the name (not the text inside them) */
+    bool CountMatches( const CORE::CString& selector, UInt32& count );
+
+    /**
+     *  A trusted click on the menu item (role menuitem, menuitemradio or menuitemcheckbox, also inside shadow roots) whose name holds the text,
+     *  case ignored, that a person can see: laid out inside the window, not hidden and not covered. A hidden copy of a menu, or the menu of another
+     *  row that is not open, is never clicked. Nothing is scrolled, since a scroll closes an open menu. False when no such item is there
+     */
+    bool ClickMenuItem( const CORE::CString& nameContains );
+
+    /**
+     *  A GET of the address from inside the page, as the page's own scripts make their requests by default: cookies only to the page's own origin, and the headers given
+     *  (for example those of a request the page made itself), from a world of the driver's own. The text of the answer is given when it is at most
+     *  maxBytes long, else only the status. The headers and the answer are never logged. False when the page could not make the request at all
+     */
+    bool FetchInPage( const CORE::CString& url, const CORE::CString::StringMap& headers, UInt32 maxBytes, UInt32 timeoutInMs, Int32& status, CORE::CString& body );
+
     /** Replaces the content of a field as typing would. Refused for password fields; the text is never logged */
     bool TypeInto( const CORE::CString& selector, const CORE::CString& text );
 
@@ -206,7 +229,13 @@ class GUCEF_WEB_PUBLIC_CPP CDevToolsPage
     bool NavigateWithoutWait( const CORE::CString& url );
     void SetNavigationError( const CORE::CString& url, const CORE::CString& reason );
     bool GetDocumentRoot( Int64& rootNodeId, COM::SJsonRpcError* error = GUCEF_NULL );
-    bool Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing = true, COM::SJsonRpcError* error = GUCEF_NULL );
+    bool Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing = true, COM::SJsonRpcError* error = GUCEF_NULL, UInt32 index = 0 );
+    /** The centre of the first part of the element with an area, after scrolling it into view; false when it has none (hidden, not laid out yet) */
+    bool GetClickPoint( Int64 nodeId, Float64& x, Float64& y );
+    /** A trusted left click (move, press, release) at the point in the coordinates of the window */
+    bool ClickAt( Float64 x, Float64 y );
+    /** The backend ids of the matches of a selector, in document order: for an aria selector the controls, and the first text node with the name apart */
+    bool FindMatches( const CORE::CString& selector, GUCEF::vector< Int64 >& ids, Int64& textBackendNodeId, bool& backendIds, COM::SJsonRpcError* error );
     bool DescribeNode( Int64 nodeId, CORE::CString& nodeName, CORE::CString::StringMap& attributes, COM::SJsonRpcError* error = GUCEF_NULL );
     bool CallOnNode( Int64 nodeId, const CORE::CString& functionDeclaration, const CORE::CString* argument, CORE::CString& returned );
     bool WaitForDomChange( UInt32 timeoutInMs );

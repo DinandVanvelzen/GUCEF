@@ -82,6 +82,46 @@ static const char* const SelectOptionFunction =
     "if(hit<0)return 'no-such-option';if(o[hit].disabled)return 'disabled';"
     "this.selectedIndex=hit;this.dispatchEvent(new Event('input',{bubbles:true}));this.dispatchEvent(new Event('change',{bubbles:true}));return 'ok';}";
 
+/**
+ *  The point a click on the element lands on, "x,y" in the coordinates of the window, or "" when no part of it can be seen: the centre of the
+ *  element, else of its first descendant with a box, else of its parent with one (an element of display contents, a text). An element outside
+ *  the window is scrolled to its middle first; one inside it is not scrolled at all
+ */
+static const char* const ClickPointFunction =
+    "function(){var e=this.nodeType===3?this.parentElement:this;if(!e||!e.getBoundingClientRect)return '';"
+    "var box=function(n){var r=n.getBoundingClientRect();return(r.width>0.5&&r.height>0.5)?r:null;};"
+    "var t=e,r=box(e);if(!r){var c=e.querySelectorAll('*');for(var i=0;i<c.length&&!r;i++){r=box(c[i]);if(r)t=c[i];}}"
+    "if(!r){var p=e.parentElement;while(p&&!r){r=box(p);if(r)t=p;p=p.parentElement;}}"
+    "if(!r)return '';var h=window.innerHeight||document.documentElement.clientHeight,w=window.innerWidth||document.documentElement.clientWidth;"
+    "if(r.bottom<=0||r.top>=h||r.right<=0||r.left>=w){t.scrollIntoView({block:'center',inline:'center'});r=t.getBoundingClientRect();}"
+    "return (r.left+r.width/2)+','+(r.top+r.height/2);}";
+
+/**
+ *  The point of the menu item whose name (aria-label and text) holds the text, case ignored, that a person can see: "x,y" in the coordinates of the
+ *  window, or "". Shadow roots are searched as well; an item outside the window, without a box, hidden, transparent or covered by another element
+ *  is passed over. Called on the document; the text is an argument, never part of the source
+ */
+static const char* const MenuItemPointFunction =
+    "function(t){t=String(t).toLowerCase();var d=this.nodeType===9?this:document;var items=[];"
+    "var walk=function(root){var l=root.querySelectorAll('*');for(var i=0;i<l.length;i++){var el=l[i];var ro=el.getAttribute?el.getAttribute('role'):null;"
+    "if(ro==='menuitem'||ro==='menuitemradio'||ro==='menuitemcheckbox')items.push(el);if(el.shadowRoot)walk(el.shadowRoot);}};walk(d);"
+    "var h=window.innerHeight||document.documentElement.clientHeight,w=window.innerWidth||document.documentElement.clientWidth;"
+    "for(var i=0;i<items.length;i++){var e=items[i];var n=((e.getAttribute('aria-label')||'')+' '+(e.innerText||e.textContent||'')).toLowerCase();"
+    "if(n.indexOf(t)<0)continue;var r=e.getBoundingClientRect();if(r.width<1||r.height<1)continue;"
+    "var st=window.getComputedStyle(e);if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)===0)continue;"
+    "if(r.bottom<=0||r.top>=h||r.right<=0||r.left>=w)continue;var x=r.left+r.width/2,y=r.top+r.height/2;"
+    "var hit=d.elementFromPoint?d.elementFromPoint(x,y):null;if(hit&&hit!==e&&!e.contains(hit)&&!hit.contains(e)&&!hit.shadowRoot)continue;"
+    "return x+','+y;}return '';}";
+
+/**
+ *  A GET from inside the page: "<status>\n<text>", only "<status>\n" for an answer longer than the bound, "0\n" when the request failed or ran out
+ *  of time. Arguments: the address, the headers, the bound in characters, the time limit in milliseconds
+ */
+static const char* const FetchFunction =
+    "async function(u,h,m,t){var c=new AbortController();var k=setTimeout(function(){c.abort();},t);"
+    "try{var r=await fetch(u,{method:'GET',headers:h,credentials:'same-origin',cache:'no-store',signal:c.signal});var x=await r.text();clearTimeout(k);"
+    "return x.length>m?(r.status+'\\n'):(r.status+'\\n'+x);}catch(e){clearTimeout(k);return '0\\n'+String(e&&e.name)+': '+String(e&&e.message);}}";
+
 /** Selects the content of a field, so that the text typed next replaces it */
 static const char* const SelectContentFunction =
     "function(){if(typeof this.select==='function'){this.select();return 'ok';}"
@@ -341,6 +381,19 @@ CDevToolsPage::AttachToTarget( const CORE::CString& targetId )
         return false;
     SetSessionId( sessionId );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::SetFocusEmulation( bool enabled )
+{GUCEF_TRACE;
+
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "enabled", CORE::CVariant( enabled ) );
+    CORE::CDataNode result;
+    COM::SJsonRpcError error;
+    return Send( "Emulation.setFocusEmulationEnabled", &params, result, true, &error );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -693,10 +746,12 @@ CDevToolsPage::GetDocumentRoot( Int64& rootNodeId, COM::SJsonRpcError* error )
 /*-------------------------------------------------------------------------*/
 
 bool
-CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing, COM::SJsonRpcError* error )
+CDevToolsPage::FindMatches( const CORE::CString& selector, GUCEF::vector< Int64 >& ids, Int64& textBackendNodeId, bool& backendIds, COM::SJsonRpcError* error )
 {GUCEF_TRACE;
 
-    nodeId = 0;
+    ids.clear();
+    textBackendNodeId = 0;
+    backendIds = false;
     if ( GUCEF_NULL != error )
         error->code = 0;
     Int64 root = 0;
@@ -709,58 +764,107 @@ CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMi
         params.SetAttribute( "nodeId", CORE::CVariant( root ) );
         params.SetAttribute( "selector", CORE::CVariant( selector ) );
         CORE::CDataNode result;
+        if ( !Send( "DOM.querySelectorAll", &params, result, true, error ) )
+            return false;
+        GetInt64List( result.FindChild( "nodeIds" ), ids );
+        return true;
+    }
+
+    // the accessible name as the browser computes it; a control rather than the text inside it
+    backendIds = true;
+    const CORE::CString name = selector.CutChars( AriaSelectorPrefix.Length(), true );
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "nodeId", CORE::CVariant( root ) );
+    params.SetAttribute( "accessibleName", CORE::CVariant( name ) );
+    CORE::CDataNode result;
+    if ( !Send( "Accessibility.queryAXTree", &params, result, true, error ) )
+        return false;
+    const CORE::CDataNode* nodes = result.FindChild( "nodes" );
+    if ( GUCEF_NULL == nodes )
+        return true;
+    for ( CORE::CDataNode::const_iterator i = nodes->ConstBegin(); i != nodes->ConstEnd(); ++i )
+    {
+        const CORE::CDataNode& node = *(*i);
+        const Int64 id = node.GetAttributeValue( "backendDOMNodeId" ).AsInt64( 0 );
+        if ( 0 == id || node.GetAttributeValue( "ignored" ).AsBool( false ) )
+            continue;
+        const CORE::CString role = GetValueOf( node, "role" );
+        if ( role == "StaticText" || role == "InlineTextBox" || role == "none" || role == "generic" || role == "RootWebArea" )
+        {
+            if ( 0 == textBackendNodeId )
+                textBackendNodeId = id;
+            continue;
+        }
+        ids.push_back( id );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::Resolve( const CORE::CString& selector, Int64& nodeId, bool logMissing, COM::SJsonRpcError* error, UInt32 index )
+{GUCEF_TRACE;
+
+    nodeId = 0;
+    if ( 0 == index && !selector.IsNULLOrEmpty() && !selector.StartsWith( AriaSelectorPrefix ) )
+    {
+        // the first match of a CSS selector, as the page finds it
+        Int64 root = 0;
+        if ( GUCEF_NULL != error )
+            error->code = 0;
+        if ( !GetDocumentRoot( root, error ) )
+            return false;
+        CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+        params.SetAttribute( "nodeId", CORE::CVariant( root ) );
+        params.SetAttribute( "selector", CORE::CVariant( selector ) );
+        CORE::CDataNode result;
         if ( !Send( "DOM.querySelector", &params, result, true, error ) )
             return false;
         nodeId = result.GetAttributeValue( "nodeId" ).AsInt64( 0 );
+        if ( 0 == nodeId && logMissing )
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: No element matches " << selector );
+        return 0 != nodeId;
     }
-    else
+    GUCEF::vector< Int64 > ids;
+    Int64 textNodeId = 0;
+    bool backendIds = false;
+    if ( !FindMatches( selector, ids, textNodeId, backendIds, error ) )
+        return false;
+    Int64 found = index < ids.size() ? ids[ index ] : 0;
+    if ( 0 == found && 0 == index && backendIds )
+        found = textNodeId;     // a name only some text has: the text, as a person would click it
+    if ( 0 != found && backendIds )
     {
-        // the accessible name as the browser computes it; a control rather than the text inside it
-        const CORE::CString name = selector.CutChars( AriaSelectorPrefix.Length(), true );
-        CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
-        params.SetAttribute( "nodeId", CORE::CVariant( root ) );
-        params.SetAttribute( "accessibleName", CORE::CVariant( name ) );
-        CORE::CDataNode result;
-        if ( !Send( "Accessibility.queryAXTree", &params, result, true, error ) )
+        CORE::CDataNode push( GUCEF_DATATYPE_OBJECT );
+        push.AddChild( "backendNodeIds", GUCEF_DATATYPE_ARRAY )->AddValueAsChild( CORE::CVariant( found ) );
+        CORE::CDataNode pushed;
+        if ( !Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed, true, error ) )
             return false;
-        Int64 backendNodeId = 0;
-        Int64 textNodeId = 0;
-        const CORE::CDataNode* nodes = result.FindChild( "nodes" );
-        if ( GUCEF_NULL != nodes )
-        {
-            for ( CORE::CDataNode::const_iterator i = nodes->ConstBegin(); i != nodes->ConstEnd() && 0 == backendNodeId; ++i )
-            {
-                const CORE::CDataNode& node = *(*i);
-                const Int64 id = node.GetAttributeValue( "backendDOMNodeId" ).AsInt64( 0 );
-                if ( 0 == id || node.GetAttributeValue( "ignored" ).AsBool( false ) )
-                    continue;
-                const CORE::CString role = GetValueOf( node, "role" );
-                if ( role == "StaticText" || role == "InlineTextBox" || role == "none" || role == "generic" || role == "RootWebArea" )
-                {
-                    if ( 0 == textNodeId )
-                        textNodeId = id;
-                    continue;
-                }
-                backendNodeId = id;
-            }
-        }
-        if ( 0 == backendNodeId )
-            backendNodeId = textNodeId;
-        if ( 0 != backendNodeId )
-        {
-            CORE::CDataNode push( GUCEF_DATATYPE_OBJECT );
-            push.AddChild( "backendNodeIds", GUCEF_DATATYPE_ARRAY )->AddValueAsChild( CORE::CVariant( backendNodeId ) );
-            CORE::CDataNode pushed;
-            if ( !Send( "DOM.pushNodesByBackendIdsToFrontend", &push, pushed, true, error ) )
-                return false;
-            GUCEF::vector< Int64 > ids;
-            GetInt64List( pushed.FindChild( "nodeIds" ), ids );
-            nodeId = ids.empty() ? 0 : ids[ 0 ];
-        }
+        GUCEF::vector< Int64 > pushedIds;
+        GetInt64List( pushed.FindChild( "nodeIds" ), pushedIds );
+        found = pushedIds.empty() ? 0 : pushedIds[ 0 ];
     }
+    nodeId = found;
     if ( 0 == nodeId && logMissing )
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: No element matches " << selector );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: No element matches " << selector << ( 0 == index ? CORE::CString::Empty : " at index " + CORE::ToString( index ) ) );
     return 0 != nodeId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::CountMatches( const CORE::CString& selector, UInt32& count )
+{GUCEF_TRACE;
+
+    count = 0;
+    GUCEF::vector< Int64 > ids;
+    Int64 textNodeId = 0;
+    bool backendIds = false;
+    if ( !FindMatches( selector, ids, textNodeId, backendIds, GUCEF_NULL ) )
+        return false;
+    count = (UInt32) ids.size();
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -847,46 +951,105 @@ bool
 CDevToolsPage::Click( const CORE::CString& selector )
 {GUCEF_TRACE;
 
-    Int64 nodeId = 0;
-    if ( !Resolve( selector, nodeId ) )
-        return false;
+    return ClickNth( selector, 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::GetClickPoint( Int64 nodeId, Float64& x, Float64& y )
+{GUCEF_TRACE;
+
+    x = 0.0;
+    y = 0.0;
+
+    // as the page lays it out: the element, or for an element without a box of its own (a wrapper, a text) the first visible part of it or
+    // its parent; scrolled only when it is outside the window, since a scroll closes an open menu
+    CORE::CString point;
+    if ( CallOnNode( nodeId, ClickPointFunction, GUCEF_NULL, point ) && !point.IsNULLOrEmpty() )
+    {
+        const CORE::CString::StringVector parts = point.ParseElements( ',', false );
+        if ( 2 == parts.size() )
+        {
+            x = CORE::StringToDouble( parts[ 0 ], -1.0 );
+            y = CORE::StringToDouble( parts[ 1 ], -1.0 );
+            if ( x >= 0.0 && y >= 0.0 )
+                return true;
+        }
+    }
+
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "nodeId", CORE::CVariant( nodeId ) );
     CORE::CDataNode result;
     Send( "DOM.scrollIntoViewIfNeeded", &params, result, false );
     CORE::CDataNode quadsResult;
-    if ( !Send( "DOM.getContentQuads", &params, quadsResult ) )
+    if ( !Send( "DOM.getContentQuads", &params, quadsResult, false ) )
         return false;
 
     // the centre of the first quad with an area
     const CORE::CDataNode* quads = quadsResult.FindChild( "quads" );
+    if ( GUCEF_NULL == quads )
+        return false;
+    for ( CORE::CDataNode::const_iterator q = quads->ConstBegin(); q != quads->ConstEnd(); ++q )
+    {
+        GUCEF::vector< Float64 > points;
+        for ( CORE::CDataNode::const_iterator p = (*q)->ConstBegin(); p != (*q)->ConstEnd(); ++p )
+            points.push_back( (*p)->GetValue().AsFloat64( 0.0 ) );
+        if ( points.size() < 8 )
+            continue;
+        const Float64 width = points[ 2 ] - points[ 0 ];
+        const Float64 height = points[ 5 ] - points[ 1 ];
+        if ( width * width < 0.25 && height * height < 0.25 )
+            continue;
+        x = ( points[ 0 ] + points[ 2 ] + points[ 4 ] + points[ 6 ] ) / 4.0;
+        y = ( points[ 1 ] + points[ 3 ] + points[ 5 ] + points[ 7 ] ) / 4.0;
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::ClickNth( const CORE::CString& selector, UInt32 index )
+{GUCEF_TRACE;
+
     Float64 x = 0.0;
     Float64 y = 0.0;
     bool found = false;
-    if ( GUCEF_NULL != quads )
+    UInt32 count = 0;
+    if ( 0 == index && selector.StartsWith( AriaSelectorPrefix ) && CountMatches( selector, count ) && count > 1 )
     {
-        for ( CORE::CDataNode::const_iterator q = quads->ConstBegin(); q != quads->ConstEnd() && !found; ++q )
+        // several controls carry the name (a hidden copy of a menu, a dialog behind another): the first one a person can see and click
+        for ( UInt32 i=0; i<count && !found; ++i )
         {
-            GUCEF::vector< Float64 > points;
-            for ( CORE::CDataNode::const_iterator p = (*q)->ConstBegin(); p != (*q)->ConstEnd(); ++p )
-                points.push_back( (*p)->GetValue().AsFloat64( 0.0 ) );
-            if ( points.size() < 8 )
-                continue;
-            const Float64 width = points[ 2 ] - points[ 0 ];
-            const Float64 height = points[ 5 ] - points[ 1 ];
-            if ( width * width < 0.25 && height * height < 0.25 )
-                continue;
-            x = ( points[ 0 ] + points[ 2 ] + points[ 4 ] + points[ 6 ] ) / 4.0;
-            y = ( points[ 1 ] + points[ 3 ] + points[ 5 ] + points[ 7 ] ) / 4.0;
-            found = true;
+            Int64 nodeId = 0;
+            if ( Resolve( selector, nodeId, false, GUCEF_NULL, i ) )
+                found = GetClickPoint( nodeId, x, y );
         }
+    }
+    else
+    {
+        Int64 nodeId = 0;
+        if ( !Resolve( selector, nodeId, true, GUCEF_NULL, index ) )
+            return false;
+        found = GetClickPoint( nodeId, x, y );
     }
     if ( !found )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The element " << selector << " has no area to click" );
         return false;
     }
+    return ClickAt( x, y );
+}
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::ClickAt( Float64 x, Float64 y )
+{GUCEF_TRACE;
+
+    CORE::CDataNode result;
     static const char* const steps[] = { "mouseMoved", "mousePressed", "mouseReleased", GUCEF_NULL };
     for ( UInt32 i=0; GUCEF_NULL != steps[ i ]; ++i )
     {
@@ -903,6 +1066,105 @@ CDevToolsPage::Click( const CORE::CString& selector )
             return false;
     }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::FetchInPage( const CORE::CString& url, const CORE::CString::StringMap& headers, UInt32 maxBytes, UInt32 timeoutInMs, Int32& status, CORE::CString& body )
+{GUCEF_TRACE;
+
+    status = 0;
+    body.Clear();
+    if ( url.IsNULLOrEmpty() )
+        return false;
+    // in the page's own world, where its scripts make the same requests: the document as the object the function is called on
+    Int64 root = 0;
+    if ( !GetDocumentRoot( root ) )
+        return false;
+    CORE::CDataNode resolveParams( GUCEF_DATATYPE_OBJECT );
+    resolveParams.SetAttribute( "nodeId", CORE::CVariant( root ) );
+    resolveParams.SetAttribute( "objectGroup", CORE::CVariant( CORE::CString( PageDriverWorldName ) ) );
+    CORE::CDataNode resolved;
+    if ( !Send( "DOM.resolveNode", &resolveParams, resolved ) )
+        return false;
+    const CORE::CDataNode* object = resolved.FindChild( "object" );
+    const CORE::CString objectId = GUCEF_NULL != object ? GetText( *object, "objectId" ) : CORE::CString::Empty;
+    if ( objectId.IsNULLOrEmpty() )
+        return false;
+
+    // the address, the headers, the bound and the time limit are arguments of the function, never part of its source
+    CORE::CDataNode call( GUCEF_DATATYPE_OBJECT );
+    call.SetAttribute( "objectId", CORE::CVariant( objectId ) );
+    call.SetAttribute( "functionDeclaration", CORE::CVariant( CORE::CString( FetchFunction ) ) );
+    call.SetAttribute( "awaitPromise", true );
+    call.SetAttribute( "returnByValue", true );
+    CORE::CDataNode* arguments = call.AddChild( "arguments", GUCEF_DATATYPE_ARRAY );
+    arguments->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT )->SetAttribute( "value", CORE::CVariant( url ) );
+    CORE::CDataNode* headerValue = arguments->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT )->AddChild( "value", GUCEF_DATATYPE_OBJECT );
+    for ( CORE::CString::StringMap::const_iterator h = headers.begin(); h != headers.end(); ++h )
+        headerValue->SetAttribute( h->first, CORE::CVariant( h->second ) );
+    arguments->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT )->SetAttribute( "value", CORE::CVariant( maxBytes ) );
+    arguments->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT )->SetAttribute( "value", CORE::CVariant( timeoutInMs ) );
+    CORE::CDataNode result;
+    COM::SJsonRpcError error;
+    const bool sent = m_client.SendCommandOnSessionAndWait( m_sessionId, "Runtime.callFunctionOn", &call, result, &error, timeoutInMs + m_commandTimeoutInMs );
+    CORE::CDataNode release( GUCEF_DATATYPE_OBJECT );
+    release.SetAttribute( "objectGroup", CORE::CVariant( CORE::CString( PageDriverWorldName ) ) );
+    CORE::CDataNode released;
+    Send( "Runtime.releaseObjectGroup", &release, released, false );
+    if ( !sent )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The page could not be asked to make the request: " << error.message );
+        return false;
+    }
+    if ( GUCEF_NULL != result.FindChild( "exceptionDetails" ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The request from the page ended in a script exception" );
+        return false;
+    }
+    const CORE::CDataNode* value = result.FindChild( "result" );
+    const CORE::CString answer = GUCEF_NULL != value ? GetText( *value, "value" ) : CORE::CString::Empty;
+    const Int32 lineEnd = answer.HasChar( '\n' );
+    if ( lineEnd < 0 )
+        return false;
+    status = CORE::StringToInt32( answer.SubstrToIndex( (UInt32) lineEnd, true ), 0 );
+    body = answer.CutChars( (UInt32) lineEnd + 1, true );
+    if ( 0 == status )
+    {
+        // the request did not reach an answer: the error of the browser (its kind and text, never the address or the headers)
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: The request from the page failed: " << body.SubstrToIndex( body.Length() < 200 ? body.Length() : 200, true ) );
+        body.Clear();
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDevToolsPage::ClickMenuItem( const CORE::CString& nameContains )
+{GUCEF_TRACE;
+
+    if ( nameContains.IsNULLOrEmpty() )
+        return false;
+    Int64 root = 0;
+    if ( !GetDocumentRoot( root ) )
+        return false;
+    CORE::CString point;
+    if ( !CallOnNode( root, MenuItemPointFunction, &nameContains, point ) || point.IsNULLOrEmpty() )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DevToolsPage: No visible menu item holds the text of the click" );
+        return false;
+    }
+    const CORE::CString::StringVector parts = point.ParseElements( ',', false );
+    if ( 2 != parts.size() )
+        return false;
+    const Float64 x = CORE::StringToDouble( parts[ 0 ], -1.0 );
+    const Float64 y = CORE::StringToDouble( parts[ 1 ], -1.0 );
+    if ( x < 0.0 || y < 0.0 )
+        return false;
+    return ClickAt( x, y );
 }
 
 /*-------------------------------------------------------------------------*/

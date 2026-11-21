@@ -263,6 +263,9 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     /** Opens a new tab, to be used over a connection to the browser */
     bool TargetCreate( const CORE::CString& url, CORE::CString& targetId );
 
+    /** Makes a tab the one the window shows (Target.activateTarget): a tab in the background is not rendered, and a page waits for it */
+    bool TargetActivate( const CORE::CString& targetId );
+
     /** Attaches to a target over the connection to the browser so its commands can be sent with SetSessionId() */
     bool AttachToTarget( const CORE::CString& targetId, CORE::CString& sessionId );
 

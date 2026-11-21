@@ -94,6 +94,8 @@ CWebResponseTap::STap::STap( void )
     , pathPattern()
     , sink( GUCEF_NULL )
     , maxBodyBytes( 0 )
+    , queryKeys()
+    , keepRequestHeaders( false )
     , delivered( 0 )
     , tooLarge( 0 )
     , deliveredSeen( 0 )
@@ -117,6 +119,8 @@ CWebResponseTap::SPending::SPending( void )
     , sequence( 0 )
     , encodedDataLength( 0 )
     , tapIds()
+    , queryValues()
+    , requestHeaders()
 {GUCEF_TRACE;
 
 }
@@ -235,6 +239,32 @@ CWebResponseTap::RemoveTap( UInt32 tapId )
 {GUCEF_TRACE;
 
     return m_taps.erase( tapId ) > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebResponseTap::SetTapKeepsRequestHeaders( UInt32 tapId, bool keep )
+{GUCEF_TRACE;
+
+    TTapMap::iterator tap = m_taps.find( tapId );
+    if ( tap == m_taps.end() )
+        return false;
+    tap->second.keepRequestHeaders = keep;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebResponseTap::SetTapQueryKeys( UInt32 tapId, const CORE::CString::StringVector& names )
+{GUCEF_TRACE;
+
+    TTapMap::iterator tap = m_taps.find( tapId );
+    if ( tap == m_taps.end() )
+        return false;
+    tap->second.queryKeys = names;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -442,6 +472,22 @@ CWebResponseTap::HandleRequestWillBeSent( const SChromeProtocolEvent& event )
     pending.host = parsed.host.Lowercase();
     pending.pathTemplate = parsed.pathTemplate;
     pending.sequence = m_nextSequence++;
+    // the query parameters a matching tap keeps, and no others; the headers of the request only when a matching tap keeps them
+    for ( size_t t=0; t<pending.tapIds.size(); ++t )
+    {
+        if ( m_taps[ pending.tapIds[ t ] ].keepRequestHeaders && pending.requestHeaders.empty() )
+        {
+            const CORE::CDataNode* headers = request->FindChild( "headers" );
+            if ( GUCEF_NULL != headers )
+                for ( CORE::CDataNode::TAttributeMap::const_iterator h = headers->AttributeBegin(); h != headers->AttributeEnd(); ++h )
+                    pending.requestHeaders[ h->first.Lowercase() ] = h->second.AsString();
+        }
+        const CORE::CString::StringVector& keys = m_taps[ pending.tapIds[ t ] ].queryKeys;
+        for ( size_t k=0; k<keys.size(); ++k )
+            for ( size_t q=0; q<parsed.queryParams.size(); ++q )
+                if ( parsed.queryParams[ q ].first == keys[ k ] )
+                    pending.queryValues[ keys[ k ] ] = parsed.queryParams[ q ].second;
+    }
     if ( m_inFlight.size() >= MaxInFlight )
         m_inFlight.clear();
     m_inFlight[ key ] = pending;
@@ -574,6 +620,14 @@ CWebResponseTap::Deliver( SPending& pending )
         response.mimeType = pending.mimeType;
         response.requestSeq = pending.sequence;
         response.tapId = tap->first;
+        for ( size_t k=0; k<tap->second.queryKeys.size(); ++k )
+        {
+            TStringMap::const_iterator value = pending.queryValues.find( tap->second.queryKeys[ k ] );
+            if ( value != pending.queryValues.end() )
+                response.queryValues[ value->first ] = value->second;
+        }
+        if ( tap->second.keepRequestHeaders )
+            response.requestHeaders = pending.requestHeaders;
         tap->second.sink->OnResponseBody( response );
         ++tap->second.delivered;
         CORE::TCloneableUInt32 eventData( tap->first );
@@ -584,6 +638,42 @@ CWebResponseTap::Deliver( SPending& pending )
     if ( m_body.GetBufferSize() > 0 )
         memset( m_body.GetBufferPtr(), 0, m_body.GetBufferSize() );
     m_body.Clear( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebResponseTap::AttachTarget( const CORE::CString& targetId )
+{GUCEF_TRACE;
+
+    if ( !m_attachedTargets.insert( targetId ).second )
+        return true;
+    CORE::CString sessionId;
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "targetId", CORE::CVariant( targetId ) );
+    params.SetAttribute( "flatten", true );
+    CORE::CDataNode result;
+    if ( m_client.SendCommandOnSessionAndWait( CORE::CString::Empty, "Target.attachToTarget", &params, result, GUCEF_NULL, 15000 ) &&
+         !( sessionId = GetText( result, "sessionId" ) ).IsNULLOrEmpty() )
+    {
+        m_sessionTargets[ sessionId ] = targetId;
+        SetupSession( sessionId );
+        return true;
+    }
+    m_attachedTargets.erase( targetId );
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WebResponseTap: Unable to attach to tab " << targetId );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebResponseTap::WatchTab( const CORE::CString& targetId )
+{GUCEF_TRACE;
+
+    if ( !m_started || targetId.IsNULLOrEmpty() )
+        return false;
+    return AttachTarget( targetId );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -599,27 +689,8 @@ CWebResponseTap::Process( void )
         CORE::CString::StringVector targets;
         targets.swap( m_targetsToAttach );
         for ( size_t i=0; i<targets.size(); ++i )
-        {
-            if ( !m_attachedTargets.insert( targets[ i ] ).second )
-                continue;
-            CORE::CString sessionId;
-            CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
-            params.SetAttribute( "targetId", CORE::CVariant( targets[ i ] ) );
-            params.SetAttribute( "flatten", true );
-            CORE::CDataNode result;
-            if ( m_client.SendCommandOnSessionAndWait( CORE::CString::Empty, "Target.attachToTarget", &params, result, GUCEF_NULL, 15000 ) &&
-                 !( sessionId = GetText( result, "sessionId" ) ).IsNULLOrEmpty() )
-            {
-                m_sessionTargets[ sessionId ] = targets[ i ];
-                SetupSession( sessionId );
+            if ( m_attachedTargets.find( targets[ i ] ) == m_attachedTargets.end() && AttachTarget( targets[ i ] ) )
                 ++done;
-            }
-            else
-            {
-                m_attachedTargets.erase( targets[ i ] );
-                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WebResponseTap: Unable to attach to tab " << targets[ i ] );
-            }
-        }
 
         TStringMap sessions;
         sessions.swap( m_sessionsToSetup );

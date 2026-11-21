@@ -244,6 +244,7 @@ class CBodyCollector : public WEB::CIWebResponseSink
         UInt32 requestSeq;
         UInt32 tapId;
         CORE::CString text;
+        CORE::CString::StringMap queryValues;
     };
 
     GUCEF::vector< SBody > bodies;
@@ -258,6 +259,7 @@ class CBodyCollector : public WEB::CIWebResponseSink
         body.mimeType = response.mimeType;
         body.requestSeq = response.requestSeq;
         body.tapId = response.tapId;
+        body.queryValues = response.queryValues;
         body.text = CORE::CString( static_cast< const char* >( response.body.GetConstBufferPtr() ), response.body.GetDataSize() );
         bodies.push_back( body );
     }
@@ -1105,6 +1107,49 @@ PerformResponseTapTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A response tap hands over the query parameters it names with the body, and no others" )
+        try
+        {
+            browser.ForgetConnection();
+            WEB::CChromeDevToolsClient client;
+            ASSERT_TRUE( Connect( browser, client ) );
+            WEB::CWebResponseTap tap( client );
+            CORE::CString::StringVector pages;
+            pages.push_back( "bank.test" );
+            tap.SetPageHostFilter( pages );
+            CBodyCollector sink;
+            const UInt32 lots = tap.AddTap( "GET", "api.bank.test", "/api/lots", &sink, 1024 );
+            const UInt32 plain = tap.AddTap( "GET", "api.bank.test", "/api/**", &sink, 1024 );
+            ASSERT_TRUE( 0 != lots && 0 != plain && tap.Start() );
+            CORE::CString::StringVector keys;
+            keys.push_back( "itemissueid" );
+            keys.push_back( "absent" );
+            ASSERT_TRUE( tap.SetTapQueryKeys( lots, keys ) && !tap.SetTapQueryKeys( 99999, keys ) );
+            Pump( 50, GUCEF_NULL, &tap );
+
+            browser.SetResponseBody( "Q1", "{\"lots\":[]}" );
+            EmitRequestCycle( browser, "S-P1", "Q1", "GET", "https://api.bank.test/api/lots?isLong=true&itemissueid=4711&token=PLANTEDqueryTOKEN2", "application/json", 12 );
+            Pump( 30, GUCEF_NULL, &tap );
+            ASSERT_TRUE( sink.bodies.size() == 2 );
+            if ( sink.bodies.size() == 2 )
+            {
+                // the tap that names it gets the one parameter that is there; the tap that names none gets none
+                ASSERT_TRUE( sink.bodies[ 0 ].tapId == lots && 1 == sink.bodies[ 0 ].queryValues.size() && "4711" == sink.bodies[ 0 ].queryValues[ "itemissueid" ] );
+                ASSERT_TRUE( sink.bodies[ 1 ].tapId == plain && sink.bodies[ 1 ].queryValues.empty() );
+            }
+            // an address without it: nothing is kept
+            browser.SetResponseBody( "Q2", "{}" );
+            EmitRequestCycle( browser, "S-P1", "Q2", "GET", "https://api.bank.test/api/lots?isLong=false", "application/json", 2 );
+            Pump( 30, GUCEF_NULL, &tap );
+            ASSERT_TRUE( sink.bodies.size() == 4 && sink.bodies[ 2 ].queryValues.empty() );
+            tap.Stop();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: A response tap works next to the recorder and its bodies never reach the journal" )
         try
         {
@@ -1200,6 +1245,20 @@ PerformPageDriverTests( void )
             ASSERT_TRUE( browser.GetLastCommandParams( "DOM.pushNodesByBackendIdsToFrontend", "S-P1", params ) );
             const CORE::CDataNode* ids = params.FindChild( "backendNodeIds" );
             ASSERT_TRUE( GUCEF_NULL != ids && ids->GetNrOfChildNodes() == 1 && ( *ids->ConstBegin() )->GetValue().AsInt64( 0 ) == 55 );
+
+            // the control every row of a list has: counted, and the one of a later row clicked; the text with the name is no control and not counted
+            browser.SetCommandResult( "Accessibility.queryAXTree#Open Menu",
+                                      Json( "{\"nodes\":[{\"nodeId\":\"1\",\"ignored\":false,\"role\":{\"type\":\"role\",\"value\":\"button\"},\"backendDOMNodeId\":61},"
+                                            "{\"nodeId\":\"2\",\"ignored\":false,\"role\":{\"type\":\"role\",\"value\":\"StaticText\"},\"backendDOMNodeId\":62},"
+                                            "{\"nodeId\":\"3\",\"ignored\":true,\"role\":{\"type\":\"role\",\"value\":\"button\"},\"backendDOMNodeId\":63},"
+                                            "{\"nodeId\":\"4\",\"ignored\":false,\"role\":{\"type\":\"role\",\"value\":\"button\"},\"backendDOMNodeId\":64}]}" ) );
+            UInt32 count = 0;
+            ASSERT_TRUE( page.CountMatches( "aria/Open Menu", count ) && 2 == count );
+            ASSERT_TRUE( page.ClickNth( "aria/Open Menu", 1 ) );
+            ASSERT_TRUE( browser.GetLastCommandParams( "DOM.pushNodesByBackendIdsToFrontend", "S-P1", params ) );
+            ids = params.FindChild( "backendNodeIds" );
+            ASSERT_TRUE( GUCEF_NULL != ids && ids->GetNrOfChildNodes() == 1 && ( *ids->ConstBegin() )->GetValue().AsInt64( 0 ) == 64 );
+            ASSERT_FALSE( page.ClickNth( "aria/Open Menu", 2 ) );
 
             // attributes, bounded; never the value of a field
             browser.SetCommandResult( "DOM.describeNode", Json( "{\"node\":{\"nodeId\":5,\"nodeName\":\"A\",\"attributes\":[\"href\",\"/app/export?id=1\",\"class\",\"button\"]}}" ) );
