@@ -81,6 +81,16 @@
 #define GUCEF_WEB_CCHROMEBROWSERLOCATOR_H
 #endif /* GUCEF_WEB_CCHROMEBROWSERLOCATOR_H ? */
 #ifndef GUCEF_TEST_FRAMEWORK_H
+#ifndef GUCEF_CORE_CBINARYWIREREADER_H
+#include "gucefCORE_CBinaryWireReader.h"
+#define GUCEF_CORE_CBINARYWIREREADER_H
+#endif /* GUCEF_CORE_CBINARYWIREREADER_H ? */
+
+#ifndef GUCEF_WEB_CWEBJSON_H
+#include "gucefWEB_CWebJson.h"
+#define GUCEF_WEB_CWEBJSON_H
+#endif /* GUCEF_WEB_CWEBJSON_H ? */
+
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
@@ -497,6 +507,62 @@ PerformSessionTests( AUTH::ICredentialStore& store, const CORE::CString& storeFo
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: The secret of a session is exactly its JSON text: the expiry times of Chrome (seconds with a fraction) leave no null or stray bytes behind the text, so it is valid UTF-8 as the RPC requires" )
+        try
+        {
+            // the json codec itself: a tree with numbers whose text has a fraction
+            CORE::CDataNode tree( GUCEF_DATATYPE_OBJECT );
+            tree.SetAttribute( "name", CORE::CString( "fractions" ) );
+            for ( UInt32 i=0; i<22; ++i )
+                tree.SetAttribute( "expires" + CORE::ToString( i ), CORE::CVariant( (Float64) 1797094392.774613 + 0.25 * i ) );
+            CORE::CString text;
+            ASSERT_TRUE( WEB::CWebJson::ToText( tree, text ) );
+            UInt32 textSize = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSignIn: json text of 22 numbers with a fraction: " << textSize << " bytes, " << (UInt32) strlen( text.C_String() ) << " up to the first null" );
+            ASSERT_TRUE( textSize > 0 && textSize == (UInt32) strlen( text.C_String() ) && '}' == text.C_String()[ textSize - 1 ] );
+            ASSERT_TRUE( CORE::CBinaryWireReader::IsValidUtf8( text.C_String(), textSize ) );
+
+            // a session as Chrome gives it: persistent cookies with an expiry of seconds and microseconds, session cookies
+            AUTH::CWebSession session;
+            session.storeId = StoreId;
+            session.capturedAtUtcInMs = AUTH::CWebSession::NowUtcInMs();
+            session.userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
+            const Float64 nowInSeconds = (Float64) ( AUTH::CWebSession::NowUtcInMs() / 1000 );
+            for ( UInt32 i=0; i<22; ++i )
+            {
+                AUTH::CWebSessionCookie cookie;
+                cookie.name = "chromeCookie" + CORE::ToString( i );
+                cookie.value.Set( "v" + CORE::ToString( i ) + "-eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJl%3D%3D" );
+                cookie.domain = 0 == i % 2 ? ".store.example.test" : "www.store.example.test";
+                cookie.path = "/";
+                cookie.httpOnly = 0 == i % 3;
+                cookie.secure = true;
+                cookie.session = 0 == i % 4;
+                cookie.expires = cookie.session ? -1.0 : nowInSeconds + 86400.0 + 0.774613 + 0.001 * i;
+                session.cookies.push_back( cookie );
+            }
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( session.ToSecret( secret ) );
+            const CORE::CString& json = secret.Reveal();
+            const UInt32 jsonSize = json.ByteSize() > 0 ? json.ByteSize() - 1 : 0;
+            // lengths only: never a value
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSignIn: the secret of a session of 22 cookies: " << jsonSize << " bytes, " << (UInt32) strlen( json.C_String() ) << " up to the first null" );
+            ASSERT_TRUE( jsonSize > 0 && jsonSize == (UInt32) strlen( json.C_String() ) && '}' == json.C_String()[ jsonSize - 1 ] );
+            ASSERT_TRUE( CORE::CBinaryWireReader::IsValidUtf8( json.C_String(), jsonSize ) );
+            AUTH::CWebSession again;
+            ASSERT_TRUE( again.FromSecret( secret ) && 22 == again.GetCookieCount() && again.userAgent == session.userAgent );
+            bool same = true;
+            for ( UInt32 i=0; i<22; ++i )
+                same = same && again.cookies[ i ].name == session.cookies[ i ].name && again.cookies[ i ].value.Reveal() == session.cookies[ i ].value.Reveal() &&
+                       again.cookies[ i ].expires == session.cookies[ i ].expires;
+            ASSERT_TRUE( same );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: Credentials are kept per slot in the credential store, sealed" )
         try
         {
@@ -522,6 +588,164 @@ PerformSessionTests( AUTH::ICredentialStore& store, const CORE::CString& storeFo
             ASSERT_FALSE( AUTH::CWebSignInCredentials::HasSaved( store, StoreId, slots ) );
             loaded.Clear();
             ASSERT_TRUE( 0 == loaded.GetCount() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformHandOverTests( CFakeLoginSite& site, AUTH::ICredentialStore& store, const CORE::CString& storeFolder, bool storeIsSealedFile )
+{
+    GUCEF_TESTFW_SUITE_SCOPE( "WebSignIn.HandOver" );
+
+    const AUTH::CWebSessionSignInSettings settings = MakeSettings( site );
+
+    GUCEF_TESTFW_TESTCASE( "Test: The user agent of the browser travels with the session, and only when it is known" )
+        try
+        {
+            AUTH::CWebSession session;
+            session.storeId = StoreId;
+            AUTH::CWebSessionCookie cookie;
+            cookie.name = "sid";
+            cookie.value.Set( "handOverValue77" );
+            cookie.domain = "127.0.0.1";
+            cookie.path = "/";
+            session.cookies.push_back( cookie );
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( session.ToSecret( secret ) && secret.Reveal().HasSubstr( "userAgent" ) < 0 );
+            session.userAgent = "Mozilla/5.0 (X11; Linux x86_64) TestChrome/140.0";
+            ASSERT_TRUE( session.ToSecret( secret ) );
+            AUTH::CWebSession again;
+            ASSERT_TRUE( again.FromSecret( secret ) && again.userAgent == session.userAgent && 1 == again.GetCookieCount() );
+            again.Clear();
+            ASSERT_TRUE( again.userAgent.IsNULLOrEmpty() );
+            secret.Clear();
+            session.Clear();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A session handed over from another browser is taken: only the cookies of the store's domains that are valid, saved sealed, SignedInEvent" )
+        try
+        {
+            AUTH::CWebSessionSignIn signIn( settings );
+            CSignInRecorder recorder;
+            Record( recorder, signIn );
+            signIn.SetSessionStore( &store );
+            signIn.ForgetSession();
+
+            AUTH::CWebSession given;
+            given.storeId = "anotherName";      // the store id of the sign in counts, not the one given
+            given.userAgent = "Mozilla/5.0 TestChrome/140.0";
+            AUTH::CWebSessionCookie cookie;
+            cookie.name = "sid";
+            cookie.value.Set( "handOverValue77" );
+            cookie.domain = "127.0.0.1";
+            cookie.path = "/";
+            given.cookies.push_back( cookie );
+            cookie.name = "tracker";
+            cookie.value.Set( "foreignValue88" );
+            cookie.domain = ".other.example";
+            given.cookies.push_back( cookie );
+            cookie.name = "stale";
+            cookie.value.Set( "staleValue99" );
+            cookie.domain = "127.0.0.1";
+            cookie.session = false;
+            cookie.expires = 1000.0;
+            given.cookies.push_back( cookie );
+
+            UInt32 kept = 0;
+            CORE::CString problem;
+            ASSERT_TRUE( signIn.AdoptSession( given, kept, problem ) );
+            ASSERT_TRUE( 1 == kept && problem.IsNULLOrEmpty() && signIn.HasSession() );
+            PumpFor( 50 );
+            ASSERT_TRUE( 1 == recorder.signedIn && recorder.lastHandedOver );
+            AUTH::CWebSession held;
+            ASSERT_TRUE( signIn.GetSession( held ) && held.storeId == StoreId && held.HasCookie( "sid" ) && !held.HasCookie( "tracker" ) && !held.HasCookie( "stale" ) );
+            ASSERT_TRUE( held.userAgent == given.userAgent );
+            held.Clear();
+
+            // saved: a new sign in object of the store reads it again
+            AUTH::CWebSessionSignIn later( settings );
+            later.SetSessionStore( &store );
+            ASSERT_TRUE( later.LoadSavedSession() );
+            if ( storeIsSealedFile )
+                ASSERT_FALSE( FolderHolds( storeFolder, "handOverValue77" ) );
+
+            // nothing of the store: refused with the reason, the session that is there stays
+            AUTH::CWebSession foreign;
+            cookie.name = "tracker";
+            cookie.value.Set( "foreignValue88" );
+            cookie.domain = ".other.example";
+            cookie.session = true;
+            cookie.expires = -1.0;
+            foreign.cookies.push_back( cookie );
+            ASSERT_FALSE( signIn.AdoptSession( foreign, kept, problem ) );
+            ASSERT_TRUE( 0 == kept && problem.HasSubstr( "None of the 1 cookies" ) >= 0 && signIn.HasSession() );
+            ASSERT_TRUE( problem.HasSubstr( "foreignValue88" ) < 0 );
+            given.Clear();
+            foreign.Clear();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Cookies the store renews in its answers are kept with the session; other domains and unchanged cookies are not; EndSession forgets it" )
+        try
+        {
+            AUTH::CWebSessionSignIn signIn( settings );
+            CSignInRecorder recorder;
+            Record( recorder, signIn );
+            signIn.SetSessionStore( &store );
+            ASSERT_TRUE( signIn.LoadSavedSession() );
+            WEB::CHttpCookieJar jar;
+            signIn.ApplySessionTo( jar );
+            ASSERT_FALSE( signIn.UpdateSessionCookies( jar ) );            // nothing changed
+
+            // the store renews the session cookie and sets a csrf cookie; a cookie of another site is in the jar too
+            WEB::CHttpCookie renewed;
+            renewed.name = "sid";
+            renewed.value = "renewedValue55";
+            renewed.domain = "127.0.0.1";
+            renewed.hostOnly = true;
+            renewed.path = "/";
+            jar.SetCookie( renewed );
+            renewed.name = "csrf";
+            renewed.value = "csrfValue66";
+            jar.SetCookie( renewed );
+            renewed.name = "foreign";
+            renewed.value = "foreignValue88";
+            renewed.domain = "other.example";
+            jar.SetCookie( renewed );
+            ASSERT_TRUE( signIn.UpdateSessionCookies( jar ) );
+            ASSERT_FALSE( signIn.UpdateSessionCookies( jar ) );            // taken already
+
+            AUTH::CWebSessionSignIn later( settings );
+            later.SetSessionStore( &store );
+            ASSERT_TRUE( later.LoadSavedSession() );
+            AUTH::CWebSession saved;
+            ASSERT_TRUE( later.GetSession( saved ) && saved.HasCookie( "csrf" ) && !saved.HasCookie( "foreign" ) && 2 == saved.GetCookieCount() );
+            WEB::CHttpCookieJar check;
+            saved.ApplyTo( check );
+            ASSERT_TRUE( check.GetCookieHeaderValue( "127.0.0.1", "/", false ).HasSubstr( "sid=renewedValue55" ) >= 0 );
+            saved.Clear();
+            if ( storeIsSealedFile )
+                ASSERT_FALSE( FolderHolds( storeFolder, "renewedValue55" ) );
+
+            signIn.EndSession( "the test ended it" );
+            PumpFor( 50 );
+            ASSERT_TRUE( !signIn.HasSession() && 1 == recorder.ended );
+            ASSERT_FALSE( later.LoadSavedSession() );
         }
         catch( ... )
         {
@@ -1048,6 +1272,7 @@ PerformWebSessionSignInTests( void )
             }
         GUCEF_TESTFW_TESTCASE_END
     }
+    PerformHandOverTests( site, store, storeFolder, sealed );
     PerformFakeSiteTests( site, store, storeFolder, sealed );
     PerformRealBrowserTests( site );
 
@@ -1062,6 +1287,10 @@ PerformWebSessionSignInTests( void )
                 secrets.push_back( TestEmailCode );
                 secrets.push_back( TestEmail );
                 secrets.push_back( "cookieSecretValue42" );
+                secrets.push_back( "handOverValue77" );
+                secrets.push_back( "foreignValue88" );
+                secrets.push_back( "renewedValue55" );
+                secrets.push_back( "csrfValue66" );
                 for ( size_t i=0; i<secrets.size(); ++i )
                 {
                     ASSERT_FALSE( capture.Contains( secrets[ i ] ) );

@@ -78,6 +78,7 @@ class GUCEF_AUTH_EXPORT_CPP CWebSession
     CORE::CString storeId;
     UInt64 capturedAtUtcInMs;
     TWebSessionCookieVector cookies;
+    CORE::CString userAgent;                    /**< the user agent of the browser the session was taken from; empty when not known. A clearance cookie of a bot protection can be bound to it */
 
     CWebSession( void );
     ~CWebSession();
