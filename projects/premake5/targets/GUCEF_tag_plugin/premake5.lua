@@ -155,6 +155,7 @@ filter "ALL"
   include( "plugins/SHARED/pluginglueOGRE" )
   include( "plugins/VFS/vfspluginAWSS3" )
   include( "plugins/VFS/vfspluginCUEBIN" )
+  include( "plugins/VFS/vfspluginDRN" )
   include( "plugins/VFS/vfspluginDVP" )
   include( "plugins/VFS/vfspluginISO9660" )
   include( "plugins/VFS/vfspluginITV" )

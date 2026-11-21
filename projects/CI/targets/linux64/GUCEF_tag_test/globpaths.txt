@@ -133,6 +133,7 @@ plugins/PUBSUB/pubsubpluginAWSSQS/*
 plugins/SHARED/pluginglueAWSSDK/include/*
 plugins/SHARED/pluginglueOGRE/*
 plugins/SHARED/pluginglueWAYLAND/*
+plugins/VFS/vfspluginDRN/*
 plugins/VIDEO/videocodecpluginWEBM/*
 tests/AssetConverterLib_TestApp/*
 tests/AssetStoreConverterHook_TestApp/*
@@ -160,6 +161,7 @@ tests/gucefGUI_WaylandTestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*
 tests/gucefMULTIPLAY_DesktopNotifyTestApp/*
+tests/gucefVFS_TestApp/src//*
 tests/gucefWEB_TestApp/src//*
 tests/guidriverImGuiOgre_TestApp/*
 tests/guidriverImGuiOpenGL_TestApp/*
@@ -168,6 +170,7 @@ tests/guidriverMyGUI_TestApp/*
 tests/guidriverOgre_TestApp/*
 tests/guidriverRmlUIOgre_TestApp/*
 tests/pluginglueOGRE_TestApp/*
+tests/vfspluginDRN_TestApp/*
 tools/AssetConverterLib/*
 tools/AssetStoreConverterHook/*
 tools/AssetWorkbenchLib/*
