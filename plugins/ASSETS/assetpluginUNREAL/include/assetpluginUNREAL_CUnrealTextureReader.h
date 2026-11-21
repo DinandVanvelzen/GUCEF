@@ -54,8 +54,8 @@ namespace UNREAL {
  *  that, an editor package does not, so no mip chain of a platform exists here.
  *
  *  The native data after the properties is, as far as read: the flag and value of the object guid, the strip flags, and the bulk
- *  data of the source: an editor bulk data record (UE5 file version 1009 and later; the payload is a compressed buffer in the
- *  package trailer) or the legacy bulk data header (earlier; the bytes are stored as they are).
+ *  data of the source: an editor bulk data record (UE5 file version 1002 and later; the payload is a compressed buffer in the
+ *  package trailer) or the legacy bulk data header (UE 4; the bytes are stored as they are or compressed with zlib in chunks).
  */
 class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureReader
 {

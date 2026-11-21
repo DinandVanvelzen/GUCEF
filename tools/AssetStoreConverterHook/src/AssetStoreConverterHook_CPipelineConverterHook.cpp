@@ -433,8 +433,11 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
     }
     CORE::CDataNode manifestNode( "assetpack", GUCEF_DATATYPE_OBJECT );
     manifest.Serialize( manifestNode );
-    if ( !ASSETCONVERTER::CCanonicalJson::Store( manifest.GetLicenceRecordPath(), licenceNode ) ||
-         !ASSETCONVERTER::CCanonicalJson::Store( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "pack.assetpack.json" ), manifestNode ) )
+    // a cook only run reads the intermediate of the pack and writes the cooked files elsewhere: the manifest and the licence
+    // record of the intermediate stay as the conversion of the intermediate wrote them
+    if ( !request.cookOnly &&
+         ( !ASSETCONVERTER::CCanonicalJson::Store( manifest.GetLicenceRecordPath(), licenceNode ) ||
+           !ASSETCONVERTER::CCanonicalJson::Store( ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "pack.assetpack.json" ), manifestNode ) ) )
     {
         outcome.status = ASSETSTORE::ASSETSTORE_STATUS_IO_ERROR;
         outcome.message = "the licence record and the manifest cannot be written in " + convertedFolder;
@@ -443,10 +446,17 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
 
     // the run
     ASSETCONVERTER::CAssetPipelineOptions options;
-    options.reimport = request.reconvert;
+    options.reimport = request.reconvert && !request.cookOnly;
     options.threads = settings.threads;
     options.threadPoolName = settings.threadPoolName;
-    options.reportPath = ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "report.json" );
+    options.reportPath = request.reportVfsPath.IsNULLOrEmpty() ? ASSETCONVERTER::CVfsPaths::Join( convertedFolder, "report.json" ) : request.reportVfsPath;
+    options.assetGlobs = request.assetGlobs;
+    options.noCook = request.noCook && !request.cookOnly;
+    if ( request.cookOnly )
+    {
+        options.mode = ASSETCONVERTER::PIPELINEMODE_COOK_ONLY;
+        options.noIndex = true;
+    }
     CRequestPipelineObserver observer( request.observer );
     options.observer = &observer;
     ASSETCONVERTER::CAssetPipeline pipeline;
@@ -485,9 +495,11 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
         outcome.record.reason = outcome.message;
         return outcome.status;
     }
+    bool failedRun = false;
     if ( !clean )
     {
         // the errors of the report, a few of them, then what the run wrote goes unless it would take an earlier conversion with it
+        failedRun = true;
         UInt32 errors = 0;
         const ASSETCONVERTER::CConversionReport::TEntryVector& entries = report.GetEntries();
         for ( size_t e=0; e<entries.size(); ++e )
@@ -503,6 +515,11 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
         }
         outcome.status = ASSETSTORE::ASSETSTORE_STATUS_FAILED;
         outcome.message = CORE::ToString( errors ) + " error(s) in the conversion report" + ( outcome.problems.empty() ? CORE::CString::Empty : ", the first: " + outcome.problems[ 0 ] );
+        if ( request.keepPartialResult )
+        {
+            // the caller takes what converted: the assets are mapped below, nothing is taken away
+        }
+        else
         if ( ASSETSTORE::CAssetConversionRecord::OutcomeConverted != request.pack.conversion.outcome )
         {
             if ( request.cookedVfsFolder.IsNULLOrEmpty() )
@@ -522,7 +539,8 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
                 vfs.DeleteFile( ASSETCONVERTER::CVfsPaths::Join( profileFolder, "sizes.json" ), true );
             }
         }
-        return outcome.status;
+        if ( !request.keepPartialResult )
+            return outcome.status;
     }
 
     const CORE::CString cookedFolder = ASSETCONVERTER::CVfsPaths::Normalize( request.cookedVfsFolder );
@@ -553,6 +571,12 @@ CPipelineConverterHook::ConvertPack( const ASSETSTORE::CAssetConversionRequest& 
         outcome.problems.push_back( CORE::ToString( outcome.record.approximatedCount ) + " asset(s) converted with approximations, see the conversion report" );
     if ( outcome.record.skippedCount > 0 )
         outcome.problems.push_back( CORE::ToString( outcome.record.skippedCount ) + " asset(s) skipped by the converter, see the conversion report" );
+    if ( failedRun )
+    {
+        // a run with errors whose result the caller keeps: the outcome stays FAILED with the assets that converted mapped
+        outcome.problems.push_back( CORE::ToString( mapped ) + " asset(s) converted in the run with errors" );
+        return outcome.status;
+    }
     outcome.status = ASSETSTORE::ASSETSTORE_STATUS_OK;
     outcome.message = CORE::ToString( mapped ) + " asset(s) converted";
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AssetStoreConverterHook: Pack " << request.pack.packId << ": " << outcome.message );

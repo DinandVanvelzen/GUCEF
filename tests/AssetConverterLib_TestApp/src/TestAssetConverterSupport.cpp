@@ -214,6 +214,15 @@ CStubImporter::Import( const CORE::CString& vfsPath, CAssetPackContext& /* conte
         report.AddError( "stub", vfsPath, "the source asks to fail" );
         return false;
     }
+    const CORE::CString skip = source.GetAttributeValueOrChildValueByName( "skip" ).AsString();
+    if ( !skip.IsNULLOrEmpty() )
+    {
+        // nothing to convert: the reason is reported; "declined" without the mark is a failure of the import
+        report.AddSkipped( "stub", vfsPath, skip );
+        if ( !source.GetAttributeValueOrChildValueByName( "unmarked" ).AsBool( false ) )
+            report.SetCurrentAssetSkipped();
+        return false;
+    }
     const CORE::CString folder = CVfsPaths::FolderOf( vfsPath );
     out.provenance.sourceFormat = "stub";
     out.provenance.sourceFormatVersion = "1";

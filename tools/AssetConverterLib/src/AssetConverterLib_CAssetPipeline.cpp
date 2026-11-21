@@ -874,6 +874,12 @@ CAssetPipeline::ConvertAsset( CAssetConversionJob& job )
         return FinishCancelled( job, entry, startTicks );
     if ( !imported )
     {
+        if ( entry.skipped && !entry.HasErrors() )
+        {
+            // the importer found nothing it converts in the asset and said why (CConversionReport::SetCurrentAssetSkipped())
+            Finish( job, ACTIVITYACTION_SKIPPED, reason, "nothing the importer converts", startTicks );
+            return false;
+        }
         if ( !entry.HasErrors() )
             report.AddError( job.importer->GetName(), job.assetPath, "the import failed" );
         Finish( job, ACTIVITYACTION_FAILED, reason, detail, startTicks );

@@ -66,8 +66,10 @@ bool
 CUnrealEditorBulkData::Read( CUnrealArchiveReader& reader, const CUnrealVersionContext& versions )
 {GUCEF_TRACE;
 
-    if ( !versions.IsAtLeast( UE5_DATA_RESOURCES ) )
-        return reader.SetError( "Editor bulk data records of UE5 file versions before 1009 are not supported" );
+    // the record has the same 48 byte layout from the first file version with the payload table of the package trailer
+    // (1002, verified on packages of version 1008 and 1009 to 1018)
+    if ( !versions.IsAtLeast( UE5_PAYLOAD_TOC ) )
+        return reader.SetError( "Editor bulk data records of UE5 file versions before 1002 are not supported" );
     flags = reader.ReadUInt32();
     reader.ReadGuid( bulkDataId );
     reader.Read( payloadId, sizeof( payloadId ) );

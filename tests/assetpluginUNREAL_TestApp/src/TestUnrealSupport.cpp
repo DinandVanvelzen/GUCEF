@@ -120,6 +120,8 @@ SetUpUnrealTests( void )
     bool loaded = LoadTestPlugin( "vfspluginLIBARCHIVE" );
     loaded = LoadTestPlugin( "vfspluginZIP" ) && loaded;
     loaded = LoadTestPlugin( "assetpluginUNREAL" ) && loaded;
+    // the zlib codec inflates the chunked payloads of the UE 4 packages
+    loaded = LoadTestPlugin( "codecspluginZLIB" ) && loaded;
     if ( !loaded )
         return false;
 

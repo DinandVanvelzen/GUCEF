@@ -183,7 +183,7 @@ PerformUnrealImporterTests( void )
         ASSERT_TRUE( CAssetReference::KindUsesMaterial == scene.references[ 0 ].kind && "work/importer/M_Rock.uasset" == scene.references[ 0 ].target && "/Game/Materials/M_Rock.M_Rock" == scene.references[ 0 ].via );
         ASSERT_TRUE( !scene.references[ 1 ].IsResolved() && "/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial" == scene.references[ 1 ].via );
         TAssetImporterPtr importer;
-        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "unreal", importer ) && 5 == importer->GetVersion() );
+        ASSERT_TRUE( CAssetConverterGlobal::Instance()->GetPluginRegistry().TryGetImporter( "unreal", importer ) && 6 == importer->GetVersion() );
     }
     catch ( ... )
     {

@@ -50,6 +50,11 @@
 #define GUCEF_ASSETPLUGIN_UNREAL_CUNREALCOMPRESSEDBUFFER_H
 #endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALCOMPRESSEDBUFFER_H ? */
 
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H
+#include "assetpluginUNREAL_CUnrealLegacyPayloadReader.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H ? */
+
 #ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALDELTATEXTUREDECODER_H
 #include "assetpluginUNREAL_CUnrealDeltaTextureDecoder.h"
 #define GUCEF_ASSETPLUGIN_UNREAL_CUNREALDELTATEXTUREDECODER_H
@@ -284,26 +289,13 @@ CUnrealTextureConverter::ConvertSource( CUnrealPackage& package                 
 
     // the bytes of the source
     CORE::CDynamicBuffer data;
-    if ( source.isLegacyPayload && 0 != ( source.payload.flags & CUnrealLegacyBulkData::FLAG_COMPRESSED_ZLIB ) )
-    {
-        result.unsupported = true;
-        result.error = "The source is legacy bulk data compressed with zlib in blocks (flag 0x2 of the bulk data, as the engines before UE 5.0 store it): this reader does not inflate it yet";
-        return false;
-    }
     if ( source.isLegacyPayload )
     {
-        const UInt64 size = source.payload.storedSize;
-        CUnrealArchiveReader payload;
-        if ( size > package.GetLimits().maxPayloadRawBytes || size > 0xFFFFFFF0ULL || !package.OpenPayload( source.payload, payload ) )
+        // stored as it is, or compressed with zlib in chunks (flag 0x2 of the bulk data, as the engines up to UE 4.27 store it)
+        bool codecMissing = false;
+        if ( !CUnrealLegacyPayloadReader::Read( package, source.payload, data, codecMissing, result.error ) )
         {
-            result.error = "The source data cannot be opened";
-            return false;
-        }
-        data.SetBufferSize( (UInt32) size, false );
-        data.SetDataSize( (UInt32) size );
-        if ( !payload.Read( data.GetBufferPtr(), size ) )
-        {
-            result.error = "The source data cannot be read: " + payload.GetError();
+            result.providerMissing = codecMissing;
             return false;
         }
     }
@@ -420,7 +412,8 @@ CUnrealTextureConverter::AddToScene( CUnrealPackage& package                    
                                      const CORE::CString& folder                ,
                                      ASSETCONVERTER::CAssetScene& scene         ,
                                      ASSETCONVERTER::CConversionReport& report  ,
-                                     Int32& textureIndex                        )
+                                     Int32& textureIndex                        ,
+                                     bool readFailureIsError                    )
 {GUCEF_TRACE;
 
     textureIndex = -1;
@@ -452,7 +445,13 @@ CUnrealTextureConverter::AddToScene( CUnrealPackage& package                    
         if ( result.unsupported )
             report.AddSkipped( SourceName, name, "Unsupported texture source: " + result.error );
         else
-            report.AddWarning( SourceName, name, "The texture cannot be read: " + result.error + ( 0 != result.toolCode ? " (exit code " + CORE::Int32ToString( result.toolCode ) + ")" : CORE::CString::Empty ) );
+        {
+            const CORE::CString message = "The texture cannot be read: " + result.error + ( 0 != result.toolCode ? " (exit code " + CORE::Int32ToString( result.toolCode ) + ")" : CORE::CString::Empty );
+            if ( readFailureIsError )
+                report.AddError( SourceName, name, message );
+            else
+                report.AddWarning( SourceName, name, message );
+        }
         return false;
     }
     CUnrealTextureReader reader;

@@ -323,6 +323,59 @@ RunHookSuite( SHookFixture& fixture )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( ( fixture.label + ": regeneration requests: a run of one asset into a staging folder, and a cook only run that leaves the manifest of the intermediate as it is" ).C_String() )
+        try
+        {
+            CAssetPackRecord pack;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( bothId, pack ) );
+            const CPackStorageLayout layout( pack.rootPath );
+            const CString root = base + "/main";
+            const CString staging = root + "/staging/regen-hooktest";
+            TAssetRecordVector assets;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( bothId, assets ) );
+            const CString manifestBefore = ReadVfsText( layout.Resolve( root, "intermediate/pack.assetpack.json" ) );
+
+            CAssetConversionRequest request;
+            request.pack = pack;
+            request.sourceVfsPath = layout.GetOriginalFolder( root );
+            request.sourcePrefix = layout.GetOriginalPrefix() + "/";
+            request.convertedVfsFolder = staging + "/intermediate";
+            request.convertedPathPrefix = "intermediate";
+            request.cookedVfsFolder = staging + "/gucef-ogre3d";
+            request.cookedPathPrefix = "gucef-ogre3d";
+            request.reconvert = true;
+            request.assetGlobs.push_back( "Models/SM_Tri_02.gltf" );
+            TAssetRecordVector converted = assets;
+            CAssetConversionOutcome outcome;
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == hook.ConvertPack( request, converted, outcome ) );
+            const CAssetRecord* first = FindAsset( converted, "SM_Tri_01" );
+            const CAssetRecord* second = FindAsset( converted, "SM_Tri_02" );
+            ASSERT_TRUE( GUCEF_NULL != first && GUCEF_NULL != second && first->convertedPath.IsNULLOrEmpty() && !second->convertedPath.IsNULLOrEmpty() );
+            const CString stagedReport = ReadVfsText( staging + "/intermediate/report.json" );
+            ASSERT_TRUE( stagedReport.HasSubstr( "SM_Tri_02" ) >= 0 && stagedReport.HasSubstr( "SM_Tri_01" ) < 0 );
+            ASSERT_TRUE( vfs.FileExists( layout.Resolve( root, "original/Models/SM_Tri_02.gltf" ) ) );
+
+            // the cook only run reads the intermediate of the pack and writes its report beside the staged cooked files
+            CAssetConversionRequest cook = request;
+            cook.assetGlobs.clear();
+            cook.reconvert = false;
+            cook.cookOnly = true;
+            cook.convertedVfsFolder = layout.GetIntermediateFolder( root, CString::Empty );
+            cook.reportVfsPath = staging + "/gucef-ogre3d/cook-report.json";
+            converted = assets;
+            const TAssetStoreStatus cooked = hook.ConvertPack( cook, converted, outcome );
+            ASSERT_TRUE( ASSETSTORE_STATUS_OK == cooked || ASSETSTORE_STATUS_FAILED == cooked );
+            ASSERT_TRUE( vfs.FileExists( staging + "/gucef-ogre3d/cook-report.json" ) );
+            const CString manifestAfter = ReadVfsText( layout.Resolve( root, "intermediate/pack.assetpack.json" ) );
+            ASSERT_TRUE( manifestBefore == manifestAfter && manifestAfter.HasSubstr( "regen-hooktest" ) < 0 );
+            vfs.DeleteDir( staging, true );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( ( fixture.label + ": keep converted: the glTF originals go after a clean report, the picture stays" ).C_String() )
         try
         {

@@ -127,6 +127,7 @@ struct SLayout
     bool rayTracingFlag;
     bool weights16;
     bool modelStripFlags;
+    UInt32 importedInfos;           /**< imported mesh infos per LOD: the parts of the import (several in packages of UE 5.4) */
 };
 
 /*-------------------------------------------------------------------------*/
@@ -191,7 +192,7 @@ WriteSection( CTestByteWriter& w, const SLayout& layout, UInt32 sectionId, UInt3
 /*-------------------------------------------------------------------------*/
 
 static void
-WriteLod( CTestByteWriter& w, const SLayout& layout, bool second )
+WriteLod( CTestByteWriter& w, CTestNames& names, const SLayout& layout, bool second )
 {
     w.U8( 0 ); w.U8( 0 );                           // strip flags
     if ( !second )
@@ -227,7 +228,13 @@ WriteLod( CTestByteWriter& w, const SLayout& layout, bool second )
         w.I32( 3 ); w.U32( 0 ); w.U32( 1 ); w.U32( 2 );
     }
     w.I32( 2 ); w.U16( 0 ); w.U16( 1 );             // active bones
-    w.I32( 0 );                                     // imported mesh infos
+    w.I32( (Int32) layout.importedInfos );          // imported mesh infos: name, vertex count, first imported vertex
+    for ( UInt32 i=0; i<layout.importedInfos; ++i )
+    {
+        names.WriteName( w, "Part_" + CORE::UInt32ToString( i ) );
+        w.I32( 2 + (Int32) i );
+        w.I32( 5 * (Int32) i );
+    }
     w.I32( 0 );                                     // size
     w.I32( second ? 3 : 7 );                        // vertex count
     w.I32( 3 ); w.U16( 0 ); w.U16( 1 ); w.U16( 2 ); // required bones
@@ -289,8 +296,8 @@ WriteSkeletalMeshNative( CTestByteWriter& w, CTestNames& names, const SLayout& l
     // the model
     if ( layout.modelStripFlags ) { w.U8( 0 ); w.U8( 0 ); }
     w.I32( 2 );
-    WriteLod( w, layout, false );
-    WriteLod( w, layout, true );
+    WriteLod( w, names, layout, false );
+    WriteLod( w, names, layout, true );
     w.Zero( 40 );                                   // the model guid and what follows: not read
 }
 
@@ -632,7 +639,7 @@ PerformUnrealMeshTests( void )
         {
             for ( UInt32 combination=0; combination<24; ++combination )
             {
-                SLayout layout;
+                SLayout layout = SLayout();
                 layout.doubles = versions[ v ].ue5 >= UE5_LARGE_WORLD_COORDINATES;
                 layout.materialSlotWords = 5 + combination % 3;
                 layout.rayTracingFlag = 0 != ( ( combination / 3 ) & 1 );
@@ -649,6 +656,59 @@ PerformUnrealMeshTests( void )
                 if ( !CheckMesh( mesh, layout ) )
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Mesh of version " << v << ", combination " << combination << " has the wrong content" );
                 ASSERT_TRUE( CheckMesh( mesh, layout ) );
+            }
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mesh: LOD models with imported mesh infos (an import of several parts, as UE 5.4 writes them) are read in every layout combination" )
+    try
+    {
+        struct SVersion { Int32 legacy; Int32 ue4; Int32 ue5; };
+        const SVersion versions[] = { { -8, 522, 1012 }, { -9, 522, 1018 } };
+        for ( UInt32 v=0; v<2; ++v )
+        {
+            for ( UInt32 combination=0; combination<24; ++combination )
+            {
+                SLayout layout = SLayout();
+                layout.doubles = true;
+                layout.materialSlotWords = 5 + combination % 3;
+                layout.rayTracingFlag = 0 != ( ( combination / 3 ) & 1 );
+                layout.weights16 = 0 != ( ( combination / 3 ) & 2 );
+                layout.modelStripFlags = 0 != ( ( combination / 3 ) & 4 );
+                layout.importedInfos = 1 + combination % 6;
+                GUCEF::vector< UInt8 > bytes;
+                BuildMeshPackage( versions[ v ].legacy, versions[ v ].ue4, versions[ v ].ue5, layout, bytes );
+                CUnrealSkeletalMesh mesh;
+                CORE::CString problem;
+                const bool ok = ReadMeshFromBytes( bytes, mesh, problem );
+                if ( !ok )
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Mesh with imported mesh infos of version " << v << ", combination " << combination << ": " << problem );
+                ASSERT_TRUE( ok && CheckMesh( mesh, layout ) );
+            }
+        }
+        // a negative count of imported mesh infos is not a layout
+        SLayout layout = SLayout();
+        layout.doubles = true;
+        layout.importedInfos = 2;
+        GUCEF::vector< UInt8 > bytes;
+        BuildMeshPackage( -8, 522, 1012, layout, bytes );
+        CUnrealSkeletalMesh mesh;
+        CORE::CString problem;
+        ASSERT_TRUE( ReadMeshFromBytes( bytes, mesh, problem ) );
+        for ( size_t i=0; i+4<=bytes.size(); ++i )
+        {
+            // the count 2 followed by the name of the first part
+            if ( 2 == bytes[ i ] && 0 == bytes[ i + 1 ] && 0 == bytes[ i + 2 ] && 0 == bytes[ i + 3 ] && i + 8 <= bytes.size() )
+            {
+                GUCEF::vector< UInt8 > bad = bytes;
+                bad[ i + 3 ] = 0x80;
+                CUnrealSkeletalMesh broken;
+                ReadMeshFromBytes( bad, broken, problem );
             }
         }
     }

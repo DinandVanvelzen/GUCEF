@@ -37,6 +37,7 @@ LOCAL_SRC_FILES := \
   src/assetpluginUNREAL_CUnrealHiddenFaceMap.cpp \
   src/assetpluginUNREAL_CUnrealImporter.cpp \
   src/assetpluginUNREAL_CUnrealLegacyBulkData.cpp \
+  src/assetpluginUNREAL_CUnrealLegacyPayloadReader.cpp \
   src/assetpluginUNREAL_CUnrealMaterialImporter.cpp \
   src/assetpluginUNREAL_CUnrealMaterialInstanceReader.cpp \
   src/assetpluginUNREAL_CUnrealMaterialMapper.cpp \

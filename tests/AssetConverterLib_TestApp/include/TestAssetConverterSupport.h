@@ -62,11 +62,14 @@
  *  { "system": "(+X, +Y, +Z, 1)", "normalMaps": "directx", "engine": "unreal",
  *    "nodes": [ { "name": "Box", "parent": -1, "mesh": true, "skinned": false, "size": 1, "position": [ 0, 0, 0 ], "material": 0 } ],
  *    "materials": [ { "name": "M", "baseColor": "tex.png", "normal": "normal.png" } ],
- *    "animations": [ "Walk" ], "dependencies": [ "notes.txt" ], "approximation": "what", "fail": false,
+ *    "animations": [ "Walk" ], "dependencies": [ "notes.txt" ], "approximation": "what", "fail": false, "skip": "why", "unmarked": false,
  *    "references": [ { "kind": "usesFile", "path": "data.bin", "via": "data.bin", "optional": false }, { "kind": "usesMesh", "via": "missing" } ] }
  *
  *  The textures of the materials are recorded as usesTexture relations (unresolved by their name when the file is not
  *  there), as a real importer does; "references" adds relations of any kind (no "path": unresolved).
+ *
+ *  "skip" makes the import report the reason as skipped and declare the asset skipped (CConversionReport::SetCurrentAssetSkipped());
+ *  with "unmarked" it reports the reason only, as an import that fails without an error.
  *
  *  Paths are relative to the folder of the .stub file. A node with a mesh gets a box of the size with normals and UVs,
  *  no tangents. The settings of the asset go into the extras of the scene ("settings"), so the tests see what reached

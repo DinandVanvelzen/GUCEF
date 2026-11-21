@@ -214,6 +214,17 @@ CConversionReport::GetCurrentEntry( void )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CConversionReport::SetCurrentAssetSkipped( void )
+{GUCEF_TRACE;
+
+    CConversionReportEntry* entry = GetCurrentEntry();
+    if ( GUCEF_NULL != entry )
+        entry->skipped = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CConversionReportEntry*
 CConversionReport::FindEntry( const CORE::CString& assetPath ) const
 {GUCEF_TRACE;

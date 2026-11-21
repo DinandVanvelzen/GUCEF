@@ -53,6 +53,8 @@
 #include "TestUnrealTexture.h"
 #include "TestUnrealDeltaTexture.h"
 #include "TestUnrealPackRecogniser.h"
+#include "TestUnrealPackTriage.h"
+#include "TestUnrealLegacyForms.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -108,7 +110,7 @@ GUCEF_OSMAIN_BEGIN
 
         if ( ready )
         {
-            // GUCEF_TEST_UNREAL_ONLY, a list of suite names (package, properties, robustness, importer, mesh, character, oodle, texture, corpus), limits the run
+            // GUCEF_TEST_UNREAL_ONLY, a list of suite names (package, properties, robustness, importer, mesh, character, oodle, texture, corpus, forms, triage), limits the run
             const char* only = getenv( "GUCEF_TEST_UNREAL_ONLY" );
             const CORE::CString selection = GUCEF_NULL != only ? CORE::CString( only ) : CORE::CString();
             if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "package" ) >= 0 ) PerformUnrealPackageTests();
@@ -123,6 +125,8 @@ GUCEF_OSMAIN_BEGIN
             if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "corpus" ) >= 0 ) PerformUnrealCorpusTests();
             if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "u8corpus" ) >= 0 ) PerformUnrealCorpusU8Tests();
             if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "recogniser" ) >= 0 ) PerformUnrealPackRecogniserTests();
+            if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "forms" ) >= 0 ) PerformUnrealLegacyFormTests();
+            if ( selection.IsNULLOrEmpty() || selection.HasSubstr( "triage" ) >= 0 ) PerformUnrealPackTriage();
         }
         TearDownUnrealTests();
 

@@ -755,7 +755,7 @@ PerformUnrealCorpusU8Tests( void )
             if ( !reader.Read( package, (UInt32) index, &provider, GUCEF_NULL, mesh ) )
             {
                 // the presets of the vehicles hold no source data at all
-                if ( reader.GetError().HasSubstr( "no source model with data" ) >= 0 )
+                if ( reader.IsWithoutGeometry() )
                 {
                     ++noData;
                     text += "no source data: " + mesh.name + "\n";
@@ -1023,7 +1023,7 @@ PerformUnrealCorpusU8Tests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
-    GUCEF_TESTFW_TESTCASE( "Corpus U8c: the textures of the UE 4.14 project (legacy bulk data compressed with zlib) are refused with their reason, without the tool" )
+    GUCEF_TESTFW_TESTCASE( "Corpus U8c: the textures of the UE 4.14 project (legacy bulk data compressed with zlib in chunks) are inflated through the zlib codec, without the tool" )
     if ( !CorpusEnabled() )
         GUCEF_TESTFW_SKIP( "GUCEF_TEST_ASSET_CORPUS is not set to 1" );
     const CORE::CString ue4Zip = CorpusSetting( "ue4zip" );
@@ -1067,9 +1067,9 @@ PerformUnrealCorpusU8Tests( void )
         }
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Corpus UE 4.14 textures: " << texturePackages << " packages, " << decoded << " decoded, " << unsupported << " unsupported, " << failed << " failed\n" << text );
         CORE::CString problem;
-        // the sources of this project are zlib compressed legacy bulk data: refused with that reason
-        ASSERT_TRUE( texturePackages >= 1 && 0 == failed && decoded + unsupported == texturePackages && 0 == noTool.GetStartCount() );
-        ASSERT_TRUE( CheckGolden( "u8c_ue414_textures", text, problem ) );
+        // the sources of this project are zlib compressed legacy bulk data: inflated by the zlib codec, no oodle tool involved
+        ASSERT_TRUE( texturePackages >= 1 && 0 == failed && decoded + unsupported == texturePackages && decoded > 0 && 0 == noTool.GetStartCount() );
+        ASSERT_TRUE( CheckGolden( "u8c_ue414_textures_zlib", text, problem ) );
         CORE::DeleteDir( WorkDiskPath( "u8c" ), true );
     }
     catch ( ... )

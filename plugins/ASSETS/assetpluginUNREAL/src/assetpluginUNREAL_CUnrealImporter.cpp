@@ -193,7 +193,9 @@ CUnrealImporter::GetVersion( void ) const
     // 3: texture sources stored as TSCF_UEDELTA are decoded (garment textures, hidden face maps)
     // 4: the hidden face map of each wardrobe item hides the body faces under its outfit (hidden face sets, faces kept)
     // 5: records the normalized relations of the object paths it resolves, engine and plugin content kept unresolved
-    return 5;
+    // 6: static meshes of UE 4.25 to 4.27, texture sources compressed with zlib in chunks, the editor bulk data of UE 5.0 to 5.2,
+    //    skeletal meshes with imported mesh infos; packages that hold nothing to convert are skipped with the reason
+    return 6;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -202,7 +204,7 @@ CORE::CString
 CUnrealImporter::GetCapabilities( void )
 {GUCEF_TRACE;
 
-    return CORE::CString( "Reads the package structure of editor packages of engine releases 4.14 to 5.8 (summary, tables, soft object paths, payload table) and their tagged properties in both tag layouts. Recognises .uasset, .umap and .mhpkg. Skeletal meshes with their skeletons and materials are converted, textures with the source forms PNG, JPEG and raw (Oodle payloads when the oodle tool is found, see CUnrealCapabilities); a .mhpkg archive becomes one character (the body and its garments on one skeleton, the stored PNG textures of the character asset, presentation hints for a portrait view); other texture forms (the delta source form of UE 5.6 and later), static meshes, animation and levels are not yet supported" ) + ". " + CUnrealCapabilities::GetOodleStatus();}
+    return CORE::CString( "Reads the package structure of editor packages of engine releases 4.14 to 5.8 (summary, tables, soft object paths, payload table) and their tagged properties in both tag layouts. Recognises .uasset, .umap and .mhpkg. Skeletal meshes with their skeletons and materials are converted, static meshes of 4.25 to 5.8 (their mesh descriptions) with their materials, textures with the source forms PNG, JPEG, raw and the delta form (Oodle payloads when the oodle tool is found, see CUnrealCapabilities; zlib payloads of UE 4 through the zlib codec); a .mhpkg archive becomes one character (the body and its garments on one skeleton, the stored PNG textures of the character asset, presentation hints for a portrait view); the raw meshes of releases before 4.25, animation, levels and other classes are not yet supported: packages that hold only those are skipped with the reason" ) + ". " + CUnrealCapabilities::GetOodleStatus();}
 
 /*-------------------------------------------------------------------------*/
 
@@ -335,6 +337,28 @@ ImportPackageFile( const CORE::CString& vfsPath, SImportState& state )
 
     // every class of a top level export is an asset kind
     const CUnrealPackage::TExportVector& exports = package.GetExports();
+    UInt32 topLevelAssets = 0;
+    for ( size_t i=0; i<exports.size(); ++i )
+        if ( exports[ i ].outerIndex.IsNull() && "MetaData" != package.GetClassName( exports[ i ] ) )
+            ++topLevelAssets;
+    if ( 0 == topLevelAssets && !state.assemble )
+    {
+        // the actors of a level that the editor keeps in packages of their own: their outer is the level in another package
+        CORE::CString::StringSet classes;
+        for ( size_t i=0; i<exports.size(); ++i )
+            if ( "MetaData" != package.GetClassName( exports[ i ] ) )
+                classes.insert( package.GetClassName( exports[ i ] ) );
+        CORE::CString classList;
+        for ( CORE::CString::StringSet::const_iterator c=classes.begin(); c!=classes.end() && classList.Length() < 200; ++c )
+            classList += ( classList.IsNULLOrEmpty() ? "" : ", " ) + (*c);
+        const CORE::CString subject = ( !summary.packageName.IsNULLOrEmpty() && '/' == summary.packageName[ 0 ] ) ? summary.packageName : ASSETCONVERTER::CVfsPaths::StemOf( vfsPath );
+        if ( classList.IsNULLOrEmpty() )
+            report.AddSkipped( "unreal", subject, "The package holds no asset: only the editor notes of a package (MetaData)" );
+        else
+            report.AddSkipped( "unreal", subject, "The package holds no asset of its own: its " + CORE::UInt64ToString( exports.size() ) + " exports (" + classList +
+                               ") belong to an object of another package, as the actors of a level that the editor stores one package per actor; levels are not yet converted" );
+        return;
+    }
     for ( size_t i=0; i<exports.size(); ++i )
     {
         if ( !exports[ i ].outerIndex.IsNull() )
@@ -413,17 +437,26 @@ ImportPackageFile( const CORE::CString& vfsPath, SImportState& state )
             }
             else
                 report.AddWarning( "unreal", exports[ i ].objectName, skeletonReader.GetError() );
+            if ( !state.assemble )
+                report.AddSkipped( "unreal", exports[ i ].objectName, "Class Skeleton: a skeleton is converted with the skeletal meshes that use it" );
             continue;
         }
+        if ( "MetaData" == className )
+            continue;       // the editor notes of the package, not an asset
         if ( "MaterialInstanceConstant" == className || "Material" == className )
-            continue;       // read with the meshes that use them
+        {
+            // read with the meshes that use them; a package that holds only a material converts nothing of its own
+            if ( !state.assemble && state.reportedClasses.insert( className ).second )
+                report.AddSkipped( "unreal", exports[ i ].objectName, "Class " + className + ": a material is converted with the meshes that use it" );
+            continue;
+        }
         if ( "StaticMesh" == className && !state.assemble )
         {
             CUnrealStaticMeshReader reader;
             CUnrealStaticMesh mesh;
             if ( !reader.Read( package, (UInt32) i, state.provider, &report, mesh ) )
             {
-                if ( reader.IsProviderMissing() )
+                if ( reader.IsProviderMissing() || reader.IsWithoutGeometry() )
                     report.AddSkipped( "unreal", exports[ i ].objectName, "Class StaticMesh: " + reader.GetError() );
                 else
                     report.AddError( "unreal", exports[ i ].objectName, reader.GetError() );
@@ -444,7 +477,7 @@ ImportPackageFile( const CORE::CString& vfsPath, SImportState& state )
         {
             // a package of a project is the texture itself (the textures of a character archive are read when the character asks for them)
             Int32 textureIndex = -1;
-            if ( CUnrealTextureConverter::AddToScene( package, (Int32) i, state.provider, state.textureFolder, scene, report, textureIndex ) )
+            if ( CUnrealTextureConverter::AddToScene( package, (Int32) i, state.provider, state.textureFolder, scene, report, textureIndex, true ) )
                 ++state.textureCount;
             continue;
         }
@@ -824,6 +857,10 @@ CUnrealImporter::Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPac
             if ( "uasset" == fileExtension || "umap" == fileExtension )
                 ImportPackageFile( files[ i ], state );
         }
+        if ( state.pending.empty() )
+            report.AddSkipped( "unreal", vfsPath, "The archive holds no skeletal mesh of the character: it carries the character definition only" +
+                               CORE::CString( state.haveCharacter ? " (" + CORE::UInt64ToString( state.character->textures.size() ) + " textures of its own)" : "" ) +
+                               ", whose body and head the MetaHuman tools generate; there is no geometry to convert" );
         AssembleCharacter( state.assetName, state );
         // the textures the materials name are packages of the archive: it stays mounted until they are read
         if ( !out.materials.empty() )
@@ -838,7 +875,15 @@ CUnrealImporter::Import( const CORE::CString& vfsPath, ASSETCONVERTER::CAssetPac
             CUnrealTextureConverter::AttachToMaterials( resolver, state.provider, state.textureFolder, out, report );
     }
     oodle.Stop();
-    return state.meshCount > 0 || state.textureCount > 0;
+    if ( state.meshCount > 0 || state.textureCount > 0 )
+        return true;
+
+    // nothing converted: when every part of the package was left out for a reason that is in the report (kinds that are not
+    // converted, sources the reader does not support) and nothing failed, the package is skipped, not failed
+    ASSETCONVERTER::CConversionReportEntry* entry = report.GetCurrentEntry();
+    if ( GUCEF_NULL != entry && !entry->HasErrors() && entry->GetItemCount( ASSETCONVERTER::REPORTITEM_SKIPPED ) > 0 )
+        report.SetCurrentAssetSkipped();
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -860,9 +905,10 @@ CUnrealImporter::IndexPack( ASSETCONVERTER::CAssetPackContext& context )
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "assetpluginUNREAL: The package " << files[ i ] << " is not indexed: " << package.GetError() );
             continue;
         }
-        if ( !package.GetSummary().packageName.IsNULLOrEmpty() )
+        const CORE::CString packageName = CUnrealObjectPathResolver::PackageNameOfFile( package.GetSummary().packageName, files[ i ] );
+        if ( !packageName.IsNULLOrEmpty() )
         {
-            context.SetIndexEntry( PackageIndexName, package.GetSummary().packageName, files[ i ] );
+            context.SetIndexEntry( PackageIndexName, packageName, files[ i ] );
             ++indexed;
         }
     }

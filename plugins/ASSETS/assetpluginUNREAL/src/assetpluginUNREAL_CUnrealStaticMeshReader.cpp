@@ -45,6 +45,26 @@
 #define GUCEF_ASSETPLUGIN_UNREAL_CUNREALCOMPRESSEDBUFFER_H
 #endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALCOMPRESSEDBUFFER_H ? */
 
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYBULKDATA_H
+#include "assetpluginUNREAL_CUnrealLegacyBulkData.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYBULKDATA_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYBULKDATA_H ? */
+
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H
+#include "assetpluginUNREAL_CUnrealLegacyPayloadReader.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALLEGACYPAYLOADREADER_H ? */
+
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALSTRIPDATAFLAGS_H
+#include "assetpluginUNREAL_CUnrealStripDataFlags.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALSTRIPDATAFLAGS_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALSTRIPDATAFLAGS_H ? */
+
+#ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALCUSTOMVERSIONIDS_H
+#include "assetpluginUNREAL_CUnrealCustomVersionIds.h"
+#define GUCEF_ASSETPLUGIN_UNREAL_CUNREALCUSTOMVERSIONIDS_H
+#endif /* GUCEF_ASSETPLUGIN_UNREAL_CUNREALCUSTOMVERSIONIDS_H ? */
+
 #ifndef GUCEF_ASSETPLUGIN_UNREAL_CUNREALSTATICMESHREADER_H
 #include "assetpluginUNREAL_CUnrealStaticMeshReader.h"
 #define GUCEF_ASSETPLUGIN_UNREAL_CUNREALSTATICMESHREADER_H
@@ -69,6 +89,7 @@ namespace UNREAL {
 CUnrealStaticMeshReader::CUnrealStaticMeshReader( void )
     : m_error()
     , m_providerMissing( false )
+    , m_withoutGeometry( false )
     , m_cancelled( false )
     , m_toolCode( 0 )
     , m_notes()
@@ -80,6 +101,7 @@ CUnrealStaticMeshReader::CUnrealStaticMeshReader( void )
 
 const CORE::CString& CUnrealStaticMeshReader::GetError( void ) const { return m_error; }
 bool CUnrealStaticMeshReader::IsProviderMissing( void ) const { return m_providerMissing; }
+bool CUnrealStaticMeshReader::IsWithoutGeometry( void ) const { return m_withoutGeometry; }
 bool CUnrealStaticMeshReader::IsCancelled( void ) const { return m_cancelled; }
 Int32 CUnrealStaticMeshReader::GetToolCode( void ) const { return m_toolCode; }
 const CORE::CString::StringVector& CUnrealStaticMeshReader::GetNotes( void ) const { return m_notes; }
@@ -253,6 +275,7 @@ CUnrealStaticMeshReader::Read( CUnrealPackage& package, UInt32 exportIndex, CIUn
     m_error.Clear();
     m_notes.clear();
     m_providerMissing = false;
+    m_withoutGeometry = false;
     m_cancelled = false;
     m_toolCode = 0;
     if ( exportIndex >= package.GetExports().size() )
@@ -290,6 +313,15 @@ CUnrealStaticMeshReader::Read( CUnrealPackage& package, UInt32 exportIndex, CIUn
     const UInt32 modelCount = values.GetCount( "SourceModels" );
     if ( 0 == modelCount )
         return Fail( "The static mesh has no source models: it holds no editor data (a cooked package) or is of the UE 4 raw mesh form, which this reader does not read" );
+    if ( !package.GetVersions().IsAtLeast( UE5_INITIAL_VERSION ) )
+    {
+        // UE 4: the mesh descriptions are legacy bulk data in the native data of the mesh itself
+        if ( !ReadUe4SourceModels( package, reader, out.materialSlots, modelCount, out ) )
+            return false;
+        for ( UInt32 m=0; m<(UInt32) out.lods.size(); ++m )
+            out.lods[ m ].screenSize = (Float32) values.GetDouble( "SourceModels/" + CORE::UInt32ToString( m ) + "/ScreenSize/default", 0.0 );
+        return true;
+    }
     for ( UInt32 m=0; m<modelCount; ++m )
     {
         const CORE::CString base = "SourceModels/" + CORE::UInt32ToString( m ) + "/";
@@ -344,7 +376,104 @@ CUnrealStaticMeshReader::Read( CUnrealPackage& package, UInt32 exportIndex, CIUn
         out.lods.push_back( lod );
     }
     if ( out.lods.empty() )
-        return Fail( "The static mesh has no source model with data" );
+    {
+        m_withoutGeometry = true;
+        return Fail( "The static mesh has no geometry data in the package: none of its source models holds a mesh description (stripped or empty)" );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUnrealStaticMeshReader::ReadUe4SourceModels( CUnrealPackage& package, CUnrealArchiveReader& reader, const CUnrealSkeletalMesh::TMaterialSlotVector& slots, UInt32 modelCount, CUnrealStaticMesh& out )
+{GUCEF_TRACE;
+
+    const CUnrealVersionContext& versions = package.GetVersions();
+    const Int32 editorVersion = versions.GetCustomVersion( CUnrealCustomVersionIds::EditorObjectVersion() );
+    if ( !versions.IsAtLeast( UE4_ADDED_PACKAGE_OWNER ) || editorVersion < 38 )
+        return Fail( "The source models of this UE 4 static mesh (UE4 file version " + CORE::Int32ToString( versions.GetUe4Version() ) + ", editor object version " + CORE::Int32ToString( editorVersion ) +
+                     ") are in the raw mesh form of the engines before 4.25, which this reader does not read" );
+
+    // the native data after the properties: the object guid, the strip flags, the cooked flag, the body setup and the navigation
+    // collision, two values of the editor data, the lighting guid, the sockets, then per source model a flag and its mesh description
+    if ( reader.ReadBool32() )
+    {
+        CUnrealGuid guid;
+        reader.ReadGuid( guid );
+    }
+    CUnrealStripDataFlags strip;
+    if ( !strip.Read( reader ) )
+        return Fail( "The strip flags of the static mesh cannot be read: " + reader.GetError() );
+    if ( strip.IsEditorDataStripped() )
+    {
+        m_withoutGeometry = true;
+        return Fail( "The static mesh has no geometry data in the package: its editor data is stripped" );
+    }
+    const UInt32 cooked = reader.ReadUInt32();
+    reader.ReadInt32();     // the body setup
+    reader.ReadInt32();     // the navigation collision
+    reader.Skip( 8 );       // two values of the editor data that the mesh does not need
+    CUnrealGuid lightingGuid;
+    reader.ReadGuid( lightingGuid );
+    const Int32 socketCount = reader.ReadInt32();
+    if ( reader.HasError() || cooked > 1 || socketCount < 0 || socketCount > 65536 )
+        return Fail( "The native data of the static mesh does not match the layout of UE 4.25 to 4.27 (cooked flag " + CORE::UInt32ToString( cooked ) + ", " + CORE::Int32ToString( socketCount ) + " sockets)" );
+    if ( 0 != cooked )
+        return Fail( "The static mesh is cooked: its source models are not in the package" );
+    reader.Skip( (UInt64) socketCount * 4 );
+
+    for ( UInt32 m=0; m<modelCount; ++m )
+    {
+        const UInt32 valid = reader.ReadUInt32();
+        if ( reader.HasError() || valid > 1 )
+            return Fail( "The native data of the static mesh does not match the layout of UE 4.25 to 4.27 at source model " + CORE::UInt32ToString( m ) );
+        if ( 0 == valid )
+        {
+            m_notes.push_back( "Source model " + CORE::UInt32ToString( m ) + " holds no mesh description (a level the engine makes itself): left out" );
+            continue;
+        }
+        CUnrealLegacyBulkData bulk;
+        if ( !bulk.Read( reader, versions ) )
+            return Fail( "The bulk data header of source model " + CORE::UInt32ToString( m ) + " cannot be read: " + reader.GetError() );
+        const UInt64 headerEnd = reader.GetPosition();
+        CUnrealPayloadReference payload;
+        bulk.ToReference( package.GetSummary().bulkDataStartOffset, headerEnd, package.GetSource().GetSize(), payload );
+        if ( 0 != ( bulk.flags & CUnrealLegacyBulkData::FLAG_FORCE_INLINE_PAYLOAD ) && bulk.sizeOnDisk > 0 && !reader.Skip( (UInt64) bulk.sizeOnDisk ) )
+            return Fail( "The inline mesh description of source model " + CORE::UInt32ToString( m ) + " lies outside the static mesh" );
+        CUnrealGuid guid;
+        reader.ReadGuid( guid );
+        const UInt32 guidIsHash = reader.ReadUInt32();
+        if ( reader.HasError() || guidIsHash > 1 )
+            return Fail( "The native data of the static mesh does not match the layout of UE 4.25 to 4.27 behind the bulk data of source model " + CORE::UInt32ToString( m ) );
+        if ( CUnrealPayloadReference::KIND_EMPTY == payload.kind )
+        {
+            m_notes.push_back( "Source model " + CORE::UInt32ToString( m ) + " holds no data: left out" );
+            continue;
+        }
+        CORE::CDynamicBuffer data;
+        bool codecMissing = false;
+        CORE::CString error;
+        if ( !CUnrealLegacyPayloadReader::Read( package, payload, data, codecMissing, error ) )
+        {
+            m_providerMissing = codecMissing;
+            return Fail( "The mesh description of source model " + CORE::UInt32ToString( m ) + " cannot be read: " + error );
+        }
+        CUnrealMeshDescription description;
+        if ( !description.ReadUe4Layout( static_cast< const UInt8* >( data.GetConstBufferPtr() ), data.GetDataSize() ) )
+            return Fail( "The mesh description of source model " + CORE::UInt32ToString( m ) + " cannot be read: " + description.GetError() );
+        CUnrealStaticMesh::SLod lod;
+        if ( !BuildLod( description, slots, lod, error ) )
+            return Fail( "Source model " + CORE::UInt32ToString( m ) + ": " + error );
+        if ( lod.sourceUvSetCount > lod.uvSetCount )
+            m_notes.push_back( "Source model " + CORE::UInt32ToString( m ) + " has " + CORE::UInt32ToString( lod.sourceUvSetCount ) + " UV sets: the first four are read" );
+        out.lods.push_back( lod );
+    }
+    if ( out.lods.empty() )
+    {
+        m_withoutGeometry = true;
+        return Fail( "The static mesh has no geometry data in the package: none of its source models holds a mesh description (stripped or empty)" );
+    }
     return true;
 }
 

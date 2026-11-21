@@ -556,17 +556,23 @@ PerformUnrealPackageTests( void )
         record.flags = 0x200;
         record.ToReference( GUCEF_NULL, reference );
         ASSERT_TRUE( CUnrealPayloadReference::KIND_UNAVAILABLE == reference.kind && reference.reason.HasSubstr( "has none" ) >= 0 );
-        // a package of an older UE5 version: the record layout is not known
+        // the record has the same layout from the first version with the payload table (1002, UE 5.0 to 5.2 included); before it is refused
         CTestByteWriter rec;
         rec.Zero( 48 );
         CUnrealPackageSource source;
         source.OpenMemory( &rec.bytes[ 0 ], 48, "r" );
         CUnrealArchiveReader reader;
         source.OpenRange( 0, 48, reader, 4096 );
+        CUnrealVersionContext early;
+        early.SetFileVersions( -8, 864, 522, 1005, 0 );
+        CUnrealEditorBulkData earlyRecord;
+        ASSERT_TRUE( earlyRecord.Read( reader, early ) && 48 == reader.GetPosition() );
+        CUnrealArchiveReader oldReader;
+        source.OpenRange( 0, 48, oldReader, 4096 );
         CUnrealVersionContext old;
-        old.SetFileVersions( -8, 864, 522, 1005, 0 );
+        old.SetFileVersions( -8, 864, 522, 1001, 0 );
         CUnrealEditorBulkData oldRecord;
-        ASSERT_FALSE( oldRecord.Read( reader, old ) );
+        ASSERT_FALSE( oldRecord.Read( oldReader, old ) );
     }
     catch ( ... )
     {

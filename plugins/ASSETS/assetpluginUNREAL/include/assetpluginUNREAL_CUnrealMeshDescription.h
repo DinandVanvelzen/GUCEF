@@ -124,6 +124,18 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealMeshDescription
     /** Reads the payload; false with GetError() when it does not follow the layout */
     bool Read( const UInt8* bytes, UInt64 size );
 
+    /**
+     *  Reads a payload in the layout of the engines 4.25 to 4.27 (UE4 file versions 518 to 522): the element arrays (a bit array
+     *  of the allocated ids each; then per allocated id the vertex of a vertex instance, the two vertices of an edge, the
+     *  perimeter and the polygon group of a polygon; nothing for vertices and polygon groups), the attribute sets of vertices,
+     *  vertex instances, edges, polygons and polygon groups (per attribute its name, type, id count and channels with the size of
+     *  a value, the count and the values; then the default value and flags), then the triangles (three vertex instances and the
+     *  polygon of each) and their attribute set, up to the last byte. The result has the elements and attributes the UE 5 layout
+     *  gives (Vertices, VertexInstances with VertexIndex, Triangles with VertexInstanceIndex and PolygonGroupIndex, PolygonGroups),
+     *  so that a reader of it reads both. False with GetError() when the bytes do not follow the layout.
+     */
+    bool ReadUe4Layout( const UInt8* bytes, UInt64 size );
+
     const CORE::CString& GetError( void ) const;
 
     const SElement* FindElement( const CORE::CString& name ) const;

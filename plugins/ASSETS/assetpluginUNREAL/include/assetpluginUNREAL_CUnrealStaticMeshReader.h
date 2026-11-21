@@ -68,8 +68,13 @@ namespace UNREAL {
  *  Oodle in all samples), which CUnrealMeshDescription reads. A source model without a payload (the levels the engine generates
  *  itself) is left out and noted.
  *
- *  Not read: the UE 4 raw mesh form (it lives in the native data of the mesh itself, in legacy bulk data), the collision of the
- *  body setup, sockets, the render data of cooked packages (an editor package has none).
+ *  In UE 4 (4.25 to 4.27, UE4 file versions 518 to 522) the native data of the mesh itself holds per source model a flag and
+ *  the legacy bulk data of its mesh description (compressed with zlib in chunks, CUnrealLegacyPayloadReader), which
+ *  CUnrealMeshDescription::ReadUe4Layout() reads.
+ *
+ *  Not read: the raw mesh form of the engines before 4.25, the collision of the body setup, sockets, the render data of cooked
+ *  packages (an editor package has none). A mesh whose source models hold no data has no geometry in the package: that is told
+ *  by IsWithoutGeometry(), so that it can be reported as skipped rather than failed.
  */
 class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealStaticMeshReader
 {
@@ -82,8 +87,11 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealStaticMeshReader
 
     const CORE::CString& GetError( void ) const;
 
-    /** The mesh could not be read because the oodle tool is not there */
+    /** The mesh could not be read because the oodle tool or the zlib codec is not there */
     bool IsProviderMissing( void ) const;
+
+    /** The mesh was not read because the package holds no geometry for it: no source model has data (stripped or empty) */
+    bool IsWithoutGeometry( void ) const;
 
     bool IsCancelled( void ) const;
 
@@ -98,9 +106,13 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealStaticMeshReader
     private:
     bool Fail( const CORE::CString& reason );
 
+    /** The source models of a UE 4 mesh, from the native data after the properties at the position of the reader */
+    bool ReadUe4SourceModels( CUnrealPackage& package, CUnrealArchiveReader& reader, const CUnrealSkeletalMesh::TMaterialSlotVector& slots, UInt32 modelCount, CUnrealStaticMesh& out );
+
     private:
     CORE::CString m_error;
     bool m_providerMissing;
+    bool m_withoutGeometry;
     bool m_cancelled;
     Int32 m_toolCode;
     CORE::CString::StringVector m_notes;
