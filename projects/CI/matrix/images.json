@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "images": [
+    { "name": "asset-store-service", "serviceEnv": "projects/k3s/assetstore/service.env", "registryName": "asset-store-service", "builder": "buildkit" },
+    { "name": "irc-hub", "serviceEnv": "projects/k3s/irc/hub/image-service.conf", "registryName": "gucef-irc-hub", "builder": "buildkit" }
+  ]
+}

@@ -6,6 +6,10 @@
 # Manual runs (workflow_dispatch) select toolchains, C++ standards, products and the mode (build, or build and test);
 # on a branch other than the push branches (for example scratch/...) a manual run builds everything selected.
 # Every cell writes report.json and gzip compressed logs per product, see projects/CI/scripts/ci_cell.sh.
+# Manual runs can also build container images (input 'images': names from projects/CI/matrix/images.json, or 'all') on the
+# image runner after every selected cell passed, see projects/CI/scripts/ci_image.sh. The images are pushed with the
+# repository secret CI_REGISTRY_TOKEN (a token of the registry user that may write packages of the registry owner,
+# set on the scratch repository by projects/k3s/forgejo/scratch-repo.sh); the job report is uploaded like the cell reports.
 name: gucef-ci
 
 on:
@@ -37,6 +41,10 @@ on:
         description: 'build: build only; test: build and run the test applications'
         required: false
         default: 'build'
+      images:
+        description: 'Container images to build and push after every selected cell passed: comma separated image names, all, empty: none'
+        required: false
+        default: ''
 
 jobs:
   plan:
@@ -90,3 +98,33 @@ jobs:
           CI_REPORT_TOKEN: ${{ secrets.CI_REPORT_TOKEN }}
           CI_TOOL: FORGEJO-ACTIONS
         run: bash projects/CI/scripts/ci_cell.sh
+
+  images:
+    needs: [plan, build]
+    if: github.event_name == 'workflow_dispatch' && needs.plan.outputs.any == 'true' && inputs.images != '' && needs.build.result == 'success'
+    runs-on: gucef-oci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push the requested images
+        shell: sh
+        env:
+          CI_RUN_ID: ${{ github.run_id }}
+          CI_SERVER_URL: ${{ github.server_url }}
+          CI_REF: ${{ github.ref }}
+          CI_SHA: ${{ github.sha }}
+          CI_IMAGES: ${{ inputs.images }}
+          CI_PUSH_BRANCHES: 'master,main'
+          CI_MATRIX_DIR: projects/CI/matrix
+          CI_REGISTRY_HOST: 'worker.lan:32001'
+          CI_REGISTRY_OWNER: 'ci'
+          CI_REGISTRY_USER: 'ci-bot'
+          CI_REGISTRY_TOKEN: ${{ secrets.CI_REGISTRY_TOKEN }}
+          CI_REPORT_UPLOAD_URL: ${{ github.server_url }}/api/packages/ci-bot/generic
+          CI_REPORT_TOKEN: ${{ secrets.CI_REPORT_TOKEN }}
+          CI_TOOL: FORGEJO-ACTIONS
+        run: |
+          if ! command -v bash >/dev/null 2>&1; then
+            if command -v apk >/dev/null 2>&1; then apk add --no-cache bash; elif command -v apt-get >/dev/null 2>&1; then apt-get update -qq && apt-get install -y -qq bash; fi
+          fi
+          command -v bash >/dev/null 2>&1 || { echo "bash is missing on the image runner and could not be installed"; exit 1; }
+          bash projects/CI/scripts/ci_image.sh

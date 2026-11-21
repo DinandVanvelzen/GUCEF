@@ -317,6 +317,60 @@ WriteProductsJson( const CProjectInfo& projectInfo                  ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The job that builds and pushes container images after every selected matrix cell passed.
+ *  Emitted only when cihelpergen:Matrix:Images is true. The images a run builds are named by the dispatch input
+ *  'images'; the hand maintained list of buildable images is <Matrix:Dir>/images.json, read by ci_image.sh.
+ */
+CORE::CString
+GenerateImagesJob( const CORE::CValueList& params        ,
+                   const CORE::CString& checkout         ,
+                   const CORE::CString& pushBranchList   ,
+                   const CORE::CString& reportOwner      ,
+                   const CORE::CString& matrixDir        )
+{GUCEF_TRACE;
+
+    CORE::CString runner = params.GetValueAlways( "cihelpergen:Matrix:ImageRunnerLabel" ).AsString( "gucef-oci", true );
+    // Empty host: ci_image.sh takes host and port of the server URL of the run
+    CORE::CString registryHost = params.GetValueAlways( "cihelpergen:Matrix:ImageRegistryHost" ).AsString( CORE::CString::Empty, true );
+    CORE::CString registryOwner = params.GetValueAlways( "cihelpergen:Matrix:ImageRegistryOwner" ).AsString( "ci", true );
+    CORE::CString registryUser = params.GetValueAlways( "cihelpergen:Matrix:ImageRegistryUser" ).AsString( "ci-bot", true );
+
+    return
+        "\n"
+        "  images:\n"
+        "    needs: [plan, build]\n"
+        "    if: github.event_name == 'workflow_dispatch' && needs.plan.outputs.any == 'true' && inputs.images != '' && needs.build.result == 'success'\n"
+        "    runs-on: " + runner + "\n"
+        "    steps:\n"
+        "      - uses: " + checkout + "\n"
+        "      - name: Build and push the requested images\n"
+        "        shell: sh\n"
+        "        env:\n"
+        "          CI_RUN_ID: ${{ github.run_id }}\n"
+        "          CI_SERVER_URL: ${{ github.server_url }}\n"
+        "          CI_REF: ${{ github.ref }}\n"
+        "          CI_SHA: ${{ github.sha }}\n"
+        "          CI_IMAGES: ${{ inputs.images }}\n"
+        "          CI_PUSH_BRANCHES: '" + pushBranchList + "'\n"
+        "          CI_MATRIX_DIR: " + matrixDir + "\n"
+        "          CI_REGISTRY_HOST: '" + registryHost + "'\n"
+        "          CI_REGISTRY_OWNER: '" + registryOwner + "'\n"
+        "          CI_REGISTRY_USER: '" + registryUser + "'\n"
+        "          CI_REGISTRY_TOKEN: ${{ secrets.CI_REGISTRY_TOKEN }}\n"
+        "          CI_REPORT_UPLOAD_URL: ${{ github.server_url }}/api/packages/" + reportOwner + "/generic\n"
+        "          CI_REPORT_TOKEN: ${{ secrets.CI_REPORT_TOKEN }}\n"
+        "          CI_TOOL: FORGEJO-ACTIONS\n"
+        "        run: |\n"
+        "          if ! command -v bash >/dev/null 2>&1; then\n"
+        "            if command -v apk >/dev/null 2>&1; then apk add --no-cache bash; elif command -v apt-get >/dev/null 2>&1; then apt-get update -qq && apt-get install -y -qq bash; fi\n"
+        "          fi\n"
+        "          command -v bash >/dev/null 2>&1 || { echo \"bash is missing on the image runner and could not be installed\"; exit 1; }\n"
+        "          bash projects/CI/scripts/ci_image.sh\n";
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 GenerateNightlyWorkflow( const CORE::CValueList& params, const CORE::CString& pathToMatrixDir )
 {GUCEF_TRACE;
@@ -345,6 +399,24 @@ GenerateNightlyWorkflow( const CORE::CValueList& params, const CORE::CString& pa
     // repository secret CI_REPORT_TOKEN exists (a token of a user that may write packages of the owner)
     CORE::CString reportOwner = params.GetValueAlways( "cihelpergen:Matrix:ReportPackageOwner" ).AsString( "ci-bot", true );
 
+    // Optional image job: off by default, so the workflow of a configuration without the key stays as it was
+    bool images = CORE::StringToBool( params.GetValueAlways( "cihelpergen:Matrix:Images" ), false );
+    CORE::CString imagesHeader;
+    CORE::CString imagesInput;
+    if ( images )
+    {
+        imagesHeader =
+            "# Manual runs can also build container images (input 'images': names from " + dir + "/images.json, or 'all') on the\n"
+            "# image runner after every selected cell passed, see projects/CI/scripts/ci_image.sh. The images are pushed with the\n"
+            "# repository secret CI_REGISTRY_TOKEN (a token of the registry user that may write packages of the registry owner,\n"
+            "# set on the scratch repository by projects/k3s/forgejo/scratch-repo.sh); the job report is uploaded like the cell reports.\n";
+        imagesInput =
+            "      images:\n"
+            "        description: 'Container images to build and push after every selected cell passed: comma separated image names, all, empty: none'\n"
+            "        required: false\n"
+            "        default: ''\n";
+    }
+
     CORE::CString yml =
         "# AUTO GENERATED BY PROJECTGENERATOR CI HELPER\n"
         "#\n"
@@ -352,7 +424,8 @@ GenerateNightlyWorkflow( const CORE::CValueList& params, const CORE::CString& pa
         "# The cells come from " + dir + "/matrix.json, the targets from " + dir + "/products.json.\n"
         "# Manual runs (workflow_dispatch) select toolchains, C++ standards, products and the mode (build, or build and test);\n"
         "# on a branch other than the push branches (for example scratch/...) a manual run builds everything selected.\n"
-        "# Every cell writes report.json and gzip compressed logs per product, see projects/CI/scripts/ci_cell.sh.\n"
+        "# Every cell writes report.json and gzip compressed logs per product, see projects/CI/scripts/ci_cell.sh.\n" +
+        imagesHeader +
         "name: gucef-ci\n"
         "\n"
         "on:\n" +
@@ -380,7 +453,8 @@ GenerateNightlyWorkflow( const CORE::CValueList& params, const CORE::CString& pa
         "      mode:\n"
         "        description: 'build: build only; test: build and run the test applications'\n"
         "        required: false\n"
-        "        default: 'build'\n"
+        "        default: 'build'\n" +
+        imagesInput +
         "\n"
         "jobs:\n"
         "  plan:\n"
@@ -434,6 +508,9 @@ GenerateNightlyWorkflow( const CORE::CValueList& params, const CORE::CString& pa
         "          CI_REPORT_TOKEN: ${{ secrets.CI_REPORT_TOKEN }}\n"
         "          CI_TOOL: FORGEJO-ACTIONS\n"
         "        run: bash projects/CI/scripts/ci_cell.sh\n";
+
+    if ( images )
+        yml += GenerateImagesJob( params, checkout, pushBranchList, reportOwner, dir );
 
     return yml;
 }
