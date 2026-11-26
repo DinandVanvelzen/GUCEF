@@ -70,7 +70,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealStaticMesh
         SSection( void );
     };
 
-    struct SLod
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SLod
     {
         GUCEF::vector< SSection > sections;
         Float32 screenSize;                         /**< 0 when the mesh does not state it */

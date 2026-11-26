@@ -72,7 +72,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealPresentationHints
     static const Float32 PortraitYawDegrees;
     static const Float32 PortraitPitchDegrees;
 
-    struct SVector
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SVector
     {
         Float32 v[ 3 ];
 
@@ -100,7 +100,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealPresentationHints
         SVector towardLight;                    /**< unit vector from the character to the light */
     };
 
-    struct SHints
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SHints
     {
         SVector up;
         SVector facing;

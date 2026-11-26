@@ -532,8 +532,8 @@ class CCngAesGcmCodec : public CInstanceBasedCodec
 /**
  *  "x25519" of CNG: ECDH on curve25519 (Windows 10 and later).
  *  Keys and the shared secret are in the little endian form of RFC 7748: the private scalar goes in as 'd' of a generic
- *  ECDH private blob, the public key is the X of a public blob (Y is not used on this curve), and the raw secret of
- *  BCRYPT_KDF_RAW_SECRET is little endian already.
+ *  ECDH private blob (clamped here, CNG does not), the public key is the X of a public blob (Y is not used on this
+ *  curve), and the raw secret of BCRYPT_KDF_RAW_SECRET is big endian and reversed here.
  */
 class CCngX25519Codec : public CICodec
 {
@@ -633,6 +633,13 @@ class CCngX25519Codec : public CICodec
             status = GUCEF_CODEC_STATUS_INVALID_INPUT;
         else
         {
+            // the raw secret of CNG is big endian, the secret of RFC 7748 is little endian
+            for ( UInt32 i=0; i<KeySize / 2; ++i )
+            {
+                const UInt8 swap = sharedSecret[ i ];
+                sharedSecret[ i ] = sharedSecret[ KeySize - 1 - i ];
+                sharedSecret[ KeySize - 1 - i ] = swap;
+            }
             UInt8 bits = 0;
             for ( UInt32 i=0; i<KeySize; ++i )
                 bits |= sharedSecret[ i ];
@@ -751,6 +758,12 @@ class CCngX25519Codec : public CICodec
         header->dwMagic = BCRYPT_ECDH_PRIVATE_GENERIC_MAGIC;
         header->cbKey = KeySize;
         memcpy( blob + sizeof( BCRYPT_ECCKEY_BLOB ) + 2 * KeySize, privateKey, KeySize );
+
+        // CNG uses the scalar as it is given: the clamping of RFC 7748 (what every other x25519 does itself) is up to the caller
+        UInt8* scalar = blob + sizeof( BCRYPT_ECCKEY_BLOB ) + 2 * KeySize;
+        scalar[ 0 ] &= 248;
+        scalar[ KeySize - 1 ] &= 127;
+        scalar[ KeySize - 1 ] |= 64;
         NTSTATUS status = BCryptImportKeyPair( algorithm, GUCEF_NULL, BCRYPT_ECCPRIVATE_BLOB, &key, blob, sizeof( blob ), BCRYPT_NO_KEY_VALIDATION );
         SecureZeroMemory( blob, sizeof( blob ) );
         if ( !NT_SUCCESS( status ) )

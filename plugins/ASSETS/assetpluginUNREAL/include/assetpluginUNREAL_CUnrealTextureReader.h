@@ -61,7 +61,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureReader
 {
     public:
 
-    struct STextureSource
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP STextureSource
     {
         CORE::CString name;                     /**< the object name of the export */
         UInt32 width;

@@ -91,6 +91,7 @@ const UInt64 LayoutQuietTimeInMs = 600;
 const UInt32 ThumbnailTileSize = 128;
 const UInt32 ThumbnailBudgetInMs = 6;
 const UInt32 ScriptWaitPulses = 3000;            /**< how long --ingest and --search wait for the store before the script goes on */
+const UInt32 PairOnlyTimeoutInSeconds = 90;      /**< how long --store-pair-only waits for the pairing to end */
 const UInt32 OpenWaitPulses = 60000;           /**< how long a screenshot waits for what is opening (a conversion of a pack can take minutes) */
 
 /** The input driver of the platform window that the Ogre window is made on */
@@ -151,6 +152,8 @@ CWorkbenchApp::CWorkbenchApp( int argc, char** argv )
     , m_resultActionsDone( false )
     , m_storeEndpoint()
     , m_storePairCode()
+    , m_storePairOnly( false )
+    , m_pairOnlyStartTick( 0 )
     , m_storeScriptStarted( false )
     , m_storeScriptDone( false )
     , m_storeScriptFrames( 0 )
@@ -254,6 +257,7 @@ CWorkbenchApp::LogUsage( void )
         "  --store-endpoint <host:port>       connect to the remote asset store service at this address (this computer has to be paired); the address of the\n"
         "                                     settings otherwise (worker.lan:47400)\n"
         "  --store-pair-code <code>           pair this computer with the service with the one-time code of a pairing window of the server, then connect\n"
+        "  --store-pair-only                  with --store-pair-code: only pair, log the outcome (see --log) and exit: 0 when this computer is paired, 8 when not\n"
         "  --screenshot <file.png>            write the window to the file once the ingests and the search are done, then exit\n"
         "  --bootstrap <file>                 the bootstrap config (plugins) to use instead of the one next to the executable\n"
         "  --config <file>                    the settings file to use instead of the settings of the user\n"
@@ -316,6 +320,8 @@ CWorkbenchApp::ParseCommandLine( void )
             m_screenshotFile = m_argv[ ++i ];
         else if ( "--store-endpoint" == arg && hasValue )
             m_storeEndpoint = m_argv[ ++i ];
+        else if ( "--store-pair-only" == arg )
+            m_storePairOnly = true;
         else if ( "--store-pair-code" == arg && hasValue )
         {
             m_storePairCode.Set( CORE::CString( m_argv[ ++i ] ) );
@@ -404,6 +410,7 @@ const CORE::CString::StringVector& CWorkbenchApp::GetIngestPaths( void ) const {
 const CORE::CString& CWorkbenchApp::GetSearchText( void ) const { return m_searchText; }
 const CORE::CString& CWorkbenchApp::GetStoreEndpoint( void ) const { return m_storeEndpoint; }
 bool CWorkbenchApp::HasStorePairCode( void ) const { return !m_storePairCode.IsEmpty(); }
+bool CWorkbenchApp::IsStorePairOnly( void ) const { return m_storePairOnly; }
 const CORE::CString& CWorkbenchApp::GetScreenshotFile( void ) const { return m_screenshotFile; }
 const CWorkbenchPreferences& CWorkbenchApp::GetPreferences( void ) const { return m_preferences; }
 const GUI::CGeneralSettings& CWorkbenchApp::GetGeneralSettings( void ) const { return m_generalSettings; }
@@ -909,11 +916,19 @@ CWorkbenchApp::ConfigureStoreConnection( void )
     settings.lanDiscovery = m_preferences.remoteLanDiscovery;
     connection->SetSettings( settings );
 
+    if ( m_storePairOnly && m_storePairCode.IsEmpty() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, AppName << ": --store-pair-only needs --store-pair-code" );
+        Stop( 2 );
+        return;
+    }
     if ( !m_storePairCode.IsEmpty() )
     {
-        connection->Pair( m_storePairCode );
+        // a pairing only run does not connect afterwards: its outcome is that this computer is paired
+        m_storeScriptStarted = connection->Pair( m_storePairCode, !m_storePairOnly );
         m_storePairCode.Clear();
-        m_storeScriptStarted = true;
+        if ( !m_storeScriptStarted )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, AppName << ": The pairing did not start: " << connection->GetErrorText() );
     }
     else
     if ( !m_storeEndpoint.IsNULLOrEmpty() || m_preferences.remoteConnectAtStart )
@@ -964,9 +979,44 @@ CWorkbenchApp::StepStoreConnection( void )
 /*-------------------------------------------------------------------------*/
 
 void
+CWorkbenchApp::FinishPairOnly( void )
+{GUCEF_TRACE;
+
+    // the outcome of --store-pair-only, in the log and as the exit code (0: paired, 8: not paired)
+    CWorkbenchStoreConnection* connection = m_shell->GetStoreConnection();
+    if ( GUCEF_NULL != connection && connection->IsPaired() )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, AppName << ": PAIRING OK: this computer is paired with the store service (" << connection->GetStateText() << ")" );
+        Stop( 0 );
+        return;
+    }
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, AppName << ": PAIRING FAILED: " <<
+        ( GUCEF_NULL == connection || connection->GetErrorText().IsNULLOrEmpty() ? CORE::CString( "no reason was given" ) : connection->GetErrorText() ) );
+    Stop( 8 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CWorkbenchApp::StepScript( void )
 {GUCEF_TRACE;
 
+    if ( m_storePairOnly )
+    {
+        // not tied to frames: the window may draw slowly. The pairing has its own time limit, this one only catches a task that never ends
+        CWorkbenchStoreConnection* pairing = m_shell->GetStoreConnection();
+        if ( GUCEF_NULL != pairing && m_storeScriptStarted && CWorkbenchStoreConnection::STATE_PAIRING == pairing->GetState() )
+        {
+            const UInt64 resolution = MT::PrecisionTimerResolution();
+            if ( 0 == m_pairOnlyStartTick )
+                m_pairOnlyStartTick = MT::PrecisionTickCount();
+            if ( 0 == resolution || ( MT::PrecisionTickCount() - m_pairOnlyStartTick ) / resolution < PairOnlyTimeoutInSeconds )
+                return;
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, AppName << ": The pairing did not end within " << PairOnlyTimeoutInSeconds << " seconds" );
+        }
+        FinishPairOnly();
+        return;
+    }
     // the steps of --ingest, --search and --screenshot: ingest, search, let the forms settle, write the window
     if ( !StepStoreConnection() )
         return;

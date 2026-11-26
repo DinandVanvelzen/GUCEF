@@ -203,6 +203,8 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchApp : public CORE::CGloballyConfigu
     const CORE::CString& GetStoreEndpoint( void ) const;
     /** Whether --store-pair-code was given and its code is not used yet; the code itself is not readable */
     bool HasStorePairCode( void ) const;
+    /** Whether --store-pair-only was given: the run ends with the outcome of the pairing */
+    bool IsStorePairOnly( void ) const;
 
     virtual bool SaveConfig( CORE::CDataNode& globalConfig ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool LoadConfig( const CORE::CDataNode& globalConfig ) GUCEF_VIRTUAL_OVERRIDE;
@@ -227,6 +229,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchApp : public CORE::CGloballyConfigu
     void StepScript( void );
     void ConfigureStoreConnection( void );
     bool StepStoreConnection( void );
+    void FinishPairOnly( void );
     void Stop( Int32 exitCode );
 
     CWorkbenchApp( const CWorkbenchApp& src );              /**< not implemented: the application is unique */
@@ -262,6 +265,8 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchApp : public CORE::CGloballyConfigu
     bool m_resultActionsDone;
     CORE::CString m_storeEndpoint;          /**< --store-endpoint */
     AUTH::CSecretString m_storePairCode;    /**< --store-pair-code: wiped when it was used */
+    bool m_storePairOnly;                   /**< --store-pair-only: pair, log the outcome and exit */
+    UInt64 m_pairOnlyStartTick;
     bool m_storeScriptStarted;
     bool m_storeScriptDone;
     UInt32 m_storeScriptFrames;

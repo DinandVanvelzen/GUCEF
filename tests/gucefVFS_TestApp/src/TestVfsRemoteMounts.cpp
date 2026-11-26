@@ -222,7 +222,7 @@ PerformVfsRemoteMountsTests( void )
     {
         CRemoteTestEnv env( "gucefvfs-evt1" );
         REQUIRE( env.Setup() );
-        VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+        VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
         ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
         REQUIRE( env.WaitForEvents( VFS::CRemoteArchiveEvents::MetadataArrivedEvent, CRemoteTestEnv::ReadmeFile, 1, 4000 ) );
 
@@ -248,7 +248,7 @@ PerformVfsRemoteMountsTests( void )
         CTestEventRecorder second;
         second.Listen( &env.Vfs() );
 
-        VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+        VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
         ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::TopFile ) ) );
         ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
         REQUIRE( env.WaitForEvents( VFS::CRemoteArchiveEvents::MetadataArrivedEvent, CRemoteTestEnv::ReadmeFile, 1, 4000 ) );
@@ -285,7 +285,7 @@ PerformVfsRemoteMountsTests( void )
         options.maxRunning = 1;
         REQUIRE( env.Setup( options ) );
         const char* const names[ 5 ] = { CRemoteTestEnv::ReadmeFile, CRemoteTestEnv::NotesFile, CRemoteTestEnv::BigFile, CRemoteTestEnv::MidFile, CRemoteTestEnv::TopFile };
-        VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+        VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
         for ( UInt32 i=0; i<5; ++i )
         {
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( names[ i ] ) ) );
@@ -323,7 +323,7 @@ PerformVfsRemoteMountsTests( void )
             CStopOnExit stopper( pumpBody );
             ASSERT_TRUE( pump.Start() );
 
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
             REQUIRE( env.WaitForEvents( VFS::CRemoteArchiveEvents::MetadataArrivedEvent, CRemoteTestEnv::ReadmeFile, 1, 4000 ) );
             for ( UInt32 waited=0; waited<5000 && 0 == behind.Count( VFS::CRemoteArchiveEvents::MetadataArrivedEvent ); ++waited )
@@ -350,7 +350,7 @@ PerformVfsRemoteMountsTests( void )
         CRemoteTestEnv env( "gucefvfs-evt5" );
         env.Setup();
         env.Backend().SetDelayMs( 30 );
-        VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+        VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
         const UInt64 start = CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
         ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
         ASSERT_TRUE( CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs() - start < 25 );
@@ -399,9 +399,9 @@ PerformVfsRemoteMountsTests( void )
     {
         CRemoteTestEnv env( "gucefvfs-evt7" );
         REQUIRE( env.Setup() );
-        env.Backend().SetDelayMs( 150 );
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
+            ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::TopFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::DeepFile ) ) );
@@ -422,7 +422,7 @@ PerformVfsRemoteMountsTests( void )
         env.Backend().SetDelayMs( 0 );
         REQUIRE( env.Restart( false ) );
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
         }
         ASSERT_TRUE( env.Scheduler().WaitUntilIdle( 10000 ) );
@@ -449,7 +449,7 @@ PerformVfsRemoteMountsTests( void )
         REQUIRE( twin.IsMounted() );
 
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) ) );
             const SLoopAnswers answers = AskAll( env.Vfs(), env.VfsPath( CRemoteTestEnv::ReadmeFile ), env.VfsPath( "docs" ), "readme.txt" );
             ASSERT_FALSE( answers.fileExists );
             ASSERT_FALSE( answers.dirExists );
@@ -549,7 +549,7 @@ PerformVfsRemoteMountsTests( void )
 
         VFS::CVFS::TStringVector files;
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
             ASSERT_FALSE( env.Vfs().GetFileList( files, env.VfsPath( "docs" ), false, false, CORE::CString::EmptyStringSet, GUCEF_UINT32MAX ) );
             ASSERT_TRUE( files.empty() );
             REQUIRE( env.WaitForEvents( VFS::CRemoteArchiveEvents::ListingArrivedEvent, "docs/", 1, 4000 ) );
@@ -580,7 +580,7 @@ PerformVfsRemoteMountsTests( void )
         CRemoteTestEnv env( "gucefvfs-stop4" );
         REQUIRE( env.Setup() );
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
         }
         VFS::CVfsCallResult mine;

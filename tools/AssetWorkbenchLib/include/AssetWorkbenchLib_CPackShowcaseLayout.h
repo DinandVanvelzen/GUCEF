@@ -62,7 +62,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CPackShowcaseLayout
 {
     public:
 
-    struct SItem
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SItem
     {
         CORE::CString path;         /**< the path of the model in the pack */
         CORE::CString group;        /**< the folder it is grouped under */
@@ -82,7 +82,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CPackShowcaseLayout
     };
     typedef GUCEF::vector< SCell > TCellVector;
 
-    struct SOptions
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SOptions
     {
         UInt32 maxColumns;          /**< 8 */
         Float32 gap;                /**< the gap between two footprints as part of the biggest footprint, 0.35 */

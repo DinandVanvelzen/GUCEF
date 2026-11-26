@@ -389,6 +389,47 @@ SetEnv( const CString& key   ,
 
 /*--------------------------------------------------------------------------*/
 
+bool
+UnsetEnv( const CString& key )
+{GUCEF_TRACE;
+
+    if ( key.IsNULLOrEmpty() )
+        return false;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // an empty value removes the variable from the environment of the process
+    return 0 == _putenv_s( key.C_String(), "" );
+
+    #else
+
+    return 0 == unsetenv( key.C_String() );
+
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+bool
+IsProcessExiting( void )
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    typedef BOOLEAN ( NTAPI* TRtlDllShutdownInProgress )( void );
+    static TRtlDllShutdownInProgress shutdownInProgress = reinterpret_cast< TRtlDllShutdownInProgress >(
+        reinterpret_cast< void* >( ::GetProcAddress( ::GetModuleHandleW( L"ntdll.dll" ), "RtlDllShutdownInProgress" ) ) );
+    return GUCEF_NULL != shutdownInProgress && FALSE != shutdownInProgress();
+
+    #else
+
+    return false;
+
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
 void
 SetEnvOverride( const CString& key   ,
                 const CString& value )

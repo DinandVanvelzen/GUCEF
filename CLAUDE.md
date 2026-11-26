@@ -233,7 +233,23 @@ MyClass::MyClass( MyClass&& src ) GUCEF_NOEXCEPT
 #endif
 ```
 
+### Platform Abstraction and Porting Rules
+
+- **Reuse the existing platform abstractions.** Before writing any platform specific code (`#if` on the platform, `setenv`, `chmod`, `icacls`, WinAPI calls, ...), check whether GUCEF CORE / MT already offers an abstraction for it (for example `CORE::SetEnv()`/`GetEnv()` in `DVCPPOSWRAP.h`, `CORE::SetOwnerOnlyAccess()` in `dvcppfileutils.h`). If it exists, use it. If it has a bug, fix it there. If it needs to be expanded for a platform, expand it there. Do not add local per platform workarounds in modules, tools or tests.
+- **C++ is the main implementation, C wraps C++.** The direction in the codebase is C functions mapping to C++ functions, not the other way around. Implement new helpers in C++ (`DVCPPOSWRAP`, `dvcppfileutils`, ...). Add a C function (`DVOSWRAP`) only as a thin wrapper over the C++ function, and only when the plugin C API needs it.
+- **Windows macros: undefine, do not rename.** When a macro from the Windows headers (`near`, `far`, `STATUS_PENDING`, `GetMessage`, `INPUT`, ...) clashes with a GUCEF identifier, `#undef` it where the header exposes it. Do not rename GUCEF enums, members or variables to avoid it. Such macros should not leak into GUCEF headers to begin with.
+- **Porting means it works, on every platform.** A fix for one platform must not break Linux or the other platforms. Getting a build to compile is not enough: the tests have to pass and no functionality may be removed or disabled to make them pass.
+- **Check for a platform guard that runs too early.** `#if GUCEF_PLATFORM == ...` evaluated before any GUCEF header is included is true on every platform (both sides undefined). Include `gucef_platform.h` first.
+
 ## Workflow Notes
+
+### Commit Messages
+
+- Check these rules and `git log` for the style before every commit, and re-read the message against them before committing.
+- Describe what the change is and why it is needed, as it stands. No prose about how things changed over time ("now", "no longer", "used to", "previously", "after this change").
+- No date references (dates, "recently", "latest", "this week").
+- Style of the history: one subject line (`Area: what`), then a prose body that gives the reason and the mechanism. No filler, no list of every touched file.
+- Do not commit unless asked.
 
 ### When Facing Complex Changes or Multiple Errors
 

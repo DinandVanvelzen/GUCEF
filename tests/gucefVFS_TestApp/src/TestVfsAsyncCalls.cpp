@@ -1383,7 +1383,7 @@ PerformVfsAsyncCallsTests( void )
         VFS::CVfsFileSystemAccess access( env.Vfs(), "test" );
 
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) ) );
             CORE::CResourceMetaData metaData;
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_REMOTE_NOT_YET_AVAILABLE == access.TryGetMetaData( env.VfsPath( E::MidFile ), metaData ) );
             CORE::TFileSystemEntryType entryType = CORE::FILESYSTEMENTRYTYPE_FILE;

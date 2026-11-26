@@ -75,7 +75,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealMetaHumanCharacter
     public:
 
     /** One texture of the character: what the property maps say and where its payload is */
-    struct STexture
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP STexture
     {
         CORE::CString group;            /**< "face" or "body" */
         CORE::CString type;             /**< the enumerator without its type, for example "Basecolor" or "Body_Normal" */

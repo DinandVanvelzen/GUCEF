@@ -498,6 +498,9 @@ typedef uLong FAR uLongf;
 #    define Z_HAVE_UNISTD_H
 #  endif
 #endif
+#if defined(_MSC_VER)
+#  undef Z_HAVE_UNISTD_H
+#endif
 #ifndef Z_SOLO
 #  if defined(Z_HAVE_UNISTD_H)
 #    include <unistd.h>         /* for SEEK_*, off_t, and _LFS64_LARGEFILE */

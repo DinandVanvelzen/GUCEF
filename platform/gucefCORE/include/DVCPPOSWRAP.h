@@ -73,6 +73,25 @@ SetEnv( const CString& key   ,
 
 /*--------------------------------------------------------------------------*/
 
+/**
+ *  Removes the variable from the environment of the process, which is not the same as giving it an empty value.
+ *  Succeeds when the variable is gone, also when it was not there.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+UnsetEnv( const CString& key );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Whether the process is being torn down: the global destructors that run when it exits. On Windows the operating
+ *  system has ended all other threads of the process by then, so nothing can be waited on that ran on one of them.
+ *  Always false where the other threads are still there.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+IsProcessExiting( void );
+
+/*--------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP void
 SetEnvOverride( const CString& key   ,
                 const CString& value );

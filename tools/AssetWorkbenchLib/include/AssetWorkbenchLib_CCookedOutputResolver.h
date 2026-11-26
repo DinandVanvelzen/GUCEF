@@ -86,7 +86,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CCookedOutputResolver
         STATE_CURRENT           /**< the cooked files are there and the key of the entry stands */
     };
 
-    struct SOptions
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SOptions
     {
         CORE::CString profile;      /**< the cook profile whose files are wanted: "desktop" */
         SOptions( void );

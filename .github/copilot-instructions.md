@@ -1,0 +1,10 @@
+# Copilot Instructions
+
+## Project Guidelines
+- Do not edit generated CMakeLists.txt files directly. ProjectGenerator-owned metadata such as ModuleInfo.xml, ProjectGenInstructions.xml, and related instruction files are the authoritative sources; changes must be made there and propagated through ProjectGenerator.
+- Reuse the existing platform abstractions. Before writing platform specific code, check whether GUCEF CORE / MT already offers one (for example CORE::SetEnv()/GetEnv() in DVCPPOSWRAP.h, CORE::SetOwnerOnlyAccess() in dvcppfileutils.h). If it does, use it; if it has a bug, fix it there; if it needs to be expanded for a platform, expand it there. Do not add local per platform workarounds in modules, tools or tests.
+- C++ is the main implementation and C wraps C++, not the other way around. Implement new helpers in C++ (DVCPPOSWRAP, dvcppfileutils, ...). Add a C function (DVOSWRAP) only as a thin wrapper over the C++ function, and only when the plugin C API needs it.
+- When a macro from the Windows headers (near, far, STATUS_PENDING, GetMessage, INPUT, ...) clashes with a GUCEF identifier, #undef it where the header exposes it. Do not rename GUCEF enums, members or variables to avoid it.
+- A fix for one platform must not break Linux or other platforms. Getting a build to compile is not enough: tests have to pass and no functionality may be removed or disabled to make them pass.
+- Commit messages: check these rules and `git log` for the style before every commit, and re-read the message against them. Describe what the change is and why, as it stands: no prose about how things changed over time ("now", "no longer", "previously"), no date references. One subject line (`Area: what`) and a prose body with the reason and mechanism. Do not commit unless asked.
+- Platform guards such as `#if GUCEF_PLATFORM == ...` are true on every platform when evaluated before any GUCEF header is included; include gucef_platform.h first.

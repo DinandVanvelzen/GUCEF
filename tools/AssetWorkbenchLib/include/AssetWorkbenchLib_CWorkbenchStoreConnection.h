@@ -165,7 +165,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchStoreConnection : public CORE::CObs
     typedef GUCEF::vector< SDiscoveredService > TDiscoveredVector;
 
     /** What the connection is made from; the application sets it from its preferences (CWorkbenchPreferences) */
-    struct SSettings
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SSettings
     {
         CORE::CString endpoint;             /**< "host:port" or "tcp://host:port"; empty: the endpoints of the credentials, else a look on the network */
         UInt32 pairingPort;                 /**< the port of the pairing listener on the host of the endpoint; 47401 */

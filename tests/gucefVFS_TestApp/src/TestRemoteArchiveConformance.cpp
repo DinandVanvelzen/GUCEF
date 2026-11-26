@@ -519,7 +519,7 @@ PerformRemoteArchiveCases( const char* suiteName )
         ASSERT_TRUE( env.Vfs().FileExists( env.VfsPath( E::MidFile ) ) );
         env.Backend().ResetCounters();
 
-        VFS::CVfsThreadPolicyScope scope( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) );
+        VFS::CVfsThreadPolicyScope scope( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) ) );
         ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( E::ReadmeFile ) ) );
         VFS::CVfsCallResult result;
         env.Vfs().GetLastResult( result );
@@ -2216,7 +2216,7 @@ PerformRemoteArchiveCases( const char* suiteName )
 
         // a thread that never waits, and nothing is known yet
         {
-            VFS::CVfsThreadPolicyScope marked( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) );
+            VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL ) ) );
             ASSERT_TRUE( env.Vfs().DirExists( root ) );
             env.Vfs().GetLastResult( result );
             ASSERT_TRUE( result.IsSuccess() );

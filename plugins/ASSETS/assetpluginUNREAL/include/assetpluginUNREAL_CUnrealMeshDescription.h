@@ -84,7 +84,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealMeshDescription
         ATTRIBUTE_NAME
     };
 
-    struct SAttribute
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SAttribute
     {
         CORE::CString name;
         UInt32 type;
@@ -101,7 +101,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealMeshDescription
         Int32 GetInt32( UInt32 block, UInt32 id, UInt32 index ) const;
     };
 
-    struct SChannel
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SChannel
     {
         UInt32 slotCount;
         GUCEF::vector< UInt8 > allocated;               /**< one byte per slot, 1 when the id exists */

@@ -53,6 +53,13 @@
 
 #endif /* Linux ? */
 
+#if defined( _WIN32 )
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+#endif /* Windows ? */
+
 /*
  *  macOS has no MSG_NOSIGNAL, and the SIGPIPE of a write to a connection of which the peer is gone is raised for the process there,
  *  not for the writing thread: the sockets of the test servers get the socket option that makes such a write fail instead
@@ -417,6 +424,8 @@ class CTlsTestServer
         }
         ::close( sock );
         return port;
+        #elif defined( _WIN32 )
+        return TESTFW::FindFreeTcpPort( 0 );
         #else
         return 0;
         #endif

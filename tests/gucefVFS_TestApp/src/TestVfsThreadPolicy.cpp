@@ -259,7 +259,7 @@ PerformVfsThreadPolicyTests( void )
         ASSERT_TRUE( VFS::MISSACTION_WAIT == registry.GetCurrent().missAction );
         CPolicyProbe probe( &registry );
         {
-            VFS::CVfsThreadPolicyScope scope( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) );
+            VFS::CVfsThreadPolicyScope scope( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
             ASSERT_TRUE( VFS::MISSACTION_FAIL_AND_FETCH == registry.GetCurrent().missAction );
             CTestThreads threads( probe, 1 );
             ASSERT_TRUE( threads.Start() );

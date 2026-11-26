@@ -70,7 +70,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealPackageSummary
 {
     public:
 
-    struct SEngineVersion
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SEngineVersion
     {
         UInt16 major;
         UInt16 minor;

@@ -68,7 +68,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealCharacterAssembler
     static const Float64 BindScaleTolerance;
 
     /** A mesh to assemble and the scene materials of its material slots */
-    struct SPart
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SPart
     {
         const CUnrealSkeletalMesh* mesh;
         const GUCEF::vector< Int32 >* slotMaterials;
@@ -79,7 +79,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealCharacterAssembler
     typedef GUCEF::vector< SPart > TPartVector;
 
     /** What the assembly made */
-    struct SResult
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SResult
     {
         UInt32 rootNode;                            /**< the node named after the character, the parent of everything else */
         UInt32 skinIndex;                           /**< the one skin of the character */

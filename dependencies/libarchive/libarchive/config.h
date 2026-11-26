@@ -7,6 +7,14 @@
   /* The Windows host configuration libarchive ships for its Android NDK build, with zlib enabled */
   #define __LIBARCHIVE_CONFIG_H_INCLUDED 1
   #include "../contrib/android/config/windows_host.h"
+  #undef HAVE_UNISTD_H
+  #undef HAVE_DECL_SSIZE_MAX
+  #define HAVE_DECL_SSIZE_MAX 0
+  #undef HAVE_DECL_SIZE_MAX
+  #define HAVE_DECL_SIZE_MAX 0
+  #undef HAVE_DECL_TIMEZONE
+  #define HAVE_DECL_TIMEZONE 0
+  #define HAVE__GET_TIMEZONE 1
   #ifndef HAVE_ZLIB_H
   #define HAVE_ZLIB_H 1
   #endif

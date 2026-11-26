@@ -92,7 +92,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealTextureConverter
 {
     public:
 
-    struct SResult
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SResult
     {
         CORE::CString file;             /**< the VFS path of the image file */
         CORE::CString textureName;

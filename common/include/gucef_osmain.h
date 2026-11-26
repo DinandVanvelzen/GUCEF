@@ -200,9 +200,63 @@ gucef_osservice_pending_status( unsigned long state              ,
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     #include <string.h>
+    #include <stdlib.h>
     #include <windows.h>
+    #include <shellapi.h>
     #undef min
     #undef max
+
+    #if defined( _MSC_VER )
+    #pragma comment( lib, "shell32.lib" )
+    #endif
+
+    /**
+     *  WinMain gets the arguments as one string and without the name of the program: the arguments of the process as main()
+     *  gets them on the other platforms (the program first, then each argument; UTF-8) are made from the command line of the
+     *  process. The memory lives as long as the process. When it cannot be made argc is 0.
+     */
+    static char**
+    gucef_osmain_win32_argv( int* argc )
+    {
+        int count = 0;
+        int i = 0;
+        int written = 0;
+        size_t total = 0;
+        size_t left = 0;
+        char** argv = GUCEF_NULL;
+        char* text = GUCEF_NULL;
+        LPWSTR* wide = GUCEF_NULL;
+
+        *argc = 0;
+        wide = CommandLineToArgvW( GetCommandLineW(), &count );
+        if ( GUCEF_NULL == wide || count <= 0 )
+        {
+            if ( GUCEF_NULL != wide )
+                LocalFree( wide );
+            return GUCEF_NULL;
+        }
+        for ( i=0; i<count; ++i )
+            total += (size_t) WideCharToMultiByte( CP_UTF8, 0, wide[ i ], -1, GUCEF_NULL, 0, GUCEF_NULL, GUCEF_NULL );
+        argv = (char**) malloc( sizeof( char* ) * ( (size_t) count + 1 ) + total );
+        if ( GUCEF_NULL == argv )
+        {
+            LocalFree( wide );
+            return GUCEF_NULL;
+        }
+        text = (char*) ( argv + count + 1 );
+        left = total;
+        for ( i=0; i<count; ++i )
+        {
+            written = WideCharToMultiByte( CP_UTF8, 0, wide[ i ], -1, text, (int) left, GUCEF_NULL, GUCEF_NULL );
+            argv[ i ] = text;
+            text += written;
+            left -= (size_t) written;
+        }
+        argv[ count ] = GUCEF_NULL;
+        LocalFree( wide );
+        *argc = count;
+        return argv;
+    }
 
     #define GUCEF_OSMAIN_BEGIN                                                                         \
                                                                                                        \
@@ -247,13 +301,12 @@ gucef_osservice_pending_status( unsigned long state              ,
         GUCEF_MEMORY_CHECK_APP_START;                                                                  \
                                                                                                        \
         int argc = 0;                                                                                  \
-        char** argv = &lpcmdline;                                                                      \
-        if ( lpcmdline != GUCEF_NULL )                                                                       \
+        char** argv = gucef_osmain_win32_argv( &argc );                                                \
+        if ( GUCEF_NULL == argv )                                                                      \
         {                                                                                              \
-            if ( *lpcmdline != '\0' )                                                                  \
-            {                                                                                          \
+            argv = &lpcmdline;                                                                         \
+            if ( lpcmdline != GUCEF_NULL && *lpcmdline != '\0' )                                       \
                 argc = 1;                                                                              \
-            }                                                                                          \
         }
 
     #define GUCEF_OSMAIN_END    GUCEF_MEMORY_CHECK_APP_END}
@@ -310,12 +363,16 @@ gucef_osservice_pending_status( unsigned long state              ,
     {                                                                                                  \
                                                                                                        \
         int argc = 0;                                                                                  \
-        char** argv = &lpcmdline;                                                                      \
+        char** argv = gucef_osmain_win32_argv( &argc );                                                \
+        if ( GUCEF_NULL == argv )                                                                      \
+        {                                                                                              \
+            argv = &lpcmdline;                                                                         \
+            argc = ( lpcmdline != GUCEF_NULL && *lpcmdline != '\0' ) ? 1 : 0;                          \
+        }                                                                                              \
         if ( lpcmdline != GUCEF_NULL )                                                                       \
         {                                                                                              \
             if ( *lpcmdline != '\0' )                                                                  \
             {                                                                                          \
-                argc = 1;                                                                              \
                 if ( 0 != gucef_osmain_has_console_arg( lpcmdline ) )                                  \
                 {                                                                                      \
                     GUCEF_APP_TYPE = GUCEF_APP_TYPE_CONSOLE;                                           \

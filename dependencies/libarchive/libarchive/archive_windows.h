@@ -63,6 +63,15 @@
 #include <sys/stat.h>
 #include <process.h>
 #include <direct.h>
+#if defined(_MSC_VER)
+typedef int mode_t;
+#endif
+#if defined(_MSC_VER) && !defined(ssize_t)
+typedef __int64 ssize_t;
+#endif
+#if defined(_MSC_VER) && !defined(pid_t)
+typedef int pid_t;
+#endif
 #if defined(__MINGW32__) && defined(HAVE_UNISTD_H)
 /* Prevent build error from a type mismatch of ftruncate().
  * This unistd.h defines it as ftruncate(int, off_t). */

@@ -75,7 +75,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CPackIndexClientCache
     static const UInt32 MaxPages = 32;
 
     /** The manifest of a pack as cached */
-    struct SManifest
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SManifest
     {
         CORE::CString indexKey;
         CORE::CString documentHash;

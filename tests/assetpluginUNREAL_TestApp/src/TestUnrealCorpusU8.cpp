@@ -45,6 +45,11 @@
 #define GUCEF_CORE_DVCPPFILEUTILS_H
 #endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #ifndef GUCEF_VFS_CVFSGLOBAL_H
 #include "gucefVFS_CVfsGlobal.h"
 #define GUCEF_VFS_CVFSGLOBAL_H
@@ -152,14 +157,14 @@ class CToolScope
         m_had = GUCEF_NULL != old;
         if ( m_had )
             m_old = old;
-        setenv( CUnrealCapabilities::OodleToolPathVariable, path.C_String(), 1 );
+        CORE::SetEnv( CUnrealCapabilities::OodleToolPathVariable, path );
     }
     ~CToolScope()
     {
         if ( m_had )
-            setenv( CUnrealCapabilities::OodleToolPathVariable, m_old.C_String(), 1 );
+            CORE::SetEnv( CUnrealCapabilities::OodleToolPathVariable, m_old );
         else
-            unsetenv( CUnrealCapabilities::OodleToolPathVariable );
+            CORE::UnsetEnv( CUnrealCapabilities::OodleToolPathVariable );
     }
     private:
     bool m_had;

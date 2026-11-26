@@ -74,7 +74,7 @@ class GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP CUnrealHiddenFaceMap
     typedef GUCEF::set< Int32 > TInt32Set;
 
     /** What HideFaces() did */
-    struct SResult
+    struct GUCEF_ASSETPLUGIN_UNREAL_EXPORT_CPP SResult
     {
         UInt32 triangles;           /**< triangles of the mesh that lie in the tile of the map */
         UInt32 hiddenTriangles;     /**< of those, hidden by the map */

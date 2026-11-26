@@ -71,7 +71,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CPackPresentationResolver
     public:
 
     /** What the workbench can do, as far as it matters for the choice */
-    struct SCapabilities
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SCapabilities
     {
         bool fourViews;             /**< the four view layout exists */
         bool unityConverter;        /**< the importer of the Unity plugin */
@@ -82,7 +82,7 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CPackPresentationResolver
         SCapabilities( void );
     };
 
-    struct SOptions
+    struct ASSETWORKBENCHLIB_PUBLIC_CPP SOptions
     {
         UInt32 maxAssets;           /**< how many models or pictures are loaded: 48 */
         CORE::CString requestedId;  /**< the kind the user chose (CPackPresentation::GetKindId()); empty for the default */

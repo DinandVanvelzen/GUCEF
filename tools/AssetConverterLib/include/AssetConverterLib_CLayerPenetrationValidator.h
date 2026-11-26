@@ -78,7 +78,7 @@ class ASSETCONVERTERLIB_PUBLIC_CPP CLayerPenetrationValidator : public CIAssetVa
     static const CORE::CString GarmentPart;     /**< "garment" */
 
     /** The measurement, for the report and for tests */
-    struct SResult
+    struct ASSETCONVERTERLIB_PUBLIC_CPP SResult
     {
         UInt32 bodyVertices;            /**< vertices of the first level of the body */
         UInt32 coveredVertices;         /**< with a garment surface in front */

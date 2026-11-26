@@ -100,6 +100,27 @@ using namespace GUCEFLabLink;
 
 namespace {
 
+/**
+ *  Lets the group and others read the file (or takes that away again). Windows has no modes: a file written the ordinary
+ *  way has the access list of its directory, which others can read, and SetOwnerOnlyAccess() narrows it again
+ */
+void
+SetReadableByOthers( const CORE::CString& path, bool readable )
+{
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    if ( !readable )
+    {
+        CORE::SetOwnerOnlyAccess( path );
+        return;
+    }
+    CORE::CString content;
+    if ( CORE::LoadTextFileAsString( path, content, false ) && CORE::DeleteFile( path ) )
+        CORE::WriteStringAsTextFile( path, content );
+    #else
+    ::chmod( path.C_String(), readable ? 0644 : 0600 );
+    #endif
+}
+
 bool
 LoadCryptography( void )
 {
@@ -665,10 +686,10 @@ PerformLabLinkWebTests( void )
             ASSERT_TRUE( service.Refresh( now + 6500, 1000, changed ) && 1 == changed.size() );
 
             // a file others can read is refused, and what was known stays
-            ::chmod( path.C_String(), 0644 );
+            SetReadableByOthers( path, true );
             ASSERT_FALSE( service.Refresh( now + 8000, 1000, changed ) );
             ASSERT_TRUE( service.Find( "alice", found ) );
-            ::chmod( path.C_String(), 0600 );
+            SetReadableByOthers( path, false );
 
             // lines that are not a user are skipped
             GUCEF::vector< SWebUser > parsed;
