@@ -83,6 +83,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CM
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginAWSSNS ${CMAKE_BINARY_DIR}/pubsubpluginAWSSNS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginAWSSQS ${CMAKE_BINARY_DIR}/pubsubpluginAWSSQS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/SHARED/pluginglueAWSSDK ${CMAKE_BINARY_DIR}/pluginglueAWSSDK )
+elseif (OSX)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 elseif (WIN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-core ${CMAKE_BINARY_DIR}/aws-cpp-sdk-core )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-sns ${CMAKE_BINARY_DIR}/aws-cpp-sdk-sns )

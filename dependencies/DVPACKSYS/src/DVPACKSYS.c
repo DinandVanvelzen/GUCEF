@@ -26,7 +26,11 @@
 #include <stdlib.h>     /* standard utils */
 #include <stdio.h>      /* standard I/O */
 #include <string.h>     /* standard string utils */
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>     /* Memory management */
+#endif
 #include <math.h>       /* for key calcs */
 
 #include "DVPACKSYS.h"  /* this files header */
@@ -46,7 +50,7 @@
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
   #include <windows.h>		/* WIN32 API */
   #define MAX_DIR_LENGTH MAX_PATH
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
   #include <limits.h>
   #include <unistd.h>             /* POSIX utilities */
   #define MAX_DIR_LENGTH PATH_MAX

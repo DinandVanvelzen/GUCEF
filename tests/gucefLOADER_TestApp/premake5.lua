@@ -107,7 +107,7 @@ configuration( { "MSWIN" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "OSX" } )
-includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/osx", "../../platform/gucefMT/include/" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/mswin", "../../platform/gucefCORE/include/mswin/", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/" } )

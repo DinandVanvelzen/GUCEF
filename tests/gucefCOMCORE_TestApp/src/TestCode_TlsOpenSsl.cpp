@@ -337,7 +337,12 @@ TestLoader( void )
         CORE::CString whyNot;
         ASSERT_FALSE( provider.IsAvailable( whyNot ) );
         ASSERT_TRUE( whyNot.HasSubstr( "libcrypto.so.99" ) >= 0 );
+        // the reason is the text of the loader of the system
+        #if defined( __APPLE__ )
+        ASSERT_TRUE( whyNot.HasSubstr( "no such file" ) >= 0 );
+        #else
         ASSERT_TRUE( whyNot.HasSubstr( "cannot open shared object file" ) >= 0 );
+        #endif
         ASSERT_TRUE( provider.GetVersionInfo().IsNULLOrEmpty() );
 
         // asked again it says the same, without trying again
@@ -358,7 +363,11 @@ TestLoader( void )
         connection.SetProviderRegistry( &registry );
         ASSERT_FALSE( connection.ConnectTo( "localhost", 1, &settings ) );
         ASSERT_TRUE( connection.GetLastError().errorClass == TLSERR_NO_PROVIDER );
+        #if defined( __APPLE__ )
+        ASSERT_TRUE( connection.GetLastError().message.HasSubstr( "openssl-dynamic: dlopen(libcrypto.so.99" ) >= 0 );
+        #else
         ASSERT_TRUE( connection.GetLastError().message.HasSubstr( "openssl-dynamic: libcrypto.so.99" ) >= 0 );
+        #endif
         ASSERT_TRUE( connection.GetLastError().GetDescription( "example.com" ).HasSubstr( "libcrypto.so.99" ) >= 0 );
     }
     catch ( ... )
@@ -372,14 +381,20 @@ TestLoader( void )
     {
         COpenSslTlsProvider::TLibraryCandidateVector candidates;
         COpenSslTlsProvider::SLibraryCandidate notOpenSsl;
-        notOpenSsl.sslName = "libm.so.6";
-        notOpenSsl.cryptoName = "libm.so.6";
+        // a library that is there but is not OpenSSL: the math library of the system
+        #if defined( __APPLE__ )
+        const char* const notOpenSslName = "libm.dylib";
+        #else
+        const char* const notOpenSslName = "libm.so.6";
+        #endif
+        notOpenSsl.sslName = notOpenSslName;
+        notOpenSsl.cryptoName = notOpenSslName;
         candidates.push_back( notOpenSsl );
         COpenSslTlsProvider provider( candidates );
 
         CORE::CString whyNot;
         ASSERT_FALSE( provider.IsAvailable( whyNot ) );
-        ASSERT_TRUE( whyNot.HasSubstr( "libm.so.6: the library lacks" ) >= 0 );
+        ASSERT_TRUE( whyNot.HasSubstr( CORE::CString( notOpenSslName ) + ": the library lacks" ) >= 0 );
         ASSERT_TRUE( whyNot.HasSubstr( "OpenSSL_version_num" ) >= 0 );
 
         // the default candidates after a bad one: the one that works is used when there is one
@@ -387,10 +402,21 @@ TestLoader( void )
         withFallback.push_back( notOpenSsl );
         COpenSslTlsProvider::TLibraryCandidateVector defaults;
         COpenSslTlsProvider::GetDefaultLibraryCandidates( defaults );
+        #if defined( __APPLE__ )
+        // the names of the loader's own search first, then the places package managers put OpenSSL: 3.x before 1.1.x
+        ASSERT_TRUE( defaults.size() >= 2 );
+        ASSERT_TRUE( defaults[ 0 ].sslName == "libssl.3.dylib" && defaults[ 0 ].cryptoName == "libcrypto.3.dylib" );
+        bool hasV11 = false;
+        for ( size_t d=0; d<defaults.size(); ++d )
+            if ( defaults[ d ].sslName == "libssl.1.1.dylib" && defaults[ d ].cryptoName == "libcrypto.1.1.dylib" )
+                hasV11 = true;
+        ASSERT_TRUE( hasV11 );
+        #else
         ASSERT_TRUE( 3 == defaults.size() );
         ASSERT_TRUE( defaults[ 0 ].sslName == "libssl.so.3" && defaults[ 0 ].cryptoName == "libcrypto.so.3" );
         ASSERT_TRUE( defaults[ 1 ].sslName == "libssl.so.1.1" && defaults[ 1 ].cryptoName == "libcrypto.so.1.1" );
         ASSERT_TRUE( defaults[ 2 ].sslName == "libssl.so" && defaults[ 2 ].cryptoName == "libcrypto.so" );
+        #endif
         withFallback.insert( withFallback.end(), defaults.begin(), defaults.end() );
         COpenSslTlsProvider second( withFallback );
         COpenSslTlsProvider reference;

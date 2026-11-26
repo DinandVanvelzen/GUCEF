@@ -394,6 +394,7 @@ filter "OSX"
   include( "dependencies/monocypher" )
   include( "dependencies/protobuf/src" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/CORE/codecspluginMONOCYPHER" )

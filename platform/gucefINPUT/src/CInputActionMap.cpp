@@ -23,7 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>     /* needed for malloc/realloc */
+#endif
 #include <string.h>     /* needed for memset */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H 

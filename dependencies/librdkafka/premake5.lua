@@ -53,6 +53,10 @@ configuration( { "LINUX64" } )
 defines( { "WITH_LIBDL" } )
 
 
+configuration( { "OSX" } )
+defines( { "WITH_LIBDL" } )
+
+
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
@@ -277,6 +281,9 @@ configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../zlib" } )
+
+configuration( { "OSX" } )
 includedirs( { "../zlib" } )
 
 configuration( { "WIN32" } )

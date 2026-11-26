@@ -490,7 +490,7 @@ GetXmlDStoreCodec( void )
                 return CORE::CDStoreCodecRegistry::TDStoreCodecPtr();
             }
 
-            #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+            #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
               #ifdef GUCEF_CORE_DEBUG_MODE
               const char* pathToPlugin = "$MODULEDIR$/dstorepluginPARSIFALXML_d";
@@ -521,7 +521,7 @@ GetXmlDStoreCodec( void )
             #else
 
             // Plugin loading not supported
-            GUCEF_ERROR_LOG( CORE::LOGVEL_NORMAL, "Plugin loading is not supported for this platform via the ProjectGenerator" );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Plugin loading is not supported for this platform via the ProjectGenerator" );
 
             #endif
 

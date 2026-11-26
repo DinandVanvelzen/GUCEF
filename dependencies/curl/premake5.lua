@@ -52,6 +52,16 @@ links( { "crypto", "ssl", "zlib" } )
 configuration( { "LINUX64" } )
 defines( { "CURL_HIDDEN_SYMBOLS", "HAVE_CONFIG_H", "_GNU_SOURCE" } )
 
+configuration( { "OSX" } )
+links( { "zlib" } )
+
+configuration( { "OSX" } )
+links( { "-Wl,-framework,CoreFoundation", "-Wl,-framework,SystemConfiguration", "zlib" } )
+
+
+configuration( { "OSX" } )
+defines( { "CURL_HIDDEN_SYMBOLS", "HAVE_CONFIG_H" } )
+
 configuration( { "WIN32" } )
 links( { "zlib" } )
 
@@ -114,6 +124,7 @@ files( {
   "lib/cshutdn.h",
   "lib/curl_addrinfo.h",
   "lib/curl_config.h",
+  "lib/curl_config_macos.h",
   "lib/curl_ctype.h",
   "lib/curl_ed25519.h",
   "lib/curl_endian.h",
@@ -491,6 +502,9 @@ configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../zlib" } )
+
+configuration( { "OSX" } )
 includedirs( { "../zlib" } )
 
 configuration( { "WIN32" } )

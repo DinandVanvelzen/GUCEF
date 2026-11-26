@@ -21,7 +21,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>             /* memory management */
+#endif
 #include <stdio.h>              /* standard I/O utils */
 #include <string.h>             /* standard string utils */
 #include <assert.h>
@@ -85,7 +89,7 @@
   #include <sys/stat.h>           /* _S_IREAD */
   #include "Shlwapi.h"
   #define MAX_DIR_LENGTH MAX_PATH
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
        ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
   /*
    *  Most functions of this file have branches for Windows and for Linux, Android and Emscripten only, and stubs that
@@ -97,7 +101,7 @@
    *  instead of st_mtim, F_FULLFSYNC for durability) built and tested on those platforms, the file refuses them.
    */
   #error The Apple platforms are not implemented in dvcppfileutils.cpp
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
   #include <dirent.h>             /* needed for dirent strcture */
   #include <unistd.h>             /* POSIX utilities */
   #include <limits.h>             /* Linux OS limits */
@@ -116,6 +120,17 @@
   #define MAX_DIR_LENGTH PATH_MAX
 #else
   #error Unsupported OS
+#endif
+
+/*
+ *  The modification and access time of a stat structure as a struct timespec: Darwin names the fields differently
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+  #define GUCEF_STAT_MTIME( statstruct )   (statstruct).st_mtimespec
+  #define GUCEF_STAT_ATIME( statstruct )   (statstruct).st_atimespec
+#else
+  #define GUCEF_STAT_MTIME( statstruct )   (statstruct).st_mtim
+  #define GUCEF_STAT_ATIME( statstruct )   (statstruct).st_atim
 #endif
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
@@ -536,6 +551,75 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
     }
     return false;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /*
+     *  macOS has no XDG base directories: the user's folders are the well known ones in the home directory and
+     *  the per user application support, preferences and cache directories live in ~/Library
+     */
+    const char* home = getenv( "HOME" );
+    switch ( dir )
+    {
+        case SPECIALDIR_HOME_DIR:
+            if ( GUCEF_NULL == home || '\0' == *home )
+                return false;
+            resolvedPath = home;
+            return true;
+        case SPECIALDIR_TEMP_DIR:
+        {
+            const char* tmp = getenv( "TMPDIR" );
+            if ( GUCEF_NULL == tmp )
+                tmp = getenv( "TMP" );
+            if ( GUCEF_NULL == tmp )
+                tmp = getenv( "TEMP" );
+            if ( GUCEF_NULL == tmp )
+                return false;
+            resolvedPath = tmp;
+            return true;
+        }
+        default:
+            break;
+    }
+
+    if ( GUCEF_NULL == home || '\0' == *home )
+        return false;
+
+    switch ( dir )
+    {
+        case SPECIALDIR_APPDATA_DIR:
+        case SPECIALDIR_LOCAL_APPDATA_DIR:
+            resolvedPath = CombinePath( home, "Library/Application Support" );
+            return true;
+        case SPECIALDIR_APP_CONFIG_DIR:
+            resolvedPath = CombinePath( home, "Library/Preferences" );
+            return true;
+        case SPECIALDIR_INTERNET_CACHE_DIR:
+        case SPECIALDIR_CACHE_DIR:
+            resolvedPath = CombinePath( home, "Library/Caches" );
+            return true;
+        case SPECIALDIR_DESKTOP_DIR:
+            resolvedPath = CombinePath( home, "Desktop" );
+            return true;
+        case SPECIALDIR_MY_DOCUMENTS_DIR:
+            resolvedPath = CombinePath( home, "Documents" );
+            return true;
+        case SPECIALDIR_MY_DOWNLOADS_DIR:
+            resolvedPath = CombinePath( home, "Downloads" );
+            return true;
+        case SPECIALDIR_MY_MUSIC_DIR:
+            resolvedPath = CombinePath( home, "Music" );
+            return true;
+        case SPECIALDIR_MY_PICTURES_DIR:
+            resolvedPath = CombinePath( home, "Pictures" );
+            return true;
+        case SPECIALDIR_MY_VIDEO_DIR:
+            resolvedPath = CombinePath( home, "Movies" );
+            return true;
+        default:
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TryResolveSpecialDir: Unsupported special directory" );
+            return false;
+    }
+
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     const char* path = GUCEF_NULL;
@@ -601,9 +685,16 @@ ListAvailableSpecialDirs( TSpecialDirSet& specialDirs )
                                                  SPECIALDIR_MY_DOCUMENTS_DIR, SPECIALDIR_MY_DOWNLOADS_DIR, SPECIALDIR_MY_MUSIC_DIR,
                                                  SPECIALDIR_MY_PICTURES_DIR, SPECIALDIR_MY_VIDEO_DIR, SPECIALDIR_TEMPLATES_DIR };
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    static const TSpecialDirs platformDirs[] = { SPECIALDIR_HOME_DIR, SPECIALDIR_APPDATA_DIR, SPECIALDIR_LOCAL_APPDATA_DIR, SPECIALDIR_APP_CONFIG_DIR,
+                                                 SPECIALDIR_INTERNET_CACHE_DIR, SPECIALDIR_CACHE_DIR, SPECIALDIR_DESKTOP_DIR,
+                                                 SPECIALDIR_MY_DOCUMENTS_DIR, SPECIALDIR_MY_DOWNLOADS_DIR, SPECIALDIR_MY_MUSIC_DIR,
+                                                 SPECIALDIR_MY_PICTURES_DIR, SPECIALDIR_MY_VIDEO_DIR };
+
     #endif
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     for ( size_t i=0; i<sizeof( platformDirs ) / sizeof( platformDirs[ 0 ] ); ++i )
         specialDirs.insert( platformDirs[ i ] );
     #endif
@@ -678,7 +769,7 @@ GetFileModificationTime( const CString& path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat buf;
 
@@ -718,7 +809,7 @@ GetFileCreationTime( const CString& path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat buf;
 
@@ -823,7 +914,7 @@ SetFileMetaData( const CString& filePath           ,
 
         return totalSuccess;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         /*
          *  Unsupported platform  - @TODO
@@ -905,7 +996,7 @@ GetFileMetaData( const CString& filePath     ,
         // the meta data class has its own flags
         return true;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         struct stat buf;
 
@@ -914,9 +1005,9 @@ GetFileMetaData( const CString& filePath     ,
         {
             metaData.creationDateTime = CDateTime( buf.st_ctime, true );
             metaData.hasCreationDateTime = true;
-            metaData.modifiedDateTime = CDateTime( buf.st_mtim, true );
+            metaData.modifiedDateTime = CDateTime( GUCEF_STAT_MTIME( buf ), true );
             metaData.hasModifiedDateTime = true;
-            metaData.lastAccessedDateTime = CDateTime( buf.st_atim, true );
+            metaData.lastAccessedDateTime = CDateTime( GUCEF_STAT_ATIME( buf ), true );
             metaData.hasLastAccessedDateTime = true;
             metaData.resourceSizeInBytes = (UInt64) buf.st_size;
             metaData.hasResourceSizeInBytes = true;
@@ -944,7 +1035,7 @@ GetFileMetaData( const CString& filePath     ,
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
 static int
 recursive_mkdir(const char* dir, int accessPerms)
@@ -1034,7 +1125,7 @@ CreateDirs( const CString& path )
     }
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     int accessPerms = 0777;
 
@@ -1293,7 +1384,7 @@ static bool
 SyncDirectory( const CString& dirPath )
 {GUCEF_TRACE;
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // The rename itself is only durable once the directory entry is on disk
     int fd = ::open( dirPath.IsNULLOrEmpty() ? "." : dirPath.C_String(), O_RDONLY | O_DIRECTORY );
@@ -1340,7 +1431,7 @@ WriteFileAtomically( const CString& path    ,
     bool success = false;
     {
         CFileAccess tempFile;
-        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         // the temporary file is made with the permissions of the file it replaces (the umask applies as well), so it is
         // never wider than that file while the data is written
@@ -1441,7 +1532,7 @@ SetOwnerOnlyAccess( const CString& path )
     ::LocalFree( acl );
     return ERROR_SUCCESS == result;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat fileStat;
     if ( 0 != ::stat( actualPath.C_String(), &fileStat ) )
@@ -2058,7 +2149,7 @@ FileExists( const CString& filename )
         }
         return 0;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         /* make sure we found a file not a directory, same as on Windows */
         struct stat buf;
@@ -2146,7 +2237,7 @@ DeleteDir( const CString& path       ,
             // A link to a directory is removed as a directory, which leaves its target alone
             std::wstring wLink = ToWString( (*i) );
             bool removed = 0 != ::RemoveDirectoryW( wLink.c_str() ) || 0 != ::DeleteFileW( wLink.c_str() );
-            #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+            #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
             bool removed = 0 == ::unlink( (*i).C_String() );
             #else
             bool removed = false;
@@ -2169,7 +2260,7 @@ DeleteDir( const CString& path       ,
     std::wstring wPath = ToWString( actualPath );
     return 0 != ::RemoveDirectoryW( wPath.c_str() );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return 0 == ::rmdir( actualPath.C_String() );
 
@@ -2197,7 +2288,7 @@ DirExists( const CString& path )
         const DWORD attributes = GetFileAttributesW( wPath.c_str() );
         return INVALID_FILE_ATTRIBUTES != attributes && ( attributes & FILE_ATTRIBUTE_DIRECTORY ) > 0;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         struct stat buf;
         if ( stat( path.C_String(), &buf ) == 0 )
@@ -2229,7 +2320,7 @@ PathExists( const CString& path )
         return ::GetFileAttributesW( utf16Path.c_str() ) != INVALID_FILE_ATTRIBUTES;
     return false;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat buf;
     return ( stat( path.C_String(), &buf ) == 0 );
@@ -2271,7 +2362,9 @@ CreatePathDirectories( const CString& path )
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
+
+/* the file type tests and symbolic link reading in this part are POSIX, macOS has them as well */
 
 inline bool
 IsSpecialLinuxFile( const struct stat& fileStat )
@@ -2349,6 +2442,12 @@ TryResolveLinuxSymlinkPath( const CString& symlinkPath, CString& resolvedPath )
 }
 
 /*-------------------------------------------------------------------------*/
+
+#endif /* POSIX helpers ? */
+
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+/* the rest are the udev and procfs based functions: Linux only */
 
 bool
 GetDeviceUUIDFromUdev( int major, int minor, CString& uuid )
@@ -2602,7 +2701,7 @@ FileSize( const CString& filename )
         FindClose( hFind );
         return lfilesize;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         struct stat statInfo;
         int result;
@@ -2685,7 +2784,7 @@ TruncateFile( const CString& filename, UInt64 newSize )
     _close( fd );
     return success;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return 0 == ::truncate( RelativePath( filename ).C_String(), (off_t) newSize );
 
@@ -4148,7 +4247,7 @@ class CFileSystemIterator::CFileSystemIteratorOsData
         memset( &find, 0, sizeof find );
 	}
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     DIR* dir;                   // Directory stream
     struct dirent* entry;       // Pointer needed for functions to iterating directory entries. Stores entry name which is used to get stat
@@ -4327,7 +4426,7 @@ CFileSystemIterator::FindFirst( const CString& path )
     m_osData->isActive = true;
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     /*
      *	In Linux we use POSIX functions because these are independant of
@@ -4439,7 +4538,7 @@ CFileSystemIterator::FindNext( void )
     while ( 0 == wcscmp( L".", m_osData->find.name ) || 0 == wcscmp( L"..", m_osData->find.name ) );
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // Read next entry
     m_osData->ClearSymlinkInfo();
@@ -4510,7 +4609,7 @@ CFileSystemIterator::FindClose( void )
     ::_findclose( m_osData->find_handle );
     m_osData->find_handle = 0; // find_handle is an integer type (intptr_t), not a pointer
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     m_osData->ClearSymlinkInfo();
     m_osData->resourceGlobFilter.Clear();
@@ -4542,7 +4641,7 @@ CFileSystemIterator::IsADirectory( void ) const
 
         return ( m_osData->find.attrib & _A_SUBDIR );
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         if ( S_ISDIR( m_osData->statinfo.st_mode ) > 0 )
             return true;
@@ -4580,7 +4679,7 @@ CFileSystemIterator::IsAFile( void ) const
 
         return !( m_osData->find.attrib & _A_SUBDIR );
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         if ( S_ISREG( m_osData->statinfo.st_mode ) > 0 )
             return true;
@@ -4622,7 +4721,7 @@ CFileSystemIterator::IsSymlink( void ) const
         DWORD attributes = ::GetFileAttributesW( wEntryPath.c_str() );
         return INVALID_FILE_ATTRIBUTES != attributes && 0 != ( attributes & FILE_ATTRIBUTE_REPARSE_POINT );
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         // for symlinks check if the link refers to a file or dir
         if ( S_ISLNK( m_osData->statinfo.st_mode ) > 0 )
@@ -4651,7 +4750,7 @@ CFileSystemIterator::GetResourceName( void ) const
 
         return m_osData->find.name;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         // Even though we want to return the name of the symlink we will resolve the link
         // just so we know if its a dir or file which helps us to use the correct string function
@@ -4702,7 +4801,7 @@ CFileSystemIterator::GetSymlinkedResourceName( void ) const
         // @TODO
         return CString::Empty;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         // We want to return the name of resource beyond the symlink
         if ( S_ISLNK( m_osData->statinfo.st_mode ) > 0 )
@@ -4742,7 +4841,7 @@ CFileSystemIterator::GetResourcePath( void ) const
 
         return CombinePath( m_osData->rootPath, GetResourceName() );
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         return m_osData->GetEntryPath();
 
@@ -4768,7 +4867,7 @@ CFileSystemIterator::GetSymlinkedResourcePath( void ) const
         // @TODO
         return CString::Empty;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         if ( S_ISLNK( m_osData->statinfo.st_mode ) > 0 )
         {
@@ -4829,13 +4928,13 @@ CFileSystemIterator::TryReadMetaData( CResourceMetaData& metaData )
 
         return true;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         metaData.creationDateTime = CDateTime( m_osData->statinfo.st_ctime, true );
         metaData.hasCreationDateTime = true;
-        metaData.modifiedDateTime = CDateTime( m_osData->statinfo.st_mtim, true );
+        metaData.modifiedDateTime = CDateTime( GUCEF_STAT_MTIME( m_osData->statinfo ), true );
         metaData.hasModifiedDateTime = true;
-        metaData.lastAccessedDateTime = CDateTime( m_osData->statinfo.st_atim, true );
+        metaData.lastAccessedDateTime = CDateTime( GUCEF_STAT_ATIME( m_osData->statinfo ), true );
         metaData.hasLastAccessedDateTime = true;
         metaData.resourceSizeInBytes = (UInt64) m_osData->statinfo.st_size;
         metaData.hasResourceSizeInBytes = true;
@@ -4863,7 +4962,7 @@ bool
 CFileSystemIterator::TryReadSymlinkedMetaData( CResourceMetaData& metaData )
 {GUCEF_TRACE;
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     if ( S_ISLNK( m_osData->statinfo.st_mode ) > 0 )
     {
@@ -4871,9 +4970,9 @@ CFileSystemIterator::TryReadSymlinkedMetaData( CResourceMetaData& metaData )
         {
             metaData.creationDateTime = CDateTime( m_osData->linkedStatinfo.st_ctime, true );
             metaData.hasCreationDateTime = true;
-            metaData.modifiedDateTime = CDateTime( m_osData->linkedStatinfo.st_mtim, true );
+            metaData.modifiedDateTime = CDateTime( GUCEF_STAT_MTIME( m_osData->linkedStatinfo ), true );
             metaData.hasModifiedDateTime = true;
-            metaData.lastAccessedDateTime = CDateTime( m_osData->linkedStatinfo.st_atim, true );
+            metaData.lastAccessedDateTime = CDateTime( GUCEF_STAT_ATIME( m_osData->linkedStatinfo ), true );
             metaData.hasLastAccessedDateTime = true;
             metaData.resourceSizeInBytes = (UInt64) m_osData->linkedStatinfo.st_size;
             metaData.hasResourceSizeInBytes = true;

@@ -39,7 +39,7 @@
 
 #ifdef __cplusplus
 
-#if defined( __linux__ )
+#if defined( __linux__ ) || defined( __APPLE__ )
 
   #include <string.h>
   #include <stdlib.h>
@@ -60,6 +60,25 @@
 #include "DVCPPOSWRAP.h"
 #define GUCEF_CORE_DVCPPOSWRAP_H
 #endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
+/*
+ *  macOS has no MSG_NOSIGNAL, and the SIGPIPE of a write to a connection of which the peer is gone is raised for the process there,
+ *  not for the writing thread: the sockets of the test servers get the socket option that makes such a write fail instead
+ */
+#ifndef GUCEF_TEST_DISABLE_SIGPIPE
+  #if defined( __APPLE__ )
+    #ifndef MSG_NOSIGNAL
+      #define MSG_NOSIGNAL 0
+    #endif
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do { int gucefTestNoSigPipe = 1; ::setsockopt( (fd), SOL_SOCKET, SO_NOSIGPIPE, &gucefTestNoSigPipe, sizeof( gucefTestNoSigPipe ) ); } while ( 0 )
+  #else
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do {} while ( 0 )
+  #endif
+#endif
+
+#if defined( __APPLE__ )
+#include "gucef_test_tls_session_shim.h"
+#endif /* __APPLE__ ? */
 
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
@@ -110,7 +129,31 @@ struct STlsTerminatorApi
 inline bool
 LoadTlsServerApi( STlsTerminatorApi& result )
 {
-    #if defined( __linux__ )
+    #if defined( __APPLE__ )
+    // there is no OpenSSL to look into: the table is filled with functions that use the TLS of the framework
+    CORE::CString whyNot;
+    if ( COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().GetBestAvailable( COMCORE::TLSCAP_SERVER, whyNot ).IsNULL() )
+        return false;
+    STlsTerminatorApi shim;
+    shim.OPENSSL_init_ssl = &SHIM::InitSsl;
+    shim.TLS_server_method = &SHIM::ServerMethod;
+    shim.SSL_CTX_new = &SHIM::ContextNew;
+    shim.SSL_CTX_free = &SHIM::ContextFree;
+    shim.SSL_CTX_use_certificate_chain_file = &SHIM::ContextUseCertificateChainFile;
+    shim.SSL_CTX_use_PrivateKey_file = &SHIM::ContextUsePrivateKeyFile;
+    shim.SSL_new = &SHIM::SslNew;
+    shim.SSL_free = &SHIM::SslFree;
+    shim.SSL_set_fd = &SHIM::SslSetFd;
+    shim.SSL_accept = &SHIM::SslAccept;
+    shim.SSL_read = &SHIM::SslRead;
+    shim.SSL_write = &SHIM::SslWrite;
+    shim.SSL_pending = &SHIM::SslPending;
+    shim.SSL_get_error = &SHIM::SslGetError;
+    shim.SSL_shutdown = &SHIM::SslShutdown;
+    shim.ERR_clear_error = &SHIM::ClearError;
+    result = shim;
+    return true;
+    #elif defined( __linux__ )
     void* ssl = CORE::LoadModuleDynamicly( "libssl.so.3" );
     if ( NULL == ssl )
         ssl = CORE::LoadModuleDynamicly( "libssl.so.1.1" );
@@ -187,7 +230,7 @@ class CTlsTestTerminator
     /** Listens on a free local port and relays to the plain server on backendPort. @return false without the OpenSSL library or the certificate */
     bool Start( const CORE::CString& certificateFile, const CORE::CString& keyFile, UInt16 backendPort )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         Stop();
         if ( !LoadApi() )
             return false;
@@ -204,6 +247,7 @@ class CTlsTestTerminator
         }
 
         m_listenFd = ::socket( AF_INET, SOCK_STREAM, 0 );
+GUCEF_TEST_DISABLE_SIGPIPE( m_listenFd );
         if ( m_listenFd < 0 )
             return false;
         int one = 1;
@@ -239,7 +283,7 @@ class CTlsTestTerminator
 
     void Stop( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         m_running = false;
         if ( m_acceptThreadStarted )
         {
@@ -281,7 +325,7 @@ class CTlsTestTerminator
 
     UInt32 GetLiveConnections( void ) { MT::CScopeMutex lock( m_lock ); return m_liveConnections; }
 
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
 
     struct SConnection
     {
@@ -315,6 +359,7 @@ class CTlsTestTerminator
                 continue;
 
             int clientFd = ::accept( m_listenFd, NULL, NULL );
+            GUCEF_TEST_DISABLE_SIGPIPE( clientFd );
             if ( clientFd < 0 )
                 continue;
 
@@ -390,6 +435,7 @@ class CTlsTestTerminator
         ::setsockopt( clientFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof( timeout ) );
 
         int backendFd = ::socket( AF_INET, SOCK_STREAM, 0 );
+        GUCEF_TEST_DISABLE_SIGPIPE( backendFd );
         struct sockaddr_in addr;
         memset( &addr, 0, sizeof( addr ) );
         addr.sin_family = AF_INET;

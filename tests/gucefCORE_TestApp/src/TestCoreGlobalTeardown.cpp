@@ -24,9 +24,9 @@
 
 #include <stdlib.h>
 
-#ifdef GUCEF_LINUX_BUILD
+#if defined( GUCEF_LINUX_BUILD ) || defined( __APPLE__ )
 #include <unistd.h>
-#endif /* GUCEF_LINUX_BUILD ? */
+#endif /* GUCEF_LINUX_BUILD || __APPLE__ ? */
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
@@ -42,6 +42,11 @@
 #include "CPluginControl.h"
 #define GUCEF_CORE_CPLUGINCONTROL_H
 #endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
+#ifndef GUCEF_CORE_DVFILEUTILS_H
+#include "dvfileutils.h"
+#define GUCEF_CORE_DVFILEUTILS_H
+#endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
 #ifndef GUCEF_CORE_CPROCESS_H
 #include "gucefCORE_CProcess.h"
@@ -180,14 +185,19 @@ PerformCoreGlobalTeardownTests( void )
 
     GUCEF_TESTFW_SUITE_SCOPE( "CoreGlobalTeardown" );
 
-    #ifdef GUCEF_LINUX_BUILD
+    #if defined( GUCEF_LINUX_BUILD ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
     // The teardown is that of the whole process, so it runs in a child process of its own
     GUCEF_TESTFW_TESTCASE( "An application that loads and unloads a plugin and exits makes the logging global once and has none after the teardown" )
         try
         {
             char exePath[ 4096 ];
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+            // there is no /proc: the system says where the executable of this process is
+            ssize_t exePathLength = 0 == CORE::Module_Path( exePath, sizeof( exePath ) - 1 ) ? (ssize_t) strlen( exePath ) : 0;
+            #else
             ssize_t exePathLength = readlink( "/proc/self/exe", exePath, sizeof( exePath ) - 1 );
+            #endif
             ASSERT_TRUE( exePathLength > 0 );
             if ( exePathLength > 0 )
             {
@@ -216,7 +226,7 @@ PerformCoreGlobalTeardownTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    #endif /* GUCEF_LINUX_BUILD ? */
+    #endif /* GUCEF_LINUX_BUILD || GUCEF_PLATFORM_MACOS ? */
 }
 
 /*-------------------------------------------------------------------------*/

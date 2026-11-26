@@ -186,6 +186,7 @@ filter "MSWIN"
 
 filter "OSX"
   include( "dependencies/libarchive" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )

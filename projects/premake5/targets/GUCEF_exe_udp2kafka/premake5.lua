@@ -335,6 +335,7 @@ filter "OSX"
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
   include( "dependencies/librdkafka" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

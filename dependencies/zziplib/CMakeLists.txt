@@ -101,6 +101,12 @@ if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZZIP_HAVE_STDINT_H" )
 endif( LINUX64 )
 
+if ( OSX )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZZIP_HAVE_STDINT_H" )
+endif( OSX )
+
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
@@ -128,6 +134,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../zlib )
 endif( LINUX64 )
+
+if ( OSX )
+  include_directories( ../zlib )
+endif( OSX )
 
 if ( WIN32 )
   include_directories( ../zlib )

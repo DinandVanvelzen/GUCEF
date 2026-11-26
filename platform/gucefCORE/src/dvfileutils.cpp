@@ -23,7 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>             /* memory management */
+#endif
 #include <stdio.h>              /* standard I/O utils */
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <string.h>             /* standard string utils */
@@ -48,15 +52,19 @@
   #include <io.h>                 /* Dir itteration: findfirst ect. */
   #include <direct.h>             /* dir tools */
   #define MAX_DIR_LENGTH MAX_PATH
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
   #include <dirent.h>             /* needed for dirent structure */
   #include <unistd.h>             /* POSIX utilities */
   #include <limits.h>             /* Linux OS limits */
   #include <sys/stat.h>           /* needed for stat function */
   #include <errno.h>
   #include <fcntl.h>
-  #if !defined(__EMSCRIPTEN__)
+  #if !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
     #include <sys/sendfile.h>     /* Linux-specific zero-copy file transfer */
+  #endif
+  #if defined(__APPLE__)
+    #include <mach-o/dyld.h>      /* _NSGetExecutablePath() */
+    #include <copyfile.h>         /* copyfile() */
   #endif
   #define MAX_DIR_LENGTH PATH_MAX
 #else
@@ -298,7 +306,7 @@ Get_Current_Dir( char* dest_buffer, UInt32 buf_length )
 
     return _getcwd( dest_buffer, buf_length );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     /*
      *	This call can actually fail: if another process has succeeded
@@ -330,7 +338,7 @@ Max_Dir_Length( void )
 
     return MAX_PATH;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return PATH_MAX;
 
@@ -354,7 +362,7 @@ Max_Filename_Length( void )
 
     return _MAX_FNAME;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return NAME_MAX+1;
 
@@ -428,43 +436,27 @@ Module_Path( char *dest, UInt32 dest_size )
 
     return !GetModuleFileName( GUCEF_NULL, dest, dest_size );
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
-    std::string get_basepath() {
-    std::string path = "./";
-    ProcessSerialNumber PSN;
-    ProcessInfoRec pinfo;
-    FSSpec pspec;
-    FSRef fsr;
-    OSStatus err;
-    /* set up process serial number */
-    PSN.highLongOfPSN = 0;
-    PSN.lowLongOfPSN = kCurrentProcess;
-    /* set up info block */
-    pinfo.processInfoLength = sizeof(pinfo);
-    pinfo.processName = GUCEF_NULL;
-    pinfo.processAppSpec = &pspec;
-    /* grab the vrefnum and directory */
-    err = GetProcessInformation(&PSN, &pinfo);
-    if (! err ) {
-    char c_path[2048];
-    FSSpec fss2;
-    int tocopy;
-    err = FSMakeFSSpec(pspec.vRefNum, pspec.parID, 0, &fss2);
-    if ( ! err ) {
-    err = FSpMakeFSRef(&fss2, &fsr);
-    if ( ! err ) {
-    char c_path[2049];
-    err = (OSErr)FSRefMakePath(&fsr, (UInt8*)c_path, 2048);
-    if (! err ) {
-    path = c_path;
-    }
-    }
-    }
-    }
+    /*
+     *  The path of the executable image of this process. _NSGetExecutablePath() can give a path with symbolic links
+     *  or relative parts in it, realpath() resolves those so that the result is comparable to what Linux gives.
+     */
+    if ( dest_size > 0 )
+        dest[ 0 ] = '\0';
 
-    return (path);
-    }
+    char rawPath[ PATH_MAX * 2 ];
+    uint32_t rawPathSize = sizeof( rawPath );
+    if ( 0 != _NSGetExecutablePath( rawPath, &rawPathSize ) )
+        return 1;
+
+    char resolvedPath[ PATH_MAX ];
+    const char* path = realpath( rawPath, resolvedPath ) != GUCEF_NULL ? resolvedPath : rawPath;
+    size_t pathLength = strlen( path );
+    if ( dest_size == 0 || pathLength >= dest_size )
+        return 1;
+    memcpy( dest, path, pathLength + 1 );
+    return 0;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -507,7 +499,7 @@ Delete_File( const char *filename )
 
     return DeleteFileA( filename );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return 0 == remove( filename ) ? 1 : 0;
 
@@ -564,6 +556,11 @@ Copy_File( const char *dst, const char *src )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     return 0 != CopyFileA( src, dst, TRUE ) ? 1 : 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /* the data of the file, the new file gets the mode of the source file as it does on Linux */
+    return 0 == copyfile( src, dst, GUCEF_NULL, COPYFILE_DATA ) ? 1 : 0;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
@@ -728,7 +725,7 @@ Execute_Program( const char *filename ,
         }
         return 0;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
         // Like on Windows the program is started and left to run on its own, we do not wait for it
         CORE::CProcess::TStringVector args;
@@ -965,7 +962,7 @@ Get_Modification_Time( const char* path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat buf;
 
@@ -1002,7 +999,7 @@ Get_Creation_Time( const char* path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     struct stat buf;
 

@@ -22,7 +22,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <assert.h>         /* debug assertion utilities */
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>         /* memory management */
+#endif
 #include "GLDriver.h"       /* function ptr extern refrences and includes */
 
 #pragma warning( disable: 4100 ) /* unrefrenced formal parameter */

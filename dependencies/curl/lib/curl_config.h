@@ -5,6 +5,10 @@
  *   c-ares, GSSAPI and librtmp all OFF. CA certificates come from the default locations of the OpenSSL in use.
  * GUCEF builds curl from the ProjectGenerator project files which do not generate this file
  */
+#if defined( __APPLE__ )
+#include "curl_config_macos.h"
+#else
+
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -802,3 +806,4 @@
 
 /* Define to 1 if OpenSSL has the DES_ecb_encrypt function. */
 #define HAVE_DES_ECB_ENCRYPT 1
+#endif /* __APPLE__ ? */

@@ -124,6 +124,14 @@ configuration( { "LINUX64" } )
 
 
 
+configuration( { "OSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "tif_unix.c"
+    } )
+
+
+
 configuration( { "WIN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
@@ -152,6 +160,9 @@ configuration( { "LINUX32" } )
 includedirs( { "../../zlib" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../../zlib" } )
+
+configuration( { "OSX" } )
 includedirs( { "../../zlib" } )
 
 configuration( { "WIN32" } )

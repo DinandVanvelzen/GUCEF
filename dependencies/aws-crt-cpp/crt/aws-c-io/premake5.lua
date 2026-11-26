@@ -46,6 +46,9 @@ defines( { "BYO_CRYPTO" } )
 configuration( { "LINUX64" } )
 defines( { "BYO_CRYPTO" } )
 
+configuration( { "OSX" } )
+links( { "-Wl,-framework,CoreFoundation", "-Wl,-framework,Security" } )
+
 
 configuration( { "WIN32" } )
 defines( { "AWS_USE_IO_COMPLETION_PORTS" } )
@@ -116,8 +119,13 @@ configuration( { "LINUX64" } )
 configuration( { "OSX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "source/bsd/kqueue_event_loop.c",
       "source/darwin/darwin_pki_utils.c",
-      "source/darwin/secure_transport_tls_channel_handler.c"
+      "source/darwin/secure_transport_tls_channel_handler.c",
+      "source/posix/host_resolver.c",
+      "source/posix/pipe.c",
+      "source/posix/shared_library.c",
+      "source/posix/socket.c"
     } )
 
 

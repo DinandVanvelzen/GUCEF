@@ -40,6 +40,10 @@ defines( { "__sun" } )
 configuration( { "ANDROID64" } )
 defines( { "__sun" } )
 
+
+configuration( { "OSX" } )
+defines( { "MACOSX" } )
+
 configuration( { "WIN32" } )
 links( { "WS2_32.lib" } )
 

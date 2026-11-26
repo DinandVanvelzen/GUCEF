@@ -428,6 +428,7 @@ filter "OSX"
   include( "dependencies/libyaml" )
   include( "dependencies/redis-plus-plus/src/sw/redis++" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

@@ -119,7 +119,7 @@ if ( MSWIN )
 endif( MSWIN )
 
 if ( OSX )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
+  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include/osx )
 endif( OSX )
 
 if ( WIN32 )

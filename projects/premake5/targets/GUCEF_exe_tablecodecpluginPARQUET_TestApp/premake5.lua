@@ -207,6 +207,7 @@ filter "MSWIN"
 filter "OSX"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/CORE/codecspluginZLIB" )

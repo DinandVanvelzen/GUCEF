@@ -427,6 +427,7 @@ filter "OSX"
   include( "dependencies/libparsifal" )
   include( "dependencies/librdkafka" )
   include( "dependencies/redis-plus-plus/src/sw/redis++" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

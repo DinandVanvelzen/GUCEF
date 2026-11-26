@@ -82,6 +82,16 @@ links( { "zlib" } )
 configuration( { "LINUX64" } )
 defines( { "ZZIP_HAVE_STDINT_H" } )
 
+configuration( { "OSX" } )
+links( { "zlib" } )
+
+configuration( { "OSX" } )
+links( { "zlib" } )
+
+
+configuration( { "OSX" } )
+defines( { "ZZIP_HAVE_STDINT_H" } )
+
 configuration( { "WIN32" } )
 links( { "zlib" } )
 
@@ -156,6 +166,9 @@ configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../zlib" } )
+
+configuration( { "OSX" } )
 includedirs( { "../zlib" } )
 
 configuration( { "WIN32" } )

@@ -169,6 +169,45 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (OSX)
+  set( PLATFORM_HEADER_FILES 
+    crc32.h
+    deflate.h
+    gzguts.h
+    inffast.h
+    inffixed.h
+    inflate.h
+    inftrees.h
+    trees.h
+    zconf.h
+    zlib.h
+    zutil.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "OSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    adler32.c
+    compress.c
+    crc32.c
+    deflate.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
+    infback.c
+    inffast.c
+    inflate.c
+    inftrees.c
+    trees.c
+    uncompr.c
+    zutil.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "OSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     crc32.h
@@ -261,6 +300,8 @@ elseif( LINUX32 )
   set( MODULE_NAME "zlib" )
 elseif( LINUX64 )
   set( MODULE_NAME "zlib" )
+elseif( OSX )
+  set( MODULE_NAME "zlib" )
 elseif( WIN32 )
   set( MODULE_NAME "zlib" )
 elseif( WIN64 )
@@ -273,6 +314,8 @@ elseif( EMSCRIPTEN64 )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX64 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( OSX )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( WIN32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -287,6 +330,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
 endif( LINUX64 )
+
+if ( OSX )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
+endif( OSX )
 
 if ( WIN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
@@ -309,6 +356,9 @@ endif( LINUX32 )
 if ( LINUX64 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS . )
 endif( LINUX64 )
+if ( OSX )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS . )
+endif( OSX )
 if ( WIN32 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS . )
 endif( WIN32 )
@@ -326,6 +376,8 @@ endif( WIN64 )
 if (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX64)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (OSX)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (WIN32)
 GUCEF_config_lib( ${MODULE_NAME} )

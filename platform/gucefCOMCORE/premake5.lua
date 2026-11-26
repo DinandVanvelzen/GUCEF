@@ -38,6 +38,9 @@ links( { "gucefCORE", "gucefMT" } )
 configuration( {} )
 defines( { "GUCEF_COMCORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOMCORE", "MODULE_NAME=gucefCOMCORE", "MODULE_SEMVER=0_1_0_0" } )
 
+configuration( { "OSX" } )
+links( { "-Wl,-framework,CoreFoundation", "-Wl,-framework,Security" } )
+
 configuration( { "WIN32" } )
 links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
 
@@ -375,6 +378,23 @@ configuration( { "LINUX64" } )
 
 
 
+configuration( { "OSX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/osx/gucefCOMCORE_CMacNetworkInterface.h",
+      "src/osx/gucefCOMCORE_CSecureTransportTlsProvider.h",
+      "src/osx/gucefCOMCORE_CSecureTransportTlsSession.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/osx/gucefCOMCORE_CMacNetworkInterface.cpp",
+      "src/osx/gucefCOMCORE_CSecureTransportTlsProvider.cpp",
+      "src/osx/gucefCOMCORE_CSecureTransportTlsSession.cpp"
+    } )
+
+
+
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -426,6 +446,9 @@ includedirs( { "../gucefCORE/include/linux", "include/linux" } )
 
 configuration( { "LINUX64" } )
 includedirs( { "../gucefCORE/include/linux", "include/linux" } )
+
+configuration( { "OSX" } )
+includedirs( { "../gucefCORE/src/osx", "src", "include/osx", "src/osx" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "include/mswin" } )

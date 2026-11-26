@@ -244,7 +244,7 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP CRedisClusterPubSubClientTopi
     typedef GUCEF::vector< TRedisMsgAttribute, gucef_allocator< TRedisMsgAttribute > > TRedisMsgAttributes;
     typedef std::pair< std::string, TRedisMsgAttributes > TRedisMsg;
     typedef GUCEF::vector< TRedisMsg, gucef_allocator< TRedisMsg > > TRedisMsgVector;
-    typedef std::pair< const std::string, TRedisMsgAttributes > TStringRedisMsgVectorPair;
+    typedef std::pair< const std::string, TRedisMsgVector > TStringRedisMsgVectorPair;    // the value_type of the map below: an allocator of another type is refused by libc++
     typedef std::unordered_map< std::string, TRedisMsgVector, std::hash< std::string >, std::equal_to< std::string >, gucef_allocator< TStringRedisMsgVectorPair > > TRedisMsgByStream;
     typedef std::insert_iterator< TRedisMsgByStream > TRedisMsgByStreamInserter;
 

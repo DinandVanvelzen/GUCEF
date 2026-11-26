@@ -34,4 +34,11 @@
             <Dependency Name="Iphlpapi.lib" />
         </Linker>
     </Module>
+    <Module Platform="osx">
+        <Linker>
+            <!-- Secure Transport, the TLS of the operating system, and the certificate handling that goes with it -->
+            <Dependency Name="-Wl,-framework,Security" Scope="private" />
+            <Dependency Name="-Wl,-framework,CoreFoundation" Scope="private" />
+        </Linker>
+    </Module>
 </ModuleInfoEntry>

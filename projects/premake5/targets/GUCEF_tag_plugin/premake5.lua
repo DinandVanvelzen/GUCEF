@@ -382,6 +382,7 @@ filter "MACOSX"
 filter "MSWIN"
 
 filter "OSX"
+  include( "dependencies/zlib" )
 
 filter "WIN32"
   include( "dependencies/DevIL/DevIL" )

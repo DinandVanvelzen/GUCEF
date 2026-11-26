@@ -41,6 +41,7 @@
   #include <windows.h>
 #else
   #include <unistd.h>
+  #include <fcntl.h>
   #include <poll.h>
   #include <signal.h>
   #include <pthread.h>
@@ -141,6 +142,13 @@ CProcessPipe::CProcessPipe( TNativeHandle handle, EDirection direction )
     , m_bytesTransferred( 0 )
 {GUCEF_TRACE;
 
+    #if defined( __APPLE__ )
+    // On macOS a write to a pipe of which the reader is gone raises SIGPIPE for the process as a whole, not for the writing thread
+    // as on Linux: blocking it on the thread that writes (see CPipeWriteSigPipeGuard) does not keep another thread from receiving
+    // it and ending the process. The system has a switch for this per descriptor: the write fails with EPIPE instead
+    if ( PIPE_WRITE_TO_CHILD == m_direction && m_handle >= 0 )
+        fcntl( m_handle, F_SETNOSIGPIPE, 1 );
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

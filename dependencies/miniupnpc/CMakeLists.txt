@@ -60,6 +60,10 @@ if ( ANDROID64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "__sun" )
 endif( ANDROID64 )
 
+if ( OSX )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MACOSX" )
+endif( OSX )
+
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE WS2_32.lib )
 endif( WIN32 )

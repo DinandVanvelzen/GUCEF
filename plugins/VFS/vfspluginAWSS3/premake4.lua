@@ -85,6 +85,9 @@ includedirs( { "../../../platform/gucefCORE/include/linux" } )
 configuration( { "LINUX64" } )
 includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../../../platform/gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 

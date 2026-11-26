@@ -11,4 +11,10 @@
             <Dependency Name="aws-c-common" />
         </Linker>		
     </Module>
+    <Module Platform="osx">
+        <Linker>
+            <Dependency Name="-Wl,-framework,Security" />
+            <Dependency Name="-Wl,-framework,CoreFoundation" />
+        </Linker>
+    </Module>
 </ModuleInfoEntry>

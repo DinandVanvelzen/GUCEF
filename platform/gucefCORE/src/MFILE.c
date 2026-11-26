@@ -23,7 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------//
 
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>     // memory management
+#endif
 #include <string.h>     // needed for memcpy()
 #include <stdio.h>      // needed for dump to file and seek defines
 #include "dvstrutils.h" // Needed for ASCII readers

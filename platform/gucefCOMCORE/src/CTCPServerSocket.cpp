@@ -23,7 +23,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>                     /* standard string utils */
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>                     /* Memory management */
+#endif
 
 #ifndef GUCEF_MT_COBJECTSCOPELOCK_H
 #include "gucefMT_CObjectScopeLock.h"

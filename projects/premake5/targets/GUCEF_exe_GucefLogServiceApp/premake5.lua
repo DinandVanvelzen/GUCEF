@@ -352,6 +352,7 @@ filter "OSX"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

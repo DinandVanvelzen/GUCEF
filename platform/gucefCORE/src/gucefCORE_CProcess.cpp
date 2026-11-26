@@ -521,7 +521,7 @@ SpawnChildProcess( const CString& exePath       ,
 
     if ( !workingDir.IsNULLOrEmpty() )
     {
-        #if ( ( defined( __GLIBC__ ) && ( __GLIBC__ > 2 || ( __GLIBC__ == 2 && __GLIBC_MINOR__ >= 29 ) ) ) || ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) && defined( __ANDROID_API__ ) && ( __ANDROID_API__ >= 34 ) ) )
+        #if ( ( defined( __GLIBC__ ) && ( __GLIBC__ > 2 || ( __GLIBC__ == 2 && __GLIBC_MINOR__ >= 29 ) ) ) || ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) && defined( __ANDROID_API__ ) && ( __ANDROID_API__ >= 34 ) ) || ( defined( __APPLE__ ) && defined( __MAC_OS_X_VERSION_MIN_REQUIRED ) && ( __MAC_OS_X_VERSION_MIN_REQUIRED >= 101500 ) ) )
         success = 0 == posix_spawn_file_actions_addchdir_np( &fileActions, workingDir.C_String() );
         #else
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Setting the working dir of a child process is not supported by this C library" );
@@ -808,6 +808,16 @@ CProcess::LaunchImpl( const CString& exePath          ,
 
     SChildLimits childLimits;
     PrepareChildLimits( m_limits, childLimits );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS )
+    // macOS does not know a limit on the address space of a process: setrlimit( RLIMIT_AS ) is refused. A limit that is
+    // asked for and not applied would leave the child unrestricted without the caller knowing it, so the launch fails
+    if ( 0 != m_limits.addressSpaceInBytes )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Failed to launch \"" + exePath + "\": a limit on the address space of a process is not supported on macOS" );
+        return false;
+    }
+    #endif
 
     MT::CScopeMutex launchLock( g_launchLock );
 

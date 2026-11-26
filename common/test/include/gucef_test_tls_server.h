@@ -40,7 +40,7 @@
 
 #ifdef __cplusplus
 
-#if defined( __linux__ )
+#if defined( __linux__ ) || defined( __APPLE__ )
 
   #include <stdio.h>
   #include <string.h>
@@ -52,6 +52,21 @@
   #include <arpa/inet.h>
 
 #endif /* Linux ? */
+
+/*
+ *  macOS has no MSG_NOSIGNAL, and the SIGPIPE of a write to a connection of which the peer is gone is raised for the process there,
+ *  not for the writing thread: the sockets of the test servers get the socket option that makes such a write fail instead
+ */
+#ifndef GUCEF_TEST_DISABLE_SIGPIPE
+  #if defined( __APPLE__ )
+    #ifndef MSG_NOSIGNAL
+      #define MSG_NOSIGNAL 0
+    #endif
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do { int gucefTestNoSigPipe = 1; ::setsockopt( (fd), SOL_SOCKET, SO_NOSIGPIPE, &gucefTestNoSigPipe, sizeof( gucefTestNoSigPipe ) ); } while ( 0 )
+  #else
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do {} while ( 0 )
+  #endif
+#endif
 
 #ifndef GUCEF_CORE_CPROCESS_H
 #include "gucefCORE_CProcess.h"
@@ -110,7 +125,7 @@ class CTlsTestCerts
             return;
 
         static int counter = 0;
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         const int processId = (int) getpid();
         #else
         const int processId = 0;
@@ -132,7 +147,7 @@ class CTlsTestCerts
     /** Whether the openssl tool runs on this system */
     static bool IsToolAvailable( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         static int available = -1;
         if ( available < 0 )
         {
@@ -173,8 +188,8 @@ class CTlsTestCerts
     {
         const CORE::CString key = CORE::CString( name ) + ".key", crt = CORE::CString( name ) + ".crt";
         CORE::CProcess::TStringVector args;
-        args.push_back( "req" ); args.push_back( "-x509" ); args.push_back( "-newkey" ); args.push_back( "ec" );
-        args.push_back( "-pkeyopt" ); args.push_back( "ec_paramgen_curve:prime256v1" ); args.push_back( "-nodes" );
+        args.push_back( "req" ); args.push_back( "-x509" ); args.push_back( "-sha256" ); args.push_back( "-newkey" ); args.push_back( "ec:ecparam.pem" );
+        args.push_back( "-nodes" );
         args.push_back( "-keyout" ); args.push_back( key ); args.push_back( "-out" ); args.push_back( crt );
         args.push_back( "-days" ); args.push_back( "3650" ); args.push_back( "-subj" ); args.push_back( subject );
         args.push_back( "-addext" ); args.push_back( "basicConstraints=critical,CA:TRUE" );
@@ -189,7 +204,7 @@ class CTlsTestCerts
         const CORE::CString caCrt = CORE::CString( authority ) + ".crt", caKey = CORE::CString( authority ) + ".key";
 
         CORE::CProcess::TStringVector args;
-        args.push_back( "req" ); args.push_back( "-newkey" ); args.push_back( "ec" ); args.push_back( "-pkeyopt" ); args.push_back( "ec_paramgen_curve:prime256v1" );
+        args.push_back( "req" ); args.push_back( "-newkey" ); args.push_back( "ec:ecparam.pem" );
         args.push_back( "-nodes" ); args.push_back( "-keyout" ); args.push_back( key ); args.push_back( "-out" ); args.push_back( csr );
         args.push_back( "-subj" ); args.push_back( subject );
         if ( !Run( args ) )
@@ -205,7 +220,7 @@ class CTlsTestCerts
         fclose( extFile );
 
         args.clear();
-        args.push_back( "x509" ); args.push_back( "-req" ); args.push_back( "-in" ); args.push_back( csr ); args.push_back( "-CA" ); args.push_back( caCrt );
+        args.push_back( "x509" ); args.push_back( "-req" ); args.push_back( "-sha256" ); args.push_back( "-in" ); args.push_back( csr ); args.push_back( "-CA" ); args.push_back( caCrt );
         args.push_back( "-CAkey" ); args.push_back( caKey ); args.push_back( "-CAcreateserial" ); args.push_back( "-out" ); args.push_back( crt );
         args.push_back( "-extfile" ); args.push_back( ext );
         for ( size_t i=0; i<validity.size(); ++i )
@@ -263,6 +278,16 @@ class CTlsTestCerts
 
     bool Generate( void ) const
     {
+        // The curve is given as a file of parameters: the same for OpenSSL and for LibreSSL, which ignores the -pkeyopt that says it
+        // and then writes the whole curve into the key and the certificate instead of its name, which not every TLS library can read
+        {
+            CORE::CProcess::TStringVector curveArgs;
+            curveArgs.push_back( "ecparam" ); curveArgs.push_back( "-name" ); curveArgs.push_back( "prime256v1" );
+            curveArgs.push_back( "-out" ); curveArgs.push_back( "ecparam.pem" );
+            if ( !Run( curveArgs ) )
+                return false;
+        }
+
         if ( !MakeAuthority( "ca", "/CN=GUCEF Test CA" ) || !MakeAuthority( "other_ca", "/CN=GUCEF Other Test CA" ) )
             return false;
 
@@ -277,8 +302,8 @@ class CTlsTestCerts
 
         // A certificate that is its own authority
         CORE::CProcess::TStringVector args;
-        args.push_back( "req" ); args.push_back( "-x509" ); args.push_back( "-newkey" ); args.push_back( "ec" ); args.push_back( "-pkeyopt" );
-        args.push_back( "ec_paramgen_curve:prime256v1" ); args.push_back( "-nodes" ); args.push_back( "-keyout" ); args.push_back( "selfsigned.key" );
+        args.push_back( "req" ); args.push_back( "-x509" ); args.push_back( "-sha256" ); args.push_back( "-newkey" ); args.push_back( "ec:ecparam.pem" );
+        args.push_back( "-nodes" ); args.push_back( "-keyout" ); args.push_back( "selfsigned.key" );
         args.push_back( "-out" ); args.push_back( "selfsigned.crt" ); args.push_back( "-days" ); args.push_back( "30" ); args.push_back( "-subj" );
         args.push_back( "/CN=localhost" ); args.push_back( "-addext" ); args.push_back( "basicConstraints=critical,CA:FALSE" );
         args.push_back( "-addext" ); args.push_back( "subjectAltName=DNS:localhost,IP:127.0.0.1" );
@@ -324,7 +349,7 @@ class CTlsTestServer
     bool Start( const CTlsTestCerts& certs, const char* name, EMode mode, const CORE::CProcess::TStringVector& extraArgs = CORE::CProcess::TStringVector(), const CORE::CString& workingDir = CORE::CString::Empty )
     {
         Stop();
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         if ( !certs.IsReady() )
             return false;
 
@@ -373,8 +398,9 @@ class CTlsTestServer
     /** A local port nothing listens on at this moment */
     static CORE::UInt16 FindFreePort( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         int sock = ::socket( AF_INET, SOCK_STREAM, 0 );
+        GUCEF_TEST_DISABLE_SIGPIPE( sock );
         if ( sock < 0 )
             return 0;
         struct sockaddr_in addr;
@@ -399,8 +425,9 @@ class CTlsTestServer
     /** Whether a TCP connection to the port on this computer can be made, which it is closed again right away */
     static bool CanConnect( CORE::UInt16 port )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         int sock = ::socket( AF_INET, SOCK_STREAM, 0 );
+        GUCEF_TEST_DISABLE_SIGPIPE( sock );
         if ( sock < 0 )
             return false;
         struct sockaddr_in addr;

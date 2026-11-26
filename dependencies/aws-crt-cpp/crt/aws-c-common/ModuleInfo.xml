@@ -20,4 +20,9 @@
 			<Define String="PLATFORM_LINUX" /> 			
         </Preprocessor>
     </Module>	
+    <Module Platform="osx">
+        <Preprocessor>
+			<Define String="AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_NONE" /> <!-- macOS has no way to ask for a thread to run on a certain cpu -->
+        </Preprocessor>
+    </Module>	
 </ModuleInfoEntry>

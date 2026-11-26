@@ -50,7 +50,7 @@
 
 #else /* not Windows */
 
-#if defined( __linux__ )
+#if defined( __linux__ ) || defined( __APPLE__ )
 
   #include <string.h>
   #include <time.h>
@@ -67,6 +67,21 @@
   #include <arpa/inet.h>
 
 #endif /* Linux ? */
+
+/*
+ *  macOS has no MSG_NOSIGNAL, and the SIGPIPE of a write to a connection of which the peer is gone is raised for the process there,
+ *  not for the writing thread: the sockets of the test servers get the socket option that makes such a write fail instead
+ */
+#ifndef GUCEF_TEST_DISABLE_SIGPIPE
+  #if defined( __APPLE__ )
+    #ifndef MSG_NOSIGNAL
+      #define MSG_NOSIGNAL 0
+    #endif
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do { int gucefTestNoSigPipe = 1; ::setsockopt( (fd), SOL_SOCKET, SO_NOSIGPIPE, &gucefTestNoSigPipe, sizeof( gucefTestNoSigPipe ) ); } while ( 0 )
+  #else
+    #define GUCEF_TEST_DISABLE_SIGPIPE( fd ) do {} while ( 0 )
+  #endif
+#endif
 
 #ifndef GUCEF_TEST_TLS_TERMINATOR_H
 #include "gucef_test_tls_terminator.h"
@@ -185,11 +200,15 @@ class CTestTcpServer
         , m_lock()
         , m_changeCount( 0 )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         pthread_mutex_init( &m_changeMutex, NULL );
         pthread_condattr_t attributes;
         pthread_condattr_init( &attributes );
+        #if defined( __APPLE__ )
+        // macOS has no choice of clock for a condition variable: its deadlines are on the realtime clock
+        #else
         pthread_condattr_setclock( &attributes, CLOCK_MONOTONIC );
+        #endif
         pthread_cond_init( &m_changeCondition, &attributes );
         pthread_condattr_destroy( &attributes );
         #endif
@@ -199,7 +218,7 @@ class CTestTcpServer
     {
         // the conversation of a derived class uses its members: Stop() has to be called by the destructor of the derived class too
         Stop();
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         pthread_cond_destroy( &m_changeCondition );
         pthread_mutex_destroy( &m_changeMutex );
         #endif
@@ -221,7 +240,7 @@ class CTestTcpServer
     /** Listens on a free local port and starts accepting. @return false when that is not possible, or TLS was asked for and is not available */
     bool Start( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         Stop();
 
         if ( !m_certificateFile.IsNULLOrEmpty() )
@@ -244,6 +263,7 @@ class CTestTcpServer
             return false;
 
         m_listenFd = ::socket( AF_INET, SOCK_STREAM, 0 );
+GUCEF_TEST_DISABLE_SIGPIPE( m_listenFd );
         if ( m_listenFd < 0 )
             return false;
         int one = 1;
@@ -278,7 +298,7 @@ class CTestTcpServer
 
     void Stop( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         SetRunning( false );
         if ( m_threadStarted )
         {
@@ -323,9 +343,13 @@ class CTestTcpServer
     template< class TPredicate >
     bool WaitFor( const TPredicate& predicate, UInt32 timeoutInMs )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         struct timespec deadline;
+        #if defined( __APPLE__ )
+        ::clock_gettime( CLOCK_REALTIME, &deadline );   // the clock of the condition variable, see the constructor
+        #else
         ::clock_gettime( CLOCK_MONOTONIC, &deadline );
+        #endif
         deadline.tv_sec += timeoutInMs / 1000;
         deadline.tv_nsec += (long) ( timeoutInMs % 1000 ) * 1000000L;
         if ( deadline.tv_nsec >= 1000000000L )
@@ -358,7 +382,7 @@ class CTestTcpServer
     /** Wakes the threads in WaitFor(): call it after the state that a predicate looks at has changed (and the lock for it is released) */
     void SignalChanged( void )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         pthread_mutex_lock( &m_changeMutex );
         ++m_changeCount;
         pthread_cond_broadcast( &m_changeCondition );
@@ -382,7 +406,7 @@ class CTestTcpServer
         UInt32 m_count;
     };
 
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
 
     UInt32 GetChangeCount( void )
     {
@@ -432,6 +456,7 @@ class CTestTcpServer
             if ( ::poll( &pfd, 1, 50 ) <= 0 || 0 == ( pfd.revents & POLLIN ) )
                 continue;
             int clientFd = ::accept( m_listenFd, NULL, NULL );
+            GUCEF_TEST_DISABLE_SIGPIPE( clientFd );
             if ( clientFd < 0 )
                 continue;
 
@@ -500,7 +525,7 @@ class CTestTcpServer
     /** The flag is read by the threads of the conversations while the owner clears it: an atomic access */
     bool IsRunning( void ) const
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         return __atomic_load_n( &m_running, __ATOMIC_ACQUIRE );
         #else
         return m_running;
@@ -509,7 +534,7 @@ class CTestTcpServer
 
     void SetRunning( bool running )
     {
-        #if defined( __linux__ )
+        #if defined( __linux__ ) || defined( __APPLE__ )
         __atomic_store_n( &m_running, running, __ATOMIC_RELEASE );
         #else
         m_running = running;
@@ -530,7 +555,7 @@ class CTestTcpServer
     UInt32 m_finishedConnections;
     MT::CMutex m_lock;
     UInt32 m_changeCount;
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
     pthread_mutex_t m_changeMutex;
     pthread_cond_t m_changeCondition;
     #endif
@@ -558,7 +583,7 @@ CTestServerConnection::Sleep( UInt32 timeInMs )
 inline bool
 CTestServerConnection::Fill( UInt32 timeoutInMs )
 {
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
     if ( m_closed )
         return false;
     // what OpenSSL has decrypted already is not visible to poll
@@ -730,7 +755,7 @@ CTestServerConnection::ReadDotTerminated( CORE::CDynamicBuffer& data, UInt32 tim
 inline bool
 CTestServerConnection::Write( const void* data, UInt32 size )
 {
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
     if ( m_closed )
         return false;
     const char* bytes = static_cast< const char* >( data );
@@ -797,7 +822,7 @@ CTestServerConnection::WriteText( const CORE::CString& text )
 inline bool
 CTestServerConnection::StartTls( void )
 {
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
     if ( NULL == m_tlsContext || NULL != m_ssl || m_closed )
         return false;
     // whatever the client sent in plain text before it started the handshake is not part of it
@@ -833,7 +858,7 @@ CTestServerConnection::StartTls( void )
 inline void
 CTestServerConnection::Close( void )
 {
-    #if defined( __linux__ )
+    #if defined( __linux__ ) || defined( __APPLE__ )
     if ( NULL != m_ssl )
     {
         m_api->ERR_clear_error();

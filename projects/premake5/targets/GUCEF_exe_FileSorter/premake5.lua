@@ -790,6 +790,7 @@ filter "OSX"
   include( "dependencies/libyaml" )
   include( "dependencies/minizip" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "dependencies/zziplib" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )

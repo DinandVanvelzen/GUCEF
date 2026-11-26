@@ -120,7 +120,7 @@ if ( MSWIN )
 endif( MSWIN )
 
 if ( OSX )
-  include_directories( ../../dependencies/hiredis )
+  include_directories( ../../dependencies/hiredis ../../platform/gucefCOMCORE/include/osx ../../platform/gucefCORE/include/osx )
 endif( OSX )
 
 if ( WIN32 )

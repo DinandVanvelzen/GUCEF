@@ -11,5 +11,7 @@
     </INCLUDES>	
 	<INCLUDES PLATFORM="osx">
         <ITEM NAME="darwin" TYPE="DIR" />
+        <ITEM NAME="bsd" TYPE="DIR" />
+        <ITEM NAME="posix" TYPE="DIR" />
     </INCLUDES>	
 </PROJECTGENERATOR>

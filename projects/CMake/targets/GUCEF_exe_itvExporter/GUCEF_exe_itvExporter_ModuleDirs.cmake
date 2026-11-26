@@ -65,6 +65,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/tiff/libt
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginDEVIL ${CMAKE_BINARY_DIR}/imgpluginDEVIL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginFreeImage ${CMAKE_BINARY_DIR}/imgpluginFreeImage )
+elseif (OSX)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 elseif (WIN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DevIL/DevIL ${CMAKE_BINARY_DIR}/DevIL2 )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/FreeImage ${CMAKE_BINARY_DIR}/FreeImage )

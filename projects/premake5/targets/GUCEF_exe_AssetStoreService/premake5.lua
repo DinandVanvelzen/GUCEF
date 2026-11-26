@@ -821,6 +821,7 @@ filter "OSX"
   include( "dependencies/monocypher" )
   include( "dependencies/stbrumme-hash-library" )
   include( "dependencies/ufbx" )
+  include( "dependencies/zlib" )
   include( "platform/gucefASSETSTORE" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )

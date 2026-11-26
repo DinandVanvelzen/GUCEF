@@ -131,18 +131,7 @@ function(GUCEF_config_lib LIBNAME)
       set_target_properties(${LIBNAME} PROPERTIES COMPILE_FLAGS "${GUCEF_GCC_VISIBILITY_FLAGS}")
 	endif (CMAKE_COMPILER_IS_GNUCXX)
 
-	# Set some Mac OS X specific framework settings, including installing the headers in subdirs
-	if (APPLE AND NOT GUCEF_BUILD_PLATFORM_IPHONE)
-      set_target_properties(${LIBNAME} PROPERTIES XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES")
-      set_target_properties(${LIBNAME} PROPERTIES XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${GUCEF_SOURCE_DIR}/GUCEFMain/include/GUCEFStableHeaders.h")
-      set_target_properties(${LIBNAME} PROPERTIES XCODE_ATTRIBUTE_GCC_UNROLL_LOOPS "YES")
-      add_custom_command(TARGET ${LIBNAME} POST_BUILD
-        COMMAND mkdir ARGS -p ${CMAKE_BINARY_DIR}/lib/$(CONFIGURATION)/GUCEF.framework/Headers/Threading
-	    COMMAND /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp ARGS -exclude .DS_Store -exclude CVS -exclude .svn -exclude 'CMakeLists.txt' -resolve-src-symlinks ${GUCEF_SOURCE_DIR}/GUCEFMain/include/Threading/* ${CMAKE_BINARY_DIR}/lib/$(CONFIGURATION)/GUCEF.framework/Headers/Threading/
-        COMMAND mkdir ARGS -p ${CMAKE_BINARY_DIR}/lib/$(CONFIGURATION)/GUCEF.framework/Headers/OSX
-	    COMMAND /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp ARGS -exclude .DS_Store -exclude CVS -exclude .svn -exclude 'CMakeLists.txt' -resolve-src-symlinks ${GUCEF_SOURCE_DIR}/GUCEFMain/include/OSX/*.h ${CMAKE_BINARY_DIR}/lib/$(CONFIGURATION)/GUCEF.framework/Headers/OSX/
-    )
-	endif (APPLE AND NOT GUCEF_BUILD_PLATFORM_IPHONE)
+	# macOS builds produce regular libraries like every other platform, there is no framework bundle to assemble.
   endif (GUCEF_STATIC)
   GUCEF_install_target(${LIBNAME} "")
 

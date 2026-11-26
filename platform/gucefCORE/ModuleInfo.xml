@@ -47,6 +47,17 @@
             <Dependency Name="dl" Scope="private" />
         </Linker>
     </Module>
+    <Module Platform="osx">
+        <Linker>
+            <!-- FSEvents, which the file system watcher is made with -->
+            <Dependency Name="-Wl,-framework,CoreServices" Scope="private" />
+            <Dependency Name="-Wl,-framework,CoreFoundation" Scope="private" />
+            <!-- the pasteboard behind the clipboard functions -->
+            <Dependency Name="-Wl,-framework,ApplicationServices" Scope="private" />
+            <!-- the security session, which tells whether there is a desktop to open a terminal window in -->
+            <Dependency Name="-Wl,-framework,Security" Scope="private" />
+        </Linker>
+    </Module>
 </ModuleInfoEntry>
 <ModuleInfoEntry>
     <ModuleMetaData>
@@ -90,6 +101,16 @@
     <Module Platform="Android">
         <Linker>
             <Dependency Name="dl" Scope="private" />
+        </Linker>
+    </Module>
+    <Module Platform="osx">
+        <Linker>
+            <!-- FSEvents, which the file system watcher is made with -->
+            <Dependency Name="-Wl,-framework,CoreServices" Scope="private" />
+            <Dependency Name="-Wl,-framework,CoreFoundation" Scope="private" />
+            <Dependency Name="-Wl,-framework,ApplicationServices" Scope="private" />
+            <!-- the security session, which tells whether there is a desktop to open a terminal window in -->
+            <Dependency Name="-Wl,-framework,Security" Scope="private" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

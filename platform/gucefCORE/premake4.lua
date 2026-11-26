@@ -50,6 +50,9 @@ links( { "X11", "dl", "rt" } )
 configuration( { "LINUX64" } )
 links( { "X11", "dl", "rt" } )
 
+configuration( { "OSX" } )
+links( { "-Wl,-framework,ApplicationServices", "-Wl,-framework,CoreFoundation", "-Wl,-framework,CoreServices", "-Wl,-framework,Security" } )
+
 configuration( { "WIN32" } )
 links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
 
@@ -1021,9 +1024,20 @@ configuration( { "LINUX64" } )
 
 
 configuration( { "OSX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/osx/gucefCORE_CTerminalConsoleLogger.h",
+      "src/osx/gucefCORE_CTextLineConsoleLogger.h",
+      "src/osx/gucefCORE_MacClipboard.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/osx/gucefCORE_CCommonCryptoCodecs.cpp"
+      "src/osx/gucefCORE_CCommonCryptoCodecs.cpp",
+      "src/osx/gucefCORE_CDesktopTerminalConsoleLogger.cpp",
+      "src/osx/gucefCORE_CTerminalConsoleLogger.cpp",
+      "src/osx/gucefCORE_CTextLineConsoleLogger.cpp",
+      "src/osx/gucefCORE_MacClipboard.cpp"
     } )
 
 
@@ -1097,6 +1111,9 @@ includedirs( { "include/linux" } )
 
 configuration( { "LINUX64" } )
 includedirs( { "include/linux" } )
+
+configuration( { "OSX" } )
+includedirs( { "src/osx" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../gucefMT/include/mswin", "include/mswin" } )

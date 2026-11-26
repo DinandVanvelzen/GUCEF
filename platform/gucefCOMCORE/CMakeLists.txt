@@ -335,6 +335,25 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (OSX)
+  set( PLATFORM_HEADER_FILES 
+    include/osx/gucefCOMCORE_CMacNetworkInterface.h
+    src/osx/gucefCOMCORE_CSecureTransportTlsProvider.h
+    src/osx/gucefCOMCORE_CSecureTransportTlsSession.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "OSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/osx/gucefCOMCORE_CMacNetworkInterface.cpp
+    src/osx/gucefCOMCORE_CSecureTransportTlsProvider.cpp
+    src/osx/gucefCOMCORE_CSecureTransportTlsSession.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "OSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/mswin/gucefCOMCORE_CWin32NetworkInterface.h
@@ -390,6 +409,10 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
+if ( OSX )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -Wl,-framework,CoreFoundation -Wl,-framework,Security )
+endif( OSX )
+
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib Iphlpapi.lib Ws2_32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_WINSOCK_DEPRECATED_NO_WARNINGS" )
@@ -418,6 +441,10 @@ if ( LINUX64 )
   include_directories( ../gucefCORE/include/linux include/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( ../gucefCORE/src/osx include/osx src src/osx )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin include/mswin )
 endif( WIN32 )
@@ -440,6 +467,9 @@ endif( LINUX32 )
 if ( LINUX64 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/linux )
 endif( LINUX64 )
+if ( OSX )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/osx src/osx )
+endif( OSX )
 if ( WIN32 )
   GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/mswin )
 endif( WIN32 )

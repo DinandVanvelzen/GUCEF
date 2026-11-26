@@ -408,6 +408,7 @@ filter "OSX"
   include( "dependencies/json-parser" )
   include( "dependencies/monocypher" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )

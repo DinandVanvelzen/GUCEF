@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <pthread.h>
+#include <fcntl.h>
 
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
@@ -88,10 +89,16 @@ class CThreadSigPipeBlockScope
             sigpending( &pending );
             if ( 0 != sigismember( &pending, SIGPIPE ) )
             {
+                #if defined( __APPLE__ )
+                // macOS has no sigtimedwait(); the signal is pending for this thread, so sigwait() returns at once
+                int taken = 0;
+                sigwait( &m_pipeSet, &taken );
+                #else
                 struct timespec noWait;
                 noWait.tv_sec = 0;
                 noWait.tv_nsec = 0;
                 sigtimedwait( &m_pipeSet, GUCEF_NULL, &noWait );
+                #endif
             }
         }
         pthread_sigmask( SIG_SETMASK, &m_oldMask, GUCEF_NULL );
@@ -148,6 +155,13 @@ CTerminalConsoleLogger::CTerminalConsoleLogger( int fileDescriptor )
     if ( -1 == m_fileDescriptor )
         m_fileDescriptor = GetTerminalFileDescriptor();
     m_notATerminal = -1 != m_fileDescriptor && 0 == isatty( m_fileDescriptor );
+
+    #if defined( __APPLE__ )
+    // On macOS a write to a pipe of which the reader is gone raises SIGPIPE for the process, not for the writing thread as on Linux:
+    // the system has a switch per descriptor that makes such a write fail with EPIPE instead (it does nothing for a terminal)
+    if ( m_notATerminal )
+        fcntl( m_fileDescriptor, F_SETNOSIGPIPE, 1 );
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

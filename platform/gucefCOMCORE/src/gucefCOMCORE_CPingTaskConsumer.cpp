@@ -54,7 +54,7 @@
   #define GUCEF_COMCORE_ICMPAPI_H
   #endif /* GUCEF_COMCORE_ICMPAPI_H ? */
 
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
   #include <errno.h>
   #include <fcntl.h>
@@ -65,6 +65,29 @@
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <netinet/ip_icmp.h>
+
+#endif
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+/*
+ *  The ICMP echo header as the code for the other POSIX platforms knows it from Linux (struct icmphdr). The system
+ *  headers of macOS have the same layout on the wire under another name and with other field names (struct icmp).
+ */
+struct icmphdr
+{
+    GUCEF::UInt8 type;
+    GUCEF::UInt8 code;
+    GUCEF::UInt16 checksum;
+    union
+    {
+        struct
+        {
+            GUCEF::UInt16 id;
+            GUCEF::UInt16 sequence;
+        } echo;
+    } un;
+};
 
 #endif
 
@@ -449,7 +472,7 @@ CPingTaskConsumer::OnTaskEnding( CORE::CTaskPtr task ,
                                  bool willBeForced   )
 {GUCEF_TRACE;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
     // A ping sequence which is stopped before it is done still ends with a stopped event for each host
     TPingCounters::iterator i = m_pingCounters.begin();
@@ -469,7 +492,7 @@ CPingTaskConsumer::OnTaskEnded( CORE::CTaskPtr task ,
                                 bool wasForced      )
 {GUCEF_TRACE;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
     CleanupPosixPingEntries();
     #endif
 
@@ -625,7 +648,7 @@ CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     return true;
 }
 
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
 /**
  *  The ICMP echo implementation for POSIX like platforms.
@@ -707,7 +730,7 @@ CPingTaskConsumer::InitializePosixPingEntries( void )
         if ( entry.socketFd < 0 )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Unable to create an ICMP socket, error " + CORE::Int32ToString( errno ) +
-                ". On Linux unprivileged pings need your group to be in net.ipv4.ping_group_range, otherwise the process needs CAP_NET_RAW" );
+                ". On Linux unprivileged pings need your group to be in net.ipv4.ping_group_range, otherwise the process needs CAP_NET_RAW (on macOS unprivileged ICMP sockets are allowed, a raw socket needs root)" );
             CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
             NotifyObservers( PingFailedEvent, &eventData );
             StopPosixPingEntry( entry );
@@ -773,9 +796,13 @@ CPingTaskConsumer::ReceivePosixPingReply( TPingEntry& entry, UInt32& roundTripTi
         if ( received < 0 )
             return false;       // nothing (more) to read right now
         
-        // a raw socket gives us the IP header as well
+        // a raw socket gives us the IP header as well, and on macOS so does the unprivileged ICMP socket
         size_t offset = 0;
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+        if ( true )
+        #else
         if ( entry.isRawSocket )
+        #endif
         {
             if ( received < 1 )
                 continue;
@@ -787,7 +814,12 @@ CPingTaskConsumer::ReceivePosixPingReply( TPingEntry& entry, UInt32& roundTripTi
         const struct icmphdr* header = reinterpret_cast< const struct icmphdr* >( &buffer[ offset ] );
         if ( ICMP_ECHOREPLY != header->type || ntohs( header->un.echo.sequence ) != entry.sequence )
             continue;
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+        // the id is ours on macOS: it is not replaced by the system for an unprivileged socket
+        if ( ntohs( header->un.echo.id ) != (UInt16) ( getpid() & 0xFFFF ) )
+        #else
         if ( entry.isRawSocket && ntohs( header->un.echo.id ) != (UInt16) ( getpid() & 0xFFFF ) )
+        #endif
             continue;       // a reply to a ping of another process
 
         roundTripTimeInMs = TicksToMilliSecs( MT::PrecisionTickCount() - entry.ticksAtLastPing );

@@ -88,6 +88,9 @@ includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/guce
 configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../../platform/gucefCOMCORE/include/osx", "../../platform/gucefCORE/include/osx" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../../common/include", "../../platform", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/mswin", "../../platform/gucefCORE/include/mswin/", "../../platform/gucefLOADER/include", "../../platform/gucefMT", "../../platform/gucefMT/include", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/" } )
 

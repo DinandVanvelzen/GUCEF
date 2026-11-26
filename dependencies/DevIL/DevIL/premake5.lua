@@ -228,6 +228,9 @@ includedirs( { "../../zlib", "include/IL/linux" } )
 configuration( { "LINUX64" } )
 includedirs( { "../../zlib", "include/IL/linux" } )
 
+configuration( { "OSX" } )
+includedirs( { "../../zlib" } )
+
 configuration( { "WIN32" } )
 includedirs( { "../../zlib", "include/IL/mswin" } )
 

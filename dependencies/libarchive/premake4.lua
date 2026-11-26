@@ -50,6 +50,12 @@ links( { "zlib" } )
 configuration( { "LINUX64" } )
 links( { "zlib" } )
 
+configuration( { "OSX" } )
+links( { "zlib" } )
+
+configuration( { "OSX" } )
+links( { "iconv", "zlib" } )
+
 configuration( { "WIN32" } )
 links( { "zlib" } )
 
@@ -108,6 +114,7 @@ files( {
   "libarchive/config.h",
   "libarchive/config_freebsd.h",
   "libarchive/config_linux.h",
+  "libarchive/config_macos.h",
   "libarchive/filter_fork.h"
  } )
 
@@ -258,6 +265,9 @@ configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../zlib" } )
+
+configuration( { "OSX" } )
 includedirs( { "../zlib" } )
 
 configuration( { "WIN32" } )

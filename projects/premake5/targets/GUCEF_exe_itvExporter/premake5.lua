@@ -437,6 +437,7 @@ filter "OSX"
   include( "dependencies/libparsifal" )
   include( "dependencies/libyaml" )
   include( "dependencies/stbrumme-hash-library" )
+  include( "dependencies/zlib" )
   include( "platform/gucefCORE" )
   include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )

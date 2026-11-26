@@ -616,7 +616,7 @@ configuration( { "NACL" } )
 includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "OSX" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../dependencies/hiredis", "../../../platform/gucefCOMCORE/include/osx", "../../../platform/gucefCORE/include/osx", "../../../tools/redisinfo/include/" } )
 
 configuration( { "POSIX" } )
 includedirs( { "../../../tools/redisinfo/include/" } )

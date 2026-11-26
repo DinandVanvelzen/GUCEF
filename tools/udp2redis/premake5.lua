@@ -116,7 +116,7 @@ configuration( { "MSWIN" } )
 includedirs( { "../../dependencies/hiredis" } )
 
 configuration( { "OSX" } )
-includedirs( { "../../dependencies/hiredis" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/osx", "../../platform/gucefCORE/include/osx" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )

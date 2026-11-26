@@ -71,6 +71,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/ooz ${CMA
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/dbpluginPOSTGRESQL ${CMAKE_BINARY_DIR}/dbpluginPOSTGRESQL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginFreeImage ${CMAKE_BINARY_DIR}/imgpluginFreeImage )
+elseif (OSX)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 elseif (WIN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/FreeImage ${CMAKE_BINARY_DIR}/FreeImage )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/libpq ${CMAKE_BINARY_DIR}/libpq )

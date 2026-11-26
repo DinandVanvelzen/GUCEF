@@ -677,7 +677,7 @@ if ( NACL )
 endif( NACL )
 
 if ( OSX )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/osx ../../../platform/gucefCORE/include/osx ../../../tools/redisinfo/include/ )
 endif( OSX )
 
 if ( POSIX )

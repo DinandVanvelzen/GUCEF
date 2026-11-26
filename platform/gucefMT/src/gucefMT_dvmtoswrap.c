@@ -27,7 +27,11 @@
 #endif
 
 #include <assert.h>
+#ifdef __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include <string.h>
 
 #include "gucefMT_dvmtoswrap.h"         /* the function prototypes */
@@ -42,7 +46,7 @@
   #define GUCEF_MT_MSWINUTILS_H
   #endif /* GUCEF_MT_MSWINUTILS_H ? */
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
   #include <stdio.h>
   #include <stdlib.h>
@@ -86,7 +90,7 @@ typedef char TThreadIdHoldsTheNativeThreadId[ ( sizeof( pthread_t ) <= sizeof( T
  */
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 typedef char TSystemThreadIdHoldsTheNativeThreadId[ ( sizeof( DWORD ) <= sizeof( TSystemThreadId ) ) ? 1 : -1 ];
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 typedef char TSystemThreadIdHoldsTheNativeThreadId[ ( sizeof( pid_t ) <= sizeof( TSystemThreadId ) ) ? 1 : -1 ];
 #endif
 
@@ -105,7 +109,7 @@ struct SThreadData
     LPTHREAD_START_ROUTINE func;
     void* data;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     pthread_t thread;
     pthread_attr_t attr;
@@ -116,6 +120,9 @@ struct SThreadData
     pthread_mutex_t startMutex;     /* guards 'started', the hand shake between ThreadCreate() and the new thread */
     pthread_cond_t startSignal;
     int started;                    /* set by the new thread once threadId and threadStatus are valid */
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    int finished;                   /* set, guarded by startMutex, once the thread function ended or the thread was cancelled: stands in for pthread_timedjoin_np() */
+    #endif
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -159,7 +166,7 @@ ThreadDelay( UInt32 delay )
     GUCEF_BEGIN;
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     Sleep( delay );
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     /* note that sleep() takes seconds while delay is in milliseconds */
     struct timespec remaining;
     remaining.tv_sec = (time_t) ( delay / 1000 );
@@ -188,7 +195,21 @@ ThreadMain( void* tdvptr ) GUCEF_CALLSPEC_STD_SUFFIX
     return ((TThreadData*)tdvptr)->returnValue;
 }
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+static void
+ThreadFinishedHandler( void* tdvptr )
+{
+    TThreadData* td = (TThreadData*) tdvptr;
+    pthread_mutex_lock( &td->startMutex );
+    td->finished = 1;
+    pthread_cond_broadcast( &td->exitSignal );
+    pthread_mutex_unlock( &td->startMutex );
+}
+
+#endif
 
 void*
 ThreadMain( void* tdvptr )
@@ -205,13 +226,25 @@ ThreadMain( void* tdvptr )
      */
     pthread_mutex_lock( &td->startMutex );
     td->threadStatus = THREADSTATUS_RUNNING;
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    /* the same Mach thread port name that GetCurrentThreadSystemID() gives: Darwin has no gettid() */
+    td->threadId = (pid_t) pthread_mach_thread_np( pthread_self() );
+    #else
     td->threadId = gettid();
+    #endif
     td->started = 1;
     pthread_cond_signal( &td->startSignal );
     pthread_mutex_unlock( &td->startMutex );
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    /* the handler also runs when the thread is cancelled, which a ThreadWait() or ThreadKill() must be able to see */
+    pthread_cleanup_push( &ThreadFinishedHandler, td );
+    td->returnValue = td->func( td->data );
+    pthread_cleanup_pop( 1 );
+    #else
     td->returnValue = td->func( td->data );
     pthread_cond_signal( &td->exitSignal );
+    #endif
     GUCEF_END;
     return GUCEF_NULL;
 }
@@ -250,7 +283,7 @@ ThreadDataReserve( void )
     }
     return td;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     TThreadData* td = malloc( sizeof( TThreadData ) );
     if ( GUCEF_NULL != td )
@@ -291,10 +324,10 @@ ThreadDataCleanup( struct SThreadData* td )
     {
         ThreadKill( td );
 
-        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
         pthread_cond_destroy( &td->exitSignal );
         #endif
-        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
         pthread_cond_destroy( &td->startSignal );
         pthread_mutex_destroy( &td->startMutex );
         #endif
@@ -338,7 +371,7 @@ ThreadCreate( struct SThreadData* td ,
     }
     return 1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     int retVal = 0;
     /* the primitives were initialized by ThreadDataReserve(), the memset resets them so they are made again */
@@ -427,7 +460,7 @@ ThreadID( struct SThreadData* td )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     return (TSystemThreadId) td->threadid;
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
       #if GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
     /* forced to be the identity, as GetCurrentThreadSystemID() gives it then */
     return (TSystemThreadId) td->thread;
@@ -452,7 +485,7 @@ ThreadIdentity( struct SThreadData* td )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     return (TThreadId) td->threadid;
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     /* the pthread_t that pthread_create() gave the creating thread: what pthread_self() gives on the new thread */
     return (TThreadId) td->thread;
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
@@ -484,7 +517,7 @@ ThreadSuspend( struct SThreadData* td )
 
     return ( -1 != SuspendThread( td->threadhandle ) );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     /* TODO: Implement with signals */
     return 0;
@@ -511,7 +544,7 @@ ThreadResume( struct SThreadData* td )
 
     return ( -1 != ResumeThread( td->threadhandle ) );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     /* TODO: Implement with signals */
     return 0;
@@ -528,6 +561,50 @@ ThreadResume( struct SThreadData* td )
 
     #endif
 }
+
+/*--------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+/**
+ *  Darwin has no pthread_timedjoin_np(): this waits on the finished flag that the thread sets on its way out instead.
+ *  A negative timeout waits indefinitely.
+ *
+ *  @return 0 when the thread has finished (pthread_join() will then not block for long), ETIMEDOUT when it is still running
+ */
+static int
+ThreadWaitUntilFinished( struct SThreadData* td ,
+                         Int32 timeoutInMs      )
+{
+    int errorCode = 0;
+    struct timespec ts;
+
+    pthread_mutex_lock( &td->startMutex );
+    if ( timeoutInMs < 0 )
+    {
+        while ( 0 == td->finished )
+            pthread_cond_wait( &td->exitSignal, &td->startMutex );
+    }
+    else
+    {
+        clock_gettime( CLOCK_REALTIME, &ts );
+        ts.tv_sec += timeoutInMs / 1000;
+        ts.tv_nsec += 1000000 * ( timeoutInMs % 1000 );
+        if ( ts.tv_nsec >= 1000000000L )
+        {
+            ts.tv_sec += 1;
+            ts.tv_nsec %= 1000000000L;
+        }
+        while ( 0 == td->finished && 0 == errorCode )
+            errorCode = pthread_cond_timedwait( &td->exitSignal, &td->startMutex, &ts );
+    }
+    if ( 0 != td->finished )
+        errorCode = 0;
+    pthread_mutex_unlock( &td->startMutex );
+    return errorCode;
+}
+
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -575,6 +652,42 @@ ThreadKill( struct SThreadData* td )
         td->thread = 0;
 
         pthread_cond_signal( &td->exitSignal );
+        pthread_attr_destroy( &td->attr );
+        return retval;
+    }
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    if ( NULL != td && 0 != td->thread )
+    {
+        Int32 retval = 0;
+        int finished = 0;
+
+        pthread_mutex_lock( &td->startMutex );
+        finished = td->finished;
+        pthread_mutex_unlock( &td->startMutex );
+
+        if ( 0 == finished )
+        {
+            /* The thread is still running: cancellation is the closest equivalent to TerminateThread() */
+            retval = (Int32) pthread_cancel( td->thread );
+            if ( 0 != retval || 0 != ThreadWaitUntilFinished( td, 5000 ) )
+            {
+                /* We could not reap the thread, let the system clean it up once it ends */
+                pthread_detach( td->thread );
+                td->thread = 0;
+            }
+        }
+        if ( 0 != td->thread )
+        {
+            pthread_join( td->thread, GUCEF_NULL );
+            td->thread = 0;
+        }
+
+        pthread_mutex_lock( &td->startMutex );
+        pthread_cond_broadcast( &td->exitSignal );
+        pthread_mutex_unlock( &td->startMutex );
         pthread_attr_destroy( &td->attr );
         return retval;
     }
@@ -684,6 +797,27 @@ ThreadWait( struct SThreadData* td ,
         int errorCode = pthread_cond_timedwait( &td->exitSignal, GUCEF_NULL, &ts );
         if ( 0 == errorCode )
             return GUCEF_THREAD_WAIT_OK;
+    }
+    return GUCEF_THREAD_WAIT_FAILED;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /* see the Linux variant: a thread that was joined already did run and has finished */
+    if ( GUCEF_NULL != td && 0 == td->thread && 0 != td->started )
+        return GUCEF_THREAD_WAIT_OK;
+
+    if ( GUCEF_NULL != td && 0 != td->thread && 0 == pthread_equal( td->thread, pthread_self() ) )
+    {
+        int errorCode = ThreadWaitUntilFinished( td, timeoutInMs );
+        if ( 0 == errorCode )
+        {
+            /* the thread has ended: this reaps it, the handle is no longer valid once joined */
+            pthread_join( td->thread, GUCEF_NULL );
+            td->thread = 0;
+            return GUCEF_THREAD_WAIT_OK;
+        }
+        if ( ETIMEDOUT == errorCode )
+            return GUCEF_THREAD_WAIT_TIMEOUT;
     }
     return GUCEF_THREAD_WAIT_FAILED;
 
@@ -798,6 +932,11 @@ ThreadSetCpuAffinity( struct SThreadData* td  ,
     }
     return 0;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /* Darwin has no API to pin a thread to a CPU, only affinity tags that are hints for cache sharing */
+    return 0;
+
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     return 0;
@@ -870,6 +1009,15 @@ ThreadGetCpuAffinity( struct SThreadData* td        ,
         int statusCode = sched_getaffinity( td->threadId, (size_t) affinityMaskBufferSize, (cpu_set_t*) affinityMask );
         if ( 0 == statusCode )
             return 1;
+    }
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /* CPU affinity is not supported on Darwin, see ThreadSetCpuAffinity() */
+    if ( GUCEF_NULL != affinityMaskSize )
+    {
+        *affinityMaskSize = 0;
     }
     return 0;
 
@@ -1128,7 +1276,7 @@ PrecisionTickCount( void )
     {
         return GetTickCount64();
     }
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     /*
      *  The monotonic clock, in microseconds, as QueryPerformanceCounter() on Windows: every user of the tick count
@@ -1174,7 +1322,7 @@ PrecisionTimerResolution( void )
         return 100; /* this is the WIN32 resolution of GetTickCount(); which has a time-slice size of about 10 ms */
     }
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return 1000000;
 
@@ -1271,7 +1419,7 @@ PrecisionDelay( UInt32 delayInMs )
         }
     }
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     usleep( delayInMs * 1000 );
 
@@ -1345,7 +1493,7 @@ GetProcessID( void )
 
     return (UInt32) GetCurrentProcessId();
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     return (UInt32) getpid();
 

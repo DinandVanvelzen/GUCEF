@@ -41,6 +41,10 @@ configuration( { "LINUX64" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
 
 
+configuration( { "OSX" } )
+defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_NONE" } )
+
+
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
@@ -126,6 +130,24 @@ configuration( { "LINUX32" } )
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "source/posix/clock.c",
+      "source/posix/condition_variable.c",
+      "source/posix/device_random.c",
+      "source/posix/environment.c",
+      "source/posix/file.c",
+      "source/posix/mutex.c",
+      "source/posix/process.c",
+      "source/posix/rw_lock.c",
+      "source/posix/system_info.c",
+      "source/posix/thread.c",
+      "source/posix/time.c"
+    } )
+
+
+
+configuration( { "OSX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "source/posix/clock.c",

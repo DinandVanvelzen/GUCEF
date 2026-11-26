@@ -106,7 +106,7 @@ typedef struct SSrcFileData TSrcFileData;
 #if ( !defined stricmp )
   #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #define stricmp   _stricmp
-  #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+  #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     #define stricmp   strcasecmp
   #endif
 #endif

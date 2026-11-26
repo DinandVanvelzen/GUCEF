@@ -86,8 +86,20 @@ SetCurrentThreadName( const char* name )
 
     #elif defined( GUCEF_MT_THREADNAME_PTHREAD )
 
-    // Apple: only the calling thread can be named
-    return 0 == pthread_setname_np( name );
+    // Apple: only the calling thread can be named. The system keeps 63 bytes and a zero (MAXTHREADNAMESIZE): a longer name makes
+    // pthread_setname_np() fail, so it is cut here as it is for Linux, never inside a UTF-8 sequence
+    const size_t maxAppleNameBytes = 63;
+    char shortName[ maxAppleNameBytes + 1 ];
+    size_t length = strlen( name );
+    if ( length > maxAppleNameBytes )
+    {
+        length = maxAppleNameBytes;
+        while ( length > 0 && 0x80 == ( ( (unsigned char) name[ length ] ) & 0xC0 ) )
+            --length;
+    }
+    memcpy( shortName, name, length );
+    shortName[ length ] = '\0';
+    return 0 == pthread_setname_np( shortName );
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 

@@ -92,6 +92,10 @@ add_dependencies( ${MODULE_NAME} aws-c-common )
 target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-common )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_cal;MODULE_NAME=aws_c_cal" )
 
+if ( OSX )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -Wl,-framework,CoreFoundation -Wl,-framework,Security )
+endif( OSX )
+
 include_directories( ../aws-c-common/include include )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

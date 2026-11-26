@@ -12,7 +12,7 @@
             <Dependency Name="zlib" />
         </Dependencies>
     </Module>
-    <Module Platform="linux">
+    <Module Platform="linux;osx">
         <Linker>
             <Dependency Name="zlib" />
         </Linker>

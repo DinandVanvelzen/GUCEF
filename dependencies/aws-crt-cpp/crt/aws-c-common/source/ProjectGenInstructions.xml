@@ -12,6 +12,9 @@
 	<INCLUDES PLATFORM="linux">
         <ITEM NAME="posix" TYPE="DIR" />
     </INCLUDES>	
+	<INCLUDES PLATFORM="osx">
+        <ITEM NAME="posix" TYPE="DIR" />
+    </INCLUDES>	
 	<INCLUDES PLATFORM="android">
         <ITEM NAME="android" TYPE="DIR" />
     </INCLUDES>	

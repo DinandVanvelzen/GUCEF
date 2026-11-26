@@ -8,9 +8,11 @@
 /* Define if pointers to integers require aligned access */
 /* #undef HAVE_ALIGNED_ACCESS_REQUIRED */
 
-/* Define to 1 if you have the <byteswap.h> header file. */
+/* Define to 1 if you have the <byteswap.h> header file. (a glibc header: not on macOS) */
+#if !defined( __APPLE__ )
 #ifndef ZZIP_HAVE_BYTESWAP_H 
 #define ZZIP_HAVE_BYTESWAP_H  1 
+#endif
 #endif
 
 /* Define to 1 if you have the <direct.h> header file. */

@@ -73,9 +73,9 @@
   #define MAX_DIR_LENGTH PATH_MAX
   #include <linux/kernel.h>
   #include <linux/string.h>
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
   #include <unistd.h>             /* POSIX utilities */
-  #include <limits.h>             /* Linux OS limits */
+  #include <limits.h>             /* OS limits */
   #define MAX_DIR_LENGTH PATH_MAX
 #else
   #error Unsupported OS
@@ -165,11 +165,19 @@ TempDir( void )
     if ( 0 != ::GetTempPathW( MAX_DIR_LENGTH+1, buffer ) )
         return CString( buffer, MAX_DIR_LENGTH, true );
     #endif
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     // Per POSIX the TMPDIR environment variable takes precedence, /tmp is the standard fallback
     CString tmpDir = GetEnv( "TMPDIR" );
     if ( !tmpDir.IsNULLOrEmpty() )
+    {
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+        // the TMPDIR that macOS gives every user ends with a slash (/var/folders/xx/yyyy/T/): the directory is the directory without it,
+        // which is how it is joined to other path elements and compared to paths
+        while ( tmpDir.Length() > 1 && '/' == tmpDir[ tmpDir.Length()-1 ] )
+            tmpDir = tmpDir.CutChars( 1, false );
+        #endif
         return tmpDir;
+    }
     return CString( "/tmp" );
     #endif
     return CString::Empty;
@@ -1939,7 +1947,7 @@ IsAbsolutePath( const CString& path )
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
 // function to calculate UTF8 buffer size with handling for invalid UTF16 sequences
 size_t
@@ -1997,7 +2005,7 @@ Utf16toUtf8( const std::wstring& wstr ,
 
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     // Note that wchar_t is 4 bytes on Linux making std::wstring UTF-32 but we also handle a 2 byte wchar_t as UTF-16
     str.clear();

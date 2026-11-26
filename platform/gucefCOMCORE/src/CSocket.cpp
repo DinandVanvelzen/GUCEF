@@ -64,7 +64,7 @@
   #include <Ws2tcpip.h>
   #include <Wspiapi.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
   #include <unistd.h>
   #include <sys/socket.h>
@@ -203,7 +203,7 @@ CSocket::ConvertFromIPAddress( const CIPv4Address& src     ,
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     addrStruct.S_un.S_addr = src.GetAddress();
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     addrStruct.s_addr = src.GetAddress();
     #endif
 

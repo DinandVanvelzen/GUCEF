@@ -241,6 +241,10 @@ if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "WITH_LIBDL" )
 endif( LINUX64 )
 
+if ( OSX )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "WITH_LIBDL" )
+endif( OSX )
+
 include_directories( ../librdkafka src src-cpp )
 
 if ( EMSCRIPTEN32 )
@@ -258,6 +262,10 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../zlib )
 endif( LINUX64 )
+
+if ( OSX )
+  include_directories( ../zlib )
+endif( OSX )
 
 if ( WIN32 )
   include_directories( ../zlib )

@@ -85,6 +85,23 @@
   #include <unistd.h>
   #define MAX_DIR_LENGTH PATH_MAX
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+  #include <sys/types.h>
+  #include <sys/stat.h>
+  #include <sys/sysctl.h>
+  #include <sys/resource.h>
+  #include <sys/time.h>
+  #include <mach/mach.h>                /* host_statistics(), task_info(), host_processor_info() */
+  #include <mach/mach_time.h>
+  #include <libproc.h>                  /* proc_pidinfo(), proc_pidpath(), proc_listallpids() */
+  #include <limits.h>                   /* OS limits */
+  #include <dlfcn.h>                    /* dynamic linking utilities */
+  #include <dirent.h>
+  #include <unistd.h>
+  #include <time.h>
+  #define MAX_DIR_LENGTH PATH_MAX
+
 #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
   #include <emscripten.h>
@@ -117,6 +134,10 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) && !defined( GUCEF_LOADER_BUILD_MODULE )  /* the bootstrap loader does not carry the clipboard */
+  #include "osx/gucefCORE_MacClipboard.h"   /* the pasteboard behind StringToClipboard() and StringFromClipboard() */
+#endif /* GUCEF_PLATFORM_MACOS && !GUCEF_LOADER_BUILD_MODULE ? */
+
 #if defined( GUCEF_LINUX_BUILD ) && !defined( GUCEF_LOADER_BUILD_MODULE )  /* the bootstrap loader does not carry the X11 clipboard */
   #ifndef GUCEF_CORE_CX11CLIPBOARD_H
   #include "gucefCORE_CX11Clipboard.h"   /* the X11 clipboard behind StringToClipboard() and StringFromClipboard() */
@@ -146,7 +167,7 @@ namespace CORE {
 #else
 struct SProcessId
 {
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     pid_t pid;
     #else
     int foobar_NotSupported;
@@ -890,6 +911,108 @@ GetWin32ProcThreadCount( DWORD pid )
 
 /*--------------------------------------------------------------------------*/
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+/*
+ *  Darwin helpers. The process information comes from proc_pidinfo() and proc_pid_rusage() which work for any
+ *  process of the same user (and any process for root), the machine wide information from the Mach host interface.
+ */
+
+static bool
+GetMacProcTaskInfo( pid_t pid, struct proc_taskinfo& taskInfo )
+{GUCEF_TRACE;
+
+    memset( &taskInfo, 0, sizeof(taskInfo) );
+    const int bytesFilled = ::proc_pidinfo( pid, PROC_PIDTASKINFO, 0, &taskInfo, (int) sizeof(taskInfo) );
+    return bytesFilled == (int) sizeof(taskInfo);
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** Converts Mach absolute time units, which is what the process times are in, to nanoseconds */
+static UInt64
+MachAbsoluteTimeToNs( UInt64 machTime )
+{GUCEF_TRACE;
+
+    static mach_timebase_info_data_t timebase = { 0, 0 };
+    if ( 0 == timebase.denom )
+    {
+        mach_timebase_info_data_t info;
+        if ( KERN_SUCCESS != ::mach_timebase_info( &info ) || 0 == info.denom )
+        {
+            info.numer = 1;
+            info.denom = 1;
+        }
+        timebase = info;
+    }
+    return ( machTime / timebase.denom ) * timebase.numer + ( ( machTime % timebase.denom ) * timebase.numer ) / timebase.denom;
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** The time all logical cpu's together have had so far (busy and idle), in nanoseconds */
+static bool
+GetMacGlobalCpuTimeInNs( UInt64* globalCpuTimeInNs )
+{GUCEF_TRACE;
+
+    host_cpu_load_info_data_t cpuLoad;
+    mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
+    if ( KERN_SUCCESS != ::host_statistics( ::mach_host_self(), HOST_CPU_LOAD_INFO, (host_info_t) &cpuLoad, &count ) )
+        return false;
+
+    UInt64 totalTicks = 0;
+    for ( int i=0; i<CPU_STATE_MAX; ++i )
+        totalTicks += cpuLoad.cpu_ticks[ i ];
+
+    long ticksPerSecond = ::sysconf( _SC_CLK_TCK );
+    if ( ticksPerSecond <= 0 )
+        ticksPerSecond = 100;
+    *globalCpuTimeInNs = ( totalTicks * 1000000000ULL ) / (UInt64) ticksPerSecond;
+    return true;
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** CPU time of a process: user and kernel mode, in nanoseconds */
+static bool
+GetMacProcCpuTimes( pid_t pid, UInt64* userTimeInNs, UInt64* kernelTimeInNs )
+{GUCEF_TRACE;
+
+    struct proc_taskinfo taskInfo;
+    if ( !GetMacProcTaskInfo( pid, taskInfo ) )
+        return false;
+    *userTimeInNs = MachAbsoluteTimeToNs( taskInfo.pti_total_user );
+    *kernelTimeInNs = MachAbsoluteTimeToNs( taskInfo.pti_total_system );
+    return true;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static bool
+GetMacProcUptimeAndThreads( pid_t pid, UInt64* uptimeInMs, UInt32* nrOfThreads )
+{GUCEF_TRACE;
+
+    struct proc_bsdinfo bsdInfo;
+    memset( &bsdInfo, 0, sizeof(bsdInfo) );
+    if ( (int) sizeof(bsdInfo) != ::proc_pidinfo( pid, PROC_PIDTBSDINFO, 0, &bsdInfo, (int) sizeof(bsdInfo) ) )
+        return false;
+
+    struct timeval now;
+    ::gettimeofday( &now, GUCEF_NULL );
+    const Int64 startInMs = (Int64) bsdInfo.pbi_start_tvsec * 1000 + (Int64) bsdInfo.pbi_start_tvusec / 1000;
+    const Int64 nowInMs = (Int64) now.tv_sec * 1000 + (Int64) now.tv_usec / 1000;
+    *uptimeInMs = nowInMs > startInMs ? (UInt64) ( nowInMs - startInMs ) : 0;
+
+    struct proc_taskinfo taskInfo;
+    if ( GetMacProcTaskInfo( pid, taskInfo ) )
+        *nrOfThreads = (UInt32) taskInfo.pti_threadnum;
+    return true;
+}
+
+#endif /* macOS ? */
+
+/*--------------------------------------------------------------------------*/
+
 struct SCpuDataPoint
 {
     TCpuStats cpuStats;
@@ -906,6 +1029,9 @@ struct SCpuDataPoint
     AllLinuxProcCpuInfo* infoFromProcCpu;
     LinuxSysDevicesCpuFreqReader* infoFromSysDevCpuFreq;
     LinuxCpuUtilization* infoFromProcStat;
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    natural_t* prevCoreCpuTicks;    /* CPU_STATE_MAX ticks for every logical cpu, of the previous sample */
+    UInt32 prevCoreCpuTickCount;    /* the number of logical cpu's in prevCoreCpuTicks: 0 as long as there is no previous sample */
     #else
 
     #endif
@@ -926,6 +1052,11 @@ struct SProcCpuDataPoint
     UInt64 procUserModeJiffies;
     UInt64 procKernelModeJiffies;
     UInt64 globalJiffies;
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    pid_t pid;
+    UInt64 procUserTimeInNs;
+    UInt64 procKernelTimeInNs;
+    UInt64 globalCpuTimeInNs;
     #else
     int foobar_NotSupported;
     #endif
@@ -1109,6 +1240,12 @@ StringToClipboard( const char *str )
         return OSWRAP_FALSE;
     return CX11Clipboard::Instance()->SetUtf8Text( str, (UInt32) strlen( str ) ) ? OSWRAP_TRUE : OSWRAP_FALSE;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) && !defined( GUCEF_LOADER_BUILD_MODULE )
+
+    if ( GUCEF_NULL == str )
+        return OSWRAP_FALSE;
+    return MacClipboardSetUtf8( str, (UInt32) strlen( str ) ) ? OSWRAP_TRUE : OSWRAP_FALSE;
+
     #else /* GUCEF_MSWIN_BUILD */
 
     return OSWRAP_FALSE;
@@ -1215,6 +1352,18 @@ StringFromClipboard( char *dest     ,
         *wbytes += copySize;
         return OSWRAP_TRUE;
 
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) && !defined( GUCEF_LOADER_BUILD_MODULE )
+
+        // Same semantics as above: *wbytes is the offset on entry, at most size-1 bytes are copied, dest is terminated
+        if ( GUCEF_NULL == dest || GUCEF_NULL == wbytes || size < 2 )
+            return OSWRAP_FALSE;
+
+        UInt32 written = 0;
+        if ( !MacClipboardGetUtf8( dest, size, *wbytes, written ) )
+            return OSWRAP_FALSE;
+        *wbytes += written;
+        return OSWRAP_TRUE;
+
         #else /* GUCEF_MSWIN_BUILD */
 
         return OSWRAP_FALSE;
@@ -1275,6 +1424,13 @@ GUCEFGetTickCount( void )
     struct tms timeStorage;
     return (UInt32) times( &timeStorage );
     #endif
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    /* milliseconds on the monotonic clock, as GetTickCount() on Windows */
+    struct timespec now;
+    clock_gettime( CLOCK_MONOTONIC, &now );
+    return (UInt32) ( ( (UInt64) now.tv_sec * 1000ULL ) + ( (UInt64) now.tv_nsec / 1000000ULL ) );
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -1366,7 +1522,7 @@ GetLogicalCPUCount( void )
     SYSTEM_INFO systemInfo;
     ::GetSystemInfo( &systemInfo );
     return systemInfo.dwNumberOfProcessors;
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
     return (UInt32) ::sysconf( _SC_NPROCESSORS_ONLN );
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     return emscripten_num_logical_cores();
@@ -1700,6 +1856,39 @@ GetProcessMemoryUsage( TProcessId pid                          ,
         return OSWRAP_FALSE;
     }
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // The resident size and the page faults come from the task info of the process, what the process has
+    // 'on paper' (its footprint, which includes the memory that was compressed or swapped out) from its resource usage
+    struct proc_taskinfo taskInfo;
+    if ( !GetMacProcTaskInfo( pid, taskInfo ) )
+        return OSWRAP_FALSE;
+
+    memUseInfo->workingSetSizeInBytes = (TProcessMemoryUsageInfo::TProcMemStatInt) taskInfo.pti_resident_size;
+    memUseInfo->pageFaultCount = (TProcessMemoryUsageInfo::TProcMemStatInt) taskInfo.pti_faults;
+
+    // the part of the footprint that is not resident is what lives in the compressor or in swap: the closest there is to a page file usage
+    rusage_info_v4 resourceUsage;
+    memset( &resourceUsage, 0, sizeof(resourceUsage) );
+    if ( 0 == ::proc_pid_rusage( pid, RUSAGE_INFO_V4, (rusage_info_t*) &resourceUsage ) )
+    {
+        if ( resourceUsage.ri_phys_footprint > taskInfo.pti_resident_size )
+            memUseInfo->pageFileUsageInBytes = (TProcessMemoryUsageInfo::TProcMemStatInt) ( resourceUsage.ri_phys_footprint - taskInfo.pti_resident_size );
+    }
+
+    // There is no peak working set or peak page file usage to ask for per process: we keep track of them
+    // using the previous invocation's information, as we do on Linux. This is an approximation over time.
+    memUseInfo->peakWorkingSetSizeInBytes = memUseInfo->workingSetSizeInBytes;
+    memUseInfo->peakPageFileUsageInBytes = memUseInfo->pageFileUsageInBytes;
+    if ( GUCEF_NULL != prevMemUseInfo )
+    {
+        if ( prevMemUseInfo->peakWorkingSetSizeInBytes > memUseInfo->peakWorkingSetSizeInBytes )
+            memUseInfo->peakWorkingSetSizeInBytes = prevMemUseInfo->peakWorkingSetSizeInBytes;
+        if ( prevMemUseInfo->peakPageFileUsageInBytes > memUseInfo->peakPageFileUsageInBytes )
+            memUseInfo->peakPageFileUsageInBytes = prevMemUseInfo->peakPageFileUsageInBytes;
+    }
+    return OSWRAP_TRUE;
+
     #else
 
     return OSWRAP_FALSE;
@@ -1841,6 +2030,44 @@ GetGlobalMemoryUsage( TGlobalMemoryUsageInfo* memUseInfo )
     return OSWRAP_FALSE;
 
     #endif // alternate implementation
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // 'Available' is what an application can get without the system having to page anything out: the free memory
+    // plus what the system holds for caching only and can hand out again right away (see the Linux verbiage above)
+    UInt64 totalPhysicalMemory = 0;
+    size_t sizeOfValue = sizeof( totalPhysicalMemory );
+    if ( 0 != ::sysctlbyname( "hw.memsize", &totalPhysicalMemory, &sizeOfValue, GUCEF_NULL, 0 ) || 0 == totalPhysicalMemory )
+        return OSWRAP_FALSE;
+
+    vm_statistics64_data_t vmStats;
+    mach_msg_type_number_t vmStatsCount = HOST_VM_INFO64_COUNT;
+    if ( KERN_SUCCESS != ::host_statistics64( ::mach_host_self(), HOST_VM_INFO64, (host_info64_t) &vmStats, &vmStatsCount ) )
+        return OSWRAP_FALSE;
+
+    vm_size_t pageSize = 0;
+    if ( KERN_SUCCESS != ::host_page_size( ::mach_host_self(), &pageSize ) || 0 == pageSize )
+        pageSize = (vm_size_t) ::sysconf( _SC_PAGESIZE );
+
+    const UInt64 availablePages = (UInt64) vmStats.free_count + (UInt64) vmStats.inactive_count + (UInt64) vmStats.speculative_count + (UInt64) vmStats.purgeable_count;
+    memUseInfo->totalPhysicalMemoryInBytes = (TGlobalMemoryUsageInfo::TMemStatInt) totalPhysicalMemory;
+    memUseInfo->availablePhysicalMemoryInBytes = (TGlobalMemoryUsageInfo::TMemStatInt) GUCEF_SMALLEST( availablePages * (UInt64) pageSize, totalPhysicalMemory );
+    memUseInfo->memoryLoadPercentage = (UInt8) ( 100 - ( memUseInfo->availablePhysicalMemoryInBytes / ( 0.01 * memUseInfo->totalPhysicalMemoryInBytes ) ) );
+
+    // swap is the page file of this platform
+    struct xsw_usage swapUsage;
+    sizeOfValue = sizeof( swapUsage );
+    memset( &swapUsage, 0, sizeof( swapUsage ) );
+    if ( 0 == ::sysctlbyname( "vm.swapusage", &swapUsage, &sizeOfValue, GUCEF_NULL, 0 ) )
+    {
+        memUseInfo->totalPageFileSizeInBytes = (TGlobalMemoryUsageInfo::TMemStatInt) swapUsage.xsu_total;
+        memUseInfo->availablePageFileSizeInBytes = (TGlobalMemoryUsageInfo::TMemStatInt) swapUsage.xsu_avail;
+    }
+
+    memUseInfo->totalVirtualMemoryInBytes = memUseInfo->totalPhysicalMemoryInBytes + memUseInfo->totalPageFileSizeInBytes;
+    memUseInfo->availableVirtualMemoryInBytes = memUseInfo->availablePhysicalMemoryInBytes;
+    memUseInfo->availExtendedVirtualMemoryInBytes = memUseInfo->availablePhysicalMemoryInBytes + memUseInfo->availablePageFileSizeInBytes;
+    return OSWRAP_TRUE;
 
     #else
 
@@ -2117,6 +2344,10 @@ CreateProcCpuDataPoint( TProcessId pid )
     dataPoint->pid = pid;
     GetGlobalJiffies( &dataPoint->globalJiffies );
     GetProcJiffies( pid, &dataPoint->procUserModeJiffies, &dataPoint->procKernelModeJiffies );
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+    dataPoint->pid = pid;
+    GetMacGlobalCpuTimeInNs( &dataPoint->globalCpuTimeInNs );
+    GetMacProcCpuTimes( pid, &dataPoint->procUserTimeInNs, &dataPoint->procKernelTimeInNs );
     #endif
 
     return dataPoint;
@@ -2177,6 +2408,17 @@ CopyProcCpuDataPoint( TProcCpuDataPoint* srcCpuDataDataPoint ,
     dataPoint->globalJiffies = srcCpuDataDataPoint->globalJiffies;
     dataPoint->procUserModeJiffies = srcCpuDataDataPoint->procUserModeJiffies;
     dataPoint->procKernelModeJiffies = srcCpuDataDataPoint->procKernelModeJiffies;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    if ( 0 == newProcId )
+        dataPoint->pid = srcCpuDataDataPoint->pid;
+    else
+        dataPoint->pid = newProcId;
+
+    dataPoint->globalCpuTimeInNs = srcCpuDataDataPoint->globalCpuTimeInNs;
+    dataPoint->procUserTimeInNs = srcCpuDataDataPoint->procUserTimeInNs;
+    dataPoint->procKernelTimeInNs = srcCpuDataDataPoint->procKernelTimeInNs;
 
     #endif
 
@@ -2331,6 +2573,39 @@ GetProcessCpuUsage( TProcessId pid                              ,
 
     return OSWRAP_TRUE;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    UInt64 globalCpuTimeInNs = 0;
+    UInt64 procUserTimeInNs = 0;
+    UInt64 procKernelTimeInNs = 0;
+    if ( GetMacGlobalCpuTimeInNs( &globalCpuTimeInNs ) &&
+         GetMacProcCpuTimes( pid, &procUserTimeInNs, &procKernelTimeInNs ) )
+    {
+        // The % of the CPU time of the whole machine (all logical cpu's together) that this process has used
+        // during the time that has passed between the 2 data sample points in time
+        UInt64 globalDelta = globalCpuTimeInNs - previousCpuDataDataPoint->globalCpuTimeInNs;
+        if ( globalCpuTimeInNs < previousCpuDataDataPoint->globalCpuTimeInNs || 0 == globalDelta )
+            globalDelta = 1;
+
+        const Float64 userModeDelta = procUserTimeInNs >= previousCpuDataDataPoint->procUserTimeInNs ? (Float64) ( procUserTimeInNs - previousCpuDataDataPoint->procUserTimeInNs ) : 0.0;
+        const Float64 kernelModeDelta = procKernelTimeInNs >= previousCpuDataDataPoint->procKernelTimeInNs ? (Float64) ( procKernelTimeInNs - previousCpuDataDataPoint->procKernelTimeInNs ) : 0.0;
+
+        // Overwrite the CPU data point making current the previous for next call to this function
+        previousCpuDataDataPoint->globalCpuTimeInNs = globalCpuTimeInNs;
+        previousCpuDataDataPoint->procUserTimeInNs = procUserTimeInNs;
+        previousCpuDataDataPoint->procKernelTimeInNs = procKernelTimeInNs;
+
+        cpuUseInfo->overallCpuConsumptionPercentage = 100.0 * ( ( userModeDelta + kernelModeDelta ) / (Float64) globalDelta );
+    }
+    else
+    {
+        return OSWRAP_FALSE;
+    }
+
+    GetMacProcUptimeAndThreads( pid, &cpuUseInfo->uptimeInMs, &cpuUseInfo->nrOfThreads );
+
+    return OSWRAP_TRUE;
+
     #else
 
     return OSWRAP_FALSE;
@@ -2408,6 +2683,30 @@ CreateCpuDataPoint( void )
     dataPoint->infoFromSysDevCpuFreq = new LinuxSysDevicesCpuFreqReader();
     dataPoint->infoFromProcStat = new LinuxCpuUtilization();
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // the previous sample is taken right away, so that the first GetCpuStats() has an interval to report on
+    dataPoint->prevCoreCpuTicks = (natural_t*) malloc( sizeof( natural_t ) * CPU_STATE_MAX * dataPoint->cpuStats.logicalCpuCount );
+    if ( GUCEF_NULL == dataPoint->prevCoreCpuTicks )
+    {
+        free( dataPoint->cpuStats.logicalCpuStats );
+        free( dataPoint );
+        return GUCEF_NULL;
+    }
+    memset( dataPoint->prevCoreCpuTicks, 0, sizeof( natural_t ) * CPU_STATE_MAX * dataPoint->cpuStats.logicalCpuCount );
+    {
+        natural_t cpuCount = 0;
+        processor_info_array_t cpuInfo = GUCEF_NULL;
+        mach_msg_type_number_t cpuInfoCount = 0;
+        if ( KERN_SUCCESS == ::host_processor_info( ::mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &cpuCount, &cpuInfo, &cpuInfoCount ) )
+        {
+            const natural_t usableCount = cpuCount < dataPoint->cpuStats.logicalCpuCount ? cpuCount : dataPoint->cpuStats.logicalCpuCount;
+            memcpy( dataPoint->prevCoreCpuTicks, cpuInfo, sizeof( natural_t ) * CPU_STATE_MAX * usableCount );
+            dataPoint->prevCoreCpuTickCount = usableCount;
+            ::vm_deallocate( ::mach_task_self(), (vm_address_t) cpuInfo, (vm_size_t) cpuInfoCount * sizeof( natural_t ) );
+        }
+    }
+
     #endif
 
     return dataPoint;
@@ -2449,6 +2748,12 @@ FreeCpuDataPoint( TCpuDataPoint* cpuDataPoint )
         cpuDataPoint->infoFromSysDevCpuFreq = GUCEF_NULL;
         delete cpuDataPoint->infoFromProcStat;
         cpuDataPoint->infoFromProcStat = GUCEF_NULL;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+        free( cpuDataPoint->prevCoreCpuTicks );
+        cpuDataPoint->prevCoreCpuTicks = GUCEF_NULL;
+        cpuDataPoint->prevCoreCpuTickCount = 0;
 
         #endif
 
@@ -2598,6 +2903,68 @@ GetCpuStats( TCpuDataPoint* previousCpuDataDataPoint ,
 
     // make the current info the 'previous' info to prepare for the next call to this function
     (*previousCpuDataDataPoint->infoFromProcStat) = currentCpuUsageStats;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // The load of every logical cpu is the part of the ticks that it had since the previous sample which were not idle
+    natural_t cpuCount = 0;
+    processor_info_array_t cpuInfo = GUCEF_NULL;
+    mach_msg_type_number_t cpuInfoCount = 0;
+    if ( KERN_SUCCESS != ::host_processor_info( ::mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &cpuCount, &cpuInfo, &cpuInfoCount ) )
+        return OSWRAP_FALSE;
+
+    const natural_t* currentTicks = (const natural_t*) cpuInfo;
+    const UInt32 coreMax = cpuCount < previousCpuDataDataPoint->cpuStats.logicalCpuCount ? cpuCount : previousCpuDataDataPoint->cpuStats.logicalCpuCount;
+    UInt64 globalBusyDelta = 0;
+    UInt64 globalTotalDelta = 0;
+    for ( UInt32 i=0; i<coreMax; ++i )
+    {
+        const natural_t* current = currentTicks + ( i * CPU_STATE_MAX );
+        const natural_t* previous = previousCpuDataDataPoint->prevCoreCpuTicks + ( i * CPU_STATE_MAX );
+
+        // the tick counters are 32 bit and wrap around: the unsigned subtraction gives the right delta regardless
+        UInt64 busyDelta = 0;
+        UInt64 totalDelta = 0;
+        for ( int s=0; s<CPU_STATE_MAX; ++s )
+        {
+            const UInt64 delta = (UInt64) (natural_t) ( current[ s ] - previous[ s ] );
+            totalDelta += delta;
+            if ( CPU_STATE_IDLE != s )
+                busyDelta += delta;
+        }
+        if ( 0 == totalDelta )
+            totalDelta = 1;
+
+        previousCpuDataDataPoint->cpuStats.logicalCpuStats[ i ].cpuUsePercentage = ( busyDelta * 100.0 ) / (Float64) totalDelta;
+        globalBusyDelta += busyDelta;
+        globalTotalDelta += totalDelta;
+    }
+    if ( 0 == globalTotalDelta )
+        globalTotalDelta = 1;
+    previousCpuDataDataPoint->cpuStats.cpuUsePercentage = ( globalBusyDelta * 100.0 ) / (Float64) globalTotalDelta;
+
+    // make the current info the 'previous' info to prepare for the next call to this function
+    memcpy( previousCpuDataDataPoint->prevCoreCpuTicks, currentTicks, sizeof( natural_t ) * CPU_STATE_MAX * coreMax );
+    previousCpuDataDataPoint->prevCoreCpuTickCount = coreMax;
+    ::vm_deallocate( ::mach_task_self(), (vm_address_t) cpuInfo, (vm_size_t) cpuInfoCount * sizeof( natural_t ) );
+
+    // The frequencies of the cpu's are a machine wide setting on Intel Macs. On Apple silicon the system does not
+    // give them out, those stay 0 as they do when a platform cannot determine them.
+    UInt64 currentFrequencyInHz = 0;
+    UInt64 maxFrequencyInHz = 0;
+    size_t sizeOfValue = sizeof( currentFrequencyInHz );
+    ::sysctlbyname( "hw.cpufrequency", &currentFrequencyInHz, &sizeOfValue, GUCEF_NULL, 0 );
+    sizeOfValue = sizeof( maxFrequencyInHz );
+    ::sysctlbyname( "hw.cpufrequency_max", &maxFrequencyInHz, &sizeOfValue, GUCEF_NULL, 0 );
+    if ( 0 == maxFrequencyInHz )
+        maxFrequencyInHz = currentFrequencyInHz;
+    for ( UInt32 i=0; i<previousCpuDataDataPoint->cpuStats.logicalCpuCount; ++i )
+    {
+        TLogicalCpuStats* lCpuStats = &previousCpuDataDataPoint->cpuStats.logicalCpuStats[ i ];
+        lCpuStats->cpuCurrentFrequencyInMhz = (Float32) ( currentFrequencyInHz / 1000000.0 );
+        lCpuStats->cpuMaxFrequencyInMhz = (Float32) ( maxFrequencyInHz / 1000000.0 );
+        lCpuStats->cpuSpecMaxFrequencyInMhz = (Float32) ( maxFrequencyInHz / 1000000.0 );
+    }
 
     #endif
 

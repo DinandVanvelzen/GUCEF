@@ -80,7 +80,7 @@
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
   #include <windows.h>
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
   #include <sys/types.h>
   #include <sys/wait.h>
   #include <signal.h>
@@ -199,10 +199,9 @@ FindProcLimit( const CORE::CString& limitsText, const CORE::CString& label, UInt
         CORE::CString::StringVector words = rest.ParseElements( ' ', false );
         if ( words.size() < 2 )
             return false;
-        if ( words[ 0 ] == "unlimited" || words[ 1 ] == "unlimited" )
-            return false;
-        softValue = CORE::StringToUInt64( words[ 0 ] );
-        hardValue = CORE::StringToUInt64( words[ 1 ] );
+        // 'unlimited' is the largest value there is: macOS shows no maximum for the open files of a process, for example
+        softValue = words[ 0 ] == "unlimited" ? GUCEF_UINT64MAX : CORE::StringToUInt64( words[ 0 ] );
+        hardValue = words[ 1 ] == "unlimited" ? GUCEF_UINT64MAX : CORE::StringToUInt64( words[ 1 ] );
         return true;
     }
     return false;
@@ -232,7 +231,7 @@ PerformProcessTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     GUCEF_TESTFW_TESTCASE( "Test: CheckOnProcessAliveStatus for a process that exited" )
         try
@@ -391,7 +390,7 @@ PerformProcessTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS ) )
 
     GUCEF_TESTFW_TESTCASE( "Test: CProcess graceful terminate asks nicely first" )
         try
@@ -567,21 +566,44 @@ PerformProcessTests( void )
 
             CORE::CProcess::SProcessLimits limits;
             ASSERT_FALSE( limits.HasLimits() );
+            #if defined( __APPLE__ )
+            // macOS has no limit on the address space of a process: asking for one fails the launch instead of leaving the child unrestricted
+            {
+                CORE::CProcess::SProcessLimits addressSpaceLimit;
+                addressSpaceLimit.addressSpaceInBytes = 256 * 1024 * 1024;
+                CORE::CProcess::TStringVector noArgs;
+                CORE::CProcess refused;
+                refused.SetLimits( addressSpaceLimit );
+                ASSERT_FALSE( refused.Launch( "/usr/bin/true", noArgs ) );
+            }
+            #else
             limits.addressSpaceInBytes = 256 * 1024 * 1024;
+            #endif
             limits.cpuTimeInSecs = 7;
             limits.fileSizeInBytes = 1024 * 1024;
             limits.openFiles = 48;
             ASSERT_TRUE( limits.HasLimits() );
 
+            // the child tells its limits in the format of /proc/self/limits. macOS has no such file: its shell tells them
             CORE::CProcess::TStringVector args;
+            CORE::CString limitsExe;
+            #if defined( __APPLE__ )
+            limitsExe = "/bin/sh";
+            args.push_back( "-c" );
+            args.push_back( "printf 'Max cpu time %s %s\\n' \"$(ulimit -S -t)\" \"$(ulimit -H -t)\"; "
+                            "printf 'Max file size %s %s\\n' \"$(( $(ulimit -S -f) * 1024 ))\" \"$(( $(ulimit -H -f) * 1024 ))\"; "
+                            "printf 'Max open files %s %s\\n' \"$(ulimit -S -n)\" \"$(ulimit -H -n)\"" );
+            #else
+            limitsExe = "/bin/cat";
             args.push_back( "/proc/self/limits" );
+            #endif
 
             // isolated and with pipes, as a tool runner uses it
             CORE::CProcess process;
             process.SetIsolateFromParent( true );
             process.SetLimits( limits );
             ASSERT_TRUE( process.GetLimits().openFiles == 48 );
-            ASSERT_TRUE( process.LaunchWithPipes( "/bin/cat", args, false, true, true ) );
+            ASSERT_TRUE( process.LaunchWithPipes( limitsExe, args, false, true, true ) );
             CORE::CString childLimits = ReadPipeToEnd( *process.GetStdoutPipe(), 10000 );
             Int32 exitCode = -1;
             ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
@@ -595,8 +617,10 @@ PerformProcessTests( void )
             ASSERT_TRUE( 1024 * 1024 == softValue && 1024 * 1024 == hardValue );
             ASSERT_TRUE( FindProcLimit( childLimits, "Max open files", softValue, hardValue ) );
             ASSERT_TRUE( 48 == softValue && 48 == hardValue );
+            #if !defined( __APPLE__ )
             ASSERT_TRUE( FindProcLimit( childLimits, "Max address space", softValue, hardValue ) );
             ASSERT_TRUE( 256 * 1024 * 1024 == softValue && 256 * 1024 * 1024 == hardValue );
+            #endif
 
             // this process keeps its own limits
             struct rlimit ownAfter;
@@ -605,7 +629,7 @@ PerformProcessTests( void )
 
             // without limits the child inherits ours
             process.SetLimits( CORE::CProcess::SProcessLimits() );
-            ASSERT_TRUE( process.LaunchWithPipes( "/bin/cat", args, false, true, true ) );
+            ASSERT_TRUE( process.LaunchWithPipes( limitsExe, args, false, true, true ) );
             childLimits = ReadPipeToEnd( *process.GetStdoutPipe(), 10000 );
             ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
             ASSERT_TRUE( 0 == exitCode );
@@ -689,6 +713,10 @@ PerformProcessTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Test: CProcess address space limit makes a large allocation of the child fail" )
+        #if defined( __APPLE__ )
+        // macOS has no limit on the address space of a process: a launch that asks for one is refused, which another test covers
+        GUCEF_TESTFW_SKIP( "macOS has no limit on the address space of a process" );
+        #endif
         try
         {
             // the shell builds a string of 100 MB in memory

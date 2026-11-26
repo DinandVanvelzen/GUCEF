@@ -30,7 +30,7 @@
 
 #include "gucefCOM_CIcmpRttProbe.h"
 
-#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
   #include <sys/types.h>
   #include <sys/socket.h>
   #include <netinet/in.h>
@@ -102,7 +102,7 @@ CIcmpRttProbe::IsIcmpAvailable( void )
     // IcmpSendEcho needs no privileges
     return true;
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
     // The same sockets CPing uses: an unprivileged ICMP socket, or a raw one with CAP_NET_RAW
     int sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_ICMP );

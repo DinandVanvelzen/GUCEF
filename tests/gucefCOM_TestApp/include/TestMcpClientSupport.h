@@ -168,6 +168,11 @@ class CMcpRawTcpClient
         int created = ::socket( AF_INET, SOCK_STREAM, 0 );
         if ( created < 0 )
             return false;
+        #if defined( SO_NOSIGPIPE ) && !defined( MSG_NOSIGNAL )
+        // macOS has no MSG_NOSIGNAL: a send to a peer that is gone would end this process with a SIGPIPE, the socket option has it fail instead
+        int noSigPipe = 1;
+        ::setsockopt( created, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof( noSigPipe ) );
+        #endif
         m_socket = (GUCEF::Int64) created;
         #endif
         struct sockaddr_in address;

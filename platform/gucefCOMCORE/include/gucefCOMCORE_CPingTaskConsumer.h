@@ -192,7 +192,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
     typedef struct SPingEntry TPingEntry;
     typedef GUCEF::map< CHostAddress, TPingEntry > TPingCounters;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
     void InitializePosixPingEntries( void );
     void SendPosixPing( TPingEntry& entry );

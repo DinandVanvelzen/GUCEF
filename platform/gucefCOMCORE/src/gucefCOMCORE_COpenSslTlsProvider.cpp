@@ -105,6 +105,42 @@ COpenSslTlsProvider::GetDefaultLibraryCandidates( TLibraryCandidateVector& candi
 
     candidates.clear();
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
+
+    // macOS ships no OpenSSL: the one in /usr/lib is LibreSSL under the same file names, which this provider does not use.
+    // Applications bring their own, or the system has one installed by a package manager: the places those use are looked at
+    // after the dynamic loader's own search, which finds one that is bundled with the application or given in DYLD_LIBRARY_PATH
+    static const char* const v3Names[][ 2 ] =
+    {
+        { "libssl.3.dylib", "libcrypto.3.dylib" },
+        { "/opt/homebrew/opt/openssl@3/lib/libssl.3.dylib", "/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib" },
+        { "/usr/local/opt/openssl@3/lib/libssl.3.dylib", "/usr/local/opt/openssl@3/lib/libcrypto.3.dylib" },
+        { "/opt/local/lib/libssl.3.dylib", "/opt/local/lib/libcrypto.3.dylib" }
+    };
+    for ( size_t n=0; n<sizeof( v3Names ) / sizeof( v3Names[ 0 ] ); ++n )
+    {
+        SLibraryCandidate v3m;
+        v3m.sslName = v3Names[ n ][ 0 ];
+        v3m.cryptoName = v3Names[ n ][ 1 ];
+        candidates.push_back( v3m );
+    }
+
+    static const char* const v11Names[][ 2 ] =
+    {
+        { "libssl.1.1.dylib", "libcrypto.1.1.dylib" },
+        { "/opt/homebrew/opt/openssl@1.1/lib/libssl.1.1.dylib", "/opt/homebrew/opt/openssl@1.1/lib/libcrypto.1.1.dylib" },
+        { "/usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib", "/usr/local/opt/openssl@1.1/lib/libcrypto.1.1.dylib" }
+    };
+    for ( size_t n=0; n<sizeof( v11Names ) / sizeof( v11Names[ 0 ] ); ++n )
+    {
+        SLibraryCandidate v11m;
+        v11m.sslName = v11Names[ n ][ 0 ];
+        v11m.cryptoName = v11Names[ n ][ 1 ];
+        candidates.push_back( v11m );
+    }
+
+    #else
+
     SLibraryCandidate v3;
     v3.sslName = "libssl.so.3";
     v3.cryptoName = "libcrypto.so.3";
@@ -119,6 +155,8 @@ COpenSslTlsProvider::GetDefaultLibraryCandidates( TLibraryCandidateVector& candi
     any.sslName = "libssl.so";
     any.cryptoName = "libcrypto.so";
     candidates.push_back( any );
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -193,8 +231,8 @@ COpenSslTlsProvider::TryLoad( const SLibraryCandidate& candidate, CORE::CString&
     // The library found must be the one the name stands for. A program that exports its own OpenSSL can capture the symbols
     // libssl needs from libcrypto; the major version reported by the library tells when the two do not belong together
     unsigned long version = shared->api.versionNumber;
-    bool expectV3 = candidate.sslName.HasSubstr( ".so.3" ) >= 0;
-    bool expectV11 = candidate.sslName.HasSubstr( ".so.1.1" ) >= 0;
+    bool expectV3 = candidate.sslName.HasSubstr( ".so.3" ) >= 0 || candidate.sslName.HasSubstr( ".3.dylib" ) >= 0;
+    bool expectV11 = candidate.sslName.HasSubstr( ".so.1.1" ) >= 0 || candidate.sslName.HasSubstr( ".1.1.dylib" ) >= 0;
     if ( ( expectV3 && ( version >> 28 ) != 3 ) || ( expectV11 && ( ( version >> 28 ) != 1 || ( ( version >> 20 ) & 0xFF ) != 1 ) ) )
     {
         whyNot = candidate.sslName + ": the library reports OpenSSL " + CORE::ToString( (UInt32) ( version >> 28 ) ) + ", not the version its name stands for";
@@ -221,7 +259,7 @@ COpenSslTlsProvider::Probe( void ) const
         return m_available;
     m_probed = true;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_MACOS )
 
     CORE::CString reasons;
     for ( TLibraryCandidateVector::const_iterator i = m_candidates.begin(); i != m_candidates.end(); ++i )

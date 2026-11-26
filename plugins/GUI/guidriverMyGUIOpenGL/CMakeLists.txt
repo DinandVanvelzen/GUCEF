@@ -132,6 +132,10 @@ if ( LINUX64 )
   include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
+if ( OSX )
+  include_directories( ../../../platform/gucefCORE/include/osx )
+endif( OSX )
+
 if ( WIN32 )
   include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN32 )
