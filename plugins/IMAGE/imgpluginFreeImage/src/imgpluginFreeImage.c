@@ -100,6 +100,21 @@ typedef struct SFreeImageDataLinks TFreeImageDataLinks;
 
 static FreeImageIO io;
 
+/* the logging of the host, valid from Init until Shutdown */
+static TGucefCoreCApi* g_coreApi = NULL;
+
+/* the reasons FreeImage gives for what it refuses go to the log of the host */
+static void DLL_CALLCONV
+FreeImageMessageProc( FREE_IMAGE_FORMAT fif, const char* message )
+{
+    char text[ 512 ];
+    if ( NULL != g_coreApi && NULL != g_coreApi->Log && NULL != message )
+    {
+        sprintf( text, "imgpluginFreeImage: %.16s: %.450s", ( fif != FIF_UNKNOWN && NULL != FreeImage_GetFormatFromFIF( fif ) ) ? FreeImage_GetFormatFromFIF( fif ) : "FreeImage", message );
+        g_coreApi->Log( GUCEF_LOGMSGTYPE_WARNING, GUCEF_LOGLEVEL_IMPORTANT, text );
+    }
+}
+
 static char* supportedTypes[] = {
     "bmp"    ,
     "ico"    ,
@@ -228,6 +243,34 @@ GetFileTypeFromExt( const char* ext )
         }
     }
     return FIF_UNKNOWN;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  The FreeImage format of a type, which is a file extension. FreeImage knows its formats by name ("PNG", "JPEG", "TARGA"),
+ *  so the extensions that differ from the name are looked up as the extension of a file name.
+ */
+FREE_IMAGE_FORMAT
+GetFIFOfType( const char* type )
+{
+    FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
+    if ( NULL == type )
+        return FIF_UNKNOWN;
+
+    fif = FreeImage_GetFIFFromFormat( type );
+    if ( fif == FIF_UNKNOWN )
+    {
+        fif = GetFileTypeFromExt( type );
+    }
+    if ( fif == FIF_UNKNOWN && strlen( type ) < 32 )
+    {
+        char fileName[ 40 ];
+        strcpy( fileName, "x." );
+        strcat( fileName, type );
+        fif = FreeImage_GetFIFFromFilename( fileName );
+    }
+    return fif;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -495,6 +538,7 @@ static TCodecStatus
 BuildCodecLinks( void )
 {
     UInt32 i = 0;
+    FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
 
     free( codecLinks );
     codecLinks = ( TCodecPluginLink* ) calloc( codecCount > 0 ? codecCount : 1, sizeof( TCodecPluginLink ) );
@@ -507,9 +551,26 @@ BuildCodecLinks( void )
         codecLinks[ i ].codecFamily = "ImageCodec";
         codecLinks[ i ].codecType = supportedTypes[ i ];
         codecLinks[ i ].codecData = (void*) supportedTypes[ i ];
-        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
-        codecLinks[ i ].encode = ImageCodecLinkEncode;
         codecLinks[ i ].decode = ImageCodecLinkDecode;
+
+        /* reading is by the signature of the data, writing needs the format: only the formats that FreeImage can write advertise it */
+        fif = GetFIFOfType( supportedTypes[ i ] );
+        if ( fif != FIF_UNKNOWN && FreeImage_FIFSupportsWriting( fif ) )
+        {
+            codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
+            codecLinks[ i ].encode = ImageCodecLinkEncode;
+        }
+        else
+        {
+            codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_DECODE;
+            codecLinks[ i ].encode = NULL;
+        }
+
+        /* animations are read and written as all their frames */
+        if ( FIF_GIF == fif )
+        {
+            codecLinks[ i ].capabilities |= GUCEF_CODEC_CAPABILITY_MULTIPLE_FRAMES;
+        }
     }
     return GUCEF_CODEC_STATUS_OK;
 }
@@ -556,6 +617,8 @@ CODECPLUGIN_Init( void** plugdata                    ,
     io.seek_proc  = mySeekProc;
     io.tell_proc  = myTellProc;
 
+    g_coreApi = coreApi;
+    FreeImage_SetOutputMessage( FreeImageMessageProc );
     *plugdata = NULL;
     return BuildCodecLinks();
 }
@@ -566,6 +629,8 @@ TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
 CODECPLUGIN_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     memset( &io, 0, sizeof( io ) );
+    FreeImage_SetOutputMessage( NULL );
+    g_coreApi = NULL;
 
     /* call this ONLY when linking with FreeImage as a static library */
     #ifdef FREEIMAGE_LIB
@@ -802,12 +867,13 @@ IMGCODECPLUGIN_FreeImageStorage( TImage* image   ,
         free( image );
 
         /* free the actual FreeImage image storage */
-        for ( i=0; i<frameCount; ++i )
+        for ( i=0; i<allImageDataLinks->linkCount; ++i )
         {
             TFreeImageDataLink* imageDataLink = &allImageDataLinks->links[ i ];
             free( imageDataLink->packedPixelData );
             FreeImage_Unload( imageDataLink->fiData );
         }
+        free( allImageDataLinks->links );
         free( allImageDataLinks );
 
         return 1;
@@ -910,6 +976,200 @@ ConvertToFreeImageNative( TImageMipMapLevel* level, UInt8** adjustedBuffer )
 
 /*---------------------------------------------------------------------------*/
 
+/**
+ *  Brings a loaded picture to what the image interface has: 8 bit grey, 24 bit RGB or 32 bit RGBA, with the top row first.
+ *  Takes over the bitmap and gives the one to use, NULL when it cannot be made
+ */
+static FIBITMAP*
+PrepareLoadedBitmap( FIBITMAP* dib, FREE_IMAGE_COLOR_TYPE* colourType )
+{
+    UInt32 bpp = FreeImage_GetBPP( dib );
+    *colourType = FreeImage_GetColorType( dib );
+
+    if ( FIT_BITMAP == FreeImage_GetImageType( dib ) )
+    {
+        if ( ( bpp <= 8 ) && FreeImage_IsTransparent( dib ) )
+        {
+            /* a palette or grey picture with transparency (a PNG tRNS chunk): RGBA keeps the alpha of every entry,
+               which the conversions to 8 or 24 bits below would drop */
+            FIBITMAP* newDIB = FreeImage_ConvertTo32Bits( dib );
+            if ( NULL != newDIB )
+            {
+                FreeImage_Unload( dib );
+                dib = newDIB;
+                *colourType = FreeImage_GetColorType( dib );
+                bpp = FreeImage_GetBPP( dib );
+            }
+        }
+
+        if ( bpp < 8 )
+        {
+            /* we do not support a format that has less that 8 bits per pixel */
+            FIBITMAP* newDIB = FreeImage_ConvertTo8Bits( dib );
+            FreeImage_Unload( dib );
+            dib = newDIB;
+            if ( NULL == dib )
+                return NULL;
+            *colourType = FreeImage_GetColorType( dib );
+            bpp = FreeImage_GetBPP( dib );
+        }
+
+        /* Now that we know the BPP is always >= 8 we can check the color format */
+        if ( ( *colourType == FIC_MINISWHITE ) ||
+             ( *colourType == FIC_MINISBLACK )  )
+        {
+            /* custom color ranges are not supported */
+            FIBITMAP* newDIB = FreeImage_ConvertToGreyscale( dib );
+            FreeImage_Unload( dib );
+            dib = newDIB;
+            if ( NULL == dib )
+                return NULL;
+            *colourType = FreeImage_GetColorType( dib );
+            bpp = FreeImage_GetBPP( dib );
+        }
+        else
+        if ( ( *colourType == FIC_PALETTE ) ||
+             ( *colourType == FIC_CMYK )     )
+        {
+            /* palettes are not supported */
+            FIBITMAP* newDIB = FreeImage_ConvertTo24Bits( dib );
+            FreeImage_Unload( dib );
+            dib = newDIB;
+            if ( NULL == dib )
+                return NULL;
+            *colourType = FreeImage_GetColorType( dib );
+            bpp = FreeImage_GetBPP( dib );
+        }
+
+        /* At this point images are always greyscale or RGB or RGBA and BBP is always >= 8 */
+    }
+
+    if ( bpp == 32 && *colourType == FIC_RGB )
+    {
+        /* This is 32bpp thus it is actually RGBA but the Alpha layer has no values thus FreeImage says its RGB
+           This screws up usage, correct here */
+        *colourType = FIC_RGBALPHA;
+    }
+
+    /* FreeImage keeps the bottom row first, a pixel map has the top row first */
+    FreeImage_FlipVertical( dib );
+    return dib;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** What was loaded: the pictures of the frames with how long each is shown, and how often the sequence plays */
+#define FREEIMAGE_MAX_FRAMES 65536
+
+struct SLoadedFrames
+{
+    UInt32 frameCount;
+    FIBITMAP** bitmaps;
+    LONG* durationsInMs;
+    UInt32 loopCount;
+};
+typedef struct SLoadedFrames TLoadedFrames;
+
+/*---------------------------------------------------------------------------*/
+
+static void
+FreeLoadedFrames( TLoadedFrames* frames )
+{
+    UInt32 i;
+    if ( NULL != frames->bitmaps )
+    {
+        for ( i=0; i<frames->frameCount; ++i )
+            if ( NULL != frames->bitmaps[ i ] )
+                FreeImage_Unload( frames->bitmaps[ i ] );
+    }
+    free( frames->bitmaps );
+    free( frames->durationsInMs );
+    memset( frames, 0, sizeof( TLoadedFrames ) );
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** Reads one animation tag of a frame as a number, 0 when the frame does not have it */
+static LONG
+GetAnimationTagValue( FIBITMAP* dib, const char* key )
+{
+    FITAG* tag = NULL;
+    if ( FreeImage_GetMetadata( FIMD_ANIMATION, dib, key, &tag ) && NULL != tag && FIDT_LONG == FreeImage_GetTagType( tag ) && NULL != FreeImage_GetTagValue( tag ) )
+        return *(LONG*) FreeImage_GetTagValue( tag );
+    return 0;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Loads the frames of an animated GIF: FreeImage plays the animation back so every frame is a complete 32 bit picture,
+ *  with the time it is shown. False when the data is not a GIF that can be played
+ */
+static BOOL
+LoadGifFrames( TIOAccess* input, TLoadedFrames* frames )
+{
+    FIMULTIBITMAP* multiBitmap = NULL;
+    int pageCount = 0, page = 0;
+    Int64 start = (Int64) input->tell( input );
+
+    multiBitmap = FreeImage_OpenMultiBitmapFromHandle( FIF_GIF, &io, (fi_handle) input, GIF_PLAYBACK );
+    if ( NULL == multiBitmap )
+        return FALSE;
+
+    pageCount = FreeImage_GetPageCount( multiBitmap );
+    if ( pageCount < 1 || pageCount > FREEIMAGE_MAX_FRAMES )
+    {
+        FreeImage_CloseMultiBitmap( multiBitmap, 0 );
+        return FALSE;
+    }
+
+    frames->bitmaps = (FIBITMAP**) calloc( pageCount, sizeof( FIBITMAP* ) );
+    frames->durationsInMs = (LONG*) calloc( pageCount, sizeof( LONG ) );
+    if ( NULL == frames->bitmaps || NULL == frames->durationsInMs )
+    {
+        FreeImage_CloseMultiBitmap( multiBitmap, 0 );
+        FreeLoadedFrames( frames );
+        return FALSE;
+    }
+    frames->frameCount = (UInt32) pageCount;
+
+    for ( page=0; page<pageCount; ++page )
+    {
+        FIBITMAP* pageBitmap = FreeImage_LockPage( multiBitmap, page );
+        if ( NULL == pageBitmap )
+        {
+            FreeImage_CloseMultiBitmap( multiBitmap, 0 );
+            FreeLoadedFrames( frames );
+            return FALSE;
+        }
+        frames->bitmaps[ page ] = FreeImage_Clone( pageBitmap );
+        frames->durationsInMs[ page ] = GetAnimationTagValue( pageBitmap, "FrameTime" );
+        FreeImage_UnlockPage( multiBitmap, pageBitmap, 0 );
+
+        if ( NULL == frames->bitmaps[ page ] )
+        {
+            FreeImage_CloseMultiBitmap( multiBitmap, 0 );
+            FreeLoadedFrames( frames );
+            return FALSE;
+        }
+    }
+    FreeImage_CloseMultiBitmap( multiBitmap, 0 );
+
+    /* the loop count belongs to the file and is only given with the first frame as it is stored, not with the played back ones */
+    input->seek( input, start, SEEK_SET );
+    {
+        FIBITMAP* firstFrame = FreeImage_LoadFromHandle( FIF_GIF, &io, (fi_handle) input, GIF_DEFAULT );
+        if ( NULL != firstFrame )
+        {
+            frames->loopCount = (UInt32) GetAnimationTagValue( firstFrame, "Loop" );
+            FreeImage_Unload( firstFrame );
+        }
+    }
+    return TRUE;
+}
+
+/*---------------------------------------------------------------------------*/
+
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 IMGCODECPLUGIN_DecodeImage( void* pluginData      ,
                             void* codecData       ,
@@ -918,192 +1178,147 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData      ,
                             TImage** imageOutput  ,
                             void** imageData      )
 {
-    UInt32 i=0, n=0, mipmapCount=0, frameCount=0;
+    UInt32 i=0, frameCount=0;
     FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
-    FREE_IMAGE_TYPE fit = FIT_UNKNOWN;
-    FIBITMAP* dib = NULL;
+    TLoadedFrames loaded;
+    FREE_IMAGE_COLOR_TYPE* colourTypes = NULL;
+    TImage* image = NULL;
     TFreeImageDataLinks* imageDataLinks = NULL;
+    Int64 start = 0;
 
     /* input sanity check */
-    if ( ( NULL == imageOutput ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == imageOutput ) ) return 0;
+    if ( ( NULL == imageOutput ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == imageData ) ) return 0;
+    memset( &loaded, 0, sizeof( loaded ) );
+    start = (Int64) input->tell( input );
 
     fif = FreeImage_GetFileTypeFromHandle( &io, (fi_handle) input, 0 );
-
     if ( fif == FIF_UNKNOWN )
     {
-        fif = FreeImage_GetFIFFromFormat( codecType );
-        if ( fif == FIF_UNKNOWN )
-        {
-            fif = GetFileTypeFromExt( codecType );
-        }
+        fif = GetFIFOfType( codecType );
     }
+    if ( fif == FIF_UNKNOWN )
+        return 0;
 
-    if( fif != FIF_UNKNOWN )
+    /* an animated GIF is played back to its frames, everything else is a single picture */
+    if ( FIF_GIF != fif || !LoadGifFrames( input, &loaded ) )
     {
-        dib = FreeImage_LoadFromHandle( fif, &io, (fi_handle) input, 0 );
-        if ( dib != NULL )
+        FIBITMAP* dib = NULL;
+        if ( FIF_GIF == fif )
         {
-            /* First we get convert image types we cannot handle */
-            TImage* image = NULL;
-            UInt32 linkIndex = 0;
-            UInt32 bpp = FreeImage_GetBPP( dib );
-            FREE_IMAGE_COLOR_TYPE colourType = FreeImage_GetColorType( dib );
-            fit = FreeImage_GetImageType( dib );
+            /* the GIF could not be played: it is a single picture then, read from where it started again */
+            input->seek( input, start, SEEK_SET );
+        }
+        dib = FreeImage_LoadFromHandle( fif, &io, (fi_handle) input, 0 );
+        if ( NULL == dib )
+            return 0;
 
-            if ( FIT_BITMAP == fit )
-            {
-                if ( ( bpp <= 8 ) && FreeImage_IsTransparent( dib ) )
-                {
-                    /* a palette or grey picture with transparency (a PNG tRNS chunk): RGBA keeps the alpha of every entry,
-                       which the conversions to 8 or 24 bits below would drop */
-                    FIBITMAP* newDIB = FreeImage_ConvertTo32Bits( dib );
-                    if ( NULL != newDIB )
-                    {
-                        FreeImage_Unload( dib );
-                        dib = newDIB;
-                        colourType = FreeImage_GetColorType( dib );
-                        bpp = FreeImage_GetBPP( dib );
-                    }
-                }
+        loaded.bitmaps = (FIBITMAP**) calloc( 1, sizeof( FIBITMAP* ) );
+        loaded.durationsInMs = (LONG*) calloc( 1, sizeof( LONG ) );
+        if ( NULL == loaded.bitmaps || NULL == loaded.durationsInMs )
+        {
+            FreeImage_Unload( dib );
+            free( loaded.bitmaps );
+            free( loaded.durationsInMs );
+            return 0;
+        }
+        loaded.frameCount = 1;
+        loaded.bitmaps[ 0 ] = dib;
+    }
+    frameCount = loaded.frameCount;
 
-                if ( bpp < 8 )
-                {
-				    /* we do not support a format that has less that 8 bits per pixel */
-				    FIBITMAP* newDIB = FreeImage_ConvertTo8Bits( dib );
-				    FreeImage_Unload( dib );
-				    dib = newDIB;
-				    colourType = FreeImage_GetColorType( dib );
-				    bpp = FreeImage_GetBPP( dib );
-                }
-
-			    /* Now that we know the BPP is always >= 8 we can check the color format */
-			    if ( ( colourType == FIC_MINISWHITE ) ||
-			         ( colourType == FIC_MINISBLACK )  )
-			    {
-				    /* custom color ranges are not supported */
-				    FIBITMAP* newDIB = FreeImage_ConvertToGreyscale( dib );
-				    FreeImage_Unload( dib );
-				    dib = newDIB;
-				    colourType = FreeImage_GetColorType( dib );
-				    bpp = FreeImage_GetBPP( dib );
-                }
-                else
-			    if ( ( colourType == FIC_PALETTE ) ||
-			         ( colourType == FIC_CMYK )     )
-			    {
-				    /* palettes are not supported */
-				    FIBITMAP* newDIB = FreeImage_ConvertTo24Bits( dib );
-				    FreeImage_Unload( dib );
-				    dib = newDIB;
-				    colourType = FreeImage_GetColorType( dib );
-				    bpp = FreeImage_GetBPP( dib );
-			    }
-
-			    /* At this point images are always greyscale or RGB or RGBA and BBP is always >= 8 */
-            }
-
-            if ( bpp == 32 && colourType == FIC_RGB )
-            {
-                /* This is 32bpp thus it is actually RGBA but the Alpha layer has no values thus FreeImage says its RGB 
-                   This screws up usage, correct here */
-                colourType = FIC_RGBALPHA;
-            }
-
-            /* FreeImage keeps the bottom row first, a pixel map has the top row first */
-            FreeImage_FlipVertical( dib );
-
-            image = (TImage*) malloc( sizeof( TImage ) );
-
-            /* build the TImageInfo section */
-            image->version = GUCEF_IMAGE_TIMAGE_VERSION;
-            image->imageInfo.version = GUCEF_IMAGE_TIMAGEINFO_VERSION;
-            image->imageInfo.loopCount = 0;
-            image->imageInfo.nrOfFramesInImage = frameCount = (UInt32) 1; /* @TODO: multiple frames are not supported atm */
-
-            /* Build the TImageFrameInfo sections */
-            image->frames = (TImageFrame*) malloc( frameCount * sizeof(TImageFrame) );
-            for ( i=0; i<frameCount; ++i )
-            {
-                TImageFrame* frame = &image->frames[ i ];
-                frame->version = GUCEF_IMAGE_TIMAGEFRAME_VERSION;
-                frame->frameInfo.version = GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION;
-                frame->frameInfo.frameDurationInMs = 0;
-                frame->frameInfo.nrOfMipmapLevels = mipmapCount = (UInt32) 1; /* @TODO: mip-mapping is not supported atm */
-
-                /* Build the TImageMipMapLevelInfo sections */
-                frame->mipmapLevel = (TImageMipMapLevel*) malloc( mipmapCount * sizeof(TImageMipMapLevel) );
-                for ( n=0; n<mipmapCount; ++n )
-                {
-                    TImageMipMapLevel* mipmapLevel = &frame->mipmapLevel[ n ];
-                    mipmapLevel->version = GUCEF_IMAGE_TIMAGEMIPMAPLEVEL_VERSION;
-                    mipmapLevel->mipLevelInfo.version = GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION;
-                    mipmapLevel->mipLevelInfo.frameHeight = FreeImage_GetHeight( dib );
-                    mipmapLevel->mipLevelInfo.frameWidth = FreeImage_GetWidth( dib );
-                    mipmapLevel->mipLevelInfo.pixelComponentDataType = ConvertToPCDT( fit );
-                    mipmapLevel->mipLevelInfo.pixelStorageFormat = ConvertToPSF( fit, colourType );
-                    mipmapLevel->pixelData = NULL;
-                    mipmapLevel->pixelDataSizeInBytes = 0;
-                }
-            }
-
-            /* now that we know the total size/layout we can make our link array which will allow us to link pixel data to our FreeImage structs */
-            imageDataLinks = (TFreeImageDataLinks*) malloc( sizeof( TFreeImageDataLinks ) );
-            imageDataLinks->linkCount = GetNrOfPixelBuffers( image );
-            imageDataLinks->links = (TFreeImageDataLink*) malloc( imageDataLinks->linkCount * sizeof( TFreeImageDataLink ) );
-            memset( imageDataLinks->links, 0, imageDataLinks->linkCount * sizeof( TFreeImageDataLink ) );
-
-            /* now we assign the pixel data */
-            linkIndex = 0;
-            for ( i=0; i<frameCount; ++i )
-            {
-                TImageFrame* frame = &image->frames[ i ];
-                for ( n=0; n<mipmapCount; ++n )
-                {
-                    /* assign the pixel data. */
-                    TImageMipMapLevel* mipmapLevel = &frame->mipmapLevel[ n ];
-                    TFreeImageDataLink* dataLink = &imageDataLinks->links[ linkIndex ];
-
-                    /* @TODO: note that GetBits/dib needs to be something else once we support frames/mipmapping */
-                    UInt32 lineSize = FreeImage_GetLine( dib );
-                    UInt32 pitch = FreeImage_GetPitch( dib );
-                    dataLink->fiData = dib;
-                    mipmapLevel->pixelDataSizeInBytes = lineSize * mipmapLevel->mipLevelInfo.frameHeight;
-                    if ( lineSize == pitch )
-                    {
-                        mipmapLevel->pixelData = FreeImage_GetBits( dib );
-                    }
-                    else
-                    {
-                        /* FreeImage pads every row to a multiple of 4 bytes, the rows of a pixel map follow each other */
-                        UInt32 y = 0;
-                        UInt8* packed = (UInt8*) malloc( mipmapLevel->pixelDataSizeInBytes );
-                        if ( NULL == packed )
-                        {
-                            IMGCODECPLUGIN_FreeImageStorage( image, imageDataLinks );
-                            return 0;
-                        }
-                        for ( y=0; y<mipmapLevel->mipLevelInfo.frameHeight; ++y )
-                            memcpy( packed + ( y * lineSize ), FreeImage_GetScanLine( dib, (int) y ), lineSize );
-                        dataLink->packedPixelData = packed;
-                        mipmapLevel->pixelData = packed;
-                    }
-                    dataLink->pixelData = mipmapLevel->pixelData;
-
-                    ++linkIndex;
-                }
-            }
-
-            /* we successfully loaded and processed the image */
-            *imageOutput = image;
-            *imageData = imageDataLinks;
-            return 1;
+    /* bring every frame to what the image interface has */
+    colourTypes = (FREE_IMAGE_COLOR_TYPE*) calloc( frameCount, sizeof( FREE_IMAGE_COLOR_TYPE ) );
+    if ( NULL == colourTypes )
+    {
+        FreeLoadedFrames( &loaded );
+        return 0;
+    }
+    for ( i=0; i<frameCount; ++i )
+    {
+        loaded.bitmaps[ i ] = PrepareLoadedBitmap( loaded.bitmaps[ i ], &colourTypes[ i ] );
+        if ( NULL == loaded.bitmaps[ i ] )
+        {
+            free( colourTypes );
+            FreeLoadedFrames( &loaded );
+            return 0;
         }
     }
 
-    /*
-     *  the image decode failed
-     */
-    return 0;
+    image = (TImage*) malloc( sizeof( TImage ) );
+    image->version = GUCEF_IMAGE_TIMAGE_VERSION;
+    image->imageInfo.version = GUCEF_IMAGE_TIMAGEINFO_VERSION;
+    image->imageInfo.loopCount = loaded.loopCount;
+    image->imageInfo.nrOfFramesInImage = frameCount;
+    image->frames = (TImageFrame*) malloc( frameCount * sizeof( TImageFrame ) );
+
+    /* a link per picture, which lets the storage of the image be freed with the FreeImage bitmaps it points into */
+    imageDataLinks = (TFreeImageDataLinks*) malloc( sizeof( TFreeImageDataLinks ) );
+    imageDataLinks->linkCount = frameCount;
+    imageDataLinks->links = (TFreeImageDataLink*) calloc( frameCount, sizeof( TFreeImageDataLink ) );
+
+    for ( i=0; i<frameCount; ++i )
+    {
+        TImageFrame* frame = &image->frames[ i ];
+        TImageMipMapLevel* mipmapLevel = NULL;
+        TFreeImageDataLink* dataLink = &imageDataLinks->links[ i ];
+        FIBITMAP* dib = loaded.bitmaps[ i ];
+        FREE_IMAGE_TYPE fit = FreeImage_GetImageType( dib );
+        UInt32 lineSize = FreeImage_GetLine( dib );
+        UInt32 pitch = FreeImage_GetPitch( dib );
+
+        frame->version = GUCEF_IMAGE_TIMAGEFRAME_VERSION;
+        frame->frameInfo.version = GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION;
+        frame->frameInfo.frameDurationInMs = loaded.durationsInMs[ i ] > 0 ? (UInt32) loaded.durationsInMs[ i ] : 0;
+        frame->frameInfo.nrOfMipmapLevels = 1; /* @TODO: mip-mapping is not supported atm */
+        frame->mipmapLevel = (TImageMipMapLevel*) malloc( sizeof( TImageMipMapLevel ) );
+
+        mipmapLevel = &frame->mipmapLevel[ 0 ];
+        mipmapLevel->version = GUCEF_IMAGE_TIMAGEMIPMAPLEVEL_VERSION;
+        mipmapLevel->mipLevelInfo.version = GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION;
+        mipmapLevel->mipLevelInfo.frameHeight = FreeImage_GetHeight( dib );
+        mipmapLevel->mipLevelInfo.frameWidth = FreeImage_GetWidth( dib );
+        mipmapLevel->mipLevelInfo.pixelComponentDataType = ConvertToPCDT( fit );
+        mipmapLevel->mipLevelInfo.pixelStorageFormat = ConvertToPSF( fit, colourTypes[ i ] );
+        mipmapLevel->pixelDataSizeInBytes = lineSize * mipmapLevel->mipLevelInfo.frameHeight;
+
+        /* the bitmap now belongs to the image: its link frees it */
+        dataLink->fiData = dib;
+        loaded.bitmaps[ i ] = NULL;
+
+        if ( lineSize == pitch )
+        {
+            mipmapLevel->pixelData = FreeImage_GetBits( dib );
+        }
+        else
+        {
+            /* FreeImage pads every row to a multiple of 4 bytes, the rows of a pixel map follow each other */
+            UInt32 y = 0;
+            UInt8* packed = (UInt8*) malloc( mipmapLevel->pixelDataSizeInBytes );
+            if ( NULL == packed )
+            {
+                /* the frames up to this one are complete: free what the image holds, and the bitmaps that are not in it yet */
+                image->imageInfo.nrOfFramesInImage = i + 1;
+                mipmapLevel->pixelData = NULL;
+                IMGCODECPLUGIN_FreeImageStorage( image, imageDataLinks );
+                free( colourTypes );
+                FreeLoadedFrames( &loaded );
+                return 0;
+            }
+            for ( y=0; y<mipmapLevel->mipLevelInfo.frameHeight; ++y )
+                memcpy( packed + ( y * lineSize ), FreeImage_GetScanLine( dib, (int) y ), lineSize );
+            dataLink->packedPixelData = packed;
+            mipmapLevel->pixelData = packed;
+        }
+        dataLink->pixelData = mipmapLevel->pixelData;
+    }
+
+    free( colourTypes );
+    FreeLoadedFrames( &loaded );       /* only what was not handed to the image */
+
+    /* we successfully loaded and processed the image */
+    *imageOutput = image;
+    *imageData = imageDataLinks;
+    return 1;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1551,11 +1766,7 @@ IMGCODECPLUGIN_DecodeImageMetaData( void* pluginData                       ,
 
         if ( fif == FIF_UNKNOWN )
         {
-            fif = FreeImage_GetFIFFromFormat( codecType );
-            if ( fif == FIF_UNKNOWN )
-            {
-                fif = GetFileTypeFromExt( codecType );
-            }
+            fif = GetFIFOfType( codecType );
         }
 
 	    /* Load the bitmap: the header and the meta-data, the formats that can leave the pixels out do */
@@ -1592,6 +1803,264 @@ IMGCODECPLUGIN_DecodeImageMetaData( void* pluginData                       ,
 
 /*---------------------------------------------------------------------------*/
 
+/** Tells the host that the picture was changed to fit the format it was written in */
+static void
+LogWriteChange( const char* codecType, const char* what )
+{
+    char message[ 256 ];
+    if ( NULL != g_coreApi && NULL != g_coreApi->Log )
+    {
+        sprintf( message, "imgpluginFreeImage: the %.32s format holds %.100s: the picture was changed to fit", codecType, what );
+        g_coreApi->Log( GUCEF_LOGMSGTYPE_WARNING, GUCEF_LOGLEVEL_IMPORTANT, message );
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** The FreeImage type of the pixels of a level, FIT_UNKNOWN when FreeImage has no picture of them */
+static FREE_IMAGE_TYPE
+GetFreeImageType( const TImageMipMapLevel* level )
+{
+    UInt32 channels = GetChannelCountForFormat( level->mipLevelInfo.pixelStorageFormat );
+    int format = level->mipLevelInfo.pixelStorageFormat;
+    int type = level->mipLevelInfo.pixelComponentDataType;
+    BOOL colour = ( PSF_RGB == format || PSF_BGR == format || PSF_RGBA == format || PSF_BGRA == format );
+
+    switch ( type )
+    {
+        case GUCEF_DATATYPE_UINT8 :
+        {
+            return ( 1 == channels || 3 == channels || 4 == channels ) ? FIT_BITMAP : FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_UINT16 :
+        {
+            if ( 1 == channels ) return FIT_UINT16;
+            if ( colour ) return 3 == channels ? FIT_RGB16 : FIT_RGBA16;
+            return FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_INT16 :
+        {
+            return 1 == channels ? FIT_INT16 : FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_UINT32 :
+        {
+            return 1 == channels ? FIT_UINT32 : FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_INT32 :
+        {
+            return 1 == channels ? FIT_INT32 : FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_FLOAT32 :
+        {
+            if ( 1 == channels ) return FIT_FLOAT;
+            if ( colour ) return 3 == channels ? FIT_RGBF : FIT_RGBAF;
+            return FIT_UNKNOWN;
+        }
+        case GUCEF_DATATYPE_FLOAT64 :
+        {
+            return 1 == channels ? FIT_DOUBLE : FIT_UNKNOWN;
+        }
+        default :
+        {
+            return FIT_UNKNOWN;
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  A FreeImage bitmap of the pixels of a level, a copy: the pixels of the caller stay as they are. FreeImage keeps the bottom row first.
+ *  Bitmaps of 8 bits per channel have the channel order of the platform, the other types are always RGB.
+ */
+static FIBITMAP*
+BuildBitmap( TImageMipMapLevel* level, FREE_IMAGE_TYPE fit )
+{
+    UInt32 width = level->mipLevelInfo.frameWidth;
+    UInt32 height = level->mipLevelInfo.frameHeight;
+    int pixelSizeInBytes = GetPixelSize( level->mipLevelInfo.pixelStorageFormat, level->mipLevelInfo.pixelComponentDataType );
+    UInt32 rowBytes = pixelSizeInBytes * width;
+    FIBITMAP* bitmap = NULL;
+
+    if ( 0 == width || 0 == height || 0 == pixelSizeInBytes || level->pixelDataSizeInBytes < rowBytes * height )
+        return NULL;
+
+    if ( FIT_BITMAP == fit )
+    {
+        UInt8* pixelData = (UInt8*) level->pixelData;
+        BOOL pixelsConverted = ConvertToFreeImageNative( level, &pixelData );
+        bitmap = FreeImage_ConvertFromRawBitsEx( 1, (BYTE*) pixelData, FIT_BITMAP, width, height, rowBytes, pixelSizeInBytes * 8, 0, 0, 0, 1 );
+        if ( TRUE == pixelsConverted )
+            free( pixelData );
+        return bitmap;
+    }
+    else
+    {
+        UInt32 y = 0;
+        UInt32 channelSize = GetPixelChannelSize( level->mipLevelInfo.pixelComponentDataType );
+        BOOL swapRedAndBlue = ( PSF_BGR == level->mipLevelInfo.pixelStorageFormat || PSF_BGRA == level->mipLevelInfo.pixelStorageFormat );
+        UInt8* source = (UInt8*) level->pixelData;
+
+        bitmap = FreeImage_AllocateT( fit, width, height, 0, 0, 0, 0 );
+        if ( NULL == bitmap || FreeImage_GetLine( bitmap ) != rowBytes )
+        {
+            if ( NULL != bitmap )
+                FreeImage_Unload( bitmap );
+            return NULL;
+        }
+
+        for ( y=0; y<height; ++y )
+        {
+            UInt8* row = (UInt8*) FreeImage_GetScanLine( bitmap, (int) ( height - 1 - y ) );
+            memcpy( row, source + ( (size_t) y * rowBytes ), rowBytes );
+            if ( swapRedAndBlue )
+            {
+                UInt32 x = 0, i = 0;
+                UInt8 swap[ 8 ];
+                for ( x=0; x<width; ++x )
+                {
+                    UInt8* red = row + ( (size_t) x * pixelSizeInBytes );
+                    UInt8* blue = red + ( 2 * channelSize );
+                    for ( i=0; i<channelSize; ++i ) swap[ i ] = red[ i ];
+                    for ( i=0; i<channelSize; ++i ) red[ i ] = blue[ i ];
+                    for ( i=0; i<channelSize; ++i ) blue[ i ] = swap[ i ];
+                }
+            }
+        }
+        return bitmap;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Brings a bitmap to what the format can write, taking it over: the bitmap that is to be written, NULL when the format cannot hold it.
+ *  Formats that hold only palette pictures (GIF) or only black and white (WBMP) get the picture reduced to them: that is what the
+ *  format is, and no picture of ours can be written in it otherwise. When a format can hold 24 or 32 bits but not the ones of the
+ *  picture NULL is given: the caller offers another pixel format.
+ */
+static FIBITMAP*
+FitBitmapToFormat( FREE_IMAGE_FORMAT fif, FIBITMAP* bitmap, const char* codecType )
+{
+    FREE_IMAGE_TYPE fit = FreeImage_GetImageType( bitmap );
+    int bpp = (int) FreeImage_GetBPP( bitmap );
+    FIBITMAP* fitted = NULL;
+
+    if ( FIT_BITMAP != fit )
+    {
+        if ( FreeImage_FIFSupportsExportType( fif, fit ) )
+            return bitmap;
+        FreeImage_Unload( bitmap );
+        return NULL;
+    }
+
+    if ( FreeImage_FIFSupportsExportBPP( fif, bpp ) )
+        return bitmap;
+
+    if ( !FreeImage_FIFSupportsExportBPP( fif, 24 ) && !FreeImage_FIFSupportsExportBPP( fif, 32 ) )
+    {
+        if ( FreeImage_FIFSupportsExportBPP( fif, 8 ) )
+        {
+            /* a palette format: the colours are reduced to 256, the alpha channel is left out */
+            FIBITMAP* colour = 24 == bpp ? bitmap : FreeImage_ConvertTo24Bits( bitmap );
+            if ( NULL != colour )
+            {
+                fitted = FreeImage_ColorQuantize( colour, FIQ_WUQUANT );
+                if ( colour != bitmap )
+                    FreeImage_Unload( colour );
+            }
+            if ( NULL != fitted )
+            {
+                LogWriteChange( codecType, "at most 256 colours and no alpha channel" );
+                FreeImage_Unload( bitmap );
+                return fitted;
+            }
+        }
+        else
+        if ( FreeImage_FIFSupportsExportBPP( fif, 1 ) )
+        {
+            /* a black and white format */
+            FIBITMAP* grey = FreeImage_ConvertToGreyscale( bitmap );
+            if ( NULL != grey )
+            {
+                fitted = FreeImage_Threshold( grey, 128 );
+                FreeImage_Unload( grey );
+            }
+            if ( NULL != fitted )
+            {
+                LogWriteChange( codecType, "black and white pixels only" );
+                FreeImage_Unload( bitmap );
+                return fitted;
+            }
+        }
+    }
+
+    FreeImage_Unload( bitmap );
+    return NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void
+SetAnimationTag( FIBITMAP* bitmap, const char* key, FREE_IMAGE_MDTYPE type, const void* value, DWORD length )
+{
+    FITAG* tag = FreeImage_CreateTag();
+    if ( NULL != tag )
+    {
+        FreeImage_SetTagKey( tag, key );
+        FreeImage_SetTagType( tag, type );
+        FreeImage_SetTagCount( tag, 1 );
+        FreeImage_SetTagLength( tag, length );
+        FreeImage_SetTagValue( tag, value );
+        FreeImage_SetMetadata( FIMD_ANIMATION, bitmap, key, tag );
+        FreeImage_DeleteTag( tag );
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** Writes the frames as an animated GIF: the first frame makes the file, the others are added to it */
+static BOOL
+WriteGifFrames( FIBITMAP** bitmaps, UInt32 frameCount, TIOAccess* output )
+{
+    FIMEMORY* seed = FreeImage_OpenMemory( NULL, 0 );
+    FIMEMORY* result = NULL;
+    FIMULTIBITMAP* animation = NULL;
+    BYTE* data = NULL;
+    DWORD size = 0;
+    UInt32 i = 0;
+    BOOL success = FALSE;
+
+    if ( NULL == seed )
+        return FALSE;
+
+    if ( FreeImage_SaveToMemory( FIF_GIF, bitmaps[ 0 ], seed, 0 ) )
+    {
+        FreeImage_SeekMemory( seed, 0, SEEK_SET );
+        animation = FreeImage_LoadMultiBitmapFromMemory( FIF_GIF, seed, 0 );
+        if ( NULL != animation )
+        {
+            for ( i=1; i<frameCount; ++i )
+                FreeImage_AppendPage( animation, bitmaps[ i ] );
+
+            result = FreeImage_OpenMemory( NULL, 0 );
+            if ( NULL != result && FreeImage_SaveMultiBitmapToMemory( FIF_GIF, animation, result, 0 ) && FreeImage_AcquireMemory( result, &data, &size ) )
+            {
+                success = ( 1 == output->write( output, data, size, 1 ) );
+            }
+        }
+    }
+
+    if ( NULL != result )
+        FreeImage_CloseMemory( result );
+    if ( NULL != animation )
+        FreeImage_CloseMultiBitmap( animation, 0 );
+    FreeImage_CloseMemory( seed );
+    return success;
+}
+
+/*---------------------------------------------------------------------------*/
+
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 IMGCODECPLUGIN_EncodeImage( void* pluginData      ,
                             void* codecData       ,
@@ -1599,62 +2068,77 @@ IMGCODECPLUGIN_EncodeImage( void* pluginData      ,
                             TImage* inputImage    ,
                             TIOAccess* output     )
 {
-    UInt32 i=0, n=0, mipmapCount=0, frameCount=0;
+    UInt32 i = 0, frameCount = 0, frameCountToWrite = 0;
     FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
-    FREE_IMAGE_TYPE fit = FIT_UNKNOWN;
-    FIBITMAP* dib = NULL;
-    TFreeImageDataLinks* imageDataLinks = NULL;
+    FIBITMAP** bitmaps = NULL;
+    BOOL success = FALSE;
 
     /* input sanity check */
     if ( ( NULL == inputImage ) || ( NULL == codecType ) || ( NULL == output ) ) return 0;
 
-    if ( inputImage->imageInfo.nrOfFramesInImage > 0 )
+    fif = GetFIFOfType( codecType );
+    frameCount = inputImage->imageInfo.nrOfFramesInImage;
+    if ( fif == FIF_UNKNOWN || !FreeImage_FIFSupportsWriting( fif ) || 0 == frameCount ) return 0;
+
+    /* only an animation format takes more than the first frame */
+    frameCountToWrite = ( FIF_GIF == fif ) ? frameCount : 1;
+    if ( frameCountToWrite < frameCount && NULL != g_coreApi && NULL != g_coreApi->Log )
     {
-        TImageFrame* frame = &inputImage->frames[ 0 ];
-        if ( frame->frameInfo.nrOfMipmapLevels > 0 )
-        {
-            TImageMipMapLevel* level = &frame->mipmapLevel[ 0 ];
-
-            UInt8* pixelData = (UInt8*) level->pixelData;
-            BOOL pixelsConverted = ConvertToFreeImageNative( level, &pixelData );
-
-            int pixelSizeInBytes = GetPixelSize( level->mipLevelInfo.pixelStorageFormat     ,
-                                                 level->mipLevelInfo.pixelComponentDataType );
-            
-            int bpp = pixelSizeInBytes * 8;
-            int pitch = pixelSizeInBytes * level->mipLevelInfo.frameWidth; 
-
-            /* a copy: FreeImage turns the rows over to keep the bottom row first, the pixels of the caller stay as they are */
-            FIBITMAP* bitmap = FreeImage_ConvertFromRawBitsEx( 1                               ,
-                                                               (BYTE*) pixelData               ,
-                                                               FIT_BITMAP                      ,
-                                                               level->mipLevelInfo.frameWidth  , 
-                                                               level->mipLevelInfo.frameHeight ,
-                                                               pitch                           ,
-                                                               bpp                             ,
-                                                               0, 0, 0                         ,
-                                                               1                               );
-            if ( NULL == bitmap )
-            {
-                if ( TRUE == pixelsConverted )
-                    free( pixelData );
-                return 0;
-            }
-
-            fif = FreeImage_GetFIFFromFormat( codecType );            
-            if ( 0 != FreeImage_SaveToHandle( fif, bitmap, &io, (fi_handle) output, 0 ) )
-            {
-                FreeImage_Unload( bitmap );
-                if ( TRUE == pixelsConverted )
-                    free( pixelData );
-                return 1;
-            }
-            FreeImage_Unload( bitmap );
-            if ( TRUE == pixelsConverted )
-                free( pixelData );
-        }
+        char message[ 160 ];
+        sprintf( message, "imgpluginFreeImage: the %.32s format holds one picture: only the first of the %u frames was written", codecType, (unsigned) frameCount );
+        g_coreApi->Log( GUCEF_LOGMSGTYPE_WARNING, GUCEF_LOGLEVEL_IMPORTANT, message );
     }
-    return 0;
+
+    bitmaps = (FIBITMAP**) calloc( frameCountToWrite, sizeof( FIBITMAP* ) );
+    if ( NULL == bitmaps ) return 0;
+
+    for ( i=0; i<frameCountToWrite; ++i )
+    {
+        TImageFrame* frame = &inputImage->frames[ i ];
+        FIBITMAP* bitmap = NULL;
+        FREE_IMAGE_TYPE fit = FIT_UNKNOWN;
+
+        if ( frame->frameInfo.nrOfMipmapLevels < 1 )
+            break;
+        fit = GetFreeImageType( &frame->mipmapLevel[ 0 ] );
+        if ( FIT_UNKNOWN == fit )
+            break;
+        bitmap = BuildBitmap( &frame->mipmapLevel[ 0 ], fit );
+        if ( NULL == bitmap )
+            break;
+        bitmap = FitBitmapToFormat( fif, bitmap, codecType );
+        if ( NULL == bitmap )
+            break;
+
+        if ( frameCountToWrite > 1 )
+        {
+            LONG durationInMs = (LONG) frame->frameInfo.frameDurationInMs;
+            BYTE disposal = 1;      /* every frame is complete: leave it in place */
+            if ( durationInMs > 0 )
+                SetAnimationTag( bitmap, "FrameTime", FIDT_LONG, &durationInMs, 4 );
+            SetAnimationTag( bitmap, "DisposalMethod", FIDT_BYTE, &disposal, 1 );
+            if ( 0 == i )
+            {
+                LONG loopCount = (LONG) inputImage->imageInfo.loopCount;
+                SetAnimationTag( bitmap, "Loop", FIDT_LONG, &loopCount, 4 );
+            }
+        }
+        bitmaps[ i ] = bitmap;
+    }
+
+    if ( i == frameCountToWrite )
+    {
+        if ( frameCountToWrite > 1 )
+            success = WriteGifFrames( bitmaps, frameCountToWrite, output );
+        else
+            success = ( 0 != FreeImage_SaveToHandle( fif, bitmaps[ 0 ], &io, (fi_handle) output, 0 ) );
+    }
+
+    for ( i=0; i<frameCountToWrite; ++i )
+        if ( NULL != bitmaps[ i ] )
+            FreeImage_Unload( bitmaps[ i ] );
+    free( bitmaps );
+    return success ? 1 : 0;
 }
 
 /*-------------------------------------------------------------------------//

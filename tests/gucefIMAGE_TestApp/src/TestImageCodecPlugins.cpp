@@ -47,6 +47,11 @@
 #define GUCEF_IMAGE_CIMAGECODECPLUGIN_H
 #endif /* GUCEF_IMAGE_CIMAGECODECPLUGIN_H ? */
 
+#ifndef GUCEF_IMAGE_CIMAGECODECCAPABILITIES_H
+#include "gucefIMAGE_CImageCodecCapabilities.h"
+#define GUCEF_IMAGE_CIMAGECODECCAPABILITIES_H
+#endif /* GUCEF_IMAGE_CIMAGECODECCAPABILITIES_H ? */
+
 #include "TestImageCodecPlugins.h"
 
 /*-------------------------------------------------------------------------//
@@ -397,6 +402,258 @@ TestImageCodecEncodeCapabilities( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+TestFreeImageWritesByFileExtension( void )
+{GUCEF_TRACE;
+
+    // The writer looked the format up by the names FreeImage gives its formats, which are not the extensions of jpg, tga and tif files
+    GUCEF_TESTFW_TESTCASE( "imgpluginFreeImage writes the formats whose file extension differs from their name in FreeImage" )
+        try
+        {
+            IMAGE::CImageGlobal::Instance();
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage", "imagecodecwritetests" ) );
+
+            const char* const types[] = { "jpg", "jpeg", "tga", "tif", "tiff", "bmp", "png" };
+            for ( size_t i=0; i<sizeof( types ) / sizeof( types[ 0 ] ); ++i )
+            {
+                IMAGE::TPixelMapPtr pixels( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, 8, 6, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 ) );
+                UInt8* data = static_cast< UInt8* >( pixels->GetDataPtr() );
+                for ( UInt32 b=0; b<pixels->GetTotalSizeInBytes(); ++b )
+                    data[ b ] = (UInt8) ( b * 5 );
+                IMAGE::CImage image( pixels );
+
+                CORE::CDynamicBuffer file;
+                CORE::CDynamicBufferAccess fileAccess( &file, false );
+                GUCEF_TESTFW_ASSERT_TRUE( image.Save( fileAccess, types[ i ] ) );
+                GUCEF_TESTFW_ASSERT_TRUE( file.GetDataSize() > 0 );
+
+                fileAccess.Setpos( 0 );
+                IMAGE::CImage loaded;
+                GUCEF_TESTFW_ASSERT_TRUE( loaded.Load( fileAccess, types[ i ], true, false ) && 1 == loaded.GetFrameCount() );
+                if ( loaded.HasFrames() )
+                    GUCEF_TESTFW_ASSERT_TRUE( 8 == loaded.GetPixelMap( 0, 0 )->GetWidthInPixels() && 6 == loaded.GetPixelMap( 0, 0 )->GetHeightInPixels() );
+            }
+
+            // a type nobody has is refused
+            IMAGE::CImage image( IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, 2, 2, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 ) ) );
+            CORE::CDynamicBuffer none;
+            CORE::CDynamicBufferAccess noneAccess( &none, false );
+            GUCEF_TESTFW_ASSERT_FALSE( image.Save( noneAccess, "nosuchtype" ) );
+
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "imagecodecwritetests" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestFreeImageGifFramesAndCapabilities( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "imgpluginFreeImage reads the frames of an animated GIF with their durations, and advertises writing only for the formats FreeImage can write" )
+        try
+        {
+            IMAGE::CImageGlobal::Instance();
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage", "imagecodecgiftests" ) );
+
+            // 8 x 8 pixels, three frames that are shown 100, 150 and 200 milliseconds, a loop count of 0 (forever)
+            static const UInt8 gif[] =
+            {
+                0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x08, 0x00, 0x08, 0x00, 0xF1, 0x00, 0x00, 0xFF, 0x00, 0x00,
+                0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x21, 0xFF, 0x0B, 0x4E, 0x45, 0x54, 0x53,
+                0x43, 0x41, 0x50, 0x45, 0x32, 0x2E, 0x30, 0x03, 0x01, 0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x00,
+                0x0A, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x08, 0x00, 0x00, 0x02, 0x25,
+                0x04, 0x08, 0x30, 0x61, 0x42, 0x80, 0x08, 0x13, 0x46, 0x04, 0x98, 0x30, 0xA1, 0x44, 0x84, 0x09,
+                0x23, 0x4A, 0x4C, 0x98, 0x50, 0xA2, 0xC4, 0x84, 0x11, 0x25, 0x6A, 0x4C, 0x28, 0x51, 0xE2, 0xC6,
+                0x88, 0x12, 0x35, 0x6E, 0x2C, 0x00, 0x21, 0xF9, 0x04, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x2C, 0x00,
+                0x00, 0x00, 0x00, 0x08, 0x00, 0x08, 0x00, 0x00, 0x02, 0x25, 0x4C, 0x98, 0x50, 0xA2, 0xC4, 0x84,
+                0x11, 0x25, 0x6A, 0x4C, 0x28, 0x51, 0xE2, 0xC6, 0x88, 0x12, 0x35, 0x6E, 0x94, 0x28, 0x71, 0xE3,
+                0x46, 0x89, 0x1A, 0x37, 0x0E, 0x94, 0xB8, 0x71, 0x23, 0x40, 0x8D, 0x1B, 0x07, 0x02, 0x2C, 0x00,
+                0x21, 0xF9, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x08,
+                0x00, 0x00, 0x02, 0x25, 0x94, 0x28, 0x71, 0xE3, 0x46, 0x89, 0x1A, 0x37, 0x0E, 0x94, 0xB8, 0x71,
+                0x23, 0x40, 0x8D, 0x1B, 0x07, 0x02, 0xDC, 0xB8, 0x11, 0x20, 0xC0, 0x8D, 0x03, 0x01, 0x22, 0xDC,
+                0x08, 0x10, 0x60, 0xC2, 0x81, 0x00, 0x11, 0x26, 0x2C, 0x00, 0x3B
+            };
+            CORE::CDynamicBuffer file;
+            file.CopyFrom( sizeof( gif ), gif );
+            CORE::CDynamicBufferAccess access( &file, false );
+            access.Setpos( 0 );
+
+            IMAGE::CImage image;
+            GUCEF_TESTFW_ASSERT_TRUE( image.Load( access, "gif", true, false ) );
+            GUCEF_TESTFW_ASSERT_TRUE( 3 == image.GetFrameCount() );
+            if ( 3 == image.GetFrameCount() )
+            {
+                GUCEF_TESTFW_ASSERT_TRUE( 100 == image.GetFrameDurationInMs( 0 ) && 150 == image.GetFrameDurationInMs( 1 ) && 200 == image.GetFrameDurationInMs( 2 ) );
+                GUCEF_TESTFW_ASSERT_TRUE( image.IsAnimation() && 0 == image.GetLoopCount() );
+                for ( UInt32 f=0; f<3; ++f )
+                    GUCEF_TESTFW_ASSERT_TRUE( 8 == image.GetPixelMap( f, 0 )->GetWidthInPixels() && 8 == image.GetPixelMap( f, 0 )->GetHeightInPixels() );
+
+                // the frames show different pictures
+                GUCEF_TESTFW_ASSERT_TRUE( 0 != memcmp( image.GetPixelMap( 0, 0 )->GetDataPtr(), image.GetPixelMap( 1, 0 )->GetDataPtr(), image.GetPixelMap( 0, 0 )->GetTotalSizeInBytes() ) );
+                GUCEF_TESTFW_ASSERT_TRUE( 0 != memcmp( image.GetPixelMap( 1, 0 )->GetDataPtr(), image.GetPixelMap( 2, 0 )->GetDataPtr(), image.GetPixelMap( 1, 0 )->GetTotalSizeInBytes() ) );
+            }
+
+            // only the formats FreeImage can write advertise that they can
+            const char* const writable[] = { "png", "bmp", "jpg", "jpeg", "tga", "tif", "tiff", "ppm" };
+            for ( size_t i=0; i<sizeof( writable ) / sizeof( writable[ 0 ] ); ++i )
+            {
+                IMAGE::CImageCodecCapabilities::SImageCodecInfo info;
+                GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageCodecCapabilities::TryGetCodec( writable[ i ], info ) && info.canDecode && info.canEncode );
+            }
+            const char* const readOnly[] = { "dds", "cut" };
+            for ( size_t i=0; i<sizeof( readOnly ) / sizeof( readOnly[ 0 ] ); ++i )
+            {
+                IMAGE::CImageCodecCapabilities::SImageCodecInfo info;
+                GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageCodecCapabilities::TryGetCodec( readOnly[ i ], info ) && info.canDecode && !info.canEncode );
+            }
+            IMAGE::CImageCodecCapabilities::SImageCodecInfo gifInfo;
+            GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageCodecCapabilities::TryGetCodec( "gif", gifInfo ) && gifInfo.multipleFrames );
+
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "imagecodecgiftests" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static IMAGE::TPixelMapPtr
+MakeTestPixels( UInt32 width, UInt32 height, IMAGE::TPixelStorageFormat format, GUCEF::TBuildinDataType type, UInt32 seed )
+{
+    IMAGE::TPixelMapPtr pixels( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, width, height, format, type ) );
+    UInt8* data = static_cast< UInt8* >( pixels->GetDataPtr() );
+    const UInt32 size = pixels->GetTotalSizeInBytes();
+    for ( UInt32 i=0; i<size; ++i )
+        data[ i ] = (UInt8) ( i * 3 + seed * 41 + ( i / 7 ) );
+    return pixels;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+SaveAndLoad( IMAGE::CImage& image, const CORE::CString& type, IMAGE::CImage& loaded )
+{
+    CORE::CDynamicBuffer file;
+    CORE::CDynamicBufferAccess access( &file, false );
+    if ( !image.Save( access, type ) || 0 == file.GetDataSize() )
+        return false;
+    access.Setpos( 0 );
+    return loaded.Load( access, type, true, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestFreeImageWritesPaletteFloatAndAnimation( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "imgpluginFreeImage writes palette, black and white, floating point and 16 bit pictures, animated GIFs and the icon sizes of ICO" )
+        try
+        {
+            IMAGE::CImageGlobal::Instance();
+            GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage", "imagecodecwritetests2" ) );
+            IMAGE::CImage loaded;
+
+            // GIF holds a palette: the colours are reduced to it
+            IMAGE::CImage colour( MakeTestPixels( 16, 16, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8, 1 ) );
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( colour, "gif", loaded ) && 1 == loaded.GetFrameCount() );
+            if ( loaded.HasFrames() )
+                GUCEF_TESTFW_ASSERT_TRUE( 16 == loaded.GetPixelMap( 0, 0 )->GetWidthInPixels() && 16 == loaded.GetPixelMap( 0, 0 )->GetHeightInPixels() );
+
+            // an animation keeps its frames, their durations and its loop count
+            IMAGE::CImage animation( MakeTestPixels( 12, 10, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, 2 ) );
+            IMAGE::TPixelMapPtr second = MakeTestPixels( 12, 10, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, 3 );
+            IMAGE::TPixelMapPtr third = MakeTestPixels( 12, 10, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, 4 );
+            animation.AddFrame( second, 60 );
+            animation.AddFrame( third, 80 );
+            animation.SetFrameDurationInMs( 0, 40 );
+            animation.SetLoopCount( 2 );
+            IMAGE::CImage animationLoaded;
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( animation, "gif", animationLoaded ) && 3 == animationLoaded.GetFrameCount() );
+            if ( 3 == animationLoaded.GetFrameCount() )
+            {
+                GUCEF_TESTFW_ASSERT_TRUE( 40 == animationLoaded.GetFrameDurationInMs( 0 ) && 60 == animationLoaded.GetFrameDurationInMs( 1 ) && 80 == animationLoaded.GetFrameDurationInMs( 2 ) );
+                GUCEF_TESTFW_ASSERT_TRUE( 2 == animationLoaded.GetLoopCount() );
+                GUCEF_TESTFW_ASSERT_TRUE( 0 != memcmp( animationLoaded.GetPixelMap( 0, 0 )->GetDataPtr(), animationLoaded.GetPixelMap( 2, 0 )->GetDataPtr(), animationLoaded.GetPixelMap( 0, 0 )->GetTotalSizeInBytes() ) );
+            }
+
+            // black and white
+            IMAGE::CImage bilevel( MakeTestPixels( 16, 16, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, 5 ) );
+            IMAGE::CImage bilevelLoaded;
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( bilevel, "wbmp", bilevelLoaded ) && bilevelLoaded.HasFrames() );
+            if ( bilevelLoaded.HasFrames() )
+            {
+                const UInt8* data = static_cast< const UInt8* >( bilevelLoaded.GetPixelMap( 0, 0 )->GetDataPtr() );
+                bool onlyBlackAndWhite = true;
+                for ( UInt32 i=0; i<bilevelLoaded.GetPixelMap( 0, 0 )->GetTotalSizeInBytes(); ++i )
+                    onlyBlackAndWhite = onlyBlackAndWhite && ( 0 == data[ i ] || 255 == data[ i ] );
+                GUCEF_TESTFW_ASSERT_TRUE( onlyBlackAndWhite );
+            }
+
+            // floating point pictures keep their values
+            IMAGE::CImage floats( IMAGE::TPixelMapPtr( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, 4, 4, IMAGE::PSF_RGBA, GUCEF::DATATYPE_LE_FLOAT32 ) ) );
+            Float32* floatData = static_cast< Float32* >( floats.GetPixelMap( 0, 0 )->GetDataPtr() );
+            for ( UInt32 i=0; i<4 * 4 * 4; ++i )
+                floatData[ i ] = (Float32) ( i % 17 ) / 16.0f;
+            IMAGE::CImage floatsLoaded;
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( floats, "exr", floatsLoaded ) && floatsLoaded.HasFrames() );
+            if ( floatsLoaded.HasFrames() )
+            {
+                IMAGE::TPixelMapPtr pixels = floatsLoaded.GetPixelMap( 0, 0 );
+                GUCEF_TESTFW_ASSERT_TRUE( GUCEF::DATATYPE_LE_FLOAT32 == pixels->GetPixelComponentDataType() && IMAGE::PSF_RGBA == pixels->GetPixelStorageFormat() );
+                const Float32* out = static_cast< const Float32* >( pixels->GetDataPtr() );
+                bool same = 4 == pixels->GetWidthInPixels();
+                for ( UInt32 i=0; same && i<4 * 4 * 4; ++i )
+                    same = out[ i ] > floatData[ i ] - 0.001f && out[ i ] < floatData[ i ] + 0.001f;
+                GUCEF_TESTFW_ASSERT_TRUE( same );
+            }
+
+            // 16 bit channels are kept as they are
+            IMAGE::CImage wide( MakeTestPixels( 6, 5, IMAGE::PSF_RGB, GUCEF::DATATYPE_LE_UINT16, 6 ) );
+            IMAGE::CImage wideLoaded;
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( wide, "tif", wideLoaded ) && wideLoaded.HasFrames() );
+            if ( wideLoaded.HasFrames() )
+            {
+                IMAGE::TPixelMapPtr pixels = wideLoaded.GetPixelMap( 0, 0 );
+                GUCEF_TESTFW_ASSERT_TRUE( GUCEF::DATATYPE_LE_UINT16 == pixels->GetPixelComponentDataType() && IMAGE::PSF_RGB == pixels->GetPixelStorageFormat() );
+                GUCEF_TESTFW_ASSERT_TRUE( pixels->GetTotalSizeInBytes() == wide.GetPixelMap( 0, 0 )->GetTotalSizeInBytes() &&
+                                          0 == memcmp( pixels->GetDataPtr(), wide.GetPixelMap( 0, 0 )->GetDataPtr(), pixels->GetTotalSizeInBytes() ) );
+            }
+
+            // an icon is square and 16 to 256 pixels
+            IMAGE::CImage icon( MakeTestPixels( 32, 32, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8, 7 ) );
+            IMAGE::CImage iconLoaded;
+            GUCEF_TESTFW_ASSERT_TRUE( SaveAndLoad( icon, "ico", iconLoaded ) && 32 == iconLoaded.GetPixelMap( 0, 0 )->GetWidthInPixels() );
+            IMAGE::CImage notAnIcon( MakeTestPixels( 20, 10, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8, 8 ) );
+            CORE::CDynamicBuffer refused;
+            CORE::CDynamicBufferAccess refusedAccess( &refused, false );
+            GUCEF_TESTFW_ASSERT_FALSE( notAnIcon.Save( refusedAccess, "ico" ) );
+
+            // GIF and the animation formats say they hold frames; a format of one picture does not
+            IMAGE::CImageCodecCapabilities::SImageCodecInfo info;
+            GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageCodecCapabilities::TryGetCodec( "gif", info ) && info.multipleFrames && info.canEncode );
+            GUCEF_TESTFW_ASSERT_TRUE( IMAGE::CImageCodecCapabilities::TryGetCodec( "png", info ) && !info.multipleFrames );
+
+            GUCEF_TESTFW_ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "imagecodecwritetests2" ) );
+        }
+        catch ( ... )
+        {
+            GUCEF_TESTFW_ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformImageCodecPluginTests( void )
 {GUCEF_TRACE;
@@ -407,6 +664,9 @@ PerformImageCodecPluginTests( void )
     TestImageCodecPluginsOnTheCodecInterface();
     TestImageLoadWithMetaDataAndSavePng();
     TestImageCodecEncodeCapabilities();
+    TestFreeImageWritesByFileExtension();
+    TestFreeImageGifFramesAndCapabilities();
+    TestFreeImageWritesPaletteFloatAndAnimation();
 }
 
 /*-------------------------------------------------------------------------*/
