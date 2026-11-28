@@ -325,9 +325,12 @@ class CResourceViewThumbnailProvider;
  *
  *  Opening: nothing is open when the workbench starts, so the content tab has an action strip at its top (CAssetOpener has the
  *  logic, the file system dialogs of gucefGUI the choosing): "Open folder...", "Open archive or pack..." and "Open file...", and a
- *  list of the places that were opened lately. The content browser has two roots: "Local files", the file system of the
- *  computer, where the workbench starts, and "VFS", the folders and packs that are mounted. A folder, archive or pack that is opened
- *  is mounted and shown in the VFS root; a file is opened in the view that suits it. Ctrl+O shows the dialog for a file and
+ *  list of the places that were opened lately. The content browser has these roots: "Local files", the file system of the
+ *  computer, where the workbench starts, "Local VFS", the local asset store and the folders and packs that are mounted from the
+ *  disk (the VFS below CAssetMounter::LocalStoreRoot), "Remote VFS", the shares of the store service that is connected (the VFS below
+ *  CAssetMounter::RemoteStoreRoot, empty while not connected), and "Resources". A folder, archive or pack that is opened
+ *  is mounted at the path of the disk it came from below CAssetMounter::LocalDiskMountRoot (the file name becomes the directory
+ *  that holds the content of a pack) and shown in the local VFS root; a file is opened in the view that suits it. Ctrl+O shows the dialog for a file and
  *  Ctrl+Shift+O the one for a folder. While nothing is open the 3D view says how to open something.
  *
  *  Extension points for later: the reports of the converter (a CReportViewForm per report) and the intermediate with its sidecar
@@ -348,8 +351,15 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CWorkbenchShell : public CORE::CObservingNoti
 
     /** The display names of the roots of the content browser */
     static const CORE::CString LocalFilesRootName;
-    static const CORE::CString VfsRootName;
+    static const CORE::CString VfsRootName;             /**< the 'Local VFS': the VFS below CAssetMounter::LocalStoreRoot, the local asset store and what is mounted from the disk */
+    static const CORE::CString RemoteVfsRootName;       /**< the 'Remote VFS': the VFS below CAssetMounter::RemoteStoreRoot, the shares of the connected store service */
     static const CORE::CString ResourcesRootName;       /**< the root of the resource view (F17) of the content browser */
+
+    /** The root of the content browser that shows a VFS path: the remote one for the paths below the mount of the remote store, else the local one */
+    static const CORE::CString& GetVfsRootNameOfPath( const CORE::CString& vfsPath );
+
+    /** True for the roots of the content browser that are views of the VFS (the local and the remote one) */
+    static bool IsVfsRootName( const CORE::CString& rootName );
     static const CORE::CString ActionReIndex;           /**< the action that builds the pack index of the pack that is shown again */
 
     /** The ids of the actions of the open strip */

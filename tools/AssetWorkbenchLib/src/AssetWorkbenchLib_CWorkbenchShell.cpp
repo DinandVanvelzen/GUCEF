@@ -350,13 +350,54 @@ const CORE::CString CWorkbenchShell::ActionConnectStore = "ConnectStore";
 const CORE::CEvent CWorkbenchShell::ActionRequestedEvent = "GUCEF::ASSETWORKBENCH::CWorkbenchShell::ActionRequestedEvent";
 const CORE::CEvent CWorkbenchShell::PreferencesChangedEvent = "GUCEF::ASSETWORKBENCH::CWorkbenchShell::PreferencesChangedEvent";
 const CORE::CString CWorkbenchShell::LocalFilesRootName = "Local files";
-const CORE::CString CWorkbenchShell::VfsRootName = "VFS";
+const CORE::CString CWorkbenchShell::VfsRootName = "Local VFS";
+const CORE::CString CWorkbenchShell::RemoteVfsRootName = "Remote VFS";
 const CORE::CString CWorkbenchShell::ResourcesRootName = "Resources";
 const CORE::CString CWorkbenchShell::ActionReIndex = "ReIndex";
 const CORE::CString CWorkbenchShell::ActionOpenFolder = "folder";
 const CORE::CString CWorkbenchShell::ActionOpenArchive = "archive";
 const CORE::CString CWorkbenchShell::ActionOpenFile = "file";
 const CORE::CString CWorkbenchShell::ActionConvertForOgre = "ConvertForOgre";
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CWorkbenchShell::GetVfsRootNameOfPath( const CORE::CString& vfsPath )
+{GUCEF_TRACE;
+
+    const CORE::CString path = CAssetMounter::NormalizePath( vfsPath );
+    const CORE::CString& remote = CAssetMounter::RemoteStoreRoot;
+    const bool isRemote = path == remote || ( path.Length() > remote.Length() && '/' == path[ remote.Length() ] && 0 == path.HasSubstr( remote, true ) );
+    return isRemote ? RemoteVfsRootName : VfsRootName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWorkbenchShell::IsVfsRootName( const CORE::CString& rootName )
+{GUCEF_TRACE;
+
+    return VfsRootName == rootName || RemoteVfsRootName == rootName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The views of the two parts of the VFS the workbench shows, as file systems: paths in them are complete VFS paths */
+CORE::TFileSystemAccessPtr
+MakeLocalVfsAccess( void )
+{
+    return CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( CWorkbenchShell::VfsRootName, "/" + CAssetMounter::LocalStoreRoot ) );
+}
+
+CORE::TFileSystemAccessPtr
+MakeRemoteVfsAccess( void )
+{
+    return CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( CWorkbenchShell::RemoteVfsRootName, "/" + CAssetMounter::RemoteStoreRoot ) );
+}
+
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -703,12 +744,14 @@ CWorkbenchShell::Initialize( GUI::CGUIContext& context, CAssetCapture* capture, 
     m_packCacheFolder = thumbnailCacheFolder.IsNULLOrEmpty() ? CORE::RelativePath( "$CACHEDIR$/AssetWorkbench/packs" ) : CORE::CString( thumbnailCacheFolder + "_packs" );
     SetDefaultViewPreset( ASSETKIND_PARTICLE, CViewPresetTracker::GetPresetName( CViewPresetTracker::PRESET_FOUR_VIEWS ) );
 
-    // the files of the computer are where the workbench starts, with the folder of the user as the first folder; the mounts are the second root
+    // the files of the computer are where the workbench starts, with the folder of the user as the first folder; the local and the remote VFS follow
     CORE::CString home;
     if ( !CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, home ) )
         home.Clear();
     m_browser->AddRoot( LocalFilesRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW CORE::CNativeFileSystemAccess( LocalFilesRootName ) ), home );
-    m_browser->AddRoot( VfsRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( VfsRootName ) ) );
+    m_browser->AddRoot( VfsRootName, MakeLocalVfsAccess() );
+    // there for the whole session: it lists nothing until a store service is connected and its shares are mounted below the root
+    m_browser->AddRoot( RemoteVfsRootName, MakeRemoteVfsAccess() );
     // the resources of a pack by function (F17): a root of its own beside the files, with the switch in the tool bar of the browser
     m_resourceView = GUCEF_NEW CResourceViewFileSystemAccess( ResourcesRootName );
     m_resourceViewHold = CORE::TFileSystemAccessPtr( m_resourceView );
@@ -720,7 +763,7 @@ CWorkbenchShell::Initialize( GUI::CGUIContext& context, CAssetCapture* capture, 
     {
         // something was mounted before the workbench started (--mount): that is what is shown
         m_anythingOpened = true;
-        m_browser->NavigateTo( VfsRootName, "/" );
+        m_browser->NavigateTo( VfsRootName, "/" + CAssetMounter::LocalStoreRoot );
     }
     m_openStrip->SetRecentLocations( m_recent );
     if ( GUCEF_NULL != capture )
@@ -1298,7 +1341,7 @@ CWorkbenchShell::OpenPackageFile( const CORE::CString& vfsPath )
     UpdateEmptyState();
     m_browser->Refresh();
     ++m_navigatingItself;
-    m_browser->NavigateTo( VfsRootName, "/" + mountPoint );
+    m_browser->NavigateTo( GetVfsRootNameOfPath( mountPoint ), "/" + mountPoint );
     --m_navigatingItself;
     ShowLeftTab( 0 );
     m_report->AddEntry( GUI::CReportViewForm::SEVERITY_INFO, path, "Opened as " + mountPoint + " in the VFS" );
@@ -2016,7 +2059,7 @@ CWorkbenchShell::OnBrowserFolderChanged( CORE::CNotifier* notifier, const CORE::
     // entering the root of a pack (the double click on it) is the request for its presentation, whatever the switch says; the places the
     // shell navigates to itself are no request
     const CORE::TCloneableString* entered = static_cast< const CORE::TCloneableString* >( eventData );
-    if ( 0 == m_navigatingItself && GUCEF_NULL != entered && VfsRootName == m_browser->GetCurrentRootName() )
+    if ( 0 == m_navigatingItself && GUCEF_NULL != entered && IsVfsRootName( m_browser->GetCurrentRootName() ) )
     {
         const CORE::CString folder = CAssetMounter::NormalizePath( entered->GetData() );
         CAssetMounter::SMount mount;
@@ -2348,6 +2391,7 @@ CWorkbenchShell::InitializeSources( const CAssetSourcesSettings& settings )
         if ( remoteCache.Length() > 6 && "/packs" == remoteCache.SubstrFromRange( remoteCache.Length() - 6, remoteCache.Length() ) )
             remoteCache = remoteCache.SubstrFromRange( 0, remoteCache.Length() - 6 ) + "/remote";
         m_sources->SetRemoteCacheFolder( remoteCache );
+        m_sources->SetRemoteMountPrefix( CAssetMounter::RemoteStoreRoot );
     }
     if ( GUCEF_NULL != m_thumbnails )
         m_thumbnails->SetRemoteSource( m_sources->GetRemoteThumbnails() );
@@ -2431,7 +2475,7 @@ CWorkbenchShell::OnSourcesFolderOpenRequested( CORE::CNotifier* notifier, const 
     m_anythingOpened = true;
     UpdateEmptyState();
     m_browser->Refresh();
-    m_browser->NavigateTo( VfsRootName, "/" + path->GetData() );
+    m_browser->NavigateTo( GetVfsRootNameOfPath( path->GetData() ), "/" + path->GetData() );
     GUI::CTabControl* tabs = GUI::CWidget::As< GUI::CTabControl >( m_leftTabs );
     if ( GUCEF_NULL != tabs )
         tabs->SetActiveTab( 0 );
@@ -2548,7 +2592,7 @@ CWorkbenchShell::OpenLocation( const CORE::CString& diskPath, bool showInBrowser
     {
         m_browser->Refresh();
         ++m_navigatingItself;
-        m_browser->NavigateTo( VfsRootName, "/" + result.vfsFolder );
+        m_browser->NavigateTo( GetVfsRootNameOfPath( result.vfsFolder ), "/" + result.vfsFolder );
         --m_navigatingItself;
         ShowLeftTab( 0 );
     }
@@ -2576,12 +2620,13 @@ CWorkbenchShell::OpenVfsSelection( const CORE::CString& vfsPath )
     if ( CAssetTypeResolver::HasView( path ) )
     {
         const Int32 slash = path.HasChar( '/', false );
-        m_browser->NavigateTo( VfsRootName, slash > 0 ? "/" + path.SubstrFromRange( 0, (UInt32) slash ) : CORE::CString( "/" ) );
+        const CORE::CString folder = slash > 0 ? "/" + path.SubstrFromRange( 0, (UInt32) slash ) : CORE::CString( "/" );
+        m_browser->NavigateTo( GetVfsRootNameOfPath( folder ), folder );
         ShowLeftTab( 0 );
         return OpenAssetInteractive( path );
     }
     ++m_navigatingItself;
-    m_browser->NavigateTo( VfsRootName, "/" + path );
+    m_browser->NavigateTo( GetVfsRootNameOfPath( path ), "/" + path );
     --m_navigatingItself;
     ShowLeftTab( 0 );
     UpdateEmptyState();
@@ -2616,7 +2661,8 @@ CWorkbenchShell::MakeOpenDialog( const CORE::CString& kind )
     if ( !CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, home ) )
         home.Clear();
     dialog->AddRoot( LocalFilesRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW CORE::CNativeFileSystemAccess( LocalFilesRootName ) ), home );
-    dialog->AddRoot( VfsRootName, CORE::TFileSystemAccessPtr( GUCEF_NEW VFS::CVfsFileSystemAccess( VfsRootName ) ) );
+    dialog->AddRoot( VfsRootName, MakeLocalVfsAccess() );
+    dialog->AddRoot( RemoteVfsRootName, MakeRemoteVfsAccess() );
     GUI::CFileSystemDialogForm::TOptions& options = dialog->GetOptions();
     options.readOnly = true;
     options.mustExist = true;
@@ -2692,7 +2738,8 @@ CWorkbenchShell::PrepareOpenDialog( GUI::CFileSystemDialogForm& dialog )
         userPaths.push_back( userPath );
         dialog.AddPlace( userFolders[ u ].label, LocalFilesRootName, userPath );
     }
-    dialog.AddPlace( "Mounted (VFS)", VfsRootName, "/" );
+    dialog.AddPlace( "Local VFS", VfsRootName, "/" + CAssetMounter::LocalStoreRoot );
+    dialog.AddPlace( "Remote VFS", RemoteVfsRootName, "/" + CAssetMounter::RemoteStoreRoot );
     CORE::CString::StringVector folders;
     CORE::CString startFolder;
     for ( UInt32 i=0; i<m_recent->GetCount(); ++i )
@@ -3972,7 +4019,7 @@ CWorkbenchShell::OnOpenDialogAccepted( CORE::CNotifier* notifier, const CORE::CE
     if ( ( dialog != m_folderDialog && dialog != m_archiveDialog && dialog != m_fileDialog ) || dialog->GetSelection().empty() )
         return;
     const GUI::CFileSystemDialogForm::TSelection& selection = dialog->GetSelection().front();
-    if ( VfsRootName == selection.rootName )
+    if ( IsVfsRootName( selection.rootName ) )
         OpenVfsSelection( selection.path );
     else
         OpenLocation( selection.path );

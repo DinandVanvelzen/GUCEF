@@ -177,7 +177,7 @@ class COpenFixture
         dir = MakeCleanTestDir( name );
         if ( !WriteTestFolder( dir + "/Town Pack" ) )
             return;
-        if ( mountFirst && !mounter.Mount( "avfirst", dir + "/Town Pack" ) )
+        if ( mountFirst && !mounter.Mount( CAssetMounter::LocalStoreRoot + "/avfirst", dir + "/Town Pack" ) )
             return;
         contextPtr = CreateWorkbenchContext();
         context = contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext();
@@ -248,47 +248,49 @@ TestOpenMounting( void )
         CAssetOpener opener( mounter );
         CAssetOpener::SOpenResult result;
 
-        // a folder: the name of the folder, made safe
+        // a folder: below the mount root of the disk, at the path of the disk
+        const CORE::CString townMount = CAssetMounter().MakeMountPointName( dir + "/Town Pack" );
+        const CORE::CString otherTownMount = CAssetMounter().MakeMountPointName( dir + "/other/Town Pack" );
+        ASSERT_TRUE( townMount != otherTownMount && townMount.StartsWith( CAssetMounter::LocalDiskMountRoot + "/" ) && townMount.EndsWith( "/Town Pack" ) );
         ASSERT_TRUE( CAssetOpener::OPENKIND_FOLDER == CAssetOpener::Classify( dir + "/Town Pack" ) );
         ASSERT_TRUE( opener.Open( dir + "/Town Pack", result ) && CAssetOpener::OPENKIND_FOLDER == result.kind );
-        ASSERT_TRUE( "Town_Pack" == result.mountPoint && "Town_Pack" == result.vfsFolder && result.vfsAsset.IsNULLOrEmpty() );
-        ASSERT_TRUE( vfs.FileExists( "Town_Pack/model.gltf" ) && 1 == mounter.GetMountCount() );
+        ASSERT_TRUE( townMount == result.mountPoint && townMount == result.vfsFolder && result.vfsAsset.IsNULLOrEmpty() );
+        ASSERT_TRUE( vfs.FileExists( townMount + "/model.gltf" ) && 1 == mounter.GetMountCount() );
 
         // the same folder again is the same mount, another folder of the same name is a mount of its own
-        ASSERT_TRUE( opener.Open( dir + "/Town Pack/", result ) && "Town_Pack" == result.mountPoint && 1 == mounter.GetMountCount() );
-        ASSERT_TRUE( opener.Open( dir + "/other/Town Pack", result ) && "Town_Pack_2" == result.mountPoint && 2 == mounter.GetMountCount() );
-        ASSERT_TRUE( vfs.FileExists( "Town_Pack_2/checker.png" ) );
+        ASSERT_TRUE( opener.Open( dir + "/Town Pack/", result ) && townMount == result.mountPoint && 1 == mounter.GetMountCount() );
+        ASSERT_TRUE( opener.Open( dir + "/other/Town Pack", result ) && otherTownMount == result.mountPoint && 2 == mounter.GetMountCount() );
+        ASSERT_TRUE( vfs.FileExists( otherTownMount + "/checker.png" ) );
 
-        // a folder with the name of a folder of the root of this computer is not mounted under it, so a path of the disk is not taken for a path of a mount
-        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
-        ASSERT_TRUE( opener.Open( dir + "/tmp", result ) && "tmp" != result.mountPoint && "tmp_2" == result.mountPoint );
-        #endif
-
-        // an archive is named without its extension and acts as a folder
+        // an archive is mounted below the name of its file, which becomes the directory that holds its content
+        const CORE::CString shopsMount = CAssetMounter().MakeMountPointName( dir + "/Shops.zip" );
+        ASSERT_TRUE( shopsMount.EndsWith( "/Shops.zip" ) );
         ASSERT_TRUE( CAssetOpener::OPENKIND_ARCHIVE == CAssetOpener::Classify( dir + "/Shops.zip" ) );
-        ASSERT_TRUE( opener.Open( dir + "/Shops.zip", result ) && CAssetOpener::OPENKIND_ARCHIVE == result.kind && "Shops" == result.mountPoint && "Shops" == result.vfsFolder );
-        ASSERT_TRUE( vfs.FileExists( "Shops/Models/model.gltf" ) && vfs.FileExists( "Shops/readme.txt" ) );
+        ASSERT_TRUE( opener.Open( dir + "/Shops.zip", result ) && CAssetOpener::OPENKIND_ARCHIVE == result.kind && shopsMount == result.mountPoint && shopsMount == result.vfsFolder );
+        ASSERT_TRUE( vfs.FileExists( shopsMount + "/Models/model.gltf" ) && vfs.FileExists( shopsMount + "/readme.txt" ) );
         ASSERT_TRUE( "zip" == mounter.GetMount( mounter.FindMountBySource( dir + "/Shops.zip" ) ).archiveType );
-        ASSERT_TRUE( opener.Open( dir + "/Props.unitypackage", result ) && "Props" == result.mountPoint );
-        ASSERT_TRUE( vfs.FileExists( "Props/Assets/Models/b.txt" ) && "unitypackage" == mounter.GetMount( mounter.FindMountBySource( dir + "/Props.unitypackage" ) ).archiveType );
+        const CORE::CString propsMount = CAssetMounter().MakeMountPointName( dir + "/Props.unitypackage" );
+        ASSERT_TRUE( opener.Open( dir + "/Props.unitypackage", result ) && propsMount == result.mountPoint );
+        ASSERT_TRUE( vfs.FileExists( propsMount + "/Assets/Models/b.txt" ) && "unitypackage" == mounter.GetMount( mounter.FindMountBySource( dir + "/Props.unitypackage" ) ).archiveType );
         const UInt32 mountsBefore = mounter.GetMountCount();
-        ASSERT_TRUE( opener.Open( dir + "/Props.unitypackage", result ) && "Props" == result.mountPoint && mountsBefore == mounter.GetMountCount() );
+        ASSERT_TRUE( opener.Open( dir + "/Props.unitypackage", result ) && propsMount == result.mountPoint && mountsBefore == mounter.GetMountCount() );
 
         // a file below a folder that is mounted is found in it, without a second mount
         ASSERT_TRUE( CAssetOpener::OPENKIND_FILE == CAssetOpener::Classify( dir + "/Town Pack/model.gltf" ) );
         ASSERT_TRUE( opener.Open( dir + "/Town Pack/model.gltf", result ) && CAssetOpener::OPENKIND_FILE == result.kind );
-        ASSERT_TRUE( "Town_Pack" == result.mountPoint && "Town_Pack/model.gltf" == result.vfsAsset && "Town_Pack" == result.vfsFolder && mountsBefore == mounter.GetMountCount() );
+        ASSERT_TRUE( townMount == result.mountPoint && townMount + "/model.gltf" == result.vfsAsset && townMount == result.vfsFolder && mountsBefore == mounter.GetMountCount() );
         CORE::CString relative;
         ASSERT_TRUE( mounter.FindMountOfDiskPath( dir + "/Town Pack/deeper/x.fbx", relative ) >= 0 && "deeper/x.fbx" == relative );
         ASSERT_TRUE( mounter.FindMountOfDiskPath( dir + "/Town Packs/x.fbx", relative ) < 0 );
 
         // a file in a folder that is not mounted: its folder is mounted, and its place in it is told
         ASSERT_TRUE( CORE::CreateDirs( dir + "/loose/Sub Folder" ) && WriteTestPng( dir + "/loose/Sub Folder/pic.png", 4, 4 ) );
+        const CORE::CString subMount = CAssetMounter().MakeMountPointName( dir + "/loose/Sub Folder" );
         ASSERT_TRUE( opener.Open( dir + "/loose/Sub Folder/pic.png", result ) && CAssetOpener::OPENKIND_FILE == result.kind );
-        ASSERT_TRUE( "Sub_Folder" == result.mountPoint && "Sub_Folder/pic.png" == result.vfsAsset && "Sub_Folder" == result.vfsFolder && vfs.FileExists( "Sub_Folder/pic.png" ) );
+        ASSERT_TRUE( subMount == result.mountPoint && subMount + "/pic.png" == result.vfsAsset && subMount == result.vfsFolder && vfs.FileExists( subMount + "/pic.png" ) );
         // a file in a folder below a mount: the folder that holds it is the one to show
         ASSERT_TRUE( CORE::CreateDirs( dir + "/Town Pack/textures" ) && WriteTestPng( dir + "/Town Pack/textures/deep.png", 4, 4 ) );
-        ASSERT_TRUE( opener.Open( dir + "/Town Pack/textures/deep.png", result ) && "Town_Pack/textures/deep.png" == result.vfsAsset && "Town_Pack/textures" == result.vfsFolder );
+        ASSERT_TRUE( opener.Open( dir + "/Town Pack/textures/deep.png", result ) && townMount + "/textures/deep.png" == result.vfsAsset && townMount + "/textures" == result.vfsFolder );
 
         // what cannot be opened says why and mounts nothing
         const UInt32 mounts = mounter.GetMountCount();
@@ -301,7 +303,7 @@ TestOpenMounting( void )
 
         // the unique name does not depend on the spelling of the path
         ASSERT_TRUE( CAssetMounter::NormalizeDiskPath( "a\\b\\c\\" ) == "a/b/c" && "/" == CAssetMounter::NormalizeDiskPath( "/" ) );
-        ASSERT_TRUE( "mount" == CAssetMounter().MakeMountPointName( "/!!!" ) );
+        ASSERT_TRUE( CAssetMounter::LocalDiskMountRoot + "/mount" == CAssetMounter().MakeMountPointName( "/" ) );
         mounter.UnmountAll();
     }
     catch ( ... )
@@ -451,12 +453,12 @@ TestOpenStartAndEmptyState( void )
 
             // the roots, in order, and where the workbench starts
             GUI::CContentBrowserForm* browser = shell.GetBrowser();
-            ASSERT_TRUE( 3 == browser->GetRootCount() && "Local files" == browser->GetRootName( 0 ) && "VFS" == browser->GetRootName( 1 ) && "Resources" == browser->GetRootName( 2 ) );
+            ASSERT_TRUE( 4 == browser->GetRootCount() && "Local files" == browser->GetRootName( 0 ) && "Local VFS" == browser->GetRootName( 1 ) && "Remote VFS" == browser->GetRootName( 2 ) && "Resources" == browser->GetRootName( 3 ) );
             ASSERT_TRUE( CWorkbenchShell::LocalFilesRootName == browser->GetCurrentRootName() && !browser->GetCurrentDirectory().IsNULLOrEmpty() );
             CORE::CString home;
             if ( CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, home ) )
                 ASSERT_TRUE( CAssetMounter::NormalizeDiskPath( home ) == CAssetMounter::NormalizeDiskPath( browser->GetCurrentDirectory() ) );
-            ASSERT_TRUE( browser->NavigateTo( "VFS", "/" ) && browser->NavigateTo( "Local files", "/" ) && browser->NavigateTo( "Local files", home ) );
+            ASSERT_TRUE( browser->NavigateTo( "Local files", "/" ) && browser->NavigateTo( "Local files", home ) );
 
             // the strip: three buttons in the order of the owner's words, and the recent list with its first row only
             GUI::COpenActionStripForm* strip = shell.GetOpenStrip();
@@ -478,7 +480,7 @@ TestOpenStartAndEmptyState( void )
             // something was mounted before the start (--mount): the mounts are shown and no instruction is needed
             COpenFixture fixture( "open_start_mounted", true );
             ASSERT_TRUE( fixture.ready );
-            ASSERT_TRUE( "VFS" == fixture.shell->GetBrowser()->GetCurrentRootName() && !fixture.shell->IsEmptyStateShown() && 0 == fixture.CountReports( "Nothing is open" ) );
+            ASSERT_TRUE( "Local VFS" == fixture.shell->GetBrowser()->GetCurrentRootName() && !fixture.shell->IsEmptyStateShown() && 0 == fixture.CountReports( "Nothing is open" ) );
         }
     }
     catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
@@ -511,21 +513,23 @@ TestOpenLocations( void )
         ASSERT_TRUE( WriteTestZip( dir + "/files/Shops.zip", dir + "/Town Pack" ) && WriteTestUnityPackage( dir + "/files/Props.unitypackage" ) );
         ASSERT_TRUE( CWorkbenchShell::IsPackageFile( "files/Shops.zip" ) && CWorkbenchShell::IsPackageFile( "/files/Props.unitypackage" ) && !CWorkbenchShell::IsPackageFile( "files/model.gltf" ) );
 
-        // the folder with the files is mounted; the package in it is a file of the VFS (the way --open /files/Props.unitypackage names it)
+        // the folder with the files is mounted; the package in it is a file of the VFS (the way --open names it), and is mounted below its own name
+        const CORE::CString filesMount = CAssetMounter().MakeMountPointName( dir + "/files" );
+        const CORE::CString propsMount = filesMount + "/Props.unitypackage";
         ASSERT_TRUE( shell.OpenLocation( dir + "/files" ) );
-        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && "files" == fixture.mounter.GetMount( 0 ).mountPoint );
-        ASSERT_TRUE( shell.OpenAsset( "/files/Props.unitypackage" ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "Props" == fixture.mounter.GetMount( 1 ).mountPoint );
-        ASSERT_TRUE( "VFS" == browser->GetCurrentRootName() && "/Props" == browser->GetCurrentDirectory() && Has( browser->GetListedNames(), "Assets/" ) );
+        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && filesMount == fixture.mounter.GetMount( 0 ).mountPoint );
+        ASSERT_TRUE( shell.OpenAsset( "/" + propsMount ) );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && propsMount == fixture.mounter.GetMount( 1 ).mountPoint );
+        ASSERT_TRUE( "Local VFS" == browser->GetCurrentRootName() && "/" + propsMount == browser->GetCurrentDirectory() && Has( browser->GetListedNames(), "Assets/" ) );
         ASSERT_FALSE( shell.IsEmptyStateShown() );
 
         // the call of the interface (selection and double click) and the choice in the VFS dialog: the same mount is found again, nothing is mounted twice
         ASSERT_TRUE( browser->NavigateTo( "Local files", "/" ) );
-        ASSERT_TRUE( shell.OpenAssetInteractive( "files/Props.unitypackage" ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "/Props" == browser->GetCurrentDirectory() );
+        ASSERT_TRUE( shell.OpenAssetInteractive( propsMount ) );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "/" + propsMount == browser->GetCurrentDirectory() );
         ASSERT_TRUE( browser->NavigateTo( "Local files", "/" ) );
-        ASSERT_TRUE( shell.OpenVfsSelection( "files/Props.unitypackage" ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "/Props" == browser->GetCurrentDirectory() );
+        ASSERT_TRUE( shell.OpenVfsSelection( propsMount ) );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "/" + propsMount == browser->GetCurrentDirectory() );
     }
     catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
     {
@@ -551,10 +555,12 @@ TestOpenLocations( void )
         fixture.Frames( 2 );
         ASSERT_TRUE( shell.IsEmptyStateShown() );
 
-        // a folder: mounted under its name, the browser is in it, the places is remembered, the instruction is gone
+        // a folder: mounted at its path, the browser is in it, the places is remembered, the instruction is gone
+        const CORE::CString townMount = CAssetMounter().MakeMountPointName( dir + "/Town Pack" );
+        const CORE::CString shopsMount = CAssetMounter().MakeMountPointName( dir + "/Shops.zip" );
         ASSERT_TRUE( shell.OpenLocation( dir + "/Town Pack" ) );
-        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && "Town_Pack" == fixture.mounter.GetMount( 0 ).mountPoint );
-        ASSERT_TRUE( "VFS" == browser->GetCurrentRootName() && "/Town_Pack" == browser->GetCurrentDirectory() && 0 == shell.GetLeftTab() );
+        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && townMount == fixture.mounter.GetMount( 0 ).mountPoint );
+        ASSERT_TRUE( "Local VFS" == browser->GetCurrentRootName() && "/" + townMount == browser->GetCurrentDirectory() && 0 == shell.GetLeftTab() );
         const CORE::CString::StringVector listed = browser->GetListedNames();
         ASSERT_TRUE( Has( listed, "model.gltf" ) && Has( listed, "checker.png" ) && Has( listed, "pic.png" ) );
         ASSERT_TRUE( 1 == shell.GetRecentLocations()->GetCount() && CAssetMounter::NormalizeDiskPath( dir + "/Town Pack" ) == shell.GetRecentLocations()->Get( 0 ) );
@@ -565,31 +571,32 @@ TestOpenLocations( void )
         // the same again: one mount, still one recent place
         ASSERT_TRUE( browser->NavigateTo( "Local files", "/" ) );
         ASSERT_TRUE( shell.OpenLocation( dir + "/Town Pack" ) );
-        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && 1 == shell.GetRecentLocations()->GetCount() && "VFS" == browser->GetCurrentRootName() );
+        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && 1 == shell.GetRecentLocations()->GetCount() && "Local VFS" == browser->GetCurrentRootName() );
 
         // a zip and a Unity package are folders of the VFS root as well
         ASSERT_TRUE( shell.OpenLocation( dir + "/Shops.zip" ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "Shops" == fixture.mounter.GetMount( 1 ).mountPoint && "zip" == fixture.mounter.GetMount( 1 ).archiveType );
-        ASSERT_TRUE( "VFS" == browser->GetCurrentRootName() && "/Shops" == browser->GetCurrentDirectory() );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && shopsMount == fixture.mounter.GetMount( 1 ).mountPoint && "zip" == fixture.mounter.GetMount( 1 ).archiveType );
+        ASSERT_TRUE( "Local VFS" == browser->GetCurrentRootName() && "/" + shopsMount == browser->GetCurrentDirectory() );
         ASSERT_TRUE( Has( browser->GetListedNames(), "Models/" ) && Has( browser->GetListedNames(), "readme.txt" ) );
         ASSERT_TRUE( shell.OpenLocation( dir + "/Props.unitypackage" ) );
-        ASSERT_TRUE( 3 == fixture.mounter.GetMountCount() && "unitypackage" == fixture.mounter.GetMount( 2 ).archiveType && "/Props" == browser->GetCurrentDirectory() );
+        ASSERT_TRUE( 3 == fixture.mounter.GetMountCount() && "unitypackage" == fixture.mounter.GetMount( 2 ).archiveType && "/" + fixture.mounter.GetMount( 2 ).mountPoint == browser->GetCurrentDirectory() );
         ASSERT_TRUE( Has( browser->GetListedNames(), "Assets/" ) );
         ASSERT_TRUE( 3 == shell.GetRecentLocations()->GetCount() && CAssetMounter::NormalizeDiskPath( dir + "/Props.unitypackage" ) == shell.GetRecentLocations()->Get( 0 ) );
 
         // a model opens in the 3D view, from the mount of its folder; a picture in the texture view
         ASSERT_TRUE( shell.OpenLocation( dir + "/Town Pack/model.gltf" ) );
-        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && "Town_Pack/model.gltf" == shell.GetShownPath() && shell.GetModelView().IsLoaded() );
-        ASSERT_TRUE( 3 == fixture.mounter.GetMountCount() && "/Town_Pack" == browser->GetCurrentDirectory() && 0 == shell.GetCenterTab() );
+        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && townMount + "/model.gltf" == shell.GetShownPath() && shell.GetModelView().IsLoaded() );
+        ASSERT_TRUE( 3 == fixture.mounter.GetMountCount() && "/" + townMount == browser->GetCurrentDirectory() && 0 == shell.GetCenterTab() );
         DumpPicture( fixture.Frames( 4 ), "open_model_" + CORE::CString( GetTestRenderer() ) );
         ASSERT_TRUE( shell.OpenLocation( dir + "/Town Pack/pic.png" ) );
-        ASSERT_TRUE( ASSETKIND_IMAGE == shell.GetShownKind() && "Town_Pack/pic.png" == shell.GetShownPath() && 1 == shell.GetCenterTab() );
+        ASSERT_TRUE( ASSETKIND_IMAGE == shell.GetShownKind() && townMount + "/pic.png" == shell.GetShownPath() && 1 == shell.GetCenterTab() );
         ASSERT_TRUE( !shell.IsEmptyStateShown() );
 
         // a file in a folder that was not mounted: the folder of the file is
         ASSERT_TRUE( WriteTestFile( dir + "/loose/lone.gltf", BuildTestGltf() ) );
+        const CORE::CString looseMount = CAssetMounter().MakeMountPointName( dir + "/loose" );
         ASSERT_TRUE( shell.OpenLocation( dir + "/loose/lone.gltf" ) );
-        ASSERT_TRUE( 4 == fixture.mounter.GetMountCount() && "loose" == fixture.mounter.GetMount( 3 ).mountPoint && "loose/lone.gltf" == shell.GetShownPath() && ASSETKIND_MODEL == shell.GetShownKind() );
+        ASSERT_TRUE( 4 == fixture.mounter.GetMountCount() && looseMount == fixture.mounter.GetMount( 3 ).mountPoint && looseMount + "/lone.gltf" == shell.GetShownPath() && ASSETKIND_MODEL == shell.GetShownKind() );
 
         // what cannot be opened leaves things as they are and is not remembered; a place that is gone leaves the recent places
         const UInt32 remembered = shell.GetRecentLocations()->GetCount();
@@ -637,6 +644,8 @@ TestOpenFromLocalFiles( void )
 
         // a click on the pack selects it and mounts nothing; a double click on the folder enters it, still in Local files
         ASSERT_TRUE( browser->SelectNames( CORE::CString::StringVector( 1, "Shops.zip" ) ) );
+        const CORE::CString townMount = CAssetMounter().MakeMountPointName( dir + "/Town Pack" );
+        const CORE::CString shopsMount = CAssetMounter().MakeMountPointName( dir + "/Shops.zip" );
         ASSERT_TRUE( 0 == fixture.mounter.GetMountCount() && "Local files" == browser->GetCurrentRootName() );
         ASSERT_TRUE( browser->ActivateItem( (UInt32) IndexOf( names, "Town Pack/" ) ) );
         ASSERT_TRUE( 0 == fixture.mounter.GetMountCount() && "Local files" == browser->GetCurrentRootName() && CAssetMounter::NormalizeDiskPath( dir + "/Town Pack" ) == CAssetMounter::NormalizeDiskPath( browser->GetCurrentDirectory() ) );
@@ -645,21 +654,21 @@ TestOpenFromLocalFiles( void )
         names = browser->GetListedNames();
         ASSERT_TRUE( Has( names, "model.gltf" ) );
         ASSERT_TRUE( browser->ActivateItem( (UInt32) IndexOf( names, "model.gltf" ) ) );
-        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && 1 == fixture.mounter.GetMountCount() && "Town_Pack/model.gltf" == shell.GetShownPath() );
+        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() &&         1 == fixture.mounter.GetMountCount() && townMount + "/model.gltf" == shell.GetShownPath() );
         ASSERT_TRUE( "Local files" == browser->GetCurrentRootName() && !shell.IsEmptyStateShown() );
 
         // a double click on the pack enters it as a folder of the VFS root
         ASSERT_TRUE( browser->NavigateTo( "Local files", dir ) );
         names = browser->GetListedNames();
         ASSERT_TRUE( browser->ActivateItem( (UInt32) IndexOf( names, "Shops.zip" ) ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "VFS" == browser->GetCurrentRootName() && "/Shops" == browser->GetCurrentDirectory() );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "Local VFS" == browser->GetCurrentRootName() && "/" + shopsMount == browser->GetCurrentDirectory() );
 
         // the recent list: the places are there newest first, and a choice opens one again, in the VFS root
         ASSERT_TRUE( 2 == shell.GetRecentLocations()->GetCount() && CAssetMounter::NormalizeDiskPath( dir + "/Shops.zip" ) == shell.GetRecentLocations()->Get( 0 ) );
         ASSERT_TRUE( 3 == shell.GetOpenStrip()->GetRecentRowCount() );
         ASSERT_TRUE( browser->NavigateTo( "Local files", dir ) );
         ASSERT_TRUE( shell.GetOpenStrip()->ChooseRecent( 1 ) );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "VFS" == browser->GetCurrentRootName() && "Town_Pack/model.gltf" == shell.GetShownPath() );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "Local VFS" == browser->GetCurrentRootName() && townMount + "/model.gltf" == shell.GetShownPath() );
         ASSERT_TRUE( CAssetMounter::NormalizeDiskPath( dir + "/Town Pack/model.gltf" ) == shell.GetRecentLocations()->Get( 0 ) );
     }
     catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
@@ -699,16 +708,18 @@ TestOpenDialogs( void )
         ASSERT_TRUE( "Local files" == folderDialog->GetCurrentRootName() );
         DumpPicture( fixture.Frames( 3 ), "open_folder_dialog_" + CORE::CString( GetTestRenderer() ) );
         GUI::CListbox* places = folderDialog->GetWidgetAs< GUI::CListbox >( "Places" );
-        ASSERT_TRUE( GUCEF_NULL != places && Has( places->GetItems(), "Mounted (VFS)" ) );
+        ASSERT_TRUE( GUCEF_NULL != places && Has( places->GetItems(), "Local VFS" ) && Has( places->GetItems(), "Remote VFS" ) );
         CORE::CString homeFolder;
         if ( CORE::TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, homeFolder ) && CORE::DirExists( homeFolder ) )
-            ASSERT_TRUE( "Home" == places->GetItems()[ 0 ] && IndexOf( places->GetItems(), "Home" ) < IndexOf( places->GetItems(), "Mounted (VFS)" ) );
-        ASSERT_TRUE( folderDialog->NavigateTo( "VFS", "/" ) && folderDialog->NavigateTo( "Local files", dir + "/Town Pack" ) );
+            ASSERT_TRUE( "Home" == places->GetItems()[ 0 ] &&             IndexOf( places->GetItems(), "Home" ) < IndexOf( places->GetItems(), "Local VFS" ) );
+                    ASSERT_TRUE( folderDialog->NavigateTo( "Local files", dir + "/Town Pack" ) );
         ASSERT_FALSE( shell.ShowOpenFolderDialog() );       // it is shown already
 
         // choosing the folder opens it
+        const CORE::CString townMount = CAssetMounter().MakeMountPointName( dir + "/Town Pack" );
+        const CORE::CString shopsMount = CAssetMounter().MakeMountPointName( dir + "/Shops.zip" );
         ASSERT_TRUE( folderDialog->AcceptCurrentDirectory() && !folderDialog->IsOpen() );
-        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && "Town_Pack" == fixture.mounter.GetMount( 0 ).mountPoint && "VFS" == shell.GetBrowser()->GetCurrentRootName() );
+        ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() && townMount == fixture.mounter.GetMount( 0 ).mountPoint && "Local VFS" == shell.GetBrowser()->GetCurrentRootName() );
         ASSERT_TRUE( !shell.IsEmptyStateShown() );
 
         // the archive dialog offers archives only, the file dialog the groups of files
@@ -725,7 +736,7 @@ TestOpenDialogs( void )
         ASSERT_TRUE( archiveDialog->NavigateTo( "Local files", dir ) );
         archiveDialog->SetName( "Shops.zip" );
         ASSERT_TRUE( archiveDialog->Accept() && !archiveDialog->IsOpen() );
-        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && "Shops" == fixture.mounter.GetMount( 1 ).mountPoint && "/Shops" == shell.GetBrowser()->GetCurrentDirectory() );
+        ASSERT_TRUE( 2 == fixture.mounter.GetMountCount() && shopsMount == fixture.mounter.GetMount( 1 ).mountPoint && "/" + shopsMount == shell.GetBrowser()->GetCurrentDirectory() );
 
         // the file dialog: the groups of files; Ctrl+O shows it
         ASSERT_TRUE( shell.HandleKey( INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL ) );
@@ -740,7 +751,7 @@ TestOpenDialogs( void )
         ASSERT_TRUE( Has( shown, "model.gltf" ) && Has( shown, "checker.png" ) && !Has( shown, "readme.txt" ) );
         fileDialog->SetName( "model.gltf" );
         ASSERT_TRUE( fileDialog->Accept() && !fileDialog->IsOpen() );
-        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && "Town_Pack/model.gltf" == shell.GetShownPath() && 2 == fixture.mounter.GetMountCount() );
+        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && townMount + "/model.gltf" == shell.GetShownPath() && 2 == fixture.mounter.GetMountCount() );
 
         // Ctrl+Shift+O shows the folder dialog again, and a dialog that is shown takes the key
         ASSERT_TRUE( shell.HandleKey( INPUT::KEYCODE_O, INPUT::KEYMOD_CTRL | INPUT::KEYMOD_SHIFT ) && shell.GetFolderDialog()->IsOpen() );

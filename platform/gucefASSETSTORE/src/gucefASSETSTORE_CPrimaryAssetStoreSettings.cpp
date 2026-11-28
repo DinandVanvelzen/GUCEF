@@ -61,6 +61,7 @@ namespace ASSETSTORE {
 
 const CORE::CString CPrimaryAssetStoreSettings::DefaultLocationId = "default";
 const CORE::CString CPrimaryAssetStoreSettings::DiskSourceId = "disk";
+const CORE::CString CPrimaryAssetStoreSettings::DefaultVfsRoot = "local-assetstore/local";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -91,13 +92,13 @@ CPrimaryAssetStoreSettings::CPrimaryAssetStoreSettings( void )
     CAssetStorageLocation location;
     location.locationId = DefaultLocationId;
     location.name = "Default";
-    location.vfsRoot = "assetstore/default";
+    location.vfsRoot = DefaultVfsRoot;
     location.fileSystemPath = "$MODULEDIR$/../../assets/";
     location.writeable = true;
     locations.push_back( location );
 
     database.backendName = "vfstables";
-    database.database = "assetstore/default/catalogue";
+    database.database = DefaultVfsRoot + "/catalogue";
 
     defaultPolicy.sourceId = "*";
     defaultPolicy.mode = ASSETINGEST_MODE_MANUAL;

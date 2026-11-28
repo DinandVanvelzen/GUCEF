@@ -82,6 +82,20 @@ using namespace GUCEF::ASSETWORKBENCH;
 
 namespace {
 
+/** The mount point of the folder of the fixture: a folder of the Local VFS root, the part of the VFS the browser shows */
+static CORE::CString
+AvShellMount( void )
+{
+    return CAssetMounter::LocalStoreRoot + "/avshell";
+}
+
+/** The path in the VFS of an entry below the mount of the fixture, with the leading '/' of the paths of the shell */
+static CORE::CString
+AvShellPath( const CORE::CString& relative )
+{
+    return "/" + AvShellMount() + ( relative.IsNULLOrEmpty() ? CORE::CString::Empty : "/" + relative );
+}
+
 /** The workbench in a window of the tests with a folder of assets mounted: a model, pictures, a scene, a material script and a file that is no asset */
 class CShellFixture
 {
@@ -114,7 +128,7 @@ class CShellFixture
                              WriteTestPng( dir + "/pic.png", 8, 4 ) && WriteTestFile( dir + "/level/test.scene", BuildTestScene( "model.gltf" ) ) &&
                              WriteTestFile( dir + "/scripts/test.material", BuildTestMaterialScript() ) && WriteTestFile( dir + "/readme.txt", "not an asset" ) &&
                              WriteTestFile( dir + "/broken.png", "this is not a picture" );
-        if ( !written || !mounter.Mount( "avshell", dir ) )
+        if ( !written || !mounter.Mount( AvShellMount(), dir ) )
             return;
         contextPtr = CreateWorkbenchContext();
         context = contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext();
@@ -205,13 +219,13 @@ TestShellLayout( void )
         ASSERT_TRUE( samples > 100 && background * 10 > samples * 8 );
 
         // the browser lists the mount as a folder of the VFS root
-        shell.GetBrowser()->NavigateTo( "VFS", "/" );
+        shell.GetBrowser()->NavigateTo( "Local VFS", "/" + CAssetMounter::LocalStoreRoot );
         const CORE::CString::StringVector names = shell.GetBrowser()->GetListedNames();
         bool hasMount = false;
         for ( size_t i=0; i<names.size(); ++i )
             hasMount = hasMount || "avshell/" == names[ i ];
         ASSERT_TRUE( hasMount );
-        ASSERT_TRUE( shell.GetBrowser()->NavigateTo( "VFS", "/avshell" ) );
+        ASSERT_TRUE( shell.GetBrowser()->NavigateTo( "Local VFS", AvShellPath( CORE::CString::Empty ) ) );
         const CORE::CString::StringVector files = shell.GetBrowser()->GetListedNames();
         ASSERT_TRUE( files.size() >= 7 );
 
@@ -245,8 +259,8 @@ TestShellModel( void )
         CWorkbenchShell& shell = *fixture.shell;
         fixture.Frames( 3 );
 
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/model.gltf" ) );
-        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && "avshell/model.gltf" == shell.GetShownPath() && 0 == shell.GetCenterTab() );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "model.gltf" ) ) );
+        ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && AvShellMount() + "/model.gltf" == shell.GetShownPath() && 0 == shell.GetCenterTab() );
         ASSERT_TRUE( shell.GetModelView().IsLoaded() );
         IMAGE::TPixelMapPtr pixels = fixture.Frames( 4 );
         DumpPicture( pixels, "shell_model_" + CORE::CString( GetTestRenderer() ) );
@@ -330,7 +344,7 @@ TestShellTextureMaterialScene( void )
         fixture.Frames( 3 );
 
         // the picture
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/pic.png" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "pic.png" ) ) );
         ASSERT_TRUE( ASSETKIND_IMAGE == shell.GetShownKind() && 1 == shell.GetCenterTab() );
         IMAGE::TPixelMapPtr pixels = fixture.Frames( 3 );
         DumpPicture( pixels, "shell_texture_" + CORE::CString( GetTestRenderer() ) );
@@ -350,7 +364,7 @@ TestShellTextureMaterialScene( void )
         ASSERT_TRUE( 255 == rgba[ 0 ] );
 
         // the material
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/scripts/test.material" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "scripts/test.material" ) ) );
         ASSERT_TRUE( ASSETKIND_MATERIAL == shell.GetShownKind() && 0 == shell.GetCenterTab() && shell.GetMaterialView().GetPreview().IsLoaded() );
         pixels = fixture.Frames( 4 );
         DumpPicture( pixels, "shell_material_" + CORE::CString( GetTestRenderer() ) );
@@ -358,12 +372,12 @@ TestShellTextureMaterialScene( void )
         ASSERT_TRUE( "255,0,0,255" == shell.GetInspector()->GetValue( "Pass@Diffuse" ) && "TestRed" == shell.GetMaterialView().GetSelectedMaterial() );
         ASSERT_TRUE( shell.GetViewport()->SetToggleChoice( "shape", (Int32) CMaterialView::SHAPE_CUBE ) && CMaterialView::SHAPE_CUBE == shell.GetMaterialView().GetShape() );
         ASSERT_TRUE( shell.GetInspector()->SetValue( "Pass@Diffuse", "0,255,0,255" ) );
-        Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName( "TestRed", "AssetWorkbench/avshell" );
+        Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName( "TestRed", ( "AssetWorkbench/" + AvShellMount() ).C_String() );
         ASSERT_TRUE( (bool) material && fabsf( material->getTechnique( 0 )->getPass( 0 )->getDiffuse().g - 1.0f ) < 1e-3f );
         fixture.Frames( 2 );
 
         // the scene: the tree in the scene browser, the left tab on it
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/level/test.scene" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "level/test.scene" ) ) );
         ASSERT_TRUE( ASSETKIND_SCENE == shell.GetShownKind() && 0 == shell.GetCenterTab() && shell.GetSceneView().IsLoaded() );
         fixture.Frames( 4 );
         const CORE::CString::StringVector nodes = shell.GetSceneBrowser()->GetListedNames();
@@ -391,7 +405,7 @@ TestShellTextureMaterialScene( void )
         ASSERT_TRUE( "/Parent/Child/TheCube.entity" == shell.GetSceneView().GetSelectedPath() && "model.gltf" == shell.GetInspector()->GetValue( "Object@Mesh" ) );
 
         // the next asset takes the scene away
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/model.gltf" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "model.gltf" ) ) );
         ASSERT_FALSE( shell.GetSceneView().IsLoaded() );
         ASSERT_TRUE( 0 == shell.GetSceneBrowser()->GetListedCount() );
     }
@@ -428,9 +442,9 @@ TestShellReportAndThumbnails( void )
         const UInt32 warningsBefore = shell.GetReport()->GetEntryCount( GUI::CReportViewForm::SEVERITY_WARNING );
 
         // what has no view, and what cannot be read, is refused and reported
-        ASSERT_FALSE( shell.OpenAsset( "/avshell/readme.txt" ) );
-        ASSERT_FALSE( shell.OpenAsset( "/avshell/broken.png" ) );
-        ASSERT_FALSE( shell.OpenAsset( "/avshell/missing.fbx" ) );
+        ASSERT_FALSE( shell.OpenAsset( AvShellPath( "readme.txt" ) ) );
+        ASSERT_FALSE( shell.OpenAsset( AvShellPath( "broken.png" ) ) );
+        ASSERT_FALSE( shell.OpenAsset( AvShellPath( "missing.fbx" ) ) );
         ASSERT_FALSE( shell.OpenAsset( "/nomount/model.gltf" ) );
         ASSERT_TRUE( ASSETKIND_OTHER == shell.GetShownKind() );
         shell.Update( 0 );
@@ -445,19 +459,19 @@ TestShellReportAndThumbnails( void )
         DumpPicture( fixture.Frames( 1 ), "shell_report_" + CORE::CString( GetTestRenderer() ) );
 
         // the thumbnails: the browser asks for those in view, the provider renders them between frames
-        ASSERT_TRUE( shell.GetBrowser()->NavigateTo( "VFS", "/avshell" ) );
+        ASSERT_TRUE( shell.GetBrowser()->NavigateTo( "Local VFS", AvShellPath( CORE::CString::Empty ) ) );
         shell.GetBrowser()->SetThumbnailSize( 64 );
         shell.GetBrowser()->SetViewMode( GUI::CContentBrowserForm::VIEWMODE_THUMBNAILS );
         bool arrived = false;
         for ( UInt32 i=0; i<40 && !arrived; ++i )
         {
             fixture.Frames( 1 );
-            arrived = shell.GetBrowser()->HasThumbnail( "/avshell/pic.png" ) && shell.GetBrowser()->HasThumbnail( "/avshell/model.gltf" );
+            arrived = shell.GetBrowser()->HasThumbnail( AvShellPath( "pic.png" ) ) && shell.GetBrowser()->HasThumbnail( AvShellPath( "model.gltf" ) );
         }
         ASSERT_TRUE( arrived );
         ASSERT_TRUE( shell.GetThumbnailProvider()->GetRenderCount() >= 2 );
         // files that are no asset do not have one
-        ASSERT_FALSE( shell.GetBrowser()->HasThumbnail( "/avshell/readme.txt" ) );
+        ASSERT_FALSE( shell.GetBrowser()->HasThumbnail( AvShellPath( "readme.txt" ) ) );
         DumpPicture( fixture.Frames( 2 ), "shell_thumbnails_" + CORE::CString( GetTestRenderer() ) );
     }
     catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
@@ -545,7 +559,7 @@ TestShellKindsAndPacks( void )
 
         // the metadata files are not listed, and the browser knows how many it left out
         ASSERT_TRUE( !browser->GetShowSidecars() );
-        ASSERT_TRUE( browser->NavigateTo( "VFS", "/avshell/proj/Assets/Models" ) );
+        ASSERT_TRUE( browser->NavigateTo( "Local VFS", AvShellPath( "proj/Assets/Models" ) ) );
         CORE::CString::StringVector names = browser->GetListedNames();
         ASSERT_TRUE( Listed( names, "rock.png" ) && Listed( names, "hero.gltf" ) && !Listed( names, "rock.png.meta" ) && !Listed( names, "hero.gltf.meta" ) );
         ASSERT_TRUE( 2 == browser->GetHiddenSidecarCount() );
@@ -561,7 +575,7 @@ TestShellKindsAndPacks( void )
         ASSERT_TRUE( !Listed( browser->GetListedNames(), "rock.png.meta" ) && 2 == browser->GetHiddenSidecarCount() );
 
         // the pack: selecting its folder shows the engine, the version, the files per kind and the entry points
-        ASSERT_TRUE( browser->NavigateTo( "VFS", "/avshell" ) );
+        ASSERT_TRUE(         browser->NavigateTo( "Local VFS", AvShellPath( CORE::CString::Empty ) ) );
         names = browser->GetListedNames();
         Int32 projIndex = -1;
         for ( size_t i=0; i<names.size(); ++i )
@@ -586,10 +600,10 @@ TestShellKindsAndPacks( void )
         ASSERT_TRUE( GUCEF_NULL != entries && "Assets/Demo.stscene" == entries->GetAttributeValue( "Candidate 1" ).AsString() );
 
         // a folder that is no pack is summarised only while nothing is open
-        ASSERT_TRUE( shell.ShowFolderSummary( "/avshell/level" ) );
+        ASSERT_TRUE( shell.ShowFolderSummary( AvShellPath( "level" ) ) );
         ASSERT_TRUE( "Folder" == shell.GetInspector()->GetData().GetName() );
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/pic.png" ) );
-        ASSERT_FALSE( shell.ShowFolderSummary( "/avshell/level" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "pic.png" ) ) );
+        ASSERT_FALSE( shell.ShowFolderSummary( AvShellPath( "level" ) ) );
 
         ASSERT_TRUE( plugins.UnregisterImporter( "shelltestpack" ) );
         ASSERT_TRUE( ASSETKIND_OTHER == CAssetTypeResolver::GetKind( "x/Demo.stscene" ) );
@@ -615,7 +629,7 @@ TestShellKindsAndPacks( void )
         ASSERT_TRUE( WriteTestDds( fixture.dir + "/block.dds", 8, 8, 0xF800 ) );
         ASSERT_TRUE( "3D" == shell.GetCenterTabTitle( 0 ) && "Image" == shell.GetCenterTabTitle( 1 ) && "UV layout" == shell.GetCenterTabTitle( 2 ) );
 
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/pic.png" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "pic.png" ) ) );
         fixture.Frames( 2 );
         ASSERT_TRUE( ASSETKIND_IMAGE == shell.GetShownKind() && 1 == shell.GetCenterTab() && "Image" == shell.GetCenterTabTitle( 1 ) );
         const CORE::CDataNode& image = shell.GetInspector()->GetData();
@@ -623,7 +637,7 @@ TestShellKindsAndPacks( void )
         ASSERT_TRUE( "Image" == image.GetName() && GUCEF_NULL != picture && "8" == picture->GetAttributeValue( "Width" ).AsString() );
         ASSERT_TRUE( GUCEF_NULL == picture->GetAttribute( "MipLevels" ) && GUCEF_NULL == picture->GetAttribute( "Compressed" ) && GUCEF_NULL == picture->GetAttribute( "Cube" ) );
 
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/block.dds" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "block.dds" ) ) );
         fixture.Frames( 2 );
         ASSERT_TRUE( ASSETKIND_TEXTURE == shell.GetShownKind() && 1 == shell.GetCenterTab() && "Texture" == shell.GetCenterTabTitle( 1 ) );
         const CORE::CDataNode& texture = shell.GetInspector()->GetData();
@@ -631,7 +645,7 @@ TestShellKindsAndPacks( void )
         ASSERT_TRUE( "Texture" == texture.GetName() && GUCEF_NULL != block && GUCEF_NULL != block->GetAttribute( "MipLevels" ) && GUCEF_NULL != block->GetAttribute( "Compressed" ) );
 
         // back to a model: the tab is called Image again
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/model.gltf" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "model.gltf" ) ) );
         ASSERT_TRUE( "Image" == shell.GetCenterTabTitle( 1 ) );
         ASSERT_TRUE( CAssetOpener::Classify( fixture.dir + "/pic.png" ) == CAssetOpener::OPENKIND_FILE && CAssetOpener::Classify( fixture.dir + "/readme.txt" ) == CAssetOpener::OPENKIND_NONE );
         CORE::CString::StringVector patterns;
@@ -721,7 +735,7 @@ TestShellViewportToolbar( void )
         CShellFixture fixture( "shell_toolbar" );
         ASSERT_TRUE( fixture.ready );
         CWorkbenchShell& shell = *fixture.shell;
-        ASSERT_TRUE( shell.OpenAsset( "/avshell/model.gltf" ) );
+        ASSERT_TRUE( shell.OpenAsset( AvShellPath( "model.gltf" ) ) );
         fixture.Frames( 4 );
         ASSERT_TRUE( shell.GetViewport()->GetToggles().size() >= 8 );
 

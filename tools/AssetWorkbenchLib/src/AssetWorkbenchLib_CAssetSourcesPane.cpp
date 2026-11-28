@@ -249,7 +249,6 @@ CAssetSourcesPane::CAssetSourcesPane( CAssetMounter& mounter )
     , m_startedIngests( 0 )
     , m_startedConversions( 0 )
     , m_selectedPackId()
-    , m_diskMounts( 0 )
     , m_hasConverter( false )
     , m_remoteFiles( GUCEF_NULL )
     , m_noWaitThread( 0 )
@@ -1909,21 +1908,14 @@ CAssetSourcesPane::AddDiskPack( const CORE::CString& pathText )
     CORE::CString contentPath = CAssetMounter::NormalizePath( pathText );
     if ( !vfs.DirExists( contentPath ) && !vfs.FileExists( contentPath ) )
     {
-        // a path of the disk: it is mounted to be read through the VFS
+        // a path of the disk: it is mounted to be read through the VFS, at the place that is made of the path (CAssetMounter::MakeMountPointName())
         const CORE::CString native = CORE::RelativePath( pathText );
         if ( !CORE::DirExists( native ) && !CORE::FileExists( native ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CAssetSourcesPane: " << pathText << " is no folder or archive of the VFS or of the disk" );
             return false;
         }
-        CORE::CString leaf = native;
-        while ( leaf.Length() > 0 && ( '/' == leaf[ leaf.Length()-1 ] || '\\' == leaf[ leaf.Length()-1 ] ) )
-            leaf = leaf.CutChars( 1, false );
-        const Int32 slash = leaf.HasChar( '/', false ) > leaf.HasChar( '\\', false ) ? leaf.HasChar( '/', false ) : leaf.HasChar( '\\', false );
-        if ( slash >= 0 )
-            leaf = leaf.CutChars( (UInt32) slash + 1, true );
-        contentPath = "disk/" + CORE::UInt32ToString( ++m_diskMounts ) + "_" + ASSETSTORE::CAssetStoreSafeNames::MakeSafePart( leaf );
-        if ( !m_mounter.Mount( contentPath, native ) )
+        if ( !m_mounter.MountUnique( native, contentPath ) )
             return false;
     }
     ASSETSTORE::CAssetIngestRequest request;
@@ -1955,7 +1947,8 @@ CAssetSourcesPane::MountFinishedDownload( const ASSETSTORE::CAssetJobEntry& job 
         CORE::CString name = file;
         if ( 0 == file.HasSubstr( prefix ) && file.Length() > prefix.Length() )
             name = file.CutChars( prefix.Length() + ( '/' == file[ prefix.Length() ] ? 1 : 0 ), true );
-        const CORE::CString mountPoint = folder + "/" + name + ".mount";
+        // the archive is mounted below the file that holds it: the file name is the name of the directory with its content
+        const CORE::CString mountPoint = folder + "/" + name;
         if ( m_mounter.Mount( mountPoint, CAssetMounter::NormalizePath( file ) ) )
             ++m_mountedDownloads;
     }

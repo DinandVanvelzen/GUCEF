@@ -69,6 +69,15 @@ class GUCEF_VFS_PUBLIC_CPP CVfsFileSystemAccess : public CORE::IFileSystemAccess
 
     CVfsFileSystemAccess( CVFS& vfs, const CORE::CString& displayName );
 
+    /**
+     *  A view of the part of the VFS below rootPath: it is what GetRootPath() gives, so the places that browse by the root of a
+     *  file system do not go above it. The paths of the entries stay complete VFS paths ("/remote/a/b" for "b" in "a" with the
+     *  root "/remote"), and the path of every call is a VFS path as it is without a root.
+     */
+    CVfsFileSystemAccess( const CORE::CString& displayName, const CORE::CString& rootPath );
+
+    CVfsFileSystemAccess( CVFS& vfs, const CORE::CString& displayName, const CORE::CString& rootPath );
+
     virtual ~CVfsFileSystemAccess() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetDisplayName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -127,6 +136,7 @@ class GUCEF_VFS_PUBLIC_CPP CVfsFileSystemAccess : public CORE::IFileSystemAccess
 
     CVFS* m_vfs;
     CORE::CString m_displayName;
+    CORE::CString m_rootPath;
 };
 
 /*-------------------------------------------------------------------------//

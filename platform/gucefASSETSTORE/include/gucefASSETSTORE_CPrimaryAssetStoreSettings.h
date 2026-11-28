@@ -60,7 +60,7 @@ namespace ASSETSTORE {
  *  The settings of the primary store, part of the .json settings of the application (sections 6 and 9.1).
  *
  *  The defaults are those of the settings of GUCEF (decision D2): one location "default" with its root at
- *  "assetstore/default" in the VFS, the folder "$MODULEDIR$/../../assets/" mounted there (common/bin/assets/ for the
+ *  "local-assetstore/local" in the VFS (DefaultVfsRoot), the folder "$MODULEDIR$/../../assets/" mounted there (common/bin/assets/ for the
  *  builds in common/bin), and the catalogue in the vfstables backend under that location. Sources are manual and keep
  *  both the original and the converted content unless a policy says otherwise.
  *
@@ -78,6 +78,7 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStoreSettings : public CORE::CIDa
 
     static const CORE::CString DefaultLocationId;           /**< "default" */
     static const CORE::CString DiskSourceId;                /**< "disk" */
+    static const CORE::CString DefaultVfsRoot;              /**< "local-assetstore/local": the root of the default location, below the "local-assetstore" mount that also holds what was downloaded from remote stores */
 
     COMCORE::CDatabaseClientSettings database;
     CORE::CString credentialProvider;                       /**< the provider name of the slot of the password in the credential store */

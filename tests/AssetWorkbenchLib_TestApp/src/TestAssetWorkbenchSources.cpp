@@ -335,7 +335,7 @@ TestSourcesSettings( void )
     {
         CAssetSourcesSettings settings;
         ASSERT_TRUE( settings.mountOnCompletion && 5 == settings.formatPreference.size() && "gltf" == settings.formatPreference[ 0 ] && "usd" == settings.formatPreference[ 4 ] );
-        ASSERT_TRUE( "assetstore/default/downloads" == settings.GetEffectiveDownloadRoot() );
+        ASSERT_TRUE( "local-assetstore/local/downloads" == settings.GetEffectiveDownloadRoot() );
         settings.downloadRoot = "other/place";
         ASSERT_TRUE( "other/place" == settings.GetEffectiveDownloadRoot() );
         settings.downloadRoot.Clear();

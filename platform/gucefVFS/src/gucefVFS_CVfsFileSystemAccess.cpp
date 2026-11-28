@@ -117,6 +117,7 @@ CVfsFileSystemAccess::CVfsFileSystemAccess( const CORE::CString& displayName )
     : CORE::IFileSystemAccess()
     , m_vfs( &CVfsGlobal::Instance()->GetVfs() )
     , m_displayName( displayName )
+    , m_rootPath( "/" )
 {GUCEF_TRACE;
 
 }
@@ -127,6 +128,29 @@ CVfsFileSystemAccess::CVfsFileSystemAccess( CVFS& vfs, const CORE::CString& disp
     : CORE::IFileSystemAccess()
     , m_vfs( &vfs )
     , m_displayName( displayName )
+    , m_rootPath( "/" )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsFileSystemAccess::CVfsFileSystemAccess( const CORE::CString& displayName, const CORE::CString& rootPath )
+    : CORE::IFileSystemAccess()
+    , m_vfs( &CVfsGlobal::Instance()->GetVfs() )
+    , m_displayName( displayName )
+    , m_rootPath( ConformPath( rootPath ) )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVfsFileSystemAccess::CVfsFileSystemAccess( CVFS& vfs, const CORE::CString& displayName, const CORE::CString& rootPath )
+    : CORE::IFileSystemAccess()
+    , m_vfs( &vfs )
+    , m_displayName( displayName )
+    , m_rootPath( ConformPath( rootPath ) )
 {GUCEF_TRACE;
 
 }
@@ -194,7 +218,7 @@ CORE::CString
 CVfsFileSystemAccess::GetRootPath( void ) const
 {GUCEF_TRACE;
 
-    return "/";
+    return m_rootPath;
 }
 
 /*-------------------------------------------------------------------------*/

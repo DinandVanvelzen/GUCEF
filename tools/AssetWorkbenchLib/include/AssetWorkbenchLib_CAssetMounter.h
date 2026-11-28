@@ -85,6 +85,10 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetMounter
     };
     typedef GUCEF::vector< SMount > TMountVector;
 
+    static const CORE::CString LocalStoreRoot;          /**< "local-assetstore/local": the VFS root of the 'Local VFS' of the workbench */
+    static const CORE::CString LocalDiskMountRoot;      /**< "local-assetstore/local/disk": where folders and archives of the disk are mounted, by their path */
+    static const CORE::CString RemoteStoreRoot;         /**< "remote-assetstore": where the shares of a remote store are mounted, the 'Remote VFS' of the workbench */
+
     CAssetMounter( void );
 
     ~CAssetMounter();
@@ -105,10 +109,11 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetMounter
     static CORE::CString NormalizeDiskPath( const CORE::CString& diskPath );
 
     /**
-     *  A mount point for a folder or archive of the disk, made of its name (the extension of an archive is left out, anything
-     *  but letters, digits and '_' becomes '_'): not used by a mount or the VFS, and not the name of a folder of the root of the
-     *  native file system, so a path of the disk is never taken for a path of a mount. "Shops Pack" gives "Shops_Pack",
-     *  and "Shops_Pack_2" when that is taken
+     *  A mount point for a folder or archive of the disk, below LocalDiskMountRoot and made of the path of the disk itself: the drive
+     *  letter (without ':') or the root of the path first, then every folder and the name. The name of an archive keeps its extension,
+     *  so the file becomes the directory that holds its content (C:/x/foo.zip is mounted at "local-assetstore/local/disk/C/x/foo.zip",
+     *  and the VFS has the directory "foo.zip/" next to the file). The same path of the disk always gives the same mount point; it
+     *  gets a "_2" and so on only when something else is mounted or present there already
      */
     CORE::CString MakeMountPointName( const CORE::CString& diskPath ) const;
 

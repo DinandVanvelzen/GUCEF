@@ -1128,6 +1128,8 @@ TestShellSwitch( void )
         CPackFixture fixture( "pp_switch" );
         ASSERT_TRUE( fixture.ready && fixture.RegisterImporter( "fakepacks" ) && fixture.MakeBoxPack( "packA", 4 ) && fixture.MakeBoxPack( "packB", 4 ) );
         CWorkbenchShell& shell = *fixture.shell;
+        const CORE::CString packA = CAssetMounter().MakeMountPointName( fixture.dir + "/packA" );
+        const CORE::CString packB = CAssetMounter().MakeMountPointName( fixture.dir + "/packB" );
         UInt32 changes = 0;
         CChangeCounter counter( &changes, &shell );
 
@@ -1140,7 +1142,7 @@ TestShellSwitch( void )
         ASSERT_TRUE( !shell.HasPackPresentation() && !shell.GetShowcase().IsLoaded() && 0 == shell.GetLoader().GetLastFinishedRequest() );
         ASSERT_TRUE( 1 == fixture.mounter.GetMountCount() );
         // the selector and the explicit request work on demand
-        ASSERT_TRUE( shell.OpenPack( "packA", true ) );
+        ASSERT_TRUE( shell.OpenPack( packA, true ) );
         ASSERT_TRUE( fixture.WaitIdle() && shell.HasPackPresentation() && 4 == shell.GetShowcase().GetModelCount() );
 
         // the command line says on for this run, whatever the settings say; it is not kept
@@ -1148,17 +1150,17 @@ TestShellSwitch( void )
         shell.SetPackPresentationOverride( 1 );
         ASSERT_TRUE( shell.IsPackPresentationEnabled() && !fixture.preferences.openPackPresentation );
         ASSERT_TRUE( shell.OpenLocation( fixture.dir + "/packB" ) && fixture.WaitIdle() );
-        ASSERT_TRUE( shell.HasPackPresentation() && "packB" == shell.GetPackRoot() );
+        ASSERT_TRUE( shell.HasPackPresentation() && packB == shell.GetPackRoot() );
         shell.SetPackPresentationOverride( 0 );
         ASSERT_FALSE( shell.IsPackPresentationEnabled() );
-        ASSERT_FALSE( shell.OpenPack( "packB", false ) );
+        ASSERT_FALSE( shell.OpenPack( packB, false ) );
         shell.SetPackPresentationOverride( -1 );
 
         // switched on again at run time, from the menu action, without a restart
         ASSERT_TRUE( shell.ExecuteAction( "PackPresentation" ) );
         ASSERT_TRUE( shell.IsPackPresentationEnabled() && fixture.preferences.openPackPresentation );
         ASSERT_TRUE( "View/Pack presentation" == shell.GetMenuPathOfAction( "PackPresentation" ) );
-        ASSERT_TRUE( shell.OpenPack( "packA", false ) && fixture.WaitIdle() && shell.HasPackPresentation() && "packA" == shell.GetPackRoot() );
+        ASSERT_TRUE( shell.OpenPack( packA, false ) && fixture.WaitIdle() && shell.HasPackPresentation() && packA == shell.GetPackRoot() );
         // kept in the settings of the user
         shell.SetPackPresentationEnabled( false );
         CORE::CDataNode section( "AssetWorkbench" );
@@ -1192,9 +1194,10 @@ TestShellSelector( void )
         CPackFixture fixture( "pp_selector" );
         ASSERT_TRUE( fixture.ready && fixture.RegisterImporter( "fakepacks" ) && fixture.MakeBoxPack( "packA", 6 ) );
         CWorkbenchShell& shell = *fixture.shell;
+        const CORE::CString packA = CAssetMounter().MakeMountPointName( fixture.dir + "/packA" );
         ASSERT_TRUE( shell.OpenLocation( fixture.dir + "/packA" ) && fixture.WaitIdle() );
         ASSERT_TRUE( CPackPresentation::KIND_MODEL_GRID == shell.GetPackPresentation().kind && !shell.GetPackPresentation().userChoice );
-        const CORE::CString key = shell.GetPackKey( "packA" );
+        const CORE::CString key = shell.GetPackKey( packA );
         CORE::CString id;
         ASSERT_TRUE( !key.IsNULLOrEmpty() && !fixture.preferences.GetPackPresentation( key, id ) );
         const GUCEF::vector< CPackPresentation::EKind >& offered = shell.GetOfferedPresentations();
@@ -1206,7 +1209,7 @@ TestShellSelector( void )
         ASSERT_TRUE( fixture.preferences.GetPackPresentation( key, id ) && "summary" == id );
         // closing and opening it again: the remembered choice, not the default
         shell.CloseAsset();
-        ASSERT_TRUE( shell.OpenPack( "packA", false ) && fixture.WaitIdle() );
+        ASSERT_TRUE( shell.OpenPack( packA, false ) && fixture.WaitIdle() );
         ASSERT_TRUE( CPackPresentation::KIND_SUMMARY == shell.GetPackPresentation().kind );
         // reset: the default, and the choice is forgotten
         ASSERT_TRUE( shell.ExecuteAction( "Presentation:default" ) && fixture.WaitIdle() );
@@ -1214,16 +1217,16 @@ TestShellSelector( void )
         ASSERT_TRUE( 6 == shell.GetShowcase().GetModelCount() );
 
         // stale: a request that comes while the presentation loads ends it, and its result is not shown
-        ASSERT_TRUE( shell.OpenPack( "packA", false ) );
+        ASSERT_TRUE( shell.OpenPack( packA, false ) );
         ASSERT_TRUE( shell.IsOpening() );
         const UInt32 before = shell.GetLoader().GetDroppedCount();
-        ASSERT_TRUE( shell.OpenAssetAsync( "packA/props/model0.gltf" ).HasAFuture() );
+        ASSERT_TRUE( shell.OpenAssetAsync( packA + "/props/model0.gltf" ).HasAFuture() );
         ASSERT_TRUE( fixture.WaitIdle() );
         ASSERT_TRUE( ASSETKIND_MODEL == shell.GetShownKind() && !shell.HasPackPresentation() && !shell.GetShowcase().IsLoaded() );
         ASSERT_TRUE( CAssetLoader::OUTCOME_SUCCEEDED == shell.GetLoader().GetLastOutcome() );
         (void) before;
         // cancelled by the user: nothing is left behind
-        ASSERT_TRUE( shell.OpenPack( "packA", false ) && shell.IsOpening() );
+        ASSERT_TRUE( shell.OpenPack( packA, false ) && shell.IsOpening() );
         shell.CancelOpening();
         ASSERT_TRUE( fixture.WaitIdle() );
         ASSERT_TRUE( !shell.IsOpening() && !shell.GetShowcase().IsLoaded() && !shell.HasPackPresentation() );
@@ -1359,24 +1362,25 @@ TestShellAutoThumbnails( void )
         CPackFixture fixture( "pp_auto" );
         ASSERT_TRUE( fixture.ready && fixture.RegisterImporter( "fakepacks" ) && fixture.MakeBoxPack( "packA", 6 ) && fixture.MakeBoxPack( "packB", 5 ) );
         CWorkbenchShell& shell = *fixture.shell;
+        const CORE::CString packA = CAssetMounter().MakeMountPointName( fixture.dir + "/packA" );
         ASSERT_TRUE( shell.GetAutoThumbnails().IsEnabled() && 0 == shell.GetAutoThumbnails().GetCount() );
         ASSERT_TRUE( shell.OpenLocation( fixture.dir + "/packA" ) && fixture.WaitIdle() );
         fixture.Frames( 30 );
         ASSERT_TRUE( 1 == shell.GetAutoThumbnails().GetCount() );
-        const CORE::CString hash = CAutoThumbnailStore::HashPack( "packA" );
+        const CORE::CString hash = CAutoThumbnailStore::HashPack( packA );
         ASSERT_TRUE( !hash.IsNULLOrEmpty() && shell.GetAutoThumbnails().Has( hash ) && !shell.GetAutoThumbnails().HasRealThumbnail( hash ) );
         // the content browser asks for the picture of the root of the pack and gets the automatic one
         CThumbnailProvider* provider = shell.GetThumbnailProvider();
         ASSERT_TRUE( GUCEF_NULL != provider );
         CThumbnailRecorder recorder( provider, GUI::CIThumbnailProvider::ThumbnailReadyEvent );
-        provider->RequestThumbnail( "packA", CAutoThumbnailStore::DefaultSize );
+        provider->RequestThumbnail( packA, CAutoThumbnailStore::DefaultSize );
         for ( UInt32 i=0; i<50 && 0 == recorder.count; ++i )
         {
             provider->Update( 50 );
             fixture.Frame();
         }
         ASSERT_TRUE( recorder.count > 0 );
-        ASSERT_TRUE( recorder.lastHadPixels && 1 == provider->GetAutoHitCount() && "packA" == recorder.lastPath );
+        ASSERT_TRUE( recorder.lastHadPixels && 1 == provider->GetAutoHitCount() && packA == recorder.lastPath );
 
         // switched off: a second pack leaves nothing
         shell.SetAutomaticThumbnailsEnabled( false );
@@ -1387,14 +1391,14 @@ TestShellAutoThumbnails( void )
         shell.SetAutomaticThumbnailsEnabled( true );
 
         // a model that has a thumbnail of its own does not get an automatic one
-        const CORE::CString model = "packA/props/model1.gltf";
+        const CORE::CString model = packA + "/props/model1.gltf";
         const CORE::CString modelHash = CThumbnailProvider::HashContent( model );
         ASSERT_TRUE( !modelHash.IsNULLOrEmpty() && WriteTestFile( CORE::CombinePath( shell.GetAutoThumbnails().GetFolder(), CThumbnailProvider::MakeCacheFileName( modelHash, 256 ) ), "real" ) );
         ASSERT_TRUE( shell.OpenAsset( model ) );
         fixture.Frames( 30 );
         ASSERT_TRUE( !shell.GetAutoThumbnails().Has( modelHash ) && 1 == shell.GetAutoThumbnails().GetCount() );
         // one that has none does
-        const CORE::CString second = "packA/props/model2.gltf";
+        const CORE::CString second = packA + "/props/model2.gltf";
         ASSERT_TRUE( shell.OpenAsset( second ) );
         fixture.Frames( 30 );
         ASSERT_TRUE( shell.GetAutoThumbnails().Has( CThumbnailProvider::HashContent( second ) ) && 2 == shell.GetAutoThumbnails().GetCount() );

@@ -633,7 +633,6 @@ class ASSETWORKBENCHLIB_PUBLIC_CPP CAssetSourcesPane : public CORE::CObservingNo
     UInt32 m_startedConversions;
     CORE::CString m_selectedPackId;
     CORE::CString m_selectedResultKey;
-    UInt32 m_diskMounts;
     bool m_hasConverter;                         /**< of a service that is not the local one: what its info said */
 
     struct SRemoteOpen

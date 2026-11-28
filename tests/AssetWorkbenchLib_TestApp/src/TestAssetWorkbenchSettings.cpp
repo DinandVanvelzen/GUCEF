@@ -1070,7 +1070,7 @@ TestSourcesSettings( void )
         // the service of this mode is either not in this build or not reachable: the line says so and does not say that no store is installed
         const CORE::CString hint = sources->GetOnlineHintText();
         ASSERT_TRUE( !hint.IsNULLOrEmpty() && hint.HasSubstr( "No online store is installed" ) < 0 );
-        ASSERT_TRUE( hint.HasSubstr( "remote" ) >= 0 || hint.HasSubstr( "Remote" ) >= 0 );
+        ASSERT_TRUE( hint.HasSubstr( "remote" ) >= 0 || hint.HasSubstr( "Remote" ) >= 0 || hint.HasSubstr( "store service" ) >= 0 );
         ASSERT_TRUE( TextOf( sources->GetControl( "OnlineHint" ) ) == hint );
         ASSERT_TRUE( fixture.layer->Open( "Sources" ) );
         fixture.Frames( 2 );

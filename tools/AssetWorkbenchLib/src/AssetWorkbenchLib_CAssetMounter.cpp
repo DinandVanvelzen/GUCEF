@@ -62,6 +62,17 @@ namespace ASSETWORKBENCH {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+// the same root as ASSETSTORE::CPrimaryAssetStoreSettings::DefaultVfsRoot: spelled out here, a static of another library is not ready for the statics of this one
+const CORE::CString CAssetMounter::LocalStoreRoot = "local-assetstore/local";
+const CORE::CString CAssetMounter::LocalDiskMountRoot = "local-assetstore/local/disk";
+const CORE::CString CAssetMounter::RemoteStoreRoot = "remote-assetstore";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -261,35 +272,22 @@ CORE::CString
 CAssetMounter::MakeMountPointName( const CORE::CString& diskPath ) const
 {GUCEF_TRACE;
 
-    const CORE::CString path = NormalizeDiskPath( diskPath );
-    const Int32 slash = path.HasChar( '/', false );
-    CORE::CString name = slash < 0 ? path : path.SubstrFromRange( (UInt32) slash+1, path.Length() );
-
-    // an archive is named without its extension
-    const CORE::CString archiveType = GetArchiveType( path );
-    if ( !archiveType.IsNULLOrEmpty() && name.Length() > archiveType.Length()+1 )
-        name = name.CutChars( archiveType.Length()+1, false );
-
-    // letters, digits and '_': anything else, in runs, is one '_'
-    CORE::CString base;
-    bool pendingSeparator = false;
-    for ( UInt32 i=0; i<name.Length(); ++i )
+    // the path of the disk as folders: the drive letter without its ':' (or nothing for the '/' of a root), then every folder and the name
+    const CORE::CString::StringVector parts = NormalizeDiskPath( diskPath ).ParseElements( '/', false );
+    CORE::CString base = LocalDiskMountRoot;
+    bool anyPart = false;
+    for ( size_t i=0; i<parts.size(); ++i )
     {
-        const char c = name[ i ];
-        const bool valid = ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' );
-        if ( valid )
-        {
-            if ( pendingSeparator && !base.IsNULLOrEmpty() )
-                base += "_";
-            pendingSeparator = false;
-            base += c;
-        }
-        else
-            pendingSeparator = true;
+        const CORE::CString part = parts[ i ].RemoveChar( ':' );
+        if ( part.IsNULLOrEmpty() || "." == part || ".." == part )
+            continue;
+        base += "/" + part;
+        anyPart = true;
     }
-    if ( base.IsNULLOrEmpty() )
-        base = "mount";
+    if ( !anyPart )
+        base += "/mount";
 
+    // a file and a directory of the same name may both exist in the VFS, so only mounts and directories make a mount point taken
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     for ( UInt32 attempt=1; attempt<100000; ++attempt )
     {
@@ -297,10 +295,7 @@ CAssetMounter::MakeMountPointName( const CORE::CString& diskPath ) const
         bool taken = false;
         for ( size_t m=0; m<m_mounts.size() && !taken; ++m )
             taken = m_mounts[ m ].mountPoint.Equals( candidate, false );
-        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
-        taken = taken || CORE::DirExists( "/" + candidate );
-        #endif
-        if ( !taken && !vfs.DirExists( candidate ) && !vfs.FileExists( candidate ) )
+        if ( !taken && !vfs.DirExists( candidate ) )
             return candidate;
     }
     return base;
