@@ -41,6 +41,11 @@
 #define GUCEF_CORE_CMFILEACCESS_H
 #endif /* GUCEF_CORE_CMFILEACCESS_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
 #include "gucefIMAGE_CPixelMap.h"
 
 /*-------------------------------------------------------------------------//
@@ -894,8 +899,23 @@ bool
 CPixelMap::FlipVertical( void )
 {GUCEF_TRACE;
 
-    assert( 0 ); // @TODO makeme
-    return false;
+    if ( GUCEF_NULL == m_pixelMapData || 0 == m_heightInPixels )
+        return false;
+
+    // swap the rows from the outside in
+    const UInt32 scanLineSize = GetWidthInBytes();
+    CORE::CDynamicBuffer scanLineBuffer;
+    scanLineBuffer.SetDataSize( scanLineSize );
+    for ( UInt32 i=0; i<m_heightInPixels / 2; ++i )
+    {
+        void* frontScanLine = GetDataAtScanLine( i );
+        void* backScanLine = GetDataAtScanLine( ( m_heightInPixels - 1 ) - i );
+
+        memcpy( scanLineBuffer.GetBufferPtr(), frontScanLine, scanLineSize );
+        memcpy( frontScanLine, backScanLine, scanLineSize );
+        memcpy( backScanLine, scanLineBuffer.GetConstBufferPtr(), scanLineSize );
+    }
+    return true;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -904,26 +924,29 @@ bool
 CPixelMap::FlipHorizontal( void )
 {GUCEF_TRACE;
 
-    UInt32 scanLineSize = GetWidthInBytes(); 
-    void* scanLineBuffer = new UInt8[ scanLineSize ]; 
+    if ( GUCEF_NULL == m_pixelMapData || 0 == m_widthInPixels )
+        return false;
 
-    UInt32 centerLine = m_heightInPixels / 2;
-    for ( UInt32 i=0; i<centerLine; ++i )
+    // swap the pixels of every row from the outside in, a pixel as a whole: its channels keep their order
+    const UInt32 pixelSize = GetSizeOfPixelInBytes();
+    CORE::CDynamicBuffer pixelBuffer;
+    pixelBuffer.SetDataSize( pixelSize );
+    for ( UInt32 y=0; y<m_heightInPixels; ++y )
     {
-        void* frontScanLine = GetDataAtScanLine( i );
-        void* backScanLine =  GetDataAtScanLine( (m_heightInPixels-1)-i );
-        
-        // swap the rows
-        memcpy( scanLineBuffer, frontScanLine, scanLineSize );
-        memcpy( frontScanLine, backScanLine, scanLineSize );
-        memcpy( backScanLine, scanLineBuffer, scanLineSize );
-    }
-    
-    delete []scanLineBuffer;
+        UInt8* scanLine = static_cast< UInt8* >( GetDataAtScanLine( y ) );
+        for ( UInt32 x=0; x<m_widthInPixels / 2; ++x )
+        {
+            UInt8* leftPixel = scanLine + (size_t) x * pixelSize;
+            UInt8* rightPixel = scanLine + (size_t) ( ( m_widthInPixels - 1 ) - x ) * pixelSize;
 
+            memcpy( pixelBuffer.GetBufferPtr(), leftPixel, pixelSize );
+            memcpy( leftPixel, rightPixel, pixelSize );
+            memcpy( rightPixel, pixelBuffer.GetConstBufferPtr(), pixelSize );
+        }
+    }
     return true;
 }
-    
+
 /*--------------------------------------------------------------------------*/
 
 bool
@@ -1010,6 +1033,19 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
     
     UInt32 pixelCount = GetPixelCount();
     UInt32 channelCount = GetNumberOfChannelsPerPixel();
+
+    // floating point components cover 0.0 to 1.0 when they come from integers, and keep what they were when they come from floating point
+    const bool sourceIsFloat = DATATYPE_LE_FLOAT32 == m_pixelComponentDataType || DATATYPE_LE_FLOAT64 == m_pixelComponentDataType;
+    if ( DATATYPE_LE_FLOAT32 == pixelComponentDataType || DATATYPE_LE_FLOAT64 == pixelComponentDataType )
+        newMap->m_isNormalizedAsPercentage = sourceIsFloat ? m_isNormalizedAsPercentage : true;
+
+    // the same pixel format: only the component type changes, every channel is converted as it is
+    if ( pixelStorageFormat == m_pixelStorageFormat )
+    {
+        for ( UInt32 i=0; i<pixelCount; ++i )
+            newMap->AssignToPixel< T >( i, pixelMapData+(i*channelCount) );
+        return true;
+    }
 
     switch ( m_pixelStorageFormat )
     {   

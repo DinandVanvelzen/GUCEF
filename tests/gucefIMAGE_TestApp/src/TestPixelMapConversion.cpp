@@ -115,6 +115,151 @@ PerformPixelMapConversionTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "PixelMap: converting only the component type keeps the picture, scaled by the range of the types" )
+        try
+        {
+            // 16 bit to 8 bit: full stays full, a multiple of 257 maps to the 8 bit value it was made from
+            IMAGE::CPixelMap wide( GUCEF_NULL, 4, 1, IMAGE::PSF_RGB, GUCEF::DATATYPE_LE_UINT16 );
+            UInt16* wideData = static_cast< UInt16* >( wide.GetDataPtr() );
+            const UInt16 wideValues[ 12 ] = { 0, 257, 65535, 128 * 257, 1, 2, 3, 4, 5, 6, 7, 8 };
+            for ( int i=0; i<12; ++i )
+                wideData[ i ] = wideValues[ i ];
+            IMAGE::TPixelMapPtr narrow;
+            ASSERT_TRUE( wide.ConvertFormatTo( IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, narrow ) && !narrow.IsNULL() );
+            if ( !narrow.IsNULL() )
+            {
+                const UInt8* out = static_cast< const UInt8* >( narrow->GetDataPtr() );
+                ASSERT_TRUE( IMAGE::PSF_RGB == narrow->GetPixelStorageFormat() && GUCEF::DATATYPE_UINT8 == narrow->GetPixelComponentDataType() );
+                ASSERT_TRUE( 0 == out[ 0 ] && 1 == out[ 1 ] && 255 == out[ 2 ] && 128 == out[ 3 ] );
+                ASSERT_TRUE( 0 == out[ 4 ] && 0 == out[ 5 ] && 0 == out[ 6 ] && 0 == out[ 7 ] );
+            }
+
+            // 8 bit to 16 bit and back is exact
+            IMAGE::CPixelMap bytes( GUCEF_NULL, 3, 1, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8 );
+            static_cast< UInt8* >( bytes.GetDataPtr() )[ 0 ] = 0;
+            static_cast< UInt8* >( bytes.GetDataPtr() )[ 1 ] = 77;
+            static_cast< UInt8* >( bytes.GetDataPtr() )[ 2 ] = 255;
+            IMAGE::TPixelMapPtr widened;
+            ASSERT_TRUE( bytes.ConvertFormatTo( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_LE_UINT16, widened ) && !widened.IsNULL() );
+            if ( !widened.IsNULL() )
+            {
+                const UInt16* out = static_cast< const UInt16* >( widened->GetDataPtr() );
+                ASSERT_TRUE( 0 == out[ 0 ] && 77 * 257 == out[ 1 ] && 65535 == out[ 2 ] );
+                IMAGE::TPixelMapPtr back;
+                ASSERT_TRUE( widened->ConvertFormatTo( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8, back ) && !back.IsNULL() );
+                if ( !back.IsNULL() )
+                    ASSERT_TRUE( 0 == memcmp( back->GetDataPtr(), bytes.GetDataPtr(), 3 ) );
+            }
+
+            // a signed type covers its positive half
+            IMAGE::CPixelMap signedBytes( GUCEF_NULL, 3, 1, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_INT8 );
+            static_cast< Int8* >( signedBytes.GetDataPtr() )[ 0 ] = -5;
+            static_cast< Int8* >( signedBytes.GetDataPtr() )[ 1 ] = 127;
+            static_cast< Int8* >( signedBytes.GetDataPtr() )[ 2 ] = 0;
+            IMAGE::TPixelMapPtr unsignedBytes;
+            ASSERT_TRUE( signedBytes.ConvertFormatTo( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8, unsignedBytes ) && !unsignedBytes.IsNULL() );
+            if ( !unsignedBytes.IsNULL() )
+            {
+                const UInt8* out = static_cast< const UInt8* >( unsignedBytes->GetDataPtr() );
+                ASSERT_TRUE( 0 == out[ 0 ] && 255 == out[ 1 ] && 0 == out[ 2 ] );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "PixelMap: floating point channels cover 0.0 to 1.0 when they meet integers" )
+        try
+        {
+            IMAGE::CPixelMap bytes( GUCEF_NULL, 2, 1, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 );
+            UInt8* byteData = static_cast< UInt8* >( bytes.GetDataPtr() );
+            const UInt8 byteValues[ 6 ] = { 0, 255, 51, 255, 0, 0 };
+            memcpy( byteData, byteValues, 6 );
+
+            IMAGE::TPixelMapPtr floats;
+            ASSERT_TRUE( bytes.ConvertFormatTo( IMAGE::PSF_RGB, GUCEF::DATATYPE_LE_FLOAT32, floats ) && !floats.IsNULL() );
+            if ( !floats.IsNULL() )
+            {
+                const Float32* out = static_cast< const Float32* >( floats->GetDataPtr() );
+                ASSERT_TRUE( 0.0f == out[ 0 ] && 1.0f == out[ 1 ] && out[ 2 ] > 0.1999f && out[ 2 ] < 0.2001f && 1.0f == out[ 3 ] );
+                ASSERT_TRUE( floats->IsNormalizedAsPercentage() );
+
+                // and back: exact
+                IMAGE::TPixelMapPtr back;
+                ASSERT_TRUE( floats->ConvertFormatTo( IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8, back ) && !back.IsNULL() );
+                if ( !back.IsNULL() )
+                    ASSERT_TRUE( 0 == memcmp( back->GetDataPtr(), bytes.GetDataPtr(), 6 ) );
+            }
+
+            // values outside of the range clamp when they go to integers, and are kept between floating point types
+            IMAGE::CPixelMap hdr( GUCEF_NULL, 3, 1, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_LE_FLOAT32 );
+            Float32* hdrData = static_cast< Float32* >( hdr.GetDataPtr() );
+            hdrData[ 0 ] = -0.5f;
+            hdrData[ 1 ] = 0.5f;
+            hdrData[ 2 ] = 7.0f;
+            IMAGE::TPixelMapPtr clamped;
+            ASSERT_TRUE( hdr.ConvertFormatTo( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8, clamped ) && !clamped.IsNULL() );
+            if ( !clamped.IsNULL() )
+            {
+                const UInt8* out = static_cast< const UInt8* >( clamped->GetDataPtr() );
+                ASSERT_TRUE( 0 == out[ 0 ] && 128 == out[ 1 ] && 255 == out[ 2 ] );
+            }
+            IMAGE::TPixelMapPtr doubles;
+            ASSERT_TRUE( hdr.ConvertFormatTo( IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_LE_FLOAT64, doubles ) && !doubles.IsNULL() );
+            if ( !doubles.IsNULL() )
+            {
+                const Float64* out = static_cast< const Float64* >( doubles->GetDataPtr() );
+                ASSERT_TRUE( -0.5 == out[ 0 ] && 0.5 == out[ 1 ] && 7.0 == out[ 2 ] );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "PixelMap: the picture turns over from top to bottom and mirrors from left to right, whole pixels at a time" )
+        try
+        {
+            // 3 x 2 RGB: pixel (x, y) is { x, y, 9 }
+            IMAGE::CPixelMap pixels( GUCEF_NULL, 3, 2, IMAGE::PSF_RGB, GUCEF::DATATYPE_UINT8 );
+            UInt8* data = static_cast< UInt8* >( pixels.GetDataPtr() );
+            for ( UInt32 y=0; y<2; ++y )
+                for ( UInt32 x=0; x<3; ++x )
+                {
+                    data[ ( y * 3 + x ) * 3 + 0 ] = (UInt8) x;
+                    data[ ( y * 3 + x ) * 3 + 1 ] = (UInt8) y;
+                    data[ ( y * 3 + x ) * 3 + 2 ] = 9;
+                }
+
+            ASSERT_TRUE( pixels.FlipVertical() );
+            data = static_cast< UInt8* >( pixels.GetDataPtr() );
+            for ( UInt32 y=0; y<2; ++y )
+                for ( UInt32 x=0; x<3; ++x )
+                    ASSERT_TRUE( x == data[ ( y * 3 + x ) * 3 + 0 ] && 1 - y == data[ ( y * 3 + x ) * 3 + 1 ] && 9 == data[ ( y * 3 + x ) * 3 + 2 ] );
+
+            ASSERT_TRUE( pixels.FlipVertical() );
+            ASSERT_TRUE( pixels.FlipHorizontal() );
+            data = static_cast< UInt8* >( pixels.GetDataPtr() );
+            for ( UInt32 y=0; y<2; ++y )
+                for ( UInt32 x=0; x<3; ++x )
+                    ASSERT_TRUE( 2 - x == data[ ( y * 3 + x ) * 3 + 0 ] && y == data[ ( y * 3 + x ) * 3 + 1 ] && 9 == data[ ( y * 3 + x ) * 3 + 2 ] );
+
+            // a row of one pixel and a column of one pixel have nothing to swap, an odd number of rows keeps the middle one
+            IMAGE::CPixelMap column( GUCEF_NULL, 1, 3, IMAGE::PSF_SINGLE_CHANNEL_GRAYSCALE, GUCEF::DATATYPE_UINT8 );
+            UInt8* columnData = static_cast< UInt8* >( column.GetDataPtr() );
+            columnData[ 0 ] = 1; columnData[ 1 ] = 2; columnData[ 2 ] = 3;
+            ASSERT_TRUE( column.FlipHorizontal() && 1 == columnData[ 0 ] && 2 == columnData[ 1 ] && 3 == columnData[ 2 ] );
+            ASSERT_TRUE( column.FlipVertical() && 3 == columnData[ 0 ] && 2 == columnData[ 1 ] && 1 == columnData[ 2 ] );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

@@ -133,17 +133,18 @@ class GUCEF_IMAGE_EXPORT_CPP CPixelMap
     const void* GetDataAtScanLine( const UInt32 scanLineIndex ) const;
 
     /**
-     *  flips image vertically
-     *  This operation will be applied to all frames and mipmap levels
+     *  Turns the picture over from top to bottom: the first row becomes the last row, in place.
+     *  Applies to this pixel map only, not to the other mipmap levels or frames of an image.
      *
-     *  @return wheter or the the flip was successfull.
+     *  @return false when there are no pixels
      */
     bool FlipVertical( void );
 
     /**
-     *      flips image horizontally
+     *  Mirrors the picture from left to right: the first pixel of every row becomes the last, in place.
+     *  Applies to this pixel map only, not to the other mipmap levels or frames of an image.
      *
-     *      @return wheter or the the flip was successfull.
+     *  @return false when there are no pixels
      */
     bool FlipHorizontal( void );
 
@@ -295,7 +296,9 @@ class GUCEF_IMAGE_EXPORT_CPP CPixelMap
 
     /**
      *  Utility member function allowing assignment to the channels of a pixel without
-     *  having to directly deal with different storage sizes of each channel
+     *  having to directly deal with different storage sizes of each channel. The values
+     *  are of type T and become the component type of this pixel map by the range the
+     *  types cover: see ConvertChannelValue()
      */
     template< typename T >
     bool AssignToPixel( const UInt32 pixelIndex ,
@@ -338,214 +341,81 @@ typedef CPixelMap::TPixelMapPtr TPixelMapPtr;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  A channel value of one component type as another: by the range the types cover, so full intensity stays full intensity.
+ *  The range of an integer type is 0 to its largest value (negative values of signed types are no light and become 0),
+ *  that of a floating point type is 0.0 to 1.0. Between integer types and from floating point to integer the value is
+ *  scaled and rounded, from integer to floating point it becomes the fraction of the range. Between floating point types
+ *  the value is only cast: it may be outside of the range then, as in high dynamic range pictures.
+ */
+template< typename S, typename D >
+inline D
+ConvertChannelValue( S value )
+{
+    const bool sourceIsInteger = std::numeric_limits< S >::is_integer;
+    const bool destIsInteger = std::numeric_limits< D >::is_integer;
+
+    // the same kind of type: no scaling is needed, so no precision is lost
+    if ( sourceIsInteger == destIsInteger && sizeof( S ) == sizeof( D ) && std::numeric_limits< S >::is_signed == std::numeric_limits< D >::is_signed )
+        return static_cast< D >( value );
+    if ( !sourceIsInteger && !destIsInteger )
+        return static_cast< D >( value );
+
+    Float64 fraction = 0.0;
+    if ( sourceIsInteger )
+    {
+        if ( value > 0 )
+            fraction = static_cast< Float64 >( value ) / static_cast< Float64 >( std::numeric_limits< S >::max() );
+    }
+    else
+    {
+        if ( value > 0 )
+            fraction = value < 1 ? static_cast< Float64 >( value ) : 1.0;
+    }
+
+    if ( !destIsInteger )
+        return static_cast< D >( fraction );
+    if ( fraction >= 1.0 )
+        return std::numeric_limits< D >::max();
+    return static_cast< D >( fraction * static_cast< Float64 >( std::numeric_limits< D >::max() ) + 0.5 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename S, typename D >
+inline void
+ConvertChannelValues( void* destination, UInt32 channelCount, const S* source )
+{
+    D* channels = static_cast< D* >( destination );
+    for ( UInt32 i=0; i<channelCount; ++i )
+        channels[ i ] = ConvertChannelValue< S, D >( source[ i ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
 template< typename T >
 bool
 CPixelMap::AssignToPixel( const UInt32 pixelIndex ,
                           const T* channelValues  )
 {GUCEF_TRACE;
 
-    UInt32 channelCount = GetNumberOfChannelsPerPixel();
+    const UInt32 channelCount = GetNumberOfChannelsPerPixel();
     void* pixelAddr = GetDataPtr( pixelIndex );
-
-    // Pixel color values as an industry standard dont use negative values
-    // 0 is already the absence of light, negative light makes no sense, thus we use:
-    // NewValue = (OldValue * NewRange) / OldRange
 
     switch ( m_pixelComponentDataType )
     {
-        case DATATYPE_LE_FLOAT32:
-        {
-            CORE::Float32* pixel = (CORE::Float32*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Float32 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Float32 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Float32 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Float32 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_FLOAT64:
-        {
-            CORE::Float64* pixel = (CORE::Float64*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Float64 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Float64 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Float64 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Float64 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_UINT8:
-        {
-            CORE::UInt8* pixel = (CORE::UInt8*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::UInt8 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt8 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt8 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::UInt8 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_INT8:
-        {
-            CORE::Int8* pixel = (CORE::Int8*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Int8 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int8 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int8 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Int8 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_UINT16:
-        {
-            CORE::UInt16* pixel = (CORE::UInt16*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::UInt16 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt16 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt16 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::UInt16 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_INT16:
-        {
-            CORE::Int16* pixel = (CORE::Int16*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Int16 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int16 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int16 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Int16 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_UINT32:
-        {
-            CORE::UInt32* pixel = (CORE::UInt32*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::UInt32 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt32 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt32 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::UInt32 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_INT32:
-        {
-            CORE::Int32* pixel = (CORE::Int32*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Int32 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int32 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int32 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Int32 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_UINT64:
-        {
-            CORE::UInt64* pixel = (CORE::UInt64*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::UInt64 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt64 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::UInt64 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::UInt64 >::max() );
-                }
-            }
-            return true;
-        }
-        case DATATYPE_LE_INT64:
-        {
-            CORE::Int64* pixel = (CORE::Int64*) pixelAddr;
-            if ( std::numeric_limits< T >::max() == std::numeric_limits< CORE::Int64 >::max() )
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int64 >( channelValues[ i ] );
-                }
-            }
-            else
-            {
-                for ( UInt32 i=0; i<channelCount; ++i )
-                {
-                    pixel[ i ] = static_cast< CORE::Int64 >( ( channelValues[ i ] * std::numeric_limits< T >::max() ) / std::numeric_limits< CORE::Int64 >::max() );
-                }
-            }
-            return true;
-        }
+        case DATATYPE_LE_FLOAT32:   ConvertChannelValues< T, CORE::Float32 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_FLOAT64:   ConvertChannelValues< T, CORE::Float64 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_UINT8:        ConvertChannelValues< T, CORE::UInt8 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_INT8:         ConvertChannelValues< T, CORE::Int8 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_UINT16:    ConvertChannelValues< T, CORE::UInt16 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_INT16:     ConvertChannelValues< T, CORE::Int16 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_UINT32:    ConvertChannelValues< T, CORE::UInt32 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_INT32:     ConvertChannelValues< T, CORE::Int32 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_UINT64:    ConvertChannelValues< T, CORE::UInt64 >( pixelAddr, channelCount, channelValues ); return true;
+        case DATATYPE_LE_INT64:     ConvertChannelValues< T, CORE::Int64 >( pixelAddr, channelCount, channelValues ); return true;
+        default:                    return false;
     }
-
-    return false;
 }
 
 /*-------------------------------------------------------------------------//
