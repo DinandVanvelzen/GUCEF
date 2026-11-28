@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="tablecodecpluginXLSX" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>gucefCORE table codec plugin for Microsoft Excel (.xlsx) workbooks</DescriptionHeadline>
+            <DescriptionDetails>Reads one worksheet of an .xlsx workbook as a data table, read only. The package (a zip of XML parts) is opened through the zip archive of the VFS (vfspluginZIP) and the XML parts through the XML codec of the data store codec registry (dstorepluginPARSIFALXML): both plugins have to be loaded. Shared and inline strings, numbers read as exact decimals, booleans, dates of the 1900 and 1904 date systems, cached formula values, header row detection, type inference or a given schema, and limits that refuse zip bombs.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="TABLECODECPLUGIN_XLSX_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="tablecodecpluginXLSX_TestApp" Platform="All" Type="Executable" Tags="test" >
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="tablecodecpluginXLSX" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="tablecodecpluginXLSX" />
+        </Linker>
+        <Preprocessor>
+            <Define String="TABLECODECPLUGIN_XLSX_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="vfspluginZIP" />
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="MemoryLeakFinder" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
