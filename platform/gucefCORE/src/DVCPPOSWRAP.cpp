@@ -602,10 +602,18 @@ LoadModuleDynamiclyImp( const CString& filename, CString* failureReason )
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     std::wstring wFilename = ToWString( theFilename );
+
+    // A file that is not a loadable image would otherwise raise a blocking "Bad Image" system dialog.
+    // We want the failure reported to the caller instead, also in unattended runs.
+    DWORD previousErrorMode = 0;
+    BOOL errorModeChanged = ::SetThreadErrorMode( SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX, &previousErrorMode );
     modulePtr = (void*) ::LoadLibraryW( wFilename.c_str() );
+    DWORD lastErrorCode = ::GetLastError();
+    if ( errorModeChanged )
+        ::SetThreadErrorMode( previousErrorMode, GUCEF_NULL );
+
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == modulePtr )
     {
-        DWORD lastErrorCode = ::GetLastError();
         ReportLoadFailure( failureReason, ( filename + ": LoadLibrary error code " + ToString( (UInt32) lastErrorCode ) ).C_String() );
     }
 

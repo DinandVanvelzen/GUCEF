@@ -3627,14 +3627,20 @@ GetFileSystemStorageVolumeInformationByDirPath_NoClear( CStorageVolumeInfoOSData
         DWORD maxComponentLen = 0;
         DWORD fileSystemFlags = 0;
 
-        result = ::GetVolumeInformationW( wActualPath.c_str()          ,
-                                          volumeNameBuffer             ,
-                                          sizeof(volumeNameBuffer)     ,
-                                          &serialNumber                ,
-                                          &maxComponentLen             ,
-                                          &fileSystemFlags             ,
-                                          fileSystemNameBuffer         ,
-                                          sizeof(fileSystemNameBuffer) );
+        // The volume information is of a volume root: a directory deeper down must be resolved to the root of its volume first
+        wchar_t volumeRootBuffer[MAX_PATH + 1] = {0};
+        const wchar_t* volumeRoot = wActualPath.c_str();
+        if ( TRUE == ::GetVolumePathNameW( wActualPath.c_str(), volumeRootBuffer, MAX_PATH ) )
+            volumeRoot = volumeRootBuffer;
+
+        result = ::GetVolumeInformationW( volumeRoot                       ,
+                                          volumeNameBuffer                 ,
+                                          MAX_PATH + 1                     ,
+                                          &serialNumber                    ,
+                                          &maxComponentLen                 ,
+                                          &fileSystemFlags                 ,
+                                          fileSystemNameBuffer             ,
+                                          MAX_PATH + 1                     );
 
         if ( TRUE == result )
         {
