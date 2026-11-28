@@ -59,7 +59,8 @@ namespace OGRECOMMON {
  *      LML_TRIVIAL     system log, LOGLEVEL_BELOW_NORMAL
  *      LML_NORMAL      system log, LOGLEVEL_NORMAL
  *      LML_WARNING     warning log, LOGLEVEL_NORMAL
- *      LML_CRITICAL    error log, LOGLEVEL_CRITICAL
+ *      LML_CRITICAL    error log, LOGLEVEL_CRITICAL; warning log, LOGLEVEL_NORMAL for the log of a driver that holds
+ *                      warnings only (see IsDriverLogWithWarningsOnly)
  *
  *  Every message is logged with the prefix "Ogre: ".
  */
@@ -110,12 +111,25 @@ class COgreLogLevelMapper
         }
     }
 
+    /**
+     *  The render systems log the info log of a shader or program of the driver at LML_CRITICAL, also when the driver
+     *  only has warnings about a program that linked and validated.
+     */
+    static bool IsDriverLogWithWarningsOnly( const Ogre::String& message )
+    {GUCEF_TRACE;
+
+        return Ogre::String::npos != message.find( "WARNING:" ) &&
+               Ogre::String::npos == message.find( "ERROR:" );
+    }
+
     /** Sends the message to the GUCEF log the level maps to */
     static void Log( Ogre::LogMessageLevel lml, const Ogre::String& message )
     {GUCEF_TRACE;
 
         TLogKind kind = LOGKIND_SYSTEM;
         Int32 logLevel = CORE::LOGLEVEL_NORMAL;
+        if ( Ogre::LML_CRITICAL == lml && IsDriverLogWithWarningsOnly( message ) )
+            lml = Ogre::LML_WARNING;
         Map( lml, kind, logLevel );
 
         switch ( kind )

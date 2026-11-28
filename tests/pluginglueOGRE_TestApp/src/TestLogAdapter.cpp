@@ -174,6 +174,11 @@ TestLevelMapping( void )
             ASSERT_TRUE( COgreLogLevelMapper::LOGKIND_WARNING == kind && CORE::LOGLEVEL_NORMAL == level );
             COgreLogLevelMapper::Map( Ogre::LML_CRITICAL, kind, level );
             ASSERT_TRUE( COgreLogLevelMapper::LOGKIND_ERROR == kind && CORE::LOGLEVEL_CRITICAL == level );
+
+            // the program logs of a driver with warnings only are no errors, a driver log with an error is
+            ASSERT_TRUE( COgreLogLevelMapper::IsDriverLogWithWarningsOnly( "A\nB\nGLSL program pipeline validation result: \nWARNING: 1:1: '' :  #version directive missing" ) );
+            ASSERT_FALSE( COgreLogLevelMapper::IsDriverLogWithWarningsOnly( "A GLSL compile result: \nWARNING: x\nERROR: 0:3: syntax error" ) );
+            ASSERT_FALSE( COgreLogLevelMapper::IsDriverLogWithWarningsOnly( "OGRE EXCEPTION(3:RenderingAPIException): out of memory" ) );
         }
         catch ( ... )
         {
