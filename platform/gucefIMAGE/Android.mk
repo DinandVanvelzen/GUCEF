@@ -28,14 +28,19 @@ LOCAL_SRC_FILES := \
   src/gucefIMAGE_CCPluginImageCodecItem.cpp \
   src/gucefIMAGE_CChannelOperations.cpp \
   src/gucefIMAGE_CGUIImageCodec.cpp \
+  src/gucefIMAGE_CGupImgImageCodec.cpp \
   src/gucefIMAGE_CIImageCodec.cpp \
   src/gucefIMAGE_CIMGCodec.cpp \
   src/gucefIMAGE_CImage.cpp \
+  src/gucefIMAGE_CImageCodecCapabilities.cpp \
   src/gucefIMAGE_CImageCodecPlugin.cpp \
   src/gucefIMAGE_CImageCodecPluginManager.cpp \
   src/gucefIMAGE_CImageCodecRegistry.cpp \
   src/gucefIMAGE_CImageCompressor.cpp \
   src/gucefIMAGE_CImageCompressorRegistry.cpp \
+  src/gucefIMAGE_CImageConversionResult.cpp \
+  src/gucefIMAGE_CImageConversionSettings.cpp \
+  src/gucefIMAGE_CImageConverter.cpp \
   src/gucefIMAGE_CImageGlobal.cpp \
   src/gucefIMAGE_CImageUpscaler.cpp \
   src/gucefIMAGE_CImageUpscalerRegistry.cpp \

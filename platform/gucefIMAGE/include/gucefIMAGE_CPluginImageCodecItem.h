@@ -83,6 +83,12 @@ class CPluginImageCodecItem : public CIImageCodec
     virtual bool DecodeMetaData( CORE::CIOAccess& source    ,
                                  CORE::CValueList& metaData ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** What the plugin states for the codec: encode and/or decode */
+    virtual UInt32 GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** IMAGECAPABILITY_MULTIPLE_FRAMES when the plugin states GUCEF_CODEC_CAPABILITY_MULTIPLE_FRAMES for the codec; the plugin interface has nothing about mipmap levels */
+    virtual UInt32 GetImageCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual CORE::CString GetFamilyName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;

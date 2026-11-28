@@ -111,9 +111,11 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestChannelOperations.h",
+      "include/TestGupImgImageCodec.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageCompressorRegistry.h",
+      "include/TestImageConverter.h",
       "include/TestImageUpscaler.h",
       "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
@@ -124,9 +126,11 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestChannelOperations.cpp",
+      "src/TestGupImgImageCodec.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageCompressorRegistry.cpp",
+      "src/TestImageConverter.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
@@ -141,9 +145,11 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestChannelOperations.h",
+      "include/TestGupImgImageCodec.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageCompressorRegistry.h",
+      "include/TestImageConverter.h",
       "include/TestImageUpscaler.h",
       "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
@@ -154,9 +160,11 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestChannelOperations.cpp",
+      "src/TestGupImgImageCodec.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageCompressorRegistry.cpp",
+      "src/TestImageConverter.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
@@ -171,9 +179,11 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestChannelOperations.h",
+      "include/TestGupImgImageCodec.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageCompressorRegistry.h",
+      "include/TestImageConverter.h",
       "include/TestImageUpscaler.h",
       "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
@@ -184,9 +194,11 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestChannelOperations.cpp",
+      "src/TestGupImgImageCodec.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageCompressorRegistry.cpp",
+      "src/TestImageConverter.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
@@ -201,9 +213,11 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestChannelOperations.h",
+      "include/TestGupImgImageCodec.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageCompressorRegistry.h",
+      "include/TestImageConverter.h",
       "include/TestImageUpscaler.h",
       "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
@@ -214,9 +228,11 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestChannelOperations.cpp",
+      "src/TestGupImgImageCodec.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageCompressorRegistry.cpp",
+      "src/TestImageConverter.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",

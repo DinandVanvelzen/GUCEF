@@ -18,14 +18,19 @@ set( HEADER_FILES
   include/gucefIMAGE_CAsyncImageUpscale.h
   include/gucefIMAGE_CChannelOperations.h
   include/gucefIMAGE_CGUIImageCodec.h
+  include/gucefIMAGE_CGupImgImageCodec.h
   include/gucefIMAGE_CIImageCodec.h
   include/gucefIMAGE_CIMGCodec.h
   include/gucefIMAGE_CImage.h
+  include/gucefIMAGE_CImageCodecCapabilities.h
   include/gucefIMAGE_CImageCodecPlugin.h
   include/gucefIMAGE_CImageCodecPluginManager.h
   include/gucefIMAGE_CImageCodecRegistry.h
   include/gucefIMAGE_CImageCompressor.h
   include/gucefIMAGE_CImageCompressorRegistry.h
+  include/gucefIMAGE_CImageConversionResult.h
+  include/gucefIMAGE_CImageConversionSettings.h
+  include/gucefIMAGE_CImageConverter.h
   include/gucefIMAGE_CImageGlobal.h
   include/gucefIMAGE_CImageUpscaler.h
   include/gucefIMAGE_CImageUpscalerRegistry.h
@@ -52,14 +57,19 @@ set( SOURCE_FILES
   src/gucefIMAGE_CCPluginImageCodecItem.cpp
   src/gucefIMAGE_CChannelOperations.cpp
   src/gucefIMAGE_CGUIImageCodec.cpp
+  src/gucefIMAGE_CGupImgImageCodec.cpp
   src/gucefIMAGE_CIImageCodec.cpp
   src/gucefIMAGE_CIMGCodec.cpp
   src/gucefIMAGE_CImage.cpp
+  src/gucefIMAGE_CImageCodecCapabilities.cpp
   src/gucefIMAGE_CImageCodecPlugin.cpp
   src/gucefIMAGE_CImageCodecPluginManager.cpp
   src/gucefIMAGE_CImageCodecRegistry.cpp
   src/gucefIMAGE_CImageCompressor.cpp
   src/gucefIMAGE_CImageCompressorRegistry.cpp
+  src/gucefIMAGE_CImageConversionResult.cpp
+  src/gucefIMAGE_CImageConversionSettings.cpp
+  src/gucefIMAGE_CImageConverter.cpp
   src/gucefIMAGE_CImageGlobal.cpp
   src/gucefIMAGE_CImageUpscaler.cpp
   src/gucefIMAGE_CImageUpscalerRegistry.cpp

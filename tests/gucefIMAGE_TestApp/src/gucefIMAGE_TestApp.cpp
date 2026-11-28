@@ -52,6 +52,8 @@
 #include "TestImageUpscaler.h"
 #include "TestImageCodecPlugins.h"
 #include "TestPngImageCodec.h"
+#include "TestGupImgImageCodec.h"
+#include "TestImageConverter.h"
 #include "TestPixelMapResampler.h"
 #include "TestMipChainGenerator.h"
 #include "TestChannelOperations.h"
@@ -229,6 +231,8 @@ GUCEF_OSMAIN_BEGIN
         PerformPixelMapConversionTests();
         PerformImageUpscalerTests();
         PerformPngImageCodecTests();
+        PerformGupImgImageCodecTests();
+        PerformImageConverterTests();
         PerformImageCodecPluginTests();
         PerformPixelMapResamplerTests();
         PerformMipChainGeneratorTests();

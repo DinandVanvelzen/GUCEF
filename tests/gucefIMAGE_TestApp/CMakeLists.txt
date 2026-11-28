@@ -16,9 +16,11 @@
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestChannelOperations.h
+    include/TestGupImgImageCodec.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
     include/TestImageCompressorRegistry.h
+    include/TestImageConverter.h
     include/TestImageUpscaler.h
     include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
@@ -31,9 +33,11 @@ if (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestChannelOperations.cpp
+    src/TestGupImgImageCodec.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
     src/TestImageCompressorRegistry.cpp
+    src/TestImageConverter.cpp
     src/TestImageUpscaler.cpp
     src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
@@ -48,9 +52,11 @@ if (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestChannelOperations.h
+    include/TestGupImgImageCodec.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
     include/TestImageCompressorRegistry.h
+    include/TestImageConverter.h
     include/TestImageUpscaler.h
     include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
@@ -63,9 +69,11 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestChannelOperations.cpp
+    src/TestGupImgImageCodec.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
     src/TestImageCompressorRegistry.cpp
+    src/TestImageConverter.cpp
     src/TestImageUpscaler.cpp
     src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
@@ -80,9 +88,11 @@ elseif (LINUX64)
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestChannelOperations.h
+    include/TestGupImgImageCodec.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
     include/TestImageCompressorRegistry.h
+    include/TestImageConverter.h
     include/TestImageUpscaler.h
     include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
@@ -95,9 +105,11 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestChannelOperations.cpp
+    src/TestGupImgImageCodec.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
     src/TestImageCompressorRegistry.cpp
+    src/TestImageConverter.cpp
     src/TestImageUpscaler.cpp
     src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
@@ -112,9 +124,11 @@ elseif (WIN32)
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestChannelOperations.h
+    include/TestGupImgImageCodec.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
     include/TestImageCompressorRegistry.h
+    include/TestImageConverter.h
     include/TestImageUpscaler.h
     include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
@@ -127,9 +141,11 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestChannelOperations.cpp
+    src/TestGupImgImageCodec.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
     src/TestImageCompressorRegistry.cpp
+    src/TestImageConverter.cpp
     src/TestImageUpscaler.cpp
     src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp

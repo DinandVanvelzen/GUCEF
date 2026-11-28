@@ -88,8 +88,29 @@ class GUCEF_IMAGE_EXPORT_CPP CIImageCodec : public CORE::CICodec
 
     CIImageCodec& operator=( const CIImageCodec& src );
 
+    /** What a codec can hold of an image, see GetImageCapabilities() */
+    enum EImageCapability
+    {
+        IMAGECAPABILITY_MULTIPLE_FRAMES = 0x01,     /**< more than one frame: an animation or a set of pictures */
+        IMAGECAPABILITY_MIP_LEVELS      = 0x02      /**< the mipmap levels of a frame */
+    };
+
+    /**
+     *  What the format of the codec can hold of an image beyond one picture: IMAGECAPABILITY_* combined.
+     *  The default: nothing, one picture per file
+     */
+    virtual UInt32 GetImageCapabilities( void ) const;
+
     virtual bool Encode( const CImage& inputImage       ,
                          CORE::CIOAccess& encodedOutput ) = 0;
+
+    /**
+     *  Encodes with parameters of the writer (a quality, a compression codec). Parameters the codec does not know are
+     *  ignored. The default ignores all of them and runs the version without parameters.
+     */
+    virtual bool Encode( const CImage& inputImage       ,
+                         CORE::CIOAccess& encodedOutput ,
+                         const CORE::CValueList& params );
 
     virtual bool Decode( CORE::CIOAccess& encodedInput ,
                          CImage& outputImage           ) = 0;

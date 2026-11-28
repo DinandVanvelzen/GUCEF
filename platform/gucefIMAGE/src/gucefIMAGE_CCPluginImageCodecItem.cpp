@@ -162,6 +162,37 @@ CPluginImageCodecItem::GetFamilyName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CPluginImageCodecItem::GetCapabilities( void ) const
+{GUCEF_TRACE;
+
+    // the capabilities are those the plugin states for the codec in its codec link
+    CORE::CICodecPlugin::CCodecSet codecs;
+    TImageCodecPluginPtr plugin( m_pluginPtr );
+    if ( plugin->GetCodecs( codecs ) )
+    {
+        CORE::CICodecPlugin::CCodecSet::const_iterator family = codecs.find( CImageCodecPlugin::ImageCodecFamilyName );
+        if ( codecs.end() != family )
+        {
+            CORE::CICodecPlugin::CCodecFamilySet::const_iterator codec = (*family).second.find( m_codecTypeName );
+            if ( (*family).second.end() != codec && !(*codec).second.IsNULL() )
+                return (*codec).second->GetCapabilities();
+        }
+    }
+    return CIImageCodec::GetCapabilities();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CPluginImageCodecItem::GetImageCapabilities( void ) const
+{GUCEF_TRACE;
+
+    return 0 != ( GetCapabilities() & GUCEF_CODEC_CAPABILITY_MULTIPLE_FRAMES ) ? IMAGECAPABILITY_MULTIPLE_FRAMES : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CPluginImageCodecItem::GetType( void ) const
 {GUCEF_TRACE;

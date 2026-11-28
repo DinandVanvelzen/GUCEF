@@ -91,6 +91,7 @@ extern "C" {
 #define GUCEF_CODEC_CAPABILITY_DETERMINISTIC    0x08    /* the same input and parameters always give the same output */
 #define GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY     0x10    /* an instance call must have both BEGIN and FINAL: the whole message in one call (AEAD) */
 #define GUCEF_CODEC_CAPABILITY_AUTHENTICATED    0x20    /* decode verifies the input: a changed message, tag or associated data fails with AUTHENTICATION_FAILED (AEAD) */
+#define GUCEF_CODEC_CAPABILITY_MULTIPLE_FRAMES  0x40    /* image codecs: a file holds more than one picture (an animation), and the codec reads and writes all of them, as its encode and decode capabilities say */
 
 /*
  *  Flags of instanceProcess. The input is always taken in.

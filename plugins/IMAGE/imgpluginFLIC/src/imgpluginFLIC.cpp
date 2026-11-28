@@ -189,7 +189,7 @@ BuildCodecLinks( void )
         codecLinks[ i ].codecFamily = "ImageCodec";
         codecLinks[ i ].codecType = supportedTypes[ i ];
         codecLinks[ i ].codecData = (void*) supportedTypes[ i ];
-        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_DECODE;
+        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_MULTIPLE_FRAMES;
         codecLinks[ i ].encode = GUCEF_NULL;
         codecLinks[ i ].decode = ImageCodecLinkDecode;
     }

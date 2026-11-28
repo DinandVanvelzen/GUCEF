@@ -42,6 +42,11 @@
 #define GUCEF_IMAGE_CPNGIMAGECODEC_H
 #endif /* GUCEF_IMAGE_CPNGIMAGECODEC_H ? */
 
+#ifndef GUCEF_IMAGE_CGUPIMGIMAGECODEC_H
+#include "gucefIMAGE_CGupImgImageCodec.h"
+#define GUCEF_IMAGE_CGUPIMGIMAGECODEC_H
+#endif /* GUCEF_IMAGE_CGUPIMGIMAGECODEC_H ? */
+
 #ifndef GUCEF_IMAGE_CIMAGECODECREGISTRY_H
 #include "gucefIMAGE_CImageCodecRegistry.h"
 #define GUCEF_IMAGE_CIMAGECODECREGISTRY_H
@@ -164,6 +169,10 @@ CImageGlobal::Initialize( void )
     codecRegistry.RegisterCodec( m_pngCodec, CORE::CCodecRegistry::SoftwareCodecPriority );
 
     m_imageCodecRegistry = new CImageCodecRegistry();
+
+    // The native image format of the framework
+    CORE::CTSharedPtr< CGupImgImageCodec, MT::CMutex > gupImgCodec( GUCEF_NEW CGupImgImageCodec() );
+    m_imageCodecRegistry->Register( CGupImgImageCodec::CodecTypeName, gupImgCodec );
     m_imageUpscalerRegistry = new CImageUpscalerRegistry();
     m_imageCompressorRegistry = new CImageCompressorRegistry();
     m_mmpxUpscaler = new CMmpxImageUpscaler();
@@ -216,6 +225,8 @@ CImageGlobal::~CImageGlobal()
 
     delete m_imageCodecPluginManager;
     m_imageCodecPluginManager = GUCEF_NULL;
+    if ( GUCEF_NULL != m_imageCodecRegistry )
+        m_imageCodecRegistry->Unregister( CGupImgImageCodec::CodecTypeName );
     delete m_imageCodecRegistry;
     m_imageCodecRegistry = GUCEF_NULL;
     delete m_imageUpscalerRegistry;

@@ -58,6 +58,26 @@ CIImageCodec::~CIImageCodec()
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CIImageCodec::GetImageCapabilities( void ) const
+{GUCEF_TRACE;
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIImageCodec::Encode( const CImage& inputImage       ,
+                     CORE::CIOAccess& encodedOutput ,
+                     const CORE::CValueList& params )
+{GUCEF_TRACE;
+
+    return Encode( inputImage, encodedOutput );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CIImageCodec&
 CIImageCodec::operator=( const CIImageCodec& src )
 {GUCEF_TRACE;
