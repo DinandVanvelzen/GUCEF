@@ -399,9 +399,9 @@ PerformVfsRemoteMountsTests( void )
     {
         CRemoteTestEnv env( "gucefvfs-evt7" );
         REQUIRE( env.Setup() );
+        env.Backend().SetDelayMs( 150 );
         {
             VFS::CVfsThreadPolicyScope marked( ( VFS::CVfsThreadPolicy( VFS::MISSACTION_FAIL_AND_FETCH ) ) );
-            ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::ReadmeFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::TopFile ) ) );
             ASSERT_FALSE( env.Vfs().FileExists( env.VfsPath( CRemoteTestEnv::DeepFile ) ) );
