@@ -198,6 +198,7 @@ filter "LINUX32"
   include( "tools/AssetWorkbench" )
   include( "tools/AssetWorkbenchLib" )
   include( "tools/CMakeListGenerator" )
+  include( "tools/ImageConvertor" )
 
 filter "LINUX64"
   include( "dependencies/DevIL/DevIL" )
@@ -261,6 +262,7 @@ filter "LINUX64"
   include( "tools/AssetWorkbench" )
   include( "tools/AssetWorkbenchLib" )
   include( "tools/CMakeListGenerator" )
+  include( "tools/ImageConvertor" )
 
 filter "MAC"
 
@@ -334,6 +336,7 @@ filter "WIN32"
   include( "tools/AssetWorkbench" )
   include( "tools/AssetWorkbenchLib" )
   include( "tools/CMakeListGenerator" )
+  include( "tools/ImageConvertor" )
   include( "tools/PatchSetGenerator" )
 
 filter "WIN64"
@@ -398,6 +401,7 @@ filter "WIN64"
   include( "tools/AssetWorkbench" )
   include( "tools/AssetWorkbenchLib" )
   include( "tools/CMakeListGenerator" )
+  include( "tools/ImageConvertor" )
   include( "tools/PatchSetGenerator" )
 
 filter "WINDOWS"

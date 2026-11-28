@@ -1,0 +1,35 @@
+<ModuleInfoEntry>
+    <Module Name="ImageConvertor" Type="Executable" Platform="mswin;linux" Tags="tools">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Image convertor: converts images from any format that can be read to any format that can be written</DescriptionHeadline>
+            <DescriptionDetails>Converts files and folders of images between the formats of the loaded image codecs (FreeImage, DevIL, FLIC and the native gupimg format, plus any image codec plugin given with --plugin). Frames, mipmap levels and the pixel format are negotiated with the target format by CImageConverter of gucefIMAGE: what the target cannot hold is converted and what that loses is reported. Animations go to one file where the target holds frames, else to a file per frame. Conversions run on the threads of a pool.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+        </Linker>
+        <Preprocessor>
+            <Define String="IMAGECONVERTOR_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="imgpluginDEVIL" />
+            <RuntimeDependency Name="imgpluginFLIC" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

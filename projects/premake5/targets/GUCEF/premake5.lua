@@ -366,6 +366,7 @@ filter "ALL"
   include( "tools/GucefLogServiceLib" )
   include( "tools/GucefLogService_TestApp" )
   include( "tools/HDFiller" )
+  include( "tools/ImageConvertor" )
   include( "tools/MemoryLeakFinder" )
   include( "tools/PackageUpgrader" )
   include( "tools/PatchSetGenerator" )

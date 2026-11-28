@@ -74,3 +74,4 @@ tools/AssetConverter/*
 tools/AssetStoreConverterHook/*
 tools/AssetWorkbench/*
 tools/CMakeListGenerator/*
+tools/ImageConvertor/*

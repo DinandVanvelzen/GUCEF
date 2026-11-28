@@ -1,0 +1,128 @@
+name: target_GUCEF_exe_ImageConvertor
+
+on:
+  workflow_dispatch:
+    inputs:
+      archiveBuildArtifacts:
+        description: 'Archive Build Artifacts?'
+        required: false
+        default: 'false'
+      targetPlatform:
+        description: 'Target platform to build?'
+        required: false
+        default: 'all'
+
+jobs:
+
+  GUCEF_exe_ImageConvertor-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_ImageConvertor
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_ImageConvertor
+      PRODUCT_NAME: ImageConvertor
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build ImageConvertor for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux32/packages/*ImageConvertor*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux32/packages/*ImageConvertor*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux32/packages/*ImageConvertor*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux32/packages/*ImageConvertor*.tar.xz
+  GUCEF_exe_ImageConvertor-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_ImageConvertor
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_ImageConvertor
+      PRODUCT_NAME: ImageConvertor
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build ImageConvertor for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux64/packages/*ImageConvertor*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux64/packages/*ImageConvertor*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux64/packages/*ImageConvertor*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-linux64/packages/*ImageConvertor*.tar.xz
+  GUCEF_exe_ImageConvertor-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_ImageConvertor
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_ImageConvertor
+      PRODUCT_NAME: ImageConvertor
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build ImageConvertor for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-win32/packages/*ImageConvertor*.zip
+  GUCEF_exe_ImageConvertor-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_ImageConvertor
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_ImageConvertor
+      PRODUCT_NAME: ImageConvertor
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build ImageConvertor for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_ImageConvertor-win64/packages/*ImageConvertor*.zip
