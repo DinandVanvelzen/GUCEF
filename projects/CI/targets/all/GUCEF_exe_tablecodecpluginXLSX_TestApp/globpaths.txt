@@ -1,0 +1,12 @@
+common/include/*
+common/test/include/*
+dependencies/libparsifal/*
+dependencies/minizip/*
+dependencies/zziplib/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+plugins/CORE/dstorepluginPARSIFALXML/*
+plugins/CORE/tablecodecpluginXLSX/*
+plugins/VFS/vfspluginZIP/*
+tests/tablecodecpluginXLSX_TestApp/*

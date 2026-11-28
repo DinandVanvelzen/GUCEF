@@ -34,5 +34,6 @@ tests/gucefVFS_TestApp/*
 tests/gucefVIDEO_TestApp/*
 tests/gucefWEB_TestApp/*
 tests/tablecodecpluginPARQUET_TestApp/*
+tests/tablecodecpluginXLSX_TestApp/*
 tests/vfspluginUNITYPACKAGE_TestApp/*
 tools/*

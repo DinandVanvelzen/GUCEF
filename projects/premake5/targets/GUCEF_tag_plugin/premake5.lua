@@ -117,6 +117,7 @@ filter "ALL"
   include( "plugins/CORE/dstorepluginPROTOBUF" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/CORE/tablecodecpluginPARQUET" )
+  include( "plugins/CORE/tablecodecpluginXLSX" )
   include( "plugins/DRN/drnchannelpluginEOSP2P" )
   include( "plugins/GUI/fontpluginFREETYPE" )
   include( "plugins/GUI/guidriverCEGUI" )

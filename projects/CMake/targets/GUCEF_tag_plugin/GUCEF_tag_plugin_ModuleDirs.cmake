@@ -104,6 +104,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPROTOBUF ${CMAKE_BINARY_DIR}/dstorepluginPROTOBUF )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginYAML ${CMAKE_BINARY_DIR}/dstorepluginYAML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/tablecodecpluginPARQUET ${CMAKE_BINARY_DIR}/tablecodecpluginPARQUET )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/tablecodecpluginXLSX ${CMAKE_BINARY_DIR}/tablecodecpluginXLSX )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/DRN/drnchannelpluginEOSP2P ${CMAKE_BINARY_DIR}/drnchannelpluginEOSP2P )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/GUI/fontpluginFREETYPE ${CMAKE_BINARY_DIR}/fontpluginFREETYPE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/GUI/guidriverCEGUI ${CMAKE_BINARY_DIR}/guidriverCEGUI )
