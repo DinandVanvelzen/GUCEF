@@ -31,6 +31,11 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#ifndef GUCEF_MT_H
+#include "gucefMT.h"
+#define GUCEF_MT_H
+#endif /* GUCEF_MT_H ? */
+
 #ifndef GUCEF_VFS_H
 #include "gucefVFS.h"
 #define GUCEF_VFS_H
@@ -108,6 +113,91 @@ MakeDataTrack( const CORE::CDynamicBuffer& gameFile )
     result.Append( &image[ 0 ], (UInt32) image.size() );
     return result;
 }
+
+/** Two big files on a data track, for readers that run at the same time */
+CORE::CDynamicBuffer
+MakeTwoFileDataTrack( const CORE::CDynamicBuffer& fileA, const CORE::CDynamicBuffer& fileB )
+{
+    SNode root = Dir( "", "" );
+    root.children.push_back( File( "FILEA.DAT", "FILEA.DAT;1", AsFileContent( fileA ) ) );
+    root.children.push_back( File( "FILEB.DAT", "FILEB.DAT;1", AsFileContent( fileB ) ) );
+
+    SOptions options;
+    CImageWriter writer( root, options, "CUETEST" );
+    const TBytes image = writer.Write();
+    CORE::CDynamicBuffer result;
+    result.Append( &image[ 0 ], (UInt32) image.size() );
+    return result;
+}
+
+/** A thread that reads a file of the VFS front to back in small pieces, a number of times, and checks every piece */
+class CFileReaderThread : public MT::CActiveObject
+{
+    public:
+
+    CFileReaderThread( const CORE::CString& path, const CORE::CDynamicBuffer& expected, UInt32 passes )
+        : MT::CActiveObject()
+        , m_path( path )
+        , m_expected( expected )
+        , m_passes( passes )
+        , m_pieces( 0 )
+        , m_wrong( 0 )
+        , m_done( 0 )
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~CFileReaderThread() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        Deactivate( false, true );
+    }
+
+    bool IsDone( void ) const { return 0 != m_done.Load(); }
+    UInt32 GetPieceCount( void ) const { return m_pieces.Load(); }
+    UInt32 GetWrongPieceCount( void ) const { return m_wrong.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        const UInt32 pieceSize = 1000;
+        UInt8 piece[ pieceSize ];
+        for ( UInt32 pass = 0; pass < m_passes; ++pass )
+        {
+            VFS::TBasicVfsResourcePtr resource = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( m_path, "rb" );
+            CORE::IOAccessPtr access = resource.IsNULL() ? CORE::IOAccessPtr() : resource->GetAccess();
+            if ( access.IsNULL() )
+            {
+                m_wrong.FetchAdd( 1 );
+                break;
+            }
+            for ( UInt32 offset = 0; offset < m_expected.GetDataSize(); offset += pieceSize )
+            {
+                const UInt32 want = m_expected.GetDataSize() - offset < pieceSize ? m_expected.GetDataSize() - offset : pieceSize;
+                m_pieces.FetchAdd( 1 );
+                if ( want != access->Read( piece, 1, want ) || 0 != memcmp( piece, m_expected.GetConstBufferPtr( offset ), want ) )
+                    m_wrong.FetchAdd( 1 );
+            }
+        }
+        m_done.Store( 1 );
+        return true;
+    }
+
+    private:
+
+    CORE::CString m_path;
+    CORE::CDynamicBuffer m_expected;
+    UInt32 m_passes;
+    MT::CTAtomic< UInt32 > m_pieces;
+    MT::CTAtomic< UInt32 > m_wrong;
+    MT::CTAtomic< UInt32 > m_done;
+};
 
 /** Cooked 2048 byte sectors as raw MODE1 2352 byte sectors: sync, header with the address and mode, user data, ECC (zero) */
 CORE::CDynamicBuffer
@@ -392,6 +482,36 @@ PerformCueBinArchiveTests( void )
             ASSERT_FALSE( vfs.MountArchive( "cueText", textPath, "cue", "/cuetext", false, false, textPath ) );
 
             ASSERT_FALSE( vfs.MountArchive( "cueWrite", sheetPath, "cue", "/cuewrite", true, false, sheetPath ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CueBin: Files of one disc image read at the same time on different threads each get their own bytes" )
+        try
+        {
+            const CORE::CDynamicBuffer fileA = MakeContent( 300 * 1000, 41 );
+            const CORE::CDynamicBuffer fileB = MakeContent( 300 * 1000, 42 );
+            const CORE::CDynamicBuffer track = PadToSectors( MakeTwoFileDataTrack( fileA, fileB ), CookedSectorSize );
+            WriteFile( CORE::CombinePath( dir, "TwoFiles.bin" ), MakeRawMode1( track ) );
+            const CORE::CString twoSheetPath = CORE::CombinePath( dir, "TwoFiles.cue" );
+            WriteText( twoSheetPath, "FILE \"TwoFiles.bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n" );
+            ASSERT_TRUE( vfs.MountArchive( "cueTwoFiles", twoSheetPath, "cue", "/cuetwofiles", false, false, twoSheetPath ) );
+
+            CFileReaderThread readerA( "/cuetwofiles/FILEA.DAT", fileA, 20 );
+            CFileReaderThread readerB( "/cuetwofiles/FILEB.DAT", fileB, 20 );
+            ASSERT_TRUE( readerA.Activate() );
+            ASSERT_TRUE( readerB.Activate() );
+            for ( UInt32 waited = 0; waited < 60000 && !( readerA.IsDone() && readerB.IsDone() ); waited += 10 )
+                MT::ThreadDelay( 10 );
+            ASSERT_TRUE( readerA.IsDone() && readerB.IsDone() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CueBin concurrent readers: " << ( readerA.GetPieceCount() + readerB.GetPieceCount() )
+                << " pieces read, " << ( readerA.GetWrongPieceCount() + readerB.GetWrongPieceCount() ) << " wrong" );
+            ASSERT_TRUE( 0 == readerA.GetWrongPieceCount() );
+            ASSERT_TRUE( 0 == readerB.GetWrongPieceCount() );
+            ASSERT_TRUE( vfs.UnmountArchiveByName( "cueTwoFiles" ) );
         }
         catch ( ... )
         {

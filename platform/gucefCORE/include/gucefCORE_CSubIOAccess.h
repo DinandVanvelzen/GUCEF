@@ -99,6 +99,7 @@ class GUCEF_CORE_PUBLIC_CPP CSubIOAccess : public CIOAccess
 
     virtual bool Opened( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Windows on the same parent object, also on other threads, take turns: a read positions the parent and reads as one step */
     virtual UInt32 Read( void *dest      ,
                          UInt32 esize    ,
                          UInt32 elements ) GUCEF_VIRTUAL_OVERRIDE;

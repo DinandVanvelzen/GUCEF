@@ -25,6 +25,11 @@
 
 #include "gucefCORE_CSubIOAccess.h"      /* definition of the class implemented here */
 
+#ifndef GUCEF_MT_COBJECTSCOPELOCK_H
+#include "gucefMT_CObjectScopeLock.h"
+#define GUCEF_MT_COBJECTSCOPELOCK_H
+#endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
+
 #ifndef GUCEF_CORE_UCEF_ESSENTIALS_H
 #include "gucef_essentials.h"
 #define GUCEF_CORE_GUCEF_ESSENTIALS_H
@@ -169,7 +174,9 @@ CSubIOAccess::Read( void *dest      ,
     if ( 0 == elements )
         return 0;
 
-    // The parent may be shared with other windows so it is always repositioned first
+    // The parent may be shared with other windows, so it is always repositioned first. Windows on other threads do the same
+    // on the same parent: positioning and reading are one step for as long as the parent object is locked
+    MT::CObjectScopeLock parentLock( m_parent );
     if ( 0 != m_parent->Setpos( m_offset + m_pos ) )
         return 0;
 

@@ -70,6 +70,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_COBJECTSCOPELOCK_H
+#include "gucefMT_CObjectScopeLock.h"
+#define GUCEF_MT_COBJECTSCOPELOCK_H
+#endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
+
 #include "vfspluginISO9660_CISO9660Archive.h"
 
 /*-------------------------------------------------------------------------//
@@ -173,6 +178,8 @@ CISO9660Archive::ReadBytes( VFS::UInt64 offset, void* dest, VFS::UInt32 byteCoun
     if ( m_image.IsNULL() )
         return false;
 
+    // the windows of the files of the image position and read the same image: take turns with them
+    MT::CObjectScopeLock imageLock( m_image );
     if ( 0 != m_image->Setpos( offset ) )
         return false;
     return 1 == m_image->Read( dest, byteCount, 1 );
