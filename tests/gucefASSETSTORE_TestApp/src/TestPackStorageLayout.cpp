@@ -294,6 +294,53 @@ PerformPackStorageLayoutTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END;
 
+    GUCEF_TESTFW_TESTCASE( "Site folders: the pack folder is the folder of the site and the folder of the pack, the areas and the generations hold it, the packs of two sites never meet" )
+        try
+        {
+            ASSERT_TRUE( "fab.com" == CPackStorageLayout::MakeSiteFolderName( "fab.com" ) );
+            ASSERT_TRUE( "fab.com" == CPackStorageLayout::MakeSiteFolderName( "Fab.COM" ) );
+            ASSERT_TRUE( "unknown" == CPackStorageLayout::MakeSiteFolderName( "" ) && "unknown" == CPackStorageLayout::MakeSiteFolderName( ".." ) && "unknown" == CPackStorageLayout::MakeSiteFolderName( " . " ) );
+            ASSERT_TRUE( HasNoUnsafeCharacters( CPackStorageLayout::MakeSiteFolderName( "a/b\\c:d" ) ) && CPackStorageLayout::MakeSiteFolderName( "a/b\\c:d" ).HasChar( '/', true ) < 0 );
+            CString longSite;
+            for ( UInt32 i=0; i<300; ++i )
+                longSite += "x";
+            ASSERT_TRUE( CPackStorageLayout::MaxSiteFolderNameBytes >= BytesOf( CPackStorageLayout::MakeSiteFolderName( longSite ) ) );
+
+            const CString folder = CPackStorageLayout::MakePackFolder( "fab.com", "Asian Rice Terrace" );
+            ASSERT_TRUE( "fab.com/Asian Rice Terrace" == folder );
+            const CPackStorageLayout layout( CPackStorageLayout::MakeRootPath( folder ) );
+            ASSERT_TRUE( layout.IsAreaLayout() && folder == layout.GetPackFolder() && "fab.com" == layout.GetSiteFolder() && "Asian Rice Terrace" == layout.GetPackName() );
+            ASSERT_TRUE( "layout2:fab.com/Asian Rice Terrace" == layout.GetStoredRootPath() );
+            const CString root = "assetstore/main";
+            ASSERT_TRUE( layout.GetOriginalFolder( root ) == "assetstore/main/original/fab.com/Asian Rice Terrace" );
+            ASSERT_TRUE( layout.GetIntermediateFolder( root, "desktop" ) == "assetstore/main/intermediate/fab.com/Asian Rice Terrace" );
+            ASSERT_TRUE( layout.GetCookedFolder( root, "desktop" ) == "assetstore/main/gucef-ogre3d/fab.com/Asian Rice Terrace" );
+            ASSERT_TRUE( layout.GetGenerationsFolder( root ) == "assetstore/main/generations/fab.com/Asian Rice Terrace" );
+            ASSERT_TRUE( layout.Resolve( root, "original/Content/a.uasset" ) == "assetstore/main/original/fab.com/Asian Rice Terrace/Content/a.uasset" );
+            ASSERT_TRUE( layout.GetPackIndexPath( root, "desktop" ) == "assetstore/main/intermediate/fab.com/Asian Rice Terrace/pack-index.json" );
+
+            // the same name from two sites is two folders, and a second pack of one site gets the short id after its name
+            CString::StringSet taken;
+            taken.insert( CPackStorageLayout::MakePackFolder( "fab.com", "Pack.zip" ).Lowercase() );
+            ASSERT_TRUE( "disk/Pack.zip" == CPackStorageLayout::ChoosePackFolderName( CPackStorageLayout::MakePackFolder( "disk", "Pack.zip" ), "pk19c3a4b5d6e7f0a1b2c3d4", taken ) );
+            ASSERT_TRUE( "fab.com/Pack.zip [19c3a4b5]" == CPackStorageLayout::ChoosePackFolderName( CPackStorageLayout::MakePackFolder( "fab.com", "Pack.zip" ), "pk19c3a4b5d6e7f0a1b2c3d4", taken ) );
+
+            // the path below an area names the area, the pack folder and what is below it
+            CString area, packFolder, rest;
+            ASSERT_TRUE( CPackStorageLayout::SplitAreaPath( "original/fab.com/My Pack/a/b.fbx", area, packFolder, rest ) );
+            ASSERT_TRUE( "original" == area && "fab.com/My Pack" == packFolder && "a/b.fbx" == rest );
+            ASSERT_TRUE( CPackStorageLayout::SplitAreaPath( "/gucef-ogre3d\\fab.com/My Pack/", area, packFolder, rest ) && "gucef-ogre3d" == area && "fab.com/My Pack" == packFolder && rest.IsNULLOrEmpty() );
+            ASSERT_TRUE( !CPackStorageLayout::SplitAreaPath( "original", area, packFolder, rest ) );
+            ASSERT_TRUE( !CPackStorageLayout::SplitAreaPath( "original/fab.com", area, packFolder, rest ) );
+            ASSERT_TRUE( !CPackStorageLayout::SplitAreaPath( "staging/fab.com/My Pack", area, packFolder, rest ) );
+            ASSERT_TRUE( !CPackStorageLayout::SplitAreaPath( "fab.com/My Pack/original", area, packFolder, rest ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
     GUCEF_TESTFW_TESTCASE( "Layout 2: the three areas hold the folder of the pack, logical paths resolve below their area" )
         try
         {

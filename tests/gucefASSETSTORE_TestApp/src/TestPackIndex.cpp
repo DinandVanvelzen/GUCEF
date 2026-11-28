@@ -583,7 +583,7 @@ RunPackIndexSuite( SIndexFixture& fixture )
             good.resources.push_back( CTestPackIndexResource( "Audio/sword_hit.wav", "audio", "audio", 500 ) );
             good.resources.push_back( CTestPackIndexResource( "Meta/Notes.txt", "document", "meta", 10 ) );
             // the document of the pack in its place in the storage: what a rebuild from the storage finds
-            const CString storedPath = good.WriteTo( base + "/main/intermediate/Medieval_Weapons" );
+            const CString storedPath = good.WriteTo( base + "/main/intermediate/disk/Medieval_Weapons" );
             ASSERT_FALSE( storedPath.IsNULLOrEmpty() );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == loader.Load( packAId, storedPath, false, outcome ) && outcome.loaded );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPackIndexInfo( packAId, false, info ) && !info.stale && CAssetPackIndexInfo::StateLoaded == info.state && 6 == info.resourceCount );
@@ -739,7 +739,7 @@ RunPackIndexSuite( SIndexFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPackIndexInfo( packDId, false, info ) && CAssetPackIndexInfo::StateLoaded == info.state && 2 == info.resourceCount );
             CAssetPackRecord packD;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( packDId, packD ) );
-            ASSERT_TRUE( vfs.FileExists( base + "/main/intermediate/Rocks/pack-index.json" ) && info.documentPath == base + "/main/intermediate/Rocks/pack-index.json" );
+            ASSERT_TRUE( vfs.FileExists( base + "/main/intermediate/disk/Rocks/pack-index.json" ) && info.documentPath == base + "/main/intermediate/disk/Rocks/pack-index.json" );
         }
         catch ( ... )
         {
@@ -809,7 +809,7 @@ RunPackIndexSuite( SIndexFixture& fixture )
             // a document in the storage that no pack owns
             CTestPackIndexDocument stray;
             stray.resources.push_back( CTestPackIndexResource( "x.fbx", "model", "", 1 ) );
-            ASSERT_FALSE( stray.WriteTo( base + "/main/intermediate/Stray_Folder" ).IsNULLOrEmpty() );
+            ASSERT_FALSE( stray.WriteTo( base + "/main/intermediate/disk/Stray_Folder" ).IsNULLOrEmpty() );
 
             const UInt32 callsBefore = hook.GetIndexCallCount();
             CAssetPackIndexReport report;
@@ -828,7 +828,7 @@ RunPackIndexSuite( SIndexFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.ReindexFromStorage( false, CAssetPackIndexOptions(), second ) && 5 == second.packsUnchanged && 0 == second.packsLoaded );
 
             // a pack without a document: skipped, or built when asked
-            ASSERT_TRUE( vfs.DeleteFile( base + "/main/intermediate/Lanterns/pack-index.json", true ) );
+            ASSERT_TRUE( vfs.DeleteFile( base + "/main/intermediate/disk/Lanterns/pack-index.json", true ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == loader.Remove( packEId ) );
             CAssetPackIndexReport skipped;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.ReindexFromStorage( false, CAssetPackIndexOptions(), skipped ) && 1 == skipped.packsSkipped && 4 == skipped.packsUnchanged );

@@ -259,6 +259,12 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     /** The VFS root of the location, empty when there is no such location */
     CORE::CString GetLocationRoot( const CORE::CString& locationId ) const;
 
+    /**
+     *  The folder of the web site of a source, the first part of the folder of its packs (CPackStorageLayout): the site name of
+     *  its store provider (CIAssetStoreProvider::GetSiteName(), "fab.com"), else the id of the source; "disk" for packs from a disk
+     */
+    static CORE::CString GetSiteFolderOfSource( const CORE::CString& sourceId );
+
     /** Moves a location to another VFS root (and mount folder, when given): one row and the settings change */
     TAssetStoreStatus RelocateLocation( const CORE::CString& locationId, const CORE::CString& newVfsRoot, const CORE::CString& newFileSystemPath = CORE::CString::Empty );
 
@@ -514,13 +520,14 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CPrimaryAssetStore : public CIAssetStoreProvid
     CIAssetConverterHook* GetConverterHook( void ) const;
     MT::CMutex& GetIndexLock( void );
     /**
-     *  The folder of a pack that is placed in a location (CPackStorageLayout), reserved for the pack until its row is written.
+     *  The folder of a pack that is placed in a location (CPackStorageLayout), "<site folder>/<pack name>" with the site of the
+     *  source (GetSiteFolderOfSource()), reserved for the pack until its row is written.
      *  A name is taken when a pack of the catalogue has it, an ingest reserved it, or a folder of that name is on the disk in one
      *  of the areas (case-insensitively where the file system is: a share), for example of another catalogue on the same
      *  share or left behind: such a folder is never taken over. 'avoidFoldersOnDisk' false leaves the disk out (the layout
      *  migration, which refuses a pack whose target folder exists instead)
      */
-    CORE::CString ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk = true );
+    CORE::CString ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk = true );
     /** Reserves the folder an earlier attempt of the ingest of the pack chose, until its row is written */
     void ReservePackFolder( const CORE::CString& locationId, const CORE::CString& packId, const CORE::CString& packFolder );
     void ReleasePackFolder( const CORE::CString& packId );

@@ -295,9 +295,9 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( packAId, pack ) );
             ASSERT_TRUE( "Medieval Weapons" == pack.title && "Forge Works" == pack.seller && "disk" == pack.sourceId && "main" == pack.locationId );
-            ASSERT_TRUE( pack.rootPath == "layout2:Medieval_Weapons" );
-            ASSERT_TRUE( CPackStorageLayout::LayoutAreas == CPackStorageLayout( pack.rootPath ).GetVersion() && "Medieval_Weapons" == CPackStorageLayout( pack.rootPath ).GetPackFolder() );
-            ASSERT_TRUE( vfs.DirExists( base + "/main/original/Medieval_Weapons/Meshes" ) && !vfs.DirExists( base + "/main/packs" ) );
+            ASSERT_TRUE( pack.rootPath == "layout2:disk/Medieval_Weapons" );
+            ASSERT_TRUE( CPackStorageLayout::LayoutAreas == CPackStorageLayout( pack.rootPath ).GetVersion() && "disk/Medieval_Weapons" == CPackStorageLayout( pack.rootPath ).GetPackFolder() );
+            ASSERT_TRUE( vfs.DirExists( base + "/main/original/disk/Medieval_Weapons/Meshes" ) && !vfs.DirExists( base + "/main/packs" ) );
             ASSERT_TRUE( ASSETPACK_STATE_CONVERSION_PENDING == pack.state && ASSETKEEP_BOTH == pack.keep );
             ASSERT_TRUE( pack.categories.end() != pack.categories.find( "weapons/melee" ) );
             ASSERT_TRUE( pack.themes.end() != pack.themes.find( "medieval" ) );
@@ -308,7 +308,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             ASSERT_TRUE( pack.analyzers.end() != pack.analyzers.find( "texture/1" ) && pack.analyzers.end() != pack.analyzers.find( "testmodel/1" ) );
 
             // the placed layout
-            const CString root = base + "/main/original/Medieval_Weapons";
+            const CString root = base + "/main/original/disk/Medieval_Weapons";
             ASSERT_TRUE( vfs.FileExists( root + "/Meshes/SM_Wep_Sword_01.fbx" ) && vfs.FileExists( root + "/Textures/T_Sword_N.tga" ) );
             ASSERT_TRUE( vfs.FileExists( root + "/pack.json" ) );
             CString::StringVector pending;
@@ -369,9 +369,9 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             CAssetPackRecord copy;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( kept.packId, copy ) && copy.packId != packAId );
             // the name is taken: the folder of the copy has the short id of its pack
-            ASSERT_TRUE( copy.rootPath == "layout2:Medieval_Weapons [" + CPackStorageLayout::MakeShortId( copy.packId ) + "]" );
+            ASSERT_TRUE( copy.rootPath == "layout2:disk/Medieval_Weapons [" + CPackStorageLayout::MakeShortId( copy.packId ) + "]" );
             const CString copyRoot = CPackStorageLayout( copy.rootPath ).GetOriginalFolder( base + "/main" );
-            ASSERT_TRUE( vfs.DirExists( copyRoot ) && vfs.DirExists( base + "/main/original/Medieval_Weapons" ) );
+            ASSERT_TRUE( vfs.DirExists( copyRoot ) && vfs.DirExists( base + "/main/original/disk/Medieval_Weapons" ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.RemovePack( kept.packId, true ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == store.GetPack( kept.packId, copy ) );
             ASSERT_FALSE( vfs.DirExists( copyRoot ) );
@@ -415,7 +415,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             ASSERT_TRUE( 1 == pack.unmappedCategories.size() && pack.unmappedCategories.end() != pack.unmappedCategories.find( "3D/Unheard Of" ) );
             ASSERT_TRUE( pack.artStyles.end() != pack.artStyles.find( "low-poly" ) && pack.artStyles.end() != pack.artStyles.find( "stylised" ) );
             ASSERT_TRUE( "royalty-free" == pack.licence.licenceClass && pack.licence.AllowsMachineLearning() );
-            ASSERT_TRUE( "layout2:Knight Character" == pack.rootPath );
+            ASSERT_TRUE( "layout2:fab/Knight Character" == pack.rootPath );
             TAssetRecordVector assets;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetAssets( packBId, assets ) );
             const CAssetRecord* knight = FindAsset( assets, "SK_Knight" );
@@ -446,7 +446,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( query, page ) );
             ASSERT_TRUE( 7 == page.total && !page.hits.empty() && "SM_Wep_Sword_01" == page.hits[ 0 ].name );
             ASSERT_TRUE( page.hits[ 0 ].score > page.hits[ page.hits.size()-1 ].score && page.hits[ 0 ].available );
-            ASSERT_TRUE( page.hits[ 0 ].vfsPath == base + "/main/original/Medieval_Weapons/Meshes/SM_Wep_Sword_01.fbx" );
+            ASSERT_TRUE( page.hits[ 0 ].vfsPath == base + "/main/original/disk/Medieval_Weapons/Meshes/SM_Wep_Sword_01.fbx" );
 
             query.text = "swo";
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.Search( query, page ) && 0 == page.total );
@@ -705,7 +705,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
 
             CAssetPackRecord pack;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( packAId, pack ) );
-            const CString root = base + "/main/original/Medieval_Weapons";
+            const CString root = base + "/main/original/disk/Medieval_Weapons";
             ASSERT_TRUE( WriteText( root + "/Meshes/SM_Wep_Sword_01.fbx", "triangles=1;changed" ) );
             ASSERT_TRUE( vfs.DeleteFile( root + "/Audio/sword_hit.wav", false ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.VerifyLocation( "main", report ) );
@@ -840,8 +840,8 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
         try
         {
             const CString mainRoot = base + "/main";
-            ASSERT_TRUE( WriteText( mainRoot + "/original/Foreign_Pack/keep.txt", "of another catalogue" ) );
-            ASSERT_TRUE( WriteText( mainRoot + "/gucef-ogre3d/Other_Foreign/keep.mesh", "cooked by another catalogue" ) );
+            ASSERT_TRUE( WriteText( mainRoot + "/original/disk/Foreign_Pack/keep.txt", "of another catalogue" ) );
+            ASSERT_TRUE( WriteText( mainRoot + "/gucef-ogre3d/disk/Other_Foreign/keep.mesh", "cooked by another catalogue" ) );
             ASSERT_TRUE( WriteText( base + "/source/Foreign_Pack/Meshes/SM_Foreign.fbx", "triangles=23;vertices=11" ) );
             ASSERT_TRUE( WriteText( base + "/source/Other_Foreign/Meshes/SM_Other.fbx", "triangles=24;vertices=12" ) );
             CAssetIngestRequest request;
@@ -855,18 +855,18 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             CAssetPackRecord packFirst;
             CAssetPackRecord packSecond;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( first.packId, packFirst ) && ASSETSTORE_STATUS_OK == store.GetPack( second.packId, packSecond ) );
-            ASSERT_TRUE( "layout2:Foreign_Pack [" + CPackStorageLayout::MakeShortId( first.packId ) + "]" == packFirst.rootPath );
-            ASSERT_TRUE( "layout2:Other_Foreign [" + CPackStorageLayout::MakeShortId( second.packId ) + "]" == packSecond.rootPath );
+            ASSERT_TRUE( "layout2:disk/Foreign_Pack [" + CPackStorageLayout::MakeShortId( first.packId ) + "]" == packFirst.rootPath );
+            ASSERT_TRUE( "layout2:disk/Other_Foreign [" + CPackStorageLayout::MakeShortId( second.packId ) + "]" == packSecond.rootPath );
             const CPackStorageLayout layoutFirst( packFirst.rootPath );
             ASSERT_TRUE( vfs.FileExists( layoutFirst.Resolve( mainRoot, "original/Meshes/SM_Foreign.fbx" ) ) );
-            ASSERT_FALSE( vfs.FileExists( mainRoot + "/original/Foreign_Pack/Meshes/SM_Foreign.fbx" ) );
+            ASSERT_FALSE( vfs.FileExists( mainRoot + "/original/disk/Foreign_Pack/Meshes/SM_Foreign.fbx" ) );
 
             // removing the packs with their files leaves the folders the catalogue never owned
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.RemovePack( first.packId, true ) && ASSETSTORE_STATUS_OK == store.RemovePack( second.packId, true ) );
-            ASSERT_TRUE( vfs.FileExists( mainRoot + "/original/Foreign_Pack/keep.txt" ) && vfs.FileExists( mainRoot + "/gucef-ogre3d/Other_Foreign/keep.mesh" ) );
+            ASSERT_TRUE( vfs.FileExists( mainRoot + "/original/disk/Foreign_Pack/keep.txt" ) && vfs.FileExists( mainRoot + "/gucef-ogre3d/disk/Other_Foreign/keep.mesh" ) );
             ASSERT_FALSE( vfs.DirExists( layoutFirst.GetOriginalFolder( mainRoot ) ) );
-            vfs.DeleteDir( mainRoot + "/original/Foreign_Pack", true );
-            vfs.DeleteDir( mainRoot + "/gucef-ogre3d/Other_Foreign", true );
+            vfs.DeleteDir( mainRoot + "/original/disk/Foreign_Pack", true );
+            vfs.DeleteDir( mainRoot + "/gucef-ogre3d/disk/Other_Foreign", true );
         }
         catch ( ... )
         {
@@ -891,8 +891,8 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             CAssetPackRecord packFirst;
             CAssetPackRecord packSecond;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPack( first.packId, packFirst ) && ASSETSTORE_STATUS_OK == store.GetPack( second.packId, packSecond ) );
-            ASSERT_TRUE( "layout2:Case_Pack" == packFirst.rootPath );
-            ASSERT_TRUE( "layout2:case_pack [" + CPackStorageLayout::MakeShortId( second.packId ) + "]" == packSecond.rootPath );
+            ASSERT_TRUE( "layout2:disk/Case_Pack" == packFirst.rootPath );
+            ASSERT_TRUE( "layout2:disk/case_pack [" + CPackStorageLayout::MakeShortId( second.packId ) + "]" == packSecond.rootPath );
             const CString mainRoot = base + "/main";
             const CPackStorageLayout layoutFirst( packFirst.rootPath );
             const CPackStorageLayout layoutSecond( packSecond.rootPath );
@@ -937,7 +937,7 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             // make it a pack of the earlier layout: folders and row
             const CString oldRoot = "packs/disk/Forge Works/Layout Old [" + packId + "]";
             ASSERT_TRUE( vfs.CreateDir( mainRoot + "/" + oldRoot ) );
-            ASSERT_TRUE( vfs.MoveDir( mainRoot + "/original/Layout_Old", mainRoot + "/" + oldRoot + "/original" ) );
+            ASSERT_TRUE( vfs.MoveDir( mainRoot + "/original/disk/Layout_Old", mainRoot + "/" + oldRoot + "/original" ) );
             ASSERT_TRUE( WriteText( mainRoot + "/" + oldRoot + "/converted/test/SM_Old_01.gltf", "converted" ) );
             CAssetCatalogue::TRowVector rows;
             CDataTableQuery query;
@@ -963,13 +963,13 @@ RunPrimaryStoreSuite( SStoreFixture& fixture )
             CAssetLayoutMigrationReport report;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.MigrateStorageLayout( "main", true, report ) );
             ASSERT_TRUE( report.dryRun && 1 == report.packsInOldLayout && 1 == report.packsMigrated && 0 == report.packsRefused && 1 == report.actions.size() );
-            ASSERT_TRUE( report.actions[ 0 ] == packId + ": " + oldRoot + " -> layout2:Layout Old [" + packId + "]" );
+            ASSERT_TRUE( report.actions[ 0 ] == packId + ": " + oldRoot + " -> layout2:disk/Layout Old [" + packId + "]" );
             CAssetLayoutMigrationReport jobReport;
             ASSERT_TRUE( GetFutureResult( store.MigrateStorageLayoutAsync( "main", true ), jobReport ) && 1 == jobReport.packsMigrated && jobReport.dryRun );
             ASSERT_TRUE( vfs.FileExists( vfsPath ) && ASSETSTORE_STATUS_OK == store.GetPack( packId, pack ) && oldRoot == pack.rootPath );
 
             // a target folder that exists refuses the pack, nothing moves
-            const CString folder = "Layout Old [" + packId + "]";
+            const CString folder = "disk/Layout Old [" + packId + "]";
             ASSERT_TRUE( vfs.CreateDir( mainRoot + "/original/" + folder ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.MigrateStorageLayout( "main", false, report ) );
             ASSERT_TRUE( 1 == report.packsInOldLayout && 0 == report.packsMigrated && 1 == report.packsRefused && 1 == report.problems.size() );

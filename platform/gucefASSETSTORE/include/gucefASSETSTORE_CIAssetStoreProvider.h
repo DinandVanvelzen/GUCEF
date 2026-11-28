@@ -142,6 +142,13 @@ class GUCEF_ASSETSTORE_PUBLIC_CPP CIAssetStoreProvider : public CORE::CTSGNotifi
     /** The home page of the store, empty by default */
     virtual CORE::CString GetHomePageUrl( void ) const;
 
+    /**
+     *  The name of the web site of the store, the name of the folder that the packs of the store are kept in
+     *  (CPackStorageLayout): the host of the home page in lower case without a leading "www." ("fab.com"). Empty when
+     *  the store has no home page. A store whose home page is on another host than its site overrides it.
+     */
+    virtual CORE::CString GetSiteName( void ) const;
+
     /** The gucefAUTH provider the store signs in with, empty when the store needs no sign in (the default) */
     virtual CORE::CString GetAuthProviderName( void ) const;
 

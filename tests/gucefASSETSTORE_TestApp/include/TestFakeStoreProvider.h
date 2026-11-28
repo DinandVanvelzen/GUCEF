@@ -89,6 +89,8 @@ class CFakeStoreProvider : public GUCEF::ASSETSTORE::CIAssetStoreProvider
 
     virtual const GUCEF::CORE::CString& GetProviderId( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::CORE::CString GetDisplayName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    /** The provider "fakestore2" has a home page ("https://www.Store-Two.example/shop"), the other ones have none */
+    virtual GUCEF::CORE::CString GetHomePageUrl( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool IsSignedIn( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool RenewSession( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::ASSETSTORE::TAssetStoreStatus QueryLibrary( const GUCEF::ASSETSTORE::CAssetStoreQuery& query, GUCEF::ASSETSTORE::CAssetStoreLibraryPage& page ) GUCEF_VIRTUAL_OVERRIDE;

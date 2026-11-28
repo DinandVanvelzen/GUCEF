@@ -80,6 +80,10 @@
 #include "gucefASSETSTORE_CAssetStoreGlobal.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H
 #endif /* GUCEF_ASSETSTORE_CASSETSTOREGLOBAL_H ? */
+#ifndef GUCEF_ASSETSTORE_CASSETSTOREREGISTRY_H
+#include "gucefASSETSTORE_CAssetStoreRegistry.h"
+#define GUCEF_ASSETSTORE_CASSETSTOREREGISTRY_H
+#endif /* GUCEF_ASSETSTORE_CASSETSTOREREGISTRY_H ? */
 #ifndef GUCEF_ASSETSTORE_CASSETSTOREJSON_H
 #include "gucefASSETSTORE_CAssetStoreJson.h"
 #define GUCEF_ASSETSTORE_CASSETSTOREJSON_H
@@ -366,10 +370,30 @@ CPrimaryAssetStore::GetIndexLock( void )
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
-CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk )
+CPrimaryAssetStore::GetSiteFolderOfSource( const CORE::CString& sourceId )
 {GUCEF_TRACE;
 
-    const CORE::CString clean = CPackStorageLayout::MakePackFolderName( sourceName );
+    CORE::CString siteName = sourceId;
+    if ( sourceId != CPrimaryAssetStoreSettings::DiskSourceId )
+    {
+        TAssetStoreProviderPtr provider;
+        if ( CAssetStoreGlobal::Instance()->GetRegistry().TryGetProvider( sourceId, provider ) && !provider.IsNULL() )
+        {
+            const CORE::CString providerSite = provider->GetSiteName();
+            if ( !providerSite.IsNULLOrEmpty() )
+                siteName = providerSite;
+        }
+    }
+    return CPackStorageLayout::MakeSiteFolderName( siteName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPrimaryAssetStore::ChoosePackFolder( const CORE::CString& locationId, const CORE::CString& sourceId, const CORE::CString& sourceName, const CORE::CString& packId, bool avoidFoldersOnDisk )
+{GUCEF_TRACE;
+
+    const CORE::CString clean = CPackStorageLayout::MakePackFolder( GetSiteFolderOfSource( sourceId ), CPackStorageLayout::MakePackFolderName( sourceName ) );
     const CORE::CString locationRoot = GetLocationRoot( locationId );
     MT::CScopeMutex lock( m_folderLock );
 
@@ -865,7 +889,7 @@ CPrimaryAssetStore::MigrateStorageLayout( const CORE::CString& locationId, bool 
         const CORE::CString leaf = layout.GetLegacyRoot().ReplaceChar( '\\', '/' );
         const CORE::CString::StringVector parts = leaf.ParseElements( '/', false );
         // a target folder that exists refuses the pack below (nothing moves), so the disk does not choose another name here
-        const CORE::CString folder = ChoosePackFolder( packLocation, parts.empty() ? packId : parts.back(), packId, false );
+        const CORE::CString folder = ChoosePackFolder( packLocation, CAssetCatalogue::GetText( packs[ p ], "source_id" ), parts.empty() ? packId : parts.back(), packId, false );
         reserved.push_back( packId );
         const CPackStorageLayout target( CPackStorageLayout::MakeRootPath( folder ) );
         const CORE::CString newOriginal = target.GetOriginalFolder( root );
@@ -2000,18 +2024,26 @@ CPrimaryAssetStore::RunReindexFromStorage( bool buildMissing, const CAssetPackIn
         const CORE::CString root = GetLocationRoot( settings.locations[ l ].locationId );
         if ( root.IsNULLOrEmpty() || !IsLocationOnline( settings.locations[ l ].locationId ) )
             continue;
-        VFS::CVFS::TStringVector folders;
-        vfs.GetDirList( folders, CPackStorageLayout::Join( root, CPackStorageLayout::IntermediateArea ), false, false, CORE::CString::Empty );
-        for ( size_t f=0; f<folders.size(); ++f )
+        // the pack folders have two parts: the folders of the sites, and the packs in each of them
+        const CORE::CString intermediateRoot = CPackStorageLayout::Join( root, CPackStorageLayout::IntermediateArea );
+        VFS::CVFS::TStringVector siteFolders;
+        vfs.GetDirList( siteFolders, intermediateRoot, false, false, CORE::CString::Empty );
+        for ( size_t s=0; s<siteFolders.size(); ++s )
         {
-            const CORE::CString name = LastFolderName( folders[ f ] );
-            if ( ownedFolders.end() != ownedFolders.find( settings.locations[ l ].locationId + "\n" + name.Lowercase() ) )
-                continue;
-            if ( vfs.FileExists( CPackStorageLayout::Join( CPackStorageLayout::Join( CPackStorageLayout::Join( root, CPackStorageLayout::IntermediateArea ), name ), "pack-index.json" ) ) )
+            const CORE::CString siteName = LastFolderName( siteFolders[ s ] );
+            VFS::CVFS::TStringVector folders;
+            vfs.GetDirList( folders, CPackStorageLayout::Join( intermediateRoot, siteName ), false, false, CORE::CString::Empty );
+            for ( size_t f=0; f<folders.size(); ++f )
             {
-                ++report.documentsWithoutPack;
-                if ( report.problems.size() < 50 )
-                    report.problems.push_back( "the folder " + name + " of the location " + settings.locations[ l ].locationId + " has a pack index and no pack of the catalogue owns it" );
+                const CORE::CString name = CPackStorageLayout::MakePackFolder( siteName, LastFolderName( folders[ f ] ) );
+                if ( ownedFolders.end() != ownedFolders.find( settings.locations[ l ].locationId + "\n" + name.Lowercase() ) )
+                    continue;
+                if ( vfs.FileExists( CPackStorageLayout::Join( CPackStorageLayout::Join( intermediateRoot, name ), "pack-index.json" ) ) )
+                {
+                    ++report.documentsWithoutPack;
+                    if ( report.problems.size() < 50 )
+                        report.problems.push_back( "the folder " + name + " of the location " + settings.locations[ l ].locationId + " has a pack index and no pack of the catalogue owns it" );
+                }
             }
         }
     }
@@ -2783,7 +2815,7 @@ CORE::CString
 CPrimaryAssetStore::GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const
 {GUCEF_TRACE;
 
-    // layout version 2: "<root of the location>/<area>/<folder of the pack>/..." with the areas original, intermediate and the cooked area
+    // layout version 2: "<root of the location>/<area>/<site folder>/<pack name>/..." with the areas original, intermediate and the cooked area
     const CORE::CString locationId = FindLocationOfVfsPath( vfsPath );
     if ( locationId.IsNULLOrEmpty() )
         return CORE::CString::Empty;
@@ -2791,15 +2823,10 @@ CPrimaryAssetStore::GetPackFolderOfVfsPath( const CORE::CString& vfsPath ) const
     const CORE::CString path = NormalizeVfsPath( vfsPath );
     if ( path.Length() <= root.Length() + 1 )
         return CORE::CString::Empty;
-    const CORE::CString relative = path.CutChars( root.Length() + 1, true );
-    const Int32 firstSlash = relative.HasChar( '/', true );
-    if ( firstSlash <= 0 || !CPackStorageLayout::IsAreaName( relative.SubstrFromRange( 0, (UInt32) firstSlash ) ) )
+    CORE::CString area, packFolder, rest;
+    if ( !CPackStorageLayout::SplitAreaPath( path.CutChars( root.Length() + 1, true ), area, packFolder, rest ) )
         return CORE::CString::Empty;
-    CORE::CString folder = relative.CutChars( (UInt32) firstSlash + 1, true );
-    const Int32 secondSlash = folder.HasChar( '/', true );
-    if ( secondSlash > 0 )
-        folder = folder.SubstrFromRange( 0, (UInt32) secondSlash );
-    return folder.IsNULLOrEmpty() ? CORE::CString::Empty : root + "/" + folder;
+    return root + "/" + packFolder;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -1199,7 +1199,7 @@ CAssetIngestPipeline::Place( CAssetIngestJob& job, CORE::CString& message )
     // the folder an earlier attempt of this ingest chose (kept in the manifest before anything moved), else a new one
     const CPackStorageLayout earlier( job.pack.rootPath );
     const CPackStorageLayout layout( earlier.IsAreaLayout() ? earlier.GetStoredRootPath()
-                                                            : CPackStorageLayout::MakeRootPath( m_store.ChoosePackFolder( job.locationId, sourceName, job.pack.packId ) ) );
+                                                            : CPackStorageLayout::MakeRootPath( m_store.ChoosePackFolder( job.locationId, job.pack.sourceId, sourceName, job.pack.packId ) ) );
     const CORE::CString originalFolder = layout.GetOriginalFolder( locationRoot );
     if ( earlier.IsAreaLayout() )
         m_store.ReservePackFolder( job.locationId, job.pack.packId, earlier.GetPackFolder() );

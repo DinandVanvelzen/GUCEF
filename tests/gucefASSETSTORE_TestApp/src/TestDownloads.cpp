@@ -267,6 +267,16 @@ PerformDownloadTests( void )
             TAssetStoreProviderPtr provider;
             ASSERT_TRUE( registry.TryGetProvider( "fakestore", provider ) && "fakestore" == provider->GetProviderId() );
             ASSERT_FALSE( registry.AddProvider( provider ) );
+
+            // the site of a store is the host of its home page: the folder its packs are kept in
+            ASSERT_TRUE( provider->GetSiteName().IsNULLOrEmpty() );
+            TAssetStoreProviderPtr second;
+            ASSERT_TRUE( registry.TryGetProvider( "fakestore2", second ) && "store-two.example" == second->GetSiteName() );
+            ASSERT_TRUE( "store-two.example" == CPrimaryAssetStore::GetSiteFolderOfSource( "fakestore2" ) );
+            ASSERT_TRUE( "fakestore" == CPrimaryAssetStore::GetSiteFolderOfSource( "fakestore" ) );          // no home page: the id of the source
+            ASSERT_TRUE( "otherstore" == CPrimaryAssetStore::GetSiteFolderOfSource( "otherstore" ) );        // no provider: the id of the source
+            ASSERT_TRUE( "disk" == CPrimaryAssetStore::GetSiteFolderOfSource( "disk" ) );
+
             ASSERT_TRUE( registry.RemoveProvider( "fakestore2" ) );
             ASSERT_FALSE( registry.HasProvider( "fakestore2" ) );
             ASSERT_FALSE( registry.RemoveProvider( "fakestore2" ) );
@@ -798,7 +808,7 @@ PerformDownloadTests( void )
             ASSERT_TRUE( "fakestore" == pack.sourceId && "item-2" == pack.sourceItemId && "Sci-fi Crate" == pack.title && ASSETKEEP_ORIGINAL == pack.keep );
             ASSERT_TRUE( ASSETPACK_STATE_INGESTED == pack.state && !pack.categories.empty() );
             ASSERT_TRUE( 1 == pack.unmappedCategories.count( "3D/Weapons & Combat/Melee" ) );
-            ASSERT_TRUE( "layout2:Sci-fi Crate" == pack.rootPath );
+            ASSERT_TRUE( "layout2:fakestore/Sci-fi Crate" == pack.rootPath );
 
             // the manual download waits in the staging area to be added
             ASSERT_TRUE( manager.GetJob( manualJob, job ) && vfs.DirExists( job.destination ) );

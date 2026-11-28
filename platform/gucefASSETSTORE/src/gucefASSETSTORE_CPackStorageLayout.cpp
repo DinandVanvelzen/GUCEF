@@ -215,6 +215,72 @@ CPackStorageLayout::ChoosePackFolderName( const CORE::CString& cleanName, const 
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
+CPackStorageLayout::MakeSiteFolderName( const CORE::CString& siteName )
+{GUCEF_TRACE;
+
+    // a name of nothing but dots and blanks is no name
+    const char* siteChars = siteName.C_String();
+    const UInt32 siteLength = ByteLengthOf( siteName );
+    UInt32 named = 0;
+    for ( UInt32 i=0; i<siteLength; ++i )
+        if ( '.' != siteChars[ i ] && ' ' != siteChars[ i ] )
+            ++named;
+    if ( 0 == named )
+        return "unknown";
+
+    // a host name in lower case: the shares are not case sensitive everywhere
+    CORE::CString name = CAssetStoreSafeNames::MakeSafePart( siteName.Lowercase(), MaxSiteFolderNameBytes );
+    const UInt32 length = ByteLengthOf( name );
+    const char* chars = name.C_String();
+    UInt32 start = 0;
+    while ( start < length && ( '.' == chars[ start ] || ' ' == chars[ start ] ) )
+        ++start;
+    UInt32 end = length;
+    while ( end > start && ( '.' == chars[ end-1 ] || ' ' == chars[ end-1 ] ) )
+        --end;
+    if ( start >= end )
+        return "unknown";
+    return CORE::CString( chars + start, end - start );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPackStorageLayout::MakePackFolder( const CORE::CString& siteFolder, const CORE::CString& packName )
+{GUCEF_TRACE;
+
+    return Join( siteFolder, packName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPackStorageLayout::SplitAreaPath( const CORE::CString& relativePath, CORE::CString& area, CORE::CString& packFolder, CORE::CString& rest )
+{GUCEF_TRACE;
+
+    area.Clear();
+    packFolder.Clear();
+    rest.Clear();
+    const CORE::CString::StringVector parts = Normalize( relativePath ).ParseElements( '/', false );
+    if ( parts.size() < 1 + PackFolderParts || !IsAreaName( parts[ 0 ] ) )
+        return false;
+    for ( size_t i=1; i<=PackFolderParts; ++i )
+    {
+        if ( parts[ i ].IsNULLOrEmpty() )
+            return false;
+    }
+    area = parts[ 0 ];
+    packFolder = parts[ 1 ];
+    for ( size_t i=2; i<=PackFolderParts; ++i )
+        packFolder = Join( packFolder, parts[ i ] );
+    for ( size_t i=1+PackFolderParts; i<parts.size(); ++i )
+        rest = Join( rest, parts[ i ] );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
 CPackStorageLayout::MakeRootPath( const CORE::CString& packFolder )
 {GUCEF_TRACE;
 
@@ -273,6 +339,26 @@ CPackStorageLayout::GetPackFolder( void ) const
 {GUCEF_TRACE;
 
     return m_packFolder;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPackStorageLayout::GetSiteFolder( void ) const
+{GUCEF_TRACE;
+
+    const Int32 slash = m_packFolder.HasChar( '/', true );
+    return slash > 0 ? m_packFolder.SubstrFromRange( 0, (UInt32) slash ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPackStorageLayout::GetPackName( void ) const
+{GUCEF_TRACE;
+
+    const Int32 slash = m_packFolder.HasChar( '/', false );
+    return slash >= 0 ? m_packFolder.CutChars( (UInt32) slash + 1, true ) : m_packFolder;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -42,6 +42,10 @@
 #include "gucefCORE_CTask.h"
 #define GUCEF_CORE_CTASK_H
 #endif /* GUCEF_CORE_CTASK_H ? */
+#ifndef GUCEF_CORE_CURI_H
+#include "gucefCORE_CUri.h"
+#define GUCEF_CORE_CURI_H
+#endif /* GUCEF_CORE_CURI_H ? */
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -132,6 +136,27 @@ CIAssetStoreProvider::GetHomePageUrl( void ) const
 {GUCEF_TRACE;
 
     return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIAssetStoreProvider::GetSiteName( void ) const
+{GUCEF_TRACE;
+
+    const CORE::CString homePage = GetHomePageUrl();
+    if ( homePage.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+
+    // a home page given without its scheme is a host as well
+    CORE::CUri uri( homePage );
+    CORE::CString host = uri.GetAuthorityHost();
+    if ( host.IsNULLOrEmpty() )
+        host = CORE::CUri( "https://" + homePage ).GetAuthorityHost();
+    host = host.Lowercase();
+    if ( 0 == host.HasSubstr( "www.", true ) && host.Length() > 4 )
+        host = host.CutChars( 4, true );
+    return host;
 }
 
 /*-------------------------------------------------------------------------*/

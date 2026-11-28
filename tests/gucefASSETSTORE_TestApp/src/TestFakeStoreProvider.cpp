@@ -122,6 +122,14 @@ CFakeStoreProvider::GetDisplayName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+CFakeStoreProvider::GetHomePageUrl( void ) const
+{
+    return "fakestore2" == m_providerId ? CORE::CString( "https://www.Store-Two.example/shop" ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CFakeStoreProvider::IsSignedIn( void ) const
 {
