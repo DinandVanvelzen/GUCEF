@@ -104,13 +104,13 @@ class CStore
     bool mounted;
 
     CStore( const CORE::CString& name )
-        : dir( MakeCleanTestDir( name ) ), mount( name ), pack( "Props" ), asset( "box.gltf" ), mounted( false )
+        : dir( MakeCleanTestDir( name ) ), mount( name ), pack( "disk/Props" ), asset( "box.gltf" ), mounted( false )
     {
         VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
         mounted = vfs.MountArchive( "cookedtest/" + name, dir, VFS::CVFS::FileSystemArchiveTypeName, mount, true, false, dir );
         CORE::CreatePathDirectories( dir + "/original/" + pack + "/" );
         CORE::CreatePathDirectories( dir + "/intermediate/" + pack + "/.cache/" );
-        CORE::CreatePathDirectories( dir + "/gucef-ogre3d/" + pack + "/desktop/" + pack + "/" );
+        CORE::CreatePathDirectories( dir + "/gucef-ogre3d/" + pack + "/desktop/Props/" );
     }
 
     ~CStore()
@@ -120,8 +120,8 @@ class CStore
     }
 
     CORE::CString SourceVfs( void ) const { return mount + "/original/" + pack + "/" + asset; }
-    CORE::CString CookedVfs( void ) const { return mount + "/gucef-ogre3d/" + pack + "/desktop/" + pack + "/box.mesh"; }
-    CORE::CString CookedRelative( void ) const { return "gucef-ogre3d/" + pack + "/desktop/" + pack + "/box.mesh"; }
+    CORE::CString CookedVfs( void ) const { return mount + "/gucef-ogre3d/" + pack + "/desktop/Props/box.mesh"; }
+    CORE::CString CookedRelative( void ) const { return "gucef-ogre3d/" + pack + "/desktop/Props/box.mesh"; }
     CORE::CString EntryVfs( void ) const { return ASSETCONVERTER::CAssetCacheEntry::GetEntryPath( mount + "/intermediate/" + pack, asset ); }
 
     bool WriteSource( const CORE::CString& content ) const
@@ -432,7 +432,7 @@ TestResolver( void )
     {
         CStore store( "cookedres" );
         ASSERT_TRUE( store.mounted );
-        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && WriteTestFile( store.dir + "/gucef-ogre3d/Props/desktop/Props/box.mesh", "mesh" ) );
+        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && WriteTestFile( store.dir + "/gucef-ogre3d/disk/Props/desktop/Props/box.mesh", "mesh" ) );
         TResolver::SOptions options;
         TResolver::SCookedOutput found;
 
@@ -483,12 +483,12 @@ TestResolver( void )
         ASSERT_TRUE( TResolver::STATE_STALE == found.state && Contains( found.reason, "did not finish" ) );
 
         // a cooked file is gone
-        ASSERT_TRUE( store.WriteEntry( 0, false, true ) && CORE::DeleteFile( store.dir + "/gucef-ogre3d/Props/desktop/Props/box.mesh" ) );
+        ASSERT_TRUE( store.WriteEntry( 0, false, true ) && CORE::DeleteFile( store.dir + "/gucef-ogre3d/disk/Props/desktop/Props/box.mesh" ) );
         TResolver::ResolveInStore( store.SourceVfs(), CORE::CString::Empty, options, found );
         ASSERT_TRUE( TResolver::STATE_STALE == found.state && Contains( found.reason, "is gone" ) );
 
         // the original is gone (a pack that kept only its converted files): the key cannot be compared with the source, the output is current as far as it can be told
-        ASSERT_TRUE( WriteTestFile( store.dir + "/gucef-ogre3d/Props/desktop/Props/box.mesh", "mesh" ) && CORE::DeleteFile( store.dir + "/original/Props/box.gltf" ) );
+        ASSERT_TRUE( WriteTestFile( store.dir + "/gucef-ogre3d/disk/Props/desktop/Props/box.mesh", "mesh" ) && CORE::DeleteFile( store.dir + "/original/disk/Props/box.gltf" ) );
         TResolver::ResolveInStore( store.SourceVfs(), CORE::CString::Empty, options, found );
         ASSERT_TRUE( found.IsCurrent() && found.verified && !found.sourceVerified );
         ASSERT_TRUE( Contains( TResolver::Describe( found ), "source is not there" ) );
@@ -516,7 +516,7 @@ TestShellModel( void )
         CStore store( "cookedmodel" );
         ASSERT_TRUE( store.mounted && fixture.Adopt( store ) );
         ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) );
-        ASSERT_TRUE( WriteCookedQuad( fixture.shell->GetStage(), store.dir + "/gucef-ogre3d/Props/desktop/Props/box.mesh" ) );
+        ASSERT_TRUE( WriteCookedQuad( fixture.shell->GetStage(), store.dir + "/gucef-ogre3d/disk/Props/desktop/Props/box.mesh" ) );
         ASSERT_TRUE( store.WriteEntry( 0, false, true ) );
         CWorkbenchShell& shell = *fixture.shell;
         ASSERT_TRUE( shell.IsCookedOutputPreferred() && fixture.preferences.preferCookedOutput );
@@ -576,7 +576,7 @@ TestShellModel( void )
         ASSERT_TRUE( Contains( shell.GetSourceReport(), "stale" ) );
 
         // absent: nothing was cooked
-        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && CORE::DeleteFile( store.dir + "/intermediate/Props/.cache/box.gltf.cache.json" ) );
+        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && CORE::DeleteFile( store.dir + "/intermediate/disk/Props/.cache/box.gltf.cache.json" ) );
         ASSERT_TRUE( shell.OpenAsset( store.SourceVfs() ) && model.IsLoaded() );
         ASSERT_TRUE( TestGltfVertexCount == model.GetStatistics().vertexCount );
         ASSERT_TRUE( Contains( shell.GetShownSourceDescription(), "quick look" ) && Contains( shell.GetShownSourceDescription(), "none" ) && Contains( shell.GetShownSourceDescription(), "Convert for Ogre" ) );
@@ -612,8 +612,8 @@ TestShellPack( void )
         ASSERT_TRUE( fixture.ready && fixture.RegisterPlugins() );
         CStore store( "cookedpack" );
         ASSERT_TRUE( store.mounted && fixture.Adopt( store ) );
-        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && WriteTestFile( store.dir + "/original/Props/pack.marker", "pack" ) );
-        ASSERT_TRUE( WriteCookedQuad( fixture.shell->GetStage(), store.dir + "/gucef-ogre3d/Props/desktop/Props/box.mesh" ) );
+        ASSERT_TRUE( store.WriteSource( BuildTestGltf() ) && WriteTestFile( store.dir + "/original/disk/Props/pack.marker", "pack" ) );
+        ASSERT_TRUE( WriteCookedQuad( fixture.shell->GetStage(), store.dir + "/gucef-ogre3d/disk/Props/desktop/Props/box.mesh" ) );
         ASSERT_TRUE( store.WriteEntry( 0, false, true ) );
         CWorkbenchShell& shell = *fixture.shell;
         const CORE::CString packRoot = store.mount + "/original/" + store.pack;

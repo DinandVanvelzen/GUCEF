@@ -400,12 +400,12 @@ PerformAssetWorkbenchPackIndexSourceTests( void )
         listedY.push_back( "pack.json" );
         ASSERT_TRUE( BuildDocument( listedX, docX ) && BuildDocument( listedY, docY ) );
         ASSETCONVERTER::CPackIndexWriter writer;
-        ASSERT_TRUE( writer.Write( docX, "wbpisrc/main/intermediate/PackX" ) && writer.Write( docY, "wbpisrc/main/intermediate/PackY" ) );
+        ASSERT_TRUE( writer.Write( docX, "wbpisrc/main/intermediate/disk/PackX" ) && writer.Write( docY, "wbpisrc/main/intermediate/disk/PackY" ) );
         ASSERT_TRUE( RunIndexJob( service, packX, false ) && RunIndexJob( service, packY, false ) );
 
         CLocalPackIndexSource local;
-        local.SetPackFolder( packX, "wbpisrc/main/intermediate/PackX" );
-        local.SetPackFolder( packY, "wbpisrc/main/intermediate/PackY" );
+        local.SetPackFolder( packX, "wbpisrc/main/intermediate/disk/PackX" );
+        local.SetPackFolder( packY, "wbpisrc/main/intermediate/disk/PackY" );
         CServicePackIndexSource remote( service );
         ASSERT_TRUE( remote.IsCheap() == service.IsInProcess() && !remote.GetName().IsNULLOrEmpty() );
 
@@ -491,7 +491,7 @@ PerformAssetWorkbenchPackIndexSourceTests( void )
         ASSETCONVERTER::CPackIndexDocument bigger;
         ASSERT_TRUE( BuildDocument( more, bigger ) );
         ASSETCONVERTER::CPackIndexWriter writer;
-        ASSERT_TRUE( writer.Write( bigger, "wbpisrc/main/intermediate/PackX" ) );
+        ASSERT_TRUE( writer.Write( bigger, "wbpisrc/main/intermediate/disk/PackX" ) );
         ASSERT_TRUE( RunIndexJob( service, packX, false ) );
         Pump( 100 );
         ASSERT_TRUE( IPackIndexSource::RESULT_OK == source.GetManifest( packX, manifest, stale ) && 27 == manifest.counts.resources && manifest.producer.indexKey != firstKey );

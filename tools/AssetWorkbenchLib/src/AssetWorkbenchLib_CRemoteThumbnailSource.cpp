@@ -249,12 +249,13 @@ CRemoteThumbnailSource::GetPackFolder( const CORE::CString& vfsPath, CORE::CStri
     if ( GUCEF_NULL == m_system || !m_system->ToServicePath( vfsPath, servicePath ) )
         return false;
     const CORE::CString::StringVector segments = servicePath.ParseElements( '/', false );
-    for ( size_t i=0; i+2<segments.size(); ++i )
+    const size_t folderParts = ASSETSTORE::CPackStorageLayout::PackFolderParts;
+    for ( size_t i=0; i+folderParts+1<segments.size(); ++i )
     {
         if ( !ASSETSTORE::CPackStorageLayout::IsAreaName( segments[ i ] ) )
             continue;
         CORE::CString folder;
-        for ( size_t s=0; s<=i+1; ++s )
+        for ( size_t s=0; s<=i+folderParts; ++s )
             folder += ( 0 == s ? CORE::CString::Empty : CORE::CString( "/" ) ) + segments[ s ];
         packFolder = CAssetMounter::NormalizePath( m_system->ToClientPath( folder ) );
         return !packFolder.IsNULLOrEmpty();

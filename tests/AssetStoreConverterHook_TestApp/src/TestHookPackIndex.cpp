@@ -194,7 +194,7 @@ RunHookPackIndexSuite( SHookIndexFixture& fixture )
             ASSERT_TRUE( CAssetPackIndexInfo::StateLoaded == info.state && !info.stale );
             ASSERT_TRUE( info.hasManifest );
             ASSERT_TRUE( "AssetConverterLib" == info.manifest.FindChild( "producer" )->GetAttributeValueOrChildValueByName( "tool" ).AsString() );
-            ASSERT_TRUE( info.documentPath == base + "/main/intermediate/Idx_Both/pack-index.json" && vfs.FileExists( info.documentPath ) );
+            ASSERT_TRUE( info.documentPath == base + "/main/intermediate/disk/Idx_Both/pack-index.json" && vfs.FileExists( info.documentPath ) );
             ASSERT_TRUE( 4 == info.resourceCount );     // the two models, the picture and the descriptor of the pack, which is no asset
             bothHash = info.documentHash;
 
@@ -326,12 +326,12 @@ RunHookPackIndexSuite( SHookIndexFixture& fixture )
             onlyId = result.packId;
             CAssetPackIndexInfo info;
             ASSERT_TRUE( ASSETSTORE_STATUS_NOT_FOUND == store.GetPackIndexInfo( onlyId, false, info ) );
-            ASSERT_FALSE( vfs.FileExists( base + "/main/intermediate/Idx_Only/pack-index.json" ) );
+            ASSERT_FALSE( vfs.FileExists( base + "/main/intermediate/disk/Idx_Only/pack-index.json" ) );
 
             CAssetPackIndexOutcome outcome;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.IndexPack( onlyId, CAssetPackIndexOptions(), outcome ) );
             ASSERT_TRUE( outcome.built && outcome.loaded && !outcome.reused && !outcome.derived && 5 == outcome.resourceCount );
-            ASSERT_TRUE( vfs.FileExists( base + "/main/intermediate/Idx_Only/pack-index.json" ) );
+            ASSERT_TRUE( vfs.FileExists( base + "/main/intermediate/disk/Idx_Only/pack-index.json" ) );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPackIndexInfo( onlyId, true, info ) );
             ASSERT_TRUE( CAssetPackIndexInfo::StateLoaded == info.state && !info.stale && 5 == info.resourceCount && 1 == info.levels.size() && "structure" == info.levels[ 0 ] );
             onlyHash = info.documentHash;
@@ -374,7 +374,7 @@ RunHookPackIndexSuite( SHookIndexFixture& fixture )
             verify.analyse = true;
             CAssetPackIndexOutcome fresh;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.IndexPack( onlyId, verify, fresh ) && fresh.reused && !fresh.built && !fresh.loaded );
-            ASSERT_TRUE( WriteVfsFile( base + "/main/original/Idx_Only/Models/Extra.txt", CString( "an extra file" ) ) );
+            ASSERT_TRUE( WriteVfsFile( base + "/main/original/disk/Idx_Only/Models/Extra.txt", CString( "an extra file" ) ) );
             CAssetPackIndexOutcome trusted;
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.IndexPack( onlyId, CAssetPackIndexOptions(), trusted ) && trusted.reused && !trusted.built );
             ASSERT_TRUE( ASSETSTORE_STATUS_OK == store.GetPackIndexInfo( onlyId, false, info ) && 5 == info.resourceCount );

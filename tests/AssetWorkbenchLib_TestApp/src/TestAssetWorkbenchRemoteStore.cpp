@@ -127,6 +127,17 @@ using namespace GUCEF::ASSETWORKBENCH;
 
 namespace {
 
+/** The pack folder ("<site folder>/<pack name>") of a VFS path of the original area of a pack of the store */
+CORE::CString
+PackFolderOfVfs( const CORE::CString& vfsPath )
+{
+    const Int32 at = vfsPath.HasSubstr( "/original/", false );
+    CORE::CString area, packFolder, rest;
+    if ( at < 0 || !ASSETSTORE::CPackStorageLayout::SplitAreaPath( vfsPath.CutChars( (UInt32) at + 1, true ), area, packFolder, rest ) )
+        return CORE::CString::Empty;
+    return packFolder;
+}
+
 /** The code of a pairing that no server knows: valid characters, wrong value */
 const char* const WrongCode = "AAAAAAAAAAAAAAAA";
 
@@ -1148,7 +1159,7 @@ TestRemoteFilesReferenced( void )
         ASSERT_TRUE( !sourceVfs.IsNULLOrEmpty() );
         const Int32 at = sourceVfs.HasSubstr( "/original/", false );
         ASSERT_TRUE( at > 0 );
-        const CORE::CString packFolder = sourceVfs.CutChars( (UInt32) at + 10, true ).SubstrToChar( '/', true );
+        const CORE::CString packFolder = PackFolderOfVfs( sourceVfs );
         ASSERT_TRUE( WriteTestPng( world.directory + "/store/original/" + packFolder + "/Textures/checker.png", 8, 8 ) );
         const CORE::CString pictureService = "avstore/remote_wbreferenced/original/" + packFolder + "/Textures/checker.png";
 
@@ -1210,7 +1221,7 @@ TestRemoteFilesCooked( void )
         const CORE::CString root = "avstore/remote_wbcooked";
         const Int32 at = sourceVfs.HasSubstr( "/original/", false );
         ASSERT_TRUE( at > 0 );
-        const CORE::CString packFolder = sourceVfs.CutChars( (UInt32) at + 10, true ).SubstrToChar( '/', true );
+        const CORE::CString packFolder = PackFolderOfVfs( sourceVfs );
         const CORE::CString cookedVfs = root + "/gucef-ogre3d/" + packFolder + "/desktop/" + packFolder + "/sword_model.mesh";
         ASSERT_TRUE( WriteCookedQuadFile( fixture.shell->GetStage(), world.directory + "/store/gucef-ogre3d/" + packFolder + "/desktop/" + packFolder + "/sword_model.mesh" ) );
         ASSETCONVERTER::CAssetCacheEntry entry;
@@ -1370,7 +1381,7 @@ TestRemoteFilesCompanions( void )
         ASSERT_TRUE( !modelId.IsNULLOrEmpty() && !packId.IsNULLOrEmpty() );
         const Int32 at = sourceVfs.HasSubstr( "/original/", false );
         ASSERT_TRUE( at > 0 );
-        const CORE::CString packFolder = sourceVfs.CutChars( (UInt32) at + 10, true ).SubstrToChar( '/', true );
+        const CORE::CString packFolder = PackFolderOfVfs( sourceVfs );
         // a picture that the model names (checker.png) but that no relation leads to: the fallback finds it, the relations do not need it
         ASSERT_TRUE( WriteTestPng( world.directory + "/store/original/" + packFolder + "/Textures/checker.png", 8, 8 ) );
 
@@ -1954,7 +1965,7 @@ TestRemoteFilesNeverWait( void )
                 sourceVfs = page.hits[ i ].vfsPath;
         const Int32 at = sourceVfs.HasSubstr( "/original/", false );
         ASSERT_TRUE( at > 0 );
-        const CORE::CString packFolderName = sourceVfs.CutChars( (UInt32) at + 10, true ).SubstrToChar( '/', true );
+        const CORE::CString packFolderName = PackFolderOfVfs( sourceVfs );
         ASSERT_TRUE( WriteTestFile( world.directory + "/store/original/" + packFolderName + "/Extra/untouched.txt", "a file that nothing looks at" ) );
         const CORE::CString serviceFolder = "avstore/remote_wbnowait/original/" + packFolderName;
 

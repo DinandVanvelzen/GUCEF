@@ -213,19 +213,20 @@ CCookedOutputResolver::SplitStorePath( const CORE::CString& vfsPath, CORE::CStri
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     CORE::CString::StringVector segments;
     SplitSegments( ASSETCONVERTER::CVfsPaths::Normalize( vfsPath ), segments );
-    // the last area folder of that name that has a pack of this name beside it in the other areas
-    for ( Int32 i=(Int32) segments.size()-2; i>=0; --i )
+    // the last area folder of that name that has a pack of this name ("<site folder>/<pack name>") beside it in the other areas
+    const size_t folderParts = ASSETSTORE::CPackStorageLayout::PackFolderParts;
+    for ( Int32 i=(Int32) segments.size()-1-(Int32) folderParts; i>=0; --i )
     {
         if ( segments[ (size_t) i ] != ASSETSTORE::CPackStorageLayout::OriginalArea )
             continue;
         const CORE::CString root = JoinSegments( segments, 0, (size_t) i );
-        const CORE::CString& pack = segments[ (size_t) i + 1 ];
+        const CORE::CString pack = JoinSegments( segments, (size_t) i + 1, (size_t) i + 1 + folderParts );
         if ( vfs.DirExists( ASSETSTORE::CPackStorageLayout::Join( ASSETSTORE::CPackStorageLayout::Join( root, ASSETSTORE::CPackStorageLayout::IntermediateArea ), pack ) ) ||
              vfs.DirExists( ASSETSTORE::CPackStorageLayout::Join( ASSETSTORE::CPackStorageLayout::Join( root, ASSETSTORE::CPackStorageLayout::CookedArea ), pack ) ) )
         {
             locationRoot = root;
             packFolder = pack;
-            relative = JoinSegments( segments, (size_t) i + 2, segments.size() );
+            relative = JoinSegments( segments, (size_t) i + 1 + folderParts, segments.size() );
             return true;
         }
     }
@@ -242,13 +243,14 @@ CCookedOutputResolver::Reroot( const CORE::CString& recorded, const CORE::CStrin
     const CORE::CString folder = ASSETCONVERTER::CVfsPaths::Normalize( cookedFolder );
     if ( StartsWithFolder( file, folder ) )
         return file;
-    // the entry was written where the VFS had other names for the places: the last two parts of the cooked folder
-    // ("gucef-ogre3d/<pack folder>") say where the cooked area starts in what it recorded
+    // the entry was written where the VFS had other names for the places: the last parts of the cooked folder
+    // ("gucef-ogre3d/<site folder>/<pack name>") say where the cooked area starts in what it recorded
     CORE::CString::StringVector segments;
     SplitSegments( folder, segments );
-    if ( segments.size() >= 2 )
+    const size_t markerParts = 1 + ASSETSTORE::CPackStorageLayout::PackFolderParts;
+    if ( segments.size() >= markerParts )
     {
-        const CORE::CString marker = "/" + JoinSegments( segments, segments.size() - 2, segments.size() ) + "/";
+        const CORE::CString marker = "/" + JoinSegments( segments, segments.size() - markerParts, segments.size() ) + "/";
         const Int32 at = ( "/" + file ).HasSubstr( marker, true );
         if ( at >= 0 )
             return ASSETCONVERTER::CVfsPaths::Join( folder, ( "/" + file ).CutChars( (UInt32) at + marker.Length(), true ) );

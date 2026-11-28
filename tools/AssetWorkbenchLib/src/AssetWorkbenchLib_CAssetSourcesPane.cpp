@@ -3273,21 +3273,16 @@ CORE::CString
 CAssetSourcesPane::GetPackFolderOfClientPath( const CORE::CString& clientPath ) const
 {GUCEF_TRACE;
 
-    // "<location>/<area>/<pack folder>/...": the folder of the pack in its area (layout version 2)
+    // "<location>/<area>/<site folder>/<pack name>/...": the folder of the pack in its area (layout version 2)
     for ( size_t r=0; r<m_remoteRoots.size(); ++r )
     {
         const CORE::CString root = CAssetMounter::NormalizePath( m_remoteRoots[ r ] );
         if ( clientPath.Length() <= root.Length() + 1 || 0 != clientPath.HasSubstr( root + "/", true ) )
             continue;
-        const CORE::CString rest = clientPath.CutChars( root.Length() + 1, true );
-        const Int32 first = rest.HasChar( '/', true );
-        if ( first <= 0 || !ASSETSTORE::CPackStorageLayout::IsAreaName( rest.SubstrFromRange( 0, (UInt32) first ) ) )
+        CORE::CString area, packFolder, below;
+        if ( !ASSETSTORE::CPackStorageLayout::SplitAreaPath( clientPath.CutChars( root.Length() + 1, true ), area, packFolder, below ) || below.IsNULLOrEmpty() )
             continue;
-        const CORE::CString afterArea = rest.CutChars( (UInt32) first + 1, true );
-        const Int32 second = afterArea.HasChar( '/', true );
-        if ( second <= 0 )
-            continue;
-        return root + "/" + rest.SubstrFromRange( 0, (UInt32) first ) + "/" + afterArea.SubstrFromRange( 0, (UInt32) second );
+        return root + "/" + area + "/" + packFolder;
     }
     return CORE::CString::Empty;
 }
